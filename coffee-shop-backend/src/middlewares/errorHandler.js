@@ -1,4 +1,3 @@
-const logger = require('../utils/logger');
 const env = require('../config/env');
 
 /**
@@ -6,7 +5,7 @@ const env = require('../config/env');
  */
 const errorHandler = (err, req, res, next) => {
   // Log error
-  logger.error('Error:', {
+  console.error('Error:', {
     message: err.message,
     stack: err.stack,
     url: req.originalUrl,
