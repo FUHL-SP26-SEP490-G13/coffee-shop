@@ -1,16 +1,66 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { User, Mail, Phone, Edit2, Save } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Avatar, AvatarFallback } from '../../components/ui/avatar';
-import { users } from '../../lib/mockData';
 import { toast } from 'sonner';
+import authenticationService from '../../services/authenticationService';
 
 export function StaffProfile() {
   const [isEditing, setIsEditing] = useState(false);
-  const [profile, setProfile] = useState(users[1]); // Sarah Johnson - Staff
+  const [profile, setProfile] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadProfile = async () => {
+      setIsLoading(true);
+      try {
+        const response = await authenticationService.getProfile();
+        if (!response?.success) {
+          throw new Error(response?.message || 'Khong the tai profile');
+        }
+
+        if (isMounted) {
+          setProfile(response.data || null);
+        }
+      } catch (error) {
+        const message =
+          error?.response?.data?.message ||
+          error?.message ||
+          'Khong the tai profile';
+        if (isMounted) {
+          toast.error(message);
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    loadProfile();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const displayName = useMemo(() => {
+    if (!profile) return '';
+    const firstName = profile.first_name || '';
+    const lastName = profile.last_name || '';
+    const fullName = `${firstName} ${lastName}`.trim();
+    return fullName || profile.username || profile.email || '';
+  }, [profile]);
+
+  const roleLabel = useMemo(() => {
+    if (!profile) return '';
+    return profile.role_name || profile.role || 'staff';
+  }, [profile]);
 
   const handleSave = () => {
     setIsEditing(false);
@@ -40,18 +90,21 @@ export function StaffProfile() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center gap-6 mb-6">
+              <div className="flex items-center gap-6 mb-6">
               <Avatar className="w-20 h-20">
                 <AvatarFallback className="text-2xl">
-                  {profile.name
-                    .split(' ')
-                    .map((n) => n[0])
-                    .join('')}
+                    {displayName
+                      .split(' ')
+                      .filter(Boolean)
+                      .map((n) => n[0])
+                      .join('') || 'U'}
                 </AvatarFallback>
               </Avatar>
               <div>
-                <h3 className="text-xl font-semibold">{profile.name}</h3>
-                <p className="text-sm text-muted-foreground capitalize">{profile.role}</p>
+                  <h3 className="text-xl font-semibold">{displayName || '...'}</h3>
+                  <p className="text-sm text-muted-foreground capitalize">
+                    {roleLabel}
+                  </p>
               </div>
             </div>
 
@@ -63,11 +116,18 @@ export function StaffProfile() {
                   {isEditing ? (
                     <Input
                       id="name"
-                      value={profile.name}
-                      onChange={(e) => setProfile({ ...profile, name: e.target.value })}
+                      value={displayName}
+                      onChange={(event) => {
+                        const value = event.target.value;
+                        setProfile((prev) => ({
+                          ...prev,
+                          first_name: value,
+                          last_name: '',
+                        }));
+                      }}
                     />
                   ) : (
-                    <span>{profile.name}</span>
+                    <span>{displayName || '-'}</span>
                   )}
                 </div>
               </div>
@@ -80,11 +140,16 @@ export function StaffProfile() {
                     <Input
                       id="email"
                       type="email"
-                      value={profile.email}
-                      onChange={(e) => setProfile({ ...profile, email: e.target.value })}
+                      value={profile?.email || ''}
+                      onChange={(event) =>
+                        setProfile((prev) => ({
+                          ...prev,
+                          email: event.target.value,
+                        }))
+                      }
                     />
                   ) : (
-                    <span>{profile.email}</span>
+                    <span>{profile?.email || '-'}</span>
                   )}
                 </div>
               </div>
@@ -97,15 +162,26 @@ export function StaffProfile() {
                     <Input
                       id="phone"
                       type="tel"
-                      value={profile.phone}
-                      onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
+                      value={profile?.phone || ''}
+                      onChange={(event) =>
+                        setProfile((prev) => ({
+                          ...prev,
+                          phone: event.target.value,
+                        }))
+                      }
                     />
                   ) : (
-                    <span>{profile.phone}</span>
+                    <span>{profile?.phone || '-'}</span>
                   )}
                 </div>
               </div>
             </div>
+
+            {isLoading && (
+              <div className="mt-4 text-sm text-muted-foreground">
+                Dang tai thong tin...
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -118,13 +194,15 @@ export function StaffProfile() {
               <div className="flex items-center justify-between py-3 border-b">
                 <div>
                   <p className="font-medium">Role</p>
-                  <p className="text-sm text-muted-foreground capitalize">{profile.role}</p>
+                  <p className="text-sm text-muted-foreground capitalize">
+                    {roleLabel}
+                  </p>
                 </div>
               </div>
               <div className="flex items-center justify-between py-3 border-b">
                 <div>
                   <p className="font-medium">Employee ID</p>
-                  <p className="text-sm text-muted-foreground">{profile.id}</p>
+                  <p className="text-sm text-muted-foreground">{profile?.id || '-'}</p>
                 </div>
               </div>
               <div className="flex items-center justify-between py-3">

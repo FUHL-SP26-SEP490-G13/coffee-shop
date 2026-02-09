@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { PackageOpen, Calendar, Clock, FileText, User } from 'lucide-react';
+import { PackageOpen, Calendar, Clock, FileText, User, LogOut } from 'lucide-react';
 import { BaristaOrders } from './BaristaOrders';
 import { BaristaSchedule } from './BaristaSchedule';
 import { BaristaAttendance } from './BaristaAttendance';
 import { BaristaRequests } from './BaristaRequests';
 import { BaristaProfile } from './BaristaProfile';
+import authenticationService from '../../services/authenticationService';
 
 export function BaristaApp() {
   const [currentPage, setCurrentPage] = useState('orders');
@@ -73,6 +74,16 @@ export function BaristaApp() {
           >
             <User className="w-5 h-5" />
             <span>Profile</span>
+          </button>
+          <button
+            onClick={() => {
+              authenticationService.logout();
+              window.location.href = '/login';
+            }}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all mt-4 text-red-600 hover:bg-red-100"
+          >
+            <LogOut className="w-5 h-5" />
+            <span>Log Out</span>
           </button>
         </nav>
       </div>

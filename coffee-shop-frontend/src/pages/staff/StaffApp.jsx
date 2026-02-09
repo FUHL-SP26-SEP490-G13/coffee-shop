@@ -8,6 +8,8 @@ import { StaffSchedule } from './StaffSchedule';
 import { StaffInventory } from './StaffInventory';
 import { StaffRequests } from './StaffRequests';
 import { StaffProfile } from './StaffProfile';
+import { LogOut } from 'lucide-react';
+import authenticationService from '../../services/authenticationService';
 
 export function StaffApp() {
   const [currentPage, setCurrentPage] = useState('pos');
@@ -109,6 +111,17 @@ export function StaffApp() {
           >
             <User className="w-5 h-5" />
             <span>Profile</span>
+          </button>
+          <button
+            onClick={() => {
+              authenticationService.logout().then(() => {
+                window.location.href = '/login';
+              });
+            }}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all mb-2 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+          >
+            <LogOut className="w-5 h-5" />
+            <span>Logout</span>
           </button>
         </nav>
       </div>

@@ -1,0 +1,34 @@
+import axiosClient from './axiosClient';
+import { API_ENDPOINTS } from '../constants';
+
+const authenticationService = {
+
+// Đăng nhập người dùng
+  login(credentials) {
+    return axiosClient.post(API_ENDPOINTS.AUTH.LOGIN, credentials);
+  },
+
+// Đăng ký người dùng mới
+  register(userInfo) {
+    return axiosClient.post(API_ENDPOINTS.AUTH.REGISTER, userInfo);
+  },
+
+// Đăng xuất người dùng
+  logout() {
+    // Xoá token, refresh token và role_id khỏi local storage hoặc session storage
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    localStorage.removeItem('role_id'); // Xoá role_id
+    sessionStorage.removeItem('access_token');
+    sessionStorage.removeItem('refresh_token');
+    sessionStorage.removeItem('role_id'); // Xoá role_id
+    return Promise.resolve();
+  },
+
+// Lấy thông tin profile hiện tại
+  getProfile() {
+    return axiosClient.get(API_ENDPOINTS.AUTH.PROFILE);
+  }
+};
+
+export default authenticationService;

@@ -8,6 +8,7 @@ import {
   ClipboardList,
   Settings,
   Tag,
+  LogOut
 } from 'lucide-react';
 import { AdminOverview } from './AdminOverview';
 import { AdminProducts } from './AdminProducts';
@@ -16,6 +17,7 @@ import { AdminUsers } from './AdminUsers';
 import { AdminStaffSchedule } from './AdminStaffSchedule';
 import { AdminInventory } from './AdminInventory';
 import { AdminVouchers } from './AdminVouchers';
+import authenticationService from '../../services/authenticationService';
 
 export function AdminDashboard() {
   const [currentPage, setCurrentPage] = useState('overview');
@@ -106,6 +108,16 @@ export function AdminDashboard() {
           >
             <Tag className="w-4 h-4" />
             <span className="text-sm">Vouchers</span>
+          </button>
+          <button
+            onClick={() => {
+              authenticationService.logout();
+              window.location.href = '/login';
+            }}
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors mt-4 text-red-600 hover:bg-red-100"
+          >
+            <LogOut className="w-4 h-4" />
+            <span className="text-sm">Log Out</span>
           </button>
         </nav>
       </div>
