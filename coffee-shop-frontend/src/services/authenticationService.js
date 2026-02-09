@@ -18,10 +18,8 @@ const authenticationService = {
     // Xoá token, refresh token và role_id khỏi local storage hoặc session storage
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
-    localStorage.removeItem('role_id'); // Xoá role_id
     sessionStorage.removeItem('access_token');
     sessionStorage.removeItem('refresh_token');
-    sessionStorage.removeItem('role_id'); // Xoá role_id
     return Promise.resolve();
   },
 

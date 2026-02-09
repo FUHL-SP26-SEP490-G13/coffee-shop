@@ -43,9 +43,6 @@ export default function LoginPage() {
 			if (refreshToken) {
 				storage.setItem(STORAGE_KEYS.REFRESH_TOKEN, refreshToken);
 			}
-			if (user?.role_id) {
-				storage.setItem(STORAGE_KEYS.ROLE_ID, String(user.role_id));
-			}
 
             // Điều hướng dựa trên vai trò người dùng
 			switch (user?.role_id) {

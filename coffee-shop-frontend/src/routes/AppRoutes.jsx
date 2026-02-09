@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Navigate, Routes, Route } from 'react-router-dom';
 import { APP_ROUTES, STORAGE_KEYS } from '../constants';
 
@@ -6,15 +6,10 @@ import LoginPage from '../pages/authentication/LoginPage';
 import { StaffApp } from '../pages/staff/StaffApp';
 import { BaristaApp } from '../pages/barista/BaristaApp';
 import { AdminDashboard } from '../pages/admin/AdminDashboard.jsx';
+import authenticationService from '../services/authenticationService';
 
 const getStoredValue = (key) =>
   localStorage.getItem(key) || sessionStorage.getItem(key);
-
-const getStoredRoleId = () => {
-  const rawRole = getStoredValue(STORAGE_KEYS.ROLE_ID);
-  const parsed = Number(rawRole);
-  return Number.isNaN(parsed) ? null : parsed;
-};
 
 const getRoleHomeRoute = (roleId) => {
   switch (roleId) {
@@ -32,10 +27,64 @@ const getRoleHomeRoute = (roleId) => {
 // Component bảo vệ route dựa trên vai trò
 const RoleGuard = ({ allowedRoles, children }) => {
   const token = getStoredValue(STORAGE_KEYS.ACCESS_TOKEN);
-  const roleId = getStoredRoleId();
+  const [roleId, setRoleId] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    if (!token) {
+      setIsLoading(false);
+      return undefined;
+    }
+
+    const loadProfile = async () => {
+      setIsLoading(true);
+      setHasError(false);
+      try {
+        const response = await authenticationService.getProfile();
+        if (!response?.success) {
+          throw new Error(response?.message || 'Khong the tai profile');
+        }
+
+        const nextRoleId = Number(response?.data?.role_id);
+        if (isMounted) {
+          setRoleId(Number.isNaN(nextRoleId) ? null : nextRoleId);
+        }
+      } catch (error) {
+        if (isMounted) {
+          setHasError(true);
+          setRoleId(null);
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    loadProfile();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [token]);
 
   // Nếu chưa đăng nhập, chuyển đến trang đăng nhập
-  if (!token || !roleId) {
+  if (!token) {
+    return <Navigate to={APP_ROUTES.LOGIN} replace />;
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center text-sm text-muted-foreground">
+        Dang tai thong tin...
+      </div>
+    );
+  }
+
+  if (hasError || !roleId) {
     return <Navigate to={APP_ROUTES.LOGIN} replace />;
   }
 

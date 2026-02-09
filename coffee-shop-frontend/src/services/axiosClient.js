@@ -37,8 +37,6 @@ axiosClient.interceptors.response.use(
       sessionStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
       localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
       sessionStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
-      localStorage.removeItem(STORAGE_KEYS.ROLE_ID);
-      sessionStorage.removeItem(STORAGE_KEYS.ROLE_ID);
       window.location.href = '/login';
     }
     return Promise.reject(error);
