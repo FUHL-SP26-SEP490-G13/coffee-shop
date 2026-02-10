@@ -62,6 +62,14 @@ export function StaffProfile() {
     return profile.role_name || profile.role || 'staff';
   }, [profile]);
 
+    const genderLabel = useMemo(() => {
+    if (!profile) return '';
+    const gender = profile.gender;
+    if (gender === 1) return 'Male';
+    if (gender === 0) return 'Female';
+    return 'Other';
+  }, [profile]);
+
   const handleSave = () => {
     setIsEditing(false);
     toast.success('Profile updated successfully');
@@ -175,13 +183,34 @@ export function StaffProfile() {
                   )}
                 </div>
               </div>
+
+              <div>
+                <Label htmlFor="gender">Gender</Label>
+                <div className="flex items-center gap-2 mt-1">
+                  <User className="w-4 h-4 text-muted-foreground" />
+                  {isEditing ? (
+                    <Input 
+                      id="gender"
+                      value={genderLabel}
+                      onChange={(event) =>
+                        setProfile((prev) => ({
+                          ...prev, 
+                          gender: event.target.value,
+                        }))
+                      }
+                    />
+                  ) : (
+                    <span>{genderLabel || '-'}</span>
+                  )}
+                </div>
             </div>
 
             {isLoading && (
               <div className="mt-4 text-sm text-muted-foreground">
-                Dang tai thong tin...
+                Loading information...
               </div>
             )}
+            </div>
           </CardContent>
         </Card>
 

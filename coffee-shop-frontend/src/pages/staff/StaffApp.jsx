@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { LayoutGrid, ChefHat, Users, Calendar, Clock, ClipboardList, FileText, User } from 'lucide-react';
+import { LayoutGrid, ChefHat, Users, Calendar, Clock, ClipboardList, FileText, User, LogOut } from 'lucide-react';
 import { StaffPOS } from './StaffPOS';
 import { StaffKitchen } from './StaffKitchen';
 import { StaffTables } from './StaffTables';
@@ -8,11 +8,26 @@ import { StaffSchedule } from './StaffSchedule';
 import { StaffInventory } from './StaffInventory';
 import { StaffRequests } from './StaffRequests';
 import { StaffProfile } from './StaffProfile';
-import { LogOut } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '../../components/ui/alert-dialog';
 import authenticationService from '../../services/authenticationService';
 
 export function StaffApp() {
   const [currentPage, setCurrentPage] = useState('pos');
+
+  const handleLogout = async () => {
+    await authenticationService.logout();
+    window.location.href = '/login';
+  };
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -112,17 +127,28 @@ export function StaffApp() {
             <User className="w-5 h-5" />
             <span>Profile</span>
           </button>
-          <button
-            onClick={() => {
-              authenticationService.logout().then(() => {
-                window.location.href = '/login';
-              });
-            }}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all mb-2 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-          >
-            <LogOut className="w-5 h-5" />
-            <span>Logout</span>
-          </button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <button
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all mb-2 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+              >
+                <LogOut className="w-5 h-5" />
+                <span>Log Out</span>
+              </button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Confirm Logout</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to log out of the system?
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleLogout}>Log Out</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </nav>
       </div>
 

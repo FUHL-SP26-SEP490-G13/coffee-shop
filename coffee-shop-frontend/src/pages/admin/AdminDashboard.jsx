@@ -17,10 +17,26 @@ import { AdminUsers } from './AdminUsers';
 import { AdminStaffSchedule } from './AdminStaffSchedule';
 import { AdminInventory } from './AdminInventory';
 import { AdminVouchers } from './AdminVouchers';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '../../components/ui/alert-dialog';
 import authenticationService from '../../services/authenticationService';
 
 export function AdminDashboard() {
   const [currentPage, setCurrentPage] = useState('overview');
+
+  const handleLogout = () => {
+    authenticationService.logout();
+    window.location.href = '/login';
+  };
 
   return (
     <div className="flex h-screen bg-background">
@@ -109,16 +125,28 @@ export function AdminDashboard() {
             <Tag className="w-4 h-4" />
             <span className="text-sm">Vouchers</span>
           </button>
-          <button
-            onClick={() => {
-              authenticationService.logout();
-              window.location.href = '/login';
-            }}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors mt-4 text-red-600 hover:bg-red-100"
-          >
-            <LogOut className="w-4 h-4" />
-            <span className="text-sm">Log Out</span>
-          </button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <button
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors mt-4 text-red-600 hover:bg-red-100"
+              >
+                <LogOut className="w-4 h-4" />
+                <span className="text-sm">Log Out</span>
+              </button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Confirm Logout</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to log out of the system?
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleLogout}>Log Out</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </nav>
       </div>
 
