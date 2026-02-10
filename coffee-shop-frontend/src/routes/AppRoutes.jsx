@@ -3,6 +3,7 @@ import { Navigate, Routes, Route } from 'react-router-dom';
 import { APP_ROUTES, STORAGE_KEYS } from '../constants';
 
 import LoginPage from '../pages/authentication/LoginPage';
+import RegisterPage from '../pages/authentication/RegisterPage';
 import { StaffApp } from '../pages/staff/StaffApp';
 import { BaristaApp } from '../pages/barista/BaristaApp';
 import { AdminDashboard } from '../pages/admin/AdminDashboard.jsx';
@@ -102,6 +103,7 @@ const AppRoutes = () => {
     <Routes>
       <Route path={APP_ROUTES.HOME} element={<LoginPage />} />
       <Route path={APP_ROUTES.LOGIN} element={<LoginPage />} />
+      <Route path={APP_ROUTES.REGISTER} element={<RegisterPage />} />
 
       {/** Các route dành cho Staff, Barista, Admin */}
       <Route

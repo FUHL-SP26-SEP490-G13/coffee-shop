@@ -185,8 +185,8 @@ export default function LoginPage() {
 
 							<div className="mt-6 text-center text-sm text-muted-foreground">
 								Need an account?{" "}
-								<button type="button" className="text-primary hover:text-primary/90">
-									Contact your manager
+								<button type="button" className="text-primary hover:text-primary/90" onClick={() => navigate(APP_ROUTES.REGISTER)}>
+									Register Now!
 								</button>
 							</div>
 						</div>
