@@ -1,6 +1,5 @@
 const mysql = require('mysql2/promise');
 const env = require('./env');
-const logger = require('../utils/logger');
 
 // Tạo connection pool
 const pool = mysql.createPool({
@@ -20,10 +19,10 @@ const pool = mysql.createPool({
 const testConnection = async () => {
   try {
     const connection = await pool.getConnection();
-    logger.info('✅ Database connected successfully');
+    console.log('✅ Database connected successfully');
     connection.release();
   } catch (error) {
-    logger.error('❌ Database connection failed:', error.message);
+    console.error('❌ Database connection failed:', error.message);
     process.exit(1);
   }
 };
