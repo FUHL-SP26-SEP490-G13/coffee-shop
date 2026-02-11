@@ -7,7 +7,7 @@ class UserService {
    * Get all users
    */
   async getAllUsers(options = {}) {
-    return UserRepository.findAll({ isActive: 1 }, options);
+    return UserRepository.findAll({ }, options);
   }
 
   /**

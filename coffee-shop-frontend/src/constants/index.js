@@ -18,7 +18,11 @@ export const API_ENDPOINTS = {
     PROFILE: '/auth/profile',
   },
   PRODUCTS: '/products',
-  USERS: '/users',
+  USERS: {
+    GET_ALL: '/users',
+    GET_BY_ID: '/users/{id}',
+  },
+  ORDERS: '/orders',
 };
 
 // Các hằng số khác

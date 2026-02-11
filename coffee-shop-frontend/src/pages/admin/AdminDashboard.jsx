@@ -43,8 +43,8 @@ export function AdminDashboard() {
       {/* Sidebar */}
       <div className="w-64 bg-card border-r border-border p-4">
         <div className="mb-8">
-          <h1 className="text-xl mb-1">Coffee Admin</h1>
-          <p className="text-xs text-muted-foreground">Management Dashboard</p>
+          <h1 className="text-xl mb-1">Coffee Shop</h1>
+          <p className="text-xs text-muted-foreground">Cổng Quản lý</p>
         </div>
 
         <nav className="space-y-1">
@@ -57,7 +57,7 @@ export function AdminDashboard() {
             }`}
           >
             <LayoutDashboard className="w-4 h-4" />
-            <span className="text-sm">Dashboard</span>
+            <span className="text-sm">Bảng điều khiển</span>
           </button>
           <button
             onClick={() => setCurrentPage('products')}
@@ -68,7 +68,7 @@ export function AdminDashboard() {
             }`}
           >
             <Package className="w-4 h-4" />
-            <span className="text-sm">Products</span>
+            <span className="text-sm">Sản phẩm</span>
           </button>
           <button
             onClick={() => setCurrentPage('orders')}
@@ -79,7 +79,7 @@ export function AdminDashboard() {
             }`}
           >
             <ShoppingBag className="w-4 h-4" />
-            <span className="text-sm">Orders</span>
+            <span className="text-sm">Đơn hàng</span>
           </button>
           <button
             onClick={() => setCurrentPage('users')}
@@ -90,7 +90,7 @@ export function AdminDashboard() {
             }`}
           >
             <Users className="w-4 h-4" />
-            <span className="text-sm">Users</span>
+            <span className="text-sm">Người dùng</span>
           </button>
           <button
             onClick={() => setCurrentPage('schedule')}
@@ -101,7 +101,7 @@ export function AdminDashboard() {
             }`}
           >
             <Calendar className="w-4 h-4" />
-            <span className="text-sm">Staff Schedule</span>
+            <span className="text-sm">Lịch làm việc nhân viên</span>
           </button>
           <button
             onClick={() => setCurrentPage('inventory')}
@@ -112,7 +112,7 @@ export function AdminDashboard() {
             }`}
           >
             <ClipboardList className="w-4 h-4" />
-            <span className="text-sm">Inventory</span>
+            <span className="text-sm">Kho hàng</span>
           </button>
           <button
             onClick={() => setCurrentPage('vouchers')}
@@ -131,19 +131,19 @@ export function AdminDashboard() {
                 className="w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors mt-4 text-red-600 hover:bg-red-100"
               >
                 <LogOut className="w-4 h-4" />
-                <span className="text-sm">Log Out</span>
+                <span className="text-sm">Đăng xuất</span>
               </button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Confirm Logout</AlertDialogTitle>
+                <AlertDialogTitle>Xác nhận đăng xuất</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Are you sure you want to log out of the system?
+                  Bạn có chắc chắn muốn đăng xuất khỏi hệ thống không?
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleLogout}>Log Out</AlertDialogAction>
+                <AlertDialogCancel>Hủy</AlertDialogCancel>
+                <AlertDialogAction onClick={handleLogout}>Đăng xuất</AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
