@@ -1,5 +1,5 @@
-const AuthService = require('../services/AuthService');
-const response = require('../utils/response');
+const AuthService = require("../services/AuthService");
+const response = require("../utils/response");
 
 class AuthController {
   /**
@@ -10,12 +10,7 @@ class AuthController {
     try {
       const result = await AuthService.register(req.body);
 
-      return response.success(
-        res,
-        result,
-        'Đăng ký thành công',
-        201
-      );
+      return response.success(res, result, "Đăng ký thành công", 201);
     } catch (error) {
       next(error);
     }
@@ -30,11 +25,7 @@ class AuthController {
       const { identifier, password } = req.body;
       const result = await AuthService.login(identifier, password);
 
-      return response.success(
-        res,
-        result,
-        'Đăng nhập thành công'
-      );
+      return response.success(res, result, "Đăng nhập thành công");
     } catch (error) {
       next(error);
     }
@@ -49,11 +40,7 @@ class AuthController {
       const { refreshToken } = req.body;
       const result = await AuthService.refreshToken(refreshToken);
 
-      return response.success(
-        res,
-        result,
-        'Refresh token thành công'
-      );
+      return response.success(res, result, "Refresh token thành công");
     } catch (error) {
       next(error);
     }
@@ -67,11 +54,7 @@ class AuthController {
     try {
       const user = await AuthService.getProfile(req.user.id);
 
-      return response.success(
-        res,
-        user,
-        'Lấy thông tin profile thành công'
-      );
+      return response.success(res, user, "Lấy thông tin profile thành công");
     } catch (error) {
       next(error);
     }
@@ -85,11 +68,7 @@ class AuthController {
     try {
       const user = await AuthService.updateProfile(req.user.id, req.body);
 
-      return response.success(
-        res,
-        user,
-        'Cập nhật profile thành công'
-      );
+      return response.success(res, user, "Cập nhật profile thành công");
     } catch (error) {
       next(error);
     }
@@ -105,11 +84,7 @@ class AuthController {
 
       await AuthService.changePassword(req.user.id, oldPassword, newPassword);
 
-      return response.success(
-        res,
-        null,
-        'Đổi mật khẩu thành công'
-      );
+      return response.success(res, null, "Đổi mật khẩu thành công");
     } catch (error) {
       next(error);
     }
@@ -124,11 +99,7 @@ class AuthController {
       const { email } = req.body;
       const result = await AuthService.resetPassword(email);
 
-      return response.success(
-        res,
-        result,
-        result.message
-      );
+      return response.success(res, result, result.message);
     } catch (error) {
       next(error);
     }
@@ -144,11 +115,23 @@ class AuthController {
       // by removing the token. If you implement token blacklisting,
       // you would add the token to a blacklist here.
 
-      return response.success(
-        res,
-        null,
-        'Đăng xuất thành công'
-      );
+      return response.success(res, null, "Đăng xuất thành công");
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Google OAuth Login
+   * POST /api/auth/google
+   */
+  async googleLogin(req, res, next) {
+    try {
+      const { accessToken, idToken } = req.body;
+
+      const result = await AuthService.loginWithGoogle(idToken, accessToken);
+
+      return response.success(res, result, "Đăng nhập Google thành công");
     } catch (error) {
       next(error);
     }

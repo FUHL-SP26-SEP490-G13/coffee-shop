@@ -8,6 +8,14 @@ const authenticationService = {
     return axiosClient.post(API_ENDPOINTS.AUTH.LOGIN, credentials);
   },
 
+  googleLogin(accessToken, idToken) {
+    const payload = { accessToken };
+    if (idToken) {
+      payload.idToken = idToken;
+    }
+    return axiosClient.post(API_ENDPOINTS.AUTH.GOOGLE, payload);
+  },
+
 // Đăng ký người dùng mới
   register(userInfo) {
     return axiosClient.post(API_ENDPOINTS.AUTH.REGISTER, userInfo);

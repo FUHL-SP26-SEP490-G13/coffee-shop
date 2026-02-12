@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Coffee, Lock, Mail } from "lucide-react";
-
+import GoogleButton from "@/components/ui/GoogleButton";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -182,7 +182,7 @@ export default function LoginPage() {
 									{isSubmitting ? "Signing in..." : "Sign in"}
 								</Button>
 							</form>
-
+							<GoogleButton />	
 							<div className="mt-6 text-center text-sm text-muted-foreground">
 								Need an account?{" "}
 								<button type="button" className="text-primary hover:text-primary/90" onClick={() => navigate(APP_ROUTES.REGISTER)}>
