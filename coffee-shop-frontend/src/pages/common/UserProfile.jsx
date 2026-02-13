@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback } from '../../components/ui/avatar';
 import { toast } from 'sonner';
 import authenticationService from '../../services/authenticationService';
 
-export function StaffProfile() {
+export function UserProfile() {
   const [isEditing, setIsEditing] = useState(false);
   const [profile, setProfile] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -65,9 +65,9 @@ export function StaffProfile() {
     const genderLabel = useMemo(() => {
     if (!profile) return '';
     const gender = profile.gender;
-    if (gender === 1) return 'Male';
-    if (gender === 0) return 'Female';
-    return 'Other';
+    if (gender === 1) return 'Nam';
+    if (gender === 0) return 'Nữ';
+    return 'Khác';
   }, [profile]);
 
   const handleSave = () => {
@@ -78,21 +78,21 @@ export function StaffProfile() {
   return (
     <div className="p-8">
       <div className="max-w-2xl mx-auto">
-        <h1 className="text-3xl font-semibold mb-6">My Profile</h1>
+        <h1 className="text-3xl font-semibold mb-6">Thông tin của tôi</h1>
 
         <Card className="mb-6">
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle>Personal Information</CardTitle>
+              <CardTitle>Thông tin cá nhân</CardTitle>
               {!isEditing ? (
                 <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
                   <Edit2 className="w-4 h-4 mr-2" />
-                  Edit
+                  Chỉnh sửa
                 </Button>
               ) : (
                 <Button size="sm" onClick={handleSave}>
                   <Save className="w-4 h-4 mr-2" />
-                  Save
+                  Lưu
                 </Button>
               )}
             </div>
@@ -118,7 +118,7 @@ export function StaffProfile() {
 
             <div className="space-y-4">
               <div>
-                <Label htmlFor="name">Full Name</Label>
+                <Label htmlFor="name">Họ và tên</Label>
                 <div className="flex items-center gap-2 mt-1">
                   <User className="w-4 h-4 text-muted-foreground" />
                   {isEditing ? (
@@ -163,7 +163,7 @@ export function StaffProfile() {
               </div>
 
               <div>
-                <Label htmlFor="phone">Phone Number</Label>
+                <Label htmlFor="phone">Số điện thoại</Label>
                 <div className="flex items-center gap-2 mt-1">
                   <Phone className="w-4 h-4 text-muted-foreground" />
                   {isEditing ? (
@@ -185,7 +185,7 @@ export function StaffProfile() {
               </div>
 
               <div>
-                <Label htmlFor="gender">Gender</Label>
+                <Label htmlFor="gender">Giới tính</Label>
                 <div className="flex items-center gap-2 mt-1">
                   <User className="w-4 h-4 text-muted-foreground" />
                   {isEditing ? (
@@ -207,7 +207,7 @@ export function StaffProfile() {
 
             {isLoading && (
               <div className="mt-4 text-sm text-muted-foreground">
-                Loading information...
+                Đang tải thông tin...
               </div>
             )}
             </div>
@@ -216,13 +216,13 @@ export function StaffProfile() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Account Settings</CardTitle>
+            <CardTitle>Cài đặt tài khoản</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <div className="flex items-center justify-between py-3 border-b">
                 <div>
-                  <p className="font-medium">Role</p>
+                  <p className="font-medium">Vai trò</p>
                   <p className="text-sm text-muted-foreground capitalize">
                     {roleLabel}
                   </p>
@@ -230,17 +230,17 @@ export function StaffProfile() {
               </div>
               <div className="flex items-center justify-between py-3 border-b">
                 <div>
-                  <p className="font-medium">Employee ID</p>
+                  <p className="font-medium">Mã người dùng</p>
                   <p className="text-sm text-muted-foreground">{profile?.id || '-'}</p>
                 </div>
               </div>
               <div className="flex items-center justify-between py-3">
                 <div>
-                  <p className="font-medium">Change Password</p>
-                  <p className="text-sm text-muted-foreground">Update your password</p>
+                  <p className="font-medium">Đổi mật khẩu</p>
+                  <p className="text-sm text-muted-foreground">Cập nhật mật khẩu của bạn</p>
                 </div>
                 <Button variant="outline" size="sm">
-                  Change
+                  Đổi mật khẩu
                 </Button>
               </div>
             </div>

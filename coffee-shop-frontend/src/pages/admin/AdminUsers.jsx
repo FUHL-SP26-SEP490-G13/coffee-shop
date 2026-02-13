@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Loader2, Search } from 'lucide-react';
+import { Loader2, Search, ChevronLeft, ChevronRight, Mars, Venus } from 'lucide-react';
 import userService from '../../services/userService';
 import { Badge } from '../../components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
@@ -16,6 +16,8 @@ export function AdminUsers() {
   const [sortOrder, setSortOrder] = useState('asc');
   const [roleFilter, setRoleFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('1');
+  const [currentPage, setCurrentPage] = useState(1);
+  const USERS_PER_PAGE = 10;
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -40,11 +42,11 @@ export function AdminUsers() {
   const getGenderLabel = (gender) => {
     switch (gender) {
       case 1:
-        return { label: 'Nam', className: 'bg-blue-500/10 text-blue-700 border-blue-500/20' };
+        return { icon: <Mars className="w-4 h-4" />, label: 'Nam', color: 'text-blue-600' };
       case 0:
-        return { label: 'Nữ', className: 'bg-pink-500/10 text-pink-700 border-pink-500/20' };
+        return { icon: <Venus className="w-4 h-4" />, label: 'Nữ', color: 'text-pink-600' };
       default:
-        return { label: 'Khác', className: 'bg-gray-500/10 text-gray-700 border-gray-500/20' };
+        return { icon: null, label: 'Khác', color: 'text-gray-600' };
     }
   };
 
@@ -107,6 +109,17 @@ export function AdminUsers() {
 
     return result;
   }, [users, searchQuery, roleFilter, statusFilter, sortOrder]);
+
+  // Tính toán dữ liệu phân trang
+  const totalPages = Math.ceil(filteredAndSortedUsers.length / USERS_PER_PAGE);
+  const startIndex = (currentPage - 1) * USERS_PER_PAGE;
+  const endIndex = startIndex + USERS_PER_PAGE;
+  const paginatedUsers = filteredAndSortedUsers.slice(startIndex, endIndex);
+
+  // Reset về trang 1 khi lọc thay đổi
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, roleFilter, statusFilter, sortOrder]);
 
   if (isLoading) {
     return (
@@ -199,14 +212,14 @@ export function AdminUsers() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredAndSortedUsers.length === 0 ? (
+            {paginatedUsers.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                   Không tìm thấy người dùng nào
                 </TableCell>
               </TableRow>
             ) : (
-              filteredAndSortedUsers.map((user) => {
+              paginatedUsers.map((user) => {
               const roleInfo = getRoleInfo(user.role_id);
               const genderInfo = getGenderLabel(user.gender);
               const fullName = `${user.first_name} ${user.last_name}`;
@@ -222,7 +235,7 @@ export function AdminUsers() {
                       </Avatar>
                       <div className="flex flex-col">
                         <span className="font-medium">{fullName}</span>
-                        <span className="text-xs text-muted-foreground">ID: {user.id}</span>
+                        <span className="text-xs text-muted-foreground">ID người dùng: {user.id}</span>
                       </div>
                     </div>
                   </TableCell>
@@ -230,9 +243,9 @@ export function AdminUsers() {
                   <TableCell className="text-muted-foreground">{user.email}</TableCell>
                   <TableCell className="text-muted-foreground">{user.phone}</TableCell>
                   <TableCell className="text-muted-foreground">
-                    <Badge variant="secondary" className={genderInfo.className}>
-                      {genderInfo.label}
-                    </Badge>
+                    <div className={`${genderInfo.color} cursor-help hover:opacity-80 transition-opacity`} title={genderInfo.label}>
+                      {genderInfo.icon}
+                    </div>
                   </TableCell>
                   <TableCell>
                     <Badge
@@ -262,6 +275,50 @@ export function AdminUsers() {
           </TableBody>
         </Table>
       </div>
+
+      {/* Phân trang */}
+      {totalPages > 1 && (
+        <div className="mt-6 flex items-center justify-between">
+          <div className="text-sm text-muted-foreground">
+            Hiển thị {startIndex + 1}-{Math.min(endIndex, filteredAndSortedUsers.length)} trên {filteredAndSortedUsers.length} người dùng
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Trước
+            </Button>
+            
+            <div className="flex gap-1">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                <Button
+                  key={page}
+                  variant={currentPage === page ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setCurrentPage(page)}
+                  className="w-10 h-10"
+                >
+                  {page}
+                </Button>
+              ))}
+            </div>
+            
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+            >
+              Sau
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
