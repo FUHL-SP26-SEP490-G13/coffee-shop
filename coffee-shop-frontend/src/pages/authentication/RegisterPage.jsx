@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Coffee, Lock, Mail, User, Phone, CheckCircle2, AlertCircle } from "lucide-react";
+import { Coffee, Lock, Mail, User, Phone, CheckCircle2, AlertCircle, Shield } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { APP_ROUTES } from "@/constants";
 import authenticationService from "@/services/authenticationService";
 
@@ -24,6 +25,11 @@ export default function RegisterPage() {
 	const [successMessage, setSuccessMessage] = useState("");
 	const [validationErrors, setValidationErrors] = useState({});
 	const [passwordStrength, setPasswordStrength] = useState(0);
+	const [showOtpModal, setShowOtpModal] = useState(false);
+	const [otp, setOtp] = useState("");
+	const [otpError, setOtpError] = useState("");
+	const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
+	const [registrationData, setRegistrationData] = useState(null);
 
 	// Hàm tính độ mạnh password
 	const calculatePasswordStrength = (pwd) => {
@@ -156,7 +162,8 @@ export default function RegisterPage() {
 		setIsSubmitting(true);
 
 		try {
-			const response = await authenticationService.register({
+			// Đăng ký user trước
+			const registerResponse = await authenticationService.register({
 				first_name: firstName,
 				last_name: lastName,
 				email: email.toLowerCase(),
@@ -168,11 +175,67 @@ export default function RegisterPage() {
 				password_confirm: confirmPassword,
 			});
 
-			if (!response?.success) {
-				throw new Error(response?.message || "Đăng ký thất bại");
+			if (!registerResponse?.success) {
+				throw new Error(registerResponse?.message || "Đăng ký thất bại");
 			}
 
-			setSuccessMessage("Đăng ký thành công! Đang chuyển hướng...");
+			// Lưu userId từ response
+			const userId = registerResponse.data.user.id;
+			
+			// Lưu dữ liệu để sử dụng sau khi verify OTP
+			const data = {
+				first_name: firstName,
+				last_name: lastName,
+				email: email.toLowerCase(),
+				phone: phone.replace(/\s/g, ""),
+				username: username,
+				gender: Number(gender),
+				dob,
+				password,
+				password_confirm: confirmPassword,
+				userId: userId,
+			};
+			setRegistrationData(data);
+			
+			// Gửi OTP qua email
+			const otpResponse = await authenticationService.sendOTP(userId);
+			
+			if (!otpResponse?.success) {
+				throw new Error(otpResponse?.message || "Không thể gửi mã OTP");
+			}
+			
+			setShowOtpModal(true);
+			setSuccessMessage("Mã OTP đã được gửi đến email của bạn");
+		} catch (error) {
+			const message =
+				error?.response?.data?.message ||
+				error?.message ||
+				"Đăng ký thất bại";
+			setErrorMessage(message);
+		} finally {
+			setIsSubmitting(false);
+		}
+	};
+
+	const handleVerifyOtp = async () => {
+		if (!otp || otp.length !== 8) {
+			setOtpError("Vui lòng nhập mã OTP 8 chữ số");
+			return;
+		}
+
+		setIsVerifyingOtp(true);
+		setOtpError("");
+
+		try {
+			// Gọi API để xác thực OTP
+			const response = await authenticationService.verifyEmail(registrationData.userId, otp);
+
+			if (!response?.success) {
+				throw new Error(response?.message || "Xác thực OTP thất bại");
+			}
+
+			setShowOtpModal(false);
+			setSuccessMessage("Xác thực email thành công! Đang chuyển hướng...");
 
 			// Delay trước khi chuyển hướng
 			setTimeout(() => {
@@ -182,10 +245,31 @@ export default function RegisterPage() {
 			const message =
 				error?.response?.data?.message ||
 				error?.message ||
-				"Đăng ký thất bại";
-			setErrorMessage(message);
+				"Mã OTP không hợp lệ";
+			setOtpError(message);
 		} finally {
-			setIsSubmitting(false);
+			setIsVerifyingOtp(false);
+		}
+	};
+
+	const handleResendOtp = async () => {
+		try {
+			// Gọi API để gửi lại OTP
+			const response = await authenticationService.sendOTP(registrationData.userId);
+			
+			if (!response?.success) {
+				throw new Error(response?.message || "Không thể gửi lại mã OTP");
+			}
+			
+			setSuccessMessage("Mã OTP mới đã được gửi đến email của bạn");
+			setOtp("");
+			setOtpError("");
+		} catch (error) {
+			const message =
+				error?.response?.data?.message ||
+				error?.message ||
+				"Không thể gửi lại mã OTP. Vui lòng thử lại sau.";
+			setOtpError(message);
 		}
 	};
 
@@ -630,6 +714,69 @@ export default function RegisterPage() {
 					</div>
 				</div>
 			</div>
+
+			{/* OTP Verification Modal */}
+			<Dialog open={showOtpModal} onOpenChange={setShowOtpModal}>
+				<DialogContent className="sm:max-w-md">
+					<DialogHeader>
+						<DialogTitle className="flex items-center gap-2">
+							<Shield className="h-5 w-5 text-primary" />
+							Xác thực Email
+						</DialogTitle>
+						<DialogDescription>
+							Nhập mã OTP 8 chữ số đã được gửi đến email <strong>{email}</strong>
+						</DialogDescription>
+					</DialogHeader>
+
+					<div className="space-y-4 py-4">
+						<div className="space-y-2">
+							<Label htmlFor="otp">Mã OTP</Label>
+							<Input
+								id="otp"
+								type="text"
+								placeholder="Nhập 8 chữ số"
+								maxLength={8}
+								value={otp}
+								onChange={(e) => {
+									const value = e.target.value.replace(/\D/g, '');
+									setOtp(value);
+									if (otpError) setOtpError("");
+								}}
+								className={`text-center text-2xl tracking-widest ${otpError ? 'border-destructive' : ''}`}
+							/>
+							{otpError && (
+								<p className="flex items-center gap-2 text-xs text-destructive">
+									<AlertCircle className="h-3 w-3" />
+									{otpError}
+								</p>
+							)}
+						</div>
+
+						<div className="flex flex-col gap-2">
+							<Button
+								onClick={handleVerifyOtp}
+								disabled={isVerifyingOtp || otp.length !== 8}
+								className="w-full"
+							>
+								{isVerifyingOtp ? "Đang xác thực..." : "Xác thực"}
+							</Button>
+							
+							<Button
+								variant="outline"
+								onClick={handleResendOtp}
+								disabled={isVerifyingOtp}
+								className="w-full"
+							>
+								Gửi lại mã OTP
+							</Button>
+						</div>
+
+						<p className="text-xs text-center text-muted-foreground">
+							Không nhận được mã? Kiểm tra thư mục spam hoặc thử gửi lại.
+						</p>
+					</div>
+				</DialogContent>
+			</Dialog>
 		</div>
 	);
 }

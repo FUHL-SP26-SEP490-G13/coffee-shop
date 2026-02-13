@@ -17,6 +17,50 @@ class AuthController {
   }
 
   /**
+   * Send email OTP
+   * POST /api/auth/send-otp
+   */
+  async sendOTP(req, res, next) {
+    try {
+      const { userId } = req.body;
+
+      if (!userId) {
+        return response.error(res, "Thiếu userId", 400);
+      }
+
+      const result = await AuthService.sendEmailOTP(userId);
+
+      return response.success(res, result, "Gửi OTP thành công");
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**   * Verify email OTP
+   * POST /api/auth/verify-email
+   */
+  async verifyEmail(req, res, next) {
+    try {
+      const { userId, otp } = req.body;
+
+      if (!userId || !otp) {
+        return response.error(res, "Thiếu userId hoặc otp", 400);
+      }
+
+      const result = await AuthService.verifyEmailOTP(userId, otp);
+
+      return response.success(
+        res,
+        result,
+        "Xác thực email thành công"
+      );
+
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
    * Login user
    * POST /api/auth/login
    */

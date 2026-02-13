@@ -1,12 +1,15 @@
 const { OAuth2Client } = require("google-auth-library");
 const UserRepository = require("../repositories/UserRepository");
 const OAuthProviderRepository = require("../repositories/OAuthProviderRepository");
+const EmailVerificationRepository = require("../repositories/EmailVerificationRepository");
+const EmailService = require("./EmailService");
 const {
   hashPassword,
   comparePassword,
   generateToken,
   generateRefreshToken,
   verifyRefreshToken,
+  generateOTP,
 } = require("../utils/helpers");
 
 const { ROLES } = require("../config/constants");
@@ -127,6 +130,7 @@ class AuthService {
       dob: data.dob,
       role_id: data.role_id || ROLES.CUSTOMER,
       isActive: 1,
+      isVerified: 0, // Email chưa được xác thực
     });
 
     // Remove password from response
@@ -140,6 +144,119 @@ class AuthService {
       user,
       token,
       refreshToken,
+    };
+  }
+
+  /**
+   * Send email OTP for verification
+   */
+  async sendEmailOTP(userId) {
+    const user = await UserRepository.findById(userId);
+    
+    if (!user) {
+      throw new Error("User không tồn tại");
+    }
+
+    if (user.isVerified) {
+      throw new Error("Email đã được xác thực");
+    }
+
+    // Generate 8-digit OTP
+    const otp = generateOTP();
+    const otpHash = await hashPassword(otp);
+
+    // OTP expires in 10 minutes
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+    // Save OTP to database
+    await EmailVerificationRepository.create({
+      user_id: userId,
+      otp_hash: otpHash,
+      expires_at: expiresAt,
+    });
+
+    // Send OTP via email
+    const userName = `${user.first_name} ${user.last_name}`.trim();
+    try {
+      await EmailService.sendOTPEmail(user.email, otp, userName);
+      console.log(`OTP sent to ${user.email}`);
+    } catch (emailError) {
+      console.error('Failed to send OTP email:', emailError);
+      // Still return success but log the error
+      // In production, you might want to handle this differently
+    }
+
+    return {
+      message: "Mã OTP đã được gửi đến email của bạn",
+      // Return OTP in development for testing
+      otp: process.env.NODE_ENV === 'development' ? otp : undefined,
+    };
+  }
+
+  /**   * Verify email OTP
+   */
+  async verifyEmailOTP(userId, otp) {
+
+    const user = await UserRepository.findById(userId);
+    if (!user) {
+      throw new Error("User không tồn tại");
+    }
+
+    if (user.isVerified) {
+      throw new Error("Email đã được xác thực");
+    }
+
+    const record = await EmailVerificationRepository.findLatestValidByUser(userId);
+
+    if (!record) {
+      throw new Error("OTP không tồn tại");
+    }
+
+    // Check expire
+    if (new Date() > new Date(record.expires_at)) {
+      throw new Error("OTP đã hết hạn");
+    }
+
+    // Giới hạn số lần nhập sai
+    if (record.failed_attempts >= 5) {
+      throw new Error("Bạn đã nhập sai OTP quá nhiều lần");
+    }
+
+    const isMatch = await comparePassword(otp, record.otp_hash);
+
+    if (!isMatch) {
+      await EmailVerificationRepository.incrementFailed(record.id);
+      throw new Error("OTP không đúng");
+    }
+
+    // Thành công
+    await UserRepository.update(userId, {
+      isVerified: 1
+    });
+
+    await EmailVerificationRepository.markUsed(record.id);
+
+    // Send welcome email
+    const userName = `${user.first_name} ${user.last_name}`.trim();
+    try {
+      await EmailService.sendWelcomeEmail(user.email, userName);
+    } catch (emailError) {
+      console.error('Failed to send welcome email:', emailError);
+      // Don't fail the verification if welcome email fails
+    }
+
+    const token = generateToken({
+      id: user.id,
+      role_id: user.role_id
+    });
+
+    const refreshToken = generateRefreshToken({
+      id: user.id
+    });
+
+    return {
+      token,
+      refreshToken
     };
   }
 

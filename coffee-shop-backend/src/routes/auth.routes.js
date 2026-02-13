@@ -19,6 +19,12 @@ const {
 // Register
 router.post("/register", validate(registerSchema), AuthController.register);
 
+// Send email OTP
+router.post("/send-otp", AuthController.sendOTP);
+
+// Verify email OTP
+router.post("/verify-email", AuthController.verifyEmail);
+
 // Login
 router.post("/login", validate(loginSchema), AuthController.login);
 

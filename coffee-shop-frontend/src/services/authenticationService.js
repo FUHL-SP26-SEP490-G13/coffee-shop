@@ -8,6 +8,17 @@ const authenticationService = {
     return axiosClient.post(API_ENDPOINTS.AUTH.LOGIN, credentials);
   },
 
+  // Gửi OTP đến email
+  sendOTP(userId) {
+    return axiosClient.post(API_ENDPOINTS.AUTH.SEND_OTP, { userId });
+  },
+
+  // Xác thực email bằng OTP
+  verifyEmail(userId, otp) {
+    return axiosClient.post(API_ENDPOINTS.AUTH.VERIFY_EMAIL, { userId, otp });
+  },
+
+  // Đăng nhập bằng Google
   googleLogin(accessToken, idToken) {
     const payload = { accessToken };
     if (idToken) {

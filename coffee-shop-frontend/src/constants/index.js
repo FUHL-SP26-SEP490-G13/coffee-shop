@@ -14,6 +14,8 @@ export const APP_ROUTES = {
 export const API_ENDPOINTS = {
   AUTH: {
     LOGIN: '/auth/login',
+    VERIFY_EMAIL: '/auth/verify-email',
+    SEND_OTP: '/auth/send-otp',
     GOOGLE: '/auth/google',
     REGISTER: '/auth/register',
     PROFILE: '/auth/profile',
