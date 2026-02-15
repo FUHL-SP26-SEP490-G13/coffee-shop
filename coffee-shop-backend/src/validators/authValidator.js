@@ -28,6 +28,14 @@ const registerSchema = Joi.object({
     'any.required': 'Mật khẩu là bắt buộc',
   }),
 
+  password_confirm: Joi.string()
+    .required()
+    .valid(Joi.ref('password'))
+    .messages({
+      'any.only': 'Mật khẩu xác nhận không khớp',
+      'any.required': 'Xác nhận mật khẩu là bắt buộc',
+    }),
+
   email: Joi.string().email().required().messages({
     'string.empty': 'Email không được để trống',
     'string.email': 'Email không hợp lệ',

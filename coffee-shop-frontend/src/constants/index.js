@@ -1,8 +1,11 @@
-
 // Quản lý các đường dẫn điều hướng
 export const APP_ROUTES = {
   HOME: '/',
   LOGIN: '/login',
+  REGISTER: '/register',
+  STAFF: '/staff',
+  BARISTA: '/barista',
+  ADMIN: '/admin',
   PROFILE: '/profile',
   PRODUCT_DETAIL: '/product/:id',
 };
@@ -11,10 +14,18 @@ export const APP_ROUTES = {
 export const API_ENDPOINTS = {
   AUTH: {
     LOGIN: '/auth/login',
+    VERIFY_EMAIL: '/auth/verify-email',
+    SEND_OTP: '/auth/send-otp',
+    GOOGLE: '/auth/google',
     REGISTER: '/auth/register',
+    PROFILE: '/auth/profile',
   },
   PRODUCTS: '/products',
-  USERS: '/users',
+  USERS: {
+    GET_ALL: '/users',
+    GET_BY_ID: '/users/{id}',
+  },
+  ORDERS: '/orders',
 };
 
 // Các hằng số khác

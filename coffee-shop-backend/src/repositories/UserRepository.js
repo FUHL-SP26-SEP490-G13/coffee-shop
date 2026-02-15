@@ -162,7 +162,6 @@ class UserRepository extends BaseRepository {
       'last_name',
       'gender',
       'dob',
-      'address',
       'phone',
     ];
 

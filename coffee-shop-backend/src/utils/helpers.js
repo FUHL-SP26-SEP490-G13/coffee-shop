@@ -70,6 +70,14 @@ const generateRandomString = (length = 10) => {
 };
 
 /**
+ * Generate OTP (8 digits)
+ */
+const generateOTP = () => {
+  // Generate 8-digit OTP
+  return Math.floor(10000000 + Math.random() * 90000000).toString();
+};
+
+/**
  * Format phone number
  */
 const formatPhoneNumber = (phone) => {
@@ -92,6 +100,7 @@ module.exports = {
   verifyToken,
   verifyRefreshToken,
   generateRandomString,
+  generateOTP,
   formatPhoneNumber,
   calculateOffset,
 };
