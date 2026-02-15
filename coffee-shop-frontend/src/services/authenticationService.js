@@ -45,7 +45,12 @@ const authenticationService = {
 // Lấy thông tin profile hiện tại
   getProfile() {
     return axiosClient.get(API_ENDPOINTS.AUTH.PROFILE);
-  }
+  },
+
+  // Đổi mật khẩu
+  changePassword(payload) {
+    return axiosClient.post(API_ENDPOINTS.AUTH.CHANGE_PASSWORD, payload);
+  },
 };
 
 export default authenticationService;

@@ -21,9 +21,9 @@ const registerSchema = Joi.object({
     'any.required': 'Username là bắt buộc',
   }),
 
-  password: Joi.string().min(6).max(50).required().messages({
+  password: Joi.string().min(8).max(50).required().messages({
     'string.empty': 'Mật khẩu không được để trống',
-    'string.min': 'Mật khẩu phải có ít nhất 6 ký tự',
+    'string.min': 'Mật khẩu phải có ít nhất 8 ký tự',
     'string.max': 'Mật khẩu không được vượt quá 50 ký tự',
     'any.required': 'Mật khẩu là bắt buộc',
   }),
@@ -97,9 +97,9 @@ const changePasswordSchema = Joi.object({
     'any.required': 'Mật khẩu cũ là bắt buộc',
   }),
 
-  newPassword: Joi.string().min(6).max(50).required().messages({
+  newPassword: Joi.string().min(8).max(50).required().messages({
     'string.empty': 'Mật khẩu mới không được để trống',
-    'string.min': 'Mật khẩu mới phải có ít nhất 6 ký tự',
+    'string.min': 'Mật khẩu mới phải có ít nhất 8 ký tự',
     'string.max': 'Mật khẩu mới không được vượt quá 50 ký tự',
     'any.required': 'Mật khẩu mới là bắt buộc',
   }),
