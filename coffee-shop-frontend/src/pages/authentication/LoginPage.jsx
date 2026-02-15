@@ -63,9 +63,16 @@ export default function LoginPage() {
 					break;
 			}
 		} catch (error) {
+			const errorData = error?.response?.data;
+			const validationMessages = Array.isArray(errorData?.errors)
+				? errorData.errors
+						.map((item) => item?.message)
+						.filter(Boolean)
+				: [];
 			const message =
-				error?.response?.data?.message ||
-				error?.message ||
+				(validationMessages.length > 0
+					? validationMessages.join("\n")
+					: errorData?.message || error?.message) ||
 				"Đăng nhập thất bại";
 			setErrorMessage(message);
 		} finally {
@@ -173,7 +180,7 @@ export default function LoginPage() {
 								</div>
 
 								{errorMessage ? (
-									<div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+									<div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive whitespace-pre-line">
 										{errorMessage}
 									</div>
 								) : null}
