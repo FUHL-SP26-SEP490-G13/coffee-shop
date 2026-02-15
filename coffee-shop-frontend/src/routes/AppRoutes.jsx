@@ -5,6 +5,7 @@ import { APP_ROUTES, STORAGE_KEYS } from '../constants';
 import LoginPage from '../pages/authentication/LoginPage';
 import RegisterPage from '../pages/authentication/RegisterPage';
 import ChangePasswordPage from '../pages/authentication/ChangePasswordPage';
+import ForgotPasswordPage from '../pages/authentication/ForgotPasswordPage';
 import { StaffApp } from '../pages/staff/StaffApp';
 import { BaristaApp } from '../pages/barista/BaristaApp';
 import { AdminDashboard } from '../pages/admin/AdminDashboard.jsx';
@@ -105,6 +106,7 @@ const AppRoutes = () => {
       <Route path={APP_ROUTES.HOME} element={<LoginPage />} />
       <Route path={APP_ROUTES.LOGIN} element={<LoginPage />} />
       <Route path={APP_ROUTES.REGISTER} element={<RegisterPage />} />
+      <Route path={APP_ROUTES.FORGOT_PASSWORD} element={<ForgotPasswordPage />} />
       <Route
         path={APP_ROUTES.CHANGE_PASSWORD}
         element={

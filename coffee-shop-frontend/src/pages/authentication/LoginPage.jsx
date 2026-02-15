@@ -174,6 +174,7 @@ export default function LoginPage() {
 									<button
 										type="button"
 										className="text-primary hover:text-primary/90"
+										onClick={() => navigate(APP_ROUTES.FORGOT_PASSWORD)}
 									>
 										Quên mật khẩu?
 									</button>

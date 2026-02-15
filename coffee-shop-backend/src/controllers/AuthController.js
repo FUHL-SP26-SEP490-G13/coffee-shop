@@ -166,6 +166,46 @@ class AuthController {
   }
 
   /**
+   * Verify OTP for password reset
+   * POST /api/auth/forgot-password/verify-otp
+   */
+  async verifyForgotPasswordOtp(req, res, next) {
+    try {
+      const { email, otp } = req.body;
+
+      if (!email || !otp) {
+        return response.error(res, "Thiếu email hoặc otp", 400);
+      }
+
+      const result = await AuthService.verifyForgotPasswordOtp(email, otp);
+
+      return response.success(res, result, "OTP xác thực thành công");
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Reset password with OTP
+   * POST /api/auth/forgot-password/reset
+   */
+  async resetPasswordWithOtp(req, res, next) {
+    try {
+      const { email, otp, newPassword, confirmPassword } = req.body;
+
+      if (!email || !otp || !newPassword || !confirmPassword) {
+        return response.error(res, "Thiếu thông tin bắt buộc", 400);
+      }
+
+      const result = await AuthService.resetPasswordWithOtp(email, otp, newPassword, confirmPassword);
+
+      return response.success(res, result, "Mật khẩu đã được đặt lại thành công");
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
    * Google OAuth Login
    * POST /api/auth/google
    */

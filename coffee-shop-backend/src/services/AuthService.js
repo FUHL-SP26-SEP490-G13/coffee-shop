@@ -639,23 +639,137 @@ class AuthService {
   }
 
   /**
-   * Reset password (would need email service in production)
+   * Request password reset - Send OTP to email
    */
   async resetPassword(email) {
     const user = await UserRepository.findByEmail(email);
 
     if (!user) {
       // Don't reveal if email exists for security
-      return { message: "Nếu email tồn tại, link reset password đã được gửi" };
+      return { message: "Nếu email tồn tại, mã OTP đã được gửi đến email của bạn" };
     }
 
-    // TODO: Generate reset token and send email
-    // For now, just return success message
+    // Generate 8-digit OTP
+    const otp = generateOTP();
+    const otpHash = await hashPassword(otp);
+
+    // OTP expires in 10 minutes
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+    // Save OTP to database
+    await EmailVerificationRepository.create({
+      user_id: user.id,
+      otp_hash: otpHash,
+      expires_at: expiresAt,
+    });
+
+    // Send OTP via email with password reset template
+    const userName = `${user.first_name} ${user.last_name}`.trim();
+    try {
+      await EmailService.sendPasswordResetOtpEmail(user.email, otp, userName);
+      console.log(`Password reset OTP sent to ${user.email}`);
+    } catch (emailError) {
+      console.error('Failed to send password reset OTP email:', emailError);
+      // Still return success but log the error
+    }
 
     return {
-      message: "Link reset password đã được gửi đến email của bạn",
-      // In development, you might want to return the reset token
-      // resetToken: generateRandomString(32)
+      message: "Mã OTP đã được gửi đến email của bạn",
+      // Return OTP in development for testing
+      otp: process.env.NODE_ENV === 'development' ? otp : undefined,
+    };
+  }
+
+  /**
+   * Verify OTP for password reset
+   */
+  async verifyForgotPasswordOtp(email, otp) {
+    const user = await UserRepository.findByEmail(email);
+
+    if (!user) {
+      throw new Error("Email không tồn tại");
+    }
+
+    const record = await EmailVerificationRepository.findLatestValidByUser(user.id);
+
+    if (!record) {
+      throw new Error("OTP không tồn tại hoặc đã hết hạn");
+    }
+
+    // Check expire
+    if (new Date() > new Date(record.expires_at)) {
+      throw new Error("OTP đã hết hạn");
+    }
+
+    // Giới hạn số lần nhập sai
+    if (record.failed_attempts >= 5) {
+      throw new Error("Bạn đã nhập sai OTP quá nhiều lần");
+    }
+
+    const isMatch = await comparePassword(otp, record.otp_hash);
+
+    if (!isMatch) {
+      await EmailVerificationRepository.incrementFailed(record.id);
+      throw new Error("OTP không đúng");
+    }
+
+    // OTP verified successfully - do NOT mark as used yet
+    // It will be marked as used after password is successfully reset
+
+    return {
+      message: "OTP xác thực thành công",
+    };
+  }
+
+  /**
+   * Reset password with OTP
+   */
+  async resetPasswordWithOtp(email, otp, newPassword, confirmPassword) {
+    // Verify new password matches confirm password
+    if (newPassword !== confirmPassword) {
+      throw new Error("Mật khẩu xác thực không khớp");
+    }
+
+    // Validate new password strength
+    this.validatePassword(newPassword);
+
+    const user = await UserRepository.findByEmail(email);
+
+    if (!user) {
+      throw new Error("Email không tồn tại");
+    }
+
+    // Get the latest OTP record for this user
+    const record = await EmailVerificationRepository.findLatestValidByUser(user.id);
+
+    if (!record) {
+      throw new Error("OTP không tồn tại");
+    }
+
+    // Check expire
+    if (new Date() > new Date(record.expires_at)) {
+      throw new Error("OTP đã hết hạn");
+    }
+
+    // Verify OTP is correct
+    const isMatch = await comparePassword(otp, record.otp_hash);
+
+    if (!isMatch) {
+      await EmailVerificationRepository.incrementFailed(record.id);
+      throw new Error("OTP không đúng");
+    }
+
+    // Hash new password
+    const hashedPassword = await hashPassword(newPassword);
+
+    // Update password
+    await UserRepository.updatePassword(user.id, hashedPassword);
+
+    // Mark OTP as used after successful password reset
+    await EmailVerificationRepository.markUsed(record.id);
+
+    return {
+      message: "Mật khẩu đã được đặt lại thành công",
     };
   }
 }

@@ -51,6 +51,21 @@ const authenticationService = {
   changePassword(payload) {
     return axiosClient.post(API_ENDPOINTS.AUTH.CHANGE_PASSWORD, payload);
   },
+
+  // Reset password (forgot password)
+  resetPassword(email) {
+    return axiosClient.post('/auth/reset-password', { email });
+  },
+
+  // Verify OTP for forgot password
+  verifyForgotPasswordOtp(email, otp) {
+    return axiosClient.post('/auth/forgot-password/verify-otp', { email, otp });
+  },
+
+  // Reset password with OTP
+  resetPasswordWithOtp(payload) {
+    return axiosClient.post('/auth/forgot-password/reset', payload);
+  },
 };
 
 export default authenticationService;

@@ -8,6 +8,7 @@ export const APP_ROUTES = {
   ADMIN: '/admin',
   PROFILE: '/profile',
   CHANGE_PASSWORD: '/change-password',
+  FORGOT_PASSWORD: '/forgot-password',
   PRODUCT_DETAIL: '/product/:id',
 };
 
