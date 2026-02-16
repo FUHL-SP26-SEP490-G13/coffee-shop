@@ -1,3 +1,4 @@
+console.log("🔥 APP.JS LOADED FROM:", __filename);
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');

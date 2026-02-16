@@ -1,13 +1,16 @@
-import React, { useEffect, useState } from 'react';
-import { Navigate, Routes, Route } from 'react-router-dom';
-import { APP_ROUTES, STORAGE_KEYS } from '../constants';
+import React, { useEffect, useState } from "react";
+import { Navigate, Routes, Route } from "react-router-dom";
+import { APP_ROUTES, STORAGE_KEYS } from "../constants";
 
-import LoginPage from '../pages/authentication/LoginPage';
-import RegisterPage from '../pages/authentication/RegisterPage';
-import { StaffApp } from '../pages/staff/StaffApp';
-import { BaristaApp } from '../pages/barista/BaristaApp';
-import { AdminDashboard } from '../pages/admin/AdminDashboard.jsx';
-import authenticationService from '../services/authenticationService';
+import LoginPage from "../pages/authentication/LoginPage";
+import RegisterPage from "../pages/authentication/RegisterPage";
+import { StaffApp } from "../pages/staff/StaffApp";
+import { BaristaApp } from "../pages/barista/BaristaApp";
+import { AdminDashboard } from "../pages/admin/AdminDashboard.jsx";
+import authenticationService from "../services/authenticationService";
+import HomePage from "@/pages/HomePage";
+import NewsListPage from "@/components/news/NewsListPage";
+import NewsDetailPage from "@/components/news/NewsDetailPage";
 
 const getStoredValue = (key) =>
   localStorage.getItem(key) || sessionStorage.getItem(key);
@@ -46,7 +49,7 @@ const RoleGuard = ({ allowedRoles, children }) => {
       try {
         const response = await authenticationService.getProfile();
         if (!response?.success) {
-          throw new Error(response?.message || 'Khong the tai profile');
+          throw new Error(response?.message || "Khong the tai profile");
         }
 
         const nextRoleId = Number(response?.data?.role_id);
@@ -89,7 +92,7 @@ const RoleGuard = ({ allowedRoles, children }) => {
     return <Navigate to={APP_ROUTES.LOGIN} replace />;
   }
 
-  // Nếu vai trò không được phép truy cập route này, chuyển hướng về trang chính 
+  // Nếu vai trò không được phép truy cập route này, chuyển hướng về trang chính
   // của vai trò đó
   if (!allowedRoles.includes(roleId)) {
     return <Navigate to={getRoleHomeRoute(roleId)} replace />;
@@ -101,7 +104,7 @@ const RoleGuard = ({ allowedRoles, children }) => {
 const AppRoutes = () => {
   return (
     <Routes>
-      <Route path={APP_ROUTES.HOME} element={<LoginPage />} />
+      <Route path={APP_ROUTES.HOME} element={<HomePage />} />
       <Route path={APP_ROUTES.LOGIN} element={<LoginPage />} />
       <Route path={APP_ROUTES.REGISTER} element={<RegisterPage />} />
 
@@ -130,7 +133,9 @@ const AppRoutes = () => {
           </RoleGuard>
         }
       />
-      
+      <Route path="/news" element={<NewsListPage />} />
+      <Route path="/news/:slug" element={<NewsDetailPage />} />
+
       {/* Route 404 - Not Found */}
       <Route
         path="*"
