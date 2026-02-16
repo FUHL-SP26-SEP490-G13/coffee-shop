@@ -227,7 +227,7 @@ class UserService {
     }
 
     // Don't allow deleting admin users
-    if (user.role_id === ROLES.ADMIN) {
+    if (user.role_id === ROLES.MANAGER) {
       throw new Error('Không thể xóa tài khoản admin');
     }
 

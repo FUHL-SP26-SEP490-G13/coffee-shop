@@ -14,7 +14,7 @@ const { registerSchema } = require('../validators/authValidator');
 router.get(
   '/stats',
   authenticate,
-  authorize(['admin']),
+  authorize(['manager']),
   UserController.getStatistics
 );
 
@@ -22,7 +22,7 @@ router.get(
 router.get(
   '/staff',
   authenticate,
-  authorize(['admin']),
+  authorize(['manager']),
   UserController.getStaff
 );
 
@@ -30,7 +30,7 @@ router.get(
 router.get(
   '/customers',
   authenticate,
-  authorize(['admin']),
+  authorize(['manager']),
   UserController.getCustomers
 );
 
@@ -38,7 +38,7 @@ router.get(
 router.get(
   '/search',
   authenticate,
-  authorize(['admin']),
+  authorize(['manager']),
   UserController.search
 );
 
@@ -46,7 +46,7 @@ router.get(
 router.get(
   '/role/:roleId',
   authenticate,
-  authorize(['admin']),
+  authorize(['manager']),
   UserController.getByRole
 );
 
@@ -54,7 +54,7 @@ router.get(
 router.get(
   '/',
   authenticate,
-  authorize(['admin']),
+  authorize(['manager']),
   UserController.getAll
 );
 
@@ -62,7 +62,7 @@ router.get(
 router.get(
   '/:id',
   authenticate,
-  authorize(['admin']),
+  authorize(['manager']),
   UserController.getById
 );
 
@@ -70,7 +70,7 @@ router.get(
 router.post(
   '/',
   authenticate,
-  authorize(['admin']),
+  authorize(['manager']),
   validate(registerSchema),
   UserController.create
 );
@@ -79,7 +79,7 @@ router.post(
 router.put(
   '/:id',
   authenticate,
-  authorize(['admin']),
+  authorize(['manager']),
   UserController.update
 );
 
@@ -87,7 +87,7 @@ router.put(
 router.post(
   '/:id/deactivate',
   authenticate,
-  authorize(['admin']),
+  authorize(['manager']),
   UserController.deactivate
 );
 
@@ -95,7 +95,7 @@ router.post(
 router.post(
   '/:id/activate',
   authenticate,
-  authorize(['admin']),
+  authorize(['manager']),
   UserController.activate
 );
 
@@ -103,7 +103,7 @@ router.post(
 router.delete(
   '/:id',
   authenticate,
-  authorize(['admin']),
+  authorize(['manager']),
   UserController.delete
 );
 
