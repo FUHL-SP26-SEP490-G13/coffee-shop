@@ -7,6 +7,8 @@ export const APP_ROUTES = {
   BARISTA: '/barista',
   ADMIN: '/admin',
   PROFILE: '/profile',
+  CHANGE_PASSWORD: '/change-password',
+  FORGOT_PASSWORD: '/forgot-password',
   PRODUCT_DETAIL: '/product/:id',
 };
 
@@ -19,6 +21,7 @@ export const API_ENDPOINTS = {
     GOOGLE: '/auth/google',
     REGISTER: '/auth/register',
     PROFILE: '/auth/profile',
+    CHANGE_PASSWORD: '/auth/change-password',
   },
   PRODUCTS: '/products',
   USERS: {

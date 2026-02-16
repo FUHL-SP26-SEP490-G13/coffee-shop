@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { User, Mail, Phone, Edit2, Save } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -7,8 +8,10 @@ import { Label } from '../../components/ui/label';
 import { Avatar, AvatarFallback } from '../../components/ui/avatar';
 import { toast } from 'sonner';
 import authenticationService from '../../services/authenticationService';
+import { APP_ROUTES } from '../../constants';
 
 export function UserProfile() {
+  const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
   const [profile, setProfile] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -239,7 +242,11 @@ export function UserProfile() {
                   <p className="font-medium">Đổi mật khẩu</p>
                   <p className="text-sm text-muted-foreground">Cập nhật mật khẩu của bạn</p>
                 </div>
-                <Button variant="outline" size="sm">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate(APP_ROUTES.CHANGE_PASSWORD)}
+                >
                   Đổi mật khẩu
                 </Button>
               </div>

@@ -11,6 +11,8 @@ import authenticationService from "../services/authenticationService";
 import HomePage from "@/pages/HomePage";
 import NewsListPage from "@/components/news/NewsListPage";
 import NewsDetailPage from "@/components/news/NewsDetailPage";
+import ChangePasswordPage from '../pages/authentication/ChangePasswordPage';
+import ForgotPasswordPage from '../pages/authentication/ForgotPasswordPage';
 
 const getStoredValue = (key) =>
   localStorage.getItem(key) || sessionStorage.getItem(key);
@@ -107,6 +109,15 @@ const AppRoutes = () => {
       <Route path={APP_ROUTES.HOME} element={<HomePage />} />
       <Route path={APP_ROUTES.LOGIN} element={<LoginPage />} />
       <Route path={APP_ROUTES.REGISTER} element={<RegisterPage />} />
+      <Route path={APP_ROUTES.FORGOT_PASSWORD} element={<ForgotPasswordPage />} />
+      <Route
+        path={APP_ROUTES.CHANGE_PASSWORD}
+        element={
+          <RoleGuard allowedRoles={[1, 2, 3, 4]}>
+            <ChangePasswordPage />
+          </RoleGuard>
+        }
+      />
 
       {/** Các route dành cho Staff, Barista, Admin */}
       <Route
