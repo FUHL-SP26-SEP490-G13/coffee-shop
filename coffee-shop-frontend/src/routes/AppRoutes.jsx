@@ -24,6 +24,8 @@ import NewsDetailPage from "@/components/news/NewsDetailPage";
 import AdminEditNewsPage from "@/pages/admin/AdminNew/AdminEditNewsPage";
 import AdminNewsDetailPage from "@/pages/admin/AdminNew/AdminNewsDetailPage";
 import NewsListPage from "@/components/news/NewsListPage";
+import AdminVoucherCreate from "@/pages/admin/AdminVoucher/AdminVoucherCreate";
+import AdminVoucherEdit from "@/pages/admin/AdminVoucher/AdminVoucherEdit";
 
 
 const getStoredValue = (key) =>
@@ -135,6 +137,8 @@ const AppRoutes = () => {
         <Route path="news-list" element={<AdminNewsList />} />
         <Route path="edit-news/:id" element={<AdminEditNewsPage />} />
         <Route path="news-detail/:slug" element={<AdminNewsDetailPage />} />
+        <Route path="/admin/vouchers/create" element={<AdminVoucherCreate />} />
+        <Route path="vouchers/edit/:id" element={<AdminVoucherEdit />} />
       </Route>
 
       <Route path="/news/:slug" element={<NewsDetailPage />} />

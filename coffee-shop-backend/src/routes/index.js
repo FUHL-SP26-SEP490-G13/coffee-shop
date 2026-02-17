@@ -1,5 +1,3 @@
-console.log("🔥 ROUTES INDEX LOADED FROM:", __filename);
-
 const express = require("express");
 const router = express.Router();
 
@@ -10,6 +8,7 @@ const userRoutes = require("./user.routes");
 const productRoutes = require("./product.routes");
 const newsletterRoutes = require("./newsletter.routes");
 const newsRoutes = require('./news.routes');
+const voucherRoutes = require("./voucher.routes");
 
 
 // Mount routes
@@ -19,6 +18,7 @@ router.use("/users", userRoutes);
 router.use("/products", productRoutes);
 router.use("/newsletter", newsletterRoutes);
 router.use('/news', newsRoutes);
+router.use("/vouchers", voucherRoutes);
 
 // Health check endpoint
 router.get("/health", (req, res) => {
