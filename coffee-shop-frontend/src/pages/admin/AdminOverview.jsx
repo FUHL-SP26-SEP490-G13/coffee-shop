@@ -3,7 +3,7 @@ import { Card } from '../../components/ui/card';
 import { revenueData, topProducts, ordersByType } from '../../lib/mockData';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
-export function AdminOverview() {
+export default function AdminOverview() {
   const stats = [
     {
       label: 'Total Revenue',

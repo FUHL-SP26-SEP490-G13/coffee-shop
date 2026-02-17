@@ -5,7 +5,7 @@ import { Button } from '../../components/ui/button';
 import { Card } from '../../components/ui/card';
 import { Progress } from '../../components/ui/progress';
 
-export function AdminVouchers() {
+export default function AdminVouchers() {
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">

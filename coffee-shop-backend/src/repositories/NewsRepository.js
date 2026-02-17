@@ -16,14 +16,41 @@ class NewsRepository extends BaseRepository {
 
   async findFeatured(limit = 3) {
     const sql = `
-    SELECT * FROM news
-    WHERE is_published = 1
-    ORDER BY created_at DESC
-    LIMIT ${parseInt(limit)}
-  `;
+      SELECT * FROM news
+      WHERE is_published = 1
+      ORDER BY created_at DESC
+      LIMIT ?
+    `;
+    const [rows] = await pool.query(sql, [limit]);
+    return rows;
+  }
 
+  async findPublishedPaginated(limit, offset) {
+    const sql = `
+      SELECT * FROM news
+      WHERE is_published = 1
+      ORDER BY created_at DESC
+      LIMIT ?, ?
+    `;
+    const [rows] = await pool.query(sql, [offset, limit]);
+    return rows;
+  }
+
+  async findAllAdmin() {
+    const sql = `
+      SELECT * FROM news
+      ORDER BY created_at DESC
+    `;
     const [rows] = await pool.query(sql);
     return rows;
+  }
+
+  async deleteById(id) {
+    return this.delete({ id });
+  }
+
+  async updateById(id, data) {
+    return this.update({ id }, data);
   }
 }
 

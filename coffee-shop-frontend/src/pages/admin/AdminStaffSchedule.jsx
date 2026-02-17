@@ -4,7 +4,7 @@ import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
 import { Plus } from 'lucide-react';
 
-export function AdminStaffSchedule() {
+export default function AdminStaffSchedule() {
   const dates = ['Feb 6', 'Feb 7', 'Feb 8', 'Feb 9', 'Feb 10', 'Feb 11', 'Feb 12'];
   const staffMembers = users.filter((u) => u.role === 'staff');
 
