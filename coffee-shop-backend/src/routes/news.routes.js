@@ -3,7 +3,7 @@ const router = express.Router();
 
 const NewsController = require("../controllers/NewsController");
 
-const { authenticate } = require("../middlewares/auth"); 
+const { authenticate } = require("../middlewares/auth");
 const { authorize } = require("../middlewares/authorize");
 
 const upload = require("../middlewares/upload");
@@ -14,7 +14,6 @@ const upload = require("../middlewares/upload");
 
 router.get("/featured", NewsController.getFeatured);
 router.get("/", NewsController.getAll);
-router.get("/:slug", NewsController.getDetail);
 
 // =====================
 // PROTECTED ROUTES
@@ -46,7 +45,18 @@ router.put(
   "/:id",
   authenticate,
   authorize(["manager"]),
+  upload.single("thumbnail"),
   NewsController.update
 );
+
+
+router.get(
+  "/admin/:id",
+  authenticate,
+  authorize(["manager"]),
+  NewsController.getById
+);
+
+router.get("/:slug", NewsController.getDetail);
 
 module.exports = router;

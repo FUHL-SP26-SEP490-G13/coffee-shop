@@ -1,9 +1,9 @@
-import { vouchers } from '../../lib/mockData';
+import { vouchers } from '../../../lib/mockData';
 import { Plus, Percent, DollarSign } from 'lucide-react';
-import { Badge } from '../../components/ui/badge';
-import { Button } from '../../components/ui/button';
-import { Card } from '../../components/ui/card';
-import { Progress } from '../../components/ui/progress';
+import { Badge } from '../../../components/ui/badge';
+import { Button } from '../../../components/ui/button';
+import { Card } from '../../../components/ui/card';
+import { Progress } from '../../../components/ui/progress';
 
 export default function AdminVouchers() {
   return (

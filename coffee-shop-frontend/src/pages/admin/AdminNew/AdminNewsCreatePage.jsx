@@ -1,8 +1,11 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import newsService from "@/services/newsService";
-import RichTextEditor from "@/components/RichTextEditor";
+import TinyEditor from "@/components/TinyEditor";
 
-export default function NewsCreatePage() {
+export default function AdminNewsCreatePage() {
+  const navigate = useNavigate();
+
   const [form, setForm] = useState({
     title: "",
     thumbnail: "",
@@ -38,7 +41,9 @@ export default function NewsCreatePage() {
 
       await newsService.create(formData);
 
-      alert("Đăng bài thành công");
+      // 🔥 Sau khi tạo xong quay lại list
+      navigate("/admin/news-list");
+
     } catch (error) {
       console.error(error);
       alert("Có lỗi xảy ra!");
@@ -49,7 +54,17 @@ export default function NewsCreatePage() {
 
   return (
     <div className="p-8 max-w-4xl">
-      <h1 className="text-2xl font-bold mb-6">Tạo bài viết mới</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Tạo bài viết mới</h1>
+
+        {/* Nút quay lại */}
+        <button
+          onClick={() => navigate(-1)}
+          className="text-gray-600 hover:text-black transition"
+        >
+          ← Quay lại
+        </button>
+      </div>
 
       {/* Title */}
       <input
@@ -66,7 +81,6 @@ export default function NewsCreatePage() {
         accept="image/*"
         onChange={(e) => {
           const file = e.target.files[0];
-
           if (!file) return;
 
           setForm((prev) => ({
@@ -74,7 +88,6 @@ export default function NewsCreatePage() {
             thumbnail: file,
           }));
 
-          // tạo preview
           setPreview(URL.createObjectURL(file));
         }}
         className="w-full border p-3 rounded mb-4"
@@ -82,9 +95,7 @@ export default function NewsCreatePage() {
 
       {preview && (
         <div className="mb-4">
-          <p className="text-sm text-muted-foreground mb-2">
-            Xem trước thumbnail:
-          </p>
+          <p className="text-sm mb-2">Xem trước thumbnail:</p>
           <img
             src={preview}
             alt="Preview"
@@ -103,22 +114,17 @@ export default function NewsCreatePage() {
         className="w-full border p-3 rounded mb-4"
       />
 
-      {/* Rich Editor */}
-      <div className="mb-6">
-        <label className="block mb-2 font-medium">Nội dung chi tiết</label>
+      <TinyEditor
+        value={form.content}
+        onChange={(value) =>
+          setForm((prev) => ({
+            ...prev,
+            content: value,
+          }))
+        }
+      />
 
-        <RichTextEditor
-          value={form.content}
-          onChange={(value) =>
-            setForm((prev) => ({
-              ...prev,
-              content: value,
-            }))
-          }
-        />
-      </div>
-
-      <div className="flex gap-4 items-center">
+      <div className="flex gap-4 items-center mt-4">
         <button
           onClick={handleSubmit}
           disabled={loading}

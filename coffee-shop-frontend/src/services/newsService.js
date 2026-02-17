@@ -9,8 +9,18 @@ const newsService = {
 
   getDetail: (slug) => axiosClient.get(`/news/${slug}`),
   delete: (id) => axiosClient.delete(`/news/${id}`),
-  getAllAdmin: () => axiosClient.get("/news/admin"),
-  update: (id, data) => axiosClient.put(`/news/${id}`, data),
+  getAllAdmin(page = 1, title = "") {
+    return axiosClient.get("/news/admin", {
+      params: { page, limit: 10, title },
+    });
+  },
+  update: (id, data) =>
+    axiosClient.put(`/news/${id}`, data, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    }),
+  getById: (id) => axiosClient.get(`/news/admin/${id}`),
   create: (data) =>
     axiosClient.post("/news", data, {
       headers: {
