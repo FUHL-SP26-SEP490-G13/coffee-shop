@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { Plus, Percent } from "lucide-react";
+import { Plus, Percent, Search, Ticket, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { Input } from "@/components/ui/input";
 import discountService from "@/services/discountService";
 import { useNavigate } from "react-router-dom";
 
@@ -91,37 +92,19 @@ export default function AdminDiscounts() {
   };
 
   return (
-    <div className="p-6">
-      {/* FILTER */}
-      <div className="flex gap-4 mb-6 items-center">
-        <input
-          type="text"
-          placeholder="Tìm theo mã..."
-          className="border px-3 py-2 rounded w-64"
-          value={searchCode}
-          onChange={(e) => setSearchCode(e.target.value)}
-        />
-
-        <select
-          className="border px-3 py-2 rounded"
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-        >
-          <option value="">Tất cả trạng thái</option>
-          <option value="active">Còn hạn</option>
-          <option value="expired">Hết hạn</option>
-        </select>
-
-        <Button onClick={handleSearch}>Tìm kiếm</Button>
-      </div>
-
+    <div className="p-4 md:p-8">
       {/* HEADER */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-2xl mb-1">Quản lý mã giảm giá</h2>
-          <p className="text-sm text-muted-foreground">
-            Tạo và quản lý mã giảm giá theo %
-          </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-primary/10 rounded-lg">
+            <Ticket className="h-6 w-6 text-primary" />
+          </div>
+          <div>
+            <h2 className="text-2xl md:text-3xl font-bold">Quản lý mã giảm giá</h2>
+            <p className="text-sm text-muted-foreground">
+              Tạo và quản lý mã giảm giá theo %
+            </p>
+          </div>
         </div>
 
         <Button onClick={() => navigate("/admin/discounts/create")}>
@@ -130,14 +113,47 @@ export default function AdminDiscounts() {
         </Button>
       </div>
 
+      {/* FILTER */}
+      <Card className="p-4 mb-6">
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="text"
+              placeholder="Tìm theo mã giảm giá..."
+              className="pl-10"
+              value={searchCode}
+              onChange={(e) => setSearchCode(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+            />
+          </div>
+
+          <select
+            className="border border-input rounded-md px-3 py-2 text-sm bg-background"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+          >
+            <option value="">Tất cả trạng thái</option>
+            <option value="active">Còn hạn</option>
+            <option value="expired">Hết hạn</option>
+          </select>
+
+          <Button onClick={handleSearch}>
+            <Search className="w-4 h-4 mr-2" />
+            Tìm kiếm
+          </Button>
+        </div>
+      </Card>
+
       {/* GRID */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {loading
           ? Array.from({ length: 6 }).map((_, i) => (
-              <div
-                key={i}
-                className="h-44 rounded-lg bg-gray-200 animate-pulse"
-              />
+              <Card key={i} className="p-4">
+                <div className="h-40 flex items-center justify-center">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+              </Card>
             ))
           : items.map((d) => {
               const usagePercentage =

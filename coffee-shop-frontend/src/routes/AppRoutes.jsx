@@ -42,6 +42,8 @@ const getRoleHomeRoute = (roleId) => {
       return APP_ROUTES.STAFF;
     case 3:
       return APP_ROUTES.BARISTA;
+    case 4:
+      return APP_ROUTES.CUSTOMER;
     default:
       return APP_ROUTES.HOME;
   }
@@ -93,7 +95,7 @@ const AppRoutes = () => {
       <Route
         path={APP_ROUTES.CHANGE_PASSWORD}
         element={
-          <RoleGuard allowedRoles={[1, 2, 3]}>
+          <RoleGuard allowedRoles={[1, 2, 3, 4]}>
             <ChangePasswordPage />
           </RoleGuard>
         }

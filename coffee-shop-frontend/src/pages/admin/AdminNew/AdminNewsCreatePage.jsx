@@ -1,7 +1,12 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Loader2, ChevronLeft, Upload } from "lucide-react";
 import newsService from "@/services/newsService";
-import TinyEditor from "@/components/TinyEditor";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import RichTextEditor from "../../../components/RichTextEditor/RichTextEditor";
 
 export default function AdminNewsCreatePage() {
   const navigate = useNavigate();
@@ -41,7 +46,6 @@ export default function AdminNewsCreatePage() {
 
       await newsService.create(formData);
 
-      // 🔥 Sau khi tạo xong quay lại list
       navigate("/admin/news-list");
 
     } catch (error) {
@@ -53,85 +57,121 @@ export default function AdminNewsCreatePage() {
   };
 
   return (
-    <div className="p-8 max-w-4xl">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Tạo bài viết mới</h1>
-
-        {/* Nút quay lại */}
-        <button
+    <div className="p-6">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h2 className="text-2xl font-semibold mb-1">Tạo bài viết mới</h2>
+          <p className="text-sm text-muted-foreground">Thêm bài viết tin tức mới vào hệ thống</p>
+        </div>
+        <Button
+          variant="outline"
           onClick={() => navigate(-1)}
-          className="text-gray-600 hover:text-black transition"
+          className="gap-2"
         >
-          ← Quay lại
-        </button>
+          <ChevronLeft className="h-4 w-4" />
+          Quay lại
+        </Button>
       </div>
 
-      {/* Title */}
-      <input
-        name="title"
-        value={form.title}
-        onChange={handleChange}
-        placeholder="Tiêu đề"
-        className="w-full border p-3 rounded mb-4"
-      />
+      <div className="bg-card rounded-xl border border-border p-6 max-w-4xl">
+        <div className="space-y-6">
+          {/* Title */}
+          <div className="space-y-2">
+            <Label htmlFor="title">Tiêu đề *</Label>
+            <Input
+              id="title"
+              name="title"
+              value={form.title}
+              onChange={handleChange}
+              placeholder="Nhập tiêu đề bài viết..."
+            />
+          </div>
 
-      {/* Thumbnail */}
-      <input
-        type="file"
-        accept="image/*"
-        onChange={(e) => {
-          const file = e.target.files[0];
-          if (!file) return;
+          {/* Thumbnail */}
+          <div className="space-y-2">
+            <Label htmlFor="thumbnail">Hình ảnh đại diện *</Label>
+            <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary transition cursor-pointer relative">
+              <input
+                id="thumbnail"
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  const file = e.target.files[0];
+                  if (!file) return;
 
-          setForm((prev) => ({
-            ...prev,
-            thumbnail: file,
-          }));
+                  setForm((prev) => ({
+                    ...prev,
+                    thumbnail: file,
+                  }));
 
-          setPreview(URL.createObjectURL(file));
-        }}
-        className="w-full border p-3 rounded mb-4"
-      />
+                  setPreview(URL.createObjectURL(file));
+                }}
+                className="absolute inset-0 opacity-0 cursor-pointer"
+              />
+              <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+              <p className="text-sm font-medium">Chọn hình ảnh để tải lên</p>
+              <p className="text-xs text-muted-foreground">Hỗ trợ JPG, PNG, WebP</p>
+            </div>
+          </div>
 
-      {preview && (
-        <div className="mb-4">
-          <p className="text-sm mb-2">Xem trước thumbnail:</p>
-          <img
-            src={preview}
-            alt="Preview"
-            className="w-full max-h-80 object-cover rounded-lg border"
-          />
+          {preview && (
+            <div className="space-y-2">
+              <p className="text-sm font-medium">Xem trước hình ảnh:</p>
+              <img
+                src={preview}
+                alt="Preview"
+                className="w-full max-h-96 object-cover rounded-lg border border-border"
+              />
+            </div>
+          )}
+
+          {/* Summary */}
+          <div className="space-y-2">
+            <Label htmlFor="summary">Tóm tắt</Label>
+            <Textarea
+              id="summary"
+              name="summary"
+              value={form.summary}
+              onChange={handleChange}
+              placeholder="Nhập tóm tắt bài viết..."
+              rows={3}
+            />
+          </div>
+
+          {/* Content */}
+          <div className="space-y-2">
+            <Label>Nội dung *</Label>
+            <div className="border border-border rounded-lg overflow-hidden">
+              <RichTextEditor
+                value={form.content}
+                onChange={(value) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    content: value,
+                  }))
+                }
+              />
+            </div>
+          </div>
+
+          {/* Buttons */}
+          <div className="flex gap-3 pt-4">
+            <Button
+              onClick={handleSubmit}
+              disabled={loading}
+              className="gap-2"
+            >
+              {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+              {loading ? "Đang đăng..." : "Đăng bài"}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => navigate("/admin/news-list")}
+            >
+              Hủy
+            </Button>
+          </div>
         </div>
-      )}
-
-      {/* Summary */}
-      <textarea
-        name="summary"
-        value={form.summary}
-        onChange={handleChange}
-        placeholder="Tóm tắt"
-        rows={3}
-        className="w-full border p-3 rounded mb-4"
-      />
-
-      <TinyEditor
-        value={form.content}
-        onChange={(value) =>
-          setForm((prev) => ({
-            ...prev,
-            content: value,
-          }))
-        }
-      />
-
-      <div className="flex gap-4 items-center mt-4">
-        <button
-          onClick={handleSubmit}
-          disabled={loading}
-          className="bg-red-600 text-white px-6 py-2 rounded"
-        >
-          {loading ? "Đang đăng..." : "Đăng bài"}
-        </button>
       </div>
     </div>
   );

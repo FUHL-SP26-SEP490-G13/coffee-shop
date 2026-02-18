@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from "react";
-import { ShoppingCart, Search, User, LogOut, Package } from "lucide-react";
+import { ShoppingCart, Search, User, LogOut, Package, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
 import {jwtDecode} from "jwt-decode";
 import { STORAGE_KEYS } from "@/constants";
@@ -14,9 +15,6 @@ function Header() {
     localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN) ||
     sessionStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
   const user = token ? jwtDecode(token) : null;
-
-  console.log("Decoded user:", user);
-
 
   const handleLogout = () => {
     localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
@@ -66,32 +64,32 @@ function Header() {
   }, []);
 
   return (
-    <header className="border-b bg-white sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+    <header className="border-b bg-card sticky top-0 z-50">
+      <div className="max-w-7xl mx-auto px-6 py-3 flex justify-between items-center">
         {/* Logo */}
         <h1
-          className="text-2xl font-bold text-[#b71c1c] cursor-pointer"
+          className="text-2xl font-bold cursor-pointer text-primary"
           onClick={() => navigate("/")}
         >
           Coffee Shop
         </h1>
 
         {/* Search */}
-        <div className="flex-1 mx-10 hidden md:flex">
+        <div className="flex-1 mx-8 hidden md:flex">
           <div className="w-full relative">
-            <input
+            <Input
               type="text"
-              placeholder={text}
-              className="w-full bg-gray-100 rounded-full py-3 pl-6 pr-14 outline-none text-sm"
+              placeholder={text || "Tìm kiếm sản phẩm..."}
+              className="w-full rounded-full py-2 pl-4 pr-12"
             />
-            <button className="absolute right-2 top-1/2 -translate-y-1/2 bg-[#b71c1c] text-white p-2 rounded-full hover:bg-[#8e0000] transition">
+            <button className="absolute right-2 top-1/2 -translate-y-1/2 bg-primary text-white p-2 rounded-full hover:bg-primary/90 transition">
               <Search className="w-4 h-4" />
             </button>
           </div>
         </div>
 
         {/* Right section */}
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-4">
           {!user && (
             <Button variant="ghost" onClick={() => navigate("/login")}>
               Đăng nhập
@@ -100,39 +98,40 @@ function Header() {
 
           {user && (
             <div className="relative" ref={dropdownRef}>
-              <button
+              <Button
+                variant="ghost"
                 onClick={() => setOpen(!open)}
-                className="flex items-center gap-2 font-medium"
+                className="gap-2 text-sm"
               >
-                <User className="w-5 h-5" />
-                Xin chào {user.last_name + " " + user.first_name}
-              </button>
+                <User className="w-4 h-4" />
+                <span className="hidden sm:inline">{user.last_name} {user.first_name}</span>
+              </Button>
 
               {open && (
-                <div className="absolute right-0 mt-3 w-52 bg-white shadow-lg rounded-xl p-2 border animate-in fade-in zoom-in-95">
+                <div className="absolute right-0 mt-2 w-56 bg-card shadow-lg rounded-xl p-1 border border-border animate-in fade-in zoom-in-95">
                   <button
                     onClick={() => navigate("/my-orders")}
-                    className="w-full text-left px-3 py-2 hover:bg-gray-100 rounded"
+                    className="w-full text-left px-3 py-2 hover:bg-muted rounded-lg transition flex items-center gap-2 text-sm"
                   >
-                    <Package className="inline w-4 mr-2" />
+                    <Package className="w-4 h-4" />
                     Đơn hàng của tôi
                   </button>
 
                   <button
                     onClick={() => navigate("/customer/profile")}
-                    className="w-full text-left px-3 py-2 hover:bg-gray-100 rounded"
+                    className="w-full text-left px-3 py-2 hover:bg-muted rounded-lg transition flex items-center gap-2 text-sm"
                   >
-                    <Package className="inline w-4 mr-2" />
+                    <User className="w-4 h-4" />
                     Hồ sơ cá nhân
                   </button>
 
-                  <hr className="my-2" />
+                  <div className="my-1 border-t" />
 
                   <button
                     onClick={handleLogout}
-                    className="w-full text-left px-3 py-2 text-red-600 hover:bg-red-50 rounded"
+                    className="w-full text-left px-3 py-2 text-destructive hover:bg-destructive/10 rounded-lg transition flex items-center gap-2 text-sm"
                   >
-                    <LogOut className="inline w-4 mr-2" />
+                    <LogOut className="w-4 h-4" />
                     Đăng xuất
                   </button>
                 </div>
@@ -140,9 +139,9 @@ function Header() {
             </div>
           )}
 
-          <Button className="bg-[#b71c1c] hover:bg-[#8e0000]">
-            <ShoppingCart className="w-4 h-4 mr-2" />
-            Giỏ hàng
+          <Button className="gap-2" onClick={() => navigate("/cart")}>
+            <ShoppingCart className="w-4 h-4" />
+            <span className="hidden sm:inline">Giỏ hàng</span>
           </Button>
         </div>
       </div>

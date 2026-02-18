@@ -1,7 +1,9 @@
 import { useState } from "react";
-import { Mail, Phone, MapPin } from "lucide-react";
+import { Mail, Phone, MapPin, Loader2 } from "lucide-react";
 import axios from "@/services/axiosClient";
 import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 function Footer() {
   const [email, setEmail] = useState("");
@@ -46,7 +48,7 @@ function Footer() {
   };
 
   return (
-    <footer className="bg-muted border-t mt-20">
+    <footer className="bg-card border-t mt-20">
       <div className="max-w-7xl mx-auto px-6 py-12 grid grid-cols-1 md:grid-cols-4 gap-10">
         {/* Company */}
         <div>
@@ -58,7 +60,7 @@ function Footer() {
           <div className="space-y-2 text-sm">
             <div className="flex items-center gap-2">
               <MapPin size={16} />
-              TP. Hồ Chí Minh
+              TP. Hà Nội
             </div>
             <div className="flex items-center gap-2">
               <Phone size={16} />
@@ -109,38 +111,34 @@ function Footer() {
           <h4 className="font-semibold mb-4">Đăng ký nhận tin</h4>
 
           <form className="flex flex-col gap-2" onSubmit={handleSubmit}>
-            <div className="flex">
-              <input
+            <div className="flex gap-2">
+              <Input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Nhập email của bạn"
-                className="flex-1 border rounded-l-md px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#b71c1c]"
+                className="flex-1 text-sm"
               />
 
-              <button
+              <Button
                 type="submit"
                 disabled={loading}
-                className={`px-4 rounded-r-md text-sm text-white transition
-                  ${
-                    loading
-                      ? "bg-gray-400 cursor-not-allowed"
-                      : "bg-[#b71c1c] hover:bg-[#8e0000]"
-                  }`}
+                className="gap-2"
               >
-                {loading ? "Đang gửi..." : "Đăng ký"}
-              </button>
+                {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+                {loading ? "Gửi..." : "Đăng ký"}
+              </Button>
             </div>
 
-            {message && <p className="text-sm text-green-600">{message}</p>}
+            {message && <p className="text-sm text-green-600 font-medium">{message}</p>}
 
             {error && <p className="text-sm text-red-600">{error}</p>}
           </form>
         </div>
       </div>
 
-      <div className="border-t text-center py-4 text-sm text-muted-foreground">
-        © 2025 Coffee Shop. All rights reserved.
+      <div className="border-t text-center py-4 text-sm text-muted-foreground bg-muted">
+        © {new Date().getFullYear()} Coffee Shop. All rights reserved.
       </div>
     </footer>
   );
