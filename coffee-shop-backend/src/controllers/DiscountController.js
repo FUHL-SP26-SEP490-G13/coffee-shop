@@ -1,26 +1,19 @@
-const VoucherService = require("../services/VoucherService");
+const DiscountService = require("../services/DiscountService");
 const response = require("../utils/response");
 
-class VoucherController {
+class DiscountController {
   async getAll(req, res, next) {
     try {
-      const {
-        page = 1,
-        limit = 10,
-        code = "",
-        status = "",
-        type = "",
-      } = req.query;
+      const { page = 1, limit = 6, code = "", status = "" } = req.query;
 
-      const vouchers = await VoucherService.getAll({
+      const discounts = await DiscountService.getAll({
         page: parseInt(page),
         limit: parseInt(limit),
         code,
         status,
-        type,
       });
 
-      return response.success(res, vouchers);
+      return response.success(res, discounts);
     } catch (error) {
       next(error);
     }
@@ -28,8 +21,8 @@ class VoucherController {
 
   async getById(req, res, next) {
     try {
-      const voucher = await VoucherService.getById(req.params.id);
-      return response.success(res, voucher);
+      const discount = await DiscountService.getById(req.params.id);
+      return response.success(res, discount);
     } catch (error) {
       next(error);
     }
@@ -37,8 +30,8 @@ class VoucherController {
 
   async create(req, res, next) {
     try {
-      const id = await VoucherService.create(req.body);
-      return response.success(res, { id }, "Tạo voucher thành công", 201);
+      const id = await DiscountService.create(req.body);
+      return response.success(res, { id }, "Tạo discount thành công", 201);
     } catch (error) {
       next(error);
     }
@@ -46,7 +39,7 @@ class VoucherController {
 
   async update(req, res, next) {
     try {
-      await VoucherService.update(req.params.id, req.body);
+      await DiscountService.update(req.params.id, req.body);
       return response.success(res, null, "Cập nhật thành công");
     } catch (error) {
       next(error);
@@ -55,7 +48,7 @@ class VoucherController {
 
   async delete(req, res, next) {
     try {
-      await VoucherService.delete(req.params.id);
+      await DiscountService.delete(req.params.id);
       return response.success(res, null, "Đã xóa");
     } catch (error) {
       next(error);
@@ -63,4 +56,4 @@ class VoucherController {
   }
 }
 
-module.exports = new VoucherController();
+module.exports = new DiscountController();

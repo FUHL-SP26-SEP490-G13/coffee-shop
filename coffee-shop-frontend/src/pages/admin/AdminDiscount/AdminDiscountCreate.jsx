@@ -1,19 +1,19 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import voucherService from "@/services/voucherService";
+import discountService from "@/services/discountService";
 
-export default function AdminVoucherCreate() {
+export default function AdminDiscountCreate() {
   const navigate = useNavigate();
 
   const [form, setForm] = useState({
     code: "",
-    discount_type: "percent",
-    discount_value: "",
-    min_order_value: "",
-    max_discount: "",
+    description: "",
+    percentage: "",
+    min_order_amount: "",
+    max_discount_amount: "",
     usage_limit: "",
-    start_date: "",
-    end_date: "",
+    valid_from: "",
+    valid_until: "",
     is_active: true,
   });
 
@@ -21,31 +21,35 @@ export default function AdminVoucherCreate() {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-
-    setForm({
-      ...form,
+    setForm((prev) => ({
+      ...prev,
       [name]: type === "checkbox" ? checked : value,
-    });
+    }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     try {
       setLoading(true);
 
-      await voucherService.create({
+      await discountService.create({
         ...form,
-        discount_value: Number(form.discount_value),
-        min_order_value: Number(form.min_order_value),
-        max_discount: form.max_discount ? Number(form.max_discount) : null,
+        percentage: Number(form.percentage),
+        min_order_amount: form.min_order_amount
+          ? Number(form.min_order_amount)
+          : 0,
+        max_discount_amount: form.max_discount_amount
+          ? Number(form.max_discount_amount)
+          : null,
         usage_limit: form.usage_limit ? Number(form.usage_limit) : null,
+        valid_from: form.valid_from || null,
+        valid_until: form.valid_until || null,
       });
 
-      alert("Tạo voucher thành công");
-      navigate("/admin/vouchers");
-    } catch (error) {
-      console.error(error);
+      alert("Tạo mã giảm giá thành công");
+      navigate("/admin/discounts");
+    } catch (err) {
+      console.error(err);
       alert("Tạo thất bại");
     } finally {
       setLoading(false);
@@ -54,12 +58,11 @@ export default function AdminVoucherCreate() {
 
   return (
     <div className="p-8 max-w-2xl">
-      <h1 className="text-2xl font-bold mb-6">Tạo Voucher mới</h1>
+      <h1 className="text-2xl mb-6">Tạo mã giảm giá mới</h1>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Code */}
         <div>
-          <label className="block mb-1 font-medium">Mã voucher</label>
+          <label className="block mb-1 font-medium">Mã code</label>
           <input
             name="code"
             value={form.code}
@@ -69,62 +72,58 @@ export default function AdminVoucherCreate() {
           />
         </div>
 
-        {/* Discount Type */}
         <div>
-          <label className="block mb-1 font-medium">Loại giảm giá</label>
-          <select
-            name="discount_type"
-            value={form.discount_type}
-            onChange={handleChange}
-            className="w-full border p-2 rounded"
-          >
-            <option value="percent">Phần trăm (%)</option>
-            <option value="fixed">Tiền cố định</option>
-          </select>
-        </div>
-
-        {/* Discount Value */}
-        <div>
-          <label className="block mb-1 font-medium">Giá trị giảm</label>
+          <label className="block mb-1 font-medium">Mô tả</label>
           <input
-            type="number"
-            name="discount_value"
-            value={form.discount_value}
+            name="description"
+            value={form.description}
             onChange={handleChange}
-            required
             className="w-full border p-2 rounded"
           />
         </div>
 
-        {/* Min Order */}
+        <div>
+          <label className="block mb-1 font-medium">Phần trăm (%)</label>
+          <input
+            type="number"
+            name="percentage"
+            value={form.percentage}
+            onChange={handleChange}
+            required
+            min="1"
+            max="100"
+            className="w-full border p-2 rounded"
+          />
+        </div>
+
         <div>
           <label className="block mb-1 font-medium">Đơn tối thiểu</label>
           <input
             type="number"
-            name="min_order_value"
-            value={form.min_order_value}
+            name="min_order_amount"
+            value={form.min_order_amount}
             onChange={handleChange}
             className="w-full border p-2 rounded"
           />
         </div>
 
-        {/* Max Discount */}
-        {form.discount_type === "percent" && (
-          <div>
-            <label className="block mb-1 font-medium">Giảm tối đa</label>
-            <input
-              type="number"
-              name="max_discount"
-              value={form.max_discount}
-              onChange={handleChange}
-              className="w-full border p-2 rounded"
-            />
-          </div>
-        )}
-
-        {/* Usage Limit */}
         <div>
-          <label className="block mb-1 font-medium">Giới hạn lượt dùng</label>
+          <label className="block mb-1 font-medium">
+            Giảm tối đa (optional)
+          </label>
+          <input
+            type="number"
+            name="max_discount_amount"
+            value={form.max_discount_amount}
+            onChange={handleChange}
+            className="w-full border p-2 rounded"
+          />
+        </div>
+
+        <div>
+          <label className="block mb-1 font-medium">
+            Giới hạn lượt dùng (optional)
+          </label>
           <input
             type="number"
             name="usage_limit"
@@ -134,33 +133,32 @@ export default function AdminVoucherCreate() {
           />
         </div>
 
-        {/* Start Date */}
         <div>
-          <label className="block mb-1 font-medium">Ngày bắt đầu</label>
+          <label className="block mb-1 font-medium">
+            Ngày bắt đầu (valid_from)
+          </label>
           <input
             type="datetime-local"
-            name="start_date"
-            value={form.start_date}
+            name="valid_from"
+            value={form.valid_from}
             onChange={handleChange}
-            required
             className="w-full border p-2 rounded"
           />
         </div>
 
-        {/* End Date */}
         <div>
-          <label className="block mb-1 font-medium">Ngày kết thúc</label>
+          <label className="block mb-1 font-medium">
+            Ngày kết thúc (valid_until)
+          </label>
           <input
             type="datetime-local"
-            name="end_date"
-            value={form.end_date}
+            name="valid_until"
+            value={form.valid_until}
             onChange={handleChange}
-            required
             className="w-full border p-2 rounded"
           />
         </div>
 
-        {/* Active */}
         <div className="flex items-center gap-2">
           <input
             type="checkbox"
@@ -168,22 +166,21 @@ export default function AdminVoucherCreate() {
             checked={form.is_active}
             onChange={handleChange}
           />
-          <label>Kích hoạt ngay</label>
+          <label>Kích hoạt</label>
         </div>
 
-        {/* Buttons */}
         <div className="flex gap-4 mt-4">
           <button
             type="submit"
             disabled={loading}
             className="bg-green-600 text-white px-6 py-2 rounded"
           >
-            {loading ? "Đang tạo..." : "Tạo voucher"}
+            {loading ? "Đang tạo..." : "Tạo"}
           </button>
 
           <button
             type="button"
-            onClick={() => navigate("/admin/vouchers")}
+            onClick={() => navigate("/admin/discounts")}
             className="border px-6 py-2 rounded"
           >
             Hủy

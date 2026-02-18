@@ -5,8 +5,6 @@ import LoginPage from "../pages/authentication/LoginPage";
 import RegisterPage from "../pages/authentication/RegisterPage";
 import { StaffApp } from "../pages/staff/StaffApp";
 import { BaristaApp } from "../pages/barista/BaristaApp";
-import AdminDashboard from "../pages/admin/AdminDashboard";
-import AdminOverview from "../pages/admin/AdminOverview";
 import AdminOrders from "../pages/admin/AdminOrders";
 import AdminUsers from "../pages/admin/AdminUsers";
 import authenticationService from "../services/authenticationService";
@@ -16,7 +14,6 @@ import ForgotPasswordPage from "../pages/authentication/ForgotPasswordPage";
 import AdminStaffSchedule from "@/pages/admin/AdminStaffSchedule";
 import AdminInventory from "@/pages/admin/AdminInventory";
 import { UserProfile } from "@/pages/common/UserProfile";
-import AdminVouchers from "@/pages/admin/AdminVoucher/AdminVouchers";
 import AdminNewsCreatePage from "@/pages/admin/AdminNew/AdminNewsCreatePage";
 import AdminNewsList from "@/pages/admin/AdminNew/AdminNewsList";
 import AdminProducts from "@/pages/admin/AdminProduct/AdminProducts";
@@ -24,8 +21,11 @@ import NewsDetailPage from "@/components/news/NewsDetailPage";
 import AdminEditNewsPage from "@/pages/admin/AdminNew/AdminEditNewsPage";
 import AdminNewsDetailPage from "@/pages/admin/AdminNew/AdminNewsDetailPage";
 import NewsListPage from "@/components/news/NewsListPage";
-import AdminVoucherCreate from "@/pages/admin/AdminVoucher/AdminVoucherCreate";
-import AdminVoucherEdit from "@/pages/admin/AdminVoucher/AdminVoucherEdit";
+import AdminLayout from "../pages/admin/AdminLayout";
+import AdminDashboard from "../pages/admin/AdminDashboard/AdminDashboard";
+import AdminDiscounts from "@/pages/admin/AdminDiscount/AdminDiscounts";
+import AdminDiscountCreate from "@/pages/admin/AdminDiscount/AdminDiscountCreate";
+import AdminDiscountEdit from "@/pages/admin/AdminDiscount/AdminDiscountEdit";
 
 
 const getStoredValue = (key) =>
@@ -121,24 +121,31 @@ const AppRoutes = () => {
         path="/admin"
         element={
           <RoleGuard allowedRoles={[1]}>
-            <AdminDashboard />
+            <AdminLayout />
           </RoleGuard>
         }
       >
-        <Route index element={<AdminOverview />} />
+        <Route index element={<AdminDashboard />} />
         <Route path="products" element={<AdminProducts />} />
         <Route path="orders" element={<AdminOrders />} />
         <Route path="users" element={<AdminUsers />} />
         <Route path="schedule" element={<AdminStaffSchedule />} />
         <Route path="inventory" element={<AdminInventory />} />
-        <Route path="vouchers" element={<AdminVouchers />} />
         <Route path="create-news" element={<AdminNewsCreatePage />} />
         <Route path="profile" element={<UserProfile />} />
         <Route path="news-list" element={<AdminNewsList />} />
         <Route path="edit-news/:id" element={<AdminEditNewsPage />} />
         <Route path="news-detail/:slug" element={<AdminNewsDetailPage />} />
-        <Route path="/admin/vouchers/create" element={<AdminVoucherCreate />} />
-        <Route path="vouchers/edit/:id" element={<AdminVoucherEdit />} />
+
+        <Route path="discounts" element={<AdminDiscounts />} />
+        <Route
+          path="discounts/create"
+          element={<AdminDiscountCreate />}
+        />
+        <Route
+          path="discounts/edit/:id"
+          element={<AdminDiscountEdit />}
+        />
       </Route>
 
       <Route path="/news/:slug" element={<NewsDetailPage />} />

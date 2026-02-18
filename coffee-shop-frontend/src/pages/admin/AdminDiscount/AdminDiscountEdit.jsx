@@ -1,57 +1,54 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import voucherService from "@/services/voucherService";
+import discountService from "@/services/discountService";
 
-export default function AdminVoucherEdit() {
+export default function AdminDiscountEdit() {
   const { id } = useParams();
   const navigate = useNavigate();
 
   const [form, setForm] = useState({
     code: "",
-    discount_type: "percent",
-    discount_value: "",
-    min_order_value: "",
-    max_discount: "",
+    description: "",
+    percentage: "",
+    min_order_amount: "",
+    max_discount_amount: "",
     usage_limit: "",
-    start_date: "",
-    end_date: "",
+    valid_from: "",
+    valid_until: "",
     is_active: true,
   });
 
   const [loading, setLoading] = useState(true);
 
-  // Lấy dữ liệu voucher
   useEffect(() => {
-    const fetchVoucher = async () => {
+    const fetchDetail = async () => {
       try {
-        const data = await voucherService.getById(id);
-        console.log("DETAIL DATA:", data);
+        const d = await discountService.getById(id);
         setForm({
-          code: data.code,
-          discount_type: data.discount_type,
-          discount_value: data.discount_value,
-          min_order_value: data.min_order_value,
-          max_discount: data.max_discount,
-          usage_limit: data.usage_limit,
-          start_date: data.start_date?.slice(0, 16),
-          end_date: data.end_date?.slice(0, 16),
-          is_active: data.is_active,
+          code: d.code,
+          description: d.description || "",
+          percentage: d.percentage,
+          min_order_amount: d.min_order_amount ?? 0,
+          max_discount_amount: d.max_discount_amount ?? "",
+          usage_limit: d.usage_limit ?? "",
+          valid_from: d.valid_from ? d.valid_from.slice(0, 16) : "",
+          valid_until: d.valid_until ? d.valid_until.slice(0, 16) : "",
+          is_active: !!d.is_active,
         });
-      } catch (err) {
-        alert("Không tìm thấy voucher");
-        navigate("/admin/vouchers");
+      } catch (e) {
+        alert("Không tìm thấy discount");
+        navigate("/admin/discounts");
       } finally {
         setLoading(false);
       }
     };
 
-    fetchVoucher();
+    fetchDetail();
   }, [id]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-
     setForm((prev) => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value,
@@ -60,12 +57,24 @@ export default function AdminVoucherEdit() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     try {
-      await voucherService.update(id, form);
+      await discountService.update(id, {
+        ...form,
+        percentage: Number(form.percentage),
+        min_order_amount: form.min_order_amount
+          ? Number(form.min_order_amount)
+          : 0,
+        max_discount_amount: form.max_discount_amount
+          ? Number(form.max_discount_amount)
+          : null,
+        usage_limit: form.usage_limit ? Number(form.usage_limit) : null,
+        valid_from: form.valid_from || null,
+        valid_until: form.valid_until || null,
+      });
+
       alert("Cập nhật thành công");
-      navigate("/admin/vouchers");
-    } catch (err) {
+      navigate("/admin/discounts");
+    } catch (e) {
       alert("Cập nhật thất bại");
     }
   };
@@ -74,40 +83,38 @@ export default function AdminVoucherEdit() {
 
   return (
     <div className="p-6 max-w-xl">
-      <h2 className="text-2xl mb-6">Chỉnh sửa Voucher</h2>
+      <h2 className="text-2xl mb-6">Chỉnh sửa mã giảm giá</h2>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <input
           name="code"
           value={form.code}
           onChange={handleChange}
-          placeholder="Mã voucher"
+          placeholder="Mã code"
           className="border p-2 w-full rounded"
         />
 
-        <select
-          name="discount_type"
-          value={form.discount_type}
-          onChange={handleChange}
-          className="border p-2 w-full rounded"
-        >
-          <option value="percent">Giảm %</option>
-          <option value="fixed">Giảm tiền</option>
-        </select>
-
         <input
-          type="number"
-          name="discount_value"
-          value={form.discount_value}
+          name="description"
+          value={form.description}
           onChange={handleChange}
-          placeholder="Giá trị giảm"
+          placeholder="Mô tả"
           className="border p-2 w-full rounded"
         />
 
         <input
           type="number"
-          name="min_order_value"
-          value={form.min_order_value}
+          name="percentage"
+          value={form.percentage}
+          onChange={handleChange}
+          placeholder="Phần trăm (%)"
+          className="border p-2 w-full rounded"
+        />
+
+        <input
+          type="number"
+          name="min_order_amount"
+          value={form.min_order_amount}
           onChange={handleChange}
           placeholder="Đơn tối thiểu"
           className="border p-2 w-full rounded"
@@ -115,34 +122,34 @@ export default function AdminVoucherEdit() {
 
         <input
           type="number"
-          name="max_discount"
-          value={form.max_discount ?? ""}
+          name="max_discount_amount"
+          value={form.max_discount_amount}
           onChange={handleChange}
-          placeholder="Giảm tối đa (nếu có)"
+          placeholder="Giảm tối đa (optional)"
           className="border p-2 w-full rounded"
         />
 
         <input
           type="number"
           name="usage_limit"
-          value={form.usage_limit || ""}
+          value={form.usage_limit}
           onChange={handleChange}
-          placeholder="Giới hạn lượt dùng"
+          placeholder="Giới hạn lượt dùng (optional)"
           className="border p-2 w-full rounded"
         />
 
         <input
           type="datetime-local"
-          name="start_date"
-          value={form.start_date}
+          name="valid_from"
+          value={form.valid_from}
           onChange={handleChange}
           className="border p-2 w-full rounded"
         />
 
         <input
           type="datetime-local"
-          name="end_date"
-          value={form.end_date}
+          name="valid_until"
+          value={form.valid_until}
           onChange={handleChange}
           className="border p-2 w-full rounded"
         />
@@ -162,7 +169,7 @@ export default function AdminVoucherEdit() {
           <Button
             type="button"
             variant="outline"
-            onClick={() => navigate("/admin/vouchers")}
+            onClick={() => navigate("/admin/discounts")}
           >
             Hủy
           </Button>

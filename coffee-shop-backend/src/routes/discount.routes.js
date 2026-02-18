@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 
-const VoucherController = require("../controllers/VoucherController");
+const DiscountController = require("../controllers/DiscountController");
 const { authenticate } = require("../middlewares/auth");
 const { authorize } = require("../middlewares/authorize");
 
@@ -9,34 +9,39 @@ const { authorize } = require("../middlewares/authorize");
   Manager only
 */
 
-router.get("/", authenticate, authorize(["manager"]), VoucherController.getAll);
+router.get(
+  "/",
+  authenticate,
+  authorize(["manager"]),
+  DiscountController.getAll
+);
 
 router.get(
   "/:id",
   authenticate,
   authorize(["manager"]),
-  VoucherController.getById
+  DiscountController.getById
 );
 
 router.post(
   "/",
   authenticate,
   authorize(["manager"]),
-  VoucherController.create
+  DiscountController.create
 );
 
 router.put(
   "/:id",
   authenticate,
   authorize(["manager"]),
-  VoucherController.update
+  DiscountController.update
 );
 
 router.delete(
   "/:id",
   authenticate,
   authorize(["manager"]),
-  VoucherController.delete
+  DiscountController.delete
 );
 
 module.exports = router;

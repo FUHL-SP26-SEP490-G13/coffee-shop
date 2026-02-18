@@ -26,7 +26,7 @@ import {
   AlertDialogTrigger,
 } from "../../components/ui/alert-dialog";
 
-export default function AdminDashboard() {
+export default function AdminLayout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
 
@@ -42,7 +42,7 @@ export default function AdminDashboard() {
     { path: "/admin/users", icon: Users, label: "Người dùng" },
     { path: "/admin/schedule", icon: Calendar, label: "Lịch làm việc" },
     { path: "/admin/inventory", icon: ClipboardList, label: "Kho hàng" },
-    { path: "/admin/vouchers", icon: Tag, label: "Mã giảm giá" },
+    { path: "/admin/discounts", icon: Tag, label: "Mã giảm giá" },
     { path: "/admin/news-list", icon: ClipboardList, label: "Quản lý bài viết" },
     { path: "/admin/profile", icon: User, label: "Thông tin cá nhân" },
   ];
