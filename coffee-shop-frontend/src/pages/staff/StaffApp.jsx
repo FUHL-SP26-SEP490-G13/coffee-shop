@@ -27,7 +27,7 @@ export function StaffApp() {
 
   const handleLogout = async () => {
     await authenticationService.logout();
-    window.location.href = '/login';
+    window.location.href = '/';
   };
 
   const menuItems = [

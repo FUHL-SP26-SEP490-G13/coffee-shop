@@ -137,7 +137,14 @@ class AuthService {
     delete user.password;
 
     // Generate tokens
-    const token = generateToken({ id: user.id, role_id: user.role_id });
+    const token = generateToken({
+      id: user.id,
+      role_id: user.role_id,
+      first_name: user.first_name,
+      last_name: user.last_name,
+      email: user.email,
+    });
+
     const refreshToken = generateRefreshToken({ id: user.id });
 
     return {
@@ -152,7 +159,7 @@ class AuthService {
    */
   async sendEmailOTP(userId) {
     const user = await UserRepository.findById(userId);
-    
+
     if (!user) {
       throw new Error("User không tồn tại");
     }
@@ -181,7 +188,7 @@ class AuthService {
       await EmailService.sendOTPEmail(user.email, otp, userName);
       console.log(`OTP sent to ${user.email}`);
     } catch (emailError) {
-      console.error('Failed to send OTP email:', emailError);
+      console.error("Failed to send OTP email:", emailError);
       // Still return success but log the error
       // In production, you might want to handle this differently
     }
@@ -189,14 +196,13 @@ class AuthService {
     return {
       message: "Mã OTP đã được gửi đến email của bạn",
       // Return OTP in development for testing
-      otp: process.env.NODE_ENV === 'development' ? otp : undefined,
+      otp: process.env.NODE_ENV === "development" ? otp : undefined,
     };
   }
 
   /**   * Verify email OTP
    */
   async verifyEmailOTP(userId, otp) {
-
     const user = await UserRepository.findById(userId);
     if (!user) {
       throw new Error("User không tồn tại");
@@ -206,7 +212,9 @@ class AuthService {
       throw new Error("Email đã được xác thực");
     }
 
-    const record = await EmailVerificationRepository.findLatestValidByUser(userId);
+    const record = await EmailVerificationRepository.findLatestValidByUser(
+      userId
+    );
 
     if (!record) {
       throw new Error("OTP không tồn tại");
@@ -231,7 +239,7 @@ class AuthService {
 
     // Thành công
     await UserRepository.update(userId, {
-      isVerified: 1
+      isVerified: 1,
     });
 
     await EmailVerificationRepository.markUsed(record.id);
@@ -241,22 +249,29 @@ class AuthService {
     try {
       await EmailService.sendWelcomeEmail(user.email, userName);
     } catch (emailError) {
-      console.error('Failed to send welcome email:', emailError);
+      console.error("Failed to send welcome email:", emailError);
       // Don't fail the verification if welcome email fails
     }
 
+    // Lấy lại user kèm role
+    const userWithRole = await UserRepository.findByIdWithRole(userId);
+    delete userWithRole.password;
+
     const token = generateToken({
-      id: user.id,
-      role_id: user.role_id
+      id: userWithRole.id,
+      role_id: userWithRole.role_id,
+      first_name: userWithRole.first_name,
+      last_name: userWithRole.last_name,
+      email: userWithRole.email,
     });
 
     const refreshToken = generateRefreshToken({
-      id: user.id
+      id: userWithRole.id,
     });
 
     return {
       token,
-      refreshToken
+      refreshToken,
     };
   }
 
@@ -297,6 +312,9 @@ class AuthService {
     const token = generateToken({
       id: userWithRole.id,
       role_id: userWithRole.role_id,
+      first_name: userWithRole.first_name,
+      last_name: userWithRole.last_name,
+      email: userWithRole.email,
     });
     const refreshToken = generateRefreshToken({ id: userWithRole.id });
 
@@ -312,32 +330,41 @@ class AuthService {
    */
   async fetchGoogleBirthday(accessToken) {
     try {
-      const https = require('https');
-      
+      const https = require("https");
+
       return new Promise((resolve, reject) => {
         const options = {
-          hostname: 'people.googleapis.com',
-          path: '/v1/people/me?personFields=birthdays',
-          method: 'GET',
+          hostname: "people.googleapis.com",
+          path: "/v1/people/me?personFields=birthdays",
+          method: "GET",
           headers: {
-            'Authorization': `Bearer ${accessToken}`,
+            Authorization: `Bearer ${accessToken}`,
           },
         };
 
         const req = https.request(options, (res) => {
-          let data = '';
+          let data = "";
 
-          res.on('data', (chunk) => {
+          res.on("data", (chunk) => {
             data += chunk;
           });
 
-          res.on('end', () => {
+          res.on("end", () => {
             try {
               const response = JSON.parse(data);
               if (response.birthdays && response.birthdays.length > 0) {
-                const birthday = response.birthdays.find(b => b.metadata?.primary)?.date || response.birthdays[0].date;
-                if (birthday && birthday.year && birthday.month && birthday.day) {
-                  const dob = `${birthday.year}-${String(birthday.month).padStart(2, '0')}-${String(birthday.day).padStart(2, '0')}`;
+                const birthday =
+                  response.birthdays.find((b) => b.metadata?.primary)?.date ||
+                  response.birthdays[0].date;
+                if (
+                  birthday &&
+                  birthday.year &&
+                  birthday.month &&
+                  birthday.day
+                ) {
+                  const dob = `${birthday.year}-${String(
+                    birthday.month
+                  ).padStart(2, "0")}-${String(birthday.day).padStart(2, "0")}`;
                   resolve(dob);
                 } else {
                   resolve(null);
@@ -346,21 +373,21 @@ class AuthService {
                 resolve(null);
               }
             } catch (error) {
-              console.error('Error parsing birthday response:', error);
+              console.error("Error parsing birthday response:", error);
               resolve(null);
             }
           });
         });
 
-        req.on('error', (error) => {
-          console.error('Error fetching birthday:', error);
+        req.on("error", (error) => {
+          console.error("Error fetching birthday:", error);
           resolve(null);
         });
 
         req.end();
       });
     } catch (error) {
-      console.error('Error in fetchGoogleBirthday:', error);
+      console.error("Error in fetchGoogleBirthday:", error);
       return null;
     }
   }
@@ -370,26 +397,26 @@ class AuthService {
    */
   async fetchGoogleUserInfo(accessToken) {
     try {
-      const https = require('https');
-      
+      const https = require("https");
+
       return new Promise((resolve, reject) => {
         const options = {
-          hostname: 'www.googleapis.com',
-          path: '/oauth2/v2/userinfo',
-          method: 'GET',
+          hostname: "www.googleapis.com",
+          path: "/oauth2/v2/userinfo",
+          method: "GET",
           headers: {
-            'Authorization': `Bearer ${accessToken}`,
+            Authorization: `Bearer ${accessToken}`,
           },
         };
 
         const req = https.request(options, (res) => {
-          let data = '';
+          let data = "";
 
-          res.on('data', (chunk) => {
+          res.on("data", (chunk) => {
             data += chunk;
           });
 
-          res.on('end', () => {
+          res.on("end", () => {
             try {
               const userInfo = JSON.parse(data);
               resolve(userInfo);
@@ -399,14 +426,14 @@ class AuthService {
           });
         });
 
-        req.on('error', (error) => {
+        req.on("error", (error) => {
           reject(error);
         });
 
         req.end();
       });
     } catch (error) {
-      throw new Error('Không thể lấy thông tin user từ Google');
+      throw new Error("Không thể lấy thông tin user từ Google");
     }
   }
 
@@ -441,7 +468,7 @@ class AuthService {
       try {
         const userInfo = await this.fetchGoogleUserInfo(accessToken);
         console.log("✅ Google user info from accessToken:", userInfo);
-        
+
         payload = {
           email: userInfo.email,
           given_name: userInfo.given_name,
@@ -516,6 +543,9 @@ class AuthService {
     const token = generateToken({
       id: userWithRole.id,
       role_id: userWithRole.role_id,
+      first_name: userWithRole.first_name,
+      last_name: userWithRole.last_name,
+      email: userWithRole.email,
     });
 
     const refreshToken = generateRefreshToken({
@@ -555,7 +585,11 @@ class AuthService {
     const newToken = generateToken({
       id: user.id,
       role_id: user.role_id,
+      first_name: user.first_name,
+      last_name: user.last_name,
+      email: user.email,
     });
+
     const newRefreshToken = generateRefreshToken({ id: user.id });
 
     return {
@@ -646,7 +680,9 @@ class AuthService {
 
     if (!user) {
       // Don't reveal if email exists for security
-      return { message: "Nếu email tồn tại, mã OTP đã được gửi đến email của bạn" };
+      return {
+        message: "Nếu email tồn tại, mã OTP đã được gửi đến email của bạn",
+      };
     }
 
     // Generate 8-digit OTP
@@ -669,14 +705,14 @@ class AuthService {
       await EmailService.sendPasswordResetOtpEmail(user.email, otp, userName);
       console.log(`Password reset OTP sent to ${user.email}`);
     } catch (emailError) {
-      console.error('Failed to send password reset OTP email:', emailError);
+      console.error("Failed to send password reset OTP email:", emailError);
       // Still return success but log the error
     }
 
     return {
       message: "Mã OTP đã được gửi đến email của bạn",
       // Return OTP in development for testing
-      otp: process.env.NODE_ENV === 'development' ? otp : undefined,
+      otp: process.env.NODE_ENV === "development" ? otp : undefined,
     };
   }
 
@@ -690,7 +726,9 @@ class AuthService {
       throw new Error("Email không tồn tại");
     }
 
-    const record = await EmailVerificationRepository.findLatestValidByUser(user.id);
+    const record = await EmailVerificationRepository.findLatestValidByUser(
+      user.id
+    );
 
     if (!record) {
       throw new Error("OTP không tồn tại hoặc đã hết hạn");
@@ -740,7 +778,9 @@ class AuthService {
     }
 
     // Get the latest OTP record for this user
-    const record = await EmailVerificationRepository.findLatestValidByUser(user.id);
+    const record = await EmailVerificationRepository.findLatestValidByUser(
+      user.id
+    );
 
     if (!record) {
       throw new Error("OTP không tồn tại");

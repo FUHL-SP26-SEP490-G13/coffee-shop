@@ -5,6 +5,7 @@ export const APP_ROUTES = {
   REGISTER: '/register',
   STAFF: '/staff',
   BARISTA: '/barista',
+  CUSTOMER: '/customer',
   ADMIN: '/admin',
   PROFILE: '/profile',
   CHANGE_PASSWORD: '/change-password',

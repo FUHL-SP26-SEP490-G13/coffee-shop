@@ -32,7 +32,7 @@ export default function AdminLayout() {
 
   const handleLogout = () => {
     authenticationService.logout();
-    navigate("/login");
+    navigate("/");
   };
 
   const menuItems = [

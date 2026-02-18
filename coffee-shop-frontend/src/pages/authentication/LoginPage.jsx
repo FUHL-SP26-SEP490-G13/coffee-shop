@@ -55,9 +55,7 @@ export default function LoginPage() {
 				case 3: // Barista
 					navigate(APP_ROUTES.BARISTA, { replace: true });
 					break;
-                case 4: // Customer
-                    navigate(APP_ROUTES.HOME, { replace: true });
-                    break;
+
 				default: // Nếu không xác định được vai trò, chuyển về trang chủ
 					navigate(APP_ROUTES.HOME, { replace: true });
 					break;

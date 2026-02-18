@@ -33,7 +33,7 @@ export function BaristaApp() {
 
   const handleLogout = () => {
     authenticationService.logout();
-    window.location.href = "/login";
+    window.location.href = "/";
   };
 
   const menuItems = [

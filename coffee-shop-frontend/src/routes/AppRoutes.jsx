@@ -26,6 +26,9 @@ import AdminDashboard from "../pages/admin/AdminDashboard/AdminDashboard";
 import AdminDiscounts from "@/pages/admin/AdminDiscount/AdminDiscounts";
 import AdminDiscountCreate from "@/pages/admin/AdminDiscount/AdminDiscountCreate";
 import AdminDiscountEdit from "@/pages/admin/AdminDiscount/AdminDiscountEdit";
+import { CustomerApp } from "@/pages/customer/CustomerApp";
+import OrderPolicy from "@/pages/common/OrderPolicy";
+import PrivacyPolicy from "@/pages/common/PrivacyPolicy";
 
 
 const getStoredValue = (key) =>
@@ -106,6 +109,16 @@ const AppRoutes = () => {
         }
       />
 
+      {/* CUSTOMER */}
+      <Route
+        path={APP_ROUTES.CUSTOMER}
+        element={
+          <RoleGuard allowedRoles={[4]}>
+            <CustomerApp />
+          </RoleGuard>
+        }
+      />
+
       {/* BARISTA */}
       <Route
         path={APP_ROUTES.BARISTA}
@@ -136,20 +149,17 @@ const AppRoutes = () => {
         <Route path="news-list" element={<AdminNewsList />} />
         <Route path="edit-news/:id" element={<AdminEditNewsPage />} />
         <Route path="news-detail/:slug" element={<AdminNewsDetailPage />} />
-
         <Route path="discounts" element={<AdminDiscounts />} />
-        <Route
-          path="discounts/create"
-          element={<AdminDiscountCreate />}
-        />
-        <Route
-          path="discounts/edit/:id"
-          element={<AdminDiscountEdit />}
-        />
+        <Route path="discounts/create" element={<AdminDiscountCreate />} />
+        <Route path="discounts/edit/:id" element={<AdminDiscountEdit />} />
       </Route>
 
       <Route path="/news/:slug" element={<NewsDetailPage />} />
       <Route path="/news" element={<NewsListPage />} />
+      <Route path="/customer/profile" element={<UserProfile />} />
+      <Route path="/order-policy" element={<OrderPolicy />} />
+      <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+
 
       {/* 404 */}
       <Route

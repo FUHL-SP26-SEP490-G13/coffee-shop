@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Mail, Phone, MapPin } from "lucide-react";
 import axios from "@/services/axiosClient";
+import { Link } from "react-router-dom";
 
 function Footer() {
   const [email, setEmail] = useState("");
@@ -37,8 +38,7 @@ function Footer() {
       setEmail("");
     } catch (err) {
       setError(
-        err?.response?.data?.message ||
-          "Email đã tồn tại hoặc có lỗi xảy ra."
+        err?.response?.data?.message || "Email đã tồn tại hoặc có lỗi xảy ra."
       );
     } finally {
       setLoading(false);
@@ -48,7 +48,6 @@ function Footer() {
   return (
     <footer className="bg-muted border-t mt-20">
       <div className="max-w-7xl mx-auto px-6 py-12 grid grid-cols-1 md:grid-cols-4 gap-10">
-        
         {/* Company */}
         <div>
           <h4 className="font-semibold mb-4">Coffee Shop</h4>
@@ -76,8 +75,21 @@ function Footer() {
         <div>
           <h4 className="font-semibold mb-4">Chính sách</h4>
           <ul className="space-y-2 text-sm text-muted-foreground">
-            <li>Chính sách đặt hàng</li>
-            <li>Chính sách bảo mật</li>
+            <li>
+              <Link to="/order-policy" className="hover:text-black transition">
+                Chính sách đặt hàng
+              </Link>
+            </li>
+
+            <li>
+              <Link
+                to="/privacy-policy"
+                className="hover:text-black transition"
+              >
+                Chính sách bảo mật
+              </Link>
+            </li>
+
             <li>Thanh toán</li>
           </ul>
         </div>
@@ -120,13 +132,9 @@ function Footer() {
               </button>
             </div>
 
-            {message && (
-              <p className="text-sm text-green-600">{message}</p>
-            )}
+            {message && <p className="text-sm text-green-600">{message}</p>}
 
-            {error && (
-              <p className="text-sm text-red-600">{error}</p>
-            )}
+            {error && <p className="text-sm text-red-600">{error}</p>}
           </form>
         </div>
       </div>
