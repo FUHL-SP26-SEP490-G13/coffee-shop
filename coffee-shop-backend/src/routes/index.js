@@ -9,7 +9,8 @@ const productRoutes = require("./product.routes");
 const newsletterRoutes = require("./newsletter.routes");
 const newsRoutes = require('./news.routes');
 const discountRoutes = require("./discount.routes");
-const dashboardRoutes = require("./dashboard.routes");
+const adminDashboardRoutes = require("./adminDashboard.routes");
+const baristaDashboardRoutes = require("./baristaDashboard.routes");
 
 // Mount routes
 router.use("/auth", authRoutes);
@@ -18,8 +19,9 @@ router.use("/users", userRoutes);
 router.use("/products", productRoutes);
 router.use("/newsletter", newsletterRoutes);
 router.use('/news', newsRoutes);
-router.use("/dashboard", dashboardRoutes);
+router.use("/dashboard", adminDashboardRoutes);
 router.use("/discounts", discountRoutes);
+router.use("/barista", baristaDashboardRoutes);
 
 // Health check endpoint
 router.get("/health", (req, res) => {

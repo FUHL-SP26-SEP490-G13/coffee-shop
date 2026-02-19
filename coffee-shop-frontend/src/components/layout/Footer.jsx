@@ -100,9 +100,35 @@ function Footer() {
         <div>
           <h4 className="font-semibold mb-4">Hỗ trợ</h4>
           <ul className="space-y-2 text-sm text-muted-foreground">
-            <li>Tìm kiếm</li>
-            <li>Giỏ hàng</li>
-            <li>Liên hệ</li>
+            <li>
+              <Link to="/search" className="hover:text-black transition">
+                Tìm kiếm
+              </Link>
+            </li>
+
+            <li>
+              <Link to="/login" className="hover:text-black transition">
+                Đăng nhập
+              </Link>
+            </li>
+
+            <li>
+              <Link to="/register" className="hover:text-black transition">
+                Đăng ký
+              </Link>
+            </li>
+
+            <li>
+              <Link to="/cart" className="hover:text-black transition">
+                Giỏ hàng
+              </Link>
+            </li>
+
+            <li>
+              <Link to="/contact" className="hover:text-black transition">
+                Liên hệ
+              </Link>
+            </li>
           </ul>
         </div>
 
@@ -120,17 +146,15 @@ function Footer() {
                 className="flex-1 text-sm"
               />
 
-              <Button
-                type="submit"
-                disabled={loading}
-                className="gap-2"
-              >
+              <Button type="submit" disabled={loading} className="gap-2">
                 {loading && <Loader2 className="w-4 h-4 animate-spin" />}
                 {loading ? "Gửi..." : "Đăng ký"}
               </Button>
             </div>
 
-            {message && <p className="text-sm text-green-600 font-medium">{message}</p>}
+            {message && (
+              <p className="text-sm text-green-600 font-medium">{message}</p>
+            )}
 
             {error && <p className="text-sm text-red-600">{error}</p>}
           </form>

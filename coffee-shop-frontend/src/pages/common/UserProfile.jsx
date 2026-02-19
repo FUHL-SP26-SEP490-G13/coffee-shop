@@ -80,7 +80,7 @@ export function UserProfile() {
 
   return (
     <div className="p-8">
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-2x">
         <h1 className="text-3xl font-semibold mb-6">Thông tin của tôi</h1>
 
         <Card className="mb-6">

@@ -1,6 +1,6 @@
 const pool = require("../config/database");
 
-class DashboardRepository {
+class AdminDashboardRepository {
   async getRevenueToday() {
     const [[row]] = await pool.query(`
       SELECT IFNULL(SUM(total_amount),0) as revenue
@@ -114,6 +114,15 @@ class DashboardRepository {
       revenue: Number(r.revenue || 0),
     }));
   }
+
+  async getTotalNewsletterSubscribers() {
+    const sql = `
+    SELECT COUNT(*) AS total
+    FROM newsletter_subscribers
+  `;
+    const [rows] = await pool.query(sql);
+    return rows[0].total;
+  }
 }
 
-module.exports = new DashboardRepository();
+module.exports = new AdminDashboardRepository();

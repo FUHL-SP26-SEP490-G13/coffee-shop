@@ -1,16 +1,16 @@
 // Quản lý các đường dẫn điều hướng
 export const APP_ROUTES = {
-  HOME: '/',
-  LOGIN: '/login',
-  REGISTER: '/register',
-  STAFF: '/staff',
-  BARISTA: '/barista',
-  CUSTOMER: '/customer',
-  ADMIN: '/admin',
-  PROFILE: '/profile',
-  CHANGE_PASSWORD: '/change-password',
-  FORGOT_PASSWORD: '/forgot-password',
-  PRODUCT_DETAIL: '/product/:id',
+  HOME: "/",
+  LOGIN: "/login",
+  REGISTER: "/register",
+  STAFF: "/staff",
+  BARISTA: "/barista",
+  CUSTOMER: "/customer",
+  ADMIN: "/admin",
+  PROFILE: "/profile",
+  CHANGE_PASSWORD: "/change-password",
+  FORGOT_PASSWORD: "/forgot-password",
+  PRODUCT_DETAIL: "/product/:id",
 };
 
 // Quản lý API Endpoints

@@ -1,10 +1,10 @@
-const DashboardService = require("../services/DashboardService");
+const AdminDashboardService = require("../services/AdminDashboardService");
 const response = require("../utils/response");
 
-class DashboardController {
+class AdminDashboardController {
   async getOverview(req, res, next) {
     try {
-      const data = await DashboardService.getOverview();
+      const data = await AdminDashboardService.getOverview();
       return response.success(res, data, "Lấy dashboard thành công");
     } catch (error) {
       next(error);
@@ -14,7 +14,7 @@ class DashboardController {
   async getRevenueSeries(req, res, next) {
     try {
       const { days = 7 } = req.query;
-      const data = await DashboardService.getRevenueSeries({
+      const data = await AdminDashboardService.getRevenueSeries({
         days: parseInt(days),
       });
       return response.success(res, data, "Lấy biểu đồ doanh thu thành công");
@@ -26,7 +26,7 @@ class DashboardController {
   async getTopProducts(req, res, next) {
     try {
       const { days = 7, limit = 5 } = req.query;
-      const data = await DashboardService.getTopProducts({
+      const data = await AdminDashboardService.getTopProducts({
         days: parseInt(days),
         limit: parseInt(limit),
       });
@@ -43,7 +43,7 @@ class DashboardController {
   async getPaymentMethodBreakdown(req, res, next) {
     try {
       const { days = 7 } = req.query;
-      const data = await DashboardService.getPaymentMethodBreakdown({
+      const data = await AdminDashboardService.getPaymentMethodBreakdown({
         days: parseInt(days),
       });
       return response.success(
@@ -57,4 +57,4 @@ class DashboardController {
   }
 }
 
-module.exports = new DashboardController();
+module.exports = new AdminDashboardController();

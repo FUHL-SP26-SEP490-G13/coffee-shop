@@ -105,7 +105,7 @@ export default function AdminDiscountEdit() {
   }
 
   return (
-    <div className="p-4 md:p-8 max-w-4xl mx-auto">
+    <div className="max-w-4xl p-4">
       {/* Header */}
       <div className="mb-6">
         <Button

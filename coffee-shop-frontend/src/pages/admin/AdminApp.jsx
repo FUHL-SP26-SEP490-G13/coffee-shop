@@ -11,6 +11,7 @@ import {
   LogOut,
   Menu,
   X,
+  Mail,
 } from "lucide-react";
 import { useState } from "react";
 import authenticationService from "../../services/authenticationService";
@@ -26,7 +27,7 @@ import {
   AlertDialogTrigger,
 } from "../../components/ui/alert-dialog";
 
-export default function AdminLayout() {
+export default function AdminApp() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
 
@@ -44,6 +45,7 @@ export default function AdminLayout() {
     { path: "/admin/inventory", icon: ClipboardList, label: "Kho hàng" },
     { path: "/admin/discounts", icon: Tag, label: "Mã giảm giá" },
     { path: "/admin/news-list", icon: ClipboardList, label: "Quản lý bài viết" },
+    { path: "/admin/newsletter", icon: Mail, label: "Email đăng kí" },
     { path: "/admin/profile", icon: User, label: "Thông tin cá nhân" },
   ];
 
