@@ -41,6 +41,7 @@ import { StaffInventory } from "@/pages/staff/StaffInventory";
 import { StaffRequests } from "@/pages/staff/StaffRequests";
 import { StaffTables } from "@/pages/staff/StaffTables";
 import { StaffSchedule } from "@/pages/staff/StaffSchedule";
+import AdminBanner from "@/pages/admin/AdminBanner/AdminBanner";
 
 
 const getStoredValue = (key) =>
@@ -124,12 +125,12 @@ const AppRoutes = () => {
       >
         <Route index element={<Navigate to="pos" replace />} />
         <Route path="pos" element={<StaffPOS />} />
-        <Route path="attendance" element={<StaffAttendance/>} />
+        <Route path="attendance" element={<StaffAttendance />} />
         <Route path="inventory" element={<StaffInventory />} />
         <Route path="kitchen" element={<StaffKitchen />} />
         <Route path="requests" element={<StaffRequests />} />
         <Route path="tables" element={<StaffTables />} />
-        <Route path="schedule" element={<StaffSchedule />} /> 
+        <Route path="schedule" element={<StaffSchedule />} />
         <Route path="profile" element={<UserProfile />} />
       </Route>
 
@@ -176,6 +177,7 @@ const AppRoutes = () => {
         <Route path="discounts/create" element={<AdminDiscountCreate />} />
         <Route path="discounts/edit/:id" element={<AdminDiscountEdit />} />
         <Route path="newsletter" element={<AdminNewsletter />} />
+        <Route path="banners" element={<AdminBanner />} />
       </Route>
 
       <Route path="/news/:slug" element={<NewsDetailPage />} />

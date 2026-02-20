@@ -12,6 +12,7 @@ import {
   Menu,
   X,
   Mail,
+  ImagePlus,
 } from "lucide-react";
 import { useState } from "react";
 import authenticationService from "../../services/authenticationService";
@@ -46,6 +47,7 @@ export default function AdminApp() {
     { path: "/admin/discounts", icon: Tag, label: "Mã giảm giá" },
     { path: "/admin/news-list", icon: ClipboardList, label: "Quản lý bài viết" },
     { path: "/admin/newsletter", icon: Mail, label: "Email đăng kí" },
+    { path: "/admin/banners", icon: ImagePlus, label: "Quản lý Banner" },
     { path: "/admin/profile", icon: User, label: "Thông tin cá nhân" },
   ];
 
