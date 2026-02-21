@@ -5,8 +5,8 @@ class BannerService {
     return bannerRepository.findActive();
   }
 
-  async getAll() {
-    return bannerRepository.findAll();
+  async getAll(params) {
+    return bannerRepository.findAll(params);
   }
 
   async create(data) {
@@ -21,6 +21,14 @@ class BannerService {
       await bannerRepository.deactivateAll();
     }
     return bannerRepository.update(id, data);
+  }
+
+  async delete(id) {
+    return bannerRepository.delete(id);
+  }
+
+  async getById(id) {
+    return bannerRepository.findById(id);
   }
 }
 

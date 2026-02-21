@@ -62,6 +62,7 @@ export default function AdminEditNewsPage() {
       formData.append("summary", form.summary);
       formData.append("content", form.content);
 
+      formData.append("type", "news");
       if (thumbnailFile) {
         formData.append("thumbnail", thumbnailFile);
       }

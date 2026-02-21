@@ -1,20 +1,32 @@
-import axios from "@/services/axiosClient";
+import axiosClient from "@/services/axiosClient";
 
 const bannerService = {
   getActive() {
-    return axios.get("/banners/active");
+    return axiosClient.get("/banners/active");
   },
 
-  getAll() {
-    return axios.get("/banners/admin");
+  getAll(params) {
+    return axiosClient.get("/banners/admin", { params });
   },
 
-  create(data) {
-    return axios.post("/banners/admin", data);
+  create(formData) {
+    return axiosClient.post("/banners/admin", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
   },
 
-  update(id, data) {
-    return axios.put(`/banners/admin/${id}`, data);
+  update(id, formData) {
+    return axiosClient.put(`/banners/admin/${id}`, formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+  },
+
+  delete(id) {
+    return axiosClient.delete(`/banners/admin/${id}`);
   },
 };
 

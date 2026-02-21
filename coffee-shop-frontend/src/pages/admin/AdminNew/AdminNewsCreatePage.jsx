@@ -42,6 +42,7 @@ export default function AdminNewsCreatePage() {
       formData.append("title", form.title);
       formData.append("summary", form.summary);
       formData.append("content", form.content);
+      formData.append("type", "news");
       formData.append("thumbnail", form.thumbnail);
 
       await newsService.create(formData);

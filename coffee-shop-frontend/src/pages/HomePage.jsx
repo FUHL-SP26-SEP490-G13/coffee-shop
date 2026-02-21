@@ -34,7 +34,7 @@ export default function HomePage() {
   }, []);
 
   const { data: bannerData } = useFetch(fetchBanner);
-  const banner = bannerData?.data;
+  const banner = bannerData?.data ?? bannerData;
 
   const defaultImage =
     "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085";
