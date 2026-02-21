@@ -1,13 +1,6 @@
 import { useState } from 'react';
+import { useLocation, useNavigate, Outlet } from 'react-router-dom';
 import { LayoutGrid, ChefHat, Users, Calendar, Clock, ClipboardList, FileText, User, LogOut, Menu, X } from 'lucide-react';
-import { StaffPOS } from './StaffPOS';
-import { StaffKitchen } from './StaffKitchen';
-import { StaffTables } from './StaffTables';
-import { StaffAttendance } from './StaffAttendance';
-import { StaffSchedule } from './StaffSchedule';
-import { StaffInventory } from './StaffInventory';
-import { StaffRequests } from './StaffRequests';
-import { UserProfile } from '../common/UserProfile';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,23 +15,38 @@ import {
 import authenticationService from '../../services/authenticationService';
 
 export function StaffApp() {
-  const [currentPage, setCurrentPage] = useState('pos');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const handleLogout = async () => {
     await authenticationService.logout();
-    window.location.href = '/login';
+    window.location.href = '/';
   };
 
+  const getCurrentPage = () => {
+    const path = location.pathname;
+    if (path.includes('kitchen')) return 'kitchen';
+    if (path.includes('tables')) return 'tables';
+    if (path.includes('attendance')) return 'attendance';
+    if (path.includes('schedule')) return 'schedule';
+    if (path.includes('inventory')) return 'inventory';
+    if (path.includes('requests')) return 'requests';
+    if (path.includes('profile')) return 'profile';
+    return 'pos';
+  };
+
+  const currentPage = getCurrentPage();
+
   const menuItems = [
-    { id: 'pos', icon: LayoutGrid, label: 'POS' },
-    { id: 'kitchen', icon: ChefHat, label: 'Bếp' },
-    { id: 'tables', icon: Users, label: 'Danh sách bàn' },
-    { id: 'attendance', icon: Clock, label: 'Điểm danh ca làm' },
-    { id: 'schedule', icon: Calendar, label: 'Lịch làm việc' },
-    { id: 'inventory', icon: ClipboardList, label: 'Kho hàng' },
-    { id: 'requests', icon: FileText, label: 'Yêu cầu' },
-    { id: 'profile', icon: User, label: 'Thông tin cá nhân' },
+    { id: "pos", icon: LayoutGrid, label: "POS", path: "/staff" },
+    { id: "kitchen", icon: ChefHat, label: "Bếp", path: "/staff/kitchen" },
+    { id: "tables", icon: Users, label: "Danh sách bàn", path: "/staff/tables" },
+    { id: "attendance", icon: Clock, label: "Điểm danh ca làm", path: "/staff/attendance" },
+    { id: "schedule", icon: Calendar, label: "Lịch làm việc", path: "/staff/schedule" },
+    { id: "inventory", icon: ClipboardList, label: "Kho hàng", path: "/staff/inventory" },
+    { id: "requests", icon: FileText, label: "Yêu cầu", path: "/staff/requests" },
+    { id: "profile", icon: User, label: "Thông tin cá nhân", path: "/staff/profile" },
   ];
 
   return (
@@ -73,7 +81,7 @@ export function StaffApp() {
               <button
                 key={item.id}
                 onClick={() => {
-                  setCurrentPage(item.id);
+                  navigate(item.path);
                   setMobileMenuOpen(false);
                 }}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all mb-2 ${
@@ -113,14 +121,7 @@ export function StaffApp() {
 
       {/* Content */}
       <div className="flex-1 overflow-auto">
-        {currentPage === 'pos' && <StaffPOS />}
-        {currentPage === 'kitchen' && <StaffKitchen />}
-        {currentPage === 'tables' && <StaffTables />}
-        {currentPage === 'attendance' && <StaffAttendance />}
-        {currentPage === 'schedule' && <StaffSchedule />}
-        {currentPage === 'inventory' && <StaffInventory />}
-        {currentPage === 'requests' && <StaffRequests />}
-        {currentPage === 'profile' && <UserProfile />}
+        <Outlet />
       </div>
     </div>
   );

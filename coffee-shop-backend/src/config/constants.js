@@ -1,14 +1,14 @@
 module.exports = {
   // User Roles
   ROLES: {
-    ADMIN: 1,
+    MANAGER: 1,
     STAFF: 2,
     BARISTA: 3,
     CUSTOMER: 4,
   },
 
   ROLE_NAMES: {
-    1: 'admin',
+    1: 'manager',
     2: 'staff',
     3: 'barista',
     4: 'customer',

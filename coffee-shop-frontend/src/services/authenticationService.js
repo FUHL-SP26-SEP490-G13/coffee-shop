@@ -8,6 +8,17 @@ const authenticationService = {
     return axiosClient.post(API_ENDPOINTS.AUTH.LOGIN, credentials);
   },
 
+  // Gửi OTP đến email
+  sendOTP(userId) {
+    return axiosClient.post(API_ENDPOINTS.AUTH.SEND_OTP, { userId });
+  },
+
+  // Xác thực email bằng OTP
+  verifyEmail(userId, otp) {
+    return axiosClient.post(API_ENDPOINTS.AUTH.VERIFY_EMAIL, { userId, otp });
+  },
+
+  // Đăng nhập bằng Google
   googleLogin(accessToken, idToken) {
     const payload = { accessToken };
     if (idToken) {
@@ -34,7 +45,27 @@ const authenticationService = {
 // Lấy thông tin profile hiện tại
   getProfile() {
     return axiosClient.get(API_ENDPOINTS.AUTH.PROFILE);
-  }
+  },
+
+  // Đổi mật khẩu
+  changePassword(payload) {
+    return axiosClient.post(API_ENDPOINTS.AUTH.CHANGE_PASSWORD, payload);
+  },
+
+  // Reset password (forgot password)
+  resetPassword(email) {
+    return axiosClient.post('/auth/reset-password', { email });
+  },
+
+  // Verify OTP for forgot password
+  verifyForgotPasswordOtp(email, otp) {
+    return axiosClient.post('/auth/forgot-password/verify-otp', { email, otp });
+  },
+
+  // Reset password with OTP
+  resetPasswordWithOtp(payload) {
+    return axiosClient.post('/auth/forgot-password/reset', payload);
+  },
 };
 
 export default authenticationService;

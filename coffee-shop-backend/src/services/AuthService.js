@@ -1,12 +1,15 @@
 const { OAuth2Client } = require("google-auth-library");
 const UserRepository = require("../repositories/UserRepository");
 const OAuthProviderRepository = require("../repositories/OAuthProviderRepository");
+const EmailVerificationRepository = require("../repositories/EmailVerificationRepository");
+const EmailService = require("./EmailService");
 const {
   hashPassword,
   comparePassword,
   generateToken,
   generateRefreshToken,
   verifyRefreshToken,
+  generateOTP,
 } = require("../utils/helpers");
 
 const { ROLES } = require("../config/constants");
@@ -127,17 +130,146 @@ class AuthService {
       dob: data.dob,
       role_id: data.role_id || ROLES.CUSTOMER,
       isActive: 1,
+      isVerified: 0, // Email chưa được xác thực
     });
 
     // Remove password from response
     delete user.password;
 
     // Generate tokens
-    const token = generateToken({ id: user.id, role_id: user.role_id });
+    const token = generateToken({
+      id: user.id,
+      role_id: user.role_id,
+      first_name: user.first_name,
+      last_name: user.last_name,
+      email: user.email,
+    });
+
     const refreshToken = generateRefreshToken({ id: user.id });
 
     return {
       user,
+      token,
+      refreshToken,
+    };
+  }
+
+  /**
+   * Send email OTP for verification
+   */
+  async sendEmailOTP(userId) {
+    const user = await UserRepository.findById(userId);
+
+    if (!user) {
+      throw new Error("User không tồn tại");
+    }
+
+    if (user.isVerified) {
+      throw new Error("Email đã được xác thực");
+    }
+
+    // Generate 8-digit OTP
+    const otp = generateOTP();
+    const otpHash = await hashPassword(otp);
+
+    // OTP expires in 10 minutes
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+    // Save OTP to database
+    await EmailVerificationRepository.create({
+      user_id: userId,
+      otp_hash: otpHash,
+      expires_at: expiresAt,
+    });
+
+    // Send OTP via email
+    const userName = `${user.first_name} ${user.last_name}`.trim();
+    try {
+      await EmailService.sendOTPEmail(user.email, otp, userName);
+      console.log(`OTP sent to ${user.email}`);
+    } catch (emailError) {
+      console.error("Failed to send OTP email:", emailError);
+      // Still return success but log the error
+      // In production, you might want to handle this differently
+    }
+
+    return {
+      message: "Mã OTP đã được gửi đến email của bạn",
+      // Return OTP in development for testing
+      otp: process.env.NODE_ENV === "development" ? otp : undefined,
+    };
+  }
+
+  /**   * Verify email OTP
+   */
+  async verifyEmailOTP(userId, otp) {
+    const user = await UserRepository.findById(userId);
+    if (!user) {
+      throw new Error("User không tồn tại");
+    }
+
+    if (user.isVerified) {
+      throw new Error("Email đã được xác thực");
+    }
+
+    const record = await EmailVerificationRepository.findLatestValidByUser(
+      userId
+    );
+
+    if (!record) {
+      throw new Error("OTP không tồn tại");
+    }
+
+    // Check expire
+    if (new Date() > new Date(record.expires_at)) {
+      throw new Error("OTP đã hết hạn");
+    }
+
+    // Giới hạn số lần nhập sai
+    if (record.failed_attempts >= 5) {
+      throw new Error("Bạn đã nhập sai OTP quá nhiều lần");
+    }
+
+    const isMatch = await comparePassword(otp, record.otp_hash);
+
+    if (!isMatch) {
+      await EmailVerificationRepository.incrementFailed(record.id);
+      throw new Error("OTP không đúng");
+    }
+
+    // Thành công
+    await UserRepository.update(userId, {
+      isVerified: 1,
+    });
+
+    await EmailVerificationRepository.markUsed(record.id);
+
+    // Send welcome email
+    const userName = `${user.first_name} ${user.last_name}`.trim();
+    try {
+      await EmailService.sendWelcomeEmail(user.email, userName);
+    } catch (emailError) {
+      console.error("Failed to send welcome email:", emailError);
+      // Don't fail the verification if welcome email fails
+    }
+
+    // Lấy lại user kèm role
+    const userWithRole = await UserRepository.findByIdWithRole(userId);
+    delete userWithRole.password;
+
+    const token = generateToken({
+      id: userWithRole.id,
+      role_id: userWithRole.role_id,
+      first_name: userWithRole.first_name,
+      last_name: userWithRole.last_name,
+      email: userWithRole.email,
+    });
+
+    const refreshToken = generateRefreshToken({
+      id: userWithRole.id,
+    });
+
+    return {
       token,
       refreshToken,
     };
@@ -180,6 +312,9 @@ class AuthService {
     const token = generateToken({
       id: userWithRole.id,
       role_id: userWithRole.role_id,
+      first_name: userWithRole.first_name,
+      last_name: userWithRole.last_name,
+      email: userWithRole.email,
     });
     const refreshToken = generateRefreshToken({ id: userWithRole.id });
 
@@ -195,32 +330,41 @@ class AuthService {
    */
   async fetchGoogleBirthday(accessToken) {
     try {
-      const https = require('https');
-      
+      const https = require("https");
+
       return new Promise((resolve, reject) => {
         const options = {
-          hostname: 'people.googleapis.com',
-          path: '/v1/people/me?personFields=birthdays',
-          method: 'GET',
+          hostname: "people.googleapis.com",
+          path: "/v1/people/me?personFields=birthdays",
+          method: "GET",
           headers: {
-            'Authorization': `Bearer ${accessToken}`,
+            Authorization: `Bearer ${accessToken}`,
           },
         };
 
         const req = https.request(options, (res) => {
-          let data = '';
+          let data = "";
 
-          res.on('data', (chunk) => {
+          res.on("data", (chunk) => {
             data += chunk;
           });
 
-          res.on('end', () => {
+          res.on("end", () => {
             try {
               const response = JSON.parse(data);
               if (response.birthdays && response.birthdays.length > 0) {
-                const birthday = response.birthdays.find(b => b.metadata?.primary)?.date || response.birthdays[0].date;
-                if (birthday && birthday.year && birthday.month && birthday.day) {
-                  const dob = `${birthday.year}-${String(birthday.month).padStart(2, '0')}-${String(birthday.day).padStart(2, '0')}`;
+                const birthday =
+                  response.birthdays.find((b) => b.metadata?.primary)?.date ||
+                  response.birthdays[0].date;
+                if (
+                  birthday &&
+                  birthday.year &&
+                  birthday.month &&
+                  birthday.day
+                ) {
+                  const dob = `${birthday.year}-${String(
+                    birthday.month
+                  ).padStart(2, "0")}-${String(birthday.day).padStart(2, "0")}`;
                   resolve(dob);
                 } else {
                   resolve(null);
@@ -229,21 +373,21 @@ class AuthService {
                 resolve(null);
               }
             } catch (error) {
-              console.error('Error parsing birthday response:', error);
+              console.error("Error parsing birthday response:", error);
               resolve(null);
             }
           });
         });
 
-        req.on('error', (error) => {
-          console.error('Error fetching birthday:', error);
+        req.on("error", (error) => {
+          console.error("Error fetching birthday:", error);
           resolve(null);
         });
 
         req.end();
       });
     } catch (error) {
-      console.error('Error in fetchGoogleBirthday:', error);
+      console.error("Error in fetchGoogleBirthday:", error);
       return null;
     }
   }
@@ -253,26 +397,26 @@ class AuthService {
    */
   async fetchGoogleUserInfo(accessToken) {
     try {
-      const https = require('https');
-      
+      const https = require("https");
+
       return new Promise((resolve, reject) => {
         const options = {
-          hostname: 'www.googleapis.com',
-          path: '/oauth2/v2/userinfo',
-          method: 'GET',
+          hostname: "www.googleapis.com",
+          path: "/oauth2/v2/userinfo",
+          method: "GET",
           headers: {
-            'Authorization': `Bearer ${accessToken}`,
+            Authorization: `Bearer ${accessToken}`,
           },
         };
 
         const req = https.request(options, (res) => {
-          let data = '';
+          let data = "";
 
-          res.on('data', (chunk) => {
+          res.on("data", (chunk) => {
             data += chunk;
           });
 
-          res.on('end', () => {
+          res.on("end", () => {
             try {
               const userInfo = JSON.parse(data);
               resolve(userInfo);
@@ -282,14 +426,14 @@ class AuthService {
           });
         });
 
-        req.on('error', (error) => {
+        req.on("error", (error) => {
           reject(error);
         });
 
         req.end();
       });
     } catch (error) {
-      throw new Error('Không thể lấy thông tin user từ Google');
+      throw new Error("Không thể lấy thông tin user từ Google");
     }
   }
 
@@ -324,7 +468,7 @@ class AuthService {
       try {
         const userInfo = await this.fetchGoogleUserInfo(accessToken);
         console.log("✅ Google user info from accessToken:", userInfo);
-        
+
         payload = {
           email: userInfo.email,
           given_name: userInfo.given_name,
@@ -399,6 +543,9 @@ class AuthService {
     const token = generateToken({
       id: userWithRole.id,
       role_id: userWithRole.role_id,
+      first_name: userWithRole.first_name,
+      last_name: userWithRole.last_name,
+      email: userWithRole.email,
     });
 
     const refreshToken = generateRefreshToken({
@@ -438,7 +585,11 @@ class AuthService {
     const newToken = generateToken({
       id: user.id,
       role_id: user.role_id,
+      first_name: user.first_name,
+      last_name: user.last_name,
+      email: user.email,
     });
+
     const newRefreshToken = generateRefreshToken({ id: user.id });
 
     return {
@@ -522,23 +673,143 @@ class AuthService {
   }
 
   /**
-   * Reset password (would need email service in production)
+   * Request password reset - Send OTP to email
    */
   async resetPassword(email) {
     const user = await UserRepository.findByEmail(email);
 
     if (!user) {
       // Don't reveal if email exists for security
-      return { message: "Nếu email tồn tại, link reset password đã được gửi" };
+      return {
+        message: "Nếu email tồn tại, mã OTP đã được gửi đến email của bạn",
+      };
     }
 
-    // TODO: Generate reset token and send email
-    // For now, just return success message
+    // Generate 8-digit OTP
+    const otp = generateOTP();
+    const otpHash = await hashPassword(otp);
+
+    // OTP expires in 10 minutes
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+    // Save OTP to database
+    await EmailVerificationRepository.create({
+      user_id: user.id,
+      otp_hash: otpHash,
+      expires_at: expiresAt,
+    });
+
+    // Send OTP via email with password reset template
+    const userName = `${user.first_name} ${user.last_name}`.trim();
+    try {
+      await EmailService.sendPasswordResetOtpEmail(user.email, otp, userName);
+      console.log(`Password reset OTP sent to ${user.email}`);
+    } catch (emailError) {
+      console.error("Failed to send password reset OTP email:", emailError);
+      // Still return success but log the error
+    }
 
     return {
-      message: "Link reset password đã được gửi đến email của bạn",
-      // In development, you might want to return the reset token
-      // resetToken: generateRandomString(32)
+      message: "Mã OTP đã được gửi đến email của bạn",
+      // Return OTP in development for testing
+      otp: process.env.NODE_ENV === "development" ? otp : undefined,
+    };
+  }
+
+  /**
+   * Verify OTP for password reset
+   */
+  async verifyForgotPasswordOtp(email, otp) {
+    const user = await UserRepository.findByEmail(email);
+
+    if (!user) {
+      throw new Error("Email không tồn tại");
+    }
+
+    const record = await EmailVerificationRepository.findLatestValidByUser(
+      user.id
+    );
+
+    if (!record) {
+      throw new Error("OTP không tồn tại hoặc đã hết hạn");
+    }
+
+    // Check expire
+    if (new Date() > new Date(record.expires_at)) {
+      throw new Error("OTP đã hết hạn");
+    }
+
+    // Giới hạn số lần nhập sai
+    if (record.failed_attempts >= 5) {
+      throw new Error("Bạn đã nhập sai OTP quá nhiều lần");
+    }
+
+    const isMatch = await comparePassword(otp, record.otp_hash);
+
+    if (!isMatch) {
+      await EmailVerificationRepository.incrementFailed(record.id);
+      throw new Error("OTP không đúng");
+    }
+
+    // OTP verified successfully - do NOT mark as used yet
+    // It will be marked as used after password is successfully reset
+
+    return {
+      message: "OTP xác thực thành công",
+    };
+  }
+
+  /**
+   * Reset password with OTP
+   */
+  async resetPasswordWithOtp(email, otp, newPassword, confirmPassword) {
+    // Verify new password matches confirm password
+    if (newPassword !== confirmPassword) {
+      throw new Error("Mật khẩu xác thực không khớp");
+    }
+
+    // Validate new password strength
+    this.validatePassword(newPassword);
+
+    const user = await UserRepository.findByEmail(email);
+
+    if (!user) {
+      throw new Error("Email không tồn tại");
+    }
+
+    // Get the latest OTP record for this user
+    const record = await EmailVerificationRepository.findLatestValidByUser(
+      user.id
+    );
+
+    if (!record) {
+      throw new Error("OTP không tồn tại");
+    }
+
+    // Check expire
+    if (new Date() > new Date(record.expires_at)) {
+      throw new Error("OTP đã hết hạn");
+    }
+
+    // Verify OTP is correct
+    const isMatch = await comparePassword(otp, record.otp_hash);
+
+    if (!isMatch) {
+      await EmailVerificationRepository.incrementFailed(record.id);
+      throw new Error("OTP không đúng");
+    }
+
+    // Hash new password
+    const hashedPassword = await hashPassword(newPassword);
+
+    // Update password
+    await UserRepository.updatePassword(user.id, hashedPassword);
+
+    // Mark OTP as used after successful password reset
+    await EmailVerificationRepository.markUsed(record.id);
+
+    return {
+      message: "Mật khẩu đã được đặt lại thành công",
     };
   }
 }

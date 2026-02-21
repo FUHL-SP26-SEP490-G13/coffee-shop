@@ -17,6 +17,50 @@ class AuthController {
   }
 
   /**
+   * Send email OTP
+   * POST /api/auth/send-otp
+   */
+  async sendOTP(req, res, next) {
+    try {
+      const { userId } = req.body;
+
+      if (!userId) {
+        return response.error(res, "Thiếu userId", 400);
+      }
+
+      const result = await AuthService.sendEmailOTP(userId);
+
+      return response.success(res, result, "Gửi OTP thành công");
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**   * Verify email OTP
+   * POST /api/auth/verify-email
+   */
+  async verifyEmail(req, res, next) {
+    try {
+      const { userId, otp } = req.body;
+
+      if (!userId || !otp) {
+        return response.error(res, "Thiếu userId hoặc otp", 400);
+      }
+
+      const result = await AuthService.verifyEmailOTP(userId, otp);
+
+      return response.success(
+        res,
+        result,
+        "Xác thực email thành công"
+      );
+
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
    * Login user
    * POST /api/auth/login
    */
@@ -116,6 +160,46 @@ class AuthController {
       // you would add the token to a blacklist here.
 
       return response.success(res, null, "Đăng xuất thành công");
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Verify OTP for password reset
+   * POST /api/auth/forgot-password/verify-otp
+   */
+  async verifyForgotPasswordOtp(req, res, next) {
+    try {
+      const { email, otp } = req.body;
+
+      if (!email || !otp) {
+        return response.error(res, "Thiếu email hoặc otp", 400);
+      }
+
+      const result = await AuthService.verifyForgotPasswordOtp(email, otp);
+
+      return response.success(res, result, "OTP xác thực thành công");
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Reset password with OTP
+   * POST /api/auth/forgot-password/reset
+   */
+  async resetPasswordWithOtp(req, res, next) {
+    try {
+      const { email, otp, newPassword, confirmPassword } = req.body;
+
+      if (!email || !otp || !newPassword || !confirmPassword) {
+        return response.error(res, "Thiếu thông tin bắt buộc", 400);
+      }
+
+      const result = await AuthService.resetPasswordWithOtp(email, otp, newPassword, confirmPassword);
+
+      return response.success(res, result, "Mật khẩu đã được đặt lại thành công");
     } catch (error) {
       next(error);
     }
