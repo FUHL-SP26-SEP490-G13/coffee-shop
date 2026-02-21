@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Loader2, Search, ChevronLeft, ChevronRight, Mars, Venus } from 'lucide-react';
+import { Loader2, Search, ChevronLeft, ChevronRight, Mars, Venus, Plus } from 'lucide-react';
 import userService from '../../services/userService';
 import { Badge } from '../../components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
@@ -7,6 +7,8 @@ import { Avatar, AvatarFallback } from '../../components/ui/avatar';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../../components/ui/dialog';
+import { Label } from '../../components/ui/label';
 
 export default function AdminUsers() {
   const [users, setUsers] = useState([]);
@@ -17,27 +19,130 @@ export default function AdminUsers() {
   const [roleFilter, setRoleFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('1');
   const [currentPage, setCurrentPage] = useState(1);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+  const [createError, setCreateError] = useState('');
+  const [createFieldErrors, setCreateFieldErrors] = useState({});
+  const [createForm, setCreateForm] = useState({
+    first_name: '',
+    last_name: '',
+    email: '',
+    phone: '',
+    username: '',
+    gender: '',
+    dob: '',
+    role_id: '2',
+  });
   const USERS_PER_PAGE = 10;
 
-  useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const response = await userService.getAllUsers();
-        if (response.success) {
-          setUsers(response.data);
-        } else {
-          setError(response.message || 'Không thể tải danh sách người dùng');
-        }
-      } catch (err) {
-        setError('Lỗi kết nối đến máy chủ');
-        console.error(err);
-      } finally {
-        setIsLoading(false);
+  const fetchUsers = async () => {
+    try {
+      const response = await userService.getAllUsers();
+      if (response.success) {
+        setUsers(response.data);
+      } else {
+        setError(response.message || 'Không thể tải danh sách người dùng');
       }
-    };
+    } catch (err) {
+      setError('Lỗi kết nối đến máy chủ');
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchUsers();
   }, []);
+
+  const handleCreateChange = (field, value) => {
+    setCreateForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const validateCreateForm = () => {
+    const errors = {};
+
+    if (!createForm.first_name.trim()) {
+      errors.first_name = 'Họ không được để trống';
+    }
+    if (!createForm.last_name.trim()) {
+      errors.last_name = 'Tên không được để trống';
+    }
+    if (!createForm.email.trim()) {
+      errors.email = 'Email không được để trống';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(createForm.email)) {
+      errors.email = 'Email không hợp lệ';
+    }
+    if (!createForm.phone.trim()) {
+      errors.phone = 'Số điện thoại không được để trống';
+    } else if (!/^(\+84|0)[0-9]{9,11}$/.test(createForm.phone.replace(/\s/g, ''))) {
+      errors.phone = 'Số điện thoại không hợp lệ';
+    }
+    if (!createForm.username.trim()) {
+      errors.username = 'Username không được để trống';
+    }
+    if (!createForm.dob) {
+      errors.dob = 'Ngày sinh không được để trống';
+    }
+    if (!['2', '3'].includes(createForm.role_id)) {
+      errors.role_id = 'Vai trò không hợp lệ';
+    }
+
+    setCreateFieldErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const resetCreateForm = () => {
+    setCreateForm({
+      first_name: '',
+      last_name: '',
+      email: '',
+      phone: '',
+      username: '',
+      gender: '',
+      dob: '',
+      role_id: '2',
+    });
+    setCreateFieldErrors({});
+    setCreateError('');
+  };
+
+  const handleCreateStaff = async (event) => {
+    event.preventDefault();
+    setCreateError('');
+
+    if (!validateCreateForm()) {
+      return;
+    }
+
+    setIsCreating(true);
+    try {
+      const payload = {
+        first_name: createForm.first_name.trim(),
+        last_name: createForm.last_name.trim(),
+        email: createForm.email.trim(),
+        phone: createForm.phone.trim(),
+        username: createForm.username.trim(),
+        gender: createForm.gender === '' ? null : parseInt(createForm.gender, 10),
+        dob: createForm.dob,
+        role_id: parseInt(createForm.role_id, 10),
+      };
+
+      const response = await userService.createStaff(payload);
+      if (response.success) {
+        await fetchUsers();
+        setIsCreateOpen(false);
+        resetCreateForm();
+      } else {
+        setCreateError(response.message || 'Không thể tạo nhân viên');
+      }
+    } catch (err) {
+      setCreateError('Lỗi kết nối đến máy chủ');
+      console.error(err);
+    } finally {
+      setIsCreating(false);
+    }
+  };
 
   const getGenderLabel = (gender) => {
     switch (gender) {
@@ -142,9 +247,15 @@ export default function AdminUsers() {
 
   return (
     <div className="p-6">
-      <div className="mb-6">
-        <h2 className="text-2xl mb-1">Người dùng & Vai trò</h2>
-        <p className="text-sm text-muted-foreground">Quản lý tài khoản khách hàng và nhân viên</p>
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h2 className="text-2xl mb-1">Người dùng & Vai trò</h2>
+          <p className="text-sm text-muted-foreground">Quản lý tài khoản khách hàng và nhân viên</p>
+        </div>
+        <Button onClick={() => setIsCreateOpen(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          Thêm nhân viên
+        </Button>
       </div>
 
       {/* Bộ lọc và tìm kiếm */}
@@ -319,6 +430,144 @@ export default function AdminUsers() {
           </div>
         </div>
       )}
+
+      <Dialog open={isCreateOpen} onOpenChange={(open) => {
+        setIsCreateOpen(open);
+        if (!open) {
+          resetCreateForm();
+        }
+      }}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Thêm nhân viên</DialogTitle>
+            <DialogDescription>
+              Mật khẩu sẽ được tạo ngẫu nhiên và gửi đến email đã nhập.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form className="space-y-4" onSubmit={handleCreateStaff}>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="staffFirstName">Họ</Label>
+                <Input
+                  id="staffFirstName"
+                  value={createForm.first_name}
+                  onChange={(e) => handleCreateChange('first_name', e.target.value)}
+                  className={createFieldErrors.first_name ? 'border-destructive' : ''}
+                />
+                {createFieldErrors.first_name && (
+                  <p className="text-xs text-destructive">{createFieldErrors.first_name}</p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="staffLastName">Tên</Label>
+                <Input
+                  id="staffLastName"
+                  value={createForm.last_name}
+                  onChange={(e) => handleCreateChange('last_name', e.target.value)}
+                  className={createFieldErrors.last_name ? 'border-destructive' : ''}
+                />
+                {createFieldErrors.last_name && (
+                  <p className="text-xs text-destructive">{createFieldErrors.last_name}</p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="staffEmail">Email</Label>
+                <Input
+                  id="staffEmail"
+                  type="email"
+                  value={createForm.email}
+                  onChange={(e) => handleCreateChange('email', e.target.value)}
+                  className={createFieldErrors.email ? 'border-destructive' : ''}
+                />
+                {createFieldErrors.email && (
+                  <p className="text-xs text-destructive">{createFieldErrors.email}</p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="staffPhone">Số điện thoại</Label>
+                <Input
+                  id="staffPhone"
+                  type="tel"
+                  value={createForm.phone}
+                  onChange={(e) => handleCreateChange('phone', e.target.value)}
+                  className={createFieldErrors.phone ? 'border-destructive' : ''}
+                />
+                {createFieldErrors.phone && (
+                  <p className="text-xs text-destructive">{createFieldErrors.phone}</p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="staffUsername">Username</Label>
+                <Input
+                  id="staffUsername"
+                  value={createForm.username}
+                  onChange={(e) => handleCreateChange('username', e.target.value)}
+                  className={createFieldErrors.username ? 'border-destructive' : ''}
+                />
+                {createFieldErrors.username && (
+                  <p className="text-xs text-destructive">{createFieldErrors.username}</p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="staffDob">Ngày sinh</Label>
+                <Input
+                  id="staffDob"
+                  type="date"
+                  value={createForm.dob}
+                  onChange={(e) => handleCreateChange('dob', e.target.value)}
+                  className={createFieldErrors.dob ? 'border-destructive' : ''}
+                />
+                {createFieldErrors.dob && (
+                  <p className="text-xs text-destructive">{createFieldErrors.dob}</p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label>Giới tính</Label>
+                <Select value={createForm.gender} onValueChange={(value) => handleCreateChange('gender', value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Chọn" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">Nam</SelectItem>
+                    <SelectItem value="0">Nữ</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Vai trò</Label>
+                <Select value={createForm.role_id} onValueChange={(value) => handleCreateChange('role_id', value)}>
+                  <SelectTrigger className={createFieldErrors.role_id ? 'border-destructive' : ''}>
+                    <SelectValue placeholder="Vai trò" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="2">Phục vụ</SelectItem>
+                    <SelectItem value="3">Pha chế</SelectItem>
+                  </SelectContent>
+                </Select>
+                {createFieldErrors.role_id && (
+                  <p className="text-xs text-destructive">{createFieldErrors.role_id}</p>
+                )}
+              </div>
+            </div>
+
+            {createError && (
+              <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                {createError}
+              </div>
+            )}
+
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)} disabled={isCreating}>
+                Hủy
+              </Button>
+              <Button type="submit" disabled={isCreating}>
+                {isCreating ? 'Đang tạo...' : 'Tạo nhân viên'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

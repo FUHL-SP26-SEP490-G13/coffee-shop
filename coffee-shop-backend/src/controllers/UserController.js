@@ -153,19 +153,18 @@ class UserController {
   }
 
   /**
-   * Create new user (admin only)
-   * POST /api/users
+   * Create new staff/barista (admin only)
+   * POST /api/users/staff
    */
-  async create(req, res, next) {
+  async createStaff(req, res, next) {
     try {
-      const user = await UserService.createUser(req.body);
+      const result = await UserService.createStaffUser(req.body);
 
-      return response.success(
-        res,
-        user,
-        'Tạo user thành công',
-        201
-      );
+      const message = result.emailSent
+        ? 'Tạo nhân viên thành công'
+        : 'Tạo nhân viên thành công nhưng gửi email thất bại';
+
+      return response.success(res, result, message, 201);
     } catch (error) {
       next(error);
     }

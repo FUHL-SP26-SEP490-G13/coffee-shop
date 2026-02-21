@@ -4,7 +4,7 @@ const UserController = require('../controllers/UserController');
 const { authenticate } = require('../middlewares/auth');
 const { authorize } = require('../middlewares/authorize');
 const validate = require('../middlewares/validate');
-const { registerSchema } = require('../validators/authValidator');
+const { registerSchema, staffCreateSchema } = require('../validators/authValidator');
 
 /**
  * Protected routes - Admin only
@@ -24,6 +24,15 @@ router.get(
   authenticate,
   authorize(['manager']),
   UserController.getStaff
+);
+
+// Create staff/barista
+router.post(
+  '/staff',
+  authenticate,
+  authorize(['manager']),
+  validate(staffCreateSchema),
+  UserController.createStaff
 );
 
 // Get all customers
@@ -64,15 +73,6 @@ router.get(
   authenticate,
   authorize(['manager']),
   UserController.getById
-);
-
-// Create new user
-router.post(
-  '/',
-  authenticate,
-  authorize(['manager']),
-  validate(registerSchema),
-  UserController.create
 );
 
 // Update user

@@ -1,5 +1,6 @@
 const UserRepository = require('../repositories/UserRepository');
-const { hashPassword } = require('../utils/helpers');
+const { hashPassword, generateStrongPassword } = require('../utils/helpers');
+const EmailService = require('./EmailService');
 const { ROLES } = require('../config/constants');
 
 class UserService {
@@ -114,6 +115,65 @@ class UserService {
     delete user.password;
 
     return user;
+  }
+
+  /**
+   * Create new staff or barista (admin only)
+   */
+  async createStaffUser(data) {
+    const roleId = parseInt(data.role_id, 10);
+    if (![ROLES.STAFF, ROLES.BARISTA].includes(roleId)) {
+      throw new Error('Role không hợp lệ');
+    }
+
+    const existingEmail = await UserRepository.findByEmail(data.email);
+    if (existingEmail) {
+      throw new Error('Email đã được sử dụng');
+    }
+
+    const existingPhone = await UserRepository.findByPhone(data.phone);
+    if (existingPhone) {
+      throw new Error('Số điện thoại đã được sử dụng');
+    }
+
+    const existingUsername = await UserRepository.findByUsername(data.username);
+    if (existingUsername) {
+      throw new Error('Username đã được sử dụng');
+    }
+
+    const tempPassword = generateStrongPassword(12);
+    const hashedPassword = await hashPassword(tempPassword);
+
+    const user = await UserRepository.create({
+      phone: data.phone,
+      username: data.username,
+      password: hashedPassword,
+      email: data.email,
+      first_name: data.first_name,
+      last_name: data.last_name,
+      gender: data.gender ?? null,
+      dob: data.dob,
+      role_id: roleId,
+      isActive: 1,
+      isVerified: 1,
+    });
+
+    delete user.password;
+
+    const roleLabel = roleId === ROLES.BARISTA ? 'Pha chế' : 'Phục vụ';
+    let emailSent = true;
+    try {
+      await EmailService.sendStaffAccountEmail(
+        user.email,
+        `${user.first_name} ${user.last_name}`.trim(),
+        tempPassword,
+        roleLabel
+      );
+    } catch (error) {
+      emailSent = false;
+    }
+
+    return { user, emailSent };
   }
 
   /**

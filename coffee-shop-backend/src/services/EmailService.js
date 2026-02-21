@@ -248,6 +248,27 @@ class EmailService {
   }
 
   /**
+   * Send staff account credentials email
+   */
+  async sendStaffAccountEmail(to, userName, tempPassword, roleLabel) {
+    const mailOptions = {
+      from: `"Coffee Shop" <${env.SMTP_USER}>`,
+      to: to,
+      subject: 'Thông tin tài khoản nhân viên - Coffee Shop',
+      html: this.getStaffAccountEmailTemplate(userName, tempPassword, roleLabel),
+    };
+
+    try {
+      const info = await this.transporter.sendMail(mailOptions);
+      console.log('Staff account email sent: %s', info.messageId);
+      return { success: true, messageId: info.messageId };
+    } catch (error) {
+      console.error('Error sending staff account email:', error);
+      throw new Error('Không thể gửi email');
+    }
+  }
+
+  /**
    * Welcome Email Template
    */
   getWelcomeEmailTemplate(userName) {
@@ -406,6 +427,129 @@ class EmailService {
       <p style="margin-top: 15px; font-size: 12px; color: #bbbbbb;">
         © ${new Date().getFullYear()} Coffee Shop. All rights reserved.
       </p>
+    </div>
+  </div>
+</body>
+</html>
+    `;
+  }
+
+  /**
+   * Staff account email template
+   */
+  getStaffAccountEmailTemplate(userName, tempPassword, roleLabel) {
+    return `
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tài khoản nhân viên</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f4f4f4;
+      margin: 0;
+      padding: 0;
+    }
+    .email-container {
+      max-width: 600px;
+      margin: 40px auto;
+      background-color: #ffffff;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    .header {
+      background: linear-gradient(135deg, #6B4423 0%, #8B5E34 100%);
+      color: #ffffff;
+      padding: 30px 20px;
+      text-align: center;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 28px;
+      font-weight: 600;
+    }
+    .content {
+      padding: 35px 30px;
+    }
+    .greeting {
+      font-size: 18px;
+      color: #333333;
+      margin-bottom: 14px;
+    }
+    .message {
+      font-size: 15px;
+      color: #666666;
+      line-height: 1.6;
+      margin-bottom: 20px;
+    }
+    .credentials {
+      background-color: #f9f9f9;
+      border: 1px dashed #6B4423;
+      border-radius: 8px;
+      padding: 20px;
+      margin: 20px 0;
+    }
+    .credentials .label {
+      font-size: 13px;
+      color: #666666;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .credentials .value {
+      font-size: 18px;
+      font-weight: bold;
+      color: #6B4423;
+      margin: 8px 0 0 0;
+      word-break: break-all;
+    }
+    .warning {
+      background-color: #fff3cd;
+      border-left: 4px solid #ffc107;
+      padding: 12px 15px;
+      margin: 20px 0;
+      border-radius: 4px;
+      font-size: 13px;
+      color: #856404;
+      line-height: 1.5;
+    }
+    .footer {
+      background-color: #f9f9f9;
+      padding: 20px 30px;
+      text-align: center;
+      border-top: 1px solid #eeeeee;
+      font-size: 12px;
+      color: #999999;
+    }
+  </style>
+</head>
+<body>
+  <div class="email-container">
+    <div class="header">
+      <h1>☕ Coffee Shop</h1>
+      <p>Tài khoản nhân viên của bạn đã được tạo</p>
+    </div>
+    <div class="content">
+      <div class="greeting">Xin chào <strong>${userName || 'bạn'}</strong>!</div>
+      <div class="message">
+        Bạn đã được cấp tài khoản nhân viên với vai trò <strong>${roleLabel}</strong>.
+        Dưới đây là mật khẩu tạm thời để đăng nhập lần đầu.
+      </div>
+      <div class="credentials">
+        <div class="label">Mật khẩu tạm thời</div>
+        <div class="value">${tempPassword}</div>
+      </div>
+      <div class="warning">
+        Vui lòng đổi mật khẩu ngay sau khi đăng nhập để đảm bảo an toàn.
+        Không chia sẻ mật khẩu này cho bất kỳ ai.
+      </div>
+      <div class="message">Nếu bạn có thắc mắc, hãy liên hệ quản trị viên.</div>
+    </div>
+    <div class="footer">
+      <p><strong>Coffee Shop Management System</strong></p>
+      <p>Email: support@coffeeshop.com | Hotline: 1900-xxxx</p>
     </div>
   </div>
 </body>
