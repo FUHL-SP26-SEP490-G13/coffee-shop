@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocation, useNavigate, Outlet } from "react-router-dom";
 import {
   PackageOpen,
   Calendar,
@@ -8,12 +9,8 @@ import {
   LogOut,
   Menu,
   X,
+  LayoutDashboard,
 } from "lucide-react";
-import { BaristaOrders } from "./BaristaOrders";
-import { BaristaSchedule } from "./BaristaSchedule";
-import { BaristaAttendance } from "./BaristaAttendance";
-import { BaristaRequests } from "./BaristaRequests";
-import { UserProfile } from "../common/UserProfile";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,20 +25,34 @@ import {
 import authenticationService from "../../services/authenticationService";
 
 export function BaristaApp() {
-  const [currentPage, setCurrentPage] = useState("orders");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const handleLogout = () => {
     authenticationService.logout();
     window.location.href = "/";
   };
 
+  const getCurrentPage = () => {
+    const path = location.pathname;
+    if (path.includes("orders")) return "orders";
+    if (path.includes("attendance")) return "attendance";
+    if (path.includes("schedule")) return "schedule";
+    if (path.includes("requests")) return "requests";
+    if (path.includes("profile")) return "profile";
+    return "dashboard";
+  };
+
+  const currentPage = getCurrentPage();
+
   const menuItems = [
-    { id: "orders", icon: PackageOpen, label: "Đơn hàng" },
-    { id: "attendance", icon: Clock, label: "Chấm công" },
-    { id: "schedule", icon: Calendar, label: "Lịch làm việc" },
-    { id: "requests", icon: FileText, label: "Yêu cầu" },
-    { id: "profile", icon: User, label: "Hồ sơ cá nhân" },
+    { id: "dashboard", icon: LayoutDashboard, label: "Dashboard", path: "/barista" },
+    { id: "orders", icon: PackageOpen, label: "Đơn hàng", path: "/barista/orders" },
+    { id: "attendance", icon: Clock, label: "Chấm công", path: "/barista/attendance" },
+    { id: "schedule", icon: Calendar, label: "Lịch làm việc", path: "/barista/schedule" },
+    { id: "requests", icon: FileText, label: "Yêu cầu", path: "/barista/requests" },
+    { id: "profile", icon: User, label: "Hồ sơ cá nhân", path: "/barista/profile" },
   ];
 
   return (
@@ -82,7 +93,7 @@ export function BaristaApp() {
               <button
                 key={item.id}
                 onClick={() => {
-                  setCurrentPage(item.id);
+                  navigate(item.path);
                   setMobileMenuOpen(false);
                 }}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all mb-2 ${
@@ -123,11 +134,7 @@ export function BaristaApp() {
 
       {/* Content */}
       <div className="flex-1 overflow-auto">
-        {currentPage === "orders" && <BaristaOrders />}
-        {currentPage === "attendance" && <BaristaAttendance />}
-        {currentPage === "schedule" && <BaristaSchedule />}
-        {currentPage === "requests" && <BaristaRequests />}
-        {currentPage === "profile" && <UserProfile />}
+        <Outlet />
       </div>
     </div>
   );

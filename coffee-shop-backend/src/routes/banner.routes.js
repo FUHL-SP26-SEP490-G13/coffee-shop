@@ -1,11 +1,13 @@
 const express = require("express");
 const router = express.Router();
-const controller = require("../controllers/NewsletterController");
+
+const controller = require("../controllers/BannerController");
 const { authenticate } = require("../middlewares/auth");
 const { authorize } = require("../middlewares/authorize");
+const upload = require("../middlewares/upload");
 
 // PUBLIC
-router.post("/", controller.subscribe.bind(controller));
+router.get("/active", controller.getActive.bind(controller));
 
 // ADMIN
 router.get(
@@ -13,6 +15,22 @@ router.get(
   authenticate,
   authorize(["manager"]),
   controller.getAll.bind(controller)
+);
+
+router.post(
+  "/admin",
+  authenticate,
+  authorize(["manager"]),
+  upload.single("image"),
+  controller.create.bind(controller)
+);
+
+router.put(
+  "/admin/:id",
+  authenticate,
+  authorize(["manager"]),
+  upload.single("image"),
+  controller.update.bind(controller)
 );
 
 router.delete(

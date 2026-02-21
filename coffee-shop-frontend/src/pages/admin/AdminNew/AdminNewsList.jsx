@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Loader2, Search, ChevronLeft, ChevronRight, Trash2, Eye, Edit } from "lucide-react";
+import { Loader2, Search, ChevronLeft, ChevronRight, Trash2, Eye, Edit, Mail, Newspaper } from "lucide-react";
 import newsService from "@/services/newsService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -78,13 +78,11 @@ export default function AdminNewsList() {
       {/* HEADER */}
       <div className="mb-6">
         <div className="flex justify-between items-start mb-6">
-          <div>
-            <h2 className="text-2xl font-semibold mb-1">Quản lý bài viết</h2>
-            <p className="text-sm text-muted-foreground">Quản lý và cập nhật các bài viết tin tức</p>
+          <div className="flex items-center gap-3">
+            <Newspaper className="w-6 h-6 text-primary" />
+            <h1 className="text-2xl font-semibold mb-1">Quản lý bài viết</h1>
           </div>
-          <Button
-            onClick={() => navigate("/admin/create-news")}
-          >
+          <Button onClick={() => navigate("/admin/create-news")}>
             + Thêm bài viết
           </Button>
         </div>
@@ -102,9 +100,7 @@ export default function AdminNewsList() {
             />
           </div>
 
-          <Button onClick={handleSearch}>
-            Tìm kiếm
-          </Button>
+          <Button onClick={handleSearch}>Tìm kiếm</Button>
 
           <Button variant="outline" onClick={handleReset}>
             Reset
@@ -126,13 +122,18 @@ export default function AdminNewsList() {
               <TableRow>
                 <TableHead>Tiêu đề</TableHead>
                 <TableHead className="w-[150px]">Ngày tạo</TableHead>
-                <TableHead className="text-right w-[200px]">Hành động</TableHead>
+                <TableHead className="text-right w-[200px]">
+                  Hành động
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {data.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={3} className="text-center py-8 text-muted-foreground">
+                  <TableCell
+                    colSpan={3}
+                    className="text-center py-8 text-muted-foreground"
+                  >
                     Không có bài viết nào
                   </TableCell>
                 </TableRow>
@@ -151,7 +152,9 @@ export default function AdminNewsList() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => navigate(`/admin/news-detail/${item.slug}`)}
+                        onClick={() =>
+                          navigate(`/admin/news-detail/${item.slug}`)
+                        }
                         title="Xem chi tiết"
                       >
                         <Eye className="h-4 w-4" />

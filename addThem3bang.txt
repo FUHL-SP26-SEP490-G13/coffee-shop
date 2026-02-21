@@ -19,3 +19,15 @@ CREATE TABLE news (
   CONSTRAINT fk_news_user FOREIGN KEY (created_by)
     REFERENCES users(id)
 );
+
+CREATE TABLE banners (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  title VARCHAR(255) NOT NULL,
+  subtitle TEXT,
+  image_url TEXT NOT NULL,
+  button_text VARCHAR(100),
+  button_link VARCHAR(255),
+  is_active BOOLEAN DEFAULT TRUE,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);

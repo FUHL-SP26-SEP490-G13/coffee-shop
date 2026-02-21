@@ -4,9 +4,13 @@ const cloudinary = require("../config/cloudinary");
 
 const storage = new CloudinaryStorage({
   cloudinary,
-  params: {
-    folder: "coffee-shop/news",
-    allowed_formats: ["jpg", "png", "jpeg", "webp"],
+  params: async (req, file) => {
+    const type = req.body.type || "others";
+
+    return {
+      folder: `coffee-shop/${type}`,
+      allowed_formats: ["jpg", "png", "jpeg", "webp"],
+    };
   },
 });
 

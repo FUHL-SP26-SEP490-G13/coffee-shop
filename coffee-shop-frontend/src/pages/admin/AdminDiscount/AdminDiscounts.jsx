@@ -100,7 +100,7 @@ export default function AdminDiscounts() {
             <Ticket className="h-6 w-6 text-primary" />
           </div>
           <div>
-            <h2 className="text-2xl md:text-3xl font-bold">Quản lý mã giảm giá</h2>
+            <h2 className="text-2xl font-semibold mb-1">Quản lý mã giảm giá</h2>
             <p className="text-sm text-muted-foreground">
               Tạo và quản lý mã giảm giá theo %
             </p>
@@ -124,7 +124,7 @@ export default function AdminDiscounts() {
               className="pl-10"
               value={searchCode}
               onChange={(e) => setSearchCode(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
             />
           </div>
 

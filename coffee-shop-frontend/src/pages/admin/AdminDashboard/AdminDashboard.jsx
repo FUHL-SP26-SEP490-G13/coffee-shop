@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import dashboardService from "@/services/dashboardService";
+import adminDashService from "@/services/adminDashboardService";
 
 import {
   ResponsiveContainer,
@@ -12,6 +12,7 @@ import {
   YAxis,
   Tooltip,
 } from "recharts";
+import { Newspaper } from "lucide-react";
 
 const formatMoney = (n) => `${Number(n || 0).toLocaleString()}đ`;
 
@@ -45,22 +46,22 @@ export default function AdminDashboard() {
       setLoading(true);
 
       // 1) overview (có sẵn series7 + top5 nếu muốn dùng luôn)
-      const ov = await dashboardService.getOverview();
+      const ov = await adminDashService.getOverview();
       setOverview(ov);
 
       // 2) chart theo range chọn
-      const series = await dashboardService.getRevenueSeries(rangeDays);
+      const series = await adminDashService.getRevenueSeries(rangeDays);
       setRevenueSeries(series);
 
       // 3) top products theo range chọn
-      const top = await dashboardService.getTopProducts({
+      const top = await adminDashService.getTopProducts({
         days: rangeDays,
         limit: 5,
       });
       setTopProducts(top);
 
       // 4) payment breakdown (optional nhưng hợp DB)
-      const pm = await dashboardService.getPaymentMethodBreakdown(rangeDays);
+      const pm = await adminDashService.getPaymentMethodBreakdown(rangeDays);
       setPaymentMethod(pm);
     } finally {
       setLoading(false);
@@ -86,11 +87,15 @@ export default function AdminDashboard() {
     <div className="space-y-6">
       {/* Header controls */}
       <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-semibold">Dashboard</h2>
+        {/* <div>
+          <h2 className="text-2xl font-semibold">Tổng quan dashboard</h2>
           <p className="text-sm text-muted-foreground">
             Tổng quan hoạt động cửa hàng
           </p>
+        </div> */}
+        <div className="flex items-center gap-3">
+          <Newspaper className="w-6 h-6 text-primary" />
+          <h1 className="text-2xl font-semibold mb-1">Tổng quan cửa hàng</h1>
         </div>
 
         <div className="flex gap-2">
@@ -132,9 +137,18 @@ export default function AdminDashboard() {
         </Card>
 
         <Card className="p-6">
-          <h3 className="text-sm text-muted-foreground">Mã giảm giá hoạt động</h3>
+          <h3 className="text-sm text-muted-foreground">
+            Mã giảm giá hoạt động
+          </h3>
           <p className="text-2xl font-bold text-blue-600">
             {overview.activeDiscounts}
+          </p>
+        </Card>
+
+        <Card className="p-6">
+          <h3 className="text-sm text-muted-foreground">Email đăng ký</h3>
+          <p className="text-2xl font-bold text-purple-600">
+            {overview.totalNewsletterSubscribers}
           </p>
         </Card>
       </div>

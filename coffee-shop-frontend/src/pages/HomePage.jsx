@@ -9,6 +9,7 @@ import Header from "@/components/layout/Header";
 import newsService from "@/services/newsService";
 import { Link } from "react-router-dom";
 import FeaturedNews from "@/components/news/FeaturedNews";
+import bannerService from "@/services/bannerService";
 
 export default function HomePage() {
   const fetchProducts = useCallback(() => {
@@ -18,15 +19,25 @@ export default function HomePage() {
   const { data, loading } = useFetch(fetchProducts);
   const products = data?.data || [];
 
-  const fetchNews = useCallback(() => {
-    return newsService.getFeatured();
+  // const fetchNews = useCallback(() => {
+  //   return newsService.getFeatured();
+  // }, []);
+
+  //const { data: newsData } = useFetch(fetchNews);
+
+  // const featuredNews = Array.isArray(newsData)
+  //   ? newsData
+  //   : newsData?.data || [];
+
+  const fetchBanner = useCallback(() => {
+    return bannerService.getActive();
   }, []);
 
-  const { data: newsData } = useFetch(fetchNews);
+  const { data: bannerData } = useFetch(fetchBanner);
+  const banner = bannerData?.data ?? bannerData;
 
-  const featuredNews = Array.isArray(newsData)
-    ? newsData
-    : newsData?.data || [];
+  const defaultImage =
+    "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085";
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -35,21 +46,19 @@ export default function HomePage() {
       {/* ===== HERO BANNER ===== */}
       <div className="relative h-[500px] overflow-hidden">
         <img
-          src="https://images.unsplash.com/photo-1495474472287-4d71bcdd2085"
-          alt="Coffee Shop Hero"
+          src={banner?.image_url || defaultImage}
           className="absolute w-full h-full object-cover"
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/50 to-black/30 flex flex-col justify-center items-center text-white text-center px-4">
-          <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 drop-shadow-lg">
-            Thưởng thức cà phê chuẩn vị
-          </h2>
-          <p className="text-lg md:text-xl mb-8 text-white/90 max-w-2xl">
-            Mang đến trải nghiệm thưởng thức cà phê tuyệt vời nhất
-          </p>
-          <Button size="lg" className="gap-2 text-base shadow-lg">
-            <Search className="w-5 h-5" />
-            Xem menu
-          </Button>
+        <div className="absolute inset-0 bg-black/40 flex flex-col justify-center items-center text-white text-center px-4">
+          <h2 className="text-5xl font-bold mb-4">{banner?.title}</h2>
+          <p className="text-xl mb-8">{banner?.subtitle}</p>
+          {banner?.button_text && (
+            <Link to={banner?.button_link || "/"}>
+              <Button size="lg" className="shadow-lg">
+                {banner.button_text}
+              </Button>
+            </Link>
+          )}
         </div>
       </div>
 
@@ -57,7 +66,9 @@ export default function HomePage() {
       <div className="max-w-7xl mx-auto px-6 py-16 md:py-20">
         <div className="text-center mb-12">
           <h3 className="text-3xl md:text-4xl font-bold mb-3">Menu hôm nay</h3>
-          <p className="text-muted-foreground">Khám phá các món đồ uống đặc biệt của chúng tôi</p>
+          <p className="text-muted-foreground">
+            Khám phá các món đồ uống đặc biệt của chúng tôi
+          </p>
         </div>
 
         {loading && (
@@ -87,7 +98,9 @@ export default function HomePage() {
                 </div>
 
                 <div className="p-5">
-                  <h4 className="font-semibold text-lg mb-2 line-clamp-1">{product.name}</h4>
+                  <h4 className="font-semibold text-lg mb-2 line-clamp-1">
+                    {product.name}
+                  </h4>
 
                   <p className="text-sm text-muted-foreground mb-4 line-clamp-2 min-h-[40px]">
                     {product.description || "Thưởng thức hương vị đặc biệt"}
@@ -98,10 +111,7 @@ export default function HomePage() {
                       {Number(product.min_price).toLocaleString()}đ
                     </span>
 
-                    <Button
-                      size="sm"
-                      className="gap-1.5"
-                    >
+                    <Button size="sm" className="gap-1.5">
                       <Plus className="w-4 h-4" />
                       Thêm
                     </Button>
@@ -120,4 +130,3 @@ export default function HomePage() {
     </div>
   );
 }
-

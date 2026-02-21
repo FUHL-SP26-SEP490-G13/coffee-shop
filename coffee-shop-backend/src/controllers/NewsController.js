@@ -6,13 +6,14 @@ class NewsController {
     try {
       const thumbnailUrl = req.file?.path || null;
 
-      const news = await NewsService.createNews(
-        {
-          ...req.body,
-          thumbnail: thumbnailUrl,
-        },
-        req.user.id
-      );
+      const data = {
+        title: req.body.title,
+        summary: req.body.summary,
+        content: req.body.content,
+        thumbnail: thumbnailUrl,
+      };
+
+      const news = await NewsService.createNews(data, req.user.id);
 
       return response.success(res, news, "Tạo tin thành công", 201);
     } catch (error) {
