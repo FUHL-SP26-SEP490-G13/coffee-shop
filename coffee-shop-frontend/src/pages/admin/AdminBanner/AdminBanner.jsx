@@ -3,7 +3,7 @@ import bannerService from "@/services/bannerService";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Trash2, Plus } from "lucide-react";
+import { Trash2, Plus, Mail, Megaphone } from "lucide-react";
 
 export default function AdminBanner() {
   const [banners, setBanners] = useState([]);
@@ -91,7 +91,10 @@ export default function AdminBanner() {
     <div className="space-y-6">
       {/* HEADER */}
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-semibold">Quản lý Banner</h1>
+        <div className="mb-6 flex items-center gap-3">
+          <Megaphone className="w-6 h-6 text-primary" />
+          <h1 className="text-2xl font-semibold mb-1">Quản lý banner</h1>
+        </div>
 
         <Button
           className="gap-2"
