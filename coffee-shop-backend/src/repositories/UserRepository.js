@@ -40,6 +40,7 @@ class UserRepository extends BaseRepository {
     const query = `
       SELECT 
         u.*,
+        DATE_FORMAT(u.dob, '%Y-%m-%d') as dob,
         r.role_name,
         r.id as role_id
       FROM ${this.tableName} u
@@ -58,6 +59,7 @@ class UserRepository extends BaseRepository {
     const query = `
       SELECT 
         u.*,
+        DATE_FORMAT(u.dob, '%Y-%m-%d') as dob,
         r.role_name,
         JSON_ARRAYAGG(
           CASE 
@@ -162,7 +164,6 @@ class UserRepository extends BaseRepository {
       'last_name',
       'gender',
       'dob',
-      'phone',
     ];
 
     // Filter only allowed fields
@@ -174,10 +175,11 @@ class UserRepository extends BaseRepository {
     });
 
     if (Object.keys(updateData).length === 0) {
-      return this.findById(userId);
+      return this.findByIdWithRole(userId);
     }
 
-    return this.update(userId, updateData);
+    await this.update(userId, updateData);
+    return this.findByIdWithRole(userId);
   }
 
   /**

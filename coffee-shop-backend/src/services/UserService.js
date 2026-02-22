@@ -226,6 +226,26 @@ class UserService {
   }
 
   /**
+   * Update user profile (restricted fields for self-update)
+   */
+  async updateProfile(userId, data) {
+    // Check if user exists
+    const user = await UserRepository.findById(userId);
+
+    if (!user) {
+      throw new Error('User không tồn tại');
+    }
+
+    // Update profile using repository method with allowed fields only
+    const updatedUser = await UserRepository.updateProfile(userId, data);
+
+    // Remove password from response
+    delete updatedUser.password;
+
+    return updatedUser;
+  }
+
+  /**
    * Deactivate user
    */
   async deactivateUser(id, adminId, password) {

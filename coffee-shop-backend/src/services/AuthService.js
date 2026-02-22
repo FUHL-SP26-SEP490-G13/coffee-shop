@@ -655,15 +655,7 @@ class AuthService {
       throw new Error("User không tồn tại");
     }
 
-    // If updating phone, check if it's already used by another user
-    if (data.phone && data.phone !== user.phone) {
-      const phoneExists = await UserRepository.phoneExists(data.phone, userId);
-      if (phoneExists) {
-        throw new Error("Số điện thoại đã được sử dụng");
-      }
-    }
-
-    // Update profile
+    // Update profile (only allowed fields: first_name, last_name, gender, dob)
     const updatedUser = await UserRepository.updateProfile(userId, data);
 
     // Remove password from response
