@@ -13,6 +13,9 @@ import {
   X,
   Mail,
   ImagePlus,
+  AlignCenter,
+  LucideAlignCenter,
+  AlignRight,
 } from "lucide-react";
 import { useState } from "react";
 import authenticationService from "../../services/authenticationService";
@@ -27,6 +30,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "../../components/ui/alert-dialog";
+import Logo from "/logo/Logo.png";
 
 export default function AdminApp() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -78,8 +82,8 @@ export default function AdminApp() {
           ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
         `}
       >
-        <div className="p-4">
-          <h1 className="text-2xl font-semibold text-primary">Coffee Shop</h1>
+        <div className="p-4" style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+          <img src={Logo} alt="Coffee Shop Logo" className="h-20 w-auto" />
           <p className="text-sm text-muted-foreground">Cổng Quản lý</p>
         </div>
 

@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
 import {jwtDecode} from "jwt-decode";
 import { STORAGE_KEYS } from "@/constants";
+import Logo from "/logo/Logo.png";
 
 const placeholders = [
   "Xin chào, bạn cần gì hôm nay?",
@@ -69,12 +70,16 @@ function Header() {
     <header className="border-b bg-card sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex justify-between items-center gap-2">
         {/* Logo */}
-        <h1
+        {/* <h1
           className="text-xl sm:text-2xl font-bold cursor-pointer text-primary whitespace-nowrap"
           onClick={() => navigate("/")}
         >
           Coffee Shop
-        </h1>
+        </h1> */}
+        <img src={Logo} 
+        alt="Coffee Shop Logo" 
+        className="h-20 w-auto"
+        onClick={() => navigate("/")} />
 
         {/* Search - Desktop */}
         <div className="flex-1 mx-4 lg:mx-8 hidden md:flex">

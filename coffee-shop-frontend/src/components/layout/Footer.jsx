@@ -4,6 +4,7 @@ import axios from "@/services/axiosClient";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import Logo from "/logo/Logo.png";
 
 function Footer() {
   const [email, setEmail] = useState("");
@@ -52,7 +53,7 @@ function Footer() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 lg:gap-10">
         {/* Company */}
         <div>
-          <h4 className="font-semibold mb-4">Coffee Shop</h4>
+          <img src={Logo} alt="Coffee Shop Logo" className="h-16 w-auto mb-4" style={{ display: "block", margin: "0 auto" }} />
           <p className="text-sm text-muted-foreground mb-4">
             Hương vị cà phê chuẩn vị, phục vụ mỗi ngày.
           </p>

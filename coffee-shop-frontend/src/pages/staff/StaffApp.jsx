@@ -13,6 +13,8 @@ import {
   AlertDialogTrigger,
 } from '../../components/ui/alert-dialog';
 import authenticationService from '../../services/authenticationService';
+import Logo from "/logo/Logo.png";
+
 
 export function StaffApp() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -78,8 +80,8 @@ export function StaffApp() {
           }
         `}
       >
-        <div className="p-6 border-b border-border">
-          <h1 className="text-2xl font-semibold text-primary">Coffee Shop</h1>
+        <div className="p-6 border-b border-border" style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+          <img src={Logo} alt="Coffee Shop Logo" className="h-20 w-auto" />
           <p className="text-sm text-muted-foreground mt-1">Cổng Nhân viên</p>
         </div>
         
