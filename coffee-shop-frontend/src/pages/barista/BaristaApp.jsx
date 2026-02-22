@@ -56,32 +56,35 @@ export function BaristaApp() {
   ];
 
   return (
-    <div className="flex flex-col md:flex-row min-h-screen bg-background">
-      {/* Mobile Header */}
-      <div className="md:hidden flex items-center justify-between bg-card border-b border-border p-4 sticky top-0 z-40">
-        <div className="flex items-center gap-2">
-          <h1 className="text-lg font-semibold text-primary">Coffee Shop</h1>
-          <p className="text-sm text-muted-foreground mt-1">Cổng Pha chế</p>
-        </div>
-        <button
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="p-2 hover:bg-accent rounded-lg transition-colors"
-        >
-          {mobileMenuOpen ? (
-            <X className="w-6 h-6" />
-          ) : (
-            <Menu className="w-6 h-6" />
-          )}
-        </button>
-      </div>
+    <div className="flex min-h-screen bg-background">
+      {/* Mobile Menu Button */}
+      <button
+        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+        className="md:hidden fixed top-4 left-4 z-50 p-2 bg-card border border-border rounded-lg shadow-lg"
+      >
+        {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+      </button>
+
+      {/* Overlay */}
+      {mobileMenuOpen && (
+        <div
+          className="md:hidden fixed inset-0 bg-black/50 z-30"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
 
       {/* Sidebar Navigation */}
       <div
-        className={`${
-          mobileMenuOpen ? "block" : "hidden"
-        } md:block md:relative absolute top-16 md:top-0 left-0 right-0 md:right-auto w-full md:w-64 bg-card border-r border-border flex flex-col z-30 md:z-auto`}
+        className={`
+          fixed md:static inset-y-0 left-0 z-40
+          w-64 bg-card border-r border-border flex flex-col
+          transform transition-transform duration-300 ease-in-out
+          ${
+            mobileMenuOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+          }
+        `}
       >
-        <div className="hidden md:block p-6 border-b border-border">
+        <div className="p-6 border-b border-border">
           <h1 className="text-2xl font-semibold text-primary">Coffee Shop</h1>
           <p className="text-sm text-muted-foreground mt-1">Cổng Pha chế</p>
         </div>
@@ -103,7 +106,7 @@ export function BaristaApp() {
                 }`}
               >
                 <Icon className="w-5 h-5 flex-shrink-0" />
-                <span className="text-sm md:text-base">{item.label}</span>
+                <span className="text-sm">{item.label}</span>
               </button>
             );
           })}
@@ -111,7 +114,7 @@ export function BaristaApp() {
             <AlertDialogTrigger asChild>
               <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all mt-4 text-red-600 hover:bg-red-100">
                 <LogOut className="w-5 h-5 flex-shrink-0" />
-                <span className="text-sm md:text-base">Đăng xuất</span>
+                <span className="text-sm">Đăng xuất</span>
               </button>
             </AlertDialogTrigger>
             <AlertDialogContent>
@@ -133,8 +136,10 @@ export function BaristaApp() {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-auto">
-        <Outlet />
+      <div className="flex-1 w-full md:w-auto overflow-auto">
+        <div className="p-4 md:p-8 pt-16 md:pt-8">
+          <Outlet />
+        </div>
       </div>
     </div>
   );

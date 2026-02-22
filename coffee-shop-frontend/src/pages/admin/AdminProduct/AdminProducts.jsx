@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Search, Edit, Trash2 } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Coffee } from 'lucide-react';
 import { products, categories } from '../../../lib/mockData';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
@@ -19,11 +19,11 @@ export default function AdminProducts() {
   );
 
   return (
-    <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-2xl mb-1">Products</h2>
-          <p className="text-sm text-muted-foreground">Manage your coffee shop menu</p>
+    <div className="p-4 sm:p-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-6 gap-4">
+        <div className="flex items-center gap-3">
+          <Coffee className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
+          <h1 className="text-xl sm:text-2xl font-semibold">Quản lý sản phẩm</h1>
         </div>
         <Dialog>
           <DialogTrigger asChild>
@@ -90,12 +90,13 @@ export default function AdminProducts() {
           placeholder="Search products..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="max-w-sm"
+          className="w-full sm:max-w-sm"
         />
       </div>
 
-      <div className="bg-card rounded-xl border border-border">
-        <Table>
+      <div className="bg-card rounded-xl border border-border overflow-hidden">
+        <div className="overflow-x-auto">
+          <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Product</TableHead>
@@ -159,6 +160,7 @@ export default function AdminProducts() {
             })}
           </TableBody>
         </Table>
+        </div>
       </div>
     </div>
   );

@@ -1,5 +1,5 @@
 const UserRepository = require('../repositories/UserRepository');
-const { hashPassword, generateStrongPassword } = require('../utils/helpers');
+const { hashPassword, generateStrongPassword, comparePassword } = require('../utils/helpers');
 const EmailService = require('./EmailService');
 const { ROLES } = require('../config/constants');
 
@@ -228,7 +228,18 @@ class UserService {
   /**
    * Deactivate user
    */
-  async deactivateUser(id) {
+  async deactivateUser(id, adminId, password) {
+    // Verify admin password
+    const admin = await UserRepository.findById(adminId);
+    if (!admin) {
+      throw new Error('Admin không tồn tại');
+    }
+
+    const isPasswordValid = await comparePassword(password, admin.password);
+    if (!isPasswordValid) {
+      throw new Error('Mật khẩu không chính xác');
+    }
+
     // Check if user exists
     const user = await UserRepository.findById(id);
 
@@ -253,7 +264,18 @@ class UserService {
   /**
    * Activate user
    */
-  async activateUser(id) {
+  async activateUser(id, adminId, password) {
+    // Verify admin password
+    const admin = await UserRepository.findById(adminId);
+    if (!admin) {
+      throw new Error('Admin không tồn tại');
+    }
+
+    const isPasswordValid = await comparePassword(password, admin.password);
+    if (!isPasswordValid) {
+      throw new Error('Mật khẩu không chính xác');
+    }
+
     // Check if user exists
     const user = await UserRepository.findById(id);
 

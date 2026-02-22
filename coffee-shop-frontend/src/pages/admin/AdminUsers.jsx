@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Loader2, Search, ChevronLeft, ChevronRight, Mars, Venus, Plus } from 'lucide-react';
+import { Loader2, Search, ChevronLeft, ChevronRight, Mars, Venus, Plus, Users } from 'lucide-react';
 import userService from '../../services/userService';
 import { Badge } from '../../components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
@@ -9,6 +9,7 @@ import { Input } from '../../components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../../components/ui/dialog';
 import { Label } from '../../components/ui/label';
+import { Switch } from '../../components/ui/switch';
 
 export default function AdminUsers() {
   const [users, setUsers] = useState([]);
@@ -33,6 +34,11 @@ export default function AdminUsers() {
     dob: '',
     role_id: '2',
   });
+  const [isPasswordOpen, setIsPasswordOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [password, setPassword] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [isTogglingStatus, setIsTogglingStatus] = useState(false);
   const USERS_PER_PAGE = 10;
 
   const fetchUsers = async () => {
@@ -144,6 +150,53 @@ export default function AdminUsers() {
     }
   };
 
+  const handleStatusToggle = (user) => {
+    setSelectedUser(user);
+    setPassword('');
+    setPasswordError('');
+    setIsPasswordOpen(true);
+  };
+
+  const handleConfirmStatusChange = async () => {
+    if (!password.trim()) {
+      setPasswordError('Vui lòng nhập mật khẩu');
+      return;
+    }
+
+    setIsTogglingStatus(true);
+    setPasswordError('');
+
+    try {
+      const response = await userService.toggleUserStatus(
+        selectedUser.id,
+        selectedUser.isActive,
+        password
+      );
+      
+      if (response.success) {
+        // Update local state
+        setUsers(prevUsers => 
+          prevUsers.map(u => 
+            u.id === selectedUser.id 
+              ? { ...u, isActive: u.isActive === 1 ? 0 : 1 }
+              : u
+          )
+        );
+        
+        setIsPasswordOpen(false);
+        setSelectedUser(null);
+        setPassword('');
+      } else {
+        setPasswordError(response.message || 'Có lỗi xảy ra khi thay đổi trạng thái');
+      }
+    } catch (err) {
+      setPasswordError(err.message || 'Mật khẩu không chính xác hoặc có lỗi xảy ra');
+      console.error(err);
+    } finally {
+      setIsTogglingStatus(false);
+    }
+  };
+
   const getGenderLabel = (gender) => {
     switch (gender) {
       case 1:
@@ -246,22 +299,22 @@ export default function AdminUsers() {
   }
 
   return (
-    <div className="p-6">
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl mb-1">Người dùng & Vai trò</h2>
-          <p className="text-sm text-muted-foreground">Quản lý tài khoản khách hàng và nhân viên</p>
+    <div className="p-4 sm:p-6">
+      <div className="mb-4 sm:mb-6 flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <Users className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
+          <h1 className="text-xl sm:text-2xl font-semibold">Quản lý người dùng</h1>
         </div>
-        <Button onClick={() => setIsCreateOpen(true)}>
+        <Button onClick={() => setIsCreateOpen(true)} className="w-full sm:w-auto">
           <Plus className="h-4 w-4 mr-2" />
           Thêm nhân viên
         </Button>
       </div>
 
       {/* Bộ lọc và tìm kiếm */}
-      <div className="mb-6 flex flex-wrap gap-4">
+      <div className="mb-4 sm:mb-6 flex flex-wrap gap-2 sm:gap-4">
         {/* Tìm kiếm */}
-        <div className="relative flex-1 min-w-[250px]">
+        <div className="relative flex-1 min-w-[200px] sm:min-w-[250px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Tìm kiếm theo tên, email, số điện thoại..."
@@ -273,7 +326,7 @@ export default function AdminUsers() {
 
         {/* Lọc theo Role */}
         <Select value={roleFilter} onValueChange={setRoleFilter}>
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-full sm:w-[180px]">
             <SelectValue placeholder="Vai trò" />
           </SelectTrigger>
           <SelectContent>
@@ -287,7 +340,7 @@ export default function AdminUsers() {
 
         {/* Lọc theo trạng thái */}
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-[160px]">
+          <SelectTrigger className="w-full sm:w-[160px]">
             <SelectValue placeholder="Trạng thái" />
           </SelectTrigger>
           <SelectContent>
@@ -298,7 +351,7 @@ export default function AdminUsers() {
 
         {/* Sắp xếp theo tên */}
         <Select value={sortOrder} onValueChange={setSortOrder}>
-          <SelectTrigger className="w-[160px]">
+          <SelectTrigger className="w-full sm:w-[160px]">
             <SelectValue placeholder="Sắp xếp" />
           </SelectTrigger>
           <SelectContent>
@@ -308,8 +361,9 @@ export default function AdminUsers() {
         </Select>
       </div>
 
-      <div className="bg-card rounded-xl border border-border">
-        <Table>
+      <div className="bg-card rounded-xl border border-border overflow-hidden">
+        <div className="overflow-x-auto">
+          <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Người dùng</TableHead>
@@ -319,13 +373,12 @@ export default function AdminUsers() {
               <TableHead>Giới tính</TableHead>
               <TableHead>Vai trò</TableHead>
               <TableHead>Trạng thái</TableHead>
-              <TableHead className="text-right">Hành động</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {paginatedUsers.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                   Không tìm thấy người dùng nào
                 </TableCell>
               </TableRow>
@@ -367,17 +420,10 @@ export default function AdminUsers() {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                     <Badge
-                      variant="outline"
-                      className={user.isActive === 1 ? 'text-green-600 border-green-200 bg-green-50' : user.isActive === 0 ? 'text-red-600 border-red-200 bg-red-50' : ''}
-                    >
-                      {user.isActive === 1 ? 'Active' : user.isActive === 0 ? 'Inactive' : ''}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="sm">
-                      Chỉnh sửa
-                    </Button>
+                    <Switch
+                      checked={user.isActive === 1}
+                      onCheckedChange={() => handleStatusToggle(user)}
+                    />
                   </TableCell>
                 </TableRow>
               );
@@ -385,12 +431,13 @@ export default function AdminUsers() {
             )}
           </TableBody>
         </Table>
+        </div>
       </div>
 
       {/* Phân trang */}
       {totalPages > 1 && (
-        <div className="mt-6 flex items-center justify-between">
-          <div className="text-sm text-muted-foreground">
+        <div className="mt-4 sm:mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="text-xs sm:text-sm text-muted-foreground">
             Hiển thị {startIndex + 1}-{Math.min(endIndex, filteredAndSortedUsers.length)} trên {filteredAndSortedUsers.length} người dùng
           </div>
           <div className="flex items-center gap-2">
@@ -401,7 +448,7 @@ export default function AdminUsers() {
               disabled={currentPage === 1}
             >
               <ChevronLeft className="h-4 w-4" />
-              Trước
+              <span className="hidden sm:inline">Trước</span>
             </Button>
             
             <div className="flex gap-1">
@@ -411,7 +458,7 @@ export default function AdminUsers() {
                   variant={currentPage === page ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => setCurrentPage(page)}
-                  className="w-10 h-10"
+                  className="w-8 h-8 sm:w-10 sm:h-10"
                 >
                   {page}
                 </Button>
@@ -424,7 +471,7 @@ export default function AdminUsers() {
               onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
             >
-              Sau
+              <span className="hidden sm:inline">Sau</span>
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
@@ -566,6 +613,73 @@ export default function AdminUsers() {
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isPasswordOpen} onOpenChange={(open) => {
+        setIsPasswordOpen(open);
+        if (!open) {
+          setPassword('');
+          setPasswordError('');
+          setSelectedUser(null);
+        }
+      }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Xác nhận thay đổi trạng thái</DialogTitle>
+            <DialogDescription>
+              {selectedUser && (
+                <>
+                  Bạn đang thay đổi trạng thái của <strong>{selectedUser.first_name} {selectedUser.last_name}</strong> từ{' '}
+                  <strong>{selectedUser.isActive === 1 ? 'Active' : 'Inactive'}</strong> sang{' '}
+                  <strong>{selectedUser.isActive === 1 ? 'Inactive' : 'Active'}</strong>.
+                  <br />
+                  Vui lòng nhập mật khẩu để xác nhận.
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="password">Mật khẩu</Label>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleConfirmStatusChange();
+                  }
+                }}
+                className={passwordError ? 'border-destructive' : ''}
+                placeholder="Nhập mật khẩu của bạn"
+                autoFocus
+              />
+              {passwordError && (
+                <p className="text-xs text-destructive">{passwordError}</p>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => setIsPasswordOpen(false)} 
+              disabled={isTogglingStatus}
+            >
+              Hủy
+            </Button>
+            <Button 
+              type="button" 
+              onClick={handleConfirmStatusChange} 
+              disabled={isTogglingStatus}
+            >
+              {isTogglingStatus ? 'Đang xử lý...' : 'Xác nhận'}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

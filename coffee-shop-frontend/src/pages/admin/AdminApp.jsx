@@ -52,9 +52,32 @@ export default function AdminApp() {
   ];
 
   return (
-    <div className="flex flex-col md:flex-row min-h-screen bg-background">
+    <div className="flex min-h-screen bg-background">
+      {/* Mobile Menu Button */}
+      <button
+        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+        className="md:hidden fixed top-4 left-4 z-50 p-2 bg-card border border-border rounded-lg shadow-lg"
+      >
+        {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+      </button>
+
+      {/* Overlay */}
+      {mobileMenuOpen && (
+        <div
+          className="md:hidden fixed inset-0 bg-black/50 z-30"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <div className="w-64 bg-card border-r border-border flex flex-col">
+      <div
+        className={`
+          fixed md:static inset-y-0 left-0 z-40
+          w-64 bg-card border-r border-border flex flex-col
+          transform transition-transform duration-300 ease-in-out
+          ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+        `}
+      >
         <div className="p-4">
           <h1 className="text-2xl font-semibold text-primary">Coffee Shop</h1>
           <p className="text-sm text-muted-foreground">Cổng Quản lý</p>
@@ -67,6 +90,7 @@ export default function AdminApp() {
               <NavLink
                 key={item.path}
                 to={item.path}
+                onClick={() => setMobileMenuOpen(false)}
                 className={({ isActive }) =>
                   `w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
                     isActive
@@ -108,8 +132,10 @@ export default function AdminApp() {
       </div>
 
       {/* Main content */}
-      <div className="flex-1 p-8 overflow-y-auto">
-        <Outlet />
+      <div className="flex-1 w-full md:w-auto overflow-y-auto">
+        <div className="p-4 md:p-8 pt-16 md:pt-8">
+          <Outlet />
+        </div>
       </div>
     </div>
   );

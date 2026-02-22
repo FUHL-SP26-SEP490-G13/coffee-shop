@@ -196,7 +196,14 @@ class UserController {
   async deactivate(req, res, next) {
     try {
       const { id } = req.params;
-      await UserService.deactivateUser(id);
+      const { password } = req.body;
+      const adminId = req.user.id;
+
+      if (!password) {
+        return response.error(res, 'Mật khẩu là bắt buộc', 400);
+      }
+
+      await UserService.deactivateUser(id, adminId, password);
 
       return response.success(
         res,
@@ -215,7 +222,14 @@ class UserController {
   async activate(req, res, next) {
     try {
       const { id } = req.params;
-      await UserService.activateUser(id);
+      const { password } = req.body;
+      const adminId = req.user.id;
+
+      if (!password) {
+        return response.error(res, 'Mật khẩu là bắt buộc', 400);
+      }
+
+      await UserService.activateUser(id, adminId, password);
 
       return response.success(
         res,

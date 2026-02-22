@@ -2,7 +2,7 @@ import { shifts, users } from '../../lib/mockData';
 import { Card } from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
-import { Plus } from 'lucide-react';
+import { Plus, CalendarDays } from 'lucide-react';
 
 export default function AdminStaffSchedule() {
   const dates = ['Feb 6', 'Feb 7', 'Feb 8', 'Feb 9', 'Feb 10', 'Feb 11', 'Feb 12'];
@@ -13,15 +13,15 @@ export default function AdminStaffSchedule() {
   };
 
   return (
-    <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-2xl mb-1">Staff Schedule</h2>
-          <p className="text-sm text-muted-foreground">Manage employee work schedules</p>
+    <div className="p-4 sm:p-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-6 gap-4">
+        <div className="flex items-center gap-3">
+          <CalendarDays className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
+          <h1 className="text-xl sm:text-2xl font-semibold">Quản lý lịch làm việc</h1>
         </div>
-        <Button>
+        <Button className="w-full sm:w-auto">
           <Plus className="w-4 h-4 mr-2" />
-          Add Shift
+          Thêm ca làm
         </Button>
       </div>
 
