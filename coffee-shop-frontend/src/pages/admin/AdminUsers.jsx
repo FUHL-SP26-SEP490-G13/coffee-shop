@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../../components/ui/dialog';
 import { Label } from '../../components/ui/label';
 import { Switch } from '../../components/ui/switch';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 
 export default function AdminUsers() {
   const [users, setUsers] = useState([]);
@@ -17,7 +18,7 @@ export default function AdminUsers() {
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortOrder, setSortOrder] = useState('asc');
-  const [roleFilter, setRoleFilter] = useState('all');
+  const [activeTab, setActiveTab] = useState('2');
   const [statusFilter, setStatusFilter] = useState('1');
   const [currentPage, setCurrentPage] = useState(1);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -227,6 +228,12 @@ export default function AdminUsers() {
   const filteredAndSortedUsers = useMemo(() => {
     let result = [...users];
 
+    // Loại bỏ admin (role_id = 1)
+    result = result.filter(user => user.role_id !== 1);
+
+    // Lọc theo tab (role)
+    result = result.filter(user => user.role_id === parseInt(activeTab));
+
     // Tìm kiếm
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
@@ -239,11 +246,6 @@ export default function AdminUsers() {
           user.phone?.includes(query)
         );
       });
-    }
-
-    // Lọc theo Role
-    if (roleFilter !== 'all') {
-      result = result.filter(user => user.role_id === parseInt(roleFilter));
     }
 
     // Lọc theo trạng thái
@@ -266,7 +268,7 @@ export default function AdminUsers() {
     });
 
     return result;
-  }, [users, searchQuery, roleFilter, statusFilter, sortOrder]);
+  }, [users, searchQuery, activeTab, statusFilter, sortOrder]);
 
   // Tính toán dữ liệu phân trang
   const totalPages = Math.ceil(filteredAndSortedUsers.length / USERS_PER_PAGE);
@@ -277,7 +279,7 @@ export default function AdminUsers() {
   // Reset về trang 1 khi lọc thay đổi
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, roleFilter, statusFilter, sortOrder]);
+  }, [searchQuery, activeTab, statusFilter, sortOrder]);
 
   if (isLoading) {
     return (
@@ -311,57 +313,52 @@ export default function AdminUsers() {
         </Button>
       </div>
 
-      {/* Bộ lọc và tìm kiếm */}
-      <div className="mb-4 sm:mb-6 flex flex-wrap gap-2 sm:gap-4">
-        {/* Tìm kiếm */}
-        <div className="relative flex-1 min-w-[200px] sm:min-w-[250px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Tìm kiếm theo tên, email, số điện thoại..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9"
-          />
-        </div>
+      {/* Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="mb-4">
+          <TabsTrigger value="2">Phục vụ</TabsTrigger>
+          <TabsTrigger value="3">Pha chế</TabsTrigger>
+          <TabsTrigger value="4">Khách hàng</TabsTrigger>
+        </TabsList>
 
-        {/* Lọc theo Role */}
-        <Select value={roleFilter} onValueChange={setRoleFilter}>
-          <SelectTrigger className="w-full sm:w-[180px]">
-            <SelectValue placeholder="Vai trò" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Tất cả vai trò</SelectItem>
-            <SelectItem value="1">Quản lý</SelectItem>
-            <SelectItem value="2">Phục vụ</SelectItem>
-            <SelectItem value="3">Pha chế</SelectItem>
-            <SelectItem value="4">Khách hàng</SelectItem>
-          </SelectContent>
-        </Select>
+        <TabsContent value={activeTab} className="mt-0">
+          {/* Bộ lọc và tìm kiếm */}
+          <div className="mb-4 sm:mb-6 flex flex-wrap gap-2 sm:gap-4">
+            {/* Tìm kiếm */}
+            <div className="relative flex-1 min-w-[200px] sm:min-w-[250px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Tìm kiếm theo tên, email, số điện thoại..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+              />
+            </div>
 
-        {/* Lọc theo trạng thái */}
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-full sm:w-[160px]">
-            <SelectValue placeholder="Trạng thái" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="1">Active</SelectItem>
-            <SelectItem value="0">Inactive</SelectItem>
-          </SelectContent>
-        </Select>
+            {/* Lọc theo trạng thái */}
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-full sm:w-[160px]">
+                <SelectValue placeholder="Trạng thái" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="1">Active</SelectItem>
+                <SelectItem value="0">Inactive</SelectItem>
+              </SelectContent>
+            </Select>
 
-        {/* Sắp xếp theo tên */}
-        <Select value={sortOrder} onValueChange={setSortOrder}>
-          <SelectTrigger className="w-full sm:w-[160px]">
-            <SelectValue placeholder="Sắp xếp" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="asc">Tên A-Z</SelectItem>
-            <SelectItem value="desc">Tên Z-A</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+            {/* Sắp xếp theo tên */}
+            <Select value={sortOrder} onValueChange={setSortOrder}>
+              <SelectTrigger className="w-full sm:w-[160px]">
+                <SelectValue placeholder="Sắp xếp" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="asc">Tên A-Z</SelectItem>
+                <SelectItem value="desc">Tên Z-A</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-      <div className="bg-card rounded-xl border border-border overflow-hidden">
+          <div className="bg-card rounded-xl border border-border overflow-hidden">
         <div className="overflow-x-auto">
           <Table>
           <TableHeader>
@@ -432,9 +429,9 @@ export default function AdminUsers() {
           </TableBody>
         </Table>
         </div>
-      </div>
+          </div>
 
-      {/* Phân trang */}
+          {/* Phân trang */}
       {totalPages > 1 && (
         <div className="mt-4 sm:mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="text-xs sm:text-sm text-muted-foreground">
@@ -476,7 +473,9 @@ export default function AdminUsers() {
             </Button>
           </div>
         </div>
-      )}
+          )}
+        </TabsContent>
+      </Tabs>
 
       <Dialog open={isCreateOpen} onOpenChange={(open) => {
         setIsCreateOpen(open);

@@ -132,14 +132,15 @@ export function UserProfile() {
   const isCustomer = profile?.role_id === 4;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       {isCustomer && <Header />}
 
-      <div className="p-8">
-        <div className="max-w-2x">
-          <h1 className="text-3xl font-semibold mb-6">Thông tin của tôi</h1>
+      <div className="flex-1 flex items-start justify-center p-4 sm:p-8">
+        <div className="w-full max-w-4xl">
+          <h1 className="text-2xl sm:text-3xl font-semibold mb-6">Thông tin của tôi</h1>
 
-          <Card className="mb-6">
+          <div className="grid gap-6 lg:grid-cols-2">
+            <Card className="h-fit">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle>Thông tin cá nhân</CardTitle>
@@ -190,7 +191,7 @@ export function UserProfile() {
                 </div>
               </div>
 
-              {/* Email - Read only */}
+              {/* Email - Read only - Full width */}
               <div>
                 <Label htmlFor="email">Email</Label>
                 <div className="flex items-center gap-2 mt-1">
@@ -220,99 +221,101 @@ export function UserProfile() {
                 </div>
               </div>
 
-              {/* First Name - Editable */}
-              <div>
-                <Label htmlFor="first_name">Họ</Label>
-                <div className="flex items-center gap-2 mt-1">
-                  <User className="w-4 h-4 text-muted-foreground" />
-                  {isEditing ? (
-                    <Input
-                      id="first_name"
-                      value={profile?.first_name || ''}
-                      onChange={(e) =>
-                        setProfile((prev) => ({
-                          ...prev,
-                          first_name: e.target.value,
-                        }))
-                      }
-                    />
-                  ) : (
-                    <span>{profile?.first_name || '-'}</span>
-                  )}
+              {/* First Name & Last Name - Same row - Editable */}
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <Label htmlFor="first_name">Họ</Label>
+                  <div className="flex items-center gap-2 mt-1">
+                    <User className="w-4 h-4 text-muted-foreground" />
+                    {isEditing ? (
+                      <Input
+                        id="first_name"
+                        value={profile?.first_name || ''}
+                        onChange={(e) =>
+                          setProfile((prev) => ({
+                            ...prev,
+                            first_name: e.target.value,
+                          }))
+                        }
+                      />
+                    ) : (
+                      <span>{profile?.first_name || '-'}</span>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="last_name">Tên</Label>
+                  <div className="flex items-center gap-2 mt-1">
+                    <User className="w-4 h-4 text-muted-foreground" />
+                    {isEditing ? (
+                      <Input
+                        id="last_name"
+                        value={profile?.last_name || ''}
+                        onChange={(e) =>
+                          setProfile((prev) => ({
+                            ...prev,
+                            last_name: e.target.value,
+                          }))
+                        }
+                      />
+                    ) : (
+                      <span>{profile?.last_name || '-'}</span>
+                    )}
+                  </div>
                 </div>
               </div>
 
-              {/* Last Name - Editable */}
-              <div>
-                <Label htmlFor="last_name">Tên</Label>
-                <div className="flex items-center gap-2 mt-1">
-                  <User className="w-4 h-4 text-muted-foreground" />
-                  {isEditing ? (
-                    <Input
-                      id="last_name"
-                      value={profile?.last_name || ''}
-                      onChange={(e) =>
-                        setProfile((prev) => ({
-                          ...prev,
-                          last_name: e.target.value,
-                        }))
-                      }
-                    />
-                  ) : (
-                    <span>{profile?.last_name || '-'}</span>
-                  )}
+              {/* Gender & Date of Birth - Same row - Editable */}
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <Label htmlFor="gender">Giới tính</Label>
+                  <div className="flex items-center gap-2 mt-1">
+                    <User className="w-4 h-4 text-muted-foreground" />
+                    {isEditing ? (
+                      <Select
+                        value={profile?.gender?.toString() || ''}
+                        onValueChange={(value) =>
+                          setProfile((prev) => ({
+                            ...prev,
+                            gender: parseInt(value),
+                          }))
+                        }
+                      >
+                        <SelectTrigger className="flex-1">
+                          <SelectValue placeholder="Chọn giới tính" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="1">Nam</SelectItem>
+                          <SelectItem value="0">Nữ</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <span>{genderLabel || '-'}</span>
+                    )}
+                  </div>
                 </div>
-              </div>
 
-              {/* Gender - Editable */}
-              <div>
-                <Label htmlFor="gender">Giới tính</Label>
-                <div className="flex items-center gap-2 mt-1">
-                  <User className="w-4 h-4 text-muted-foreground" />
-                  {isEditing ? (
-                    <Select
-                      value={profile?.gender?.toString() || ''}
-                      onValueChange={(value) =>
-                        setProfile((prev) => ({
-                          ...prev,
-                          gender: parseInt(value),
-                        }))
-                      }
-                    >
-                      <SelectTrigger className="flex-1">
-                        <SelectValue placeholder="Chọn giới tính" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="1">Nam</SelectItem>
-                        <SelectItem value="0">Nữ</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <span>{genderLabel || '-'}</span>
-                  )}
-                </div>
-              </div>
-
-              {/* Date of Birth - Editable */}
-              <div>
-                <Label htmlFor="dob">Ngày sinh</Label>
-                <div className="flex items-center gap-2 mt-1">
-                  <Calendar className="w-4 h-4 text-muted-foreground" />
-                  {isEditing ? (
-                    <Input
-                      id="dob"
-                      type="date"
-                      value={toDateInputValue(profile?.dob)}
-                      onChange={(e) =>
-                        setProfile((prev) => ({
-                          ...prev,
-                          dob: e.target.value,
-                        }))
-                      }
-                    />
-                  ) : (
-                    <span>{toDateDisplayValue(profile?.dob)}</span>
-                  )}
+                <div>
+                  <Label htmlFor="dob">Ngày sinh</Label>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Calendar className="w-4 h-4 text-muted-foreground" />
+                    {isEditing ? (
+                      <Input
+                        id="dob"
+                        type="date"
+                        value={toDateInputValue(profile?.dob)}
+                        onChange={(e) =>
+                          setProfile((prev) => ({
+                            ...prev,
+                            dob: e.target.value,
+                          }))
+                        }
+                      />
+                    ) : (
+                      <span>{toDateDisplayValue(profile?.dob)}</span>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -325,7 +328,7 @@ export function UserProfile() {
           </CardContent>
         </Card>
 
-          <Card>
+            <Card className="h-fit">
             <CardHeader>
               <CardTitle>Cài đặt tài khoản</CardTitle>
             </CardHeader>
@@ -361,6 +364,7 @@ export function UserProfile() {
               </div>
             </CardContent>
           </Card>
+          </div>
         </div>
       </div>
       {isCustomer && <Footer />}
