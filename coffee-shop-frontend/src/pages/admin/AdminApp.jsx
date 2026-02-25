@@ -16,7 +16,9 @@ import {
   AlignCenter,
   LucideAlignCenter,
   AlignRight,
+  MapPin,
 } from "lucide-react";
+
 import { useState } from "react";
 import authenticationService from "../../services/authenticationService";
 import {
@@ -52,7 +54,10 @@ export default function AdminApp() {
     { path: "/admin/news-list", icon: ClipboardList, label: "Quản lý bài viết" },
     { path: "/admin/newsletter", icon: Mail, label: "Email đăng kí" },
     { path: "/admin/banners", icon: ImagePlus, label: "Quản lý Banner" },
+    { path: "/admin/area", icon: MapPin, label: "Quản lý khu vực" },
+
     { path: "/admin/profile", icon: User, label: "Thông tin cá nhân" },
+
   ];
 
   return (

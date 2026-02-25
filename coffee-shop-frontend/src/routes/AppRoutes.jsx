@@ -42,6 +42,8 @@ import { StaffRequests } from "@/pages/staff/StaffRequests";
 import { StaffTables } from "@/pages/staff/StaffTables";
 import { StaffSchedule } from "@/pages/staff/StaffSchedule";
 import AdminBanner from "@/pages/admin/AdminBanner/AdminBanner";
+import AdminAreas from "@/pages/admin/AdminAreas/AdminAreas";
+
 
 
 const getStoredValue = (key) =>
@@ -178,6 +180,9 @@ const AppRoutes = () => {
         <Route path="discounts/edit/:id" element={<AdminDiscountEdit />} />
         <Route path="newsletter" element={<AdminNewsletter />} />
         <Route path="banners" element={<AdminBanner />} />
+        <Route path="area" element={<AdminAreas />} />
+
+
       </Route>
 
       <Route path="/news/:slug" element={<NewsDetailPage />} />
