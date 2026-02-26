@@ -5,11 +5,13 @@ const router = express.Router();
 const authRoutes = require('./auth.routes');
 const categoryRoutes = require('./category.routes');
 const userRoutes = require('./user.routes');
+const toppingRoutes = require('./topping.routes');
 
 // Mount routes
 router.use('/auth', authRoutes);
 router.use('/categories', categoryRoutes);
 router.use('/users', userRoutes);
+router.use('/toppings', toppingRoutes);
 
 // Health check endpoint
 router.get('/health', (req, res) => {
@@ -59,6 +61,15 @@ router.get('/', (req, res) => {
         deactivate: 'POST /api/users/:id/deactivate (Admin)',
         activate: 'POST /api/users/:id/activate (Admin)',
         delete: 'DELETE /api/users/:id (Admin)',
+      },
+      toppings: {
+        getAll: 'GET /api/toppings',
+        getById: 'GET /api/toppings/:id',
+        search: 'GET /api/toppings/search',
+        create: 'POST /api/toppings (Admin)',
+        update: 'PUT /api/toppings/:id (Admin)',
+        delete: 'DELETE /api/toppings/:id (Admin)',
+        restore: 'POST /api/toppings/:id/restore (Admin)',
       },
     },
   });
