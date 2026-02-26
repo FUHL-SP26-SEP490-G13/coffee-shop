@@ -21,12 +21,20 @@ const registerSchema = Joi.object({
     'any.required': 'Username là bắt buộc',
   }),
 
-  password: Joi.string().min(6).max(50).required().messages({
+  password: Joi.string().min(8).max(50).required().messages({
     'string.empty': 'Mật khẩu không được để trống',
-    'string.min': 'Mật khẩu phải có ít nhất 6 ký tự',
+    'string.min': 'Mật khẩu phải có ít nhất 8 ký tự',
     'string.max': 'Mật khẩu không được vượt quá 50 ký tự',
     'any.required': 'Mật khẩu là bắt buộc',
   }),
+
+  password_confirm: Joi.string()
+    .required()
+    .valid(Joi.ref('password'))
+    .messages({
+      'any.only': 'Mật khẩu xác nhận không khớp',
+      'any.required': 'Xác nhận mật khẩu là bắt buộc',
+    }),
 
   email: Joi.string().email().required().messages({
     'string.empty': 'Email không được để trống',
@@ -89,9 +97,9 @@ const changePasswordSchema = Joi.object({
     'any.required': 'Mật khẩu cũ là bắt buộc',
   }),
 
-  newPassword: Joi.string().min(6).max(50).required().messages({
+  newPassword: Joi.string().min(8).max(50).required().messages({
     'string.empty': 'Mật khẩu mới không được để trống',
-    'string.min': 'Mật khẩu mới phải có ít nhất 6 ký tự',
+    'string.min': 'Mật khẩu mới phải có ít nhất 8 ký tự',
     'string.max': 'Mật khẩu mới không được vượt quá 50 ký tự',
     'any.required': 'Mật khẩu mới là bắt buộc',
   }),
@@ -158,6 +166,55 @@ const resetPasswordSchema = Joi.object({
   }),
 });
 
+/**
+ * Validation schema for verify forgot password OTP
+ */
+const verifyForgotPasswordOtpSchema = Joi.object({
+  email: Joi.string().email().required().messages({
+    'string.empty': 'Email không được để trống',
+    'string.email': 'Email không hợp lệ',
+    'any.required': 'Email là bắt buộc',
+  }),
+
+  otp: Joi.string().length(8).regex(/^[0-9]{8}$/).required().messages({
+    'string.empty': 'OTP không được để trống',
+    'string.length': 'OTP phải có 8 ký tự',
+    'string.pattern.base': 'OTP chỉ chứa số',
+    'any.required': 'OTP là bắt buộc',
+  }),
+});
+
+/**
+ * Validation schema for reset password with OTP
+ */
+const resetPasswordWithOtpSchema = Joi.object({
+  email: Joi.string().email().required().messages({
+    'string.empty': 'Email không được để trống',
+    'string.email': 'Email không hợp lệ',
+    'any.required': 'Email là bắt buộc',
+  }),
+
+  otp: Joi.string().length(8).regex(/^[0-9]{8}$/).required().messages({
+    'string.empty': 'OTP không được để trống',
+    'string.length': 'OTP phải có 8 ký tự',
+    'string.pattern.base': 'OTP chỉ chứa số',
+    'any.required': 'OTP là bắt buộc',
+  }),
+
+  newPassword: Joi.string().min(8).max(50).required().messages({
+    'string.empty': 'Mật khẩu mới không được để trống',
+    'string.min': 'Mật khẩu mới phải có ít nhất 8 ký tự',
+    'string.max': 'Mật khẩu mới không được vượt quá 50 ký tự',
+    'any.required': 'Mật khẩu mới là bắt buộc',
+  }),
+
+  confirmPassword: Joi.string().valid(Joi.ref('newPassword')).required().messages({
+    'string.empty': 'Xác nhận mật khẩu không được để trống',
+    'any.only': 'Xác nhận mật khẩu không khớp',
+    'any.required': 'Xác nhận mật khẩu là bắt buộc',
+  }),
+});
+
 module.exports = {
   registerSchema,
   loginSchema,
@@ -165,4 +222,6 @@ module.exports = {
   updateProfileSchema,
   refreshTokenSchema,
   resetPasswordSchema,
+  verifyForgotPasswordOtpSchema,
+  resetPasswordWithOtpSchema,
 };

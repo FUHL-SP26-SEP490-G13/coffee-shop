@@ -6,7 +6,7 @@ import { Button } from '../../components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 import { Progress } from '../../components/ui/progress';
 
-export function AdminInventory() {
+export default function AdminInventory() {
   const lowStockItems = ingredients.filter((i) => i.quantity <= i.minQuantity);
 
   return (
