@@ -30,6 +30,7 @@ export const API_ENDPOINTS = {
     GET_BY_ID: '/users/{id}',
   },
   ORDERS: '/orders',
+  TOPPINGS: '/toppings',
 };
 
 // Các hằng số khác
