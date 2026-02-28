@@ -3,6 +3,7 @@ const db = require('../config/database');
 class BaseRepository {
   constructor(tableName) {
     this.tableName = tableName;
+    this.db = db;
   }
 
   /**

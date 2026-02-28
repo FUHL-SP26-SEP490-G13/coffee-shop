@@ -17,6 +17,7 @@ import {
   LucideAlignCenter,
   AlignRight,
   MapPin,
+  LayoutGrid,
 } from "lucide-react";
 
 import { useState } from "react";
@@ -55,6 +56,7 @@ export default function AdminApp() {
     { path: "/admin/newsletter", icon: Mail, label: "Email đăng kí" },
     { path: "/admin/banners", icon: ImagePlus, label: "Quản lý Banner" },
     { path: "/admin/area", icon: MapPin, label: "Quản lý khu vực" },
+    { path: "/admin/tables", icon: LayoutGrid, label: "Quản lý bàn" },
 
     { path: "/admin/profile", icon: User, label: "Thông tin cá nhân" },
 

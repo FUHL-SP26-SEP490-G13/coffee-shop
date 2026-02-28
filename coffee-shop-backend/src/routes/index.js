@@ -13,6 +13,7 @@ const adminDashboardRoutes = require("./adminDashboard.routes");
 const baristaDashboardRoutes = require("./baristaDashboard.routes");
 const bannerRoutes = require("./banner.routes");
 const areaRoutes = require("./area.routes");
+const tableRoutes = require("./table.routes");
 
 
 
@@ -28,6 +29,7 @@ router.use("/discounts", discountRoutes);
 router.use("/barista", baristaDashboardRoutes);
 router.use("/banners", bannerRoutes);
 router.use("/area", areaRoutes);
+router.use("/tables", tableRoutes);
 
 
 
