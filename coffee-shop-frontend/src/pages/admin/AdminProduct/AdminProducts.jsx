@@ -29,16 +29,24 @@ import {
 } from "../../../components/ui/select";
 import { Textarea } from "../../../components/ui/textarea";
 import toppingService from "../../../services/toppingService";
+import { set } from "date-fns";
 
 export default function AdminProducts() {
+  {/* Topping state*/}
   const [searchQuery, setSearchQuery] = useState("");
   const [showTopping, setShowTopping] = useState(false);
+  const [isUpdateToppingOpen, setIsUpdateToppingOpen] = useState(false);
+  const [updateToppingData, setUpdateToppingData] = useState(null);
+  const [isDeleteToppingOpen, setIsDeleteToppingOpen] = useState(false);
+  const [deleteToppingData, setDeleteToppingData] = useState(null);
   const [toppings, setToppings] = useState([]);
 
   // states used for "add topping" dialog
   const [isAddToppingOpen, setIsAddToppingOpen] = useState(false);
   const [newToppingName, setNewToppingName] = useState("");
   const [newToppingPrice, setNewToppingPrice] = useState("");
+
+  {/*Product state */}
 
   const formatVND = (price) => {
     return new Intl.NumberFormat("vi-VN").format(price) + " VND";
@@ -182,6 +190,89 @@ export default function AdminProducts() {
           </Dialog>
         )}
 
+        {/* PRODUCT TABLE (giữ nguyên) */}
+        {!showTopping && (
+          <div className="bg-card rounded-xl border border-border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Topping</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead>Prices</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredProducts.map((product) => {
+                  const category = categories.find(
+                    (c) => c.id === product.categoryId,
+                  );
+                  return (
+                    <TableRow key={product.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={product.image}
+                            alt={product.name}
+                            className="w-12 h-12 rounded-lg object-cover bg-secondary"
+                          />
+                          <div>
+                            <div className="text-sm">{product.name}</div>
+                            <div className="text-xs text-muted-foreground line-clamp-1">
+                              {product.description}
+                            </div>
+                          </div>
+                        </div>
+                      </TableCell>
+
+                      <TableCell>
+                        <Badge variant="secondary">{category?.name}</Badge>
+                      </TableCell>
+
+                      <TableCell>
+                        <div className="text-sm">
+                          S: ${product.prices.S} • M: ${product.prices.M} • L: $
+                          {product.prices.L}
+                        </div>
+                      </TableCell>
+
+                      <TableCell>
+                        <Badge
+                          className={
+                            product.available
+                              ? "bg-green-500/10 text-green-700 border-green-500/20"
+                              : "bg-red-500/10 text-red-700 border-red-500/20"
+                          }
+                        >
+                          {product.available ? "Available" : "Unavailable"}
+                        </Badge>
+                      </TableCell>
+
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <Button variant="ghost" size="sm">
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-destructive"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+
+        {/*================================ TOPPING ================================= */}
+
         {/* giữ nguyên Add Product */}
         {showTopping && (
           <Dialog open={isAddToppingOpen} onOpenChange={setIsAddToppingOpen}>
@@ -255,87 +346,6 @@ export default function AdminProducts() {
         )}
       </div>
 
-      {/* PRODUCT TABLE (giữ nguyên) */}
-      {!showTopping && (
-        <div className="bg-card rounded-xl border border-border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Topping</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Prices</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredProducts.map((product) => {
-                const category = categories.find(
-                  (c) => c.id === product.categoryId,
-                );
-                return (
-                  <TableRow key={product.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <img
-                          src={product.image}
-                          alt={product.name}
-                          className="w-12 h-12 rounded-lg object-cover bg-secondary"
-                        />
-                        <div>
-                          <div className="text-sm">{product.name}</div>
-                          <div className="text-xs text-muted-foreground line-clamp-1">
-                            {product.description}
-                          </div>
-                        </div>
-                      </div>
-                    </TableCell>
-
-                    <TableCell>
-                      <Badge variant="secondary">{category?.name}</Badge>
-                    </TableCell>
-
-                    <TableCell>
-                      <div className="text-sm">
-                        S: ${product.prices.S} • M: ${product.prices.M} • L: $
-                        {product.prices.L}
-                      </div>
-                    </TableCell>
-
-                    <TableCell>
-                      <Badge
-                        className={
-                          product.available
-                            ? "bg-green-500/10 text-green-700 border-green-500/20"
-                            : "bg-red-500/10 text-red-700 border-red-500/20"
-                        }
-                      >
-                        {product.available ? "Available" : "Unavailable"}
-                      </Badge>
-                    </TableCell>
-
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <Button variant="ghost" size="sm">
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-destructive"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </div>
-      )}
-
       {/* TOPPING TABLE */}
       {showTopping && (
         <div className="bg-card rounded-xl border border-border">
@@ -368,9 +378,11 @@ export default function AdminProducts() {
                   </TableCell>
 
                   <TableCell>
-                    {formatVND(Number.isInteger(topping.price)
-                      ? topping.price
-                      : parseFloat(topping.price) || 0)}
+                    {formatVND(
+                      Number.isInteger(topping.price)
+                        ? topping.price
+                        : parseFloat(topping.price) || 0,
+                    )}
                   </TableCell>
 
                   {/* <TableCell>
@@ -387,13 +399,27 @@ export default function AdminProducts() {
 
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-2">
-                      <Button variant="ghost" size="sm">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setUpdateToppingData({
+                            ...topping,
+                            price: String(topping.price),
+                          });
+                          setIsUpdateToppingOpen(true);
+                        }}
+                      >
                         <Edit className="w-4 h-4" />
                       </Button>
                       <Button
                         variant="ghost"
                         size="sm"
                         className="text-destructive"
+                        onClick={async () => {
+                          setIsDeleteToppingOpen(true);
+                          setDeleteToppingData(topping);
+                        }}
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
@@ -403,6 +429,119 @@ export default function AdminProducts() {
               ))}
             </TableBody>
           </Table>
+
+          {/* DELETE TOPPING DIALOG */}
+          <Dialog
+            open={isDeleteToppingOpen}
+            onOpenChange={setIsDeleteToppingOpen}
+          >
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>Delete Topping</DialogTitle>
+              </DialogHeader>
+
+              <div className="space-y-4">
+                <p>Are you sure you want to delete this topping?</p>
+                <div className="flex justify-end gap-2 pt-4">
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsDeleteToppingOpen(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={async () => {
+                      await toppingService.delete(deleteToppingData.id);
+                      fetchToppings();
+                      setIsDeleteToppingOpen(false);
+                    }}
+                  >
+                    Delete
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+
+
+          {/* UPDATE TOPPING DIALOG */}
+          <Dialog
+            open={isUpdateToppingOpen}
+            onOpenChange={setIsUpdateToppingOpen}
+          >
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>Update Topping</DialogTitle>
+              </DialogHeader>
+
+              {updateToppingData && (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Name</Label>
+                    <Input
+                      value={updateToppingData.name}
+                      onChange={(e) =>
+                        setUpdateToppingData({
+                          ...updateToppingData,
+                          name: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Price (VNĐ)</Label>
+                    <Input
+                      type="number"
+                      value={updateToppingData.price}
+                      onChange={(e) =>
+                        setUpdateToppingData({
+                          ...updateToppingData,
+                          price: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+
+                  <div className="flex justify-end gap-2 pt-4">
+                    <Button
+                      variant="outline"
+                      onClick={() => setIsUpdateToppingOpen(false)}
+                    >
+                      Cancel
+                    </Button>
+
+                    <Button
+                      onClick={async () => {
+                        try {
+                          const payload = {
+                            name: updateToppingData.name.trim(),
+                            price: Number(updateToppingData.price) || 0,
+                          };
+
+                          await toppingService.update(
+                            updateToppingData.id,
+                            payload,
+                          );
+
+                          await fetchToppings();
+
+                          setIsUpdateToppingOpen(false);
+                        } catch (err) {
+                          console.error(err);
+                          alert(err?.response?.data?.message || err.message);
+                        }
+                      }}
+                    >
+                      Update
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
         </div>
       )}
     </div>

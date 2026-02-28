@@ -18,7 +18,7 @@ const toppingService = {
   },
 
   // remove (soft delete) a topping
-  remove(id) {
+  delete(id) {
     const url = `${API_ENDPOINTS.TOPPINGS}/${id}`;
     return axiosClient.delete(url);
   }
