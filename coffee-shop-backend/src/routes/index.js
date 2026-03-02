@@ -6,12 +6,14 @@ const authRoutes = require('./auth.routes');
 const categoryRoutes = require('./category.routes');
 const userRoutes = require('./user.routes');
 const toppingRoutes = require('./topping.routes');
+const recipeRoutes = require('./recipe.routes');
 
 // Mount routes
 router.use('/auth', authRoutes);
 router.use('/categories', categoryRoutes);
 router.use('/users', userRoutes);
 router.use('/toppings', toppingRoutes);
+router.use('/recipes', recipeRoutes);
 
 // Health check endpoint
 router.get('/health', (req, res) => {
@@ -70,6 +72,23 @@ router.get('/', (req, res) => {
         update: 'PUT /api/toppings/:id (Admin)',
         delete: 'DELETE /api/toppings/:id (Admin)',
         restore: 'POST /api/toppings/:id/restore (Admin)',
+      },
+      recipes: {
+        getByProductSize: 'GET /api/recipes/by-size/:productSizeId',
+        getByProductGrouped: 'GET /api/recipes/product/:productId/by-size',
+        getByProduct: 'GET /api/recipes/product/:productId',
+        getById: 'GET /api/recipes/:id',
+        create: 'POST /api/recipes (Admin/Barista)',
+        update: 'PUT /api/recipes/:id (Admin/Barista)',
+        delete: 'DELETE /api/recipes/:id (Admin/Barista)',
+      },
+      ingredients: {
+        getAll: 'GET /api/recipes/ingredients',
+        getById: 'GET /api/recipes/ingredients/:id',
+        search: 'GET /api/recipes/ingredients/search',
+        create: 'POST /api/recipes/ingredients (Admin)',
+        update: 'PUT /api/recipes/ingredients/:id (Admin)',
+        delete: 'DELETE /api/recipes/ingredients/:id (Admin)',
       },
     },
   });
