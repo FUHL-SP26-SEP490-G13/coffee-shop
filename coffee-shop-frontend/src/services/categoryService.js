@@ -1,34 +1,52 @@
 import axiosClient from './axiosClient';
-import { API_ENDPOINTS } from '../constants';
 
 const categoryService = {
-  // Lấy tất cả danh mục
+  // Get all categories
   getAll(params) {
-    return axiosClient.get(API_ENDPOINTS.CATEGORIES, { params });
+    return axiosClient.get('/categories', { params });
   },
 
-  // Lấy chi tiết 1 danh mục theo ID
+  // Search categories
+  search(params) {
+    return axiosClient.get('/categories/search', { params });
+  },
+
+  // Get category by ID
   getById(id) {
-    const url = `${API_ENDPOINTS.CATEGORIES}/${id}`;
-    return axiosClient.get(url);
+    return axiosClient.get(`/categories/${id}`);
   },
 
-  // Tạo mới danh mục
+  // Create new category
   create(data) {
-    return axiosClient.post(API_ENDPOINTS.CATEGORIES, data);
+    const formData = new FormData();
+
+    formData.append('name', data.name);
+
+    if (data.image) {
+      formData.append('image', data.image);
+    }
+
+    return axiosClient.post('/categories', formData);
   },
 
-  // Cập nhật danh mục
+  // Update category
   update(id, data) {
-    const url = `${API_ENDPOINTS.CATEGORIES}/${id}`;
-    return axiosClient.put(url, data);
+    return axiosClient.put(`/categories/${id}`, data, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
   },
 
-  // Xóa danh mục
-  remove(id) {
-    const url = `${API_ENDPOINTS.CATEGORIES}/${id}`;
-    return axiosClient.delete(url);
-  }
+  // Delete category
+  delete(id) {
+    return axiosClient.delete(`/categories/${id}`);
+  },
+
+  // Restore deleted category
+  restore(id) {
+    return axiosClient.post(`/categories/${id}/restore`);
+  },
 };
 
 export default categoryService;

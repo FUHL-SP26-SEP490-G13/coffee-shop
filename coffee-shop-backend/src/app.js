@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const compression = require('compression');
+const morgan = require('morgan')
 const rateLimit = require('express-rate-limit');
 
 const env = require('./config/env');
@@ -29,6 +30,8 @@ app.use(
 
 // Compression middleware
 app.use(compression());
+
+app.use(morgan('dev'));
 
 // Body parser middleware
 app.use(express.json({ limit: '10mb' }));

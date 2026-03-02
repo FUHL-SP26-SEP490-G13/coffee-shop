@@ -21,10 +21,6 @@ class CategoryService {
   async getCategoryById(id) {
     const category = await CategoryRepository.findById(id);
 
-    if (!category) {
-      throw new Error('Category không tồn tại');
-    }
-
     if (category.is_deleted === 1) {
       throw new Error('Category đã bị xóa');
     }
@@ -42,6 +38,10 @@ class CategoryService {
       throw new Error('Category không tồn tại');
     }
 
+    if (category.is_deleted === 1) {
+      throw new Error('Category đã bị xóa');
+    }
+
     return category;
   }
 
@@ -53,12 +53,13 @@ class CategoryService {
     const existingCategory = await CategoryRepository.findByName(data.name);
 
     if (existingCategory) {
-      throw new Error('Category đã tồn tại');
+      throw new Error('Tên category đã tồn tại');
     }
 
     // Create category
     const category = await CategoryRepository.create({
       name: data.name.trim(),
+      image_url: data.image_url || null,
     });
 
     return category;
@@ -75,15 +76,22 @@ class CategoryService {
     if (data.name && data.name !== category.name) {
       const existingCategory = await CategoryRepository.findByName(data.name);
 
-      if (existingCategory && existingCategory.id !== id) {
+      if (existingCategory && existingCategory.id !== parseInt(id)) {
         throw new Error('Tên category đã tồn tại');
       }
     }
 
+    // Prepare update data
+    const updateData = {};
+    if (data.name) {
+      updateData.name = data.name.trim();
+    }
+    if (data.image_url !== undefined) {
+      updateData.image_url = data.image_url;
+    }
+
     // Update category
-    const updatedCategory = await CategoryRepository.update(id, {
-      name: data.name.trim(),
-    });
+    const updatedCategory = await CategoryRepository.update(id, updateData);
 
     return updatedCategory;
   }
@@ -124,6 +132,23 @@ class CategoryService {
   }
 
   /**
+   * Count total categories
+   */
+  async countCategories() {
+    return CategoryRepository.count({ is_deleted: 0 });
+  }
+
+  /**
+   * Count search results
+   */
+  async countSearchResults(keyword) {
+    if (!keyword || keyword.trim() === '') {
+      return this.countCategories();
+    }
+    return CategoryRepository.countSearch(keyword.trim());
+  }
+
+  /**
    * Restore deleted category
    */
   async restoreCategory(id) {
@@ -135,6 +160,12 @@ class CategoryService {
 
     if (category.is_deleted === 0) {
       throw new Error('Category chưa bị xóa');
+    }
+
+    // Check if restoring would create duplicate name
+    const existingCategory = await CategoryRepository.findByName(category.name);
+    if (existingCategory && existingCategory.id !== category.id) {
+      throw new Error('Không thể khôi phục vì tên category đã tồn tại');
     }
 
     // Restore by setting is_deleted = 0
