@@ -3,6 +3,7 @@ const router = express.Router();
 const ProductController = require('../controllers/ProductController');
 const { authenticate } = require('../middlewares/auth');
 const { authorize } = require('../middlewares/authorize');
+const parseJsonFields = require('../middlewares/parseJsonFields');
 const validate = require('../middlewares/validate');
 const upload = require('../middlewares/upload');
 
@@ -57,7 +58,8 @@ router.put(
   // authorize(['admin']),
   validate(productIdSchema, 'params'),
   upload.array('images', 5),
-  validate(updateProductSchema),
+    parseJsonFields(['sizes']),
+   validate(updateProductSchema),
   ProductController.update
 );
 

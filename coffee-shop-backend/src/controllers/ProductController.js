@@ -1,5 +1,6 @@
 const ProductService = require('../services/ProductService');
 const response = require('../utils/response');
+const { extractPublicId } = require('../utils/cloudinaryHelper');
 const cloudinary = require('../config/cloudinary');
 
 class ProductController {
@@ -28,7 +29,7 @@ class ProductController {
           page,
           limit,
           total,
-          'Lấy danh sách products thành công'
+          'Lấy danh sách products thành công',
         );
       }
 
@@ -38,7 +39,7 @@ class ProductController {
       return response.success(
         res,
         products,
-        'Lấy danh sách products thành công'
+        'Lấy danh sách products thành công',
       );
     } catch (error) {
       next(error);
@@ -54,11 +55,7 @@ class ProductController {
       const { id } = req.params;
       const product = await ProductService.getProductById(id);
 
-      return response.success(
-        res,
-        product,
-        'Lấy thông tin product thành công'
-      );
+      return response.success(res, product, 'Lấy thông tin product thành công');
     } catch (error) {
       next(error);
     }
@@ -75,10 +72,13 @@ class ProductController {
 
       if (page && limit) {
         const offset = (page - 1) * limit;
-        const products = await ProductService.getProductsByCategory(categoryId, {
-          limit: parseInt(limit),
-          offset: parseInt(offset),
-        });
+        const products = await ProductService.getProductsByCategory(
+          categoryId,
+          {
+            limit: parseInt(limit),
+            offset: parseInt(offset),
+          },
+        );
 
         const total = await ProductService.countProductsByCategory(categoryId);
 
@@ -88,7 +88,7 @@ class ProductController {
           page,
           limit,
           total,
-          'Lấy danh sách products theo category thành công'
+          'Lấy danh sách products theo category thành công',
         );
       }
 
@@ -97,7 +97,7 @@ class ProductController {
       return response.success(
         res,
         products,
-        'Lấy danh sách products theo category thành công'
+        'Lấy danh sách products theo category thành công',
       );
     } catch (error) {
       next(error);
@@ -136,12 +136,7 @@ class ProductController {
 
       const product = await ProductService.createProduct(productData);
 
-      return response.success(
-        res,
-        product,
-        'Tạo product thành công',
-        201
-      );
+      return response.success(res, product, 'Tạo product thành công', 201);
     } catch (error) {
       // Delete uploaded images if product creation fails
       if (req.files && req.files.length > 0) {
@@ -155,16 +150,23 @@ class ProductController {
     }
   }
 
-  /**
-   * Update product
-   * PUT /api/products/:id
-   */
   async update(req, res, next) {
     try {
       const { id } = req.params;
+
+      console.log('TYPE sizes:', typeof req.body.sizes);
+      console.log('VALUE sizes:', req.body.sizes);
+
+      // ===== PARSE JSON =====
+      ['sizes', 'deleteSizeIds', 'deleteImageIds'].forEach((field) => {
+        if (req.body[field] && typeof req.body[field] === 'string') {
+          req.body[field] = JSON.parse(req.body[field]);
+        }
+      });
+
       const imageUrls = [];
 
-      // Upload new images to Cloudinary if provided
+      // ===== UPLOAD NEW IMAGES =====
       if (req.files && req.files.length > 0) {
         for (const file of req.files) {
           const result = await cloudinary.uploader.upload(file.path, {
@@ -174,25 +176,25 @@ class ProductController {
               { quality: 'auto' },
             ],
           });
+
           imageUrls.push({
             url: result.secure_url,
-            isThumbnail: imageUrls.length === 0,
+            isThumbnail: false,
           });
         }
       }
 
       const productData = {
         ...req.body,
-        images: imageUrls.length > 0 ? imageUrls : undefined,
       };
+
+      if (imageUrls.length > 0) {
+        productData.newImages = imageUrls;
+      }
 
       const product = await ProductService.updateProduct(id, productData);
 
-      return response.success(
-        res,
-        product,
-        'Cập nhật product thành công'
-      );
+      return response.success(res, product, 'Cập nhật product thành công');
     } catch (error) {
       next(error);
     }
@@ -207,11 +209,7 @@ class ProductController {
       const { id } = req.params;
       await ProductService.deleteProduct(id);
 
-      return response.success(
-        res,
-        null,
-        'Xóa product thành công'
-      );
+      return response.success(res, null, 'Xóa product thành công');
     } catch (error) {
       next(error);
     }
@@ -245,7 +243,7 @@ class ProductController {
           page,
           limit,
           total,
-          'Tìm kiếm products thành công'
+          'Tìm kiếm products thành công',
         );
       }
 
@@ -255,11 +253,7 @@ class ProductController {
         status,
       });
 
-      return response.success(
-        res,
-        products,
-        'Tìm kiếm products thành công'
-      );
+      return response.success(res, products, 'Tìm kiếm products thành công');
     } catch (error) {
       next(error);
     }
@@ -274,11 +268,7 @@ class ProductController {
       const { id } = req.params;
       const product = await ProductService.restoreProduct(id);
 
-      return response.success(
-        res,
-        product,
-        'Khôi phục product thành công'
-      );
+      return response.success(res, product, 'Khôi phục product thành công');
     } catch (error) {
       next(error);
     }

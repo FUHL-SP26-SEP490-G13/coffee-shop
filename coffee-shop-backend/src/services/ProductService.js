@@ -2,6 +2,7 @@ const ProductRepository = require('../repositories/ProductRepository');
 const ProductSizeRepository = require('../repositories/ProductSizeRepository');
 const ProductImageRepository = require('../repositories/ProductImageRepository');
 const CategoryRepository = require('../repositories/CategoryRepository');
+const db = require('../config/database');
 
 class ProductService {
   /**
@@ -68,17 +69,6 @@ class ProductService {
       description: data.description || null,
     });
 
-    // Create product sizes if provided
-    if (data.sizes && Array.isArray(data.sizes)) {
-      for (const size of data.sizes) {
-        await ProductSizeRepository.create({
-          product_id: product.id,
-          size: size.size,
-          price: size.price,
-        });
-      }
-    }
-
     // Create product images if provided
     if (data.images && Array.isArray(data.images)) {
       for (const image of data.images) {
@@ -98,63 +88,87 @@ class ProductService {
    * Update product
    */
   async updateProduct(id, data) {
-    // Check if product exists
-    const product = await this.getProductById(id);
+    // ===== 1. Check tồn tại =====
+    const existingProduct = await ProductRepository.findById(id);
+    if (!existingProduct) {
+      throw new Error('Product không tồn tại');
+    }
 
-    // If updating category, check if category exists
-    if (data.category_id) {
+    // ===== 2. Update basic info =====
+    const updateData = {};
+
+    if (data.name !== undefined) {
+      updateData.name = data.name.trim();
+    }
+
+    if (data.category_id !== undefined) {
       const category = await CategoryRepository.findById(data.category_id);
-      if (!category || category.is_deleted === 1) {
+      if (!category) {
         throw new Error('Category không tồn tại');
       }
+      updateData.category_id = data.category_id;
     }
 
-    // If updating name, check if new name already exists
-    if (data.name && data.name !== product.name) {
-      const existingProduct = await ProductRepository.findByName(data.name);
-      if (existingProduct && existingProduct.id !== parseInt(id)) {
-        throw new Error('Tên product đã tồn tại');
+    if (data.status !== undefined) {
+      updateData.status = data.status;
+    }
+
+    if (data.description !== undefined) {
+      updateData.description = data.description;
+    }
+
+    if (Object.keys(updateData).length > 0) {
+      await ProductRepository.update(id, updateData);
+    }
+
+    // ===== 3. Delete sizes =====
+    if (data.deleteSizeIds && Array.isArray(data.deleteSizeIds)) {
+      for (const sizeId of data.deleteSizeIds) {
+        await ProductSizeRepository.softDelete(sizeId);
       }
     }
 
-    // Prepare update data
-    const updateData = {};
-    if (data.name) updateData.name = data.name.trim();
-    if (data.category_id) updateData.category_id = data.category_id;
-    if (data.status) updateData.status = data.status;
-    if (data.description !== undefined) updateData.description = data.description;
-
-    // Update product
-    await ProductRepository.update(id, updateData);
-
-    // Update sizes if provided
+    // ===== 4. Sync sizes (DELETE dư + UPSERT) =====
+    // ===== 4. Sync sizes =====
     if (data.sizes && Array.isArray(data.sizes)) {
-      // Soft delete old sizes
-      await ProductSizeRepository.deleteByProductId(id);
+      const incomingSizes = data.sizes.map((s) => s.size);
 
-      // Create new sizes
+      // 4.1 Soft delete size không còn
+      await ProductSizeRepository.softDeleteNotIn(id, incomingSizes);
+
+      // 4.2 Upsert
       for (const size of data.sizes) {
-        await ProductSizeRepository.create({
-          product_id: id,
-          size: size.size,
-          price: size.price,
-        });
+        await ProductSizeRepository.upsert(id, size.size, size.price);
       }
     }
 
-    // Add new images if provided
-    if (data.images && Array.isArray(data.images)) {
-      for (const image of data.images) {
+    // ===== 5. Delete images =====
+    if (data.deleteImageIds && Array.isArray(data.deleteImageIds)) {
+      for (const imageId of data.deleteImageIds) {
+        const image = await ProductImageRepository.findById(imageId);
+        if (!image) continue;
+
+        await ProductImageRepository.softDelete(imageId);
+
+        const publicId = extractPublicId(image.image_url);
+        if (publicId) {
+          await cloudinary.uploader.destroy(publicId);
+        }
+      }
+    }
+
+    // ===== 6. Add new images =====
+    if (data.newImages && Array.isArray(data.newImages)) {
+      for (const image of data.newImages) {
         await ProductImageRepository.create({
           product_id: id,
           image_url: image.url,
-          isThumbnail: image.isThumbnail ? 1 : 0,
+          isThumbnail: 0,
         });
       }
     }
 
-    // Return updated product with details
-    return this.getProductById(id);
+    return await this.getProductById(id);
   }
 
   /**
@@ -165,7 +179,9 @@ class ProductService {
     await this.getProductById(id);
 
     // Soft delete product
-    const deleted = await ProductRepository.update(id, { status: 'unavailable' });
+    const deleted = await ProductRepository.update(id, {
+      status: 'unavailable',
+    });
 
     if (!deleted) {
       throw new Error('Xóa product thất bại');
@@ -226,7 +242,9 @@ class ProductService {
     }
 
     // Restore by setting status = available
-    const restored = await ProductRepository.update(id, { status: 'available' });
+    const restored = await ProductRepository.update(id, {
+      status: 'available',
+    });
 
     return this.getProductById(id);
   }

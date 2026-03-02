@@ -34,7 +34,7 @@ const createProductSchema = Joi.object({
           'number.positive': 'Giá phải là số dương',
           'any.required': 'Giá là bắt buộc',
         }),
-      })
+      }),
     )
     .optional()
     .messages({
@@ -65,23 +65,12 @@ const updateProductSchema = Joi.object({
   sizes: Joi.array()
     .items(
       Joi.object({
-        size: Joi.string().valid('S', 'M', 'L').required().messages({
-          'any.only': 'Size chỉ chấp nhận S, M, hoặc L',
-          'any.required': 'Size là bắt buộc',
-        }),
-        price: Joi.number().positive().required().messages({
-          'number.base': 'Giá phải là số',
-          'number.positive': 'Giá phải là số dương',
-          'any.required': 'Giá là bắt buộc',
-        }),
-      })
+        id: Joi.number().optional(),
+        size: Joi.string().valid('S','M','L').required(),
+        price: Joi.number().required(),
+      }),
     )
-    .optional()
-    .messages({
-      'array.base': 'Sizes phải là mảng',
-    }),
-}).min(1).messages({
-  'object.min': 'Cần ít nhất một trường để cập nhật',
+    .optional(),
 });
 
 /**
@@ -111,11 +100,17 @@ const searchProductSchema = Joi.object({
   status: Joi.string().valid('available', 'unavailable').optional().messages({
     'any.only': 'Status chỉ chấp nhận "available" hoặc "unavailable"',
   }),
-  limit: Joi.number().integer().min(1).max(100).optional().default(20).messages({
-    'number.base': 'Limit phải là số',
-    'number.min': 'Limit tối thiểu là 1',
-    'number.max': 'Limit tối đa là 100',
-  }),
+  limit: Joi.number()
+    .integer()
+    .min(1)
+    .max(100)
+    .optional()
+    .default(20)
+    .messages({
+      'number.base': 'Limit phải là số',
+      'number.min': 'Limit tối thiểu là 1',
+      'number.max': 'Limit tối đa là 100',
+    }),
   offset: Joi.number().integer().min(0).optional().default(0).messages({
     'number.base': 'Offset phải là số',
     'number.min': 'Offset không được âm',
