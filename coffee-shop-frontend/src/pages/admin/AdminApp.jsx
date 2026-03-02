@@ -46,7 +46,6 @@ export default function AdminApp() {
   };
 
   const menuItems = [
-    { path: "/admin", icon: LayoutDashboard, label: "Bảng điều khiển" },
     { path: "/admin/orders", icon: ShoppingBag, label: "Đơn hàng" },
     { path: "/admin/users", icon: Users, label: "Người dùng" },
     { path: "/admin/schedule", icon: Calendar, label: "Lịch làm việc" },
@@ -57,7 +56,6 @@ export default function AdminApp() {
     { path: "/admin/banners", icon: ImagePlus, label: "Quản lý Banner" },
     { path: "/admin/area", icon: MapPin, label: "Quản lý khu vực" },
     { path: "/admin/tables", icon: LayoutGrid, label: "Quản lý bàn" },
-
     { path: "/admin/profile", icon: User, label: "Thông tin cá nhân" },
 
   ];
