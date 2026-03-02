@@ -22,6 +22,7 @@ import { UserProfile } from "@/pages/common/UserProfile";
 import AdminNewsCreatePage from "@/pages/admin/AdminNew/AdminNewsCreatePage";
 import AdminNewsList from "@/pages/admin/AdminNew/AdminNewsList";
 import AdminProducts from "@/pages/admin/AdminProduct/AdminProducts";
+import AdminCategories from "@/pages/admin/AdminCategory/AdminCategories";
 import NewsDetailPage from "@/components/news/NewsDetailPage";
 import AdminEditNewsPage from "@/pages/admin/AdminNew/AdminEditNewsPage";
 import AdminNewsDetailPage from "@/pages/admin/AdminNew/AdminNewsDetailPage";
@@ -166,7 +167,9 @@ const AppRoutes = () => {
       >
         <Route index element={<Navigate to="dashboard" replace />} />
         <Route path="dashboard" element={<AdminDashboard />} />
-        <Route path="products" element={<AdminProducts />} />
+        <Route path="menu/products" element={<AdminProducts />} />
+        <Route path="menu/categories" element={<AdminCategories />} />
+
         <Route path="orders" element={<AdminOrders />} />
         <Route path="users" element={<AdminUsers />} />
         <Route path="schedule" element={<AdminStaffSchedule />} />

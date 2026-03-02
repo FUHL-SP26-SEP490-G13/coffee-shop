@@ -85,7 +85,6 @@ module.exports = {
   PAYMENT_METHODS: {
     CASH: 'cash',
     CARD: 'card',
-    MOMO: 'momo',
     BANKING: 'banking',
   },
 
