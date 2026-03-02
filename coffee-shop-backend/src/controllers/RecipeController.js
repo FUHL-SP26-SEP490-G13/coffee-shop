@@ -121,7 +121,7 @@ class RecipeController {
 
   /**
    * Delete recipe
-   * DELETE /api/recipes/:id
+   * DELETE /admin/recipes/:id
    */
   async deleteRecipe(req, res, next) {
     try {
@@ -130,139 +130,6 @@ class RecipeController {
       const result = await RecipeService.deleteRecipe(id);
 
       return response.success(res, result, 'Xóa công thức thành công');
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  /**
-   * Get all ingredients
-   * GET /api/recipes/ingredients
-   */
-  async getAllIngredients(req, res, next) {
-    try {
-      const { limit = 100, offset = 0 } = req.query;
-
-      const ingredients = await RecipeService.getAllIngredients({
-        limit: parseInt(limit),
-        offset: parseInt(offset),
-      });
-
-      return response.success(
-        res,
-        ingredients,
-        'Lấy danh sách nguyên liệu thành công'
-      );
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  /**
-   * Get ingredient by ID
-   * GET /api/recipes/ingredients/:id
-   */
-  async getIngredientById(req, res, next) {
-    try {
-      const { id } = req.params;
-
-      const ingredient = await RecipeService.getIngredientById(id);
-
-      return response.success(res, ingredient, 'Lấy nguyên liệu thành công');
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  /**
-   * Create new ingredient
-   * POST /api/recipes/ingredients
-   */
-  async createIngredient(req, res, next) {
-    try {
-      const { name, unit_type, unit } = req.body;
-
-      const ingredient = await RecipeService.createIngredient(
-        name,
-        unit_type,
-        unit
-      );
-
-      return response.success(
-        res,
-        ingredient,
-        'Tạo nguyên liệu thành công',
-        201
-      );
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  /**
-   * Update ingredient
-   * PUT /api/recipes/ingredients/:id
-   */
-  async updateIngredient(req, res, next) {
-    try {
-      const { id } = req.params;
-      const { name, unit_type, unit } = req.body;
-
-      const ingredient = await RecipeService.updateIngredient(
-        id,
-        name,
-        unit_type,
-        unit
-      );
-
-      return response.success(
-        res,
-        ingredient,
-        'Cập nhật nguyên liệu thành công'
-      );
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  /**
-   * Delete ingredient
-   * DELETE /api/recipes/ingredients/:id
-   */
-  async deleteIngredient(req, res, next) {
-    try {
-      const { id } = req.params;
-
-      const result = await RecipeService.deleteIngredient(id);
-
-      return response.success(res, result, 'Xóa nguyên liệu thành công');
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  /**
-   * Search ingredients
-   * GET /api/recipes/ingredients/search
-   */
-  async searchIngredients(req, res, next) {
-    try {
-      const { keyword, limit = 50, offset = 0 } = req.query;
-
-      if (!keyword) {
-        return response.error(res, 'Vui lòng cung cấp từ khóa tìm kiếm', 400);
-      }
-
-      const ingredients = await RecipeService.searchIngredients(keyword, {
-        limit: parseInt(limit),
-        offset: parseInt(offset),
-      });
-
-      return response.success(
-        res,
-        ingredients,
-        'Tìm kiếm nguyên liệu thành công'
-      );
     } catch (error) {
       next(error);
     }
