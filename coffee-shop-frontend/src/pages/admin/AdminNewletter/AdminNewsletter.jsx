@@ -32,8 +32,7 @@ export default function AdminNewsletter() {
     fetchData();
   }, []);
 
-  // 🔎 Lọc
-  const handleFilter = () => {
+  useEffect(() => {
     let result = [...emails];
 
     // Lọc theo email
@@ -59,7 +58,7 @@ export default function AdminNewsletter() {
     }
 
     setFilteredEmails(result);
-  };
+  }, [search, startDate, endDate, emails]);
 
   // 📋 Copy email
   const handleCopy = async (email) => {
@@ -119,10 +118,6 @@ export default function AdminNewsletter() {
             placeholder="Đến ngày"
           />
 
-          <Button onClick={handleFilter} className="gap-2 w-full">
-            <Search className="w-4 h-4" />
-            Lọc
-          </Button>
         </div>
 
         {/* TABLE */}
