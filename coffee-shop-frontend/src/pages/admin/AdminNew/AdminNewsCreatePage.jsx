@@ -106,8 +106,17 @@ export default function AdminNewsCreatePage() {
                   const files = Array.from(e.target.files || []);
                   if (!files.length) return;
 
-                  setForm((prev) => ({ ...prev, images: files }));
-                  setPreview(files.map((f) => URL.createObjectURL(f)));
+                  setForm((prev) => ({
+                    ...prev,
+                    images: [...prev.images, ...files],
+                  }));
+
+                  setPreview((prev) => [
+                    ...prev,
+                    ...files.map((f) => URL.createObjectURL(f)),
+                  ]);
+
+                  e.target.value = null; // cho phép chọn lại cùng file
                 }}
                 className="absolute inset-0 opacity-0 cursor-pointer"
               />

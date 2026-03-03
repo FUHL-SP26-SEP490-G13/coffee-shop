@@ -58,13 +58,18 @@ export default function AdminNewsDetailPage() {
       <div className="bg-card rounded-xl border border-border p-6 max-w-4xl">
         <h1 className="text-3xl font-bold mb-2">{news.title}</h1>
         <p className="text-sm text-muted-foreground mb-6">
-          Cập nhật: {new Date(news.updated_at || news.created_at).toLocaleDateString("vi-VN", {
-            year: "numeric",
-            month: "long",
-            day: "numeric"
-          })}
+          Cập nhật:{" "}
+          {new Date(news.updated_at || news.created_at).toLocaleDateString(
+            "vi-VN",
+            {
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+            }
+          )}
         </p>
-        
+
+        {/* Thumbnail */}
         {news.thumbnail && (
           <img
             src={news.thumbnail}
@@ -72,13 +77,32 @@ export default function AdminNewsDetailPage() {
             className="w-full max-h-96 object-cover rounded-lg mb-6 border border-border"
           />
         )}
-        
+
+        {/* Gallery ảnh */}
+        {news.images?.length > 0 && (
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+            {news.images.map((img) => {
+              // tránh hiển thị lại thumbnail nếu nó là ảnh đầu
+              if (img.image_url === news.thumbnail) return null;
+
+              return (
+                <img
+                  key={img.id}
+                  src={img.image_url}
+                  alt=""
+                  className="w-full h-48 object-cover rounded-lg border border-border"
+                />
+              );
+            })}
+          </div>
+        )}
+
         {news.summary && (
           <div className="bg-muted p-4 rounded-lg mb-6 border-l-4 border-primary">
             <p className="text-sm italic text-foreground">{news.summary}</p>
           </div>
         )}
-        
+
         <div className="prose prose-sm max-w-none dark:prose-invert">
           <div dangerouslySetInnerHTML={{ __html: news.content }} />
         </div>

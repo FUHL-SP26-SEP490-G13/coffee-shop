@@ -23,7 +23,9 @@ class NewsService {
 
     await NewsRepository.increaseView(news.id);
 
-    return news;
+    const images = await NewsRepository.getImagesByNewsId(news.id);
+
+    return { ...news, images };
   }
 
   async getFeatured(limit = 3) {
