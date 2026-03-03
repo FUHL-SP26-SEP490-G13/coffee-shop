@@ -318,7 +318,7 @@ export default function AdminDiscountEdit() {
             <Ticket className="h-6 w-6 text-primary" />
           </div>
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold">
+            <h1 className="text-2xl font-semibold mb-1">
               Chỉnh sửa mã giảm giá
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
