@@ -110,6 +110,50 @@ class NewsRepository extends BaseRepository {
 
     return true;
   }
+
+  async increaseView(id) {
+    const sql = `
+    UPDATE news
+    SET views = views + 1
+    WHERE id = ?
+  `;
+    await pool.query(sql, [id]);
+  }
+
+  async getImagesByNewsId(newsId) {
+    const sql = `SELECT id, image_url, public_id FROM news_images WHERE news_id = ? ORDER BY id DESC`;
+    const [rows] = await pool.query(sql, [newsId]);
+    return rows;
+  }
+
+  async deleteImagesByIds(ids = []) {
+    if (!ids.length) return [];
+
+    // lấy ra public_id để (nếu muốn) xoá cloudinary
+    const selectSql = `
+    SELECT id, image_url, public_id
+    FROM news_images
+    WHERE id IN (?)
+  `;
+    const [rows] = await pool.query(selectSql, [ids]);
+
+    const delSql = `DELETE FROM news_images WHERE id IN (?)`;
+    await pool.query(delSql, [ids]);
+
+    return rows;
+  }
+
+  async insertImages(newsId, files = []) {
+    if (!files.length) return;
+
+    const sql = `
+    INSERT INTO news_images (news_id, image_url, public_id)
+    VALUES ?
+  `;
+    const values = files.map((f) => [newsId, f.url, f.public_id || null]);
+    await pool.query(sql, [values]);
+  }
+
 }
 
 module.exports = new NewsRepository();

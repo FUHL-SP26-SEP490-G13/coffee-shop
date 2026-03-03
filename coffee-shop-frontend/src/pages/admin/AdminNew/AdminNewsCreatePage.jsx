@@ -13,13 +13,13 @@ export default function AdminNewsCreatePage() {
 
   const [form, setForm] = useState({
     title: "",
-    thumbnail: "",
     summary: "",
     content: "",
+    images: [],
   });
 
+  const [preview, setPreview] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [preview, setPreview] = useState(null);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -43,7 +43,9 @@ export default function AdminNewsCreatePage() {
       formData.append("summary", form.summary);
       formData.append("content", form.content);
       formData.append("type", "news");
-      formData.append("thumbnail", form.thumbnail);
+      form.images?.forEach((file) => {
+        formData.append("images", file);
+      });
 
       await newsService.create(formData);
 
@@ -62,7 +64,9 @@ export default function AdminNewsCreatePage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-2xl font-semibold mb-1">Tạo bài viết mới</h2>
-          <p className="text-sm text-muted-foreground">Thêm bài viết tin tức mới vào hệ thống</p>
+          <p className="text-sm text-muted-foreground">
+            Thêm bài viết tin tức mới vào hệ thống
+          </p>
         </div>
         <Button
           variant="outline"
@@ -88,41 +92,43 @@ export default function AdminNewsCreatePage() {
             />
           </div>
 
-          {/* Thumbnail */}
+          {/* Images Upload */}
           <div className="space-y-2">
-            <Label htmlFor="thumbnail">Hình ảnh đại diện *</Label>
+            <Label htmlFor="images">Hình ảnh bài viết</Label>
+
             <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary transition cursor-pointer relative">
               <input
-                id="thumbnail"
+                id="images"
                 type="file"
+                multiple
                 accept="image/*"
                 onChange={(e) => {
-                  const file = e.target.files[0];
-                  if (!file) return;
+                  const files = Array.from(e.target.files || []);
+                  if (!files.length) return;
 
-                  setForm((prev) => ({
-                    ...prev,
-                    thumbnail: file,
-                  }));
-
-                  setPreview(URL.createObjectURL(file));
+                  setForm((prev) => ({ ...prev, images: files }));
+                  setPreview(files.map((f) => URL.createObjectURL(f)));
                 }}
                 className="absolute inset-0 opacity-0 cursor-pointer"
               />
+
               <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
               <p className="text-sm font-medium">Chọn hình ảnh để tải lên</p>
-              <p className="text-xs text-muted-foreground">Hỗ trợ JPG, PNG, WebP</p>
+              <p className="text-xs text-muted-foreground">
+                Hỗ trợ JPG, PNG, WebP
+              </p>
             </div>
           </div>
 
-          {preview && (
-            <div className="space-y-2">
-              <p className="text-sm font-medium">Xem trước hình ảnh:</p>
-              <img
-                src={preview}
-                alt="Preview"
-                className="w-full max-h-96 object-cover rounded-lg border border-border"
-              />
+          {preview && preview.length > 0 && (
+            <div className="grid grid-cols-3 gap-4">
+              {preview.map((src, index) => (
+                <img
+                  key={index}
+                  src={src}
+                  className="w-full h-40 object-cover rounded-lg border"
+                />
+              ))}
             </div>
           )}
 
@@ -157,11 +163,7 @@ export default function AdminNewsCreatePage() {
 
           {/* Buttons */}
           <div className="flex gap-3 pt-4">
-            <Button
-              onClick={handleSubmit}
-              disabled={loading}
-              className="gap-2"
-            >
+            <Button onClick={handleSubmit} disabled={loading} className="gap-2">
               {loading && <Loader2 className="h-4 w-4 animate-spin" />}
               {loading ? "Đang đăng..." : "Đăng bài"}
             </Button>

@@ -1,4 +1,5 @@
 const NewsRepository = require("../repositories/NewsRepository");
+const cloudinary = require("../config/cloudinary");
 const slugify = require("slugify");
 
 class NewsService {
@@ -19,6 +20,9 @@ class NewsService {
   async getDetailBySlug(slug) {
     const news = await NewsRepository.findBySlug(slug);
     if (!news) throw new Error("Tin không tồn tại");
+
+    await NewsRepository.increaseView(news.id);
+
     return news;
   }
 
@@ -26,14 +30,20 @@ class NewsService {
     return NewsRepository.findFeatured(limit);
   }
 
-  async createNews(data, userId) {
+  async createNews(data, userId, files = []) {
     const slug = slugify(data.title, { lower: true, strict: true });
 
-    return NewsRepository.create({
+    const news = await NewsRepository.create({
       ...data,
       slug,
       created_by: userId,
     });
+
+    if (files.length) {
+      await NewsRepository.insertImages(news.id, files);
+    }
+
+    return news;
   }
 
   async getAllAdmin({ page = 1, limit = 10, title = "" }) {
@@ -59,14 +69,42 @@ class NewsService {
     return NewsRepository.deleteById(id);
   }
 
-  async updateNews(id, data) {
-    return NewsRepository.updateById(id, data);
+  async updateNews(
+    id,
+    { title, summary, content, newFiles = [], deleteImageIds = [] }
+  ) {
+    // update nội dung
+    await NewsRepository.updateById(id, {
+      title,
+      summary,
+      content,
+    });
+
+    // xoá ảnh
+    if (deleteImageIds.length) {
+      const deleted = await NewsRepository.deleteImagesByIds(deleteImageIds);
+
+      for (const img of deleted) {
+        if (img.public_id) {
+          await cloudinary.uploader.destroy(img.public_id);
+        }
+      }
+    }
+
+    // thêm ảnh mới
+    if (newFiles.length) {
+      await NewsRepository.insertImages(id, newFiles);
+    }
+
+    return true;
   }
 
   async getById(id) {
     const news = await NewsRepository.findOne({ id });
     if (!news) throw new Error("Không tìm thấy bài viết");
-    return news;
+
+    const images = await NewsRepository.getImagesByNewsId(id);
+    return { ...news, images };
   }
 }
 

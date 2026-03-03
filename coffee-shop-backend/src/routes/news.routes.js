@@ -23,7 +23,7 @@ router.post(
   "/",
   authenticate,
   authorize(["manager"]),
-  upload.single("thumbnail"),
+  upload.array("images", 10),
   NewsController.create
 );
 
@@ -45,10 +45,9 @@ router.put(
   "/:id",
   authenticate,
   authorize(["manager"]),
-  upload.single("thumbnail"),
+  upload.array("images", 10),
   NewsController.update
 );
-
 
 router.get(
   "/admin/:id",

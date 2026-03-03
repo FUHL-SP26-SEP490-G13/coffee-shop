@@ -4,16 +4,20 @@ const response = require("../utils/response");
 class NewsController {
   async create(req, res, next) {
     try {
-      const thumbnailUrl = req.file?.path || null;
+      const files =
+        req.files?.map((f) => ({
+          url: f.path,
+          public_id: f.filename || f.public_id || null,
+        })) || [];
 
       const data = {
         title: req.body.title,
         summary: req.body.summary,
         content: req.body.content,
-        thumbnail: thumbnailUrl,
+        thumbnail: files[0]?.url || null,
       };
 
-      const news = await NewsService.createNews(data, req.user.id);
+      const news = await NewsService.createNews(data, req.user.id, files);
 
       return response.success(res, news, "Tạo tin thành công", 201);
     } catch (error) {
@@ -90,24 +94,31 @@ class NewsController {
 
   async update(req, res, next) {
     try {
-      const data = {
+      const files =
+        req.files?.map((f) => ({
+          url: f.path,
+          public_id: f.filename || f.public_id || null,
+        })) || [];
+
+      let deleteImageIds = [];
+      if (req.body.deleteImageIds) {
+        deleteImageIds = JSON.parse(req.body.deleteImageIds);
+      }
+
+      await NewsService.updateNews(req.params.id, {
         title: req.body.title,
         summary: req.body.summary,
         content: req.body.content,
-      };
-
-      // CHỈ khi có upload file mới
-      if (req.file) {
-        data.thumbnail = req.file.path;
-      }
-
-      await NewsService.updateNews(req.params.id, data);
+        newFiles: files,
+        deleteImageIds,
+      });
 
       return response.success(res, null, "Cập nhật thành công");
     } catch (error) {
       next(error);
     }
   }
+  
 }
 
 module.exports = new NewsController();

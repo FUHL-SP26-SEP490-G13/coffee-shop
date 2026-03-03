@@ -18,10 +18,14 @@ export default function AdminEditNewsPage() {
     content: "",
   });
 
-  const [thumbnailFile, setThumbnailFile] = useState(null);
-  const [preview, setPreview] = useState(null);
   const [loading, setLoading] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(true);
+
+  const [existingImages, setExistingImages] = useState([]);
+  const [deleteIds, setDeleteIds] = useState([]);
+
+  const [newPreview, setNewPreview] = useState([]);
+  const [newFiles, setNewFiles] = useState([]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -35,7 +39,7 @@ export default function AdminEditNewsPage() {
           content: data.content,
         });
 
-        setPreview(data.thumbnail);
+        setExistingImages(data.images || []);
       } catch (error) {
         console.error("Lỗi load bài:", error);
       } finally {
@@ -63,13 +67,13 @@ export default function AdminEditNewsPage() {
       formData.append("content", form.content);
 
       formData.append("type", "news");
-      if (thumbnailFile) {
-        formData.append("thumbnail", thumbnailFile);
-      }
+      formData.append("deleteImageIds", JSON.stringify(deleteIds));
+      newFiles.forEach((file) => {
+        formData.append("images", file);
+      });
 
       await newsService.update(id, formData);
       navigate("/admin/news-list");
-
     } catch (error) {
       alert("Cập nhật thất bại");
     } finally {
@@ -90,7 +94,9 @@ export default function AdminEditNewsPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-2xl font-semibold mb-1">Chỉnh sửa bài viết</h2>
-          <p className="text-sm text-muted-foreground">Cập nhật thông tin bài viết tin tức</p>
+          <p className="text-sm text-muted-foreground">
+            Cập nhật thông tin bài viết tin tức
+          </p>
         </div>
         <Button
           variant="outline"
@@ -116,37 +122,90 @@ export default function AdminEditNewsPage() {
             />
           </div>
 
-          {/* Thumbnail Upload */}
+          {/* Images Upload */}
           <div className="space-y-2">
-            <Label htmlFor="thumbnail">Hình ảnh đại diện</Label>
+            <Label htmlFor="images">Hình ảnh bài viết</Label>
+
             <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary transition cursor-pointer relative">
               <input
-                id="thumbnail"
+                id="images"
                 type="file"
+                multiple
                 accept="image/*"
                 onChange={(e) => {
-                  const file = e.target.files[0];
-                  if (!file) return;
+                  const files = Array.from(e.target.files || []);
+                  if (!files.length) return;
 
-                  setThumbnailFile(file);
-                  setPreview(URL.createObjectURL(file));
+                  setNewFiles((prev) => [...prev, ...files]);
+
+                  setNewPreview((prev) => [
+                    ...prev,
+                    ...files.map((file) => URL.createObjectURL(file)),
+                  ]);
+
+                  e.target.value = null; // cho phép chọn lại cùng file
                 }}
                 className="absolute inset-0 opacity-0 cursor-pointer"
               />
+
               <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
               <p className="text-sm font-medium">Chọn hình ảnh để tải lên</p>
-              <p className="text-xs text-muted-foreground">Hỗ trợ JPG, PNG, WebP</p>
+              <p className="text-xs text-muted-foreground">
+                Hỗ trợ JPG, PNG, WebP
+              </p>
             </div>
           </div>
 
-          {preview && (
+          {newPreview.length > 0 && (
             <div className="space-y-2">
-              <p className="text-sm font-medium">Hình ảnh hiện tại:</p>
-              <img
-                src={preview}
-                alt="Preview"
-                className="w-full max-h-96 object-cover rounded-lg border border-border"
-              />
+              <p className="text-sm font-medium">Ảnh mới:</p>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                {newPreview.map((src, idx) => (
+                  <img
+                    key={idx}
+                    src={src}
+                    className="w-full h-40 object-cover rounded-lg border"
+                    alt={`new-${idx}`}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {existingImages.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-sm font-medium">Ảnh hiện tại:</p>
+
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                {existingImages.map((img) => {
+                  const marked = deleteIds.includes(img.id);
+
+                  return (
+                    <div key={img.id} className="relative">
+                      <img
+                        src={img.image_url}
+                        className={`w-full h-40 object-cover rounded-lg border ${
+                          marked ? "opacity-40" : ""
+                        }`}
+                      />
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setDeleteIds((prev) =>
+                            prev.includes(img.id)
+                              ? prev.filter((x) => x !== img.id)
+                              : [...prev, img.id]
+                          );
+                        }}
+                        className="absolute top-2 right-2 bg-white px-2 py-1 rounded text-xs"
+                      >
+                        {marked ? "Hoàn tác" : "Xóa"}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
 
@@ -181,11 +240,7 @@ export default function AdminEditNewsPage() {
 
           {/* Buttons */}
           <div className="flex gap-3 pt-4">
-            <Button
-              onClick={handleSubmit}
-              disabled={loading}
-              className="gap-2"
-            >
+            <Button onClick={handleSubmit} disabled={loading} className="gap-2">
               {loading && <Loader2 className="h-4 w-4 animate-spin" />}
               {loading ? "Đang lưu..." : "Lưu thay đổi"}
             </Button>
