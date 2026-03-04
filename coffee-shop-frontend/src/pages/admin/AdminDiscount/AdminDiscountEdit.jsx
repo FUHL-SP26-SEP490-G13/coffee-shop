@@ -260,7 +260,7 @@ export default function AdminDiscountEdit() {
 
     try {
       setSaving(true);
-      
+
       await discountService.update(id, {
         code: form.code.trim(),
         description: form.description.trim(),
@@ -277,11 +277,37 @@ export default function AdminDiscountEdit() {
       navigate("/admin/discounts");
     } catch (err) {
       console.error(err);
-      const message =
-        err?.response?.data?.message ||
-        err?.response?.data?.errors?.join(", ") ||
-        "Cập nhật thất bại";
-      alert(message);
+
+      const response = err?.response?.data;
+
+      // 1️⃣ Nếu là lỗi validation từ BE
+      if (response?.errors && Array.isArray(response.errors)) {
+        const beErrors = {};
+
+        response.errors.forEach((e) => {
+          if (e.field) {
+            beErrors[e.field] = e.message;
+          }
+        });
+
+        setErrors(beErrors);
+
+        // show toàn bộ lỗi
+        const allTouched = {};
+        Object.keys(form).forEach((k) => (allTouched[k] = true));
+        setTouched(allTouched);
+
+        return;
+      }
+
+      // 2️⃣ Nếu là lỗi business (vd: trùng code)
+      if (response?.message) {
+        alert(response.message);
+        return;
+      }
+
+      // 3️⃣ Fallback
+      alert("Cập nhật thất bại");
     } finally {
       setSaving(false);
     }

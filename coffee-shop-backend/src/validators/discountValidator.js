@@ -28,9 +28,10 @@ const createDiscountSchema = Joi.object({
     "any.required": "Giảm tối đa là bắt buộc",
   }),
 
-  usage_limit: Joi.number().integer().min(1).required().messages({
+  usage_limit: Joi.number().integer().min(1).max(1000).required().messages({
     "number.base": "Giới hạn lượt phải là số",
     "number.min": "Giới hạn lượt phải >= 1",
+    "number.max": "Giới hạn lượt phải <= 1000",
     "any.required": "Giới hạn lượt là bắt buộc",
   }),
 

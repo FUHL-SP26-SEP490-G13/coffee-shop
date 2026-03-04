@@ -241,11 +241,34 @@ export default function AdminDiscountCreate() {
       navigate("/admin/discounts");
     } catch (err) {
       console.error(err);
-      const message =
-        err?.response?.data?.message ||
-        err?.response?.data?.errors?.join(", ") ||
-        "Tạo thất bại";
-      alert(message);
+
+      const response = err?.response?.data;
+
+      // 1️⃣ Nếu là lỗi validation từ middleware
+      if (response?.errors && Array.isArray(response.errors)) {
+        const beErrors = {};
+
+        response.errors.forEach((e) => {
+          beErrors[e.field] = e.message;
+        });
+
+        setErrors(beErrors);
+
+        // show tất cả lỗi
+        const allTouched = {};
+        Object.keys(form).forEach((k) => (allTouched[k] = true));
+        setTouched(allTouched);
+
+        return;
+      }
+
+      // 2️⃣ Nếu là lỗi business (ví dụ trùng code)
+      if (response?.message) {
+        alert(response.message);
+        return;
+      }
+
+      alert("Tạo thất bại");
     } finally {
       setLoading(false);
     }
