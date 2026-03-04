@@ -17,7 +17,7 @@ describe('AuthService - Reset Password Flow', () => {
   describe('resetPassword', () => {
     const mockUser = {
       id: 1,
-      email: 'test@example.com',
+      email: 'chuthevan450@gmail.com',
       first_name: 'Test',
       last_name: 'User',
     };
@@ -29,7 +29,7 @@ describe('AuthService - Reset Password Flow', () => {
 
       // INPUT
       const input = {
-        email: 'test@example.com',
+        email: 'chuthevan450@gmail.com',
       };
       console.log('\n📝 INPUT:', JSON.stringify(input, null, 2));
 
@@ -78,7 +78,7 @@ describe('AuthService - Reset Password Flow', () => {
       UserRepository.findByEmail.mockResolvedValue(null);
 
       // OUTPUT EXPECT
-      const expectedError = 'User không tồn tại';
+      const expectedError = 'Email không tồn tại';
       console.log('✅ OUTPUT EXPECT: Error -', expectedError);
 
       // Act & Assert
@@ -96,7 +96,7 @@ describe('AuthService - Reset Password Flow', () => {
   describe('verifyForgotPasswordOtp', () => {
     const mockUser = {
       id: 1,
-      email: 'test@example.com',
+      email: 'chuthevan450@gmail.com',
     };
 
     const mockOtpRecord = {
@@ -114,7 +114,7 @@ describe('AuthService - Reset Password Flow', () => {
 
       // INPUT
       const input = {
-        email: 'test@example.com',
+        email: 'chuthevan450@gmail.com',
         otp: '12345678',
       };
       console.log('\n📝 INPUT:', JSON.stringify(input, null, 2));
@@ -159,7 +159,7 @@ describe('AuthService - Reset Password Flow', () => {
       UserRepository.findByEmail.mockResolvedValue(null);
 
       // OUTPUT EXPECT
-      const expectedError = 'User không tồn tại';
+      const expectedError = 'Email không tồn tại';
       console.log('✅ OUTPUT EXPECT: Error -', expectedError);
 
       // Act & Assert
@@ -178,7 +178,7 @@ describe('AuthService - Reset Password Flow', () => {
 
       // INPUT
       const input = {
-        email: 'test@example.com',
+        email: 'chuthevan450@gmail.com',
         otp: 'wrongotp',
       };
       console.log('\n📝 INPUT:', JSON.stringify(input, null, 2));
@@ -210,7 +210,7 @@ describe('AuthService - Reset Password Flow', () => {
 
       // INPUT
       const input = {
-        email: 'test@example.com',
+        email: 'chuthevan450@gmail.com',
         otp: '12345678',
       };
       console.log('\n📝 INPUT:', JSON.stringify(input, null, 2));
@@ -243,7 +243,7 @@ describe('AuthService - Reset Password Flow', () => {
 
       // INPUT
       const input = {
-        email: 'test@example.com',
+        email: 'chuthevan450@gmail.com',
         otp: '12345678',
       };
       console.log('\n📝 INPUT:', JSON.stringify(input, null, 2));
@@ -274,7 +274,7 @@ describe('AuthService - Reset Password Flow', () => {
   describe('resetPasswordWithOtp', () => {
     const mockUser = {
       id: 1,
-      email: 'test@example.com',
+      email: 'chuthevan450@gmail.com',
     };
 
     const mockOtpRecord = {
@@ -292,7 +292,7 @@ describe('AuthService - Reset Password Flow', () => {
 
       // INPUT
       const input = {
-        email: 'test@example.com',
+        email: 'chuthevan450@gmail.com',
         otp: '12345678',
         newPassword: 'NewPassword123!',
         confirmPassword: 'NewPassword123!',
@@ -335,7 +335,7 @@ describe('AuthService - Reset Password Flow', () => {
 
       // INPUT
       const input = {
-        email: 'test@example.com',
+        email: 'chuthevan450@gmail.com',
         otp: '12345678',
         newPassword: 'NewPassword123!',
         confirmPassword: 'DifferentPassword123!',
@@ -343,7 +343,7 @@ describe('AuthService - Reset Password Flow', () => {
       console.log('\n📝 INPUT:', JSON.stringify(input, null, 2));
 
       // OUTPUT EXPECT
-      const expectedError = 'Mật khẩu mới và xác nhận mật khẩu không khớp';
+      const expectedError = 'Mật khẩu xác thực không khớp';
       console.log('✅ OUTPUT EXPECT: Error -', expectedError);
 
       // Act & Assert
@@ -362,7 +362,7 @@ describe('AuthService - Reset Password Flow', () => {
 
       // INPUT
       const input = {
-        email: 'test@example.com',
+        email: 'chuthevan450@gmail.com',
         otp: 'wrongotp',
         newPassword: 'NewPassword123!',
         confirmPassword: 'NewPassword123!',
@@ -395,7 +395,7 @@ describe('AuthService - Reset Password Flow', () => {
 
       // INPUT
       const input = {
-        email: 'test@example.com',
+        email: 'chuthevan450@gmail.com',
         otp: '12345678',
         newPassword: 'Ab1!abc',
         confirmPassword: 'Ab1!abc',
@@ -422,7 +422,7 @@ describe('AuthService - Reset Password Flow', () => {
 
       // INPUT
       const input = {
-        email: 'test@example.com',
+        email: 'chuthevan450@gmail.com',
         otp: '12345678',
         newPassword: 'Ab1!Ab1!Ab1!Ab1!Ab1!A',
         confirmPassword: 'Ab1!Ab1!Ab1!Ab1!Ab1!A',
@@ -449,7 +449,7 @@ describe('AuthService - Reset Password Flow', () => {
 
       // INPUT
       const input = {
-        email: 'test@example.com',
+        email: 'chuthevan450@gmail.com',
         otp: '12345678',
         newPassword: 'password123!',
         confirmPassword: 'password123!',
@@ -476,7 +476,7 @@ describe('AuthService - Reset Password Flow', () => {
 
       // INPUT
       const input = {
-        email: 'test@example.com',
+        email: 'chuthevan450@gmail.com',
         otp: '12345678',
         newPassword: 'PASSWORD123!',
         confirmPassword: 'PASSWORD123!',
@@ -503,7 +503,7 @@ describe('AuthService - Reset Password Flow', () => {
 
       // INPUT
       const input = {
-        email: 'test@example.com',
+        email: 'chuthevan450@gmail.com',
         otp: '12345678',
         newPassword: 'Password!!',
         confirmPassword: 'Password!!',
@@ -530,7 +530,7 @@ describe('AuthService - Reset Password Flow', () => {
 
       // INPUT
       const input = {
-        email: 'test@example.com',
+        email: 'chuthevan450@gmail.com',
         otp: '12345678',
         newPassword: 'Password123',
         confirmPassword: 'Password123',
@@ -557,7 +557,7 @@ describe('AuthService - Reset Password Flow', () => {
 
       // INPUT
       const input = {
-        email: 'test@example.com',
+        email: 'chuthevan450@gmail.com',
         otp: '12345678',
         newPassword: 'Aa1!aaaa',
         confirmPassword: 'Aa1!aaaa',
@@ -597,7 +597,7 @@ describe('AuthService - Reset Password Flow', () => {
 
       // INPUT
       const input = {
-        email: 'test@example.com',
+        email: 'chuthevan450@gmail.com',
         otp: '12345678',
         newPassword: 'Aa1!abcdefghijklmnoP',
         confirmPassword: 'Aa1!abcdefghijklmnoP',
