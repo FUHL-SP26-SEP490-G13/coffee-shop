@@ -12,32 +12,48 @@ class NewsRepository extends BaseRepository {
 
   async findFeatured(limit = 3) {
     const sql = `
-      SELECT * FROM news
-      ORDER BY created_at DESC
-      LIMIT ?
-    `;
+    SELECT n.*, 
+           GROUP_CONCAT(ni.image_url) AS images
+    FROM news n
+    LEFT JOIN news_images ni ON n.id = ni.news_id
+    GROUP BY n.id
+    ORDER BY n.created_at DESC
+    LIMIT ?
+  `;
+
     const [rows] = await pool.query(sql, [limit]);
-    return rows;
+
+    return rows.map((row) => ({
+      ...row,
+      images: row.images ? row.images.split(",") : [],
+    }));
   }
 
   async findPublishedPaginated(limit, offset) {
     const sql = `
-      SELECT * FROM news
-      ORDER BY created_at DESC
-      LIMIT ?, ?
-    `;
+    SELECT n.*, 
+           GROUP_CONCAT(ni.image_url) AS images
+    FROM news n
+    LEFT JOIN news_images ni ON n.id = ni.news_id
+    GROUP BY n.id
+    ORDER BY n.created_at DESC
+    LIMIT ?, ?
+  `;
     const [rows] = await pool.query(sql, [offset, limit]);
-    return rows;
+
+    return rows.map((row) => ({
+      ...row,
+      images: row.images ? row.images.split(",") : [],
+    }));
   }
 
-  async findAllAdminPaginated(limit, offset, title = "") {
+  async findAllAdminPaginated(limit, offset, keyword = "") {
     let sql = `SELECT * FROM news WHERE 1=1`;
     const values = [];
 
-    // CHỈ filter khi title có giá trị thật sự
-    if (title && title.trim() !== "") {
-      sql += " AND title LIKE ?";
-      values.push(`%${title.trim()}%`);
+    if (keyword && keyword.trim() !== "") {
+      sql += ` AND (title LIKE ? OR tag LIKE ?)`;
+      values.push(`%${keyword.trim()}%`, `%${keyword.trim()}%`);
     }
 
     sql += " ORDER BY created_at DESC LIMIT ?, ?";
@@ -47,13 +63,13 @@ class NewsRepository extends BaseRepository {
     return rows;
   }
 
-  async countAll(title = "") {
+  async countAll(keyword = "") {
     let sql = `SELECT COUNT(*) as total FROM news WHERE 1=1`;
     const values = [];
 
-    if (title && title.trim() !== "") {
-      sql += " AND title LIKE ?";
-      values.push(`%${title.trim()}%`);
+    if (keyword && keyword.trim() !== "") {
+      sql += ` AND (title LIKE ? OR tag LIKE ?)`;
+      values.push(`%${keyword.trim()}%`, `%${keyword.trim()}%`);
     }
 
     const [rows] = await pool.query(sql, values);
@@ -88,6 +104,11 @@ class NewsRepository extends BaseRepository {
     if (data.thumbnail !== undefined) {
       fields.push("thumbnail = ?");
       values.push(data.thumbnail);
+    }
+
+    if (data.tag !== undefined) {
+      fields.push("tag = ?");
+      values.push(data.tag);
     }
 
     if (fields.length === 0) {
@@ -154,6 +175,50 @@ class NewsRepository extends BaseRepository {
     await pool.query(sql, [values]);
   }
 
+  async findRelatedByTag(tag, excludeId, limit = 3) {
+    const sql = `
+    SELECT 
+      n.*,
+      ni.id as image_id,
+      ni.image_url,
+      ni.public_id
+    FROM news n
+    LEFT JOIN news_images ni ON ni.news_id = n.id
+    WHERE LOWER(n.tag) = LOWER(?)
+      AND n.id != ?
+    ORDER BY n.created_at DESC
+    LIMIT ?
+  `;
+
+    const [rows] = await pool.query(sql, [tag, excludeId, limit]);
+
+    // gom images lại theo từng news
+    const map = {};
+
+    for (const row of rows) {
+      if (!map[row.id]) {
+        map[row.id] = {
+          id: row.id,
+          title: row.title,
+          slug: row.slug,
+          thumbnail: row.thumbnail,
+          tag: row.tag,
+          created_at: row.created_at,
+          images: [],
+        };
+      }
+
+      if (row.image_id) {
+        map[row.id].images.push({
+          id: row.image_id,
+          image_url: row.image_url,
+          public_id: row.public_id,
+        });
+      }
+    }
+
+    return Object.values(map);
+  }
 }
 
 module.exports = new NewsRepository();

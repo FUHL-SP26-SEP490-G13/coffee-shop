@@ -14,6 +14,7 @@ class NewsController {
         title: req.body.title,
         summary: req.body.summary,
         content: req.body.content,
+        tag: req.body.tag || null,
         thumbnail: files[0]?.url || null,
       };
 
@@ -69,12 +70,12 @@ class NewsController {
 
   async getAllAdmin(req, res, next) {
     try {
-      const { page = 1, limit = 10, title = "" } = req.query;
+      const { page = 1, limit = 10, keyword = "" } = req.query;
 
       const news = await NewsService.getAllAdmin({
         page: parseInt(page),
         limit: parseInt(limit),
-        title,
+        keyword,
       });
 
       return response.success(res, news);
@@ -109,6 +110,7 @@ class NewsController {
         title: req.body.title,
         summary: req.body.summary,
         content: req.body.content,
+        tag: req.body.tag || null,
         newFiles: files,
         deleteImageIds,
       });
@@ -118,7 +120,18 @@ class NewsController {
       next(error);
     }
   }
-  
+
+  async getRelated(req, res, next) {
+    try {
+      const { tag, excludeId } = req.query;
+
+      const news = await NewsService.getRelated(tag, excludeId);
+
+      return response.success(res, news);
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 module.exports = new NewsController();

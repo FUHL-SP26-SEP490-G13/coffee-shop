@@ -12,16 +12,17 @@ export default function AdminNewsList() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [loadingId, setLoadingId] = useState(null);
-  const [searchTitle, setSearchTitle] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
+  const [keyword, setKeyword] = useState("");
 
-  const fetchNews = async (currentPage = page, title = searchTitle) => {
+  const fetchNews = async (currentPage = page, search = keyword) => {
     try {
       setIsLoading(true);
       setError(null);
-      const res = await newsService.getAllAdmin(currentPage, title);
+
+      const res = await newsService.getAllAdmin(currentPage, search);
       const payload = res.data?.data || res.data;
 
       setData(payload.items || []);
@@ -33,21 +34,15 @@ export default function AdminNewsList() {
       setIsLoading(false);
     }
   };
-
+  
   useEffect(() => {
-    fetchNews(page, searchTitle);
-  }, [page]);
+    const timeout = setTimeout(() => {
+      fetchNews(page, keyword);
+    }, 600);
 
-  const handleSearch = () => {
-    setPage(1);
-    fetchNews(1, searchTitle);
-  };
+    return () => clearTimeout(timeout);
+  }, [keyword, page]);
 
-  const handleReset = () => {
-    setSearchTitle("");
-    setPage(1);
-    fetchNews(1, "");
-  };
 
   const handleDelete = async (id) => {
     if (!window.confirm("Bạn có chắc muốn xóa bài viết này?")) return;
@@ -55,7 +50,7 @@ export default function AdminNewsList() {
     try {
       setLoadingId(id);
       await newsService.delete(id);
-      fetchNews(page, searchTitle);
+      fetchNews(page, keyword);
     } catch (error) {
       alert("Xóa thất bại");
       setLoadingId(null);
@@ -88,30 +83,18 @@ export default function AdminNewsList() {
         </div>
 
         {/* SEARCH */}
-        <div className="flex gap-3 flex-wrap">
-          <div className="relative flex-1 min-w-[250px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Tìm kiếm theo tiêu đề..."
-              value={searchTitle}
-              onChange={(e) => setSearchTitle(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-              className="pl-9"
-            />
-          </div>
-
-          <Button onClick={handleSearch}>Tìm kiếm</Button>
-
-          <Button variant="outline" onClick={handleReset}>
-            Reset
-          </Button>
-        </div>
+        <Input
+          placeholder="Tìm theo tiêu đề hoặc tag..."
+          value={keyword}
+          onChange={(e) => setKeyword(e.target.value)}
+          className="pl-9"
+        />
       </div>
 
       {/* TABLE */}
-      <div className="bg-card rounded-xl border border-border overflow-hidden">
+      <div className="relative bg-card rounded-xl border border-border overflow-hidden">
         {isLoading && (
-          <div className="flex items-center justify-center p-8">
+          <div className="absolute inset-0 bg-white/50 flex items-center justify-center z-10">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
           </div>
         )}
@@ -121,6 +104,7 @@ export default function AdminNewsList() {
             <TableHeader>
               <TableRow>
                 <TableHead>Tiêu đề</TableHead>
+                <TableHead className="w-[140px]">Tag</TableHead>
                 <TableHead className="w-[150px]">Ngày tạo</TableHead>
                 <TableHead className="text-right w-[200px]">
                   Hành động
@@ -142,6 +126,18 @@ export default function AdminNewsList() {
                   <TableRow key={item.id}>
                     <TableCell className="font-medium max-w-[400px] truncate">
                       {item.title}
+                    </TableCell>
+
+                    <TableCell>
+                      {item.tag ? (
+                        <Badge variant="secondary" className="capitalize">
+                          {item.tag}
+                        </Badge>
+                      ) : (
+                        <span className="text-muted-foreground text-sm">
+                          Chưa có tag
+                        </span>
+                      )}
                     </TableCell>
 
                     <TableCell className="text-muted-foreground text-sm">

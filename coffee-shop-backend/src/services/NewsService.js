@@ -3,6 +3,19 @@ const cloudinary = require("../config/cloudinary");
 const slugify = require("slugify");
 
 class NewsService {
+  async generateUniqueSlug(title) {
+    const baseSlug = slugify(title, { lower: true, strict: true });
+    let slug = baseSlug;
+    let count = 1;
+
+    while (await NewsRepository.findBySlug(slug)) {
+      slug = `${baseSlug}-${count}`;
+      count++;
+    }
+
+    return slug;
+  }
+
   async getAllPublished({ page = 1, limit = 6 }) {
     const offset = (page - 1) * limit;
 
@@ -33,7 +46,7 @@ class NewsService {
   }
 
   async createNews(data, userId, files = []) {
-    const slug = slugify(data.title, { lower: true, strict: true });
+    const slug = await this.generateUniqueSlug(data.title);
 
     const news = await NewsRepository.create({
       ...data,
@@ -48,16 +61,16 @@ class NewsService {
     return news;
   }
 
-  async getAllAdmin({ page = 1, limit = 10, title = "" }) {
+  async getAllAdmin({ page = 1, limit = 10, keyword = "" }) {
     const offset = (page - 1) * limit;
 
     const items = await NewsRepository.findAllAdminPaginated(
       limit,
       offset,
-      title
+      keyword
     );
 
-    const total = await NewsRepository.countAll(title);
+    const total = await NewsRepository.countAll(keyword);
 
     return {
       items,
@@ -73,13 +86,14 @@ class NewsService {
 
   async updateNews(
     id,
-    { title, summary, content, newFiles = [], deleteImageIds = [] }
+    { title, summary, content, tag, newFiles = [], deleteImageIds = [] }
   ) {
     // update nội dung
     await NewsRepository.updateById(id, {
       title,
       summary,
       content,
+      tag
     });
 
     // xoá ảnh
@@ -107,6 +121,11 @@ class NewsService {
 
     const images = await NewsRepository.getImagesByNewsId(id);
     return { ...news, images };
+  }
+
+  async getRelated(tag, excludeId) {
+    if (!tag) return [];
+    return NewsRepository.findRelatedByTag(tag, excludeId, 3);
   }
 }
 

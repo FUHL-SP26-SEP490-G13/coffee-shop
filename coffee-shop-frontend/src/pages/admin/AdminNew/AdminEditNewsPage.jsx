@@ -16,6 +16,7 @@ export default function AdminEditNewsPage() {
     title: "",
     summary: "",
     content: "",
+    tag:"",
   });
 
   const [loading, setLoading] = useState(false);
@@ -37,6 +38,7 @@ export default function AdminEditNewsPage() {
           title: data.title,
           summary: data.summary,
           content: data.content,
+          tag: data.tag || "",
         });
 
         setExistingImages(data.images || []);
@@ -71,6 +73,7 @@ export default function AdminEditNewsPage() {
       newFiles.forEach((file) => {
         formData.append("images", file);
       });
+      formData.append("tag", form.tag?.trim().toLowerCase());
 
       await newsService.update(id, formData);
       navigate("/admin/news-list");
@@ -121,6 +124,28 @@ export default function AdminEditNewsPage() {
               placeholder="Nhập tiêu đề bài viết..."
             />
           </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="tag">Tag</Label>
+            <Input
+              id="tag"
+              name="tag"
+              value={form.tag}
+              onChange={handleChange}
+              placeholder="Ví dụ: #vanct..."
+            />
+          </div>
+
+          {form.tag && (
+            <div className="pt-2">
+              <span className="text-xs text-muted-foreground mr-2">
+                Preview:
+              </span>
+              <span className="px-2 py-1 text-xs rounded bg-secondary capitalize">
+                {form.tag}
+              </span>
+            </div>
+          )}
 
           {/* Images Upload */}
           <div className="space-y-2">

@@ -57,6 +57,13 @@ export default function AdminNewsDetailPage() {
 
       <div className="bg-card rounded-xl border border-border p-6 max-w-4xl">
         <h1 className="text-3xl font-bold mb-2">{news.title}</h1>
+        {news.tag && (
+          <div className="mb-4">
+            <span className="inline-block px-3 py-1 text-xs font-medium rounded-full bg-primary/10 text-primary capitalize">
+              #{news.tag}
+            </span>
+          </div>
+        )}
         <p className="text-sm text-muted-foreground mb-6">
           Cập nhật:{" "}
           {new Date(news.updated_at || news.created_at).toLocaleDateString(
@@ -103,7 +110,17 @@ export default function AdminNewsDetailPage() {
           </div>
         )}
 
-        <div className="prose prose-sm max-w-none dark:prose-invert">
+        <div
+          className="
+    prose prose-sm max-w-none dark:prose-invert
+    [&_table]:w-full
+    [&_table]:border-collapse
+    [&_th]:border
+    [&_td]:border
+    [&_th]:p-2
+    [&_td]:p-2
+  "
+        >
           <div dangerouslySetInnerHTML={{ __html: news.content }} />
         </div>
       </div>

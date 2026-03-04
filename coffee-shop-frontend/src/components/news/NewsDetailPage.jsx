@@ -1,5 +1,5 @@
-import { useParams, useNavigate } from "react-router-dom";
-import { useCallback } from "react";
+import { Link, useParams, useNavigate } from "react-router-dom";
+import { useCallback, useEffect, useState } from "react";
 import { ChevronLeft, Loader2, Calendar } from "lucide-react";
 import useFetch from "@/hooks/useFetch";
 import newsService from "@/services/newsService";
@@ -18,6 +18,15 @@ export default function NewsDetailPage() {
 
   const { data, loading } = useFetch(fetchDetail);
   const news = data?.data;
+
+  const [relatedNews, setRelatedNews] = useState([]);
+
+  useEffect(() => {
+    if (!news?.tag) return;
+    newsService
+      .getRelated({ tag: news.tag, excludeId: news.id })
+      .then((res) => setRelatedNews(res?.data || []));
+  }, [news?.tag, news?.id]);
 
   const handleBack = () => {
     if (window.history.length > 1) {
@@ -59,18 +68,15 @@ export default function NewsDetailPage() {
       <Header />
 
       <div className="max-w-4xl mx-auto py-12 md:py-16 px-4 md:px-6">
-        <Button
-          variant="ghost"
-          onClick={handleBack}
-          className="mb-6 gap-2"
-        >
+        <Button variant="ghost" onClick={handleBack} className="mb-6 gap-2">
           <ChevronLeft className="h-4 w-4" />
           Quay lại
         </Button>
 
         <article className="bg-card rounded-xl border border-border overflow-hidden">
+          {/* Thumbnail lớn */}
           {news.thumbnail && (
-            <div className="w-full h-[300px] md:h-[400px] overflow-hidden">
+            <div className="w-full h-[300px] md:h-[400px] overflow-hidden mb-6">
               <img
                 src={news.thumbnail}
                 alt={news.title}
@@ -79,16 +85,32 @@ export default function NewsDetailPage() {
             </div>
           )}
 
+          {/* Gallery nhiều ảnh */}
+          {news.images && news.images.length > 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+              {news.images.map((img) => (
+                <img
+                  key={img.id}
+                  src={img.image_url}
+                  alt=""
+                  className="w-full h-64 object-cover rounded-lg"
+                />
+              ))}
+            </div>
+          )}
+
           <div className="p-6 md:p-8">
-            <h1 className="text-3xl md:text-4xl font-bold mb-4">{news.title}</h1>
-            
+            <h1 className="text-3xl md:text-4xl font-bold mb-4">
+              {news.title}
+            </h1>
+
             <div className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
               <Calendar className="h-4 w-4" />
               <time>
                 {new Date(news.created_at).toLocaleDateString("vi-VN", {
                   year: "numeric",
                   month: "long",
-                  day: "numeric"
+                  day: "numeric",
                 })}
               </time>
             </div>
@@ -105,6 +127,50 @@ export default function NewsDetailPage() {
             />
           </div>
         </article>
+        {relatedNews.length > 0 && (
+          <div className="mt-16">
+            <h3 className="text-2xl font-bold mb-6">Bài viết liên quan</h3>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {relatedNews.map((item) => (
+                <Link key={item.id} to={`/news/${item.slug}`}>
+                  <Card className="overflow-hidden hover:shadow-lg transition-all duration-300">
+                    {/* Thumbnail chính */}
+                    {item.thumbnail && (
+                      <div className="h-40 overflow-hidden">
+                        <img
+                          src={item.thumbnail}
+                          alt={item.title}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    )}
+
+                    {/* Gallery nhiều ảnh */}
+                    {item.images && item.images.length > 0 && (
+                      <div className="grid grid-cols-2 gap-2 p-3">
+                        {item.images.slice(0, 4).map((img) => (
+                          <img
+                            key={img.id}
+                            src={img.image_url}
+                            alt=""
+                            className="w-full h-24 object-cover rounded-md"
+                          />
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="p-4">
+                      <h4 className="font-semibold line-clamp-2">
+                        {item.title}
+                      </h4>
+                    </div>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       <Footer />

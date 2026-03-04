@@ -55,6 +55,7 @@ router.get(
   authorize(["manager"]),
   NewsController.getById
 );
+router.get("/related", NewsController.getRelated);
 
 router.get("/:slug", NewsController.getDetail);
 
