@@ -3,9 +3,9 @@ const router = express.Router();
 const ProductController = require('../controllers/ProductController');
 const { authenticate } = require('../middlewares/auth');
 const { authorize } = require('../middlewares/authorize');
-const parseJsonFields = require('../middlewares/parseJsonFields');
 const validate = require('../middlewares/validate');
 const upload = require('../middlewares/upload');
+const parseJsonFields = require('../middlewares/parseJsonFields');
 
 const {
   createProductSchema,
@@ -19,33 +19,23 @@ const {
  */
 
 // Get all products
-router.get(
-  '/',
-  ProductController.getAll
-);
+router.get('/', ProductController.getAll);
 
-// Get product by ID
-router.get(
-  '/:id',
-  validate(productIdSchema, 'params'),
-  ProductController.getById
-);
+// Search products (phải đặt trước /:id để tránh conflict)
+router.get('/search', validate(searchProductSchema, 'query'), ProductController.search);
 
 // Get products by category
-router.get(
-  '/category/:categoryId',
-  ProductController.getByCategory
-);
+router.get('/category/:categoryId', ProductController.getByCategory);
 
-/**
- * Protected routes - Admin only
- */
+// Get product by ID
+router.get('/:id', validate(productIdSchema, 'params'), ProductController.getById);
+
 
 // Create new product
 router.post(
   '/',
   // authenticate,
-  // authorize(['admin']),
+  // authorize(['manager']),
   upload.array('images', 5), // Max 5 images
   validate(createProductSchema),
   ProductController.create
@@ -55,11 +45,11 @@ router.post(
 router.put(
   '/:id',
   // authenticate,
-  // authorize(['admin']),
+  // authorize(['manager']),
   validate(productIdSchema, 'params'),
-  upload.array('images', 5),
-    parseJsonFields(['sizes']),
-   validate(updateProductSchema),
+  upload.array('images', 5), // Max 5 images
+  parseJsonFields(['sizes', 'deleteSizeIds', 'deleteImageIds']), 
+  validate(updateProductSchema),
   ProductController.update
 );
 
@@ -67,16 +57,17 @@ router.put(
 router.delete(
   '/:id',
   // authenticate,
-  // authorize(['admin']),
+  // authorize(['manager']),
   validate(productIdSchema, 'params'),
   ProductController.delete
 );
 
 // Restore deleted product
+
 // router.post(
 //   '/:id/restore',
-//   // authenticate,
-//   // authorize(['admin']),
+//   authenticate,
+//   authorize(['admin']),
 //   validate(productIdSchema, 'params'),
 //   ProductController.restore
 // );

@@ -1,7 +1,7 @@
 const ProductService = require('../services/ProductService');
 const response = require('../utils/response');
-const { extractPublicId } = require('../utils/cloudinaryHelper');
 const cloudinary = require('../config/cloudinary');
+const ErrorResponse = require('../utils/ErrorResponse');
 
 class ProductController {
   /**
@@ -12,8 +12,11 @@ class ProductController {
     try {
       const { page, limit, status } = req.query;
 
-      // If pagination requested
       if (page && limit) {
+        if (page <= 0 || limit <= 0) {
+          throw new ErrorResponse(400, 'page và limit phải lớn hơn 0');
+        }
+
         const offset = (page - 1) * limit;
         const products = await ProductService.getAllProducts({
           limit: parseInt(limit),
@@ -33,7 +36,6 @@ class ProductController {
         );
       }
 
-      // Without pagination
       const products = await ProductService.getAllProducts({ status });
 
       return response.success(
@@ -53,6 +55,10 @@ class ProductController {
   async getById(req, res, next) {
     try {
       const { id } = req.params;
+
+      if (!id || isNaN(id)) {
+        throw new ErrorResponse(400, 'ID không hợp lệ');
+      }
       const product = await ProductService.getProductById(id);
 
       return response.success(res, product, 'Lấy thông tin product thành công');
@@ -109,10 +115,10 @@ class ProductController {
    * POST /api/products
    */
   async create(req, res, next) {
-    try {
-      const imageUrls = [];
+    let uploadedImages = [];
 
-      // Upload images to Cloudinary if provided
+    try {
+      // Upload images to Cloudinary
       if (req.files && req.files.length > 0) {
         for (const file of req.files) {
           const result = await cloudinary.uploader.upload(file.path, {
@@ -122,27 +128,31 @@ class ProductController {
               { quality: 'auto' },
             ],
           });
-          imageUrls.push({
+
+          uploadedImages.push({
             url: result.secure_url,
-            isThumbnail: imageUrls.length === 0, // First image is thumbnail
+            public_id: result.public_id,
+            isThumbnail: uploadedImages.length === 0, // First image is thumbnail
           });
         }
       }
 
       const productData = {
         ...req.body,
-        images: imageUrls,
+        images: uploadedImages,
       };
 
       const product = await ProductService.createProduct(productData);
 
       return response.success(res, product, 'Tạo product thành công', 201);
     } catch (error) {
-      // Delete uploaded images if product creation fails
-      if (req.files && req.files.length > 0) {
-        for (const file of req.files) {
-          if (file.cloudinary_id) {
-            await cloudinary.uploader.destroy(file.cloudinary_id);
+      // Rollback: Delete uploaded images if product creation fails
+      if (uploadedImages.length > 0) {
+        for (const img of uploadedImages) {
+          try {
+            await cloudinary.uploader.destroy(img.public_id);
+          } catch (err) {
+            console.error('Failed to delete image:', err);
           }
         }
       }
@@ -150,23 +160,40 @@ class ProductController {
     }
   }
 
+  /**
+   * Update product
+   * PUT /api/products/:id
+   */
   async update(req, res, next) {
+    let uploadedImages = [];
+
     try {
       const { id } = req.params;
 
-      console.log('TYPE sizes:', typeof req.body.sizes);
-      console.log('VALUE sizes:', req.body.sizes);
+      // Get current product to check image limit
+      const currentProduct = await ProductService.getProductById(id);
+      const currentImageCount = currentProduct.images
+        ? currentProduct.images.length
+        : 0;
+      const deleteImageCount = req.body.deleteImageIds
+        ? req.body.deleteImageIds.length
+        : 0;
+      const newImageCount = req.files ? req.files.length : 0;
 
-      // ===== PARSE JSON =====
-      ['sizes', 'deleteSizeIds', 'deleteImageIds'].forEach((field) => {
-        if (req.body[field] && typeof req.body[field] === 'string') {
-          req.body[field] = JSON.parse(req.body[field]);
-        }
-      });
+      // Calculate total images after update
+      const totalImagesAfterUpdate =
+        currentImageCount - deleteImageCount + newImageCount;
 
-      const imageUrls = [];
+      if (totalImagesAfterUpdate > 5) {
+        return next(
+          new ErrorResponse(
+            400,
+            `Tổng số ảnh không được vượt quá 5. Hiện tại: ${currentImageCount}, Xóa: ${deleteImageCount}, Thêm mới: ${newImageCount}`,
+          ),
+        );
+      }
 
-      // ===== UPLOAD NEW IMAGES =====
+      // Upload new images to Cloudinary
       if (req.files && req.files.length > 0) {
         for (const file of req.files) {
           const result = await cloudinary.uploader.upload(file.path, {
@@ -177,25 +204,33 @@ class ProductController {
             ],
           });
 
-          imageUrls.push({
+          uploadedImages.push({
             url: result.secure_url,
-            isThumbnail: false,
+            public_id: result.public_id,
+            isThumbnail: false, // New images are not thumbnail by default
           });
         }
       }
 
       const productData = {
         ...req.body,
+        newImages: uploadedImages.length > 0 ? uploadedImages : undefined,
       };
-
-      if (imageUrls.length > 0) {
-        productData.newImages = imageUrls;
-      }
 
       const product = await ProductService.updateProduct(id, productData);
 
       return response.success(res, product, 'Cập nhật product thành công');
     } catch (error) {
+      // Rollback: Delete uploaded images if update fails
+      if (uploadedImages.length > 0) {
+        for (const img of uploadedImages) {
+          try {
+            await cloudinary.uploader.destroy(img.public_id);
+          } catch (err) {
+            console.error('Failed to delete image:', err);
+          }
+        }
+      }
       next(error);
     }
   }
@@ -207,6 +242,11 @@ class ProductController {
   async delete(req, res, next) {
     try {
       const { id } = req.params;
+
+      if (!id || isNaN(id)) {
+        throw new ErrorResponse(400, 'ID không hợp lệ');
+      }
+
       await ProductService.deleteProduct(id);
 
       return response.success(res, null, 'Xóa product thành công');

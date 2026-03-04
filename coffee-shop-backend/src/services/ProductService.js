@@ -2,9 +2,22 @@ const ProductRepository = require('../repositories/ProductRepository');
 const ProductSizeRepository = require('../repositories/ProductSizeRepository');
 const ProductImageRepository = require('../repositories/ProductImageRepository');
 const CategoryRepository = require('../repositories/CategoryRepository');
-const db = require('../config/database');
+const cloudinary = require('../config/cloudinary');
+const ErrorResponse = require('../utils/ErrorResponse');
 
 class ProductService {
+  /**
+   * Extract Cloudinary public_id from URL
+   */
+  extractPublicId(url) {
+    try {
+      const matches = url.match(/\/products\/([^/.]+)/);
+      return matches ? `products/${matches[1]}` : null;
+    } catch (error) {
+      return null;
+    }
+  }
+
   /**
    * Get all products
    */
@@ -24,11 +37,9 @@ class ProductService {
    */
   async getProductById(id) {
     const product = await ProductRepository.findByIdWithDetails(id);
-
     if (!product) {
-      throw new Error('Product không tồn tại');
+      throw new ErrorResponse(404, 'Product không tồn tại');
     }
-
     return product;
   }
 
@@ -36,10 +47,9 @@ class ProductService {
    * Get products by category
    */
   async getProductsByCategory(categoryId, options = {}) {
-    // Check if category exists
     const category = await CategoryRepository.findById(categoryId);
     if (!category || category.is_deleted === 1) {
-      throw new Error('Category không tồn tại');
+      throw new ErrorResponse(404, 'Category không tồn tại');
     }
 
     return ProductRepository.findByCategory(categoryId, options);
@@ -47,21 +57,27 @@ class ProductService {
 
   /**
    * Create new product
+   * CHỈ TẠO: name, category_id, status, description, images
    */
   async createProduct(data) {
-    // Validate category exists
+    // 1. Validate category exists
     const category = await CategoryRepository.findById(data.category_id);
     if (!category || category.is_deleted === 1) {
-      throw new Error('Category không tồn tại');
+      throw new ErrorResponse(404, 'Category không tồn tại');
     }
 
-    // Check if product name already exists
+    // 2. Check if product name already exists
     const existingProduct = await ProductRepository.findByName(data.name);
     if (existingProduct) {
-      throw new Error('Tên product đã tồn tại');
+      throw new ErrorResponse(409, 'Tên product đã tồn tại');
     }
 
-    // Create product
+    // 3. Validate images
+    if (data.images && data.images.length > 5) {
+      throw new ErrorResponse(400, 'Tối đa chỉ được upload 5 ảnh');
+    }
+
+    // 4. Create product (KHÔNG có sizes)
     const product = await ProductRepository.create({
       name: data.name.trim(),
       category_id: data.category_id,
@@ -69,42 +85,50 @@ class ProductService {
       description: data.description || null,
     });
 
-    // Create product images if provided
+    // 5. Create product images
+    // ẢNH ĐẦU TIÊN LÀ THUMBNAIL
     if (data.images && Array.isArray(data.images)) {
-      for (const image of data.images) {
+      for (let i = 0; i < data.images.length; i++) {
         await ProductImageRepository.create({
           product_id: product.id,
-          image_url: image.url,
-          isThumbnail: image.isThumbnail ? 1 : 0,
+          image_url: data.images[i].url,
+          isThumbnail: i === 0 ? 1 : 0, // Ảnh đầu tiên là thumbnail
         });
       }
     }
 
-    // Return complete product with details
     return this.getProductById(product.id);
   }
 
   /**
    * Update product
+   * CÓ THỂ: name, category_id, status, description, sizes, images
    */
   async updateProduct(id, data) {
-    // ===== 1. Check tồn tại =====
+    // 1. Check if product exists
     const existingProduct = await ProductRepository.findById(id);
     if (!existingProduct) {
-      throw new Error('Product không tồn tại');
+      throw new ErrorResponse(404, 'Product không tồn tại');
     }
 
-    // ===== 2. Update basic info =====
+    // 2. Prepare update data for product table
     const updateData = {};
 
     if (data.name !== undefined) {
+      // Check duplicate name
+      const duplicateProduct = await ProductRepository.findByName(
+        data.name.trim(),
+      );
+      if (duplicateProduct && duplicateProduct.id !== parseInt(id)) {
+        throw new ErrorResponse(409, 'Tên product đã tồn tại');
+      }
       updateData.name = data.name.trim();
     }
 
     if (data.category_id !== undefined) {
       const category = await CategoryRepository.findById(data.category_id);
-      if (!category) {
-        throw new Error('Category không tồn tại');
+      if (!category || category.is_deleted === 1) {
+        throw new ErrorResponse(404, 'Category không tồn tại');
       }
       updateData.category_id = data.category_id;
     }
@@ -117,74 +141,134 @@ class ProductService {
       updateData.description = data.description;
     }
 
+    // Update product basic info
     if (Object.keys(updateData).length > 0) {
       await ProductRepository.update(id, updateData);
     }
 
-    // ===== 3. Delete sizes =====
+    // 3. Handle SIZE updates (CHỈ TRONG UPDATE)
+    if (data.sizes && Array.isArray(data.sizes)) {
+      const validSizes = ['S', 'M', 'L'];
+
+      // Validate sizes
+      for (const sizeItem of data.sizes) {
+        if (!validSizes.includes(sizeItem.size.toUpperCase())) {
+          throw new ErrorResponse(400, `Size "${sizeItem.size}" không hợp lệ`);
+        }
+
+        if (!sizeItem.price || sizeItem.price <= 0) {
+          throw new ErrorResponse(
+            400,
+            `Giá cho size ${sizeItem.size} phải là số dương`,
+          );
+        }
+      }
+
+      // Check duplicate sizes
+      const sizes = data.sizes.map((s) => s.size);
+      const uniqueSizes = [...new Set(sizes)];
+      if (sizes.length !== uniqueSizes.length) {
+       throw new ErrorResponse(400, 'Không được có size trùng lặp');
+      }
+
+      // Max 3 sizes
+      if (data.sizes.length > 3) {
+         throw new ErrorResponse(400, 'Tối đa chỉ có 3 loại size (S, M, L)');
+      }
+
+      // Get list of sizes to keep
+      const incomingSizes = data.sizes.map((s) => s.size);
+
+      // Soft delete sizes not in the incoming list
+      await ProductSizeRepository.softDeleteNotIn(id, incomingSizes);
+
+      // Upsert sizes (insert new or update existing)
+      for (const sizeItem of data.sizes) {
+        await ProductSizeRepository.upsert(id, sizeItem.size, sizeItem.price);
+      }
+    }
+
+    // 4. Handle DELETE specific sizes (deleteSizeIds)
     if (data.deleteSizeIds && Array.isArray(data.deleteSizeIds)) {
       for (const sizeId of data.deleteSizeIds) {
         await ProductSizeRepository.softDelete(sizeId);
       }
     }
 
-    // ===== 4. Sync sizes (DELETE dư + UPSERT) =====
-    // ===== 4. Sync sizes =====
-    if (data.sizes && Array.isArray(data.sizes)) {
-      const incomingSizes = data.sizes.map((s) => s.size);
+    //  HANDLE IMAGE UPDATES
+    let thumbnailDeleted = false;
 
-      // 4.1 Soft delete size không còn
-      await ProductSizeRepository.softDeleteNotIn(id, incomingSizes);
-
-      // 4.2 Upsert
-      for (const size of data.sizes) {
-        await ProductSizeRepository.upsert(id, size.size, size.price);
-      }
-    }
-
-    // ===== 5. Delete images =====
+    // Delete specific images
     if (data.deleteImageIds && Array.isArray(data.deleteImageIds)) {
       for (const imageId of data.deleteImageIds) {
         const image = await ProductImageRepository.findById(imageId);
-        if (!image) continue;
+        if (!image) {
+          continue;
+        }
 
+        // Kiểm tra xem ảnh bị xóa có phải thumbnail không
+        if (image.isThumbnail === 1) {
+          thumbnailDeleted = true;
+        }
+
+        // Soft delete image record
         await ProductImageRepository.softDelete(imageId);
 
-        const publicId = extractPublicId(image.image_url);
+        // Delete from Cloudinary
+        const publicId = this.extractPublicId(image.image_url);
         if (publicId) {
-          await cloudinary.uploader.destroy(publicId);
+          try {
+            await cloudinary.uploader.destroy(publicId);
+          } catch (err) {
+            console.error('Failed to delete from Cloudinary:', err);
+          }
         }
       }
     }
 
-    // ===== 6. Add new images =====
+    //Get remaining images AFTER deletion
+    const remainingImages = await ProductImageRepository.findByProductId(id);
+
+    // Add new images
     if (data.newImages && Array.isArray(data.newImages)) {
-      for (const image of data.newImages) {
+      // Nếu KHÔNG CÒN ảnh nào → ảnh mới đầu tiên là thumbnail
+      const shouldSetFirstAsThumbnail = remainingImages.length === 0;
+
+      for (let i = 0; i < data.newImages.length; i++) {
         await ProductImageRepository.create({
           product_id: id,
-          image_url: image.url,
-          isThumbnail: 0,
+          image_url: data.newImages[i].url,
+          isThumbnail: shouldSetFirstAsThumbnail && i === 0 ? 1 : 0,
         });
       }
     }
 
-    return await this.getProductById(id);
+    // Nếu thumbnail bị xóa VÀ còn ảnh cũ
+    if (thumbnailDeleted && remainingImages.length > 0) {
+      // Set ảnh còn lại đầu tiên (id nhỏ nhất) làm thumbnail
+      const firstRemainingImage = remainingImages.sort(
+        (a, b) => a.id - b.id,
+      )[0];
+      await ProductImageRepository.setThumbnail(id, firstRemainingImage.id);
+    }
+
+    return this.getProductById(id);
   }
 
   /**
    * Delete product (soft delete)
    */
   async deleteProduct(id) {
-    // Check if product exists
     await this.getProductById(id);
 
-    // Soft delete product
-    const deleted = await ProductRepository.update(id, {
-      status: 'unavailable',
-    });
+    // const deleted = await ProductRepository.update(id, {
+    //   status: 'unavailable',
+    // });
+
+    const deleted = await ProductRepository.softDelete(id);
 
     if (!deleted) {
-      throw new Error('Xóa product thất bại');
+      throw new ErrorResponse(500, 'Xóa product thất bại');
     }
 
     return true;
@@ -234,17 +318,14 @@ class ProductService {
     const product = await ProductRepository.findById(id);
 
     if (!product) {
-      throw new Error('Product không tồn tại');
+       throw new ErrorResponse(404, 'Product không tồn tại');
     }
 
     if (product.status === 'available') {
-      throw new Error('Product chưa bị xóa');
+      throw new ErrorResponse(400, 'Product chưa bị xóa');
     }
 
-    // Restore by setting status = available
-    const restored = await ProductRepository.update(id, {
-      status: 'available',
-    });
+    await ProductRepository.update(id, { status: 'available' });
 
     return this.getProductById(id);
   }

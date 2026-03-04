@@ -1,4 +1,5 @@
 const CategoryRepository = require('../repositories/CategoryRepository');
+const ErrorResponse = require('../utils/ErrorResponse');
 
 class CategoryService {
   /**
@@ -21,8 +22,12 @@ class CategoryService {
   async getCategoryById(id) {
     const category = await CategoryRepository.findById(id);
 
+    if (!category) {
+      throw new ErrorResponse(404, 'Category không tồn tại');
+    }
+
     if (category.is_deleted === 1) {
-      throw new Error('Category đã bị xóa');
+      throw new ErrorResponse(404, 'Category đã bị xóa');
     }
 
     return category;
@@ -35,11 +40,11 @@ class CategoryService {
     const category = await CategoryRepository.findByIdWithProductCount(id);
 
     if (!category) {
-      throw new Error('Category không tồn tại');
+      throw new ErrorResponse(404, 'Category không tồn tại');
     }
 
     if (category.is_deleted === 1) {
-      throw new Error('Category đã bị xóa');
+      throw new ErrorResponse(404, 'Category đã bị xóa');
     }
 
     return category;
@@ -53,7 +58,7 @@ class CategoryService {
     const existingCategory = await CategoryRepository.findByName(data.name);
 
     if (existingCategory) {
-      throw new Error('Tên category đã tồn tại');
+      throw new ErrorResponse(409, 'Tên category đã tồn tại');
     }
 
     // Create category
@@ -77,7 +82,7 @@ class CategoryService {
       const existingCategory = await CategoryRepository.findByName(data.name);
 
       if (existingCategory && existingCategory.id !== parseInt(id)) {
-        throw new Error('Tên category đã tồn tại');
+        throw new ErrorResponse(409, 'Tên category đã tồn tại');
       }
     }
 
@@ -107,14 +112,14 @@ class CategoryService {
     const hasProducts = await CategoryRepository.hasProducts(id);
 
     if (hasProducts) {
-      throw new Error('Không thể xóa category vì có sản phẩm đang sử dụng');
+      throw new ErrorResponse(400, 'Không thể xóa category vì có sản phẩm đang sử dụng');
     }
 
     // Soft delete
     const deleted = await CategoryRepository.softDelete(id);
 
     if (!deleted) {
-      throw new Error('Xóa category thất bại');
+      throw new ErrorResponse(500, 'Xóa category thất bại');
     }
 
     return true;
@@ -155,17 +160,17 @@ class CategoryService {
     const category = await CategoryRepository.findById(id);
 
     if (!category) {
-      throw new Error('Category không tồn tại');
+      throw new ErrorResponse(404, 'Category không tồn tại');
     }
 
     if (category.is_deleted === 0) {
-      throw new Error('Category chưa bị xóa');
+      throw new ErrorResponse(400, 'Category chưa bị xóa');
     }
 
     // Check if restoring would create duplicate name
     const existingCategory = await CategoryRepository.findByName(category.name);
     if (existingCategory && existingCategory.id !== category.id) {
-      throw new Error('Không thể khôi phục vì tên category đã tồn tại');
+      throw new ErrorResponse(409, 'Không thể khôi phục vì tên category đã tồn tại');
     }
 
     // Restore by setting is_deleted = 0

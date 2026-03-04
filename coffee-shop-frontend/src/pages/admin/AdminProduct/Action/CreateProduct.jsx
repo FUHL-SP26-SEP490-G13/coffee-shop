@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import productService from '../../../../services/productService';
 import categoryService from '../../../../services/categoryService';
 
@@ -30,6 +31,7 @@ export default function CreateProduct({ open, onClose, onSuccess }) {
 
   const [categories, setCategories] = useState([]);
   const [loadingCategories, setLoadingCategories] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   // ================================
   // LOAD CATEGORIES
@@ -39,13 +41,11 @@ export default function CreateProduct({ open, onClose, onSuccess }) {
       try {
         setLoadingCategories(true);
         const res = await categoryService.getAll();
-
-        // lọc category chưa bị xóa
         const activeCategories = res.data.filter((c) => c.is_deleted === 0);
-
         setCategories(activeCategories);
       } catch (err) {
         console.error('Load categories error:', err);
+        toast.error('Không thể tải danh mục');
       } finally {
         setLoadingCategories(false);
       }
@@ -57,15 +57,20 @@ export default function CreateProduct({ open, onClose, onSuccess }) {
   }, [open]);
 
   // ================================
-  // Upload multiple images
+  // Upload multiple images (max 5)
   // ================================
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files);
 
+    // Check total images
+    if (images.length + files.length > 5) {
+      toast.error('Tối đa chỉ được upload 5 ảnh');
+      return;
+    }
+
     setImages((prev) => [...prev, ...files]);
 
     const newPreviews = files.map((file) => URL.createObjectURL(file));
-
     setPreviews((prev) => [...prev, ...newPreviews]);
   };
 
@@ -87,24 +92,43 @@ export default function CreateProduct({ open, onClose, onSuccess }) {
   };
 
   const handleSubmit = async () => {
-    try {
-      const formData = new FormData();
+    // Validation
+    if (!name.trim()) {
+      toast.error('Vui lòng nhập tên sản phẩm');
+      return;
+    }
 
-      formData.append('name', name);
+    if (!categoryId) {
+      toast.error('Vui lòng chọn danh mục');
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+
+      const formData = new FormData();
+      formData.append('name', name.trim());
       formData.append('category_id', categoryId);
       formData.append('status', status);
-      formData.append('description', description);
+      formData.append('description', description.trim());
 
+      // Append images (ảnh đầu tiên sẽ là thumbnail)
       images.forEach((img) => {
         formData.append('images', img);
       });
 
       await productService.create(formData);
 
-      onSuccess(); // chỉ cần gọi reload
-      resetForm(); // reset form
+      toast.success('Tạo sản phẩm thành công');
+      onSuccess();
+      resetForm();
     } catch (err) {
       console.error('Create product error:', err);
+      const errorMsg =
+        err.response?.data?.message || 'Tạo sản phẩm thất bại';
+      toast.error(errorMsg);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -115,43 +139,53 @@ export default function CreateProduct({ open, onClose, onSuccess }) {
         if (!isOpen) onClose();
       }}
     >
-      <DialogContent className='max-w-2xl'>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle >Thêm đồ uống</DialogTitle>
+          <DialogTitle>Thêm sản phẩm mới</DialogTitle>
         </DialogHeader>
 
-        <div className='space-y-6'>
+        <div className="space-y-6">
           {/* Tên + Trạng thái */}
-          <div className='grid grid-cols-2 gap-4'>
-            <div className='space-y-2'>
-              <label className='text-sm font-medium'>* Tên món</label>
-              <Input value={name} onChange={(e) => setName(e.target.value)} />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">
+                <span className="text-red-500">* </span>Tên sản phẩm
+              </label>
+              <Input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="VD: Cà phê sữa đá"
+              />
             </div>
 
-            <div className='space-y-2'>
-              <label className='text-sm font-medium'>* Trạng thái</label>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">
+                <span className="text-red-500">* </span>Trạng thái
+              </label>
               <Select value={status} onValueChange={(val) => setStatus(val)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value='available'>Có sẵn</SelectItem>
-                  <SelectItem value='unavailable'>Ngừng bán</SelectItem>
+                  <SelectItem value="available">Đang bán</SelectItem>
+                  <SelectItem value="unavailable">Ngừng bán</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
 
           {/* Danh mục */}
-          <div className='space-y-2'>
-            <label className='text-sm font-medium'>* Danh mục</label>
+          <div className="space-y-2 w-56">
+            <label className="text-sm font-medium">
+              <span className="text-red-500">* </span>Danh mục
+            </label>
 
             <Select
               value={categoryId}
               onValueChange={(val) => setCategoryId(val)}
               disabled={loadingCategories}
             >
-              <SelectTrigger className='w-full'>
+              <SelectTrigger className="w-full">
                 <SelectValue
                   placeholder={
                     loadingCategories ? 'Đang tải danh mục...' : 'Chọn danh mục'
@@ -159,7 +193,7 @@ export default function CreateProduct({ open, onClose, onSuccess }) {
                 />
               </SelectTrigger>
 
-              <SelectContent className='max-h-60 overflow-y-auto'>
+              <SelectContent className="max-h-60 overflow-y-auto">
                 {categories.map((c) => (
                   <SelectItem key={c.id} value={String(c.id)}>
                     {c.name}
@@ -170,29 +204,43 @@ export default function CreateProduct({ open, onClose, onSuccess }) {
           </div>
 
           {/* Upload ảnh */}
-          <div className='space-y-3'>
-            <label className='text-sm font-medium'>Hình ảnh</label>
+          <div className="space-y-3">
+            <label className="text-sm font-medium">
+              Hình ảnh <span className="text-muted-foreground">(Tối đa 5)</span>
+            </label>
 
             <Input
-              type='file'
+              type="file"
               multiple
-              accept='image/*'
+              accept="image/*"
               onChange={handleImageChange}
+              disabled={images.length >= 5}
             />
 
+            {images.length >= 5 && (
+              <p className="text-xs text-amber-600">
+                Đã đạt giới hạn 5 ảnh
+              </p>
+            )}
+
             {previews.length > 0 && (
-              <div className='flex flex-wrap gap-3'>
+              <div className="flex flex-wrap gap-3">
                 {previews.map((src, index) => (
-                  <div key={index} className='relative w-24 h-24'>
+                  <div key={index} className="relative w-24 h-24">
                     <img
                       src={src}
-                      alt='preview'
-                      className='w-full h-full object-cover rounded-lg border'
+                      alt="preview"
+                      className="w-full h-full object-cover rounded-lg border"
                     />
+                    {index === 0 && (
+                      <span className="absolute top-0 left-0 bg-blue-500 text-white text-[10px] px-1.5 py-0.5 rounded-br">
+                        Thumbnail
+                      </span>
+                    )}
                     <button
-                      type='button'
+                      type="button"
                       onClick={() => handleRemoveImage(index)}
-                      className='absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center'
+                      className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center"
                     >
                       ×
                     </button>
@@ -203,20 +251,30 @@ export default function CreateProduct({ open, onClose, onSuccess }) {
           </div>
 
           {/* Mô tả */}
-          <div className='space-y-2'>
-            <label className='text-sm font-medium'>Mô tả</label>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Mô tả</label>
             <Textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
+              placeholder="Mô tả ngắn về sản phẩm..."
+              rows={3}
             />
           </div>
 
+
+
           {/* Buttons */}
-          <div className='flex justify-end gap-3 pt-2'>
-            <Button variant='outline' onClick={onClose}>
+          <div className="flex justify-end gap-3 pt-2">
+            <Button variant="outline" onClick={onClose} disabled={submitting}>
               Hủy
             </Button>
-            <Button onClick={handleSubmit} className={'cursor-pointer'}>Thêm</Button>
+            <Button
+              onClick={handleSubmit}
+              disabled={submitting}
+              className="cursor-pointer"
+            >
+              {submitting ? 'Đang tạo...' : 'Tạo sản phẩm'}
+            </Button>
           </div>
         </div>
       </DialogContent>
