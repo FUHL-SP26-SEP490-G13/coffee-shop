@@ -3,6 +3,7 @@ import { orders } from '../../lib/mockData';
 import { Badge } from '../../components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
+import { ShoppingBag } from 'lucide-react';
 
 export default function AdminOrders() {
   const [statusFilter, setStatusFilter] = useState('all');
@@ -27,14 +28,14 @@ export default function AdminOrders() {
   };
 
   return (
-    <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-2xl mb-1">Orders</h2>
-          <p className="text-sm text-muted-foreground">Manage all customer orders</p>
+    <div className="p-4 sm:p-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-6 gap-4">
+        <div className="flex items-center gap-3">
+          <ShoppingBag className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
+          <h1 className="text-xl sm:text-2xl font-semibold">Quản lý đơn hàng</h1>
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-48">
+          <SelectTrigger className="w-full sm:w-48">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -47,8 +48,9 @@ export default function AdminOrders() {
         </Select>
       </div>
 
-      <div className="bg-card rounded-xl border border-border">
-        <Table>
+      <div className="bg-card rounded-xl border border-border overflow-hidden">
+        <div className="overflow-x-auto">
+          <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Order ID</TableHead>
@@ -94,6 +96,7 @@ export default function AdminOrders() {
             ))}
           </TableBody>
         </Table>
+        </div>
       </div>
     </div>
   );

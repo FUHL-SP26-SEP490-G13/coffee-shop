@@ -213,7 +213,7 @@ export default function UpdateProduct({ open, onClose, onSuccess, product }) {
     } catch (err) {
       console.error('Update product error:', err);
       const errorMsg =
-        err.response?.data?.message || 'Cập nhật sản phẩm thất bại';
+        err.response?.data?.errors[0].message || 'Cập nhật sản phẩm thất bại';
       toast.error(errorMsg);
     } finally {
       setSubmitting(false);

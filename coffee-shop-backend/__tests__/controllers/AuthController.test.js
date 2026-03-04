@@ -28,6 +28,7 @@ describe('AuthController - Login', () => {
     response.error = jest.fn();
   });
 
+  // method: login
   describe('login', () => {
     it('AuthController - Login - TC-1: should login successfully with valid credentials', async () => {
       console.log('\n' + '='.repeat(50));
@@ -244,6 +245,133 @@ describe('AuthController - Login', () => {
       console.log('🎯 OUTPUT REALITY: next() called with error -', mockError.message);
 
       // Assert
+      expect(next).toHaveBeenCalledWith(mockError);
+      expect(response.success).not.toHaveBeenCalled();
+    });
+  });
+
+  // method: register
+  describe('register', () => {
+    it('AuthController - REGISTER - TC-1: should register successfully with valid payload', async () => {
+      console.log('\n' + '='.repeat(50));
+      console.log('AuthController - REGISTER - TC-1: Controller xử lý register thành công');
+      console.log('='.repeat(50));
+
+      // INPUT
+      const input = {
+        first_name: 'Test',
+        last_name: 'User',
+        email: 'newuser@example.com',
+        phone: '0912345678',
+        username: 'newuser',
+        password: 'Password123!',
+      };
+      console.log('\n📝 INPUT:', JSON.stringify(input, null, 2));
+
+      // Arrange
+      const mockResult = {
+        user: {
+          id: 100,
+          first_name: 'Test',
+          last_name: 'User',
+          email: 'newuser@example.com',
+          username: 'newuser',
+        },
+        token: 'mock-access-token',
+        refreshToken: 'mock-refresh-token',
+      };
+
+      req.body = input;
+      AuthService.register.mockResolvedValue(mockResult);
+
+      // OUTPUT EXPECT
+      console.log('✅ OUTPUT EXPECT:', JSON.stringify(mockResult, null, 2));
+
+      // Act
+      await AuthController.register(req, res, next);
+
+      // OUTPUT REALITY
+      console.log('🎯 OUTPUT REALITY: response.success called with result and status 201');
+
+      // Assert
+      expect(AuthService.register).toHaveBeenCalledWith(input);
+      expect(response.success).toHaveBeenCalledWith(
+        res,
+        mockResult,
+        'Đăng ký thành công',
+        201
+      );
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    it('AuthController - REGISTER - TC-2: should call next when service throws duplicate email error', async () => {
+      console.log('\n' + '='.repeat(50));
+      console.log('AuthController - REGISTER - TC-2: Controller xử lý lỗi email đã tồn tại');
+      console.log('='.repeat(50));
+
+      // INPUT
+      const input = {
+        first_name: 'Test',
+        last_name: 'User',
+        email: 'existing@example.com',
+        phone: '0912345678',
+        username: 'newuser',
+        password: 'Password123!',
+      };
+      console.log('\n📝 INPUT:', JSON.stringify(input, null, 2));
+
+      // Arrange
+      const mockError = new Error('Email đã được sử dụng');
+      req.body = input;
+      AuthService.register.mockRejectedValue(mockError);
+
+      // OUTPUT EXPECT
+      console.log('✅ OUTPUT EXPECT: Error -', mockError.message);
+
+      // Act
+      await AuthController.register(req, res, next);
+
+      // OUTPUT REALITY
+      console.log('🎯 OUTPUT REALITY: next() called with error -', mockError.message);
+
+      // Assert
+      expect(AuthService.register).toHaveBeenCalledWith(input);
+      expect(next).toHaveBeenCalledWith(mockError);
+      expect(response.success).not.toHaveBeenCalled();
+    });
+
+    it('AuthController - REGISTER - TC-3: should call next for unexpected service error', async () => {
+      console.log('\n' + '='.repeat(50));
+      console.log('AuthController - REGISTER - TC-3: Controller xử lý lỗi hệ thống khi register');
+      console.log('='.repeat(50));
+
+      // INPUT
+      const input = {
+        first_name: 'Test',
+        last_name: 'User',
+        email: 'newuser@example.com',
+        phone: '0912345678',
+        username: 'newuser',
+        password: 'Password123!',
+      };
+      console.log('\n📝 INPUT:', JSON.stringify(input, null, 2));
+
+      // Arrange
+      const mockError = new Error('Database connection failed');
+      req.body = input;
+      AuthService.register.mockRejectedValue(mockError);
+
+      // OUTPUT EXPECT
+      console.log('✅ OUTPUT EXPECT: Error -', mockError.message);
+
+      // Act
+      await AuthController.register(req, res, next);
+
+      // OUTPUT REALITY
+      console.log('🎯 OUTPUT REALITY: next() called with error -', mockError.message);
+
+      // Assert
+      expect(AuthService.register).toHaveBeenCalledWith(input);
       expect(next).toHaveBeenCalledWith(mockError);
       expect(response.success).not.toHaveBeenCalled();
     });

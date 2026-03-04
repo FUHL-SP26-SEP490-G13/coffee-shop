@@ -1,5 +1,6 @@
 const UserRepository = require('../repositories/UserRepository');
-const { hashPassword } = require('../utils/helpers');
+const { hashPassword, generateStrongPassword, comparePassword } = require('../utils/helpers');
+const EmailService = require('./EmailService');
 const { ROLES } = require('../config/constants');
 
 class UserService {
@@ -117,6 +118,65 @@ class UserService {
   }
 
   /**
+   * Create new staff or barista (admin only)
+   */
+  async createStaffUser(data) {
+    const roleId = parseInt(data.role_id, 10);
+    if (![ROLES.STAFF, ROLES.BARISTA].includes(roleId)) {
+      throw new Error('Role không hợp lệ');
+    }
+
+    const existingEmail = await UserRepository.findByEmail(data.email);
+    if (existingEmail) {
+      throw new Error('Email đã được sử dụng');
+    }
+
+    const existingPhone = await UserRepository.findByPhone(data.phone);
+    if (existingPhone) {
+      throw new Error('Số điện thoại đã được sử dụng');
+    }
+
+    const existingUsername = await UserRepository.findByUsername(data.username);
+    if (existingUsername) {
+      throw new Error('Username đã được sử dụng');
+    }
+
+    const tempPassword = generateStrongPassword(12);
+    const hashedPassword = await hashPassword(tempPassword);
+
+    const user = await UserRepository.create({
+      phone: data.phone,
+      username: data.username,
+      password: hashedPassword,
+      email: data.email,
+      first_name: data.first_name,
+      last_name: data.last_name,
+      gender: data.gender ?? null,
+      dob: data.dob,
+      role_id: roleId,
+      isActive: 1,
+      isVerified: 1,
+    });
+
+    delete user.password;
+
+    const roleLabel = roleId === ROLES.BARISTA ? 'Pha chế' : 'Phục vụ';
+    let emailSent = true;
+    try {
+      await EmailService.sendStaffAccountEmail(
+        user.email,
+        `${user.first_name} ${user.last_name}`.trim(),
+        tempPassword,
+        roleLabel
+      );
+    } catch (error) {
+      emailSent = false;
+    }
+
+    return { user, emailSent };
+  }
+
+  /**
    * Update user
    */
   async updateUser(id, data) {
@@ -166,9 +226,40 @@ class UserService {
   }
 
   /**
+   * Update user profile (restricted fields for self-update)
+   */
+  async updateProfile(userId, data) {
+    // Check if user exists
+    const user = await UserRepository.findById(userId);
+
+    if (!user) {
+      throw new Error('User không tồn tại');
+    }
+
+    // Update profile using repository method with allowed fields only
+    const updatedUser = await UserRepository.updateProfile(userId, data);
+
+    // Remove password from response
+    delete updatedUser.password;
+
+    return updatedUser;
+  }
+
+  /**
    * Deactivate user
    */
-  async deactivateUser(id) {
+  async deactivateUser(id, adminId, password) {
+    // Verify admin password
+    const admin = await UserRepository.findById(adminId);
+    if (!admin) {
+      throw new Error('Admin không tồn tại');
+    }
+
+    const isPasswordValid = await comparePassword(password, admin.password);
+    if (!isPasswordValid) {
+      throw new Error('Mật khẩu không chính xác');
+    }
+
     // Check if user exists
     const user = await UserRepository.findById(id);
 
@@ -193,7 +284,18 @@ class UserService {
   /**
    * Activate user
    */
-  async activateUser(id) {
+  async activateUser(id, adminId, password) {
+    // Verify admin password
+    const admin = await UserRepository.findById(adminId);
+    if (!admin) {
+      throw new Error('Admin không tồn tại');
+    }
+
+    const isPasswordValid = await comparePassword(password, admin.password);
+    if (!isPasswordValid) {
+      throw new Error('Mật khẩu không chính xác');
+    }
+
     // Check if user exists
     const user = await UserRepository.findById(id);
 

@@ -47,6 +47,11 @@ const authenticationService = {
     return axiosClient.get(API_ENDPOINTS.AUTH.PROFILE);
   },
 
+  // Cập nhật thông tin profile
+  updateProfile(data) {
+    return axiosClient.put(API_ENDPOINTS.AUTH.PROFILE, data);
+  },
+
   // Đổi mật khẩu
   changePassword(payload) {
     return axiosClient.post(API_ENDPOINTS.AUTH.CHANGE_PASSWORD, payload);

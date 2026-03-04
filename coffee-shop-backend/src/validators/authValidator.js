@@ -5,11 +5,11 @@ const Joi = require('joi');
  */
 const registerSchema = Joi.object({
   phone: Joi.string()
-    .pattern(/^[0-9]{10,11}$/)
+    .pattern(/^(\+84|0)[0-9]{9,11}$/)
     .required()
     .messages({
       'string.empty': 'Số điện thoại không được để trống',
-      'string.pattern.base': 'Số điện thoại phải có 10-11 chữ số',
+      'string.pattern.base': 'Số điện thoại không hợp lệ (0xxx hoặc +84xxx)',
       'any.required': 'Số điện thoại là bắt buộc',
     }),
 
@@ -70,6 +70,63 @@ const registerSchema = Joi.object({
   role_id: Joi.number().integer().valid(1, 2, 3, 4).optional().messages({
     'number.base': 'Role ID phải là số',
     'any.only': 'Role ID không hợp lệ',
+  }),
+});
+
+/**
+ * Validation schema for staff creation (admin)
+ */
+const staffCreateSchema = Joi.object({
+  phone: Joi.string()
+    .pattern(/^[0-9]{10,11}$/)
+    .required()
+    .messages({
+      'string.empty': 'Số điện thoại không được để trống',
+      'string.pattern.base': 'Số điện thoại phải có 10-11 chữ số',
+      'any.required': 'Số điện thoại là bắt buộc',
+    }),
+
+  username: Joi.string().min(3).max(50).alphanum().required().messages({
+    'string.empty': 'Username không được để trống',
+    'string.min': 'Username phải có ít nhất 3 ký tự',
+    'string.max': 'Username không được vượt quá 50 ký tự',
+    'string.alphanum': 'Username chỉ được chứa chữ và số',
+    'any.required': 'Username là bắt buộc',
+  }),
+
+  email: Joi.string().email().required().messages({
+    'string.empty': 'Email không được để trống',
+    'string.email': 'Email không hợp lệ',
+    'any.required': 'Email là bắt buộc',
+  }),
+
+  first_name: Joi.string().min(1).max(30).required().messages({
+    'string.empty': 'Họ không được để trống',
+    'string.max': 'Họ không được vượt quá 30 ký tự',
+    'any.required': 'Họ là bắt buộc',
+  }),
+
+  last_name: Joi.string().min(1).max(30).required().messages({
+    'string.empty': 'Tên không được để trống',
+    'string.max': 'Tên không được vượt quá 30 ký tự',
+    'any.required': 'Tên là bắt buộc',
+  }),
+
+  gender: Joi.number().integer().valid(0, 1).optional().allow(null).messages({
+    'number.base': 'Giới tính phải là số',
+    'any.only': 'Giới tính không hợp lệ (0: Nữ, 1: Nam)',
+  }),
+
+  dob: Joi.date().iso().max('now').required().messages({
+    'date.base': 'Ngày sinh không hợp lệ',
+    'date.max': 'Ngày sinh không được là tương lai',
+    'any.required': 'Ngày sinh là bắt buộc',
+  }),
+
+  role_id: Joi.number().integer().valid(2, 3).required().messages({
+    'number.base': 'Role ID phải là số',
+    'any.only': 'Role ID không hợp lệ',
+    'any.required': 'Role ID là bắt buộc',
   }),
 });
 
@@ -217,6 +274,7 @@ const resetPasswordWithOtpSchema = Joi.object({
 
 module.exports = {
   registerSchema,
+  staffCreateSchema,
   loginSchema,
   changePasswordSchema,
   updateProfileSchema,
