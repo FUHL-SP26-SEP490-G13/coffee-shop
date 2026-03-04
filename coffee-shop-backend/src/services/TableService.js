@@ -5,15 +5,23 @@ class TableService {
   /**
    * Get all tables with area information
    */
-  async getAllTables() {
-    const query = `
+  async getAllTables(options = {}) {
+    let query = `
       SELECT t.*, a.name as area_name 
       FROM tables t
       JOIN area a ON t.area_id = a.id
       WHERE t.is_deleted = 0
-      ORDER BY a.name ASC, t.table_number ASC
     `;
-    const [rows] = await TableRepository.db.query(query);
+    const params = [];
+    
+    if (options.status && options.status !== 'all') {
+      query += ` AND t.status = ?`;
+      params.push(options.status);
+    }
+    
+    query += ` ORDER BY a.name ASC, t.table_number ASC`;
+    
+    const [rows] = await TableRepository.db.query(query, params);
     return rows;
   }
 
@@ -47,7 +55,7 @@ class TableService {
     return await TableRepository.create({
       table_number: data.table_number,
       area_id: data.area_id,
-      status: data.status || 'available',
+      status: 'available',
       is_deleted: 0
     });
   }

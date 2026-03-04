@@ -106,22 +106,24 @@ export default function TableModal({ isOpen, onClose, table, areas, onSuccess })
             />
           </div>
 
-          <div className="grid gap-2">
-            <Label htmlFor="status">Trạng thái</Label>
-            <Select 
-              value={formData.status} 
-              onValueChange={(val) => setFormData({ ...formData, status: val })}
-            >
-              <SelectTrigger id="status">
-                <SelectValue placeholder="Chọn trạng thái" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="available">Trống (Available)</SelectItem>
-                <SelectItem value="occupied">Có khách (Occupied)</SelectItem>
-                <SelectItem value="reserved">Đã đặt (Reserved)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          {table && (
+            <div className="grid gap-2">
+              <Label htmlFor="status">Trạng thái</Label>
+              <Select 
+                value={formData.status} 
+                onValueChange={(val) => setFormData({ ...formData, status: val })}
+              >
+                <SelectTrigger id="status">
+                  <SelectValue placeholder="Chọn trạng thái" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="available">Trống (Available)</SelectItem>
+                  <SelectItem value="occupied">Có khách (Occupied)</SelectItem>
+                  <SelectItem value="reserved">Đã đặt (Reserved)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           <DialogFooter className="pt-4">
             <Button type="button" variant="outline" onClick={onClose} disabled={loading}>

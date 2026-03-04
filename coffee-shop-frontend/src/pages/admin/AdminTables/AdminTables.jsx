@@ -38,6 +38,7 @@ export default function AdminTables() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedAreaId, setSelectedAreaId] = useState("all");
+  const [selectedStatus, setSelectedStatus] = useState("all");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedTable, setSelectedTable] = useState(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -51,7 +52,7 @@ export default function AdminTables() {
     try {
       setLoading(true);
       const [tablesRes, areasRes] = await Promise.all([
-        tableService.getAll(),
+        tableService.getAll({ status: selectedStatus }),
         areaService.getAll()
       ]);
       setTables(tablesRes.data || []);
@@ -65,7 +66,7 @@ export default function AdminTables() {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [selectedStatus]);
 
   const handleAdd = () => {
     setSelectedTable(null);
@@ -151,6 +152,18 @@ export default function AdminTables() {
                   {area.name}
                 </SelectItem>
               ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+            <SelectTrigger className="h-10 w-full md:w-64 bg-white/50">
+              <SelectValue placeholder="Chọn trạng thái" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tất cả trạng thái</SelectItem>
+              <SelectItem value="available">Trống</SelectItem>
+              <SelectItem value="occupied">Có khách</SelectItem>
+              <SelectItem value="reserved">Đã đặt</SelectItem>
             </SelectContent>
           </Select>
         </Card>

@@ -6,7 +6,8 @@ class TableController {
    */
   async getAllTables(req, res, next) {
     try {
-      const tables = await TableService.getAllTables();
+      const { status } = req.query;
+      const tables = await TableService.getAllTables({ status });
       res.json({
         success: true,
         data: tables,
