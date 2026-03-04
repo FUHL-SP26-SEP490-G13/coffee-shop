@@ -122,9 +122,18 @@ export default function NewsDetailPage() {
             )}
 
             <div
-              className="prose prose-sm md:prose-base max-w-none dark:prose-invert"
-              dangerouslySetInnerHTML={{ __html: news.content }}
-            />
+              className="
+    prose prose-sm max-w-none dark:prose-invert
+    [&_table]:w-full
+    [&_table]:border-collapse
+    [&_th]:border
+    [&_td]:border
+    [&_th]:p-2
+    [&_td]:p-2
+  "
+            >
+              <div dangerouslySetInnerHTML={{ __html: news.content }} />
+            </div>
           </div>
         </article>
         {relatedNews.length > 0 && (
