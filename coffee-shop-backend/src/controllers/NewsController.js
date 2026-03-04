@@ -4,21 +4,17 @@ const response = require("../utils/response");
 class NewsController {
   async create(req, res, next) {
     try {
-      const files =
-        req.files?.map((f) => ({
-          url: f.path,
-          public_id: f.filename || f.public_id || null,
-        })) || [];
+      const file = req.file;
 
       const data = {
         title: req.body.title,
         summary: req.body.summary,
         content: req.body.content,
         tag: req.body.tag || null,
-        thumbnail: files[0]?.url || null,
+        thumbnail: file ? file.path : null,
       };
 
-      const news = await NewsService.createNews(data, req.user.id, files);
+      const news = await NewsService.createNews(data, req.user.id);
 
       return response.success(res, news, "Tạo tin thành công", 201);
     } catch (error) {

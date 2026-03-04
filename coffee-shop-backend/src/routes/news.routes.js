@@ -7,6 +7,8 @@ const { authenticate } = require("../middlewares/auth");
 const { authorize } = require("../middlewares/authorize");
 
 const upload = require("../middlewares/upload");
+const validate = require("../middlewares/validate");
+const { createNewsSchema } = require("../validators/newsValidator");
 
 // =====================
 // PUBLIC ROUTES
@@ -23,7 +25,8 @@ router.post(
   "/",
   authenticate,
   authorize(["manager"]),
-  upload.array("images", 10),
+  upload.single("thumbnail"),
+  validate(createNewsSchema),
   NewsController.create
 );
 
@@ -45,7 +48,8 @@ router.put(
   "/:id",
   authenticate,
   authorize(["manager"]),
-  upload.array("images", 10),
+  upload.single("thumbnail"),
+  validate(createNewsSchema),
   NewsController.update
 );
 

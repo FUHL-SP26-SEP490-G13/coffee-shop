@@ -85,20 +85,6 @@ export default function NewsDetailPage() {
             </div>
           )}
 
-          {/* Gallery nhiều ảnh */}
-          {news.images && news.images.length > 0 && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
-              {news.images.map((img) => (
-                <img
-                  key={img.id}
-                  src={img.image_url}
-                  alt=""
-                  className="w-full h-64 object-cover rounded-lg"
-                />
-              ))}
-            </div>
-          )}
-
           <div className="p-6 md:p-8">
             <h1 className="text-3xl md:text-4xl font-bold mb-4">
               {news.title}
@@ -152,20 +138,6 @@ export default function NewsDetailPage() {
                           alt={item.title}
                           className="w-full h-full object-cover"
                         />
-                      </div>
-                    )}
-
-                    {/* Gallery nhiều ảnh */}
-                    {item.images && item.images.length > 0 && (
-                      <div className="grid grid-cols-2 gap-2 p-3">
-                        {item.images.slice(0, 4).map((img) => (
-                          <img
-                            key={img.id}
-                            src={img.image_url}
-                            alt=""
-                            className="w-full h-24 object-cover rounded-md"
-                          />
-                        ))}
                       </div>
                     )}
 

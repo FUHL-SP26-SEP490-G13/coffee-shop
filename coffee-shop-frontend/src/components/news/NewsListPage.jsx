@@ -36,9 +36,7 @@ export default function NewsListPage() {
       <div className="min-h-screen bg-background">
         <div className="max-w-7xl mx-auto py-12 md:py-16 px-4 md:px-6">
           <div className="mb-12">
-            <h1 className="text-2xl md:text-2xl mb-3">
-              Tin tức & Sự kiện
-            </h1>
+            <h1 className="text-2xl md:text-2xl mb-3">Tin tức & Sự kiện</h1>
             <p className="text-muted-foreground">
               Cập nhật những tin tức mới nhất
             </p>
@@ -67,27 +65,14 @@ export default function NewsListPage() {
               {newsList.map((item) => (
                 <Link key={item.id} to={`/news/${item.slug}`} className="group">
                   <Card className="overflow-hidden hover:shadow-lg transition-all duration-300 h-full border-border">
-                    {item.images && item.images.length > 0 ? (
-                      <div className="grid grid-cols-2 grid-rows-2 gap-1 h-48 overflow-hidden">
-                        {item.images.slice(0, 4).map((img, index) => (
-                          <img
-                            key={index}
-                            src={img}
-                            alt=""
-                            className="w-full h-full object-cover"
-                          />
-                        ))}
+                    {item.thumbnail && (
+                      <div className="relative h-48 overflow-hidden bg-muted">
+                        <img
+                          src={item.thumbnail}
+                          alt={item.title}
+                          className="w-full h-full object-cover"
+                        />
                       </div>
-                    ) : (
-                      item.thumbnail && (
-                        <div className="relative h-48 overflow-hidden bg-muted">
-                          <img
-                            src={item.thumbnail}
-                            alt={item.title}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                      )
                     )}
 
                     <div className="p-5">

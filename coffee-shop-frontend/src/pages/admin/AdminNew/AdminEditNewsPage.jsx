@@ -16,17 +16,17 @@ export default function AdminEditNewsPage() {
     title: "",
     summary: "",
     content: "",
-    tag:"",
+    tag: "",
+    thumbnail: "",
   });
 
   const [loading, setLoading] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(true);
 
-  const [existingImages, setExistingImages] = useState([]);
-  const [deleteIds, setDeleteIds] = useState([]);
-
   const [newPreview, setNewPreview] = useState([]);
   const [newFiles, setNewFiles] = useState([]);
+
+  const [errors, setErrors] = useState({});
 
   useEffect(() => {
     const fetchData = async () => {
@@ -39,9 +39,8 @@ export default function AdminEditNewsPage() {
           summary: data.summary,
           content: data.content,
           tag: data.tag || "",
+          thumbnail: data.thumbnail || "",
         });
-
-        setExistingImages(data.images || []);
       } catch (error) {
         console.error("Lỗi load bài:", error);
       } finally {
@@ -52,6 +51,29 @@ export default function AdminEditNewsPage() {
     fetchData();
   }, [id]);
 
+  const validate = () => {
+    const newErrors = {};
+
+    if (!form.title.trim()) {
+      newErrors.title = "Tiêu đề không được để trống";
+    }
+
+    if (!form.content || form.content.trim() === "") {
+      newErrors.content = "Nội dung không được để trống";
+    }
+
+    if (!form.summary.trim()) {
+      newErrors.summary = "Tóm tắt không được để trống";
+    }
+
+    if (!form.tag.trim()) {
+      newErrors.tag = "Tag không được để trống";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleChange = (e) => {
     setForm({
       ...form,
@@ -60,6 +82,8 @@ export default function AdminEditNewsPage() {
   };
 
   const handleSubmit = async () => {
+    if (!validate()) return;
+
     try {
       setLoading(true);
 
@@ -67,18 +91,29 @@ export default function AdminEditNewsPage() {
       formData.append("title", form.title);
       formData.append("summary", form.summary);
       formData.append("content", form.content);
-
-      formData.append("type", "news");
-      formData.append("deleteImageIds", JSON.stringify(deleteIds));
-      newFiles.forEach((file) => {
-        formData.append("images", file);
-      });
       formData.append("tag", form.tag?.trim().toLowerCase());
 
+      if (newFiles.length > 0) {
+        formData.append("thumbnail", newFiles[0]);
+      }
+
       await newsService.update(id, formData);
+
       navigate("/admin/news-list");
     } catch (error) {
-      alert("Cập nhật thất bại");
+      const res = error.response?.data;
+
+      if (res?.errors) {
+        const serverErrors = {};
+
+        res.errors.forEach((err) => {
+          serverErrors[err.field] = err.message;
+        });
+
+        setErrors(serverErrors);
+      } else {
+        setErrors({ server: res?.message || "Có lỗi xảy ra" });
+      }
     } finally {
       setLoading(false);
     }
@@ -123,6 +158,9 @@ export default function AdminEditNewsPage() {
               onChange={handleChange}
               placeholder="Nhập tiêu đề bài viết..."
             />
+            {errors.title && (
+              <p className="text-red-500 text-sm mt-1">{errors.title}</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -134,6 +172,10 @@ export default function AdminEditNewsPage() {
               onChange={handleChange}
               placeholder="Ví dụ: #vanct..."
             />
+
+            {errors.tag && (
+              <p className="text-red-500 text-sm mt-1">{errors.tag}</p>
+            )}
           </div>
 
           {form.tag && (
@@ -155,20 +197,13 @@ export default function AdminEditNewsPage() {
               <input
                 id="images"
                 type="file"
-                multiple
                 accept="image/*"
                 onChange={(e) => {
-                  const files = Array.from(e.target.files || []);
-                  if (!files.length) return;
+                  const file = e.target.files?.[0];
+                  if (!file) return;
 
-                  setNewFiles((prev) => [...prev, ...files]);
-
-                  setNewPreview((prev) => [
-                    ...prev,
-                    ...files.map((file) => URL.createObjectURL(file)),
-                  ]);
-
-                  e.target.value = null; // cho phép chọn lại cùng file
+                  setNewFiles([file]);
+                  setNewPreview([URL.createObjectURL(file)]);
                 }}
                 className="absolute inset-0 opacity-0 cursor-pointer"
               />
@@ -179,6 +214,9 @@ export default function AdminEditNewsPage() {
                 Hỗ trợ JPG, PNG, WebP
               </p>
             </div>
+            {errors.images && (
+              <p className="text-red-500 text-sm mt-1">{errors.images}</p>
+            )}
           </div>
 
           {newPreview.length > 0 && (
@@ -197,40 +235,17 @@ export default function AdminEditNewsPage() {
             </div>
           )}
 
-          {existingImages.length > 0 && (
+          {form.thumbnail && (
             <div className="space-y-2">
               <p className="text-sm font-medium">Ảnh hiện tại:</p>
-
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {existingImages.map((img) => {
-                  const marked = deleteIds.includes(img.id);
-
-                  return (
-                    <div key={img.id} className="relative">
-                      <img
-                        src={img.image_url}
-                        className={`w-full h-40 object-cover rounded-lg border ${
-                          marked ? "opacity-40" : ""
-                        }`}
-                      />
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setDeleteIds((prev) =>
-                            prev.includes(img.id)
-                              ? prev.filter((x) => x !== img.id)
-                              : [...prev, img.id]
-                          );
-                        }}
-                        className="absolute top-2 right-2 bg-white px-2 py-1 rounded text-xs"
-                      >
-                        {marked ? "Hoàn tác" : "Xóa"}
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
+              <img
+                src={form.thumbnail}
+                className="w-64 h-40 object-cover rounded-lg border"
+                alt="thumbnail"
+              />
+              {errors.thumbnail && (
+                <p className="text-red-500 text-sm mt-1">{errors.thumbnail}</p>
+              )}
             </div>
           )}
 
@@ -245,6 +260,9 @@ export default function AdminEditNewsPage() {
               placeholder="Nhập tóm tắt bài viết..."
               rows={3}
             />
+            {errors.summary && (
+              <p className="text-red-500 text-sm mt-1">{errors.summary}</p>
+            )}
           </div>
 
           {/* Content */}
@@ -261,6 +279,9 @@ export default function AdminEditNewsPage() {
                 }
               />
             </div>
+            {errors.content && (
+              <p className="text-red-500 text-sm mt-1">{errors.content}</p>
+            )}
           </div>
 
           {/* Buttons */}

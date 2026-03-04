@@ -36,16 +36,14 @@ class NewsService {
 
     await NewsRepository.increaseView(news.id);
 
-    const images = await NewsRepository.getImagesByNewsId(news.id);
-
-    return { ...news, images };
+    return news;
   }
 
   async getFeatured(limit = 3) {
     return NewsRepository.findFeatured(limit);
   }
 
-  async createNews(data, userId, files = []) {
+  async createNews(data, userId) {
     const slug = await this.generateUniqueSlug(data.title);
 
     const news = await NewsRepository.create({
@@ -53,10 +51,6 @@ class NewsService {
       slug,
       created_by: userId,
     });
-
-    if (files.length) {
-      await NewsRepository.insertImages(news.id, files);
-    }
 
     return news;
   }
@@ -84,33 +78,14 @@ class NewsService {
     return NewsRepository.deleteById(id);
   }
 
-  async updateNews(
-    id,
-    { title, summary, content, tag, newFiles = [], deleteImageIds = [] }
-  ) {
-    // update nội dung
+  async updateNews(id, { title, summary, content, tag, thumbnail }) {
     await NewsRepository.updateById(id, {
       title,
       summary,
       content,
-      tag
+      tag,
+      thumbnail,
     });
-
-    // xoá ảnh
-    if (deleteImageIds.length) {
-      const deleted = await NewsRepository.deleteImagesByIds(deleteImageIds);
-
-      for (const img of deleted) {
-        if (img.public_id) {
-          await cloudinary.uploader.destroy(img.public_id);
-        }
-      }
-    }
-
-    // thêm ảnh mới
-    if (newFiles.length) {
-      await NewsRepository.insertImages(id, newFiles);
-    }
 
     return true;
   }
@@ -119,8 +94,7 @@ class NewsService {
     const news = await NewsRepository.findOne({ id });
     if (!news) throw new Error("Không tìm thấy bài viết");
 
-    const images = await NewsRepository.getImagesByNewsId(id);
-    return { ...news, images };
+    return news;
   }
 
   async getRelated(tag, excludeId) {
