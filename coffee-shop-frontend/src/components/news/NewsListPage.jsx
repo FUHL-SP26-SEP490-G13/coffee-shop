@@ -36,11 +36,11 @@ export default function NewsListPage() {
       <div className="min-h-screen bg-background">
         <div className="max-w-7xl mx-auto py-12 md:py-16 px-4 md:px-6">
           <div className="mb-12">
-            <h1 className="text-3xl md:text-4xl font-bold mb-3">
+            <h1 className="text-2xl md:text-2xl mb-3">
               Tin tức & Sự kiện
             </h1>
             <p className="text-muted-foreground">
-              Cập nhật những tin tức mới nhất từ Coffee Shop
+              Cập nhật những tin tức mới nhất
             </p>
           </div>
 
