@@ -69,27 +69,6 @@ function PrivacyPolicy() {
           </PolicyCard>
         </div>
 
-        {/* CONTACT */}
-        <div className="mt-16 rounded-3xl shadow-2xl bg-gradient-to-r from-amber-50 to-white border border-amber-200 p-8 text-center">
-          <h2 className="text-xl sm:text-2xl font-semibold mb-6 text-gray-900">
-            Liên hệ hỗ trợ
-          </h2>
-
-          <div className="flex flex-col sm:flex-row justify-center gap-6 text-sm sm:text-base text-gray-700">
-            <div className="flex items-center gap-2 justify-center">
-              <MapPin className="w-5 h-5 text-amber-600" />
-              TP. Hà Nội
-            </div>
-            <div className="flex items-center gap-2 justify-center">
-              <Phone className="w-5 h-5 text-amber-600" />
-              0123 456 789
-            </div>
-            <div className="flex items-center gap-2 justify-center">
-              <Mail className="w-5 h-5 text-amber-600" />
-              support@coffeeshop.vn
-            </div>
-          </div>
-        </div>
       </section>
 
       <div className="w-full h-px bg-gradient-to-r from-transparent via-amber-300 to-transparent" />

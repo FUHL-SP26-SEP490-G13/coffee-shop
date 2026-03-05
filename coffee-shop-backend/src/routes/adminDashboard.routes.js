@@ -38,4 +38,29 @@ router.get(
   AdminDashboardController.getPaymentMethodBreakdown
 );
 
+// /api/dashboard/order-type?days=7 doanh thu theo loại đơn hàng (tại quán, mang về, giao hàng)
+router.get(
+  "/order-type",
+  authenticate,
+  authorize([ROLES.MANAGER]),
+  AdminDashboardController.getOrderTypeRevenue
+);
+
+// Optional: tóm tắt tình trạng bàn (occupied, available) để dashboard có thêm vài số liệu hữu ích, hợp DB vì có status trong bảng tables rồi, khỏi phải đoán dựa vào order hay gì đó
+router.get(
+  "/comparison",
+  authenticate,
+  authorize([ROLES.MANAGER]),
+  AdminDashboardController.getComparison
+);
+
+// Optional: tóm tắt số lượng nhân viên theo vai trò (barista, phục vụ, quản lý) để dashboard có thêm vài số liệu hữu ích
+router.get(
+  "/staff-summary",
+  authenticate,
+  authorize([ROLES.MANAGER]),
+  AdminDashboardController.getStaffSummary
+);
+
+router.get("/table-status", authenticate, authorize([ROLES.MANAGER]), AdminDashboardController.getTableStatus);
 module.exports = router;

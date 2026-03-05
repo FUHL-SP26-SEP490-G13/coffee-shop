@@ -53,7 +53,7 @@ export default function AdminApp() {
     { path: "/admin/discounts", icon: Tag, label: "Mã giảm giá" },
     { path: "/admin/news-list", icon: ClipboardList, label: "Quản lý bài viết" },
     { path: "/admin/newsletter", icon: Mail, label: "Thư điện tử đăng kí" },
-    { path: "/admin/banners", icon: ImagePlus, label: "Quản lý ảnh quảng cáo" },
+    { path: "/admin/banners", icon: ImagePlus, label: "Quản lý quảng cáo" },
     { path: "/admin/area", icon: MapPin, label: "Quản lý khu vực" },
     { path: "/admin/tables", icon: LayoutGrid, label: "Quản lý bàn" },
     { path: "/admin/profile", icon: User, label: "Thông tin cá nhân" },

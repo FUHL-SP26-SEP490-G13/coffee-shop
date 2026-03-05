@@ -59,16 +59,6 @@ export default function ReturnPolicyPage() {
           </div>
         </Card>
 
-        {/* Contact */}
-        <Card className="p-6 border-border bg-gradient-to-br from-primary/5 to-primary/10">
-          <div className="flex flex-col sm:flex-row justify-center gap-6 text-sm text-gray-700">
-            <div className="flex items-center gap-2">
-              <Phone size={16} />
-              <span>Hotline: 0123 456 789</span>
-            </div>
-            <div>Email: support@yourshop.com</div>
-          </div>
-        </Card>
       </div>
       <Footer />
     </>

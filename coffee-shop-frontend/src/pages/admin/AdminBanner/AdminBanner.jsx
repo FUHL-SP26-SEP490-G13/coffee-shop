@@ -36,7 +36,6 @@ export default function AdminBanner() {
   const [editingBanner, setEditingBanner] = useState(null);
 
   const [previewImage, setPreviewImage] = useState(null);
-
   const [errors, setErrors] = useState({});
 
   const [form, setForm] = useState({
@@ -160,7 +159,7 @@ export default function AdminBanner() {
       <div className="mb-4 sm:mb-6 flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <Megaphone className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
-          <h1 className="text-xl sm:text-2xl font-semibold">Quản lý ảnh quảng cáo</h1>
+          <h1 className="text-xl sm:text-2xl font-semibold">Quản lý quảng cáo</h1>
         </div>
 
         <Button

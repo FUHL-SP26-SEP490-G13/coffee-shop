@@ -133,7 +133,7 @@ function Header() {
               onClick={() => navigate("/news")}
               className="text-gray-700 hover:text-amber-600 hover:bg-amber-50 transition"
             >
-              Sự kiện
+              Tin tức
             </Button>
 
             <Button
