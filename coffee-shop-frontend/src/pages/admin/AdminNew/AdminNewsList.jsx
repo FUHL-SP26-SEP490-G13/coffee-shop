@@ -104,7 +104,7 @@ export default function AdminNewsList() {
             <TableHeader>
               <TableRow>
                 <TableHead>Tiêu đề</TableHead>
-                <TableHead className="w-[120px] text-center">Views</TableHead>
+                <TableHead className="w-[120px] text-center">Lượt xem</TableHead>
                 <TableHead className="w-[140px]">Tag</TableHead>
                 <TableHead className="w-[150px]">Ngày tạo</TableHead>
                 <TableHead className="text-right w-[200px]">
