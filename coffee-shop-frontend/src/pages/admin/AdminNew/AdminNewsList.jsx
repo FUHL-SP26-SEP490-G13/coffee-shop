@@ -104,6 +104,7 @@ export default function AdminNewsList() {
             <TableHeader>
               <TableRow>
                 <TableHead>Tiêu đề</TableHead>
+                <TableHead className="w-[120px] text-center">Views</TableHead>
                 <TableHead className="w-[140px]">Tag</TableHead>
                 <TableHead className="w-[150px]">Ngày tạo</TableHead>
                 <TableHead className="text-right w-[200px]">
@@ -126,6 +127,10 @@ export default function AdminNewsList() {
                   <TableRow key={item.id}>
                     <TableCell className="max-w-[400px] truncate">
                       {item.title}
+                    </TableCell>
+
+                    <TableCell className="text-center">
+                      {item.views ?? 0}
                     </TableCell>
 
                     <TableCell>
