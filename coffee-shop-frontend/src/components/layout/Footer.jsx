@@ -1,13 +1,5 @@
 import { useState } from "react";
-import {
-  Mail,
-  Phone,
-  MapPin,
-  Loader2,
-  Facebook,
-  Instagram,
-  Twitter,
-} from "lucide-react";
+import { Mail, Phone, MapPin, Loader2 } from "lucide-react";
 import axios from "@/services/axiosClient";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -57,71 +49,37 @@ function Footer() {
   };
 
   return (
-    <footer className="bg-gray-900 text-gray-100 mt-20">
-      {/* Main Footer Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12 sm:py-16 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 sm:gap-10">
-        {/* Brand Section */}
-        <div className="space-y-4">
-          <img
-            src={Logo}
-            alt="Coffee Shop Logo"
-            className="h-14 w-auto brightness-0 invert"
-          />
-          <p className="text-sm text-gray-400 leading-relaxed">
-            Hương vị cà phê chuẩn vị, phục vụ mỗi ngày. Chúng tôi cam kết đem
-            đến trải nghiệm tuyệt vời.
+    <footer className="bg-card border-t mt-20">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 lg:gap-10">
+        {/* Company */}
+        <div>
+          <img src={Logo} alt="Coffee Shop Logo" className="h-16 w-auto mb-4"/>
+          <p className="text-sm text-muted-foreground mb-4">
+            Hương vị cà phê chuẩn vị, phục vụ mỗi ngày.
           </p>
 
-          {/* Contact Info */}
-          <div className="space-y-3 pt-2">
-            <div className="flex items-center gap-3 text-sm">
-              <MapPin className="w-5 h-5 flex-shrink-0 text-amber-500" />
-              <span>TP. Hà Nội, Việt Nam</span>
+          <div className="space-y-2 text-sm">
+            <div className="flex items-center gap-2">
+              <MapPin size={16} className="flex-shrink-0" />
+              <span>TP. Hà Nội</span>
             </div>
-            <div className="flex items-center gap-3 text-sm">
-              <Phone className="w-5 h-5 flex-shrink-0 text-amber-500" />
+            <div className="flex items-center gap-2">
+              <Phone size={16} className="flex-shrink-0" />
               <span>0123 456 789</span>
             </div>
-            <div className="flex items-center gap-3 text-sm">
-              <Mail className="w-5 h-5 flex-shrink-0 text-amber-500" />
+            <div className="flex items-center gap-2">
+              <Mail size={16} className="flex-shrink-0" />
               <span className="break-all">contact@coffeeshop.vn</span>
             </div>
-          </div>
-
-          {/* Social Links */}
-          <div className="flex gap-3 pt-2">
-            <a
-              href="#"
-              className="w-10 h-10 rounded-full bg-gray-800 hover:bg-amber-500 flex items-center justify-center transition duration-300"
-            >
-              <Facebook className="w-4 h-4" />
-            </a>
-            <a
-              href="#"
-              className="w-10 h-10 rounded-full bg-gray-800 hover:bg-amber-500 flex items-center justify-center transition duration-300"
-            >
-              <Instagram className="w-4 h-4" />
-            </a>
-            <a
-              href="#"
-              className="w-10 h-10 rounded-full bg-gray-800 hover:bg-amber-500 flex items-center justify-center transition duration-300"
-            >
-              <Twitter className="w-4 h-4" />
-            </a>
           </div>
         </div>
 
         {/* Policies */}
         <div>
-          <h4 className="font-bold text-white mb-4 text-sm uppercase tracking-wide">
-            Chính sách
-          </h4>
-          <ul className="space-y-2 text-sm text-gray-400">
+          <h4 className="font-semibold mb-4">Chính sách</h4>
+          <ul className="space-y-2 text-sm text-muted-foreground">
             <li>
-              <Link
-                to="/order-policy"
-                className="hover:text-amber-500 transition duration-300 hover:translate-x-1 inline-block"
-              >
+              <Link to="/order-policy" className="hover:text-black transition">
                 Chính sách đặt hàng
               </Link>
             </li>
@@ -129,7 +87,7 @@ function Footer() {
             <li>
               <Link
                 to="/privacy-policy"
-                className="hover:text-amber-500 transition duration-300 hover:translate-x-1 inline-block"
+                className="hover:text-black transition"
               >
                 Chính sách bảo mật
               </Link>
@@ -138,25 +96,23 @@ function Footer() {
             <li>
               <Link
                 to="/payment-policy"
-                className="hover:text-amber-500 transition duration-300 hover:translate-x-1 inline-block"
+                className="hover:text-black transition"
               >
                 Chính sách thanh toán
               </Link>
             </li>
-
             <li>
               <Link
                 to="/terms-of-service"
-                className="hover:text-amber-500 transition duration-300 hover:translate-x-1 inline-block"
+                className="hover:text-black transition"
               >
                 Điều khoản sử dụng
               </Link>
             </li>
-
             <li>
               <Link
                 to="/return-policy"
-                className="hover:text-amber-500 transition duration-300 hover:translate-x-1 inline-block"
+                className="hover:text-black transition"
               >
                 Chính sách hoàn trả
               </Link>
@@ -166,51 +122,34 @@ function Footer() {
 
         {/* Support */}
         <div>
-          <h4 className="font-bold text-white mb-4 text-sm uppercase tracking-wide">
-            Hỗ trợ
-          </h4>
-          <ul className="space-y-2 text-sm text-gray-400">
+          <h4 className="font-semibold mb-4">Hỗ trợ</h4>
+          <ul className="space-y-2 text-sm text-muted-foreground">
             <li>
-              <Link
-                to="/search"
-                className="hover:text-amber-500 transition duration-300 hover:translate-x-1 inline-block"
-              >
+              <Link to="/search" className="hover:text-black transition">
                 Tìm kiếm
               </Link>
             </li>
 
             <li>
-              <Link
-                to="/login"
-                className="hover:text-amber-500 transition duration-300 hover:translate-x-1 inline-block"
-              >
+              <Link to="/login" className="hover:text-black transition">
                 Đăng nhập
               </Link>
             </li>
 
             <li>
-              <Link
-                to="/register"
-                className="hover:text-amber-500 transition duration-300 hover:translate-x-1 inline-block"
-              >
+              <Link to="/register" className="hover:text-black transition">
                 Đăng ký
               </Link>
             </li>
 
             <li>
-              <Link
-                to="/cart"
-                className="hover:text-amber-500 transition duration-300 hover:translate-x-1 inline-block"
-              >
+              <Link to="/cart" className="hover:text-black transition">
                 Giỏ hàng
               </Link>
             </li>
 
             <li>
-              <Link
-                to="/contact"
-                className="hover:text-amber-500 transition duration-300 hover:translate-x-1 inline-block"
-              >
+              <Link to="/contact" className="hover:text-black transition">
                 Liên hệ
               </Link>
             </li>
@@ -219,57 +158,35 @@ function Footer() {
 
         {/* Newsletter */}
         <div>
-          <h4 className="font-bold text-white mb-4 text-sm uppercase tracking-wide">
-            Đăng ký nhận tin
-          </h4>
-          <p className="text-sm text-gray-400 mb-4">
-            Nhận các khuyến mãi và tin tức mới nhất từ chúng tôi
-          </p>
+          <h4 className="font-semibold mb-4">Đăng ký nhận tin</h4>
 
-          <form className="flex flex-col gap-3" onSubmit={handleSubmit}>
-            <Input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Nhập email của bạn"
-              className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 focus:border-amber-500 focus:bg-gray-750 text-sm rounded-lg"
-            />
+          <form className="flex flex-col gap-2" onSubmit={handleSubmit}>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Nhập email của bạn"
+                className="flex-1 text-sm"
+              />
 
-            <Button
-              type="submit"
-              disabled={loading}
-              className="gap-2 w-full bg-amber-500 hover:bg-amber-600 text-white font-semibold transition duration-300"
-            >
-              {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-              {loading ? "Gửi..." : "Đăng ký"}
-            </Button>
+              <Button type="submit" disabled={loading} className="gap-2 w-full sm:w-auto">
+                {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+                {loading ? "Gửi..." : "Đăng ký"}
+              </Button>
+            </div>
 
             {message && (
-              <p className="text-xs text-green-400 font-medium">{message}</p>
+              <p className="text-sm text-green-600 font-medium">{message}</p>
             )}
 
-            {error && <p className="text-xs text-red-400">{error}</p>}
+            {error && <p className="text-sm text-red-600">{error}</p>}
           </form>
         </div>
       </div>
 
-      {/* Divider */}
-      <div className="border-t border-gray-800" />
-
-      {/* Bottom Footer */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 flex flex-col sm:flex-row justify-between items-center gap-4 text-sm text-gray-400">
-        <p>© {new Date().getFullYear()} Coffee Shop. All rights reserved.</p>
-        <div className="flex gap-6">
-          <a href="#" className="hover:text-amber-500 transition duration-300">
-            Sitemap
-          </a>
-          <a href="#" className="hover:text-amber-500 transition duration-300">
-            Cookies
-          </a>
-          <a href="#" className="hover:text-amber-500 transition duration-300">
-            Tìm kiếm
-          </a>
-        </div>
+      <div className="border-t text-center py-4 px-4 text-xs sm:text-sm text-muted-foreground bg-muted">
+        © {new Date().getFullYear()} Coffee Shop. All rights reserved.
       </div>
     </footer>
   );

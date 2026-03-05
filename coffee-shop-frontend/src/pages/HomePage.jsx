@@ -67,7 +67,7 @@ export default function HomePage() {
                   <Link to={banner?.button_link || "/"}>
                     <Button
                       size="lg"
-                      className="bg-amber-500 hover:bg-amber-600 text-white font-bold px-8 py-3 text-sm sm:text-base transition-all duration-300 shadow-lg hover:shadow-2xl hover:-translate-y-1 group/btn"
+                      className="text-white font-bold px-8 py-3 text-sm sm:text-base transition-all duration-300 shadow-lg hover:shadow-2xl hover:-translate-y-1 group/btn"
                     >
                       <span className="flex items-center gap-2">
                         {banner.button_text}
@@ -163,7 +163,7 @@ export default function HomePage() {
 
                         <Button
                           size="sm"
-                          className="bg-amber-500 hover:bg-amber-600 text-white font-semibold transition-all duration-300 shadow-md hover:shadow-lg hover:scale-105 group/btn flex-shrink-0 h-10"
+                          className="gap-1.5"
                         >
                           <Plus className="w-4 h-4 transition-transform duration-300 group-hover/btn:rotate-90" />
                           <span className="hidden sm:inline ml-1">Thêm</span>

@@ -98,7 +98,7 @@ function Header() {
               placeholder={text || "Tìm kiếm sản phẩm..."}
               className="w-full rounded-full py-2 pl-4 pr-12 bg-gray-50 border border-gray-200 focus:border-amber-500 focus:bg-white transition"
             />
-            <button className="absolute right-2 top-1/2 -translate-y-1/2 bg-amber-500 hover:bg-amber-600 text-white p-2 rounded-full transition duration-300 shadow-md">
+            <button className="absolute right-2 top-1/2 -translate-y-1/2 bg-primary text-white p-2 rounded-full hover:bg-primary/90 transition">
               <Search className="w-4 h-4" />
             </button>
           </div>
@@ -122,7 +122,6 @@ function Header() {
               <Button
                 variant="ghost"
                 onClick={() => navigate("/login")}
-                className="text-gray-700 hover:text-amber-600 hover:bg-amber-50 transition"
               >
                 Đăng nhập
               </Button>
@@ -131,7 +130,6 @@ function Header() {
             <Button
               variant="ghost"
               onClick={() => navigate("/news")}
-              className="text-gray-700 hover:text-amber-600 hover:bg-amber-50 transition"
             >
               Tin tức
             </Button>
@@ -139,7 +137,6 @@ function Header() {
             <Button
               variant="ghost"
               onClick={() => navigate("/wishlist")}
-              className="text-gray-700 hover:text-amber-600 hover:bg-amber-50 transition"
             >
               Yêu thích
             </Button>
@@ -205,7 +202,7 @@ function Header() {
           {/* Shopping Cart Button */}
           <Button
             onClick={() => navigate("/cart")}
-            className="gap-2 bg-amber-500 hover:bg-amber-600 text-white shadow-md hover:shadow-lg transition duration-300"
+            className="gap-2"
           >
             <ShoppingCart className="w-4 h-4" />
             <span className="hidden sm:inline">Giỏ hàng</span>
@@ -254,7 +251,7 @@ function Header() {
                   navigate("/login");
                   setMobileMenuOpen(false);
                 }}
-                className="w-full justify-start text-gray-700 hover:text-amber-600 hover:bg-white"
+                className="w-full justify-start text-gray-700"
               >
                 <Home className="w-4 h-4 mr-2" />
                 Đăng nhập
@@ -267,9 +264,9 @@ function Header() {
                 navigate("/news");
                 setMobileMenuOpen(false);
               }}
-              className="w-full justify-start text-gray-700 hover:text-amber-600 hover:bg-white"
+              className="w-full justify-start text-gray-700"
             >
-              Sự kiện
+              Tin tức
             </Button>
 
             <Button
@@ -278,7 +275,7 @@ function Header() {
                 navigate("/wishlist");
                 setMobileMenuOpen(false);
               }}
-              className="w-full justify-start text-gray-700 hover:text-amber-600 hover:bg-white"
+              className="w-full justify-start text-gray-700"
             >
               Yêu thích
             </Button>
