@@ -4,6 +4,8 @@ const response = require("../utils/response");
 class DiscountController {
   async getAll(req, res, next) {
     try {
+      console.log("Query status:", req.query.status);
+      console.log("Full query:", req.query);
       const { page = 1, limit = 6, code = "", status = "" } = req.query;
 
       const discounts = await DiscountService.getAll({

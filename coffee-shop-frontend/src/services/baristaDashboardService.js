@@ -1,10 +1,10 @@
-import axiosClient from "./axiosClient";
+import axiosClient from "@/services/axiosClient";
 
 const baristaDashboardService = {
   // Get barista dashboard overview (orders by status, metrics)
   getOverview: async () => {
     try {
-      const res = await axiosClient.get("/dashboard/barista");
+      const res = await axiosClient.get("/barista/dashboard");
       return res.data || res;
     } catch (error) {
       console.error("Error fetching barista overview:", error);
@@ -35,7 +35,7 @@ const baristaDashboardService = {
   getOrderTrends: async (hours = 6) => {
     try {
       const res = await axiosClient.get(
-        `/dashboard/barista/trends?hours=${hours}`
+        `/barista/dashboard/trends?hours=${hours}`
       );
       return res.data || res;
     } catch (error) {

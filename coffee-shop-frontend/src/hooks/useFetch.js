@@ -44,6 +44,7 @@ const useFetch = (fetcher, options = {}) => {
   );
 
   useEffect(() => {
+    isMountedRef.current = true;
     if (immediate) {
       execute();
     }

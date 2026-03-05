@@ -1,23 +1,31 @@
 const service = require("../services/BaristaDashboardService");
 
 class BaristaDashboardController {
-  async getOverview(req, res) {
+  async getOverview(req, res, next) {
     try {
       const data = await service.getOverview();
-      res.json(data);
+
+      return res.json({
+        success: true,
+        data,
+      });
     } catch (err) {
-      console.error(err);
-      res.status(500).json({ message: "Lỗi server" });
+      next(err);
     }
   }
 
-  async getTrends(req, res) {
+  async getTrends(req, res, next) {
     try {
       const hours = req.query.hours || 6;
+
       const data = await service.getOrderTrends(hours);
-      res.json(data);
+
+      return res.json({
+        success: true,
+        data,
+      });
     } catch (err) {
-      res.status(500).json({ message: "Lỗi server" });
+      next(err);
     }
   }
 }
