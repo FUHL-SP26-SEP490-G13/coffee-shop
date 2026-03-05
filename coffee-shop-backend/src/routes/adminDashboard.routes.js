@@ -4,12 +4,13 @@ const router = express.Router();
 const AdminDashboardController = require("../controllers/AdminDashboardController");
 const { authenticate } = require("../middlewares/auth");
 const { authorize } = require("../middlewares/authorize");
+const ROLES = require("../config/role");
 
 // /api/dashboard
 router.get(
   "/",
   authenticate,
-  authorize(["manager"]),
+  authorize([ROLES.MANAGER]),
   AdminDashboardController.getOverview
 );
 
@@ -17,7 +18,7 @@ router.get(
 router.get(
   "/revenue",
   authenticate,
-  authorize(["manager"]),
+  authorize([ROLES.MANAGER]),
   AdminDashboardController.getRevenueSeries
 );
 
@@ -25,7 +26,7 @@ router.get(
 router.get(
   "/top-products",
   authenticate,
-  authorize(["manager"]),
+  authorize([ROLES.MANAGER]),
   AdminDashboardController.getTopProducts
 );
 
@@ -33,7 +34,7 @@ router.get(
 router.get(
   "/payment-method",
   authenticate,
-  authorize(["manager"]),
+  authorize([ROLES.MANAGER]),
   AdminDashboardController.getPaymentMethodBreakdown
 );
 

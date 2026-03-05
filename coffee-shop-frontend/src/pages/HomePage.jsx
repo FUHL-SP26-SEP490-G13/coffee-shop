@@ -6,7 +6,6 @@ import useFetch from "@/hooks/useFetch";
 import productService from "@/services/productService";
 import Footer from "@/components/layout/Footer";
 import Header from "@/components/layout/Header";
-import newsService from "@/services/newsService";
 import { Link } from "react-router-dom";
 import FeaturedNews from "@/components/news/FeaturedNews";
 import bannerService from "@/services/bannerService";
@@ -18,16 +17,6 @@ export default function HomePage() {
 
   const { data, loading } = useFetch(fetchProducts);
   const products = data?.data || [];
-
-  // const fetchNews = useCallback(() => {
-  //   return newsService.getFeatured();
-  // }, []);
-
-  //const { data: newsData } = useFetch(fetchNews);
-
-  // const featuredNews = Array.isArray(newsData)
-  //   ? newsData
-  //   : newsData?.data || [];
 
   const fetchBanner = useCallback(() => {
     return bannerService.getActive();
@@ -44,21 +33,60 @@ export default function HomePage() {
       <Header />
 
       {/* ===== HERO BANNER ===== */}
-      <div className="relative h-[500px] overflow-hidden">
-        <img
-          src={banner?.image_url || defaultImage}
-          className="absolute w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-black/40 flex flex-col justify-center items-center text-white text-center px-4">
-          <h2 className="text-5xl font-bold mb-4">{banner?.title}</h2>
-          <p className="text-xl mb-8">{banner?.subtitle}</p>
-          {banner?.button_text && (
-            <Link to={banner?.button_link || "/"}>
-              <Button size="lg" className="shadow-lg">
-                {banner.button_text}
-              </Button>
-            </Link>
-          )}
+      {/* <div className="w-full mt-8 px-4">
+        <div className="max-w-[1600px] mx-auto">
+          <div className="relative h-[520px] overflow-hidden rounded-3xl shadow-xl">
+            <img
+              src={banner?.image_url || defaultImage}
+              alt="Banner"
+              className="w-full h-full object-cover"
+            />
+
+            <div className="absolute inset-0 bg-black/40 flex flex-col justify-center items-center text-white text-center px-4">
+              <h2 className="text-5xl md:text-6xl font-bold mb-4">
+                {banner?.title}
+              </h2>
+
+              <p className="text-lg md:text-xl mb-6 max-w-2xl">
+                {banner?.subtitle}
+              </p>
+
+              {banner?.button_text && (
+                <Link to={banner?.button_link || "/"}>
+                  <Button size="lg" className="shadow-xl">
+                    {banner.button_text}
+                  </Button>
+                </Link>
+              )}
+            </div>
+          </div>
+        </div>
+      </div> */}
+      <div className="w-full mt-8 px-4">
+        <div className="max-w-[1600px] mx-auto">
+          <div className="relative bg-black rounded-3xl shadow-xl overflow-hidden">
+            <img
+              src={banner?.image_url || defaultImage}
+              alt="Banner"
+              className="w-full h-auto object-contain"
+            />
+
+            <div className="absolute inset-0 bg-black/40 flex flex-col justify-center items-center text-white text-center px-4">
+              <h2 className="text-5xl md:text-6xl font-bold mb-4">
+                {banner?.title}
+              </h2>
+
+              <p className="text-lg md:text-xl mb-6 max-w-2xl">
+                {banner?.subtitle}
+              </p>
+
+              {banner?.button_text && (
+                <Link to={banner?.button_link || "/"}>
+                  <Button size="lg">{banner.button_text}</Button>
+                </Link>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 

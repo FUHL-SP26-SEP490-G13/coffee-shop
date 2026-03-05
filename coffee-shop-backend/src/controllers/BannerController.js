@@ -38,6 +38,13 @@ class BannerController {
         });
       }
 
+      if (!req.file) {
+        return res.status(400).json({
+          success: false,
+          message: "Ảnh banner là bắt buộc",
+        });
+      }
+
       const payload = {
         ...req.body,
         image_url: imageUrl,
@@ -58,54 +65,23 @@ class BannerController {
 
   async update(req, res, next) {
     try {
-      const bannerId = req.params.id;
+      const id = req.params.id;
 
-      const existingBanner = await bannerService.getById(bannerId);
+      // TÁCH type RA - chỉ dùng cho upload, không phải dữ liệu DB
+      const { type, ...body } = req.body;
 
-      if (!existingBanner) {
-        return res.status(404).json({
-          success: false,
-          message: "Banner không tồn tại",
-        });
+      const data = {
+        ...body,
+        is_active: body.is_active === true || body.is_active === "true",
+      };
+
+      if (req.file) {
+        data.image_url = req.file.path;
       }
 
-      const payload = {};
+      await bannerService.update(id, data);
 
-      if (req.body.title !== undefined) {
-        payload.title = req.body.title;
-      }
-
-      if (req.body.subtitle !== undefined) {
-        payload.subtitle = req.body.subtitle;
-      }
-
-      if (req.body.button_text !== undefined) {
-        payload.button_text = req.body.button_text;
-      }
-
-      if (req.body.button_link !== undefined) {
-        payload.button_link = req.body.button_link;
-      }
-
-      if (req.body.is_active !== undefined) {
-        payload.is_active =
-          req.body.is_active === true ||
-          req.body.is_active === "true" ||
-          req.body.is_active === 1 ||
-          req.body.is_active === "1";
-      }
-
-      // 👇 QUAN TRỌNG NHẤT
-      if (req.file?.path) {
-        payload.image_url = req.file.path;
-      }
-
-      await bannerService.update(bannerId, payload);
-
-      return res.json({
-        success: true,
-        message: "Cập nhật banner thành công",
-      });
+      res.json({ success: true, message: "Cập nhật thành công" });
     } catch (err) {
       next(err);
     }

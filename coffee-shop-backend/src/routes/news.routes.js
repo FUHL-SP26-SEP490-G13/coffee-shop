@@ -9,6 +9,7 @@ const { authorize } = require("../middlewares/authorize");
 const upload = require("../middlewares/upload");
 const validate = require("../middlewares/validate");
 const { createNewsSchema } = require("../validators/newsValidator");
+const ROLES = require("../config/role");
 
 // =====================
 // PUBLIC ROUTES
@@ -24,7 +25,7 @@ router.get("/", NewsController.getAll);
 router.post(
   "/",
   authenticate,
-  authorize(["manager"]),
+  authorize([ROLES.MANAGER]),
   upload.single("thumbnail"),
   validate(createNewsSchema),
   NewsController.create
@@ -33,21 +34,21 @@ router.post(
 router.get(
   "/admin",
   authenticate,
-  authorize(["manager"]),
+  authorize([ROLES.MANAGER]),
   NewsController.getAllAdmin
 );
 
 router.delete(
   "/:id",
   authenticate,
-  authorize(["manager"]),
+  authorize([ROLES.MANAGER]),
   NewsController.delete
 );
 
 router.put(
   "/:id",
   authenticate,
-  authorize(["manager"]),
+  authorize([ROLES.MANAGER]),
   upload.single("thumbnail"),
   validate(createNewsSchema),
   NewsController.update
@@ -56,7 +57,7 @@ router.put(
 router.get(
   "/admin/:id",
   authenticate,
-  authorize(["manager"]),
+  authorize([ROLES.MANAGER]),
   NewsController.getById
 );
 router.get("/related", NewsController.getRelated);

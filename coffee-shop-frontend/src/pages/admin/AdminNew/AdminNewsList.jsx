@@ -124,7 +124,7 @@ export default function AdminNewsList() {
               ) : (
                 data.map((item) => (
                   <TableRow key={item.id}>
-                    <TableCell className="font-medium max-w-[400px] truncate">
+                    <TableCell className="max-w-[400px] truncate">
                       {item.title}
                     </TableCell>
 
