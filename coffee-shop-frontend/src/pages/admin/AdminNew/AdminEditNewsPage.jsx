@@ -18,6 +18,7 @@ export default function AdminEditNewsPage() {
     content: "",
     tag: "",
     thumbnail: "",
+    views: 0,
   });
 
   const [loading, setLoading] = useState(false);
@@ -40,6 +41,7 @@ export default function AdminEditNewsPage() {
           content: data.content,
           tag: data.tag || "",
           thumbnail: data.thumbnail || "",
+          views: data.views ?? 0,
         });
       } catch (error) {
         console.error("Lỗi load bài:", error);
@@ -188,6 +190,16 @@ export default function AdminEditNewsPage() {
               </span>
             </div>
           )}
+
+          <div className="space-y-2">
+            <Label htmlFor="views">Lượt xem</Label>
+            <Input
+              id="views"
+              name="views"
+              value={form.views ?? 0}
+              disabled // ✅ không cho edit
+            />
+          </div>
 
           {/* Images Upload */}
           <div className="space-y-2">

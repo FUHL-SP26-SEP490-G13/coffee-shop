@@ -76,6 +76,11 @@ export default function AdminNewsDetailPage() {
           )}
         </p>
 
+        <p className="text-sm text-muted-foreground mb-6">
+          Lượt xem:{" "}
+          <span className="font-medium text-foreground">{news.views ?? 0}</span>
+        </p>
+
         {/* Thumbnail */}
         {news.thumbnail && (
           <img
