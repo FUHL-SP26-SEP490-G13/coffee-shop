@@ -20,25 +20,15 @@ function OrderPolicy() {
     <div className="min-h-screen flex flex-col bg-white">
       <Header />
 
-      {/* ===== HERO ===== */}
-      <section className="w-full pt-8 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-6xl mx-auto">
-          <div className="relative overflow-hidden rounded-3xl shadow-2xl bg-gradient-to-r from-amber-600 to-amber-400">
-            <div className="h-72 sm:h-80 lg:h-96 flex flex-col justify-center items-center text-center px-6">
-              <Badge className="mb-4 bg-white/20 text-white border-none">
-                Chính sách
-              </Badge>
-              <h1 className="text-2xl sm:text-3xl text-white mb-3">
-                Chính sách đặt hàng
-              </h1>
-              <p className="text-sm sm:text-base text-white/90 max-w-xl">
-                Thông tin chi tiết về quy trình đặt hàng, thanh toán và hỗ trợ
-                khách hàng.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
+      <div className="text-center space-y-3 mt-10">
+        <h1 className="text-2xl md:text-3xl text-primary">
+          Chính sách đặt hàng
+        </h1>
+        <p className="text-gray-600 text-sm">
+          Thông tin chi tiết về quy trình đặt hàng, thanh toán và hỗ trợ
+          khách hàng.
+        </p>
+      </div>
 
       {/* ===== CONTENT ===== */}
       <section className="w-full px-4 sm:px-6 lg:px-8 py-16 sm:py-20">
@@ -95,7 +85,6 @@ function OrderPolicy() {
               <li>• Bảo quản đúng hướng dẫn.</li>
             </ul>
           </PolicyCard>
-
         </div>
       </section>
 

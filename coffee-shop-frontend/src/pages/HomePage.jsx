@@ -50,12 +50,12 @@ export default function HomePage() {
             <div className="relative h-80 sm:h-96 lg:h-[520px] flex flex-col justify-center items-start px-6 sm:px-10 lg:px-16">
               <div className="space-y-6 max-w-2xl">
                 <div>
-                  <p className="text-amber-300 text-xs sm:text-sm font-bold tracking-widest uppercase mb-3">
+                  <p className="text-amber-300 text-xs sm:text-sm tracking-widest uppercase mb-3">
                     Khám phá hương vị mới
                   </p>
-                  <h2 className="text-3xl sm:text-5xl lg:text-6xl font-bold text-white leading-tight">
+                  <h4 className="text-1xl sm:text-1xl lg:text-2xl text-white leading-tight">
                     {banner?.title || "Menu Đặc Biệt"}
-                  </h2>
+                  </h4>
                 </div>
 
                 <p className="text-base sm:text-lg lg:text-xl text-gray-100 leading-relaxed">
@@ -90,7 +90,7 @@ export default function HomePage() {
             <p className="text-amber-600 font-bold text-xs sm:text-sm tracking-widest uppercase mb-3">
               Bộ sưu tập hôm nay
             </p>
-            <h3 className="text-3xl sm:text-5xl lg:text-6xl font-bold text-gray-900 mb-4 sm:mb-6 leading-tight">
+            <h3 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-4 sm:mb-6 leading-tight">
               Menu Đặc Sắc
             </h3>
             <p className="text-base sm:text-lg text-gray-600 max-w-2xl mx-auto">

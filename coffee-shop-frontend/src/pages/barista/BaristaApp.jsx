@@ -49,7 +49,7 @@ export function BaristaApp() {
   const currentPage = getCurrentPage();
 
   const menuItems = [
-    { id: "dashboard", icon: LayoutDashboard, label: "Dashboard", path: "/barista" },
+    { id: "dashboard", icon: LayoutDashboard, label: "Bảng điều khiển", path: "/barista" },
     { id: "orders", icon: PackageOpen, label: "Đơn hàng", path: "/barista/orders" },
     { id: "attendance", icon: Clock, label: "Chấm công", path: "/barista/attendance" },
     { id: "schedule", icon: Calendar, label: "Lịch làm việc", path: "/barista/schedule" },

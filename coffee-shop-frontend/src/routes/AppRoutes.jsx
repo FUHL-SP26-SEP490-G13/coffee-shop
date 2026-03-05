@@ -3,13 +3,6 @@ import { Navigate, Routes, Route } from "react-router-dom";
 import { APP_ROUTES, STORAGE_KEYS } from "../constants";
 import LoginPage from "../pages/authentication/LoginPage";
 import RegisterPage from "../pages/authentication/RegisterPage";
-import { StaffApp } from "../pages/staff/StaffApp";
-import { BaristaApp } from "../pages/barista/BaristaApp";
-import { BaristaDashboard } from "../pages/barista/BaristaDashboard";
-import { BaristaOrders } from "../pages/barista/BaristaOrders";
-import { BaristaSchedule } from "../pages/barista/BaristaSchedule";
-import { BaristaAttendance } from "../pages/barista/BaristaAttendance";
-import { BaristaRequests } from "../pages/barista/BaristaRequests";
 import AdminOrders from "../pages/admin/AdminOrders";
 import AdminUsers from "../pages/admin/AdminUsers";
 import authenticationService from "../services/authenticationService";
@@ -48,9 +41,13 @@ import AdminTables from "@/pages/admin/AdminTables/AdminTables";
 import TermsOfServicePage from "@/pages/common/TermsOfServicePage";
 import ReturnPolicyPage from "@/pages/common/ReturnPolicyPage";
 import PaymentPolicyPage from "@/pages/common/PaymentPolicyPage";
-
-
-
+import { BaristaDashboard } from "@/pages/barista/BaristaDashboard/BaristaDashboard";
+import { BaristaOrders } from "@/pages/barista/BaristaOrder/BaristaOrders";
+import { BaristaAttendance } from "@/pages/barista/BaristaAttendance/BaristaAttendance";
+import { BaristaSchedule } from "@/pages/barista/BaristaSchedule/BaristaSchedule";
+import { BaristaRequests } from "@/pages/barista/BaristaRequest/BaristaRequests";
+import { StaffApp } from "@/pages/staff/StaffApp";
+import { BaristaApp } from "@/pages/barista/BaristaApp";
 
 const getStoredValue = (key) =>
   localStorage.getItem(key) || sessionStorage.getItem(key);

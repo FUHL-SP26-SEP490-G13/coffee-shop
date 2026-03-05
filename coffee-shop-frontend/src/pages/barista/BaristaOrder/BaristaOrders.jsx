@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { PackageCheck, Clock, CheckCircle, Package } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
-import { Badge } from '../../components/ui/badge';
-import { Button } from '../../components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
-import { orders } from '../../lib/mockData';
+import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
+import { Badge } from '../../../components/ui/badge';
+import { Button } from '../../../components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../components/ui/tabs';
+import { orders } from '../../../lib/mockData';
 import { toast } from 'sonner';
 
 export function BaristaOrders() {

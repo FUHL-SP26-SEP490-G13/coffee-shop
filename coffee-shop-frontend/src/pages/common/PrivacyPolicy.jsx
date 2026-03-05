@@ -18,22 +18,15 @@ function PrivacyPolicy() {
     <div className="min-h-screen flex flex-col bg-white">
       <Header />
 
-      {/* ===== HERO ===== */}
-      <section className="w-full pt-8 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-6xl mx-auto">
-          <div className="relative overflow-hidden rounded-3xl shadow-2xl bg-gradient-to-r from-amber-600 to-amber-400">
-            <div className="h-72 sm:h-80 lg:h-96 flex flex-col justify-center items-center text-center px-6">
-              <h1 className="text-2xl sm:text-3xl text-white mb-3">
-                Chính sách bảo mật
-              </h1>
-              <p className="text-sm sm:text-base text-white/90 max-w-xl">
-                Cam kết minh bạch trong việc thu thập, sử dụng và bảo vệ thông
-                tin cá nhân.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
+      <div className="text-center space-y-3 mt-10">
+        <h1 className="text-2xl md:text-3xl text-primary">
+          Chính sách bảo mật
+        </h1>
+        <p className="text-gray-600 text-sm">
+          Cam kết minh bạch trong việc thu thập, sử dụng và bảo vệ thông tin cá
+          nhân.
+        </p>
+      </div>
 
       {/* ===== CONTENT ===== */}
       <section className="w-full px-4 sm:px-6 lg:px-8 py-16 sm:py-20">
@@ -68,7 +61,6 @@ function PrivacyPolicy() {
             khoản không còn hoạt động.
           </PolicyCard>
         </div>
-
       </section>
 
       <div className="w-full h-px bg-gradient-to-r from-transparent via-amber-300 to-transparent" />
