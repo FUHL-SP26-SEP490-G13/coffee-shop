@@ -164,6 +164,7 @@ class UserRepository extends BaseRepository {
       'last_name',
       'gender',
       'dob',
+      'phone',
     ];
 
     // Filter only allowed fields
