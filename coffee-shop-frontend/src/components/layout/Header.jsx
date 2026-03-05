@@ -119,25 +119,16 @@ function Header() {
           {/* Desktop Navigation */}
           <div className="hidden sm:flex items-center gap-2">
             {!user && (
-              <Button
-                variant="ghost"
-                onClick={() => navigate("/login")}
-              >
+              <Button variant="ghost" onClick={() => navigate("/login")}>
                 Đăng nhập
               </Button>
             )}
 
-            <Button
-              variant="ghost"
-              onClick={() => navigate("/news")}
-            >
+            <Button variant="ghost" onClick={() => navigate("/news")}>
               Tin tức
             </Button>
 
-            <Button
-              variant="ghost"
-              onClick={() => navigate("/wishlist")}
-            >
+            <Button variant="ghost" onClick={() => navigate("/wishlist")}>
               Yêu thích
             </Button>
           </div>
@@ -200,10 +191,7 @@ function Header() {
           )}
 
           {/* Shopping Cart Button */}
-          <Button
-            onClick={() => navigate("/cart")}
-            className="gap-2"
-          >
+          <Button onClick={() => navigate("/cart")} className="gap-2">
             <ShoppingCart className="w-4 h-4" />
             <span className="hidden sm:inline">Giỏ hàng</span>
           </Button>

@@ -12,12 +12,13 @@ class BannerController {
 
   async getAll(req, res, next) {
     try {
-      const { page = 1, limit = 5, keyword = "" } = req.query;
+      const { page = 1, limit = 5, keyword = "", status = "" } = req.query;
 
       const result = await bannerService.getAll({
         page: Number(page),
         limit: Number(limit),
         keyword,
+        status,
       });
 
       res.json({ success: true, ...result });
@@ -104,7 +105,6 @@ class BannerController {
       next(err);
     }
   }
-  
 }
 
 module.exports = new BannerController();

@@ -7,16 +7,23 @@ class BannerRepository {
     return rows[0];
   }
 
-  async findAll({ page = 1, limit = 5, keyword = "" }) {
+  async findAll({ page = 1, limit = 5, keyword = "", status = "" }) {
     const offset = (page - 1) * limit;
 
-    let whereClause = "";
-    const params = [];
+    let where = [];
+    let params = [];
 
     if (keyword) {
-      whereClause = "WHERE title LIKE ?";
-      params.push(`%${keyword}%`);
+      where.push("(title LIKE ? OR subtitle LIKE ?)");
+      params.push(`%${keyword}%`, `%${keyword}%`);
     }
+
+    if (status !== "") {
+      where.push("is_active = ?");
+      params.push(status === "active" ? 1 : 0);
+    }
+
+    const whereClause = where.length ? "WHERE " + where.join(" AND ") : "";
 
     const sql = `
     SELECT * FROM banners
@@ -35,10 +42,9 @@ class BannerRepository {
     ${whereClause}
   `;
 
-    const [countRows] = await pool.query(
-      countSql,
-      keyword ? [`%${keyword}%`] : []
-    );
+    const countParams = params.slice(0, params.length - 2);
+
+    const [countRows] = await pool.query(countSql, countParams);
 
     return {
       data: rows,

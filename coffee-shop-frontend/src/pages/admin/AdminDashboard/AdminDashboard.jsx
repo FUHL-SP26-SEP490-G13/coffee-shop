@@ -11,7 +11,8 @@ import {
   XAxis,
   YAxis,
   Tooltip,
-  BarChart, Bar,
+  BarChart,
+  Bar,
 } from "recharts";
 import { Newspaper } from "lucide-react";
 
@@ -91,42 +92,42 @@ export default function AdminDashboard() {
     }
   };
 
-//   const loadData = async () => {
-//   try {
-//     setLoading(true);
+  //   const loadData = async () => {
+  //   try {
+  //     setLoading(true);
 
-//     // Các API bắt buộc - nếu lỗi thì báo
-//     const ov = await adminDashService.getOverview();
-//     setOverview(ov);
+  //     // Các API bắt buộc - nếu lỗi thì báo
+  //     const ov = await adminDashService.getOverview();
+  //     setOverview(ov);
 
-//     const series = await adminDashService.getRevenueSeries(rangeDays);
-//     setRevenueSeries(series);
+  //     const series = await adminDashService.getRevenueSeries(rangeDays);
+  //     setRevenueSeries(series);
 
-//     const top = await adminDashService.getTopProducts({ days: rangeDays, limit: 5 });
-//     setTopProducts(top);
+  //     const top = await adminDashService.getTopProducts({ days: rangeDays, limit: 5 });
+  //     setTopProducts(top);
 
-//     // Các API optional - lỗi thì bỏ qua, không crash
-//     await adminDashService.getPaymentMethodBreakdown(rangeDays)
-//       .then(setPaymentMethod).catch(() => {});
+  //     // Các API optional - lỗi thì bỏ qua, không crash
+  //     await adminDashService.getPaymentMethodBreakdown(rangeDays)
+  //       .then(setPaymentMethod).catch(() => {});
 
-//     await adminDashService.getOrderTypeRevenue(rangeDays)
-//       .then(setOrderTypeRevenue).catch(() => {});
+  //     await adminDashService.getOrderTypeRevenue(rangeDays)
+  //       .then(setOrderTypeRevenue).catch(() => {});
 
-//     await adminDashService.getTableStatusSummary()
-//       .then(setTableSummary).catch(() => {}); // ← đây đang 404
+  //     await adminDashService.getTableStatusSummary()
+  //       .then(setTableSummary).catch(() => {}); // ← đây đang 404
 
-//     await adminDashService.getComparison(rangeDays)
-//       .then(setComparison).catch(() => {});
+  //     await adminDashService.getComparison(rangeDays)
+  //       .then(setComparison).catch(() => {});
 
-//     await adminDashService.getStaffSummary()
-//       .then(setStaffSummary).catch(() => {}); // ← giờ sẽ chạy được
+  //     await adminDashService.getStaffSummary()
+  //       .then(setStaffSummary).catch(() => {}); // ← giờ sẽ chạy được
 
-//   } catch (err) {
-//     console.error("loadData error:", err);
-//   } finally {
-//     setLoading(false);
-//   }
-// };
+  //   } catch (err) {
+  //     console.error("loadData error:", err);
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
 
   useEffect(() => {
     loadData();
@@ -141,7 +142,6 @@ export default function AdminDashboard() {
   if (loading) return <div className="p-6">Đang tải dashboard...</div>;
   if (!overview) return <div className="p-6">Không có dữ liệu dashboard</div>;
   console.log("overview:", overview);
-
 
   return (
     <div className="space-y-6">
@@ -393,7 +393,7 @@ export default function AdminDashboard() {
         )}
       </Card>
 
-{/* Optional: tóm tắt số lượng nhân viên theo vai trò (barista, phục vụ, quản lý) để dashboard có thêm vài số liệu hữu ích */}
+      {/* Optional: tóm tắt số lượng nhân viên theo vai trò (barista, phục vụ, quản lý) để dashboard có thêm vài số liệu hữu ích */}
       <Card className="p-6">
         <h3 className="text-lg font-semibold mb-4">Tình hình nhân sự</h3>
 

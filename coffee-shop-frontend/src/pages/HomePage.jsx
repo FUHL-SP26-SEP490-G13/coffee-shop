@@ -33,6 +33,8 @@ export default function HomePage() {
   const defaultImage =
     "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085";
 
+  const YOUTUBE_VIDEO_ID = "eDyD7y3M_c0";
+
   return (
     <div className="min-h-screen flex flex-col bg-white">
       <Header />
@@ -93,12 +95,9 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto">
           {/* Section Header */}
           <div className="text-center mb-14 sm:mb-20">
-            <p className="text-amber-600 font-bold text-xs sm:text-sm tracking-widest uppercase mb-3">
-              Bộ sưu tập hôm nay
-            </p>
-            <h3 className="text-xl sm:text-2xl lg:text-3xl text-gray-900 mb-4 sm:mb-6 leading-tight">
+            <p className="text-amber-600 text-2xl sm:text-1xl lg:text-2xl font-bold tracking-widest uppercase mb-3">
               Menu Đặc Sắc
-            </h3>
+            </p>
             <p className="text-base sm:text-lg text-gray-600 max-w-2xl mx-auto">
               Khám phá những lựa chọn tuyệt vời được chọn lựa kỹ lưỡng cho bạn
             </p>
@@ -192,6 +191,38 @@ export default function HomePage() {
 
       {/* ===== DIVIDER ===== */}
       <div className="w-full h-px bg-gradient-to-r from-transparent via-amber-300 to-transparent" />
+
+      {/* ===== INTRO VIDEO ===== */}
+      <section className="w-full px-4 sm:px-6 lg:px-8 py-14 sm:py-16 bg-white">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-8 sm:mb-10">
+            <p className="text-amber-600 font-bold sm:text-1xl lg:text-2xl tracking-widest uppercase mb-3">
+              Giới thiệu
+            </p>
+            <h4 className="text-xl sm:text-lg lg:text-2lg text-gray-900 mb-3 leading-tight">
+              Một chút thư giãn với cà phê tuyệt hảo
+            </h4>
+            <p className="text-base sm:text-lg text-gray-600 max-w-2xl mx-auto">
+              Một chút không gian, một chút hương vị — và rất nhiều cảm hứng từ
+              cà phê.
+            </p>
+          </div>
+
+          <div className="rounded-2xl overflow-hidden shadow-lg border border-gray-200 bg-black">
+            {/* Responsive 16:9 */}
+            <div className="relative w-full pt-[56.25%]">
+              <iframe
+                className="absolute inset-0 w-full h-full"
+                src={`https://www.youtube.com/embed/${YOUTUBE_VIDEO_ID}?autoplay=1&mute=1&rel=0&modestbranding=1`}
+                title="Coffee Intro Video"
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+              />
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* ===== TIN TỨC NỔI BẬT ===== */}
       <FeaturedNews />

@@ -38,6 +38,8 @@ export default function AdminBanner() {
   const [previewImage, setPreviewImage] = useState(null);
   const [errors, setErrors] = useState({});
 
+  const [status, setStatus] = useState("");
+
   const [form, setForm] = useState({
     title: "",
     subtitle: "",
@@ -56,6 +58,7 @@ export default function AdminBanner() {
         page,
         limit,
         keyword,
+        status,
       });
 
       setBanners(res.data);
@@ -69,7 +72,7 @@ export default function AdminBanner() {
 
   useEffect(() => {
     fetchData();
-  }, [page, keyword]);
+  }, [page, keyword, status]);
 
   // ================= CREATE / UPDATE =================
   const handleSubmit = async () => {
@@ -159,7 +162,9 @@ export default function AdminBanner() {
       <div className="mb-4 sm:mb-6 flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <Megaphone className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
-          <h1 className="text-xl sm:text-2xl font-semibold">Quản lý quảng cáo</h1>
+          <h1 className="text-xl sm:text-2xl font-semibold">
+            Quản lý quảng cáo
+          </h1>
         </div>
 
         <Button
@@ -186,14 +191,29 @@ export default function AdminBanner() {
 
       {/* TABLE */}
       <Card className="p-4 sm:p-6 space-y-4">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Tìm theo tiêu đề..."
-            value={keyword}
-            onChange={(e) => setKeyword(e.target.value)}
-            className="pl-9"
-          />
+        <div className="flex gap-3 flex-col sm:flex-row">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Tìm theo tiêu đề hoặc mô tả..."
+              value={keyword}
+              onChange={(e) => setKeyword(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+
+          <select
+            value={status}
+            onChange={(e) => {
+              setStatus(e.target.value);
+              setPage(1);
+            }}
+            className="border rounded-md px-3 py-2 text-sm"
+          >
+            <option value="">Tất cả trạng thái</option>
+            <option value="active">Hoạt động</option>
+            <option value="inactive">Ngừng hoạt động</option>
+          </select>
         </div>
 
         {loading ? (
@@ -232,7 +252,7 @@ export default function AdminBanner() {
                           className="w-24 h-12 object-cover rounded-md border"
                         />
                       </td>
-                      <td className="py-3 px-4 font-medium">{b.title}</td>
+                      <td className="py-3 px-4">{b.title}</td>
                       <td className="py-3 px-4 text-muted-foreground max-w-xs truncate">
                         {b.subtitle || "-"}
                       </td>
