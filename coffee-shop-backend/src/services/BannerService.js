@@ -10,16 +10,10 @@ class BannerService {
   }
 
   async create(data) {
-    if (data.is_active) {
-      await bannerRepository.deactivateAll();
-    }
     return bannerRepository.create(data);
   }
 
   async update(id, data) {
-    if (data.is_active) {
-      await bannerRepository.deactivateAll();
-    }
     return bannerRepository.update(id, data);
   }
 
@@ -29,6 +23,10 @@ class BannerService {
 
   async getById(id) {
     return bannerRepository.findById(id);
+  }
+
+  async getActiveList() {
+    return bannerRepository.findActiveList();
   }
 }
 

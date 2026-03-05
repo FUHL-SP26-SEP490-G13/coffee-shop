@@ -9,6 +9,11 @@ import Header from "@/components/layout/Header";
 import { Link } from "react-router-dom";
 import FeaturedNews from "@/components/news/FeaturedNews";
 import bannerService from "@/services/bannerService";
+import { Swiper, SwiperSlide } from "swiper/react";
+import { Autoplay, Pagination, Navigation } from "swiper/modules";
+import "swiper/css";
+import "swiper/css/pagination";
+import "swiper/css/navigation";
 
 export default function HomePage() {
   const fetchProducts = useCallback(() => {
@@ -18,12 +23,12 @@ export default function HomePage() {
   const { data, loading } = useFetch(fetchProducts);
   const products = data?.data || [];
 
-  const fetchBanner = useCallback(() => {
-    return bannerService.getActive();
+  const fetchBanners = useCallback(() => {
+    return bannerService.getActiveList(); // API mới: /banners/active-list
   }, []);
 
-  const { data: bannerData } = useFetch(fetchBanner);
-  const banner = bannerData?.data ?? bannerData;
+  const { data: bannerRes } = useFetch(fetchBanners);
+  const banners = bannerRes?.data ?? [];
 
   const defaultImage =
     "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085";
@@ -33,50 +38,51 @@ export default function HomePage() {
       <Header />
 
       {/* ===== HERO BANNER ===== */}
-      <section className="w-full pt-8 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-6xl mx-auto">
-          <div className="relative overflow-hidden rounded-3xl shadow-2xl group">
-            {/* Background Image with Overlay */}
-            <div className="absolute inset-0 overflow-hidden">
-              <img
-                src={banner?.image_url || defaultImage}
-                alt="Banner"
-                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-              />
-              <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/50 to-black/30" />
-            </div>
+      <section className="w-full pt-8">
+        <div className="w-full">
+          <div className="relative overflow-hidden">
+            <Swiper
+              modules={[Autoplay, Pagination, Navigation]}
+              autoplay={{ delay: 3500, disableOnInteraction: false }}
+              loop={true}
+              pagination={{ clickable: true }}
+              navigation
+              className="w-full h-[420px] sm:h-[520px] lg:h-[650px]"
+            >
+              {(banners.length ? banners : [null]).map((b, idx) => (
+                <SwiperSlide key={b?.id ?? idx}>
+                  <div className="relative h-full">
+                    {/* IMAGE */}
+                    <img
+                      src={b?.image_url || defaultImage}
+                      alt={b?.title || "Banner"}
+                      className="w-full h-full object-cover"
+                    />
 
-            {/* Content */}
-            <div className="relative h-80 sm:h-96 lg:h-[520px] flex flex-col justify-center items-start px-6 sm:px-10 lg:px-16">
-              <div className="space-y-6 max-w-2xl">
-                <div>
-                  <p className="text-amber-300 text-xs sm:text-sm tracking-widest uppercase mb-3">
-                    Khám phá hương vị mới
-                  </p>
-                  <h4 className="text-1xl sm:text-1xl lg:text-2xl text-white leading-tight">
-                    {banner?.title || "Menu Đặc Biệt"}
-                  </h4>
-                </div>
+                    {/* BUTTON LEFT */}
+                    {b?.button_text && (
+                      <div className="absolute bottom-10 left-10">
+                        <Link to={b?.button_link || "/"}>
+                          <Button
+                            size="lg"
+                            className="bg-[#C65D2E] hover:bg-[#B55329] text-white px-8 py-3"
+                          >
+                            {b.button_text}
+                          </Button>
+                        </Link>
+                      </div>
+                    )}
+                  </div>
+                </SwiperSlide>
+              ))}
+            </Swiper>
+            {/* DESCRIPTION */}
+            <div className="bg-[#f4eddc] py-6 text-center">
+              <h3 className="text-lg font-semibold text-gray-800">
+                {banners[0]?.title}
+              </h3>
 
-                <p className="text-base sm:text-lg lg:text-xl text-gray-100 leading-relaxed">
-                  {banner?.subtitle ||
-                    "Thưởng thức những hương vị tuyệt vời từ những sản phẩm chất lượng cao nhất"}
-                </p>
-
-                {banner?.button_text && (
-                  <Link to={banner?.button_link || "/"}>
-                    <Button
-                      size="lg"
-                      className="text-white font-bold px-8 py-3 text-sm sm:text-base transition-all duration-300 shadow-lg hover:shadow-2xl hover:-translate-y-1 group/btn"
-                    >
-                      <span className="flex items-center gap-2">
-                        {banner.button_text}
-                        <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 transition-transform duration-300 group-hover/btn:translate-x-1" />
-                      </span>
-                    </Button>
-                  </Link>
-                )}
-              </div>
+              <p className="text-gray-600 mt-2">{banners[0]?.subtitle}</p>
             </div>
           </div>
         </div>
@@ -90,7 +96,7 @@ export default function HomePage() {
             <p className="text-amber-600 font-bold text-xs sm:text-sm tracking-widest uppercase mb-3">
               Bộ sưu tập hôm nay
             </p>
-            <h3 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-4 sm:mb-6 leading-tight">
+            <h3 className="text-xl sm:text-2xl lg:text-3xl text-gray-900 mb-4 sm:mb-6 leading-tight">
               Menu Đặc Sắc
             </h3>
             <p className="text-base sm:text-lg text-gray-600 max-w-2xl mx-auto">
@@ -161,10 +167,7 @@ export default function HomePage() {
                           <p className="text-xs text-gray-500">VNĐ</p>
                         </div>
 
-                        <Button
-                          size="sm"
-                          className="gap-1.5"
-                        >
+                        <Button size="sm" className="gap-1.5">
                           <Plus className="w-4 h-4 transition-transform duration-300 group-hover/btn:rotate-90" />
                           <span className="hidden sm:inline ml-1">Thêm</span>
                         </Button>

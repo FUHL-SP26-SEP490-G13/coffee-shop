@@ -95,6 +95,14 @@ class BannerRepository {
     const [rows] = await pool.query("SELECT * FROM banners WHERE id = ?", [id]);
     return rows[0];
   }
+
+  // For admin dashboard - get all banners regardless of active status
+  async findActiveList() {
+    const sql =
+      "SELECT * FROM banners WHERE is_active = 1 ORDER BY created_at DESC";
+    const [rows] = await pool.query(sql);
+    return rows;
+  }
 }
 
 module.exports = new BannerRepository();

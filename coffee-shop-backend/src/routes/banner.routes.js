@@ -48,4 +48,6 @@ router.delete(
   controller.delete.bind(controller)
 );
 
+router.get("/active-list", controller.getActiveList.bind(controller));
+
 module.exports = router;

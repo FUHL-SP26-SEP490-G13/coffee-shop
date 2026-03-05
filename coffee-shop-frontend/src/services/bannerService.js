@@ -28,6 +28,10 @@ const bannerService = {
   delete(id) {
     return axiosClient.delete(`/banners/admin/${id}`);
   },
+
+  getActiveList() {
+    return axiosClient.get("/banners/active-list");
+  },
 };
 
 export default bannerService;

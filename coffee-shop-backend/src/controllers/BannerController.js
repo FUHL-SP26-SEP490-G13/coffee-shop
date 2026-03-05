@@ -95,6 +95,16 @@ class BannerController {
       next(err);
     }
   }
+
+  async getActiveList(req, res, next) {
+    try {
+      const data = await bannerService.getActiveList();
+      return res.json({ success: true, data });
+    } catch (err) {
+      next(err);
+    }
+  }
+  
 }
 
 module.exports = new BannerController();
