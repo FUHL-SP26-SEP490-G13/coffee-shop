@@ -10,29 +10,18 @@ class CategoryRepository extends BaseRepository {
    * Get all active categories (not deleted)
    */
   async findAllActive(options = {}) {
-    const { limit, offset, orderBy = 'name', order = 'ASC' } = options;
-
-    let query = `SELECT * FROM ${this.tableName} WHERE is_deleted = 0`;
-    const params = [];
-
-    query += ` ORDER BY ${orderBy} ${order}`;
-
-    if (limit) {
-      query += ` LIMIT ? OFFSET ?`;
-      params.push(limit, offset || 0);
-    }
-
-    const [rows] = await db.query(query, params);
-    return rows;
+    return this.findAll({ is_deleted: 0 }, {
+      ...options,
+      orderBy: options.orderBy || 'name',
+      order: options.order || 'ASC'
+    });
   }
 
   /**
    * Find category by name
    */
   async findByName(name) {
-    const query = `SELECT * FROM ${this.tableName} WHERE name = ? AND is_deleted = 0`;
-    const [rows] = await db.query(query, [name]);
-    return rows[0] || null;
+    return this.findOne({ name, is_deleted: 0 });
   }
 
   /**
@@ -100,8 +89,27 @@ class CategoryRepository extends BaseRepository {
     `;
 
     const searchPattern = `%${keyword}%`;
-    const [rows] = await db.query(query, [searchPattern, limit, offset]);
+    const [rows] = await db.query(query, [
+      searchPattern,
+      parseInt(limit),
+      parseInt(offset)
+    ]);
     return rows;
+  }
+
+  /**
+   * Count search results
+   */
+  async countSearch(keyword) {
+    const query = `
+      SELECT COUNT(*) as total 
+      FROM ${this.tableName} 
+      WHERE name LIKE ? AND is_deleted = 0
+    `;
+
+    const searchPattern = `%${keyword}%`;
+    const [rows] = await db.query(query, [searchPattern]);
+    return rows[0].total;
   }
 }
 
