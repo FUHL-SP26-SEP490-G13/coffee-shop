@@ -3,8 +3,8 @@ import axios from 'axios';
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 const tableService = {
-  getAll: async () => {
-    const response = await axios.get(`${API_URL}/tables`);
+  getAll: async (params = {}) => {
+    const response = await axios.get(`${API_URL}/tables`, { params });
     return response.data;
   },
 

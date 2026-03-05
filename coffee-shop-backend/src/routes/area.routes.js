@@ -9,6 +9,7 @@ const {
   updateAreaSchema,
   areaIdSchema,
 } = require('../validators/areaValidator');
+const upload = require('../middlewares/upload');
 
 /**
  * Public routes
@@ -23,6 +24,7 @@ router.post(
   '/',
   authenticate,
   authorize(['manager']),
+  upload.single('image'),
   validate(createAreaSchema),
   AreaController.create
 );
@@ -31,6 +33,7 @@ router.put(
   '/:id',
   authenticate,
   authorize(['manager']),
+  upload.single('image'),
   validate(areaIdSchema, 'params'),
   validate(updateAreaSchema),
   AreaController.update

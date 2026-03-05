@@ -29,9 +29,14 @@ class AreaService {
       throw new Error('Tên khu vực đã tồn tại');
     }
 
-    return await AreaRepository.create({
+    const newArea = {
       name: data.name
-    });
+    };
+    if (data.image) {
+      newArea.image = data.image;
+    }
+
+    return await AreaRepository.create(newArea);
   }
 
   /**
@@ -47,9 +52,14 @@ class AreaService {
       }
     }
 
-    return await AreaRepository.update(id, {
-      name: data.name
-    });
+    const updateData = {
+      name: data.name || area.name
+    };
+    if (data.image) {
+      updateData.image = data.image;
+    }
+
+    return await AreaRepository.update(id, updateData);
   }
 
   /**
