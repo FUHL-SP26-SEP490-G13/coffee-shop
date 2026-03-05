@@ -45,6 +45,10 @@ import { StaffSchedule } from "@/pages/staff/StaffSchedule";
 import AdminBanner from "@/pages/admin/AdminBanner/AdminBanner";
 import AdminAreas from "@/pages/admin/AdminAreas/AdminAreas";
 import AdminTables from "@/pages/admin/AdminTables/AdminTables";
+import TermsOfServicePage from "@/pages/common/TermsOfServicePage";
+import ReturnPolicyPage from "@/pages/common/ReturnPolicyPage";
+import PaymentPolicyPage from "@/pages/common/PaymentPolicyPage";
+
 
 
 
@@ -186,8 +190,6 @@ const AppRoutes = () => {
         <Route path="banners" element={<AdminBanner />} />
         <Route path="area" element={<AdminAreas />} />
         <Route path="tables" element={<AdminTables />} />
-
-
       </Route>
 
       <Route path="/news/:slug" element={<NewsDetailPage />} />
@@ -195,6 +197,9 @@ const AppRoutes = () => {
       <Route path="/customer/profile" element={<UserProfile />} />
       <Route path="/order-policy" element={<OrderPolicy />} />
       <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+      <Route path="/payment-policy" element={<PaymentPolicyPage />} />
+      <Route path="/terms-of-service" element={<TermsOfServicePage />} />
+      <Route path="/return-policy" element={<ReturnPolicyPage />} />
 
       {/* 404 */}
       <Route
