@@ -12,26 +12,22 @@ const categoryService = {
   },
 
   // Get category by ID
-  getById(id) {
-    return axiosClient.get(`/categories/${id}`);
+  getById(id, params) {
+    return axiosClient.get(`/categories/${id}`, { params });
   },
 
   // Create new category
-  create(data) {
-    const formData = new FormData();
-
-    formData.append('name', data.name);
-
-    if (data.image) {
-      formData.append('image', data.image);
-    }
-
-    return axiosClient.post('/categories', formData);
+  create(formData) {
+    return axiosClient.post('/categories', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
   },
 
   // Update category
-  update(id, data) {
-    return axiosClient.put(`/categories/${id}`, data, {
+  update(id, formData) {
+    return axiosClient.put(`/categories/${id}`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },

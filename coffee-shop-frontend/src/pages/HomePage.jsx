@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, Search, Loader2, Plus, ArrowRight } from "lucide-react";
@@ -12,11 +12,14 @@ import bannerService from "@/services/bannerService";
 
 export default function HomePage() {
   const fetchProducts = useCallback(() => {
-    return productService.getAll();
+    return productService.getAll({ status: "available" });
   }, []);
 
   const { data, loading } = useFetch(fetchProducts);
-  const products = data?.data || [];
+  const products = useMemo(() => {
+    const productList = Array.isArray(data?.data) ? data.data : [];
+    return productList.filter((product) => Number(product?.is_deleted ?? 0) === 0);
+  }, [data]);
 
   const fetchBanner = useCallback(() => {
     return bannerService.getActive();
@@ -27,6 +30,42 @@ export default function HomePage() {
 
   const defaultImage =
     "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085";
+
+  const getThumbnail = (product) => {
+    if (Array.isArray(product?.images) && product.images.length > 0) {
+      const thumbnail = product.images.find(
+        (img) => Number(img?.isThumbnail ?? 0) === 1,
+      );
+
+      return thumbnail?.image_url || product.images[0]?.image_url || defaultImage;
+    }
+
+    return product?.image_url || defaultImage;
+  };
+
+  const formatPrice = (product) => {
+    const sizePrices = (Array.isArray(product?.sizes) ? product.sizes : [])
+      .map((size) => Number(size?.price))
+      .filter((price) => Number.isFinite(price) && price > 0);
+
+    if (sizePrices.length > 0) {
+      const minPrice = Math.min(...sizePrices);
+      const maxPrice = Math.max(...sizePrices);
+
+      if (minPrice === maxPrice) {
+        return `${minPrice.toLocaleString("vi-VN")}đ`;
+      }
+
+      return `${minPrice.toLocaleString("vi-VN")}đ - ${maxPrice.toLocaleString("vi-VN")}đ`;
+    }
+
+    const fallbackPrice = Number(product?.min_price ?? product?.price);
+    if (Number.isFinite(fallbackPrice) && fallbackPrice > 0) {
+      return `${fallbackPrice.toLocaleString("vi-VN")}đ`;
+    }
+
+    return "Liên hệ";
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-white">
@@ -123,7 +162,7 @@ export default function HomePage() {
                     {/* Image Container */}
                     <div className="relative overflow-hidden bg-gradient-to-br from-gray-200 to-gray-300 h-52 sm:h-60">
                       <img
-                        src={product.image_url}
+                        src={getThumbnail(product)}
                         alt={product.name}
                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                         onError={(e) =>
@@ -156,7 +195,7 @@ export default function HomePage() {
                       <div className="flex justify-between items-center gap-3 pt-4 border-t border-gray-200">
                         <div>
                           <p className="text-2xl sm:text-3xl font-bold text-amber-600">
-                            {Number(product.min_price).toLocaleString()}
+                            {formatPrice(product)}
                           </p>
                           <p className="text-xs text-gray-500">VNĐ</p>
                         </div>
@@ -186,9 +225,6 @@ export default function HomePage() {
           )}
         </div>
       </section>
-
-      {/* ===== DIVIDER ===== */}
-      <div className="w-full h-px bg-gradient-to-r from-transparent via-amber-300 to-transparent" />
 
       {/* ===== TIN TỨC NỔI BẬT ===== */}
       <FeaturedNews />

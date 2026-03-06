@@ -2,6 +2,7 @@ const Joi = require('joi');
 
 /**
  * Validation schema for creating product
+ * name, category_id, status, description, images
  */
 const createProductSchema = Joi.object({
   name: Joi.string().min(2).max(100).required().messages({
@@ -22,24 +23,6 @@ const createProductSchema = Joi.object({
   description: Joi.string().max(255).allow(null, '').optional().messages({
     'string.max': 'Mô tả không được vượt quá 255 ký tự',
   }),
-  sizes: Joi.array()
-    .items(
-      Joi.object({
-        size: Joi.string().valid('S', 'M', 'L').required().messages({
-          'any.only': 'Size chỉ chấp nhận S, M, hoặc L',
-          'any.required': 'Size là bắt buộc',
-        }),
-        price: Joi.number().positive().required().messages({
-          'number.base': 'Giá phải là số',
-          'number.positive': 'Giá phải là số dương',
-          'any.required': 'Giá là bắt buộc',
-        }),
-      })
-    )
-    .optional()
-    .messages({
-      'array.base': 'Sizes phải là mảng',
-    }),
 });
 
 /**
@@ -65,7 +48,7 @@ const updateProductSchema = Joi.object({
   sizes: Joi.array()
     .items(
       Joi.object({
-        size: Joi.string().valid('S', 'M', 'L').required().messages({
+        size: Joi.string().valid('S', 'M', 'L' , 's', 'm', 'l').required().messages({
           'any.only': 'Size chỉ chấp nhận S, M, hoặc L',
           'any.required': 'Size là bắt buộc',
         }),
@@ -76,12 +59,24 @@ const updateProductSchema = Joi.object({
         }),
       })
     )
+    .max(3)
     .optional()
     .messages({
       'array.base': 'Sizes phải là mảng',
+      'array.max': 'Tối đa chỉ có 3 loại size (S, M, L)',
     }),
-}).min(1).messages({
-  'object.min': 'Cần ít nhất một trường để cập nhật',
+  deleteSizeIds: Joi.array()
+    .items(Joi.number().integer().positive())
+    .optional()
+    .messages({
+      'array.base': 'deleteSizeIds phải là mảng',
+    }),
+  deleteImageIds: Joi.array()
+    .items(Joi.number().integer().positive())
+    .optional()
+    .messages({
+      'array.base': 'deleteImageIds phải là mảng',
+    }),
 });
 
 /**

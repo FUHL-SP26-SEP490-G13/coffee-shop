@@ -129,7 +129,11 @@ class CategoryController {
     } catch (error) {
       // Nếu DB fail thì xoá ảnh vừa upload
       if (uploadedPublicId) {
-        await cloudinary.uploader.destroy(uploadedPublicId);
+        try {
+          await cloudinary.uploader.destroy(uploadedPublicId);
+        } catch (cloudinaryError) {
+          console.error('Failed to cleanup Cloudinary image:', cloudinaryError);
+        }
       }
 
       next(error);
@@ -140,7 +144,7 @@ class CategoryController {
    * PUT /api/categories/:id
    */
   async update(req, res, next) {
-    let newUploadedImageUrl = null;
+    let newUploadedPublicId = null;
 
     try {
       const { id } = req.params;
@@ -161,13 +165,19 @@ class CategoryController {
       if (req.file) {
         const result = await cloudinary.uploader.upload(req.file.path, {
           folder: 'categories',
+          transformation: [
+            { width: 500, height: 500, crop: 'limit' },
+            { quality: 'auto' },
+          ],
         });
 
         categoryData.image_url = result.secure_url;
-        newUploadedImageUrl = result.secure_url;
+        newUploadedPublicId = result.public_id;
       }
 
-    
+      /**
+       * 3️⃣ Remove image nếu được yêu cầu
+       */
       if (req.body.remove_image?.toString() === 'true') {
         categoryData.image_url = null;
       }
@@ -188,10 +198,14 @@ class CategoryController {
        * - Nếu upload ảnh mới → xoá ảnh cũ
        * - Nếu remove_image → xoá ảnh cũ
        */
-      if ((req.file || remove_image) && oldCategory.image_url) {
+      if ((req.file || remove_image === 'true') && oldCategory.image_url) {
         const publicId = extractPublicId(oldCategory.image_url);
         if (publicId) {
-          await cloudinary.uploader.destroy(publicId);
+          try {
+            await cloudinary.uploader.destroy(publicId);
+          } catch (cloudinaryError) {
+            console.error('Failed to delete old Cloudinary image:', cloudinaryError);
+          }
         }
       }
 
@@ -202,10 +216,11 @@ class CategoryController {
       );
     } catch (error) {
       // Nếu upload ảnh mới mà DB fail → rollback ảnh mới
-      if (newUploadedImageUrl) {
-        const publicId = extractPublicId(newUploadedImageUrl);
-        if (publicId) {
-          await cloudinary.uploader.destroy(publicId);
+      if (newUploadedPublicId) {
+        try {
+          await cloudinary.uploader.destroy(newUploadedPublicId);
+        } catch (cloudinaryError) {
+          console.error('Failed to cleanup Cloudinary image:', cloudinaryError);
         }
       }
 

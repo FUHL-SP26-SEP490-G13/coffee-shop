@@ -5,13 +5,13 @@ const env = require('../config/env');
  */
 const errorHandler = (err, req, res, next) => {
   // Log error
-  console.error('Error:', {
-    message: err.message,
-    stack: err.stack,
-    url: req.originalUrl,
-    method: req.method,
-    ip: req.ip,
-  });
+  // console.error('Error:', {
+  //   message: err.message,
+  //   stack: err.stack,
+  //   url: req.originalUrl,
+  //   method: req.method,
+  //   ip: req.ip,
+  // });
 
   // Default error
   let statusCode = err.statusCode || 500;
@@ -77,7 +77,7 @@ const errorHandler = (err, req, res, next) => {
   // Include stack trace in development
   if (env.NODE_ENV === 'development') {
     response.stack = err.stack;
-    response.error = err;
+    // response.error = err;
   }
 
   res.status(statusCode).json(response);

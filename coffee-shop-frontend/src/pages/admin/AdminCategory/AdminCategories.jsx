@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback } from 'react';
 import { Plus, Search, Edit, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
 import categoryService from '../../../services/categoryService';
 import useFetch from '../../../hooks/useFetch';
 
@@ -23,7 +24,7 @@ export default function AdminCategories() {
   const [searchQuery, setSearchQuery] = useState('');
 
   const [modal, setModal] = useState({
-    type: null, // "create" | "update" | "delete"
+    type: null,
     data: null,
   });
 
@@ -57,18 +58,36 @@ export default function AdminCategories() {
     );
   }, [categories, searchQuery]);
 
+  // ✅ Handle create success - thêm vào đầu danh sách
+  const handleCreateSuccess = (newCategory) => {
+    setData((prev) => {
+      if (!prev?.data) {
+        return { 
+          success: true,
+          data: [newCategory] 
+        };
+      }
+
+      // Thêm vào đầu danh sách
+      return {
+        ...prev,
+        data: [newCategory, ...prev.data],
+      };
+    });
+  };
+
   return (
     <div className='p-6'>
       {/* ===== HEADER ===== */}
       <div className='flex items-center justify-between mb-6'>
         <div>
-          <h2 className='text-2xl mb-1'>Danh mục</h2>
+          <h2 className='text-2xl font-semibold mb-1'>Danh mục</h2>
           <p className='text-sm text-muted-foreground'>
             Quản lý danh mục sản phẩm
           </p>
         </div>
 
-        <Button onClick={() => openModal('create')}>
+        <Button onClick={() => openModal('create')} className={'cursor-pointer'}> 
           <Plus className='w-4 h-4 mr-2' />
           Thêm danh mục
         </Button>
@@ -88,7 +107,11 @@ export default function AdminCategories() {
       </div>
 
       {/* ===== ERROR ===== */}
-      {error && <p className='text-red-500'>Có lỗi xảy ra khi tải dữ liệu</p>}
+      {error && (
+        <div className='bg-red-50 text-red-600 px-4 py-3 rounded-md mb-4'>
+          Có lỗi xảy ra khi tải dữ liệu
+        </div>
+      )}
 
       {/* ===== TABLE ===== */}
       <div className='bg-card rounded-xl border border-border'>
@@ -103,6 +126,14 @@ export default function AdminCategories() {
           </TableHeader>
 
           <TableBody>
+            {loading && (
+              <TableRow>
+                <TableCell colSpan={4} className='text-center py-6'>
+                  Đang tải...
+                </TableCell>
+              </TableRow>
+            )}
+
             {!loading && filteredCategories.length === 0 && (
               <TableRow>
                 <TableCell colSpan={4} className='text-center py-6'>
@@ -111,7 +142,7 @@ export default function AdminCategories() {
               </TableRow>
             )}
 
-            {filteredCategories.map((category) => (
+            {!loading && filteredCategories.map((category) => (
               <TableRow key={category.id}>
                 <TableCell>
                   <div className='font-medium'>{category.name}</div>
@@ -133,6 +164,7 @@ export default function AdminCategories() {
 
                 <TableCell>
                   <Badge
+                    variant="outline"
                     className={
                       category.is_deleted === 0
                         ? 'bg-green-500/10 text-green-700 border-green-500/20'
@@ -147,8 +179,9 @@ export default function AdminCategories() {
                   <div className='flex items-center justify-end gap-2'>
                     <Button
                       variant='ghost'
+                      className={'cursor-pointer'}
                       size='sm'
-                      onClick={() => openModal('update', category)}
+                      onClick={() => openModal('update', category) }
                     >
                       <Edit className='w-4 h-4' />
                     </Button>
@@ -156,7 +189,7 @@ export default function AdminCategories() {
                     <Button
                       variant='ghost'
                       size='sm'
-                      className='text-destructive'
+                      className='text-destructive hover:text-destructive cursor-pointer'
                       onClick={() => openModal('delete', category)}
                     >
                       <Trash2 className='w-4 h-4' />
@@ -175,12 +208,7 @@ export default function AdminCategories() {
         <CreateCategory
           open={true}
           onClose={closeModal}
-          onSuccess={(newCategory) => {
-            setData((prev) => ({
-              ...prev,
-              data: prev?.data ? [newCategory, ...prev.data] : [newCategory],
-            }));
-          }}
+          onSuccess={handleCreateSuccess}
         />
       )}
 

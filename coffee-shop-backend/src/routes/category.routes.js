@@ -45,7 +45,7 @@ router.get(
 router.post(
   '/',
   // authenticate,
-  // authorize(['admin']),
+  // authorize(['manager']),
   upload.single('image'),
   validate(createCategorySchema),
   CategoryController.create
@@ -55,7 +55,7 @@ router.post(
 router.put(
   '/:id',
   // authenticate,
-  // authorize(['admin']),
+  // authorize(['manager']),
   validate(categoryIdSchema, 'params'),
   upload.single('image'),
   validate(updateCategorySchema),
@@ -66,7 +66,7 @@ router.put(
 router.delete(
   '/:id',
   // authenticate,
-  // authorize(['admin']),
+  // authorize(['manager']),
   validate(categoryIdSchema, 'params'),
   CategoryController.delete
 );
@@ -75,7 +75,7 @@ router.delete(
 router.post(
   '/:id/restore',
   // authenticate,
-  // authorize(['admin']),
+  // authorize(['manager']),
   validate(categoryIdSchema, 'params'),
   CategoryController.restore
 );
