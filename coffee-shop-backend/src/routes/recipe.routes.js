@@ -14,6 +14,11 @@ const {
 
 /**
  * ADMIN ROUTES - Get and manage recipes
+  // ...existing code...
+} = require('../validators/recipeValidator');
+
+/**
+ * Public routes - Get recipes
  */
 
 // Get all recipes for a product size
@@ -44,11 +49,17 @@ router.get(
   RecipeController.getRecipeById
 );
 
+// ...existing code...
+
+/**
+ * Protected routes - Admin/Barista only
+ */
+
 // Create new recipe
 router.post(
   '/',
-  // authenticate,
-  // authorize(['admin', 'barista']),
+  authenticate,
+  authorize(['admin', 'barista']),
   validate(createRecipeSchema),
   RecipeController.createRecipe
 );
@@ -56,8 +67,8 @@ router.post(
 // Update recipe
 router.put(
   '/:id',
-  // authenticate,
-  // authorize(['admin', 'barista']),
+  authenticate,
+  authorize(['admin', 'barista']),
   validate(recipeIdSchema, 'params'),
   validate(updateRecipeSchema),
   RecipeController.updateRecipe
@@ -66,10 +77,12 @@ router.put(
 // Delete recipe
 router.delete(
   '/:id',
-  // authenticate,
-  // authorize(['admin', 'barista']),
+  authenticate,
+  authorize(['admin', 'barista']),
   validate(recipeIdSchema, 'params'),
   RecipeController.deleteRecipe
 );
+
+// ...existing code...
 
 module.exports = router;

@@ -22,6 +22,7 @@ import { UserProfile } from "@/pages/common/UserProfile";
 import AdminNewsCreatePage from "@/pages/admin/AdminNew/AdminNewsCreatePage";
 import AdminNewsList from "@/pages/admin/AdminNew/AdminNewsList";
 import AdminProducts from "@/pages/admin/AdminProduct/AdminProducts";
+import AdminCategories from "@/pages/admin/AdminCategory/AdminCategories";
 import NewsDetailPage from "@/components/news/NewsDetailPage";
 import AdminEditNewsPage from "@/pages/admin/AdminNew/AdminEditNewsPage";
 import AdminNewsDetailPage from "@/pages/admin/AdminNew/AdminNewsDetailPage";
@@ -42,6 +43,9 @@ import { StaffRequests } from "@/pages/staff/StaffRequests";
 import { StaffTables } from "@/pages/staff/StaffTables";
 import { StaffSchedule } from "@/pages/staff/StaffSchedule";
 import AdminBanner from "@/pages/admin/AdminBanner/AdminBanner";
+import AdminAreas from "@/pages/admin/AdminAreas/AdminAreas";
+import AdminTables from "@/pages/admin/AdminTables/AdminTables";
+import AdminToppings from "../pages/admin/AdminTopping/AdminToppings";
 
 
 const getStoredValue = (key) =>
@@ -163,7 +167,8 @@ const AppRoutes = () => {
       >
         <Route index element={<Navigate to="dashboard" replace />} />
         <Route path="dashboard" element={<AdminDashboard />} />
-        <Route path="products" element={<AdminProducts />} />
+        <Route path="menu/products" element={<AdminProducts />} />
+        <Route path="menu/categories" element={<AdminCategories />} />
         <Route path="orders" element={<AdminOrders />} />
         <Route path="users" element={<AdminUsers />} />
         <Route path="schedule" element={<AdminStaffSchedule />} />
@@ -178,6 +183,9 @@ const AppRoutes = () => {
         <Route path="discounts/edit/:id" element={<AdminDiscountEdit />} />
         <Route path="newsletter" element={<AdminNewsletter />} />
         <Route path="banners" element={<AdminBanner />} />
+        <Route path="area" element={<AdminAreas />} />
+        <Route path="tables" element={<AdminTables />} />
+        <Route path="toppings" element={<AdminToppings />} />
       </Route>
 
       <Route path="/news/:slug" element={<NewsDetailPage />} />

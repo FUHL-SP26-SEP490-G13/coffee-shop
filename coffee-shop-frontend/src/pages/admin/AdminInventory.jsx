@@ -1,5 +1,5 @@
 import { ingredients } from '../../lib/mockData';
-import { AlertTriangle, Plus } from 'lucide-react';
+import { AlertTriangle, Plus, Package } from 'lucide-react';
 import { Card } from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
@@ -10,20 +10,20 @@ export default function AdminInventory() {
   const lowStockItems = ingredients.filter((i) => i.quantity <= i.minQuantity);
 
   return (
-    <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-2xl mb-1">Inventory Management</h2>
-          <p className="text-sm text-muted-foreground">Track and manage ingredient stock levels</p>
+    <div className="p-4 sm:p-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-6 gap-4">
+        <div className="flex items-center gap-3">
+          <Package className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
+          <h1 className="text-xl sm:text-2xl font-semibold">Quản lý kho</h1>
         </div>
-        <Button>
+        <Button className="w-full sm:w-auto">
           <Plus className="w-4 h-4 mr-2" />
-          Add Ingredient
+          Thêm nguyên liệu
         </Button>
       </div>
 
       {lowStockItems.length > 0 && (
-        <Card className="p-4 mb-6 bg-yellow-500/10 border-yellow-500/20">
+        <Card className="p-4 mb-4 sm:mb-6 bg-yellow-500/10 border-yellow-500/20">
           <div className="flex items-center gap-2 mb-2">
             <AlertTriangle className="w-5 h-5 text-yellow-700" />
             <span className="text-sm">Low Stock Alert</span>
@@ -34,8 +34,9 @@ export default function AdminInventory() {
         </Card>
       )}
 
-      <div className="bg-card rounded-xl border border-border">
-        <Table>
+      <div className="bg-card rounded-xl border border-border overflow-hidden">
+        <div className="overflow-x-auto">
+          <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Ingredient</TableHead>
@@ -93,6 +94,7 @@ export default function AdminInventory() {
             })}
           </TableBody>
         </Table>
+        </div>
       </div>
     </div>
   );

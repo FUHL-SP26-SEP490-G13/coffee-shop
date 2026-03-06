@@ -3,6 +3,7 @@ const router = express.Router();
 const IngredientController = require('../controllers/IngredientController');
 const { authenticate } = require('../middlewares/auth');
 const { authorize } = require('../middlewares/authorize');
+const RecipeController = require('../controllers/RecipeController');
 const validate = require('../middlewares/validate');
 const {
   createIngredientSchema,
