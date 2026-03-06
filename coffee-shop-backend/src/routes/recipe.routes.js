@@ -10,14 +10,11 @@ const {
   recipeIdSchema,
   productSizeIdSchema,
   productIdSchema,
-  createIngredientSchema,
-  updateIngredientSchema,
-  ingredientIdSchema,
-  searchIngredientSchema,
+  // ...existing code...
 } = require('../validators/recipeValidator');
 
 /**
- * Public routes - Get recipes and ingredients
+ * Public routes - Get recipes
  */
 
 // Get all recipes for a product size
@@ -48,22 +45,7 @@ router.get(
   RecipeController.getRecipeById
 );
 
-// Get all ingredients
-router.get('/ingredients', RecipeController.getAllIngredients);
-
-// Search ingredients
-router.get(
-  '/ingredients/search',
-  validate(searchIngredientSchema, 'query'),
-  RecipeController.searchIngredients
-);
-
-// Get ingredient by ID
-router.get(
-  '/ingredients/:id',
-  validate(ingredientIdSchema, 'params'),
-  RecipeController.getIngredientById
-);
+// ...existing code...
 
 /**
  * Protected routes - Admin/Barista only
@@ -72,8 +54,8 @@ router.get(
 // Create new recipe
 router.post(
   '/',
-  // authenticate,
-  // authorize(['admin', 'barista']),
+  authenticate,
+  authorize(['admin', 'barista']),
   validate(createRecipeSchema),
   RecipeController.createRecipe
 );
@@ -81,8 +63,8 @@ router.post(
 // Update recipe
 router.put(
   '/:id',
-  // authenticate,
-  // authorize(['admin', 'barista']),
+  authenticate,
+  authorize(['admin', 'barista']),
   validate(recipeIdSchema, 'params'),
   validate(updateRecipeSchema),
   RecipeController.updateRecipe
@@ -91,42 +73,12 @@ router.put(
 // Delete recipe
 router.delete(
   '/:id',
-  // authenticate,
-  // authorize(['admin', 'barista']),
+  authenticate,
+  authorize(['admin', 'barista']),
   validate(recipeIdSchema, 'params'),
   RecipeController.deleteRecipe
 );
 
-/**
- * Ingredient management - Admin only
- */
-
-// Create new ingredient
-router.post(
-  '/ingredients',
-  // authenticate,
-  // authorize(['admin']),
-  validate(createIngredientSchema),
-  RecipeController.createIngredient
-);
-
-// Update ingredient
-router.put(
-  '/ingredients/:id',
-  // authenticate,
-  // authorize(['admin']),
-  validate(ingredientIdSchema, 'params'),
-  validate(updateIngredientSchema),
-  RecipeController.updateIngredient
-);
-
-// Delete ingredient
-router.delete(
-  '/ingredients/:id',
-  // authenticate,
-  // authorize(['admin']),
-  validate(ingredientIdSchema, 'params'),
-  RecipeController.deleteIngredient
-);
+// ...existing code...
 
 module.exports = router;

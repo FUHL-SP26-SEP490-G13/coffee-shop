@@ -5,17 +5,19 @@ const router = express.Router();
 const authRoutes = require('./auth.routes');
 const categoryRoutes = require('./category.routes');
 const userRoutes = require('./user.routes');
-const toppingRoutes = require('./topping.routes');
+const { publicToppingRoutes, adminToppingRoutes } = require('./topping.routes');
 const recipeRoutes = require('./recipe.routes');
 const areaRoutes = require("./area.routes");
 const tableRoutes = require("./table.routes");
 
+const ingredientRoutes = require('./ingredient.routes');
 
 // Mount routes
 router.use('/auth', authRoutes);
 router.use('/categories', categoryRoutes);
 router.use('/users', userRoutes);
-router.use('/toppings', toppingRoutes);
+router.use('/toppings', publicToppingRoutes);
+router.use('/admin/toppings', adminToppingRoutes);
 router.use('/recipes', recipeRoutes);
 router.use("/area", areaRoutes);
 router.use("/tables", tableRoutes);
@@ -75,26 +77,27 @@ router.get('/', (req, res) => {
         getAll: 'GET /api/toppings',
         getById: 'GET /api/toppings/:id',
         search: 'GET /api/toppings/search',
-        create: 'POST /api/toppings (Admin)',
-        update: 'PUT /api/toppings/:id (Admin)',
-        delete: 'DELETE /api/toppings/:id (Admin)',
-        restore: 'POST /api/toppings/:id/restore (Admin)',
+        create: 'POST /api/admin/toppings (Admin)',
+        update: 'PUT /api/admin/toppings/:id (Admin)',
+        delete: 'DELETE /api/admin/toppings/:id (Admin)',
+        restore: 'POST /api/admin/toppings/:id/restore (Admin)',
       },
       recipes: {
-        getByProductSize: 'GET /api/recipes/by-size/:productSizeId',
-        getByProduct: 'GET /api/recipes/product/:productId',
-        getById: 'GET /api/recipes/:id',
-        create: 'POST /api/recipes (Admin/Barista)',
-        update: 'PUT /api/recipes/:id (Admin/Barista)',
-        delete: 'DELETE /api/recipes/:id (Admin/Barista)',
+        getByProductSize: 'GET /api/admin/recipes/by-size/:productSizeId (Admin)',
+        getByProductGrouped: 'GET /api/admin/recipes/product/:productId/by-size (Admin)',
+        getByProduct: 'GET /api/admin/recipes/product/:productId (Admin)',
+        getById: 'GET /api/admin/recipes/:id (Admin)',
+        create: 'POST /api/admin/recipes (Admin/Barista)',
+        update: 'PUT /api/admin/recipes/:id (Admin/Barista)',
+        delete: 'DELETE /api/admin/recipes/:id (Admin/Barista)',
       },
       ingredients: {
-        getAll: 'GET /api/recipes/ingredients',
-        getById: 'GET /api/recipes/ingredients/:id',
-        search: 'GET /api/recipes/ingredients/search',
-        create: 'POST /api/recipes/ingredients (Admin)',
-        update: 'PUT /api/recipes/ingredients/:id (Admin)',
-        delete: 'DELETE /api/recipes/ingredients/:id (Admin)',
+        getAll: 'GET /api/admin/ingredients (Admin)',
+        getById: 'GET /api/admin/ingredients/:id (Admin)',
+        search: 'GET /api/admin/ingredients/search (Admin)',
+        create: 'POST /api/admin/ingredients (Admin)',
+        update: 'PUT /api/admin/ingredients/:id (Admin)',
+        delete: 'DELETE /api/admin/ingredients/:id (Admin)',
       },
     },
   });

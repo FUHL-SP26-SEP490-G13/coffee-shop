@@ -1,5 +1,6 @@
 const express = require('express');
-const router = express.Router();
+const publicRouter = express.Router();
+const adminRouter = express.Router();
 const ToppingController = require('../controllers/ToppingController');
 const { authenticate } = require('../middlewares/auth');
 const { authorize } = require('../middlewares/authorize');
@@ -16,64 +17,67 @@ const {
  */
 
 // Get all toppings
-router.get(
+publicRouter.get(
   '/',
   ToppingController.getAll
 );
 
 // Search toppings
-router.get(
+publicRouter.get(
   '/search',
   validate(searchToppingSchema, 'query'),
   ToppingController.search
 );
 
 // Get topping by ID
-router.get(
+publicRouter.get(
   '/:id',
   validate(toppingIdSchema, 'params'),
   ToppingController.getById
 );
 
 /**
- * Protected routes - Admin only
+ * Admin only routes
  */
 
 // Create new topping
-router.post(
+adminRouter.post(
   '/',
-  // authenticate,
-  // authorize(['admin']),
+  authenticate,
+  authorize(['admin']),
   validate(createToppingSchema),
   ToppingController.create
 );
 
 // Update topping
-router.put(
+adminRouter.put(
   '/:id',
-  // authenticate,
-  // authorize(['admin']),
+  authenticate,
+  authorize(['admin']),
   validate(toppingIdSchema, 'params'),
   validate(updateToppingSchema),
   ToppingController.update
 );
 
 // Delete topping
-router.delete(
+adminRouter.delete(
   '/:id',
-  // authenticate,
-  // authorize(['admin']),
+  authenticate,
+  authorize(['admin']),
   validate(toppingIdSchema, 'params'),
   ToppingController.delete
 );
 
 // Restore deleted topping
-router.post(
+adminRouter.post(
   '/:id/restore',
-  // authenticate,
-  // authorize(['admin']),
+  authenticate,
+  authorize(['admin']),
   validate(toppingIdSchema, 'params'),
   ToppingController.restore
 );
 
-module.exports = router;
+module.exports = {
+  publicToppingRoutes: publicRouter,
+  adminToppingRoutes: adminRouter,
+};
