@@ -17,6 +17,16 @@ jest.mock('../../src/utils/helpers', () => ({
 const { hashPassword, comparePassword } = require('../../src/utils/helpers');
 
 describe('AuthService - Reset Password Flow', () => {
+  beforeAll(() => {
+    // Set NODE_ENV to development so OTP is returned in response
+    process.env.NODE_ENV = 'development';
+  });
+
+  afterAll(() => {
+    // Reset NODE_ENV after tests
+    process.env.NODE_ENV = 'test';
+  });
+
   beforeEach(() => {
     jest.clearAllMocks();
     // Mock EmailService methods
@@ -80,9 +90,9 @@ describe('AuthService - Reset Password Flow', () => {
       expect(result.otp).toMatch(/^\d{8}$/);  // OTP should be 8 digits
     });
 
-    it('AuthService - RESET_PASSWORD - TC-2: should throw error when email not found', async () => {
+    it('AuthService - RESET_PASSWORD - TC-2: should return generic message when email not found (security)', async () => {
       console.log('\n' + '='.repeat(50));
-      console.log('AuthService - RESET_PASSWORD - TC-2: Lỗi khi email không tồn tại');
+      console.log('AuthService - RESET_PASSWORD - TC-2: Trả về tin nhắn chung để ngăn xác định email');
       console.log('='.repeat(50));
 
       // INPUT
@@ -95,17 +105,21 @@ describe('AuthService - Reset Password Flow', () => {
       UserRepository.findByEmail.mockResolvedValue(null);
 
       // OUTPUT EXPECT
-      const expectedError = 'Email không tồn tại';
-      console.log('✅ OUTPUT EXPECT: Error -', expectedError);
+      const expectedMessage = 'Nếu email tồn tại, mã OTP đã được gửi đến email của bạn';
+      console.log('✅ OUTPUT EXPECT:', JSON.stringify({ message: expectedMessage }, null, 2));
 
-      // Act & Assert
-      await expect(AuthService.resetPassword(input.email)).rejects.toThrow(expectedError);
+      // Act
+      const result = await AuthService.resetPassword(input.email);
 
       // OUTPUT REALITY
-      console.log('🎯 OUTPUT REALITY: throw error -', expectedError);
+      console.log('🎯 OUTPUT REALITY:', JSON.stringify(result, null, 2));
 
+      // Assert - Should NOT throw, should return generic message for security
+      expect(result.message).toBe(expectedMessage);
+      expect(result.otp).toBeUndefined(); // No OTP in response when email not found
       expect(UserRepository.findByEmail).toHaveBeenCalledWith(input.email);
       expect(EmailVerificationRepository.create).not.toHaveBeenCalled();
+      expect(EmailService.sendPasswordResetOtpEmail).not.toHaveBeenCalled();
     });
   });
 
