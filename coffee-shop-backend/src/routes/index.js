@@ -7,6 +7,9 @@ const categoryRoutes = require('./category.routes');
 const userRoutes = require('./user.routes');
 const toppingRoutes = require('./topping.routes');
 const recipeRoutes = require('./recipe.routes');
+const areaRoutes = require("./area.routes");
+const tableRoutes = require("./table.routes");
+
 
 // Mount routes
 router.use('/auth', authRoutes);
@@ -14,6 +17,10 @@ router.use('/categories', categoryRoutes);
 router.use('/users', userRoutes);
 router.use('/toppings', toppingRoutes);
 router.use('/recipes', recipeRoutes);
+router.use("/area", areaRoutes);
+router.use("/tables", tableRoutes);
+
+
 
 // Health check endpoint
 router.get('/health', (req, res) => {

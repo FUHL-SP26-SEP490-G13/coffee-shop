@@ -4,6 +4,7 @@ import axios from "@/services/axiosClient";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import Logo from "/logo/Logo.png";
 
 function Footer() {
   const [email, setEmail] = useState("");
@@ -49,26 +50,26 @@ function Footer() {
 
   return (
     <footer className="bg-card border-t mt-20">
-      <div className="max-w-7xl mx-auto px-6 py-12 grid grid-cols-1 md:grid-cols-4 gap-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 lg:gap-10">
         {/* Company */}
         <div>
-          <h4 className="font-semibold mb-4">Coffee Shop</h4>
+          <img src={Logo} alt="Coffee Shop Logo" className="h-16 w-auto mb-4" style={{ display: "block", margin: "0 auto" }} />
           <p className="text-sm text-muted-foreground mb-4">
             Hương vị cà phê chuẩn vị, phục vụ mỗi ngày.
           </p>
 
           <div className="space-y-2 text-sm">
             <div className="flex items-center gap-2">
-              <MapPin size={16} />
-              TP. Hà Nội
+              <MapPin size={16} className="flex-shrink-0" />
+              <span>TP. Hà Nội</span>
             </div>
             <div className="flex items-center gap-2">
-              <Phone size={16} />
-              0123 456 789
+              <Phone size={16} className="flex-shrink-0" />
+              <span>0123 456 789</span>
             </div>
             <div className="flex items-center gap-2">
-              <Mail size={16} />
-              contact@coffeeshop.vn
+              <Mail size={16} className="flex-shrink-0" />
+              <span className="break-all">contact@coffeeshop.vn</span>
             </div>
           </div>
         </div>
@@ -137,7 +138,7 @@ function Footer() {
           <h4 className="font-semibold mb-4">Đăng ký nhận tin</h4>
 
           <form className="flex flex-col gap-2" onSubmit={handleSubmit}>
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               <Input
                 type="email"
                 value={email}
@@ -146,7 +147,7 @@ function Footer() {
                 className="flex-1 text-sm"
               />
 
-              <Button type="submit" disabled={loading} className="gap-2">
+              <Button type="submit" disabled={loading} className="gap-2 w-full sm:w-auto">
                 {loading && <Loader2 className="w-4 h-4 animate-spin" />}
                 {loading ? "Gửi..." : "Đăng ký"}
               </Button>
@@ -161,7 +162,7 @@ function Footer() {
         </div>
       </div>
 
-      <div className="border-t text-center py-4 text-sm text-muted-foreground bg-muted">
+      <div className="border-t text-center py-4 px-4 text-xs sm:text-sm text-muted-foreground bg-muted">
         © {new Date().getFullYear()} Coffee Shop. All rights reserved.
       </div>
     </footer>

@@ -11,7 +11,10 @@ export const APP_ROUTES = {
   CHANGE_PASSWORD: "/change-password",
   FORGOT_PASSWORD: "/forgot-password",
   PRODUCT_DETAIL: "/product/:id",
+  AREAS: "/admin/area",
 };
+
+
 
 // Quản lý API Endpoints
 export const API_ENDPOINTS = {
@@ -31,7 +34,10 @@ export const API_ENDPOINTS = {
   },
   ORDERS: '/orders',
   TOPPINGS: '/toppings',
+  AREAS: '/area',
 };
+
+
 
 // Các hằng số khác
 export const STORAGE_KEYS = {

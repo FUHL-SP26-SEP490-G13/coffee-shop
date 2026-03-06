@@ -45,7 +45,6 @@ export default function AdminProducts() {
   const {
     data: response,
     loading,
-    error,
     execute: refetch,
   } = useFetch(fetchProducts);
 
