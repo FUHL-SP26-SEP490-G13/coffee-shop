@@ -1,16 +1,26 @@
 const AuthService = require('../../src/services/AuthService');
 const UserRepository = require('../../src/repositories/UserRepository');
 const EmailVerificationRepository = require('../../src/repositories/EmailVerificationRepository');
-const { hashPassword, comparePassword } = require('../../src/utils/helpers');
+const EmailService = require('../../src/services/EmailService');
+const actualHelpers = jest.requireActual('../../src/utils/helpers');
 
 // Mock dependencies
 jest.mock('../../src/repositories/UserRepository');
 jest.mock('../../src/repositories/EmailVerificationRepository');
-jest.mock('../../src/utils/helpers');
+  jest.mock('../../src/services/EmailService');
+jest.mock('../../src/utils/helpers', () => ({
+  ...jest.requireActual('../../src/utils/helpers'), // Keep all original helper functions
+  hashPassword: jest.fn(),
+  comparePassword: jest.fn(),
+}));
+
+const { hashPassword, comparePassword } = require('../../src/utils/helpers');
 
 describe('AuthService - Reset Password Flow', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    // Mock EmailService methods
+    EmailService.sendPasswordResetOtpEmail = jest.fn().mockResolvedValue({ success: true });
   });
 
   // method 1: resetPassword (send OTP)
@@ -60,7 +70,14 @@ describe('AuthService - Reset Password Flow', () => {
           otp_hash: 'hashed-otp',
         })
       );
+      expect(EmailService.sendPasswordResetOtpEmail).toHaveBeenCalledWith(
+        mockUser.email,
+        expect.any(String),
+        'Test User'
+      );
       expect(result.message).toBe('Mã OTP đã được gửi đến email của bạn');
+      expect(result.otp).toBeDefined();
+      expect(result.otp).toMatch(/^\d{8}$/);  // OTP should be 8 digits
     });
 
     it('AuthService - RESET_PASSWORD - TC-2: should throw error when email not found', async () => {

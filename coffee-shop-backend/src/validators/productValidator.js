@@ -20,9 +20,6 @@ const createProductSchema = Joi.object({
   status: Joi.string().valid('available', 'unavailable').optional().messages({
     'any.only': 'Status chỉ chấp nhận "available" hoặc "unavailable"',
   }),
-  description: Joi.string().max(255).allow(null, '').optional().messages({
-    'string.max': 'Mô tả không được vượt quá 255 ký tự',
-  }),
 });
 
 /**
@@ -42,8 +39,7 @@ const updateProductSchema = Joi.object({
   status: Joi.string().valid('available', 'unavailable').optional().messages({
     'any.only': 'Status chỉ chấp nhận "available" hoặc "unavailable"',
   }),
-  description: Joi.string().max(255).allow(null, '').optional().messages({
-    'string.max': 'Mô tả không được vượt quá 255 ký tự',
+  description: Joi.string().allow(null, '').optional().messages({
   }),
   sizes: Joi.array()
     .items(
