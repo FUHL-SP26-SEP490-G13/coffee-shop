@@ -9,7 +9,6 @@ const { publicToppingRoutes, adminToppingRoutes } = require('./topping.routes');
 const recipeRoutes = require('./recipe.routes');
 const areaRoutes = require("./area.routes");
 const tableRoutes = require("./table.routes");
-
 const ingredientRoutes = require('./ingredient.routes');
 
 // Mount routes
@@ -23,6 +22,8 @@ router.use("/area", areaRoutes);
 router.use("/tables", tableRoutes);
 
 
+router.use('/admin/recipes', recipeRoutes);
+router.use('/admin/ingredients', ingredientRoutes);
 
 // Health check endpoint
 router.get('/health', (req, res) => {
