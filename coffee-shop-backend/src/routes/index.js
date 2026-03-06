@@ -20,8 +20,6 @@ router.use('/admin/toppings', adminToppingRoutes);
 router.use('/recipes', recipeRoutes);
 router.use("/area", areaRoutes);
 router.use("/tables", tableRoutes);
-
-
 router.use('/admin/recipes', recipeRoutes);
 router.use('/admin/ingredients', ingredientRoutes);
 

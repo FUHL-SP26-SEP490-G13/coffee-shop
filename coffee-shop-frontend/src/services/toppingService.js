@@ -8,18 +8,18 @@ const toppingService = {
 
   // create a new topping
   create(data) {
-    return axiosClient.post(API_ENDPOINTS.TOPPINGS, data);
+    return axiosClient.post(API_ENDPOINTS.TOPPINGS_ADMIN, data);
   },
 
   // update an existing topping
   update(id, data) {
-    const url = `${API_ENDPOINTS.TOPPINGS}/${id}`;
+    const url = `${API_ENDPOINTS.TOPPINGS_ADMIN}/${id}`;
     return axiosClient.put(url, data);
   },
 
   // remove (soft delete) a topping
   delete(id) {
-    const url = `${API_ENDPOINTS.TOPPINGS}/${id}`;
+    const url = `${API_ENDPOINTS.TOPPINGS_ADMIN}/${id}`;
     return axiosClient.delete(url);
   }
 };

@@ -34,6 +34,7 @@ export const API_ENDPOINTS = {
   },
   ORDERS: '/orders',
   TOPPINGS: '/toppings',
+  TOPPINGS_ADMIN: '/admin/toppings',
   AREAS: '/area',
 };
 
