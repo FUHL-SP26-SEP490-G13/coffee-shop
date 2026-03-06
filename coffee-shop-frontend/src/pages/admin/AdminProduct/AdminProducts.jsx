@@ -45,10 +45,14 @@ export default function AdminProducts() {
   const {
     data: response,
     loading,
+    error,
     execute: refetch,
   } = useFetch(fetchProducts);
 
-  const products = response?.data.filter((p) => p.is_deleted === 0) || [];
+  const products = useMemo(() => {
+    const productList = Array.isArray(response?.data) ? response.data : [];
+    return productList.filter((p) => Number(p?.is_deleted ?? 0) === 0);
+  }, [response]);
 
   // Fetch Categories
   const fetchCategories = useCallback(() => {
@@ -133,6 +137,12 @@ export default function AdminProducts() {
 
       {/* ===== TABLE ===== */}
       <div className='bg-card rounded-xl border border-border'>
+        {error && (
+          <div className='px-4 py-3 text-sm text-red-600 border-b border-red-200 bg-red-50'>
+            Không thể tải danh sách sản phẩm. Vui lòng thử lại.
+          </div>
+        )}
+
         <Table>
           <TableHeader>
             <TableRow>

@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, Search, Loader2, Plus } from "lucide-react";
@@ -6,18 +6,20 @@ import useFetch from "@/hooks/useFetch";
 import productService from "@/services/productService";
 import Footer from "@/components/layout/Footer";
 import Header from "@/components/layout/Header";
-import newsService from "@/services/newsService";
 import { Link } from "react-router-dom";
 import FeaturedNews from "@/components/news/FeaturedNews";
 import bannerService from "@/services/bannerService";
 
 export default function HomePage() {
   const fetchProducts = useCallback(() => {
-    return productService.getAll();
+    return productService.getAll({ status: "available" });
   }, []);
 
   const { data, loading } = useFetch(fetchProducts);
-  const products = data?.data || [];
+  const products = useMemo(() => {
+    const productList = Array.isArray(data?.data) ? data.data : [];
+    return productList.filter((product) => Number(product?.is_deleted ?? 0) === 0);
+  }, [data]);
 
   // const fetchNews = useCallback(() => {
   //   return newsService.getFeatured();
@@ -38,6 +40,42 @@ export default function HomePage() {
 
   const defaultImage =
     "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085";
+
+  const getThumbnail = (product) => {
+    if (Array.isArray(product?.images) && product.images.length > 0) {
+      const thumbnail = product.images.find(
+        (img) => Number(img?.isThumbnail ?? 0) === 1,
+      );
+
+      return thumbnail?.image_url || product.images[0]?.image_url || defaultImage;
+    }
+
+    return product?.image_url || defaultImage;
+  };
+
+  const formatPrice = (product) => {
+    const sizePrices = (Array.isArray(product?.sizes) ? product.sizes : [])
+      .map((size) => Number(size?.price))
+      .filter((price) => Number.isFinite(price) && price > 0);
+
+    if (sizePrices.length > 0) {
+      const minPrice = Math.min(...sizePrices);
+      const maxPrice = Math.max(...sizePrices);
+
+      if (minPrice === maxPrice) {
+        return `${minPrice.toLocaleString("vi-VN")}đ`;
+      }
+
+      return `${minPrice.toLocaleString("vi-VN")}đ - ${maxPrice.toLocaleString("vi-VN")}đ`;
+    }
+
+    const fallbackPrice = Number(product?.min_price ?? product?.price);
+    if (Number.isFinite(fallbackPrice) && fallbackPrice > 0) {
+      return `${fallbackPrice.toLocaleString("vi-VN")}đ`;
+    }
+
+    return "Liên hệ";
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -86,7 +124,7 @@ export default function HomePage() {
               >
                 <div className="relative overflow-hidden">
                   <img
-                    src={product.image_url}
+                    src={getThumbnail(product)}
                     alt={product.name}
                     className="h-56 w-full object-cover transition-transform duration-300 group-hover:scale-105"
                     onError={(e) =>
@@ -108,7 +146,7 @@ export default function HomePage() {
 
                   <div className="flex justify-between items-center gap-2">
                     <span className="font-bold text-primary text-lg">
-                      {Number(product.min_price).toLocaleString()}đ
+                      {formatPrice(product)}
                     </span>
 
                     <Button size="sm" className="gap-1.5">
