@@ -8,6 +8,9 @@ import {
   Menu,
   X,
   Home,
+  Heart,
+  Newspaper,
+  LogIn,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -46,6 +49,7 @@ function Header() {
   const [open, setOpen] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileUserDropdownOpen, setMobileUserDropdownOpen] = useState(false);
 
   useEffect(() => {
     if (subIndex < placeholders[index].length) {
@@ -117,89 +121,113 @@ function Header() {
           </Button>
 
           {/* Desktop Navigation */}
+
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate("/news")}
+            className="gap-1 sm:gap-2 text-xs sm:text-sm hidden lg:block"
+          >
+            <Newspaper className="w-4 h-4" />
+          </Button>
+
           <div className="hidden sm:flex items-center gap-1 lg:gap-2">
             {!user && (
-              <Button variant="ghost" size="sm" onClick={() => navigate("/login")} className="text-xs sm:text-sm">
-                Đăng nhập
+              <Button
+                onClick={() => navigate("/login")}
+                size="sm"
+                className="gap-1 sm:gap-2 text-xs sm:text-sm"
+              >
+                <LogIn className="w-4 h-4 mr-2" />
+                <span className="hidden sm:inline">Đăng nhập</span>
               </Button>
             )}
 
             {/* User Dropdown */}
             {user && (
-              <div className="relative" ref={dropdownRef}>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setOpen(!open)}
-                  className="gap-1 sm:gap-2 text-gray-700 transition p-1.5 sm:p-2"
-                >
-                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-amber-500 flex items-center justify-center text-white text-xs font-bold">
-                    {user.first_name?.charAt(0).toUpperCase()}
-                  </div>
-                  <span className="hidden lg:inline text-sm">
-                    {user.last_name}
-                  </span>
-                </Button>
+              <>
+                <div className="flex items-center gap-1 lg:gap-2">
+                  
 
-                {open && (
-                  <div className="absolute right-0 mt-1 w-48 sm:w-56 bg-white shadow-xl rounded-lg sm:rounded-2xl p-1.5 sm:p-2 border border-gray-200 animate-in fade-in zoom-in-95">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => navigate("/wishlist")}
+                    className="gap-1 sm:gap-2 text-xs sm:text-sm hidden lg:block"
+                  >
+                    <Heart className="w-4 h-4" />
+                  </Button>
+                  {/* Shopping Cart Button */}
+                  <Button
+                    onClick={() => navigate("/cart")}
+                    size="sm"
+                    className="gap-1 sm:gap-2 text-xs sm:text-sm"
+                  >
+                    <ShoppingCart className="w-4 h-4" />
+                  </Button>
+
+                  <div className="relative" ref={dropdownRef}>
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => {
-                        navigate("/my-orders");
-                        setOpen(false);
-                      }}
-                      className="w-full text-left px-3 py-2 text-gray-700 transition text-xs sm:text-sm justify-start"
+                      onClick={() => setOpen(!open)}
+                      className="gap-1 sm:gap-2 text-gray-700 transition p-1.5 sm:p-2"
                     >
-                      <Package className="w-4 h-4 mr-2" />
-                      <span>Đơn hàng</span>
+                      <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-amber-500 flex items-center justify-center text-white text-xs font-bold">
+                        {user.first_name?.charAt(0).toUpperCase()}
+                      </div>
+                      <span className="hidden lg:inline text-sm">
+                        Xin chào, {user.first_name} {user.last_name}!
+                      </span>
                     </Button>
 
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        navigate("/customer/profile");
-                        setOpen(false);
-                      }}
-                      className="w-full text-left px-3 py-2 text-gray-700 transition text-xs sm:text-sm justify-start"
-                    >
-                      <User className="w-4 h-4 mr-2" />
-                      <span>Hồ sơ cá nhân</span>
-                    </Button>
+                    {open && (
+                      <div className="absolute right-0 mt-1 w-48 sm:w-56 bg-white shadow-xl rounded-lg sm:rounded-2xl p-1.5 sm:p-2 border border-gray-200 animate-in fade-in zoom-in-95 flex flex-col gap-0">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            navigate("/my-orders");
+                            setOpen(false);
+                          }}
+                          className="w-full text-left px-3 py-2 text-gray-700 transition text-xs sm:text-sm justify-start"
+                        >
+                          <Package className="w-4 h-4 mr-2" />
+                          <span>Đơn hàng</span>
+                        </Button>
 
-                    <div className="my-0.5 border-t border-gray-200" />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            navigate("/customer/profile");
+                            setOpen(false);
+                          }}
+                          className="w-full text-left px-3 py-2 text-gray-700 transition text-xs sm:text-sm justify-start"
+                        >
+                          <User className="w-4 h-4 mr-2" />
+                          <span>Hồ sơ cá nhân</span>
+                        </Button>
 
-                    <button
-                      onClick={() => {
-                        handleLogout();
-                        setOpen(false);
-                      }}
-                      className="w-full text-left px-3 py-2 text-red-600 hover:bg-red-50 rounded transition flex items-center gap-2 text-xs sm:text-sm"
-                    >
-                      <LogOut className="w-4 h-4" />
-                      Đăng xuất
-                    </button>
+                        <div className="my-0.5 border-t border-gray-200" />
+
+                        <button
+                          onClick={() => {
+                            handleLogout();
+                            setOpen(false);
+                          }}
+                          className="w-full text-left px-3 py-2 text-red-600 hover:bg-red-50 rounded transition flex items-center gap-2 text-xs sm:text-sm"
+                        >
+                          <LogOut className="w-4 h-4" />
+                          Đăng xuất
+                        </button>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
+                </div>
+              </>
             )}
-
-            <Button variant="ghost" size="sm" onClick={() => navigate("/news")} className="text-xs sm:text-sm hidden lg:block">
-              Tin tức
-            </Button>
-
-            <Button variant="ghost" size="sm" onClick={() => navigate("/wishlist")} className="text-xs sm:text-sm hidden lg:block">
-              Yêu thích
-            </Button>
           </div>
-
-          {/* Shopping Cart Button */}
-          <Button onClick={() => navigate("/cart")} size="sm" className="gap-1 sm:gap-2 text-xs sm:text-sm">
-            <ShoppingCart className="w-4 h-4" />
-            <span className="hidden sm:inline">Giỏ hàng</span>
-          </Button>
 
           {/* Mobile Menu Button */}
           <Button
@@ -247,7 +275,7 @@ function Header() {
                 }}
                 className="w-full justify-start text-gray-700 text-xs"
               >
-                <Home className="w-4 h-4 mr-2" />
+                <LogIn className="w-4 h-4 mr-2" />
                 Đăng nhập
               </Button>
             )}
@@ -257,38 +285,74 @@ function Header() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => {
-                    navigate("/customer/profile");
-                    setMobileMenuOpen(false);
-                  }}
-                  className="w-full justify-start text-gray-700 text-xs"
+                  onClick={() => setMobileUserDropdownOpen(!mobileUserDropdownOpen)}
+                  className="w-full justify-start text-gray-700 text-xs gap-2"
                 >
-                  <User className="w-4 h-4 mr-2" />
-                  Hồ sơ cá nhân
+                  <div className="w-6 h-6 rounded-full bg-amber-500 flex items-center justify-center text-white text-xs font-bold">
+                    {user.first_name?.charAt(0).toUpperCase()}
+                  </div>
+                  <span>{user.last_name}</span>
                 </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    navigate("/my-orders");
-                    setMobileMenuOpen(false);
-                  }}
-                  className="w-full justify-start text-gray-700 text-xs"
-                >
-                  <Package className="w-4 h-4 mr-2" />
-                  Đơn hàng
-                </Button>
-                <div className="my-0.5 border-t border-gray-200" />
-                <button
-                  onClick={() => {
-                    handleLogout();
-                    setMobileMenuOpen(false);
-                  }}
-                  className="w-full text-left px-3 py-2 text-red-600 hover:bg-red-50 rounded transition flex items-center gap-2 text-xs"
-                >
-                  <LogOut className="w-4 h-4" />
-                  Đăng xuất
-                </button>
+
+                {mobileUserDropdownOpen && (
+                  <div className="bg-white border border-gray-200 rounded-lg p-2 space-y-1 ml-2 mb-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        navigate("/customer/profile");
+                        setMobileUserDropdownOpen(false);
+                        setMobileMenuOpen(false);
+                      }}
+                      className="w-full justify-start text-gray-700 text-xs"
+                    >
+                      <User className="w-4 h-4 mr-2" />
+                      Hồ sơ cá nhân
+                    </Button>
+
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        navigate("/cart");
+                        setMobileUserDropdownOpen(false);
+                        setMobileMenuOpen(false);
+                      }}
+                      className="w-full justify-start text-gray-700 text-xs"
+                    >
+                      <ShoppingCart className="w-4 h-4 mr-2" />
+                      Giỏ hàng
+                    </Button>
+
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        navigate("/wishlist");
+                        setMobileUserDropdownOpen(false);
+                        setMobileMenuOpen(false);
+                      }}
+                      className="w-full justify-start text-gray-700 text-xs"
+                    >
+                      <Heart className="w-4 h-4 mr-2" />
+                      Yêu thích
+                    </Button>
+
+                    <div className="border-t border-gray-200 my-1" />
+
+                    <button
+                      onClick={() => {
+                        handleLogout();
+                        setMobileUserDropdownOpen(false);
+                        setMobileMenuOpen(false);
+                      }}
+                      className="w-full text-left px-3 py-2 text-red-600 hover:bg-red-50 rounded transition flex items-center gap-2 text-xs"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      Đăng xuất
+                    </button>
+                  </div>
+                )}
               </>
             )}
 
@@ -301,20 +365,10 @@ function Header() {
               }}
               className="w-full justify-start text-gray-700 text-xs"
             >
+              <Newspaper className="w-4 h-4 mr-2" />
               Tin tức
             </Button>
-
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                navigate("/wishlist");
-                setMobileMenuOpen(false);
-              }}
-              className="w-full justify-start text-gray-700 text-xs"
-            >
-              Yêu thích
-            </Button>
+            
           </div>
         </div>
       )}
