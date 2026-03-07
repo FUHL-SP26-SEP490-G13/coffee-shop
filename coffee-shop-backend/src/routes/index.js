@@ -7,6 +7,7 @@ const categoryRoutes = require('./category.routes');
 const productRoutes = require('./product.routes');
 const userRoutes = require('./user.routes');
 const { publicToppingRoutes, adminToppingRoutes } = require('./topping.routes');
+const adminDashboardRoutes = require('./adminDashboard.routes');
 const recipeRoutes = require('./recipe.routes');
 const areaRoutes = require("./area.routes");
 const tableRoutes = require("./table.routes");
@@ -24,6 +25,7 @@ router.use("/area", areaRoutes);
 router.use("/tables", tableRoutes);
 router.use('/admin/recipes', recipeRoutes);
 router.use('/admin/ingredients', ingredientRoutes);
+router.use('/dashboard', adminDashboardRoutes);
 
 // Health check endpoint
 router.get('/health', (req, res) => {
