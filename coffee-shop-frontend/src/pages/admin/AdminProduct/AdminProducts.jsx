@@ -21,6 +21,7 @@ import CreateProduct from './Action/CreateProduct';
 import UpdateProduct from './Action/UpdateProduct';
 import DeleteProduct from './Action/DeleteProduct';
 import AddRecipeModal from './Action/AddRecipeModal';
+import ViewRecipeModal from './Action/ViewRecipeModal';
 
 export default function AdminProducts() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -233,7 +234,15 @@ export default function AdminProducts() {
                           className='cursor-pointer'
                           onClick={() => openModal('recipe', product)}
                         >
-                          Công thức
+                          Thêm công thức
+                        </Button>
+                        <Button
+                          variant='secondary'
+                          size='sm'
+                          className='cursor-pointer'
+                          onClick={() => openModal('view-recipe', product)}
+                        >
+                          Xem công thức
                         </Button>
                         <Button
                           variant='ghost'
@@ -298,6 +307,14 @@ export default function AdminProducts() {
           onSuccess={closeModal}
         />
       )}
+      {modal.type === 'view-recipe' && (
+        <ViewRecipeModal
+          product={modal.data}
+          open={true}
+          onClose={closeModal}
+        />
+      )}
+    import ViewRecipeModal from './Action/ViewRecipeModal';
     </div>
   );
 }

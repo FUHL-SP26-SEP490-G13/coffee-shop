@@ -17,7 +17,6 @@ const AddRecipeModal = ({ product, open, onClose, onSuccess }) => {
   const [ingredients, setIngredients] = useState([]);
   const [selected, setSelected] = useState([]); // [{ingredientId, name, quantity}]
   const [loading, setLoading] = useState(false);
-  const [newIngredient, setNewIngredient] = useState("");
   const [saving, setSaving] = useState(false);
 
   // Load sizes theo product
@@ -37,6 +36,8 @@ const AddRecipeModal = ({ product, open, onClose, onSuccess }) => {
     if (!open) return;
     setLoading(true);
     ingredientService.getAll().then(res => {
+        console.log("ingredient: " , res?.data);
+        
       setIngredients(res?.data || []);
       setLoading(false);
     });
@@ -68,19 +69,6 @@ const AddRecipeModal = ({ product, open, onClose, onSuccess }) => {
     });
   };
 
-  // Thêm nguyên liệu mới
-  const handleAddIngredient = async () => {
-    if (!newIngredient.trim()) return;
-    try {
-      const res = await ingredientService.create({ name: newIngredient });
-      const newIng = res?.data || res;
-      setIngredients(prev => [...prev, newIng]);
-      setSelected(prev => [...prev, { ingredientId: newIng.id, name: newIng.name, quantity: "" }]);
-      setNewIngredient("");
-    } catch (err) {
-      alert("Không thể tạo nguyên liệu mới!");
-    }
-  };
 
   // Lưu recipe
   const handleSave = async () => {
@@ -90,24 +78,14 @@ const AddRecipeModal = ({ product, open, onClose, onSuccess }) => {
     let data = [];
     for (const item of selected) {
       if (!item.ingredientId || Number(item.quantity) <= 0) continue;
-      let ingredientId = item.ingredientId;
-      let name = item.name;
-      // Nếu là ingredient mới (trường hợp hiếm, fallback)
-      if (String(ingredientId).startsWith("new-")) {
-        try {
-          const res = await ingredientService.create({ name });
-          ingredientId = res?.data?.id || res?.id;
-        } catch {
-          alert("Không thể tạo nguyên liệu mới!");
-          setSaving(false);
-          return;
-        }
-      }
-      data.push({ ingredient_id: ingredientId, quantity: item.quantity });
+      data.push({ ingredient_id: item.ingredientId, quantity: item.quantity });
     }
     // Gửi từng nguyên liệu lên API
     for (const ing of data) {
-      await recipeService.addIngredient(selectedSize, ing);
+      await recipeService.addIngredient(selectedSize, {
+        ...ing,
+        product_size_id: selectedSize
+      });
     }
     setSaving(false);
     onSuccess();
@@ -157,31 +135,32 @@ const AddRecipeModal = ({ product, open, onClose, onSuccess }) => {
                         ))}
                       </SelectContent>
                     </Select>
-                    <Input
-                      type="number"
-                      min={0}
-                      step={0.1}
-                      placeholder="Số gam"
-                      value={item.quantity || ""}
-                      onChange={e => setSelected(prev => prev.map((s, i) => i === idx ? { ...s, quantity: e.target.value } : s))}
-                      className="w-28"
-                    />
-                    <span className="text-xs text-muted-foreground">gram</span>
+                    {(() => {
+                      const ingredient = ingredients.find(i => String(i.id) === String(item.ingredientId));
+                      const unit = ingredient?.unit || "";
+                      return (
+                        <Input
+                          type="number"
+                          min={0}
+                          step={0.1}
+                          placeholder={unit ? `Số lượng (${unit})` : "Số lượng"}
+                          value={item.quantity || ""}
+                          onChange={e => setSelected(prev => prev.map((s, i) => i === idx ? { ...s, quantity: e.target.value } : s))}
+                          className="w-28"
+                        />
+                      );
+                    })()}
+                    {(() => {
+                      const ingredient = ingredients.find(i => String(i.id) === String(item.ingredientId));
+                      return <span className="text-xs text-muted-foreground">{ingredient?.unit || ""}</span>;
+                    })()}
                     <Button type="button" variant="ghost" size="icon-xs" onClick={() => setSelected(prev => prev.filter((_, i) => i !== idx))} title="Xóa dòng">✕</Button>
                   </div>
                 ))}
                 <Button type="button" variant="outline" size="icon-xs" onClick={() => setSelected(prev => [...prev, { ingredientId: "", name: "", quantity: "" }])} title="Thêm nguyên liệu">＋</Button>
               </div>
             )}
-            <div className="flex gap-2 mt-2">
-              <Input
-                placeholder="Thêm nguyên liệu mới..."
-                value={newIngredient}
-                onChange={e => setNewIngredient(e.target.value)}
-                className="w-40"
-              />
-              <Button type="button" onClick={handleAddIngredient} variant="secondary">Tạo mới</Button>
-            </div>
+            {/* Bỏ chức năng tạo mới nguyên liệu, chỉ cho chọn từ danh sách có sẵn */}
           </div>
         </div>
         <DialogFooter>

@@ -7,15 +7,15 @@ const recipeService = {
   },
   // Lấy công thức theo productSizeId
   getByProductSize(productSizeId) {
-    return axiosClient.get(`/recipes/size/${productSizeId}`);
+    return axiosClient.get(`/recipes/by-size/${productSizeId}`);
   },
-  // Cập nhật công thức cho 1 size
-  updateRecipe(productSizeId, data) {
-    return axiosClient.put(`/recipes/size/${productSizeId}`, data);
+  // Cập nhật công thức (theo id)
+  updateRecipe(recipeId, data) {
+    return axiosClient.put(`/recipes/${recipeId}`, data);
   },
   // Thêm nguyên liệu vào công thức
   addIngredient(productSizeId, data) {
-    return axiosClient.post(`/recipes/size/${productSizeId}`, data);
+    return axiosClient.post(`/recipes/by-size/${productSizeId}`, data);
   },
   // Xóa nguyên liệu khỏi công thức
   deleteIngredient(recipeId) {

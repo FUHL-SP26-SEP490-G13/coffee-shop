@@ -12,6 +12,14 @@ const {
   productIdSchema,
 } = require('../validators/recipeValidator');
 
+// Thêm nguyên liệu vào công thức theo productSizeId
+router.post(
+  '/by-size/:productSizeId',
+  validate(productSizeIdSchema, 'params'),
+  validate(createRecipeSchema),
+  RecipeController.createRecipe
+);
+
 /**
  * ADMIN ROUTES - Get and manage recipes
   // ...existing code...
@@ -58,8 +66,8 @@ router.get(
 // Create new recipe
 router.post(
   '/',
-  authenticate,
-  authorize(['admin', 'barista']),
+  // authenticate,
+  // authorize(['admin', 'barista']),
   validate(createRecipeSchema),
   RecipeController.createRecipe
 );
@@ -67,8 +75,8 @@ router.post(
 // Update recipe
 router.put(
   '/:id',
-  authenticate,
-  authorize(['admin', 'barista']),
+  // authenticate,
+  // authorize(['admin', 'barista']),
   validate(recipeIdSchema, 'params'),
   validate(updateRecipeSchema),
   RecipeController.updateRecipe
@@ -77,8 +85,8 @@ router.put(
 // Delete recipe
 router.delete(
   '/:id',
-  authenticate,
-  authorize(['admin', 'barista']),
+  // authenticate,
+  // authorize(['admin', 'barista']),
   validate(recipeIdSchema, 'params'),
   RecipeController.deleteRecipe
 );

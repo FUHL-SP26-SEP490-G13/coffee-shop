@@ -84,7 +84,9 @@ class RecipeController {
    */
   async createRecipe(req, res, next) {
     try {
-      const { product_size_id, ingredient_id, quantity } = req.body;
+      // Ưu tiên lấy productSizeId từ params nếu có (route mới)
+      const product_size_id = req.params.productSizeId || req.body.product_size_id;
+      const { ingredient_id, quantity } = req.body;
 
       const recipe = await RecipeService.createRecipe(
         product_size_id,

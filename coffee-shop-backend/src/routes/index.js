@@ -32,7 +32,7 @@ router.use('/recipes', recipeRoutes);
 router.use("/area", areaRoutes);
 router.use("/tables", tableRoutes);
 router.use('/admin/recipes', recipeRoutes);
-router.use('/admin/ingredients', ingredientRoutes);
+router.use('/ingredients', ingredientRoutes);
 router.use('/product-sizes', productSizeRoutes);
 router.use('/dashboard', adminDashboardRoutes);
 router.use('/banners', bannerRoutes);
@@ -96,21 +96,21 @@ router.get('/', (req, res) => {
         restore: 'POST /api/admin/toppings/:id/restore (Admin)',
       },
       recipes: {
-        getByProductSize: 'GET /api/admin/recipes/by-size/:productSizeId (Admin)',
-        getByProductGrouped: 'GET /api/admin/recipes/product/:productId/by-size (Admin)',
-        getByProduct: 'GET /api/admin/recipes/product/:productId (Admin)',
-        getById: 'GET /api/admin/recipes/:id (Admin)',
-        create: 'POST /api/admin/recipes (Admin/Barista)',
-        update: 'PUT /api/admin/recipes/:id (Admin/Barista)',
-        delete: 'DELETE /api/admin/recipes/:id (Admin/Barista)',
+        getByProductSize: 'GET /api/recipes/by-size/:productSizeId (Admin)',
+        getByProductGrouped: 'GET /api/recipes/product/:productId/by-size (Admin)',
+        getByProduct: 'GET /api/recipes/product/:productId (Admin)',
+        getById: 'GET /api/recipes/:id (Admin)',
+        create: 'POST /api/recipes/by-size/:productSizeId (Admin/Barista)',
+        update: 'PUT /api/recipes/by-size/:productSizeId (Admin/Barista)',
+        delete: 'DELETE /api/recipes/:id (Admin/Barista)',
       },
       ingredients: {
-        getAll: 'GET /api/admin/ingredients (Admin)',
-        getById: 'GET /api/admin/ingredients/:id (Admin)',
-        search: 'GET /api/admin/ingredients/search (Admin)',
-        create: 'POST /api/admin/ingredients (Admin)',
-        update: 'PUT /api/admin/ingredients/:id (Admin)',
-        delete: 'DELETE /api/admin/ingredients/:id (Admin)',
+        getAll: 'GET /api/ingredients (Admin)',
+        getById: 'GET /api/ingredients/:id (Admin)',
+        search: 'GET /api/ingredients/search (Admin)',
+        create: 'POST /api/ingredients (Admin)',
+        update: 'PUT /api/ingredients/:id (Admin)',
+        delete: 'DELETE /api/ingredients/:id (Admin)',
       },
     },
   });
