@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, Search, Loader2, Plus, ArrowRight } from "lucide-react";
@@ -35,6 +35,8 @@ export default function HomePage() {
 
   const YOUTUBE_VIDEO_ID = "eDyD7y3M_c0";
 
+  const [activeBannerIndex, setActiveBannerIndex] = useState(0);
+
   return (
     <div className="min-h-screen flex flex-col bg-white">
       <Header />
@@ -49,6 +51,9 @@ export default function HomePage() {
               loop={true}
               pagination={{ clickable: true }}
               navigation
+              onSlideChange={(swiper) => {
+                setActiveBannerIndex(swiper.realIndex);
+              }}
               className="w-full h-[420px] sm:h-[520px] lg:h-[650px]"
             >
               {(banners.length ? banners : [null]).map((b, idx) => (
@@ -81,10 +86,12 @@ export default function HomePage() {
             {/* DESCRIPTION */}
             <div className="bg-[#f4eddc] py-6 text-center">
               <h3 className="text-lg font-semibold text-gray-800">
-                {banners[0]?.title}
+                {banners[activeBannerIndex]?.title}
               </h3>
 
-              <p className="text-gray-600 mt-2">{banners[0]?.subtitle}</p>
+              <p className="text-gray-600 mt-2">
+                {banners[activeBannerIndex]?.subtitle}
+              </p>
             </div>
           </div>
         </div>

@@ -170,10 +170,15 @@ export default function AdminBanner() {
       {/* HEADER */}
       <div className="mb-4 sm:mb-6 flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <Megaphone className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
-          <h1 className="text-xl sm:text-2xl font-semibold">
-            Quản lý quảng cáo
-          </h1>
+          <div className="p-2 bg-primary/10 rounded-lg">
+            <Megaphone className="h-6 w-6 text-primary" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-semibold mb-1">Quản lý quảng cáo</h2>
+            <p className="text-sm text-muted-foreground">
+              Truyền bá cửa hàng của bạn nào
+            </p>
+          </div>
         </div>
 
         <Button
@@ -274,7 +279,7 @@ export default function AdminBanner() {
                               : "bg-red-500/10 text-red-700 border-red-500/20"
                           }
                         >
-                          {b.is_active ? "Active" : "Inactive"}
+                          {b.is_active ? "Hoạt động" : "Ngừng hoạt động"}
                         </Badge>
                       </td>
                       <td className="py-3 px-4">

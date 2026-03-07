@@ -86,7 +86,7 @@ export default function AdminNewsletter() {
 
   return (
     <div className="p-4 sm:p-6">
-      <div className="flex items-center gap-3 mb-3">
+      <div className="flex items-center gap-3 mb-6">
         <div className="p-2 bg-primary/10 rounded-lg">
           <Mail className="h-6 w-6 text-primary" />
         </div>
