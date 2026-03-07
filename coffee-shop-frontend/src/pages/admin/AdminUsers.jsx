@@ -307,7 +307,7 @@ export default function AdminUsers() {
           <Users className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
           <h1 className="text-xl sm:text-2xl font-semibold">Quản lý người dùng</h1>
         </div>
-        <Button onClick={() => setIsCreateOpen(true)} className="w-full sm:w-auto bg-amber-500 hover:bg-amber-600 text-white">
+        <Button onClick={() => setIsCreateOpen(true)} className="w-full sm:w-auto hover:bg-amber-600 text-white">
           <Plus className="h-4 w-4 mr-2" />
           Thêm nhân viên
         </Button>
@@ -607,7 +607,7 @@ export default function AdminUsers() {
               <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)} disabled={isCreating}>
                 Hủy
               </Button>
-              <Button type="submit" disabled={isCreating} className="bg-amber-500 hover:bg-amber-600 text-white">
+              <Button type="submit" disabled={isCreating} className="hover:bg-amber-600 text-white">
                 {isCreating ? 'Đang tạo...' : 'Tạo nhân viên'}
               </Button>
             </DialogFooter>
@@ -665,7 +665,6 @@ export default function AdminUsers() {
           <DialogFooter>
             <Button 
               type="button" 
-              variant="outline" 
               onClick={() => setIsPasswordOpen(false)} 
               disabled={isTogglingStatus}
             >
@@ -673,9 +672,9 @@ export default function AdminUsers() {
             </Button>
             <Button 
               type="button" 
+              variant="outline"
               onClick={handleConfirmStatusChange} 
               disabled={isTogglingStatus}
-              className="bg-amber-500 hover:bg-amber-600 text-white"
             >
               {isTogglingStatus ? 'Đang xử lý...' : 'Xác nhận'}
             </Button>
