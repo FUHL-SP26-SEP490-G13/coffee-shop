@@ -4,6 +4,7 @@ const router = express.Router();
 // Import routes
 const authRoutes = require('./auth.routes');
 const categoryRoutes = require('./category.routes');
+const productRoutes = require('./product.routes');
 const userRoutes = require('./user.routes');
 const { publicToppingRoutes, adminToppingRoutes } = require('./topping.routes');
 const recipeRoutes = require('./recipe.routes');
@@ -14,6 +15,7 @@ const ingredientRoutes = require('./ingredient.routes');
 // Mount routes
 router.use('/auth', authRoutes);
 router.use('/categories', categoryRoutes);
+router.use('/products', productRoutes);
 router.use('/users', userRoutes);
 router.use('/toppings', publicToppingRoutes);
 router.use('/admin/toppings', adminToppingRoutes);
