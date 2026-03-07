@@ -314,7 +314,6 @@ export default function AdminProducts() {
           onClose={closeModal}
         />
       )}
-    import ViewRecipeModal from './Action/ViewRecipeModal';
     </div>
   );
 }
