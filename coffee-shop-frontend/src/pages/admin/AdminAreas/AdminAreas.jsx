@@ -131,6 +131,7 @@ export default function AdminAreas() {
               <thead className="bg-muted text-left">
                 <tr>
                   <th className="p-3 border">ID</th>
+                  <th className="p-3 border">Hình ảnh</th>
                   <th className="p-3 border">Tên khu vực</th>
                   <th className="p-3 border text-center">Hành động</th>
                 </tr>
@@ -140,7 +141,23 @@ export default function AdminAreas() {
                   paginatedAreas.map((area) => (
                     <tr key={area.id}>
                       <td className="p-3 border font-medium">#{area.id}</td>
-                      <td className="p-3 border">{area.name}</td>
+                      <td className="p-3 border">
+                        {area.image ? (
+                          <div className="w-16 h-16 rounded-md overflow-hidden border">
+                            <img
+                              src={area.image}
+                              alt={area.name}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        ) : (
+                          <div className="w-16 h-16 rounded-md bg-muted flex flex-col items-center justify-center text-muted-foreground border">
+                            <MapPin className="w-6 h-6 mb-1 opacity-50" />
+                            <span className="text-[10px] uppercase">Trống</span>
+                          </div>
+                        )}
+                      </td>
+                      <td className="p-3 border font-medium text-base">{area.name}</td>
                       <td className="p-3 border">
                         <div className="flex gap-2 justify-center">
                           <Button
@@ -163,7 +180,7 @@ export default function AdminAreas() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="3" className="p-12 text-center text-muted-foreground">
+                    <td colSpan="4" className="p-12 text-center text-muted-foreground">
                       Không tìm thấy khu vực nào
                     </td>
                   </tr>

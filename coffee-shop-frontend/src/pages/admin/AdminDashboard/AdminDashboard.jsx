@@ -11,6 +11,7 @@ import {
   XAxis,
   YAxis,
   Tooltip,
+  BarChart, Bar,
 } from "recharts";
 import { Newspaper } from "lucide-react";
 
@@ -41,6 +42,12 @@ export default function AdminDashboard() {
 
   const [loading, setLoading] = useState(true);
 
+  const [orderTypeRevenue, setOrderTypeRevenue] = useState([]);
+  const [tableSummary, setTableSummary] = useState(null);
+  const [comparison, setComparison] = useState(null);
+  const [staffSummary, setStaffSummary] = useState(null);
+  console.log("staffSummary:", staffSummary);
+
   const loadData = async () => {
     try {
       setLoading(true);
@@ -63,10 +70,63 @@ export default function AdminDashboard() {
       // 4) payment breakdown (optional nhưng hợp DB)
       const pm = await adminDashService.getPaymentMethodBreakdown(rangeDays);
       setPaymentMethod(pm);
+
+      // 5) order type revenue (optional)
+      const orderType = await adminDashService.getOrderTypeRevenue(rangeDays);
+      setOrderTypeRevenue(orderType);
+
+      // 6) table status summary (optional)
+      const table = await adminDashService.getTableStatusSummary();
+      setTableSummary(table);
+
+      // 7) comparison (optional)
+      const cmp = await adminDashService.getComparison(rangeDays);
+      setComparison(cmp);
+
+      // 8) staff summary (optional)
+      const staff = await adminDashService.getStaffSummary();
+      setStaffSummary(staff);
     } finally {
       setLoading(false);
     }
   };
+
+//   const loadData = async () => {
+//   try {
+//     setLoading(true);
+
+//     // Các API bắt buộc - nếu lỗi thì báo
+//     const ov = await adminDashService.getOverview();
+//     setOverview(ov);
+
+//     const series = await adminDashService.getRevenueSeries(rangeDays);
+//     setRevenueSeries(series);
+
+//     const top = await adminDashService.getTopProducts({ days: rangeDays, limit: 5 });
+//     setTopProducts(top);
+
+//     // Các API optional - lỗi thì bỏ qua, không crash
+//     await adminDashService.getPaymentMethodBreakdown(rangeDays)
+//       .then(setPaymentMethod).catch(() => {});
+
+//     await adminDashService.getOrderTypeRevenue(rangeDays)
+//       .then(setOrderTypeRevenue).catch(() => {});
+
+//     await adminDashService.getTableStatusSummary()
+//       .then(setTableSummary).catch(() => {}); // ← đây đang 404
+
+//     await adminDashService.getComparison(rangeDays)
+//       .then(setComparison).catch(() => {});
+
+//     await adminDashService.getStaffSummary()
+//       .then(setStaffSummary).catch(() => {}); // ← giờ sẽ chạy được
+
+//   } catch (err) {
+//     console.error("loadData error:", err);
+//   } finally {
+//     setLoading(false);
+//   }
+// };
 
   useEffect(() => {
     loadData();
@@ -241,6 +301,132 @@ export default function AdminDashboard() {
                 </div>
               </div>
             ))}
+          </div>
+        )}
+      </Card>
+
+      {/* doanh thu theo loại đơn hàng (tại quán, mang về, giao hàng) - optional nhưng nếu có thì rất hợp DB vì có order_type trong bảng orders, khỏi phải đoán dựa vào payment_method hay gì đó */}
+      <Card className="p-6">
+        <h3 className="text-lg font-semibold mb-1">Doanh thu theo loại đơn</h3>
+        <p className="text-sm text-muted-foreground mb-4">
+          {rangeDays} ngày gần nhất
+        </p>
+
+        {orderTypeRevenue.length === 0 ? (
+          <div className="text-sm text-muted-foreground">Chưa có dữ liệu</div>
+        ) : (
+          <div className="h-[300px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={orderTypeRevenue}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="type" />
+                <YAxis />
+                <Tooltip formatter={(value) => formatMoney(value)} />
+                <Bar dataKey="revenue" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+      </Card>
+
+      {/* Optional: tóm tắt tình trạng bàn (occupied, available) để dashboard có thêm vài số liệu hữu ích, hợp DB vì có status trong bảng tables rồi, khỏi phải đoán dựa vào order hay gì đó */}
+      <Card className="p-6">
+        <h3 className="text-lg font-semibold mb-1">Tình trạng bàn (Dine-in)</h3>
+        <p className="text-sm text-muted-foreground mb-4">
+          Hiện tại trong hệ thống
+        </p>
+
+        {!tableSummary ? (
+          <div className="text-sm text-muted-foreground">Chưa có dữ liệu</div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="border rounded-lg p-4">
+              <div className="text-sm text-muted-foreground">Tổng bàn</div>
+              <div className="text-2xl font-semibold">{tableSummary.total}</div>
+            </div>
+
+            <div className="border rounded-lg p-4">
+              <div className="text-sm text-muted-foreground">Đang sử dụng</div>
+              <div className="text-2xl font-semibold text-orange-600">
+                {tableSummary.occupied}
+              </div>
+            </div>
+
+            <div className="border rounded-lg p-4">
+              <div className="text-sm text-muted-foreground">Bàn trống</div>
+              <div className="text-2xl font-semibold text-green-600">
+                {tableSummary.available}
+              </div>
+            </div>
+
+            <div className="border rounded-lg p-4">
+              <div className="text-sm text-muted-foreground">Tỷ lệ lấp đầy</div>
+              <div
+                className={`text-2xl font-semibold ${
+                  tableSummary.occupancyRate >= 70
+                    ? "text-red-600"
+                    : "text-blue-600"
+                }`}
+              >
+                {tableSummary.occupancyRate}%
+              </div>
+            </div>
+          </div>
+        )}
+      </Card>
+
+      {/* Optional: so sánh doanh thu, số đơn hàng, khách hàng mới,... giữa 2 khoảng thời gian (ví dụ: tuần này vs tuần trước, tháng này vs tháng trước) để xem xu hướng tăng giảm */}
+      <Card className="p-6">
+        <h3 className="text-sm text-muted-foreground">Tăng trưởng doanh thu</h3>
+
+        {!comparison ? (
+          <div className="text-sm text-muted-foreground">...</div>
+        ) : (
+          <div
+            className={`text-2xl font-bold ${
+              comparison.revenueGrowth >= 0 ? "text-green-600" : "text-red-600"
+            }`}
+          >
+            {comparison.revenueGrowth >= 0 ? "↑" : "↓"}{" "}
+            {Math.abs(comparison.revenueGrowth)}%
+          </div>
+        )}
+      </Card>
+
+{/* Optional: tóm tắt số lượng nhân viên theo vai trò (barista, phục vụ, quản lý) để dashboard có thêm vài số liệu hữu ích */}
+      <Card className="p-6">
+        <h3 className="text-lg font-semibold mb-4">Tình hình nhân sự</h3>
+
+        {!staffSummary ? (
+          <div className="text-sm text-muted-foreground">Chưa có dữ liệu</div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="border rounded-lg p-4">
+              <div className="text-sm text-muted-foreground">
+                Nhân viên có ca
+              </div>
+              <div className="text-2xl font-semibold">
+                {staffSummary.activeShifts}
+              </div>
+            </div>
+
+            <div className="border rounded-lg p-4">
+              <div className="text-sm text-muted-foreground">
+                Đơn xin nghỉ chờ duyệt
+              </div>
+              <div className="text-2xl font-semibold text-orange-600">
+                {staffSummary.pendingLeave}
+              </div>
+            </div>
+
+            <div className="border rounded-lg p-4">
+              <div className="text-sm text-muted-foreground">
+                Giờ tăng ca (7 ngày)
+              </div>
+              <div className="text-2xl font-semibold text-blue-600">
+                {staffSummary.overtimeHours}
+              </div>
+            </div>
           </div>
         )}
       </Card>

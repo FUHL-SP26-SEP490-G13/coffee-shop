@@ -38,7 +38,11 @@ class AreaController {
    */
   async create(req, res, next) {
     try {
-      const area = await AreaService.createArea(req.body);
+      const data = { ...req.body };
+      if (req.file) {
+        data.image = req.file.path;
+      }
+      const area = await AreaService.createArea(data);
       return response.success(res, area, 'Tạo khu vực thành công', 201);
     } catch (error) {
       next(error);
@@ -53,7 +57,11 @@ class AreaController {
   async update(req, res, next) {
     try {
       const { id } = req.params;
-      const area = await AreaService.updateArea(id, req.body);
+      const data = { ...req.body };
+      if (req.file) {
+        data.image = req.file.path;
+      }
+      const area = await AreaService.updateArea(id, data);
       return response.success(res, area, 'Cập nhật khu vực thành công');
     } catch (error) {
       next(error);

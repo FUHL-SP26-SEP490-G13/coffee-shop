@@ -4,14 +4,6 @@ const env = require('../config/env');
  * Global error handler middleware
  */
 const errorHandler = (err, req, res, next) => {
-  // Log error
-  // console.error('Error:', {
-  //   message: err.message,
-  //   stack: err.stack,
-  //   url: req.originalUrl,
-  //   method: req.method,
-  //   ip: req.ip,
-  // });
 
   // Default error
   let statusCode = err.statusCode || 500;

@@ -307,7 +307,7 @@ export default function AdminUsers() {
           <Users className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
           <h1 className="text-xl sm:text-2xl font-semibold">Quản lý người dùng</h1>
         </div>
-        <Button onClick={() => setIsCreateOpen(true)} className="w-full sm:w-auto">
+        <Button onClick={() => setIsCreateOpen(true)} className="w-full sm:w-auto hover:bg-amber-600 text-white">
           <Plus className="h-4 w-4 mr-2" />
           Thêm nhân viên
         </Button>
@@ -455,7 +455,7 @@ export default function AdminUsers() {
                   variant={currentPage === page ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => setCurrentPage(page)}
-                  className="w-8 h-8 sm:w-10 sm:h-10"
+                  className={`w-8 h-8 sm:w-10 sm:h-10 ${currentPage === page ? 'bg-amber-500 hover:bg-amber-600 text-white' : ''}`}
                 >
                   {page}
                 </Button>
@@ -607,7 +607,7 @@ export default function AdminUsers() {
               <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)} disabled={isCreating}>
                 Hủy
               </Button>
-              <Button type="submit" disabled={isCreating}>
+              <Button type="submit" disabled={isCreating} className="hover:bg-amber-600 text-white">
                 {isCreating ? 'Đang tạo...' : 'Tạo nhân viên'}
               </Button>
             </DialogFooter>
@@ -665,7 +665,6 @@ export default function AdminUsers() {
           <DialogFooter>
             <Button 
               type="button" 
-              variant="outline" 
               onClick={() => setIsPasswordOpen(false)} 
               disabled={isTogglingStatus}
             >
@@ -673,6 +672,7 @@ export default function AdminUsers() {
             </Button>
             <Button 
               type="button" 
+              variant="outline"
               onClick={handleConfirmStatusChange} 
               disabled={isTogglingStatus}
             >

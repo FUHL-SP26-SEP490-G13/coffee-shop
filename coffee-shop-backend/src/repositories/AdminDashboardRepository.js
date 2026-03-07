@@ -123,6 +123,138 @@ class AdminDashboardRepository {
     const [rows] = await pool.query(sql);
     return rows[0].total;
   }
+
+  // Optional: doanh thu theo loại đơn hàng (tại quán, mang về, giao hàng)
+  async getOrderTypeRevenue({ days = 7 }) {
+    const safeDays = Math.max(1, Math.min(Number(days) || 7, 90));
+
+    const [rows] = await pool.query(
+      `
+    SELECT order_type, IFNULL(SUM(total_amount),0) as revenue
+    FROM orders
+    WHERE is_paid = 1
+      AND created_at >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
+    GROUP BY order_type
+    `,
+      [safeDays]
+    );
+
+    return rows.map((r) => ({
+      type: r.order_type,
+      revenue: Number(r.revenue || 0),
+    }));
+  }
+
+  // Optional: tóm tắt tình trạng bàn (occupied, available) để dashboard có thêm vài số liệu hữu ích, hợp DB vì có status trong bảng tables rồi, khỏi phải đoán dựa vào order hay gì đó
+  async getTableStatusSummary() {
+    const [rows] = await pool.query(`
+    SELECT status, COUNT(*) as total
+    FROM tables
+    WHERE is_deleted = 0
+    GROUP BY status
+  `);
+
+    let total = 0;
+    let occupied = 0;
+    let available = 0;
+
+    rows.forEach((r) => {
+      total += Number(r.total);
+      if (r.status === "occupied") occupied = Number(r.total);
+      if (r.status === "available") available = Number(r.total);
+    });
+
+    const occupancyRate = total > 0 ? ((occupied / total) * 100).toFixed(2) : 0;
+
+    return {
+      total,
+      occupied,
+      available,
+      occupancyRate: Number(occupancyRate),
+    };
+  }
+
+  // Optional: so sánh tăng trưởng doanh thu và số đơn hàng so với kỳ trước (trước đó N ngày)
+  async getComparison({ days = 7 }) {
+    const safeDays = Math.max(1, Math.min(Number(days) || 7, 90));
+
+    const [[current]] = await pool.query(
+      `
+    SELECT 
+      IFNULL(SUM(total_amount),0) as revenue,
+      COUNT(*) as orders
+    FROM orders
+    WHERE is_paid = 1
+      AND created_at >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
+    `,
+      [safeDays]
+    );
+
+    const [[previous]] = await pool.query(
+      `
+    SELECT 
+      IFNULL(SUM(total_amount),0) as revenue,
+      COUNT(*) as orders
+    FROM orders
+    WHERE is_paid = 1
+      AND created_at < DATE_SUB(CURDATE(), INTERVAL ? DAY)
+      AND created_at >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
+    `,
+      [safeDays, safeDays * 2]
+    );
+
+    const calcGrowth = (cur, prev) => {
+      if (prev === 0) return 0;
+      return ((cur - prev) / prev) * 100;
+    };
+
+    return {
+      revenueGrowth: Number(
+        calcGrowth(Number(current.revenue), Number(previous.revenue)).toFixed(2)
+      ),
+      orderGrowth: Number(
+        calcGrowth(Number(current.orders), Number(previous.orders)).toFixed(2)
+      ),
+    };
+  }
+
+  // Optional: tóm tắt tình hình nhân sự (số ca đang hoạt động, số đơn xin nghỉ phép đang chờ duyệt, tổng số giờ làm thêm đã được duyệt trong N ngày qua)
+  async getStaffSummary() {
+    const [[activeShifts]] = await pool.query(`
+    SELECT COUNT(*) as total
+    FROM shift_registrations
+    WHERE status = 'approved'
+  `);
+
+    const [[pendingLeave]] = await pool.query(`
+    SELECT COUNT(*) as total
+    FROM leave_requests
+    WHERE status = 'pending'
+  `);
+
+    const [[overtimeHours]] = await pool.query(`
+    SELECT IFNULL(SUM(hours),0) as total
+    FROM overtime_requests
+    WHERE status = 'approved'
+      AND overtimeDate >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+  `);
+
+    return {
+      activeShifts: Number(activeShifts.total),
+      pendingLeave: Number(pendingLeave.total),
+      overtimeHours: Number(overtimeHours.total),
+    };
+  }
+
+  async getTableStatus() {
+    const [rows] = await pool.query(`
+    SELECT status, COUNT(*) as count
+    FROM tables
+    GROUP BY status
+  `);
+
+    return rows;
+  }
 }
 
 module.exports = new AdminDashboardRepository();

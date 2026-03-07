@@ -8,8 +8,17 @@ class DiscountRepository {
     const params = [];
 
     if (code) {
-      conditions.push("code LIKE ?");
-      params.push(`%${code}%`);
+      const cleanValue = code.replace("%", "").trim();
+
+      conditions.push(`
+    (
+      code LIKE ?
+      OR description LIKE ?
+      OR CAST(percentage AS CHAR) LIKE ?
+    )
+  `);
+
+      params.push(`%${cleanValue}%`, `%${cleanValue}%`, `%${cleanValue}%`);
     }
 
     if (status === "active") {
@@ -21,6 +30,14 @@ class DiscountRepository {
     if (status === "expired") {
       // expired: valid_until có và đã qua
       conditions.push("valid_until IS NOT NULL AND valid_until < NOW()");
+    }
+
+    if (status === "enabled") {
+      conditions.push("is_active = 1");
+    }
+
+    if (status === "disabled") {
+      conditions.push("is_active = 0");
     }
 
     const whereClause =
@@ -120,6 +137,14 @@ class DiscountRepository {
       id,
     ]);
     return result.affectedRows > 0;
+  }
+
+  async findByCode(code) {
+    const [rows] = await pool.query(
+      "SELECT id FROM discount WHERE LOWER(code) = LOWER(?) LIMIT 1",
+      [code]
+    );
+    return rows[0];
   }
 }
 

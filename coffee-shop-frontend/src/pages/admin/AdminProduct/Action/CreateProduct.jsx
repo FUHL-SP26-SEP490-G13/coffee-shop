@@ -93,8 +93,17 @@ export default function CreateProduct({ open, onClose, onSuccess }) {
 
   const handleSubmit = async () => {
     // Validation
-    if (!name.trim()) {
+    const trimmedName = name.trim();
+    const trimmedDescription = description.trim();
+    const parsedCategoryId = Number(categoryId);
+
+    if (!trimmedName) {
       toast.error('Vui lòng nhập tên sản phẩm');
+      return;
+    }
+
+    if (trimmedName.length < 2 || trimmedName.length > 100) {
+      toast.error('Tên sản phẩm phải từ 2 đến 100 ký tự');
       return;
     }
 
@@ -103,14 +112,29 @@ export default function CreateProduct({ open, onClose, onSuccess }) {
       return;
     }
 
+    if (!Number.isInteger(parsedCategoryId) || parsedCategoryId <= 0) {
+      toast.error('Danh mục không hợp lệ');
+      return;
+    }
+
+    if (!['available', 'unavailable'].includes(status)) {
+      toast.error('Trạng thái sản phẩm không hợp lệ');
+      return;
+    }
+
+    if (trimmedDescription.length > 255) {
+      toast.error('Mô tả không được vượt quá 255 ký tự');
+      return;
+    }
+
     try {
       setSubmitting(true);
 
       const formData = new FormData();
-      formData.append('name', name.trim());
-      formData.append('category_id', categoryId);
+      formData.append('name', trimmedName);
+      formData.append('category_id', String(parsedCategoryId));
       formData.append('status', status);
-      formData.append('description', description.trim());
+      formData.append('description', trimmedDescription);
 
       // Append images (ảnh đầu tiên sẽ là thumbnail)
       images.forEach((img) => {
@@ -125,7 +149,9 @@ export default function CreateProduct({ open, onClose, onSuccess }) {
     } catch (err) {
       console.error('Create product error:', err);
       const errorMsg =
-        err.response?.data?.message || 'Tạo sản phẩm thất bại';
+        err.response?.data?.errors?.[0]?.message ||
+        err.response?.data?.message ||
+        'Tạo sản phẩm thất bại';
       toast.error(errorMsg);
     } finally {
       setSubmitting(false);

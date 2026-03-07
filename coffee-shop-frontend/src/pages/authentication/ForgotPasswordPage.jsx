@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Lock, Mail, CheckCircle2, AlertCircle, Shield } from "lucide-react";
+import { ArrowLeft, Lock, Mail, CheckCircle2, AlertCircle, Shield, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -74,6 +74,8 @@ export default function ForgotPasswordPage() {
 	const [newPassword, setNewPassword] = useState("");
 	const [confirmPassword, setConfirmPassword] = useState("");
 	const [passwordStrength, setPasswordStrength] = useState(0);
+	const [showNewPassword, setShowNewPassword] = useState(false);
+	const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
 	// Error & loading states
 	const [errorMessage, setErrorMessage] = useState("");
@@ -310,13 +312,24 @@ export default function ForgotPasswordPage() {
 										<Lock className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
 										<Input
 											id="newPassword"
-											type="password"
+											type={showNewPassword ? "text" : "password"}
 											placeholder="Nhập mật khẩu mới"
-											className="pl-10 h-11"
+											className="pl-10 pr-10 h-11"
 											value={newPassword}
 											onChange={(e) => handlePasswordChange(e.target.value)}
 											autoFocus
 										/>
+										<button
+											type="button"
+											onClick={() => setShowNewPassword(!showNewPassword)}
+											className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+										>
+											{showNewPassword ? (
+												<EyeOff className="h-5 w-5" />
+											) : (
+												<Eye className="h-5 w-5" />
+											)}
+										</button>
 									</div>
 
 									{newPassword && (
@@ -395,12 +408,23 @@ export default function ForgotPasswordPage() {
 										<Lock className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
 										<Input
 											id="confirmPassword"
-											type="password"
+											type={showConfirmPassword ? "text" : "password"}
 											placeholder="Nhập lại mật khẩu mới"
-											className="pl-10 h-11"
+											className="pl-10 pr-10 h-11"
 											value={confirmPassword}
 											onChange={(e) => setConfirmPassword(e.target.value)}
 										/>
+										<button
+											type="button"
+											onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+											className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+										>
+											{showConfirmPassword ? (
+												<EyeOff className="h-5 w-5" />
+											) : (
+												<Eye className="h-5 w-5" />
+											)}
+										</button>
 									</div>
 								</div>
 

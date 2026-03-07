@@ -236,6 +236,14 @@ class UserService {
       throw new Error('User không tồn tại');
     }
 
+    // If updating phone, check if it's already used by another user
+    if (data.phone && data.phone !== user.phone) {
+      const phoneExists = await UserRepository.phoneExists(data.phone, userId);
+      if (phoneExists) {
+        throw new Error('Số điện thoại đã được sử dụng');
+      }
+    }
+
     // Update profile using repository method with allowed fields only
     const updatedUser = await UserRepository.updateProfile(userId, data);
 

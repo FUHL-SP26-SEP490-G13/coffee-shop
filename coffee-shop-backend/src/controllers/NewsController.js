@@ -4,13 +4,14 @@ const response = require("../utils/response");
 class NewsController {
   async create(req, res, next) {
     try {
-      const thumbnailUrl = req.file?.path || null;
+      const file = req.file;
 
       const data = {
         title: req.body.title,
         summary: req.body.summary,
         content: req.body.content,
-        thumbnail: thumbnailUrl,
+        tag: req.body.tag || null,
+        thumbnail: file ? file.path : null,
       };
 
       const news = await NewsService.createNews(data, req.user.id);
@@ -65,12 +66,12 @@ class NewsController {
 
   async getAllAdmin(req, res, next) {
     try {
-      const { page = 1, limit = 10, title = "" } = req.query;
+      const { page = 1, limit = 10, keyword = "" } = req.query;
 
       const news = await NewsService.getAllAdmin({
         page: parseInt(page),
         limit: parseInt(limit),
-        title,
+        keyword,
       });
 
       return response.success(res, news);
@@ -90,20 +91,39 @@ class NewsController {
 
   async update(req, res, next) {
     try {
-      const data = {
+      const files =
+        req.files?.map((f) => ({
+          url: f.path,
+          public_id: f.filename || f.public_id || null,
+        })) || [];
+
+      let deleteImageIds = [];
+      if (req.body.deleteImageIds) {
+        deleteImageIds = JSON.parse(req.body.deleteImageIds);
+      }
+
+      await NewsService.updateNews(req.params.id, {
         title: req.body.title,
         summary: req.body.summary,
         content: req.body.content,
-      };
-
-      // CHỈ khi có upload file mới
-      if (req.file) {
-        data.thumbnail = req.file.path;
-      }
-
-      await NewsService.updateNews(req.params.id, data);
+        tag: req.body.tag || null,
+        newFiles: files,
+        deleteImageIds,
+      });
 
       return response.success(res, null, "Cập nhật thành công");
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getRelated(req, res, next) {
+    try {
+      const { tag, excludeId } = req.query;
+
+      const news = await NewsService.getRelated(tag, excludeId);
+
+      return response.success(res, news);
     } catch (error) {
       next(error);
     }

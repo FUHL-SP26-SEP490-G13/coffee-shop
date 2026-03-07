@@ -19,7 +19,7 @@ import {
 import { toast } from "sonner";
 import tableService from "@/services/tableService";
 
-export default function TableModal({ isOpen, onClose, table, areas, onSuccess }) {
+export default function TableModal({ isOpen, onClose, table, areas, initialAreaId, onSuccess }) {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     table_number: "",
@@ -37,11 +37,11 @@ export default function TableModal({ isOpen, onClose, table, areas, onSuccess })
     } else {
       setFormData({
         table_number: "",
-        area_id: areas.length > 0 ? areas[0].id.toString() : "",
+        area_id: initialAreaId && initialAreaId !== "all" ? initialAreaId : (areas.length > 0 ? areas[0].id.toString() : ""),
         status: "available",
       });
     }
-  }, [table, isOpen, areas]);
+  }, [table, isOpen, areas, initialAreaId]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -106,22 +106,24 @@ export default function TableModal({ isOpen, onClose, table, areas, onSuccess })
             />
           </div>
 
-          <div className="grid gap-2">
-            <Label htmlFor="status">Trạng thái</Label>
-            <Select 
-              value={formData.status} 
-              onValueChange={(val) => setFormData({ ...formData, status: val })}
-            >
-              <SelectTrigger id="status">
-                <SelectValue placeholder="Chọn trạng thái" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="available">Trống (Available)</SelectItem>
-                <SelectItem value="occupied">Có khách (Occupied)</SelectItem>
-                <SelectItem value="reserved">Đã đặt (Reserved)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          {table && (
+            <div className="grid gap-2">
+              <Label htmlFor="status">Trạng thái</Label>
+              <Select 
+                value={formData.status} 
+                onValueChange={(val) => setFormData({ ...formData, status: val })}
+              >
+                <SelectTrigger id="status">
+                  <SelectValue placeholder="Chọn trạng thái" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="available">Trống (Available)</SelectItem>
+                  <SelectItem value="occupied">Có khách (Occupied)</SelectItem>
+                  <SelectItem value="reserved">Đã đặt (Reserved)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           <DialogFooter className="pt-4">
             <Button type="button" variant="outline" onClick={onClose} disabled={loading}>

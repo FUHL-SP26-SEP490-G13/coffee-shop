@@ -1,82 +1,107 @@
-import { useState } from 'react';
-import { Plus, Calendar, Clock, CheckCircle, XCircle, AlertCircle, FileText } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
-import { Button } from '../../components/ui/button';
-import { Badge } from '../../components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../../components/ui/dialog';
-import { Label } from '../../components/ui/label';
-import { Input } from '../../components/ui/input';
-import { Textarea } from '../../components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
-import { requests } from '../../lib/mockData';
-import { toast } from 'sonner';
+import { useState } from "react";
+import {
+  Plus,
+  Calendar,
+  Clock,
+  CheckCircle,
+  XCircle,
+  AlertCircle,
+  FileText,
+} from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "../../../components/ui/card";
+import { Button } from "../../../components/ui/button";
+import { Badge } from "../../../components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "../../../components/ui/dialog";
+import { Label } from "../../../components/ui/label";
+import { Input } from "../../../components/ui/input";
+import { Textarea } from "../../../components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../../../components/ui/select";
+import { requests } from "../../../lib/mockData";
+import { toast } from "sonner";
 
 export function BaristaRequests() {
   const [requestList, setRequestList] = useState(requests);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [requestType, setRequestType] = useState('leave');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [reason, setReason] = useState('');
+  const [requestType, setRequestType] = useState("leave");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [reason, setReason] = useState("");
 
   const handleSubmitRequest = () => {
     if (!startDate || !endDate || !reason) {
-      toast.error('Please fill all fields');
+      toast.error("Please fill all fields");
       return;
     }
 
     const newRequest = {
       id: `req-${Date.now()}`,
-      staffId: '5', // Barista ID
+      staffId: "5", // Barista ID
       type: requestType,
       startDate,
       endDate,
       reason,
-      status: 'pending',
+      status: "pending",
       createdAt: new Date().toISOString(),
     };
 
     setRequestList([newRequest, ...requestList]);
     setIsDialogOpen(false);
-    setStartDate('');
-    setEndDate('');
-    setReason('');
-    toast.success('Request submitted successfully');
+    setStartDate("");
+    setEndDate("");
+    setReason("");
+    toast.success("Request submitted successfully");
   };
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'pending':
-        return 'outline';
-      case 'approved':
-        return 'secondary';
-      case 'rejected':
-        return 'destructive';
+      case "pending":
+        return "outline";
+      case "approved":
+        return "secondary";
+      case "rejected":
+        return "destructive";
       default:
-        return 'default';
+        return "default";
     }
   };
 
   const getStatusClassName = (status) => {
     switch (status) {
-      case 'pending':
-        return 'bg-yellow-500/10 text-yellow-700 border-transparent';
-      case 'approved':
-        return 'bg-green-500/10 text-green-700 border-transparent';
-      case 'rejected':
-        return '';
+      case "pending":
+        return "bg-yellow-500/10 text-yellow-700 border-transparent";
+      case "approved":
+        return "bg-green-500/10 text-green-700 border-transparent";
+      case "rejected":
+        return "";
       default:
-        return '';
+        return "";
     }
   };
 
   const getStatusIcon = (status) => {
     switch (status) {
-      case 'pending':
+      case "pending":
         return <AlertCircle className="w-4 h-4" />;
-      case 'approved':
+      case "approved":
         return <CheckCircle className="w-4 h-4" />;
-      case 'rejected':
+      case "rejected":
         return <XCircle className="w-4 h-4" />;
       default:
         return null;
@@ -88,7 +113,9 @@ export function BaristaRequests() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-3xl font-semibold">Requests</h1>
-          <p className="text-muted-foreground mt-1">Manage your leave and overtime requests</p>
+          <p className="text-muted-foreground mt-1">
+            Manage your leave and overtime requests
+          </p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
@@ -104,7 +131,10 @@ export function BaristaRequests() {
             <div className="space-y-4 mt-4">
               <div>
                 <Label htmlFor="type">Request Type</Label>
-                <Select value={requestType} onValueChange={(value) => setRequestType(value)}>
+                <Select
+                  value={requestType}
+                  onValueChange={(value) => setRequestType(value)}
+                >
                   <SelectTrigger id="type">
                     <SelectValue />
                   </SelectTrigger>
@@ -157,23 +187,31 @@ export function BaristaRequests() {
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                    {request.type === 'leave' ? (
+                    {request.type === "leave" ? (
                       <Calendar className="w-5 h-5 text-primary" />
                     ) : (
                       <Clock className="w-5 h-5 text-primary" />
                     )}
                   </div>
                   <div>
-                    <CardTitle className="text-lg capitalize">{request.type} Request</CardTitle>
+                    <CardTitle className="text-lg capitalize">
+                      {request.type} Request
+                    </CardTitle>
                     <p className="text-sm text-muted-foreground">
-                      {new Date(request.startDate).toLocaleDateString()} -{' '}
+                      {new Date(request.startDate).toLocaleDateString()} -{" "}
                       {new Date(request.endDate).toLocaleDateString()}
                     </p>
                   </div>
                 </div>
-                <Badge variant={getStatusColor(request.status)} className={`flex items-center gap-1 ${getStatusClassName(request.status)}`}>
+                <Badge
+                  variant={getStatusColor(request.status)}
+                  className={`flex items-center gap-1 ${getStatusClassName(
+                    request.status
+                  )}`}
+                >
                   {getStatusIcon(request.status)}
-                  {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
+                  {request.status.charAt(0).toUpperCase() +
+                    request.status.slice(1)}
                 </Badge>
               </div>
             </CardHeader>
@@ -181,13 +219,18 @@ export function BaristaRequests() {
               <div className="space-y-2">
                 <div>
                   <p className="text-sm font-medium">Reason:</p>
-                  <p className="text-sm text-muted-foreground">{request.reason}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {request.reason}
+                  </p>
                 </div>
                 <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                  <span>Submitted: {new Date(request.createdAt).toLocaleDateString()}</span>
+                  <span>
+                    Submitted:{" "}
+                    {new Date(request.createdAt).toLocaleDateString()}
+                  </span>
                   {request.approvedAt && (
                     <span>
-                      {request.status === 'approved' ? 'Approved' : 'Rejected'}:{' '}
+                      {request.status === "approved" ? "Approved" : "Rejected"}:{" "}
                       {new Date(request.approvedAt).toLocaleDateString()}
                     </span>
                   )}
@@ -202,7 +245,9 @@ export function BaristaRequests() {
             <CardContent className="flex flex-col items-center justify-center py-12">
               <FileText className="w-12 h-12 text-muted-foreground mb-4" />
               <p className="text-muted-foreground">No requests yet</p>
-              <p className="text-sm text-muted-foreground mt-1">Submit your first request to get started</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                Submit your first request to get started
+              </p>
             </CardContent>
           </Card>
         )}

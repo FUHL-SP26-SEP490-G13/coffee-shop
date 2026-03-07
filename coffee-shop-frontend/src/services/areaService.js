@@ -1,7 +1,7 @@
 import axios from "axios";
 import { API_ENDPOINTS, STORAGE_KEYS } from "../constants";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 const areaService = {
   /**
@@ -44,11 +44,15 @@ const areaService = {
   create: async (data) => {
     try {
       const token = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
-      const response = await axios.post(`${API_URL}${API_ENDPOINTS.AREAS}`, data, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const isFormData = data instanceof FormData;
+      const headers = {
+        Authorization: `Bearer ${token}`,
+      };
+      if (isFormData) {
+        headers['Content-Type'] = 'multipart/form-data';
+      }
+      
+      const response = await axios.post(`${API_URL}${API_ENDPOINTS.AREAS}`, data, { headers });
       return response.data;
     } catch (error) {
       throw error.response?.data || error.message;
@@ -61,11 +65,15 @@ const areaService = {
   update: async (id, data) => {
     try {
       const token = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
-      const response = await axios.put(`${API_URL}${API_ENDPOINTS.AREAS}/${id}`, data, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const isFormData = data instanceof FormData;
+      const headers = {
+        Authorization: `Bearer ${token}`,
+      };
+      if (isFormData) {
+        headers['Content-Type'] = 'multipart/form-data';
+      }
+      
+      const response = await axios.put(`${API_URL}${API_ENDPOINTS.AREAS}/${id}`, data, { headers });
       return response.data;
     } catch (error) {
       throw error.response?.data || error.message;

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Lock } from "lucide-react";
+import { ArrowLeft, Lock, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -42,6 +42,9 @@ export default function ChangePasswordPage() {
 	const [errorMessage, setErrorMessage] = useState("");
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [passwordStrength, setPasswordStrength] = useState(0);
+	const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+	const [showNewPassword, setShowNewPassword] = useState(false);
+	const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
 	const handleSubmit = async (event) => {
 		event.preventDefault();
@@ -124,13 +127,24 @@ export default function ChangePasswordPage() {
 								<Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
 								<Input
 									id="currentPassword"
-									type="password"
+									type={showCurrentPassword ? "text" : "password"}
 									placeholder="Nhập mật khẩu hiện tại"
-									className="pl-9"
+									className="pl-9 pr-10"
 									autoComplete="current-password"
 									value={currentPassword}
 									onChange={(event) => setCurrentPassword(event.target.value)}
 								/>
+								<button
+									type="button"
+									onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+									className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+								>
+									{showCurrentPassword ? (
+										<EyeOff className="h-4 w-4" />
+									) : (
+										<Eye className="h-4 w-4" />
+									)}
+								</button>
 							</div>
 						</div>
 
@@ -140,9 +154,9 @@ export default function ChangePasswordPage() {
 								<Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
 								<Input
 									id="newPassword"
-									type="password"
+									type={showNewPassword ? "text" : "password"}
 									placeholder="Nhập mật khẩu mới"
-									className="pl-9"
+									className="pl-9 pr-10"
 									autoComplete="new-password"
 									value={newPassword}
 									onChange={(event) => {
@@ -151,6 +165,17 @@ export default function ChangePasswordPage() {
 										setPasswordStrength(calculatePasswordStrength(nextValue));
 									}}
 								/>
+								<button
+									type="button"
+									onClick={() => setShowNewPassword(!showNewPassword)}
+									className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+								>
+									{showNewPassword ? (
+										<EyeOff className="h-4 w-4" />
+									) : (
+										<Eye className="h-4 w-4" />
+									)}
+								</button>
 							</div>
 							{newPassword && (
 								<div className="space-y-2">
@@ -225,13 +250,24 @@ export default function ChangePasswordPage() {
 								<Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
 								<Input
 									id="confirmPassword"
-									type="password"
+									type={showConfirmPassword ? "text" : "password"}
 									placeholder="Nhập lại mật khẩu mới"
-									className="pl-9"
+									className="pl-9 pr-10"
 									autoComplete="new-password"
 									value={confirmPassword}
 									onChange={(event) => setConfirmPassword(event.target.value)}
 								/>
+								<button
+									type="button"
+									onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+									className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+								>
+									{showConfirmPassword ? (
+										<EyeOff className="h-4 w-4" />
+									) : (
+										<Eye className="h-4 w-4" />
+									)}
+								</button>
 							</div>
 						</div>
 

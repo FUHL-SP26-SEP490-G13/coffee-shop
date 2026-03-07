@@ -19,6 +19,7 @@ export function UserProfile() {
   const [profile, setProfile] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [phoneHasBeenSet, setPhoneHasBeenSet] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -33,6 +34,10 @@ export function UserProfile() {
 
         if (isMounted) {
           setProfile(response.data || null);
+          // Check if phone has been set
+          if (response.data?.phone) {
+            setPhoneHasBeenSet(true);
+          }
         }
       } catch (error) {
         const message =
@@ -104,6 +109,7 @@ export function UserProfile() {
         last_name: profile.last_name,
         gender: profile.gender,
         dob: profile.dob,
+        phone: profile.phone,
       };
 
       const response = await authenticationService.updateProfile(updateData);
@@ -116,6 +122,10 @@ export function UserProfile() {
         ...prev,
         ...response.data,
       }));
+      // Mark phone as set if it was just added
+      if (response.data?.phone) {
+        setPhoneHasBeenSet(true);
+      }
       setIsEditing(false);
       toast.success('Cập nhật thông tin thành công');
     } catch (error) {
@@ -206,18 +216,32 @@ export function UserProfile() {
                 </div>
               </div>
 
-              {/* Phone - Read only */}
+              {/* Phone - Editable only if not set yet */}
               <div>
                 <Label htmlFor="phone">Số điện thoại</Label>
                 <div className="flex items-center gap-2 mt-1">
                   <Phone className="w-4 h-4 text-muted-foreground" />
-                  <Input
-                    id="phone"
-                    type="tel"
-                    value={profile?.phone || ''}
-                    disabled
-                    className="bg-muted"
-                  />
+                  {isEditing && !phoneHasBeenSet ? (
+                    <Input
+                      id="phone"
+                      type="tel"
+                      value={profile?.phone || ''}
+                      onChange={(e) =>
+                        setProfile((prev) => ({
+                          ...prev,
+                          phone: e.target.value,
+                        }))
+                      }
+                    />
+                  ) : (
+                    <Input
+                      id="phone"
+                      type="tel"
+                      value={profile?.phone || ''}
+                      disabled
+                      className="bg-muted"
+                    />
+                  )}
                 </div>
               </div>
 

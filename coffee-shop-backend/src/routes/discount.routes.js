@@ -4,6 +4,9 @@ const router = express.Router();
 const DiscountController = require("../controllers/DiscountController");
 const { authenticate } = require("../middlewares/auth");
 const { authorize } = require("../middlewares/authorize");
+const validate = require("../middlewares/validate");
+const { createDiscountSchema } = require("../validators/discountValidator");
+const ROLES = require("../config/role");
 
 /*
   Manager only
@@ -12,35 +15,37 @@ const { authorize } = require("../middlewares/authorize");
 router.get(
   "/",
   authenticate,
-  authorize(["manager"]),
+  authorize([ROLES.MANAGER]),
   DiscountController.getAll
 );
 
 router.get(
   "/:id",
   authenticate,
-  authorize(["manager"]),
+  authorize([ROLES.MANAGER]),
   DiscountController.getById
 );
 
 router.post(
   "/",
   authenticate,
-  authorize(["manager"]),
+  authorize([ROLES.MANAGER]),
+  validate(createDiscountSchema),
   DiscountController.create
 );
 
 router.put(
   "/:id",
   authenticate,
-  authorize(["manager"]),
+  authorize([ROLES.MANAGER]),
+  validate(createDiscountSchema),
   DiscountController.update
 );
 
 router.delete(
   "/:id",
   authenticate,
-  authorize(["manager"]),
+  authorize([ROLES.MANAGER]),
   DiscountController.delete
 );
 
