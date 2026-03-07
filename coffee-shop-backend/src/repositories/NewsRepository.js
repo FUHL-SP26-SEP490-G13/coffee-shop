@@ -162,6 +162,27 @@ class NewsRepository extends BaseRepository {
     const [rows] = await pool.query(sql, [tag, excludeId, limit]);
     return rows;
   }
+
+  async findByTitle(title) {
+    const sql = `
+    SELECT * FROM news
+    WHERE LOWER(TRIM(title)) = LOWER(TRIM(?))
+    LIMIT 1
+  `;
+    const [rows] = await pool.query(sql, [title]);
+    return rows[0] || null;
+  }
+
+  async findByTitleExcludeId(title, id) {
+    const sql = `
+    SELECT * FROM news
+    WHERE LOWER(TRIM(title)) = LOWER(TRIM(?))
+      AND id != ?
+    LIMIT 1
+  `;
+    const [rows] = await pool.query(sql, [title, id]);
+    return rows[0] || null;
+  }
 }
 
 module.exports = new NewsRepository();

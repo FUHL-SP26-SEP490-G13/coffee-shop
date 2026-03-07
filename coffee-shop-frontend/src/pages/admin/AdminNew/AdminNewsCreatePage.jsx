@@ -7,6 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import RichTextEditor from "../../../components/RichTextEditor/RichTextEditor";
+import {
+  validateNewsForm,
+  validateNewsField,
+  stripHtml,
+  NEWS_RULES,
+} from "@/utils/newsValidation";
 
 export default function AdminNewsCreatePage() {
   const navigate = useNavigate();
@@ -23,6 +29,8 @@ export default function AdminNewsCreatePage() {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
 
+  const getCountText = (current, min) => `${current}/${min}`;
+
   const handleChange = (e) => {
     const { name, value } = e.target;
 
@@ -33,33 +41,12 @@ export default function AdminNewsCreatePage() {
 
     setErrors((prev) => ({
       ...prev,
-      [name]: "",
+      [name]: validateNewsField(name, value),
     }));
   };
 
   const handleSubmit = async () => {
-    const newErrors = {};
-
-    if (!form.title.trim()) {
-      newErrors.title = "Tiêu đề không được để trống";
-    }
-
-    if (!form.summary.trim()) {
-      newErrors.summary = "Tóm tắt không được để trống";
-    }
-
-    if (!form.content.trim()) {
-      newErrors.content = "Nội dung không được để trống";
-    }
-
-    if (!form.tag.trim()) {
-      newErrors.tag = "Tag không được để trống";
-    }
-
-    if (!form.thumbnail) {
-      newErrors.thumbnail = "Vui lòng chọn hình ảnh";
-    }
-
+    const newErrors = validateNewsForm(form, { requireThumbnail: true });
     setErrors(newErrors);
 
     if (Object.keys(newErrors).length > 0) return;
@@ -68,11 +55,11 @@ export default function AdminNewsCreatePage() {
       setLoading(true);
 
       const formData = new FormData();
-      formData.append("title", form.title);
-      formData.append("summary", form.summary);
+      formData.append("title", form.title.trim());
+      formData.append("summary", form.summary.trim());
       formData.append("content", form.content);
       formData.append("type", "news");
-      formData.append("tag", form.tag?.trim().toLowerCase());
+      formData.append("tag", form.tag.trim().toLowerCase());
       formData.append("thumbnail", form.thumbnail);
 
       await newsService.create(formData);
@@ -80,16 +67,21 @@ export default function AdminNewsCreatePage() {
       navigate("/admin/news-list");
     } catch (error) {
       if (error.response?.data?.errors) {
-        // Nếu backend trả dạng Joi
         const backendErrors = {};
         error.response.data.errors.forEach((err) => {
           backendErrors[err.field] = err.message;
         });
         setErrors(backendErrors);
       } else if (error.response?.data?.message) {
-        alert(error.response.data.message);
+        setErrors((prev) => ({
+          ...prev,
+          server: error.response.data.message,
+        }));
       } else {
-        alert("Có lỗi xảy ra!");
+        setErrors((prev) => ({
+          ...prev,
+          server: "Có lỗi xảy ra!",
+        }));
       }
     } finally {
       setLoading(false);
@@ -98,15 +90,12 @@ export default function AdminNewsCreatePage() {
 
   return (
     <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-2xl font-semibold mb-1">Tạo bài viết mới</h2>
-          <p className="text-sm text-muted-foreground">
-            Thêm bài viết tin tức mới vào hệ thống
-          </p>
-        </div>
+      <div className="max-w-4xl mb-6 flex items-center justify-between">
+        <h4 className="text-2xl font-semibold">Tạo bài viết mới</h4>
+
         <Button
           variant="outline"
+          size="sm"
           onClick={() => navigate(-1)}
           className="gap-2"
         >
@@ -127,9 +116,24 @@ export default function AdminNewsCreatePage() {
               onChange={handleChange}
               placeholder="Nhập tiêu đề bài viết..."
             />
-            {errors.title && (
+          </div>
+
+          <div className="flex items-center justify-between">
+            {errors.title ? (
               <p className="text-sm text-red-500">{errors.title}</p>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                {form.title.trim().length > 0 &&
+                  `Tiến độ: ${getCountText(
+                    form.title.trim().length,
+                    NEWS_RULES.TITLE_MIN
+                  )}`}
+              </p>
             )}
+
+            <p className="text-xs text-muted-foreground">
+              {form.title.length}/{NEWS_RULES.TITLE_MAX}
+            </p>
           </div>
 
           {/* Tag */}
@@ -175,7 +179,12 @@ export default function AdminNewsCreatePage() {
 
                   setPreview(URL.createObjectURL(file));
 
-                  e.target.value = null; // cho phép chọn lại cùng file
+                  setErrors((prev) => ({
+                    ...prev,
+                    thumbnail: "",
+                  }));
+
+                  e.target.value = null;
                 }}
                 className="absolute inset-0 opacity-0 cursor-pointer"
               />
@@ -212,9 +221,24 @@ export default function AdminNewsCreatePage() {
               placeholder="Nhập tóm tắt bài viết..."
               rows={3}
             />
-            {errors.summary && (
+          </div>
+
+          <div className="flex items-center justify-between">
+            {errors.summary ? (
               <p className="text-sm text-red-500">{errors.summary}</p>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                {form.summary.trim().length > 0 &&
+                  `Tiến độ: ${getCountText(
+                    form.summary.trim().length,
+                    NEWS_RULES.SUMMARY_MIN
+                  )}`}
+              </p>
             )}
+
+            <p className="text-xs text-muted-foreground">
+              {form.summary.length}/{NEWS_RULES.SUMMARY_MAX}
+            </p>
           </div>
 
           {/* Content */}
@@ -228,16 +252,33 @@ export default function AdminNewsCreatePage() {
                     ...prev,
                     content: value,
                   }));
+
+                  const error = validateNewsField("content", value);
+
                   setErrors((prev) => ({
                     ...prev,
-                    content: "",
+                    content: error,
                   }));
                 }}
               />
             </div>
-            {errors.content && (
+          </div>
+
+          <div className="flex items-center justify-between mt-2">
+            {errors.content ? (
               <p className="text-sm text-red-500">{errors.content}</p>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                {stripHtml(form.content).length > 0 &&
+                  `Tiến độ: ${getCountText(
+                    stripHtml(form.content).length,
+                    NEWS_RULES.CONTENT_MIN
+                  )}`}
+              </p>
             )}
+            <p className="text-xs text-muted-foreground">
+              {stripHtml(form.content).length}/{NEWS_RULES.CONTENT_MAX}
+            </p>
           </div>
 
           {/* Buttons */}

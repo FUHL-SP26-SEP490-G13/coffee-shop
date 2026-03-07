@@ -18,6 +18,19 @@ class NewsController {
 
       return response.success(res, news, "Tạo tin thành công", 201);
     } catch (error) {
+      if (error.message === "Tiêu đề bài viết đã tồn tại") {
+        return res.status(400).json({
+          success: false,
+          message: "Dữ liệu không hợp lệ",
+          errors: [
+            {
+              field: "title",
+              message: "Tiêu đề bài viết đã tồn tại",
+            },
+          ],
+        });
+      }
+
       next(error);
     }
   }
@@ -91,28 +104,31 @@ class NewsController {
 
   async update(req, res, next) {
     try {
-      const files =
-        req.files?.map((f) => ({
-          url: f.path,
-          public_id: f.filename || f.public_id || null,
-        })) || [];
-
-      let deleteImageIds = [];
-      if (req.body.deleteImageIds) {
-        deleteImageIds = JSON.parse(req.body.deleteImageIds);
-      }
+      const file = req.file;
 
       await NewsService.updateNews(req.params.id, {
         title: req.body.title,
         summary: req.body.summary,
         content: req.body.content,
         tag: req.body.tag || null,
-        newFiles: files,
-        deleteImageIds,
+        thumbnail: file ? file.path : undefined,
       });
 
       return response.success(res, null, "Cập nhật thành công");
     } catch (error) {
+      if (error.message === "Tiêu đề bài viết đã tồn tại") {
+        return res.status(400).json({
+          success: false,
+          message: "Dữ liệu không hợp lệ",
+          errors: [
+            {
+              field: "title",
+              message: "Tiêu đề bài viết đã tồn tại",
+            },
+          ],
+        });
+      }
+
       next(error);
     }
   }
