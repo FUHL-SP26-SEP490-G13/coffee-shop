@@ -39,6 +39,7 @@ import AdminBanner from "@/pages/admin/AdminBanner/AdminBanner";
 import AdminTables from "@/pages/admin/AdminTables/AdminTables";
 import AdminToppings from "../pages/admin/AdminTopping/AdminToppings";
 
+
 import TermsOfServicePage from "@/pages/common/TermsOfServicePage";
 import ReturnPolicyPage from "@/pages/common/ReturnPolicyPage";
 import PaymentPolicyPage from "@/pages/common/PaymentPolicyPage";
@@ -187,6 +188,7 @@ const AppRoutes = () => {
         <Route path="banners" element={<AdminBanner />} />
         <Route path="tables" element={<AdminTables />} />
         <Route path="toppings" element={<AdminToppings />} />
+
       </Route>
 
       <Route path="/news/:slug" element={<NewsDetailPage />} />

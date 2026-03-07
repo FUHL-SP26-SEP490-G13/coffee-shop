@@ -20,18 +20,22 @@ import {
 import CreateProduct from './Action/CreateProduct';
 import UpdateProduct from './Action/UpdateProduct';
 import DeleteProduct from './Action/DeleteProduct';
+import AddRecipeModal from './Action/AddRecipeModal';
 
 export default function AdminProducts() {
   const [searchQuery, setSearchQuery] = useState('');
 
+
   const [modal, setModal] = useState({
-    type: null, // "create" | "update" | "delete"
+    type: null, // "create" | "update" | "delete" | "recipe"
     data: null,
   });
+
 
   const openModal = (type, data = null) => {
     setModal({ type, data });
   };
+
 
   const closeModal = () => {
     setModal({ type: null, data: null });
@@ -224,6 +228,14 @@ export default function AdminProducts() {
                     <TableCell className='text-right'>
                       <div className='flex items-center justify-end gap-2'>
                         <Button
+                          variant='outline'
+                          size='sm'
+                          className='cursor-pointer'
+                          onClick={() => openModal('recipe', product)}
+                        >
+                          Công thức
+                        </Button>
+                        <Button
                           variant='ghost'
                           size='sm'
                           className={'cursor-pointer'}
@@ -231,7 +243,6 @@ export default function AdminProducts() {
                         >
                           <Edit className='w-4 h-4' />
                         </Button>
-
                         <Button
                           variant='ghost'
                           size='sm'
@@ -276,6 +287,15 @@ export default function AdminProducts() {
           open={true}
           onClose={closeModal}
           onSuccess={refetch}
+        />
+      )}
+
+      {modal.type === 'recipe' && (
+        <AddRecipeModal
+          product={modal.data}
+          open={true}
+          onClose={closeModal}
+          onSuccess={closeModal}
         />
       )}
     </div>

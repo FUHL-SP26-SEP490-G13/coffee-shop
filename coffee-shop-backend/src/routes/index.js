@@ -16,6 +16,7 @@ const recipeRoutes = require('./recipe.routes');
 const areaRoutes = require("./area.routes");
 const tableRoutes = require("./table.routes");
 const ingredientRoutes = require('./ingredient.routes');
+const productSizeRoutes = require('./productSize.routes');
 
 // Mount routes
 router.use('/auth', authRoutes);
@@ -32,6 +33,7 @@ router.use("/area", areaRoutes);
 router.use("/tables", tableRoutes);
 router.use('/admin/recipes', recipeRoutes);
 router.use('/admin/ingredients', ingredientRoutes);
+router.use('/product-sizes', productSizeRoutes);
 router.use('/dashboard', adminDashboardRoutes);
 router.use('/banners', bannerRoutes);
 
