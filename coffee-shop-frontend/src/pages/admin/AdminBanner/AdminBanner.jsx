@@ -23,6 +23,11 @@ import {
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import {
+  validateBannerForm,
+  validateBannerField,
+  BANNER_RULES,
+} from "@/utils/bannerValidation";
 
 export default function AdminBanner() {
   const [banners, setBanners] = useState([]);
@@ -40,6 +45,8 @@ export default function AdminBanner() {
 
   const [status, setStatus] = useState("");
 
+  const getCountText = (current, min) => `${current}/${min}`;
+
   const [form, setForm] = useState({
     title: "",
     subtitle: "",
@@ -50,6 +57,20 @@ export default function AdminBanner() {
   });
 
   const limit = 5;
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+
+    setForm((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+
+    setErrors((prev) => ({
+      ...prev,
+      [name]: validateBannerField(name, value),
+    }));
+  };
 
   const fetchData = async () => {
     try {
@@ -76,45 +97,25 @@ export default function AdminBanner() {
 
   // ================= CREATE / UPDATE =================
   const handleSubmit = async () => {
-    const newErrors = {};
+    const newErrors = validateBannerForm(form, {
+      requireImage: !editingBanner,
+    });
 
-    if (!form.title.trim()) {
-      newErrors.title = "Tiêu đề không được để trống";
-    }
+    setErrors(newErrors);
 
-    if (!editingBanner && !form.image) {
-      newErrors.image = "Ảnh banner là bắt buộc khi tạo mới";
-    }
-
-    if (!form.button_text.trim()) {
-      newErrors.button_text = "Text nút không được để trống";
-    }
-
-    if (!form.button_link.trim()) {
-      newErrors.button_link = "Link nút không được để trống";
-    }
-
-    if (!form.subtitle.trim()) {
-      newErrors.subtitle = "Mô tả không được để trống";
-    }
-
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      return;
-    }
-
-    setErrors({});
-
-    const fd = new FormData();
-    fd.append("title", form.title);
-    fd.append("subtitle", form.subtitle);
-    fd.append("is_active", form.is_active);
-    fd.append("button_text", form.button_text);
-    fd.append("button_link", form.button_link);
-    fd.append("type", "banner");
-    if (form.image) fd.append("image", form.image);
+    if (Object.keys(newErrors).length > 0) return;
 
     try {
+      const fd = new FormData();
+      fd.append("title", form.title.trim());
+      fd.append("subtitle", form.subtitle.trim());
+      fd.append("is_active", form.is_active);
+      fd.append("button_text", form.button_text.trim());
+      fd.append("button_link", form.button_link.trim());
+      fd.append("type", "banner");
+
+      if (form.image) fd.append("image", form.image);
+
       if (editingBanner) {
         await bannerService.update(editingBanner.id, fd);
       } else {
@@ -123,6 +124,8 @@ export default function AdminBanner() {
 
       setShowModal(false);
       setEditingBanner(null);
+      setPreviewImage(null);
+      setErrors({});
       setForm({
         title: "",
         subtitle: "",
@@ -141,15 +144,21 @@ export default function AdminBanner() {
         });
         setErrors(backendErrors);
       } else if (err.response?.data?.message) {
-        alert(err.response.data.message);
+        setErrors((prev) => ({
+          ...prev,
+          server: err.response.data.message,
+        }));
       } else {
-        console.error(err);
+        setErrors((prev) => ({
+          ...prev,
+          server: "Có lỗi xảy ra!",
+        }));
       }
     }
   };
   // ================= DELETE =================
   const handleDelete = async (id) => {
-    if (!window.confirm("Bạn có chắc muốn xóa banner này?")) return;
+    if (!window.confirm("Bạn có chắc muốn xóa quảng cáo này?")) return;
     await bannerService.delete(id);
     fetchData();
   };
@@ -282,7 +291,7 @@ export default function AdminBanner() {
                                 button_text: b.button_text || "",
                                 button_link: b.button_link || "",
                                 image: null,
-                                is_active: b.is_active,
+                                is_active: !!b.is_active,
                               });
                               setPreviewImage(b.image_url);
                               setShowModal(true);
@@ -377,19 +386,27 @@ export default function AdminBanner() {
             setErrors({});
             setEditingBanner(null);
             setPreviewImage(null);
+            setForm({
+              title: "",
+              subtitle: "",
+              button_text: "",
+              button_link: "",
+              image: null,
+              is_active: true,
+            });
           }
         }}
       >
         <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {editingBanner ? "Chỉnh sửa Banner" : "Tạo Banner mới"}
+              {editingBanner ? "Chỉnh sửa quảng cáo" : "Tạo quảng cáo mới"}
             </DialogTitle>
-            <DialogDescription>
+            {/* <DialogDescription>
               {editingBanner
                 ? "Cập nhật thông tin banner"
                 : "Thêm banner mới vào hệ thống"}
-            </DialogDescription>
+            </DialogDescription> */}
           </DialogHeader>
 
           <div className="space-y-4 py-4">
@@ -397,90 +414,231 @@ export default function AdminBanner() {
               <Label htmlFor="title">Tiêu đề *</Label>
               <Input
                 id="title"
-                placeholder="Nhập tiêu đề banner"
+                name="title"
+                placeholder="Nhập tiêu đề quảng cáo"
                 value={form.title}
-                onChange={(e) => setForm({ ...form, title: e.target.value })}
+                onChange={handleChange}
               />
-              {errors.title && (
+            </div>
+
+            <div className="flex items-center justify-between">
+              {errors.title ? (
                 <p className="text-sm text-red-500">{errors.title}</p>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  {form.title.trim().length > 0 &&
+                    `Tiến độ: ${getCountText(
+                      form.title.trim().length,
+                      BANNER_RULES.TITLE_MIN
+                    )}`}
+                </p>
               )}
+
+              <p className="text-xs text-muted-foreground">
+                {form.title.length}/{BANNER_RULES.TITLE_MAX}
+              </p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="subtitle">Mô tả</Label>
+              <Label htmlFor="subtitle">Mô tả *</Label>
               <Input
                 id="subtitle"
-                placeholder="Nhập mô tả banner"
+                name="subtitle"
+                placeholder="Nhập mô tả quảng cáo"
                 value={form.subtitle}
-                onChange={(e) => setForm({ ...form, subtitle: e.target.value })}
+                onChange={handleChange}
               />
-              {errors.subtitle && (
-                <p className="text-sm text-red-500">{errors.subtitle}</p>
-              )}
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="flex items-center justify-between">
+              {errors.subtitle ? (
+                <p className="text-sm text-red-500">{errors.subtitle}</p>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  {form.subtitle.trim().length > 0 &&
+                    `Tiến độ: ${getCountText(
+                      form.subtitle.trim().length,
+                      BANNER_RULES.SUBTITLE_MIN
+                    )}`}
+                </p>
+              )}
+
+              <p className="text-xs text-muted-foreground">
+                {form.subtitle.length}/{BANNER_RULES.SUBTITLE_MAX}
+              </p>
+            </div>
+
+            {/* <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="button_text">Text nút</Label>
+                <Label htmlFor="button_text">Text nút *</Label>
                 <Input
                   id="button_text"
+                  name="button_text"
                   placeholder="VD: Xem ngay"
                   value={form.button_text}
-                  onChange={(e) =>
-                    setForm({ ...form, button_text: e.target.value })
-                  }
+                  onChange={handleChange}
                 />
-                {errors.button_text && (
+              </div>
+
+              <div className="flex items-center justify-between">
+                {errors.button_text ? (
                   <p className="text-sm text-red-500">{errors.button_text}</p>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    {form.button_text.trim().length > 0 &&
+                      `Tiến độ: ${getCountText(
+                        form.button_text.trim().length,
+                        BANNER_RULES.BUTTON_TEXT_MIN
+                      )}`}
+                  </p>
                 )}
+
+                <p className="text-xs text-muted-foreground">
+                  {form.button_text.length}/{BANNER_RULES.BUTTON_TEXT_MAX}
+                </p>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="button_link">Link nút</Label>
+                <Label htmlFor="button_link">Link nút *</Label>
                 <Input
                   id="button_link"
+                  name="button_link"
                   placeholder="VD: /products"
                   value={form.button_link}
-                  onChange={(e) =>
-                    setForm({ ...form, button_link: e.target.value })
-                  }
+                  onChange={handleChange}
                 />
-                {errors.button_link && (
+              </div>
+
+              <div className="flex items-center justify-between">
+                {errors.button_link ? (
                   <p className="text-sm text-red-500">{errors.button_link}</p>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    {form.button_link.trim().length > 0 &&
+                      `Tiến độ: ${getCountText(
+                        form.button_link.trim().length,
+                        BANNER_RULES.BUTTON_LINK_MIN
+                      )}`}
+                  </p>
                 )}
+
+                <p className="text-xs text-muted-foreground">
+                  {form.button_link.length}/{BANNER_RULES.BUTTON_LINK_MAX}
+                </p>
+              </div>
+            </div> */}
+            <div className="space-y-4">
+              <div>
+                <div className="space-y-2">
+                  <Label htmlFor="button_text">Text nút *</Label>
+                  <Input
+                    id="button_text"
+                    name="button_text"
+                    placeholder="VD: Xem ngay"
+                    value={form.button_text}
+                    onChange={handleChange}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between mt-2">
+                  {errors.button_text ? (
+                    <p className="text-sm text-red-500">{errors.button_text}</p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      {form.button_text.trim().length > 0 &&
+                        `Tiến độ: ${getCountText(
+                          form.button_text.trim().length,
+                          BANNER_RULES.BUTTON_TEXT_MIN
+                        )}`}
+                    </p>
+                  )}
+
+                  <p className="text-xs text-muted-foreground">
+                    {form.button_text.length}/{BANNER_RULES.BUTTON_TEXT_MAX}
+                  </p>
+                </div>
+              </div>
+
+              <div>
+                <div className="space-y-2">
+                  <Label htmlFor="button_link">Link nút *</Label>
+                  <Input
+                    id="button_link"
+                    name="button_link"
+                    placeholder="VD: /products"
+                    value={form.button_link}
+                    onChange={handleChange}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between mt-2">
+                  {errors.button_link ? (
+                    <p className="text-sm text-red-500">{errors.button_link}</p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      {form.button_link.trim().length > 0 &&
+                        `Tiến độ: ${getCountText(
+                          form.button_link.trim().length,
+                          BANNER_RULES.BUTTON_LINK_MIN
+                        )}`}
+                    </p>
+                  )}
+
+                  <p className="text-xs text-muted-foreground">
+                    {form.button_link.length}/{BANNER_RULES.BUTTON_LINK_MAX}
+                  </p>
+                </div>
               </div>
             </div>
 
             <div className="flex items-center justify-between py-2 px-3 rounded-lg border">
               <div className="space-y-0.5">
                 <Label htmlFor="is_active" className="text-sm font-medium">
-                  Trạng thái banner
+                  Trạng thái quảng cáo
                 </Label>
                 <p className="text-xs text-muted-foreground">
-                  Bật để hiển thị banner trên trang chủ
+                  Bật để hiển thị quảng cáo trên trang chủ
                 </p>
               </div>
               <Switch
-                id="is_active"
                 checked={form.is_active}
                 onCheckedChange={(checked) =>
-                  setForm({ ...form, is_active: checked })
+                  setForm((prev) => ({
+                    ...prev,
+                    is_active: checked,
+                  }))
                 }
               />
             </div>
 
+            {errors.is_active && (
+              <p className="text-sm text-red-500">{errors.is_active}</p>
+            )}
+
             <div className="space-y-2">
-              <Label htmlFor="image">Ảnh banner</Label>
+              <Label htmlFor="image">Ảnh quảng cáo</Label>
               <Input
                 id="image"
                 type="file"
                 accept="image/*"
                 onChange={(e) => {
-                  const file = e.target.files[0];
-                  setForm({ ...form, image: file });
+                  const file = e.target.files?.[0] || null;
+
+                  setForm((prev) => ({
+                    ...prev,
+                    image: file,
+                  }));
+
                   if (file) {
                     setPreviewImage(URL.createObjectURL(file));
                   }
+
+                  setErrors((prev) => ({
+                    ...prev,
+                    image: validateBannerField("image", file, {
+                      required: !editingBanner,
+                    }),
+                  }));
                 }}
               />
               {errors.image && (

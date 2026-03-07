@@ -10,10 +10,25 @@ class BannerService {
   }
 
   async create(data) {
+    const existedTitle = await bannerRepository.findByTitle(data.title);
+
+    if (existedTitle) {
+      throw new Error("Tiêu đề quảng cáo đã tồn tại");
+    }
+
     return bannerRepository.create(data);
   }
 
   async update(id, data) {
+    const existedTitle = await bannerRepository.findByTitleExcludeId(
+      data.title,
+      id
+    );
+
+    if (existedTitle) {
+      throw new Error("Tiêu đề quảng cáo đã tồn tại");
+    }
+
     return bannerRepository.update(id, data);
   }
 

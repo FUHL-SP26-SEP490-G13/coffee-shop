@@ -78,6 +78,10 @@ class BannerRepository {
       }
     });
 
+    if (fields.length === 0) {
+      throw new Error("Không có dữ liệu để cập nhật");
+    }
+
     values.push(id);
 
     const sql = `
@@ -86,7 +90,13 @@ class BannerRepository {
     WHERE id = ?
   `;
 
-    await pool.query(sql, values);
+    const [result] = await pool.query(sql, values);
+
+    if (result.affectedRows === 0) {
+      throw new Error("Không tìm thấy quảng cáo");
+    }
+
+    return true;
   }
 
   async deactivateAll() {
@@ -108,6 +118,22 @@ class BannerRepository {
       "SELECT * FROM banners WHERE is_active = 1 ORDER BY created_at DESC";
     const [rows] = await pool.query(sql);
     return rows;
+  }
+
+  async findByTitle(title) {
+    const [rows] = await pool.query(
+      "SELECT * FROM banners WHERE title = ? LIMIT 1",
+      [title]
+    );
+    return rows[0];
+  }
+
+  async findByTitleExcludeId(title, id) {
+    const [rows] = await pool.query(
+      "SELECT * FROM banners WHERE title = ? AND id != ? LIMIT 1",
+      [title, id]
+    );
+    return rows[0];
   }
 }
 
