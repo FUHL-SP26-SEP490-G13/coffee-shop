@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { Loader2, ChevronLeft, Upload } from "lucide-react";
+import { Loader2, ChevronLeft, Upload, Newspaper } from "lucide-react";
 import newsService from "@/services/newsService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -132,18 +132,28 @@ export default function AdminEditNewsPage() {
 
   return (
     <div className="p-6">
-      <div className="max-w-4xl mb-6 flex items-center justify-between">
-        <h4 className="text-2xl font-semibold">Chỉnh sửa bài viết</h4>
-
+      <div className="mb-6">
         <Button
-          variant="outline"
+          variant="ghost"
           size="sm"
-          onClick={() => navigate(-1)}
-          className="gap-2"
+          onClick={() => navigate("/admin/news-list")}
+          className="mb-4"
         >
-          <ChevronLeft className="h-4 w-4" />
+          <ChevronLeft className="h-4 w-4 mr-1" />
           Quay lại
         </Button>
+
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-primary/10 rounded-lg">
+            <Newspaper className="h-6 w-6 text-primary" />
+          </div>
+          <div>
+            <span className="text-lg mb-1">Chỉnh sửa bài viết</span>
+            <p className="text-sm text-muted-foreground mt-1">
+              Cập nhật thông tin mới nhất
+            </p>
+          </div>
+        </div>
       </div>
 
       <div className="bg-card rounded-xl border border-border p-6 max-w-4xl">

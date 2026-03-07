@@ -77,27 +77,23 @@ export default function AdminDiscounts() {
   }, [searchCode, statusFilter]);
 
   const handleDelete = async (discount) => {
-    if (discount.used_count > 0) {
-      alert(
-        "Mã giảm giá đã được sử dụng nên không thể xóa. Bạn có thể tắt nó thay vì xóa."
-      );
-      return;
-    }
-
-    if (!window.confirm("Bạn có chắc muốn xóa mã giảm giá?")) return;
+    if (!window.confirm("Bạn có chắc muốn xóa mã giảm giá này?")) return;
 
     try {
       await discountService.delete(discount.id);
+
+      alert("Mã giảm giá đã xóa thành công");
+
       fetchDiscounts();
     } catch (e) {
-      alert("Xóa thất bại");
+      alert(e?.response?.data?.message || "Xóa thất bại");
     }
   };
 
   return (
     <div className="p-4 md:p-8">
       {/* HEADER */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-1">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-primary/10 rounded-lg">
             <Ticket className="h-6 w-6 text-primary" />
@@ -112,12 +108,12 @@ export default function AdminDiscounts() {
 
         <Button onClick={() => navigate("/admin/discounts/create")}>
           <Plus className="w-4 h-4 mr-2" />
-          Tạo mã giảm giá
+          Thêm Mới
         </Button>
       </div>
 
       {/* FILTER */}
-      <Card className="p-4 flex flex-col h-full">
+      <Card className="p-4 flex flex-col h-full mb-5">
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />

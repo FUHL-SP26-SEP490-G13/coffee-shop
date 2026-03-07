@@ -5,12 +5,11 @@ const DiscountController = require("../controllers/DiscountController");
 const { authenticate } = require("../middlewares/auth");
 const { authorize } = require("../middlewares/authorize");
 const validate = require("../middlewares/validate");
-const { createDiscountSchema } = require("../validators/discountValidator");
+const {
+  createDiscountSchema,
+  updateDiscountSchema,
+} = require("../validators/discountValidator");
 const ROLES = require("../config/role");
-
-/*
-  Manager only
-*/
 
 router.get(
   "/",
@@ -38,7 +37,7 @@ router.put(
   "/:id",
   authenticate,
   authorize([ROLES.MANAGER]),
-  validate(createDiscountSchema),
+  validate(updateDiscountSchema),
   DiscountController.update
 );
 

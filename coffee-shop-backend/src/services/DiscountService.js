@@ -1,17 +1,4 @@
 const DiscountRepository = require("../repositories/DiscountRepository");
-const Joi = require("joi");
-
-const createSchema = Joi.object({
-  code: Joi.string().trim().min(3).max(50).required(),
-  description: Joi.string().trim().min(3).required(),
-  percentage: Joi.number().min(1).max(100).required(),
-  min_order_amount: Joi.number().min(0).required(),
-  max_discount_amount: Joi.number().min(0).required(),
-  usage_limit: Joi.number().integer().min(1).required(),
-  valid_from: Joi.date().required(),
-  valid_until: Joi.date().greater(Joi.ref("valid_from")).required(),
-  is_active: Joi.boolean().required(),
-});
 
 class DiscountService {
   async getAll(params) {
@@ -25,63 +12,84 @@ class DiscountService {
   }
 
   async create(data) {
-    // 1️⃣ Validate bằng Joi
-    const { error, value } = createSchema.validate(data, {
-      abortEarly: false,
-    });
+    data.code = data.code?.trim()?.toUpperCase();
 
-    if (error) {
-      throw new Error(error.details.map((e) => e.message).join(", "));
-    }
-
-    // 2️⃣ Chuẩn hóa code
-    value.code = value.code.toUpperCase();
-
-    // 3️⃣ Check trùng code
-    const existing = await DiscountRepository.findByCode(value.code);
+    const existing = await DiscountRepository.findByCode(data.code);
     if (existing) {
       throw new Error("Mã giảm giá đã tồn tại");
     }
 
-    // 4️⃣ Lưu
     return DiscountRepository.create({
-      ...value,
-      is_active: value.is_active ? 1 : 0,
+      ...data,
+      is_active: data.is_active ? 1 : 0,
     });
   }
 
   async update(id, data) {
-    const { error, value } = createSchema.validate(data, {
-      abortEarly: false,
-    });
+    const current = await DiscountRepository.findById(id);
+    if (!current) throw new Error("Discount không tồn tại");
 
-    if (error) {
-      throw new Error(error.details.map((e) => e.message).join(", "));
+    const normalizedCode = data.code?.trim()?.toUpperCase();
+
+    if (Number(current.used_count) > 0) {
+      return DiscountRepository.update(id, {
+        description: data.description?.trim(),
+        valid_until: data.valid_until,
+        is_active: data.is_active ? 1 : 0,
+      });
     }
 
-    value.code = value.code.toUpperCase();
-
-    // Check trùng nhưng không tính chính nó
-    const existing = await DiscountRepository.findByCode(value.code);
+    const existing = await DiscountRepository.findByCode(normalizedCode);
     if (existing && existing.id != id) {
       throw new Error("Mã giảm giá đã tồn tại");
     }
 
     return DiscountRepository.update(id, {
-      ...value,
-      is_active: value.is_active ? 1 : 0,
+      code: normalizedCode,
+      description: data.description?.trim(),
+      percentage: data.percentage,
+      min_order_amount: data.min_order_amount,
+      max_discount_amount: data.max_discount_amount,
+      usage_limit: data.usage_limit,
+      valid_from: data.valid_from,
+      valid_until: data.valid_until,
+      is_active: data.is_active ? 1 : 0,
     });
   }
 
   async delete(id) {
     const discount = await DiscountRepository.findById(id);
-    if (!discount) throw new Error("Không tồn tại");
 
-    if (Number(discount.used_count) > 0) {
-      throw new Error("Mã giảm giá đã được sử dụng nên không thể xóa");
+    if (!discount) {
+      throw new Error("Không tồn tại");
     }
 
-    return DiscountRepository.delete(id);
+    // chưa có ai dùng → xóa cứng
+    if (Number(discount.used_count) === 0) {
+      await DiscountRepository.deleteHard(id);
+      return true;
+    }
+
+    // đã có người dùng → xóa mềm
+    const timestamp = this.getDeleteTimestamp();
+    const newCode = `${discount.code}__DELETED__${timestamp}`;
+
+    await DiscountRepository.softDelete(id, newCode);
+
+    return true;
+  }
+
+  getDeleteTimestamp() {
+    const now = new Date();
+
+    const yyyy = now.getFullYear();
+    const mm = String(now.getMonth() + 1).padStart(2, "0");
+    const dd = String(now.getDate()).padStart(2, "0");
+    const hh = String(now.getHours()).padStart(2, "0");
+    const mi = String(now.getMinutes()).padStart(2, "0");
+    const ss = String(now.getSeconds()).padStart(2, "0");
+
+    return `${yyyy}${mm}${dd}${hh}${mi}${ss}`;
   }
 }
 

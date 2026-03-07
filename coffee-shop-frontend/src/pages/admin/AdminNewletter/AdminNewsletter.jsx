@@ -86,9 +86,16 @@ export default function AdminNewsletter() {
 
   return (
     <div className="p-4 sm:p-6">
-      <div className="mb-4 sm:mb-6 flex items-center gap-3">
-        <Mail className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
-        <h1 className="text-xl sm:text-2xl font-semibold">Quản lý thư điện tử đăng ký</h1>
+      <div className="flex items-center gap-3 mb-3">
+        <div className="p-2 bg-primary/10 rounded-lg">
+          <Mail className="h-6 w-6 text-primary" />
+        </div>
+        <div>
+          <h2 className="text-2xl font-semibold mb-1">Quản lý email</h2>
+          <p className="text-sm text-muted-foreground">
+            Xem email đăng kí từ khách hàng
+          </p>
+        </div>
       </div>
 
       <Card className="p-4 sm:p-6 space-y-4 sm:space-y-6">
@@ -112,19 +119,20 @@ export default function AdminNewsletter() {
           />
 
           <Input
-            type="date" 
+            type="date"
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
             placeholder="Đến ngày"
           />
-
         </div>
 
         {/* TABLE */}
         {loading ? (
           <p className="text-center py-8 text-muted-foreground">Đang tải...</p>
         ) : filteredEmails.length === 0 ? (
-          <p className="text-center py-8 text-muted-foreground">Không có email nào phù hợp.</p>
+          <p className="text-center py-8 text-muted-foreground">
+            Không có email nào phù hợp.
+          </p>
         ) : (
           <div className="rounded-lg border border-border overflow-hidden">
             <div className="overflow-x-auto">
@@ -132,16 +140,23 @@ export default function AdminNewsletter() {
                 <thead className="bg-muted/50">
                   <tr className="border-b">
                     <th className="text-left py-3 px-4 font-medium">Email</th>
-                    <th className="text-left py-3 px-4 font-medium whitespace-nowrap">Ngày đăng ký</th>
-                    <th className="text-right py-3 px-4 font-medium">Hành động</th>
+                    <th className="text-left py-3 px-4 font-medium whitespace-nowrap">
+                      Ngày đăng ký
+                    </th>
+                    <th className="text-right py-3 px-4 font-medium">
+                      Hành động
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredEmails.map((item) => (
-                    <tr key={item.id} className="border-b hover:bg-muted/50 transition-colors">
+                    <tr
+                      key={item.id}
+                      className="border-b hover:bg-muted/50 transition-colors"
+                    >
                       <td className="py-3 px-4 break-all">{item.email}</td>
                       <td className="py-3 px-4 whitespace-nowrap">
-                        {new Date(item.created_at).toLocaleString('vi-VN')}
+                        {new Date(item.created_at).toLocaleString("vi-VN")}
                       </td>
                       <td className="py-3 px-4 text-right">
                         <div className="flex justify-end gap-2">

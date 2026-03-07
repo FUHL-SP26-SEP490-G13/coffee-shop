@@ -76,7 +76,7 @@ export default function AdminNewsDetailPage() {
         <div className="p-6 md:p-8 border-b border-border bg-muted/30">
           <div className="flex items-center gap-2 text-primary mb-3">
             <FileText className="h-5 w-5" />
-            <span className="text-sm font-medium">Chi tiết bài viết</span>
+            <span className="text-xl font-medium">Chi tiết bài viết</span>
           </div>
 
           <h1 className="text-1lg md:text-1lg leading-tight text-foreground mb-4 break-words">
