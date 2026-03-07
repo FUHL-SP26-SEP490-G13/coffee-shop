@@ -4,8 +4,12 @@ const router = express.Router();
 // Import routes
 const authRoutes = require('./auth.routes');
 const categoryRoutes = require('./category.routes');
+const discountRoutes = require('./discount.routes');
 const productRoutes = require('./product.routes');
+const newsRoutes = require('./news.routes');
+const newsLetterRoutes = require('./newsletter.routes');
 const userRoutes = require('./user.routes');
+const bannerRoutes = require('./banner.routes');
 const { publicToppingRoutes, adminToppingRoutes } = require('./topping.routes');
 const adminDashboardRoutes = require('./adminDashboard.routes');
 const recipeRoutes = require('./recipe.routes');
@@ -16,7 +20,10 @@ const ingredientRoutes = require('./ingredient.routes');
 // Mount routes
 router.use('/auth', authRoutes);
 router.use('/categories', categoryRoutes);
+router.use('/discounts', discountRoutes);
 router.use('/products', productRoutes);
+router.use('/news', newsRoutes);
+router.use('/newsletter', newsLetterRoutes);
 router.use('/users', userRoutes);
 router.use('/toppings', publicToppingRoutes);
 router.use('/admin/toppings', adminToppingRoutes);
@@ -26,6 +33,7 @@ router.use("/tables", tableRoutes);
 router.use('/admin/recipes', recipeRoutes);
 router.use('/admin/ingredients', ingredientRoutes);
 router.use('/dashboard', adminDashboardRoutes);
+router.use('/banners', bannerRoutes);
 
 // Health check endpoint
 router.get('/health', (req, res) => {
