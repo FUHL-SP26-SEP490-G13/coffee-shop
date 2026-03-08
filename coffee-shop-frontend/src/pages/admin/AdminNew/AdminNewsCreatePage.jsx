@@ -7,12 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import RichTextEditor from "../../../components/RichTextEditor/RichTextEditor";
-import {
-  validateNewsForm,
-  validateNewsField,
-  stripHtml,
-  NEWS_RULES,
-} from "@/utils/newsValidation";
+import { validateNewsForm } from "@/utils/newsValidation";
 
 export default function AdminNewsCreatePage() {
   const navigate = useNavigate();
@@ -29,8 +24,6 @@ export default function AdminNewsCreatePage() {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
 
-  const getCountText = (current, min) => `${current}/${min}`;
-
   const handleChange = (e) => {
     const { name, value } = e.target;
 
@@ -41,7 +34,8 @@ export default function AdminNewsCreatePage() {
 
     setErrors((prev) => ({
       ...prev,
-      [name]: validateNewsField(name, value),
+      [name]: "",
+      server: "",
     }));
   };
 
@@ -116,7 +110,6 @@ export default function AdminNewsCreatePage() {
 
       <div className="bg-card rounded-xl border border-border p-6 max-w-4xl">
         <div className="space-y-6">
-          {/* Title */}
           <div className="space-y-2">
             <Label htmlFor="title">Tiêu đề *</Label>
             <Input
@@ -126,27 +119,11 @@ export default function AdminNewsCreatePage() {
               onChange={handleChange}
               placeholder="Nhập tiêu đề bài viết..."
             />
-          </div>
-
-          <div className="flex items-center justify-between">
-            {errors.title ? (
+            {errors.title && (
               <p className="text-sm text-red-500">{errors.title}</p>
-            ) : (
-              <p className="text-xs text-muted-foreground">
-                {form.title.trim().length > 0 &&
-                  `Tiến độ: ${getCountText(
-                    form.title.trim().length,
-                    NEWS_RULES.TITLE_MIN
-                  )}`}
-              </p>
             )}
-
-            <p className="text-xs text-muted-foreground">
-              {form.title.length}/{NEWS_RULES.TITLE_MAX}
-            </p>
           </div>
 
-          {/* Tag */}
           <div className="space-y-2">
             <Label htmlFor="tag">Tag</Label>
             <Input
@@ -158,6 +135,7 @@ export default function AdminNewsCreatePage() {
             />
             {errors.tag && <p className="text-sm text-red-500">{errors.tag}</p>}
           </div>
+
           {form.tag && (
             <div className="pt-2">
               <span className="text-xs text-muted-foreground mr-2">
@@ -169,9 +147,8 @@ export default function AdminNewsCreatePage() {
             </div>
           )}
 
-          {/* Images Upload */}
           <div className="space-y-2">
-            <Label htmlFor="images">Hình ảnh bài viết</Label>
+            <Label htmlFor="thumbnail">Hình ảnh bài viết</Label>
 
             <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary transition cursor-pointer relative">
               <input
@@ -192,6 +169,7 @@ export default function AdminNewsCreatePage() {
                   setErrors((prev) => ({
                     ...prev,
                     thumbnail: "",
+                    server: "",
                   }));
 
                   e.target.value = null;
@@ -205,6 +183,7 @@ export default function AdminNewsCreatePage() {
                 Hỗ trợ JPG, PNG, WebP
               </p>
             </div>
+
             {errors.thumbnail && (
               <p className="text-sm text-red-500">{errors.thumbnail}</p>
             )}
@@ -220,7 +199,6 @@ export default function AdminNewsCreatePage() {
             </div>
           )}
 
-          {/* Summary */}
           <div className="space-y-2">
             <Label htmlFor="summary">Tóm tắt</Label>
             <Textarea
@@ -231,27 +209,11 @@ export default function AdminNewsCreatePage() {
               placeholder="Nhập tóm tắt bài viết..."
               rows={3}
             />
-          </div>
-
-          <div className="flex items-center justify-between">
-            {errors.summary ? (
+            {errors.summary && (
               <p className="text-sm text-red-500">{errors.summary}</p>
-            ) : (
-              <p className="text-xs text-muted-foreground">
-                {form.summary.trim().length > 0 &&
-                  `Tiến độ: ${getCountText(
-                    form.summary.trim().length,
-                    NEWS_RULES.SUMMARY_MIN
-                  )}`}
-              </p>
             )}
-
-            <p className="text-xs text-muted-foreground">
-              {form.summary.length}/{NEWS_RULES.SUMMARY_MAX}
-            </p>
           </div>
 
-          {/* Content */}
           <div className="space-y-2">
             <Label>Nội dung *</Label>
             <div className="border border-border rounded-lg overflow-hidden">
@@ -263,35 +225,23 @@ export default function AdminNewsCreatePage() {
                     content: value,
                   }));
 
-                  const error = validateNewsField("content", value);
-
                   setErrors((prev) => ({
                     ...prev,
-                    content: error,
+                    content: "",
+                    server: "",
                   }));
                 }}
               />
             </div>
-          </div>
-
-          <div className="flex items-center justify-between mt-2">
-            {errors.content ? (
+            {errors.content && (
               <p className="text-sm text-red-500">{errors.content}</p>
-            ) : (
-              <p className="text-xs text-muted-foreground">
-                {stripHtml(form.content).length > 0 &&
-                  `Tiến độ: ${getCountText(
-                    stripHtml(form.content).length,
-                    NEWS_RULES.CONTENT_MIN
-                  )}`}
-              </p>
             )}
-            <p className="text-xs text-muted-foreground">
-              {stripHtml(form.content).length}/{NEWS_RULES.CONTENT_MAX}
-            </p>
           </div>
 
-          {/* Buttons */}
+          {errors.server && (
+            <p className="text-sm text-red-500">{errors.server}</p>
+          )}
+
           <div className="flex gap-3 pt-4">
             <Button onClick={handleSubmit} disabled={loading} className="gap-2">
               {loading && <Loader2 className="h-4 w-4 animate-spin" />}
