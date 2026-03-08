@@ -16,6 +16,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@google/genai": "^1.44.0",
     "bcryptjs": "^2.4.3",
     "cloudinary": "^1.41.3",
     "compression": "^1.7.4",
@@ -33,7 +34,9 @@
     "nodemailer": "^8.0.1",
     "slugify": "^1.6.6",
     "socket.io": "^4.8.3",
-    "winston": "^3.11.0"
+    "winston": "^3.11.0",
+    "zod": "^4.3.6",
+    "zod-to-json-schema": "^3.25.1"
   },
   "devDependencies": {
     "cross-env": "^10.1.0",
