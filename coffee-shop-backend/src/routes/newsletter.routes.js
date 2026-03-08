@@ -3,21 +3,21 @@ const router = express.Router();
 const controller = require("../controllers/NewsletterController");
 const { authenticate } = require("../middlewares/auth");
 const { authorize } = require("../middlewares/authorize");
-const ROLES = require("../config/role");
+const { ROLES } = require("../config/constants");
 
 // PUBLIC
 router.post("/", controller.subscribe.bind(controller));
 
 // ADMIN
 router.get(
-  "/admin",
+  "/",
   authenticate,
   authorize([ROLES.MANAGER]),
   controller.getAll.bind(controller)
 );
 
 router.delete(
-  "/admin/:id",
+  "/:id",
   authenticate,
   authorize([ROLES.MANAGER]),
   controller.delete.bind(controller)

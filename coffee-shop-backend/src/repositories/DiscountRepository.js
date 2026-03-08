@@ -4,60 +4,55 @@ class DiscountRepository {
   async findAll({ page = 1, limit = 10, code = "", status = "" }) {
     const offset = (page - 1) * limit;
 
-    const conditions = ["is_delete = 0"];
+    const conditions = ["deleted_at IS NULL"];
     const params = [];
 
     if (code) {
-      const cleanValue = code.replace("%", "").trim();
+      const cleanValue = code.trim();
 
       conditions.push(`
-      (
-        code LIKE ?
-        OR description LIKE ?
-        OR CAST(percentage AS CHAR) LIKE ?
-      )
-    `);
+        (
+          code LIKE ?
+          OR description LIKE ?
+          OR CAST(percentage AS CHAR) LIKE ?
+        )
+      `);
 
       params.push(`%${cleanValue}%`, `%${cleanValue}%`, `%${cleanValue}%`);
     }
 
     if (status === "active") {
-      conditions.push("(valid_until IS NULL OR valid_until >= NOW())");
-      conditions.push("is_active = 1");
+      conditions.push("valid_from <= NOW()");
+      conditions.push("(valid_until IS NULL OR valid_until > NOW())");
     }
 
     if (status === "expired") {
-      conditions.push("valid_until IS NOT NULL AND valid_until < NOW()");
+      conditions.push("valid_until IS NOT NULL AND valid_until <= NOW()");
     }
 
-    if (status === "enabled") {
-      conditions.push("is_active = 1");
-    }
-
-    if (status === "disabled") {
-      conditions.push("is_active = 0");
+    if (status === "upcoming") {
+      conditions.push("valid_from > NOW()");
     }
 
     const whereClause = `WHERE ${conditions.join(" AND ")}`;
 
     const sql = `
-    SELECT *
-    FROM discount
-    ${whereClause}
-    ORDER BY created_at DESC
-    LIMIT ?, ?
-  `;
+      SELECT *
+      FROM discount
+      ${whereClause}
+      ORDER BY created_at DESC
+      LIMIT ?, ?
+    `;
 
     const [rows] = await pool.query(sql, [...params, offset, limit]);
 
     const countSql = `
-    SELECT COUNT(*) as total
-    FROM discount
-    ${whereClause}
-  `;
+      SELECT COUNT(*) as total
+      FROM discount
+      ${whereClause}
+    `;
 
     const [countRows] = await pool.query(countSql, params);
-
     const total = countRows[0].total;
 
     return {
@@ -70,8 +65,16 @@ class DiscountRepository {
 
   async findById(id) {
     const [rows] = await pool.query(
-      "SELECT * FROM discount WHERE id = ? AND is_delete = 0",
+      "SELECT * FROM discount WHERE id = ? AND deleted_at IS NULL",
       [id]
+    );
+    return rows[0];
+  }
+
+  async findByCode(code) {
+    const [rows] = await pool.query(
+      "SELECT id FROM discount WHERE LOWER(code) = LOWER(?) AND deleted_at IS NULL LIMIT 1",
+      [code]
     );
     return rows[0];
   }
@@ -79,9 +82,17 @@ class DiscountRepository {
   async create(data) {
     const sql = `
       INSERT INTO discount
-      (code, description, percentage, min_order_amount,
-       max_discount_amount, usage_limit, valid_from, valid_until, is_active)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      (
+        code,
+        description,
+        percentage,
+        min_order_amount,
+        max_discount_amount,
+        usage_limit,
+        valid_from,
+        valid_until
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     const [result] = await pool.query(sql, [
@@ -91,9 +102,8 @@ class DiscountRepository {
       data.min_order_amount ?? 0,
       data.max_discount_amount ?? null,
       data.usage_limit ?? null,
-      data.valid_from ?? null,
+      data.valid_from,
       data.valid_until ?? null,
-      data.is_active ?? 1,
     ]);
 
     return result.insertId;
@@ -120,7 +130,7 @@ class DiscountRepository {
 
     if (data.min_order_amount !== undefined) {
       fields.push("min_order_amount = ?");
-      values.push(data.min_order_amount ?? 0);
+      values.push(data.min_order_amount);
     }
 
     if (data.max_discount_amount !== undefined) {
@@ -135,7 +145,7 @@ class DiscountRepository {
 
     if (data.valid_from !== undefined) {
       fields.push("valid_from = ?");
-      values.push(data.valid_from ?? null);
+      values.push(data.valid_from);
     }
 
     if (data.valid_until !== undefined) {
@@ -143,50 +153,28 @@ class DiscountRepository {
       values.push(data.valid_until ?? null);
     }
 
-    if (data.is_active !== undefined) {
-      fields.push("is_active = ?");
-      values.push(data.is_active);
-    }
-
     if (fields.length === 0) {
       throw new Error("Không có dữ liệu để cập nhật");
     }
 
     const sql = `
-    UPDATE discount
-    SET ${fields.join(", ")}
-    WHERE id = ? AND is_delete = 0
-  `;
+      UPDATE discount
+      SET ${fields.join(", ")}
+      WHERE id = ? AND deleted_at IS NULL
+    `;
 
     values.push(id);
 
     const [result] = await pool.query(sql, values);
-
     return result.affectedRows > 0;
-  }
-
-  async deleteHard(id) {
-    const [result] = await pool.query(
-      "DELETE FROM discount WHERE id = ? AND is_delete = 0",
-      [id]
-    );
-    return result.affectedRows > 0;
-  }
-
-  async findByCode(code) {
-    const [rows] = await pool.query(
-      "SELECT id FROM discount WHERE LOWER(code) = LOWER(?) AND is_delete = 0 LIMIT 1",
-      [code]
-    );
-    return rows[0];
   }
 
   async softDelete(id, newCode) {
     const sql = `
-    UPDATE discount
-    SET code = ?, is_delete = 1, is_active = 0
-    WHERE id = ? AND is_delete = 0
-  `;
+      UPDATE discount
+      SET code = ?, deleted_at = NOW()
+      WHERE id = ? AND deleted_at IS NULL
+    `;
 
     const [result] = await pool.query(sql, [newCode, id]);
     return result.affectedRows > 0;

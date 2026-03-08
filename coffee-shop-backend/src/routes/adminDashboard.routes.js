@@ -4,7 +4,7 @@ const router = express.Router();
 const AdminDashboardController = require("../controllers/AdminDashboardController");
 const { authenticate } = require("../middlewares/auth");
 const { authorize } = require("../middlewares/authorize");
-const ROLES = require("../config/role");
+const { ROLES } = require("../config/constants");
 
 // /api/dashboard
 router.get(

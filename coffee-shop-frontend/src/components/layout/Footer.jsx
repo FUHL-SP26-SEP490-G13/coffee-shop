@@ -35,7 +35,7 @@ function Footer() {
     try {
       setLoading(true);
 
-      await axios.post("/newsletter", { email });
+      await axios.post("/news-letter", { email });
 
       setMessage("Đăng ký thành công! Cảm ơn bạn.");
       setEmail("");

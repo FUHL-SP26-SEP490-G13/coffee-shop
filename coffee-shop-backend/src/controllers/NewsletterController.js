@@ -1,4 +1,5 @@
 const newsletterService = require("../services/NewsletterService");
+const NotificationService = require("../services/NotificationService");
 
 class NewsletterController {
   async subscribe(req, res) {
@@ -12,11 +13,39 @@ class NewsletterController {
         });
       }
 
-      await newsletterService.subscribe(email);
+      const subscriber = await newsletterService.subscribe(email);
+
+      const io = req.app.get("io");
+
+      const result = await NotificationService.createForManager({
+        type: "newsletter",
+        title: "Email đăng ký mới",
+        message: `${subscriber.email} vừa đăng ký nhận tin`,
+        link: "/admin/news-letter",
+        entity_type: "newsletter_subscriber",
+        entity_id: subscriber.id,
+      });
+
+      if (io && result) {
+        io.to(`user-${result.user.id}`).emit("admin:notification", {
+          recipient_id: result.recipient.id,
+          user_id: result.user.id,
+          id: result.notification.id,
+          type: result.notification.type,
+          title: result.notification.title,
+          message: result.notification.message,
+          link: result.notification.link,
+          entity_type: result.notification.entity_type,
+          entity_id: result.notification.entity_id,
+          created_at: result.notification.created_at,
+          is_read: false,
+        });
+      }
 
       res.json({
         success: true,
         message: "Đăng ký nhận tin thành công",
+        data: subscriber,
       });
     } catch (error) {
       res.status(400).json({

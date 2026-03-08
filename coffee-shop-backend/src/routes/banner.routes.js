@@ -5,7 +5,7 @@ const controller = require("../controllers/BannerController");
 const { authenticate } = require("../middlewares/auth");
 const { authorize } = require("../middlewares/authorize");
 const upload = require("../middlewares/upload");
-const ROLES = require("../config/role");
+const { ROLES } = require("../config/constants");
 const validate = require("../middlewares/validate");
 const {
   createBannerSchema,

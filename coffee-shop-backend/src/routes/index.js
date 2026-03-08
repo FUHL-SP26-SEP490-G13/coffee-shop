@@ -14,7 +14,7 @@ const baristaDashboardRoutes = require("./baristaDashboard.routes");
 const bannerRoutes = require("./banner.routes");
 const areaRoutes = require("./area.routes");
 const tableRoutes = require("./table.routes");
-
+const notificationRoutes = require("./notificationRoutes.routes");
 
 
 // Mount routes
@@ -22,7 +22,7 @@ router.use("/auth", authRoutes);
 router.use("/categories", categoryRoutes);
 router.use("/users", userRoutes);
 router.use("/products", productRoutes);
-router.use("/newsletter", newsletterRoutes);
+router.use("/news-letter", newsletterRoutes);
 router.use('/news', newsRoutes);
 router.use("/dashboard", adminDashboardRoutes);
 router.use("/discounts", discountRoutes);
@@ -30,7 +30,7 @@ router.use("/barista", baristaDashboardRoutes);
 router.use("/banners", bannerRoutes);
 router.use("/area", areaRoutes);
 router.use("/tables", tableRoutes);
-
+router.use("/notifications", notificationRoutes);
 
 
 // Health check endpoint

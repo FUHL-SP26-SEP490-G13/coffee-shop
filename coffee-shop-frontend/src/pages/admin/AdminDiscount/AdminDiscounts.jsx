@@ -1,28 +1,51 @@
 import { useEffect, useRef, useState } from "react";
-import { Plus, Percent, Search, Ticket, Loader2 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { Input } from "@/components/ui/input";
-import discountService from "@/services/discountService";
+import {
+  Loader2,
+  Search,
+  ChevronLeft,
+  ChevronRight,
+  Trash2,
+  Edit,
+  Plus,
+  Ticket,
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import discountService from "@/services/discountService";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 
 export default function AdminDiscounts() {
-  const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(false);
-
-  const [searchCode, setSearchCode] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
-
+  const [data, setData] = useState([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [loadingId, setLoadingId] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const [keyword, setKeyword] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
 
   const abortRef = useRef(null);
   const navigate = useNavigate();
 
-  const fetchDiscounts = async (customPage = page) => {
+  const fetchDiscounts = async (
+    currentPage = page,
+    search = keyword,
+    status = statusFilter
+  ) => {
     try {
+      setIsLoading(true);
+      setError(null);
+
       if (abortRef.current) {
         abortRef.current.abort();
       }
@@ -32,232 +55,345 @@ export default function AdminDiscounts() {
 
       const res = await discountService.getAll(
         {
-          page: customPage,
-          code: searchCode,
-          status: statusFilter,
+          page: currentPage,
+          code: search,
+          status,
         },
         controller.signal
       );
 
-      setItems(res.items);
-      setTotalPages(res.totalPages);
+      const payload = res?.data || res;
+
+      setData(payload.items || []);
+      setTotalPages(payload.totalPages || 1);
     } catch (err) {
-      if (err.name !== "CanceledError") {
-        console.error(err);
+      if (err.name !== "CanceledError" && err.code !== "ERR_CANCELED") {
+        console.error("Lỗi lấy danh sách discount:", err);
+        setError("Không thể tải danh sách mã giảm giá");
       }
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
-  /* =============================
-     LOAD LẦN ĐẦU
-  ============================= */
   useEffect(() => {
-    fetchDiscounts();
+    const timeout = setTimeout(() => {
+      fetchDiscounts(page, keyword, statusFilter);
+    }, 600);
+
+    return () => clearTimeout(timeout);
+  }, [keyword, statusFilter, page]);
+
+  useEffect(() => {
+    return () => {
+      if (abortRef.current) {
+        abortRef.current.abort();
+      }
+    };
   }, []);
 
-  /* =============================
-     KHI ĐỔI PAGE
-  ============================= */
-  useEffect(() => {
-    fetchDiscounts(page);
-  }, [page]);
-
-  /* =============================
-     REAL-TIME FILTER (DEBOUNCE)
-  ============================= */
-  useEffect(() => {
-    const delay = setTimeout(() => {
-      setPage(1);
-      fetchDiscounts(1);
-    }, 500);
-
-    return () => clearTimeout(delay);
-  }, [searchCode, statusFilter]);
-
-  const handleDelete = async (discount) => {
+  const handleDelete = async (id) => {
     if (!window.confirm("Bạn có chắc muốn xóa mã giảm giá này?")) return;
 
     try {
-      await discountService.delete(discount.id);
-
-      alert("Mã giảm giá đã xóa thành công");
-
-      fetchDiscounts();
-    } catch (e) {
-      alert(e?.response?.data?.message || "Xóa thất bại");
+      setLoadingId(id);
+      await discountService.delete(id);
+      await fetchDiscounts(page, keyword, statusFilter);
+    } catch (err) {
+      console.error(err);
+      alert(err?.response?.data?.message || "Xóa thất bại");
+    } finally {
+      setLoadingId(null);
     }
   };
 
-  return (
-    <div className="p-4 md:p-8">
-      {/* HEADER */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-1">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="p-2 bg-primary/10 rounded-lg">
-            <Ticket className="h-6 w-6 text-primary" />
-          </div>
-          <div>
-            <h2 className="text-2xl font-semibold mb-1">Quản lý mã giảm giá</h2>
-            <p className="text-sm text-muted-foreground">
-              Tạo và quản lý mã giảm giá theo %
-            </p>
-          </div>
-        </div>
+  const getStatusInfo = (item) => {
+    const now = Date.now();
+    const startTime = item.valid_from
+      ? new Date(item.valid_from).getTime()
+      : null;
+    const endTime = item.valid_until
+      ? new Date(item.valid_until).getTime()
+      : null;
 
-        <Button onClick={() => navigate("/admin/discounts/create")}>
-          <Plus className="w-4 h-4 mr-2" />
-          Thêm Mới
+    if (startTime && now < startTime) {
+      return {
+        text: "Sắp diễn ra",
+        variant: "outline",
+      };
+    }
+
+    if (endTime && now >= endTime) {
+      return {
+        text: "Hết hạn",
+        variant: "destructive",
+      };
+    }
+
+    return {
+      text: "Còn hiệu lực",
+      variant: "secondary",
+    };
+  };
+
+  const formatMoney = (value) => {
+    if (value === null || value === undefined || value === "") return "—";
+    return Number(value).toLocaleString("vi-VN") + "đ";
+  };
+
+  const formatDateTime = (value) => {
+    if (!value) return "—";
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return "—";
+    return d.toLocaleString("vi-VN");
+  };
+
+  if (error && data.length === 0) {
+    return (
+      <div className="p-6 text-center text-red-500">
+        <p>Lỗi: {error}</p>
+        <Button
+          variant="outline"
+          className="mt-4"
+          onClick={() => fetchDiscounts(1, "", "")}
+        >
+          Thử lại
         </Button>
       </div>
+    );
+  }
 
-      {/* FILTER */}
-      <Card className="p-4 flex flex-col h-full mb-5">
-        <div className="flex flex-col sm:flex-row gap-3">
+  return (
+    <div className="p-6">
+      {/* HEADER */}
+      <div className="mb-6">
+        <div className="flex justify-between items-start mb-6 gap-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-primary/10 rounded-lg">
+              <Ticket className="h-6 w-6 text-primary" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-semibold mb-1">
+                Quản lý mã giảm giá
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                Tạo và quản lý mã giảm giá của bạn
+              </p>
+            </div>
+          </div>
+
+          <Button onClick={() => navigate("/admin/discounts/create")}>
+            <Plus className="w-4 h-4 mr-2" />
+            Thêm Mới
+          </Button>
+        </div>
+
+        {/* FILTER */}
+        <div className="flex flex-col md:flex-row gap-3">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              type="text"
-              placeholder="Tìm theo code, mô tả, %..."
-              className="pl-10"
-              value={searchCode}
-              onChange={(e) => setSearchCode(e.target.value)}
+              placeholder="Tìm theo code, mô tả hoặc %..."
+              value={keyword}
+              onChange={(e) => {
+                setPage(1);
+                setKeyword(e.target.value);
+              }}
+              className="pl-9"
             />
           </div>
 
           <select
-            className="border border-input rounded-md px-3 py-2 text-sm bg-background"
+            className="h-10 rounded-md border border-input bg-background px-3 text-sm"
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
+            onChange={(e) => {
+              setPage(1);
+              setStatusFilter(e.target.value);
+            }}
           >
             <option value="">Tất cả trạng thái</option>
-            <option value="active">Còn hạn (đang bật)</option>
+            <option value="active">Còn hiệu lực</option>
             <option value="expired">Hết hạn</option>
-            <option value="enabled">Đang bật</option>
-            <option value="disabled">Đang tắt</option>
+            <option value="upcoming">Sắp diễn ra</option>
           </select>
         </div>
-      </Card>
+      </div>
 
-      {/* GRID */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {loading ? (
-          Array.from({ length: 6 }).map((_, i) => (
-            <Card key={i} className="p-4">
-              <div className="h-40 flex items-center justify-center">
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-              </div>
-            </Card>
-          ))
-        ) : items.length === 0 ? (
-          <div className="col-span-full text-center py-12 text-muted-foreground">
-            Không có mã giảm giá nào!
+      {/* TABLE */}
+      <div className="relative bg-card rounded-xl border border-border overflow-hidden">
+        {isLoading && (
+          <div className="absolute inset-0 bg-white/50 flex items-center justify-center z-10">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
           </div>
-        ) : (
-          items.map((d) => {
-            const usagePercentage =
-              d.usage_limit > 0 ? (d.used_count / d.usage_limit) * 100 : 0;
+        )}
 
-            const expired = d.valid_until
-              ? new Date(d.valid_until).getTime() < Date.now()
-              : false;
+        {!isLoading && (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="min-w-[180px]">Mã giảm giá</TableHead>
+                <TableHead className="text-center min-w-[100px]">%</TableHead>
+                <TableHead className="text-center min-w-[130px]">
+                  Đơn tối thiểu
+                </TableHead>
+                <TableHead className="text-center min-w-[130px]">
+                  Giảm tối đa
+                </TableHead>
+                <TableHead className="text-center min-w-[120px]">
+                  Sử dụng
+                </TableHead>
+                <TableHead className="text-center min-w-[120px]">
+                  Trạng thái
+                </TableHead>
+                <TableHead className="text-center min-w-[140px]">
+                  Hành động
+                </TableHead>
+              </TableRow>
+            </TableHeader>
 
-            return (
-              <Card key={d.id} className="p-4">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <div className="p-2 rounded-lg bg-primary/10 text-primary">
-                      <Percent className="w-5 h-5" />
-                    </div>
+            <TableBody>
+              {data.length === 0 ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={9}
+                    className="text-center py-8 text-muted-foreground"
+                  >
+                    Không có mã giảm giá nào
+                  </TableCell>
+                </TableRow>
+              ) : (
+                data.map((item) => {
+                  const status = getStatusInfo(item);
 
-                    <div>
-                      <div className="text-sm mb-1">{d.percentage}% OFF</div>
+                  return (
+                    <TableRow key={item.id}>
+                      <TableCell>
+                        <div className="font-mono font-medium">{item.code}</div>
+                      </TableCell>
 
-                      <div className="text-xs text-muted-foreground">
-                        Min order:{" "}
-                        {Number(d.min_order_amount || 0).toLocaleString()}đ
-                      </div>
+                      <TableCell className="text-center">
+                        {Number(item.percentage || 0)}%
+                      </TableCell>
 
-                      {d.max_discount_amount != null && (
-                        <div className="text-xs text-muted-foreground">
-                          Max: {Number(d.max_discount_amount).toLocaleString()}đ
+                      <TableCell className="text-center">
+                        {formatMoney(item.min_order_amount)}
+                      </TableCell>
+
+                      <TableCell className="text-center">
+                        {formatMoney(item.max_discount_amount)}
+                      </TableCell>
+
+                      <TableCell className="text-center">
+                        {Number(item.used_count || 0)} /{" "}
+                        {item.usage_limit == null
+                          ? "∞"
+                          : Number(item.usage_limit)}
+                      </TableCell>
+
+                      <TableCell className="text-center">
+                        <Badge
+                          variant={status.variant}
+                          className="inline-flex min-w-[110px] justify-center"
+                        >
+                          {status.text}
+                        </Badge>
+                      </TableCell>
+
+                      <TableCell>
+                        <div className="flex items-center justify-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() =>
+                              navigate(`/admin/discounts/edit/${item.id}`)
+                            }
+                            title="Chỉnh sửa"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDelete(item.id)}
+                            disabled={loadingId === item.id}
+                            title="Xóa"
+                            className="hover:text-red-600"
+                          >
+                            {loadingId === item.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-4 w-4" />
+                            )}
+                          </Button>
                         </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <Badge variant="secondary">
-                    {d.is_active ? (expired ? "Hết hạn" : "Còn hạn") : "Tắt"}
-                  </Badge>
-                </div>
-
-                <div className="bg-secondary rounded-lg p-3 mb-3">
-                  <div className="font-mono text-lg text-center">{d.code}</div>
-                  {d.description && (
-                    <div className="text-xs text-muted-foreground mt-1 text-center">
-                      {d.description}
-                    </div>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Usage</span>
-                    <span>
-                      {d.used_count} / {d.usage_limit || "∞"}
-                    </span>
-                  </div>
-                  <Progress value={usagePercentage} />
-                </div>
-
-                <div className="flex gap-2 mt-auto pt-4">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex-1"
-                    onClick={() => navigate(`/admin/discounts/edit/${d.id}`)}
-                  >
-                    Edit
-                  </Button>
-
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-destructive"
-                    onClick={() => handleDelete(d)}
-                  >
-                    Delete
-                  </Button>
-                </div>
-              </Card>
-            );
-          })
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
+              )}
+            </TableBody>
+          </Table>
         )}
       </div>
 
       {/* PAGINATION */}
-      <div className="flex justify-center items-center gap-4 mt-8">
-        <Button
-          variant="outline"
-          disabled={page === 1}
-          onClick={() => setPage((p) => p - 1)}
-        >
-          Trang trước
-        </Button>
+      {!isLoading && totalPages > 1 && (
+        <div className="mt-6 flex items-center justify-between">
+          <div className="text-sm text-muted-foreground">
+            Trang {page} / {totalPages}
+          </div>
 
-        <span className="text-sm">
-          Trang {page} / {totalPages}
-        </span>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1}
+            >
+              <ChevronLeft className="h-4 w-4 mr-1" />
+              Trước
+            </Button>
 
-        <Button
-          variant="outline"
-          disabled={page === totalPages}
-          onClick={() => setPage((p) => p + 1)}
-        >
-          Trang sau
-        </Button>
-      </div>
+            <div className="flex gap-1">
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let pageNum;
+                if (totalPages <= 5) {
+                  pageNum = i + 1;
+                } else if (page <= 3) {
+                  pageNum = i + 1;
+                } else if (page >= totalPages - 2) {
+                  pageNum = totalPages - 4 + i;
+                } else {
+                  pageNum = page - 2 + i;
+                }
+
+                return (
+                  <Button
+                    key={pageNum}
+                    variant={page === pageNum ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setPage(pageNum)}
+                    className="w-10 h-10 p-0"
+                  >
+                    {pageNum}
+                  </Button>
+                );
+              })}
+            </div>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+            >
+              Sau
+              <ChevronRight className="h-4 w-4 ml-1" />
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

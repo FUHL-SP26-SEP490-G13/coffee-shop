@@ -1,11 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import discountService from "@/services/discountService";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   ChevronLeft,
   Ticket,
@@ -15,10 +14,8 @@ import {
   Users,
 } from "lucide-react";
 import {
-  DISCOUNT_RULES,
   validateDiscountForm,
   validateDiscountField,
-  getCountText,
 } from "@/utils/discountValidation";
 
 export default function AdminDiscountEdit() {
@@ -34,7 +31,6 @@ export default function AdminDiscountEdit() {
     usage_limit: "",
     valid_from: "",
     valid_until: "",
-    is_active: true,
     used_count: 0,
   });
 
@@ -51,31 +47,13 @@ export default function AdminDiscountEdit() {
     return n.toLocaleString("vi-VN") + " VNĐ";
   };
 
-  const getSubmitErrors = () => {
-    if (!isLockedByUsedCount) {
-      return validateDiscountForm(form);
-    }
-
-    const nextErrors = {};
-
-    ["description", "valid_until", "is_active"].forEach((field) => {
-      const error = validateDiscountField(field, form[field], form);
-      if (error) nextErrors[field] = error;
-    });
-
-    return nextErrors;
-  };
-
-  const isValid = useMemo(() => {
-    const e = getSubmitErrors();
-    return Object.keys(e).length === 0;
-  }, [form, isLockedByUsedCount]);
-
   useEffect(() => {
     const fetchDetail = async () => {
       try {
         setLoading(true);
-        const d = await discountService.getById(id);
+
+        const res = await discountService.getById(id);
+        const d = res?.data?.data || res?.data || res;
 
         setForm({
           code: d.code ?? "",
@@ -99,13 +77,13 @@ export default function AdminDiscountEdit() {
               : "",
           valid_from: d.valid_from ? String(d.valid_from).slice(0, 16) : "",
           valid_until: d.valid_until ? String(d.valid_until).slice(0, 16) : "",
-          is_active: !!d.is_active,
           used_count: Number(d.used_count ?? 0),
         });
 
         setErrors({});
-      } catch (e) {
-        alert("Không tìm thấy discount");
+      } catch (err) {
+        console.error(err);
+        alert("Không tìm thấy mã giảm giá");
         navigate("/admin/discounts");
       } finally {
         setLoading(false);
@@ -116,86 +94,27 @@ export default function AdminDiscountEdit() {
   }, [id, navigate]);
 
   const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    const nextValue = type === "checkbox" ? checked : value;
+    const { name, value } = e.target;
 
-    const nextForm = {
-      ...form,
-      [name]: nextValue,
-    };
-
-    setForm(nextForm);
-
-    setErrors((prev) => ({
+    setForm((prev) => ({
       ...prev,
-      [name]: validateDiscountField(name, nextValue, nextForm),
-
-      ...(name === "valid_from" && !isLockedByUsedCount
-        ? {
-            valid_until: validateDiscountField(
-              "valid_until",
-              nextForm.valid_until,
-              nextForm
-            ),
-          }
-        : {}),
-
-      ...(name === "min_order_amount" && !isLockedByUsedCount
-        ? {
-            max_discount_amount: validateDiscountField(
-              "max_discount_amount",
-              nextForm.max_discount_amount,
-              nextForm
-            ),
-          }
-        : {}),
-
-      server: "",
+      [name]: value,
     }));
   };
 
-  const handleBlur = (e) => {
-    const { name } = e.target;
+  const getSubmitErrors = () => {
+    if (!isLockedByUsedCount) {
+      return validateDiscountForm(form);
+    }
 
-    setErrors((prev) => ({
-      ...prev,
-      [name]: validateDiscountField(name, form[name], form),
+    const nextErrors = {};
 
-      ...(name === "valid_from" && !isLockedByUsedCount
-        ? {
-            valid_until: validateDiscountField(
-              "valid_until",
-              form.valid_until,
-              form
-            ),
-          }
-        : {}),
+    ["description", "valid_until"].forEach((field) => {
+      const error = validateDiscountField(field, form[field], form);
+      if (error) nextErrors[field] = error;
+    });
 
-      ...(name === "min_order_amount" && !isLockedByUsedCount
-        ? {
-            max_discount_amount: validateDiscountField(
-              "max_discount_amount",
-              form.max_discount_amount,
-              form
-            ),
-          }
-        : {}),
-    }));
-  };
-
-  const handleCheckedChange = (checked) => {
-    const nextForm = {
-      ...form,
-      is_active: !!checked,
-    };
-
-    setForm(nextForm);
-
-    setErrors((prev) => ({
-      ...prev,
-      is_active: "",
-      server: "",
-    }));
+    return nextErrors;
   };
 
   const handleSubmit = async (e) => {
@@ -213,7 +132,6 @@ export default function AdminDiscountEdit() {
         ? {
             description: form.description.trim(),
             valid_until: form.valid_until,
-            is_active: !!form.is_active,
           }
         : {
             code: form.code.trim(),
@@ -224,7 +142,6 @@ export default function AdminDiscountEdit() {
             usage_limit: Number(form.usage_limit),
             valid_from: form.valid_from,
             valid_until: form.valid_until,
-            is_active: !!form.is_active,
           };
 
       await discountService.update(id, payload);
@@ -236,24 +153,18 @@ export default function AdminDiscountEdit() {
 
       if (response?.errors && Array.isArray(response.errors)) {
         const beErrors = {};
-        response.errors.forEach((e) => {
-          if (e.field) beErrors[e.field] = e.message;
+        response.errors.forEach((item) => {
+          if (item.field) {
+            beErrors[item.field] = item.message;
+          }
         });
         setErrors(beErrors);
         return;
       }
 
-      if (response?.message) {
-        setErrors((prev) => ({
-          ...prev,
-          server: response.message,
-        }));
-        return;
-      }
-
       setErrors((prev) => ({
         ...prev,
-        server: "Cập nhật thất bại",
+        server: response?.message || "Cập nhật thất bại",
       }));
     } finally {
       setSaving(false);
@@ -271,9 +182,6 @@ export default function AdminDiscountEdit() {
       </div>
     );
   }
-  console.log("submitErrors", getSubmitErrors());
-  console.log("isValid", isValid);
-  console.log("form", form);
 
   return (
     <div className="max-w-4xl p-4 mx-auto">
@@ -292,10 +200,9 @@ export default function AdminDiscountEdit() {
           <div className="p-2 bg-primary/10 rounded-lg">
             <Ticket className="h-6 w-6 text-primary" />
           </div>
+
           <div>
-            <span className="text-lg mb-1">
-              Chỉnh sửa mã giảm giá
-            </span>
+            <span className="text-lg mb-1">Chỉnh sửa mã giảm giá</span>
             <p className="text-sm text-muted-foreground mt-1">
               Cập nhật thông tin mã giảm giá
             </p>
@@ -307,8 +214,8 @@ export default function AdminDiscountEdit() {
         <form onSubmit={handleSubmit} className="space-y-6">
           {isLockedByUsedCount && (
             <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
-              Mã giảm giá này đã được sử dụng ({form.used_count} lượt). Bạn chỉ
-              được sửa mô tả, ngày kết thúc và trạng thái kích hoạt.
+              Mã giảm giá này đã được sử dụng {form.used_count} lượt. Bạn chỉ
+              được sửa ngày kết thúc với mô tả.
             </div>
           )}
 
@@ -328,73 +235,47 @@ export default function AdminDiscountEdit() {
                   name="code"
                   value={form.code}
                   onChange={handleChange}
-                  onBlur={handleBlur}
                   placeholder="VD: SUMMER2024"
                   disabled={isLockedByUsedCount}
                 />
-
-                <div className="flex items-center justify-between">
-                  {errors.code && !isLockedByUsedCount ? (
-                    <p className="text-xs text-destructive">{errors.code}</p>
-                  ) : (
-                    <p className="text-xs text-muted-foreground">
-                      {isLockedByUsedCount
-                        ? "Mã giảm giá chỉ hiển thị để tham chiếu"
-                        : form.code.trim().length > 0 &&
-                          `Tiến độ: ${getCountText(
-                            form.code.trim().length,
-                            DISCOUNT_RULES.CODE_MIN
-                          )}`}
-                    </p>
-                  )}
-
-                  <p className="text-xs text-muted-foreground">
-                    {form.code.length}/{DISCOUNT_RULES.CODE_MAX}
-                  </p>
-                </div>
+                {errors.code && (
+                  <p className="text-xs text-destructive">{errors.code}</p>
+                )}
               </div>
 
-              {!isLockedByUsedCount && (
-                <div className="space-y-2">
-                  <Label htmlFor="percentage">
-                    Phần trăm giảm (%){" "}
-                    <span className="text-destructive">*</span>
-                  </Label>
-                  <div className="relative">
-                    <Percent className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="percentage"
-                      type="number"
-                      name="percentage"
-                      value={form.percentage}
-                      onChange={handleChange}
-                      onBlur={handleBlur}
-                      placeholder="10"
-                      min="1"
-                      max="100"
-                      className="pl-10"
-                    />
-                  </div>
+              <div className="space-y-2">
+                <Label htmlFor="percentage">
+                  Phần trăm giảm (%) <span className="text-destructive">*</span>
+                </Label>
 
-                  <div className="flex items-center justify-between">
-                    {errors.percentage ? (
-                      <p className="text-xs text-destructive">
-                        {errors.percentage}
-                      </p>
-                    ) : (
-                      <p className="text-xs text-muted-foreground">
-                        {form.percentage && "Giá trị hợp lệ từ 1 - 100%"}
-                      </p>
-                    )}
-
-                    {form.percentage && (
-                      <p className="text-xs text-muted-foreground">
-                        {form.percentage}/100
-                      </p>
-                    )}
-                  </div>
+                <div className="relative">
+                  <Percent className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="percentage"
+                    type="number"
+                    name="percentage"
+                    value={form.percentage}
+                    onChange={handleChange}
+                    placeholder="10"
+                    min="0"
+                    max="100"
+                    className="pl-10"
+                    disabled={isLockedByUsedCount}
+                  />
                 </div>
-              )}
+
+                {errors.percentage ? (
+                  <p className="text-xs text-destructive">
+                    {errors.percentage}
+                  </p>
+                ) : (
+                  form.percentage !== "" && (
+                    <p className="text-xs text-muted-foreground">
+                      Giá trị đã nhập: {form.percentage}%
+                    </p>
+                  )
+                )}
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -406,125 +287,100 @@ export default function AdminDiscountEdit() {
                 name="description"
                 value={form.description}
                 onChange={handleChange}
-                onBlur={handleBlur}
                 placeholder="Giảm giá mùa hè..."
               />
-              <div className="flex items-center justify-between">
-                {errors.description ? (
-                  <p className="text-xs text-destructive">
-                    {errors.description}
-                  </p>
-                ) : (
-                  <p className="text-xs text-muted-foreground">
-                    {form.description.trim().length > 0 &&
-                      `Tiến độ: ${getCountText(
-                        form.description.trim().length,
-                        DISCOUNT_RULES.DESCRIPTION_MIN
-                      )}`}
-                  </p>
-                )}
-
-                <p className="text-xs text-muted-foreground">
-                  {form.description.length}/{DISCOUNT_RULES.DESCRIPTION_MAX}
-                </p>
-              </div>
+              {errors.description && (
+                <p className="text-xs text-destructive">{errors.description}</p>
+              )}
             </div>
           </div>
 
-          {!isLockedByUsedCount && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 pb-2 border-b">
-                <span className="text-primary font-semibold">₫</span>
-                <h3 className="font-semibold">Giới hạn giảm giá</h3>
-              </div>
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 pb-2 border-b">
+              <span className="text-primary font-semibold">₫</span>
+              <h3 className="font-semibold">Giới hạn giảm giá</h3>
+            </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="min_order_amount">
-                    Đơn hàng tối thiểu (VNĐ){" "}
-                    <span className="text-destructive">*</span>
-                  </Label>
-                  <div className="relative">
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
-                      VNĐ
-                    </span>
-                    <Input
-                      id="min_order_amount"
-                      type="number"
-                      name="min_order_amount"
-                      value={form.min_order_amount}
-                      onChange={handleChange}
-                      onBlur={handleBlur}
-                      placeholder="VD: 100000"
-                      className="pr-12"
-                    />
-                  </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="min_order_amount">
+                  Đơn hàng tối thiểu (VNĐ){" "}
+                  <span className="text-destructive">*</span>
+                </Label>
 
-                  <div className="flex items-center justify-between">
-                    {errors.min_order_amount ? (
-                      <p className="text-xs text-destructive">
-                        {errors.min_order_amount}
-                      </p>
-                    ) : (
-                      <p className="text-xs text-muted-foreground">
-                        {form.min_order_amount && "Giá trị phải >= 0"}
-                      </p>
-                    )}
-
-                    {form.min_order_amount && (
-                      <p className="text-xs text-muted-foreground">
-                        {formatCurrency(form.min_order_amount)}
-                      </p>
-                    )}
-                  </div>
+                <div className="relative">
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                    VNĐ
+                  </span>
+                  <Input
+                    id="min_order_amount"
+                    type="number"
+                    name="min_order_amount"
+                    value={form.min_order_amount}
+                    onChange={handleChange}
+                    placeholder="VD: 100000"
+                    className="pr-12"
+                    min="0"
+                    disabled={isLockedByUsedCount}
+                  />
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="max_discount_amount">
-                    Giảm tối đa (VNĐ){" "}
-                    <span className="text-destructive">*</span>
-                  </Label>
-                  <div className="relative">
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
-                      VNĐ
-                    </span>
-                    <Input
-                      id="max_discount_amount"
-                      type="number"
-                      name="max_discount_amount"
-                      value={form.max_discount_amount}
-                      onChange={handleChange}
-                      onBlur={handleBlur}
-                      placeholder="VD: 50000"
-                      className="pr-12"
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    {errors.max_discount_amount ? (
-                      <p className="text-xs text-destructive">
-                        {errors.max_discount_amount}
-                      </p>
-                    ) : (
-                      <p className="text-xs text-muted-foreground">
-                        {form.max_discount_amount && "Giá trị phải >= 0"}
-                      </p>
-                    )}
-
-                    {form.max_discount_amount && (
-                      <p className="text-xs text-muted-foreground">
-                        {formatCurrency(form.max_discount_amount)}
-                      </p>
-                    )}
-                  </div>
-                </div>
+                {errors.min_order_amount ? (
+                  <p className="text-xs text-destructive">
+                    {errors.min_order_amount}
+                  </p>
+                ) : (
+                  form.min_order_amount !== "" && (
+                    <p className="text-xs text-muted-foreground">
+                      {formatCurrency(form.min_order_amount)}
+                    </p>
+                  )
+                )}
               </div>
 
+              <div className="space-y-2">
+                <Label htmlFor="max_discount_amount">
+                  Giảm tối đa (VNĐ) <span className="text-destructive">*</span>
+                </Label>
+
+                <div className="relative">
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                    VNĐ
+                  </span>
+                  <Input
+                    id="max_discount_amount"
+                    type="number"
+                    name="max_discount_amount"
+                    value={form.max_discount_amount}
+                    onChange={handleChange}
+                    placeholder="VD: 50000"
+                    className="pr-12"
+                    min="0"
+                    disabled={isLockedByUsedCount}
+                  />
+                </div>
+
+                {errors.max_discount_amount ? (
+                  <p className="text-xs text-destructive">
+                    {errors.max_discount_amount}
+                  </p>
+                ) : (
+                  form.max_discount_amount !== "" && (
+                    <p className="text-xs text-muted-foreground">
+                      {formatCurrency(form.max_discount_amount)}
+                    </p>
+                  )
+                )}
+              </div>
+            </div>
+
+            {!isLockedByUsedCount && (
               <div className="space-y-2">
                 <Label htmlFor="usage_limit">
                   Giới hạn lượt sử dụng{" "}
                   <span className="text-destructive">*</span>
                 </Label>
+
                 <div className="relative">
                   <Users className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -533,33 +389,26 @@ export default function AdminDiscountEdit() {
                     name="usage_limit"
                     value={form.usage_limit}
                     onChange={handleChange}
-                    onBlur={handleBlur}
                     placeholder="VD: 50"
                     className="pl-10"
+                    min="0"
                   />
                 </div>
 
-                <div className="flex items-center justify-between">
-                  {errors.usage_limit ? (
-                    <p className="text-xs text-destructive">
-                      {errors.usage_limit}
-                    </p>
-                  ) : (
+                {errors.usage_limit ? (
+                  <p className="text-xs text-destructive">
+                    {errors.usage_limit}
+                  </p>
+                ) : (
+                  form.usage_limit !== "" && (
                     <p className="text-xs text-muted-foreground">
-                      {form.usage_limit &&
-                        "Giá trị phải là số nguyên từ 1 - 1000"}
+                      Giá trị đã nhập: {form.usage_limit}
                     </p>
-                  )}
-
-                  {form.usage_limit && (
-                    <p className="text-xs text-muted-foreground">
-                      {form.usage_limit}/1000
-                    </p>
-                  )}
-                </div>
+                  )
+                )}
               </div>
-            </div>
-          )}
+            )}
+          </div>
 
           <div className="space-y-4">
             <div className="flex items-center gap-2 pb-2 border-b">
@@ -578,19 +427,16 @@ export default function AdminDiscountEdit() {
                   name="valid_from"
                   value={form.valid_from}
                   onChange={handleChange}
-                  onBlur={handleBlur}
                   disabled={isLockedByUsedCount}
                 />
-                {errors.valid_from && !isLockedByUsedCount ? (
+                {errors.valid_from ? (
                   <p className="text-xs text-destructive">
                     {errors.valid_from}
                   </p>
                 ) : (
                   form.valid_from && (
                     <p className="text-xs text-muted-foreground">
-                      {isLockedByUsedCount
-                        ? "Ngày bắt đầu chỉ hiển thị để tham chiếu"
-                        : new Date(form.valid_from).toLocaleString("vi-VN")}
+                      {new Date(form.valid_from).toLocaleString("vi-VN")}
                     </p>
                   )
                 )}
@@ -606,7 +452,6 @@ export default function AdminDiscountEdit() {
                   name="valid_until"
                   value={form.valid_until}
                   onChange={handleChange}
-                  onBlur={handleBlur}
                 />
                 {errors.valid_until ? (
                   <p className="text-xs text-destructive">
@@ -623,32 +468,12 @@ export default function AdminDiscountEdit() {
             </div>
           </div>
 
-          <div className="space-y-4">
-            <div className="flex items-center space-x-2 p-4 bg-muted/50 rounded-lg">
-              <Checkbox
-                id="is_active"
-                checked={form.is_active}
-                onCheckedChange={handleCheckedChange}
-              />
-              <Label
-                htmlFor="is_active"
-                className="text-sm font-medium cursor-pointer"
-              >
-                Kích hoạt mã giảm giá
-              </Label>
-            </div>
-          </div>
-
           {errors.server && (
             <p className="text-sm text-destructive">{errors.server}</p>
           )}
 
           <div className="flex flex-col sm:flex-row gap-3 pt-4">
-            <Button
-              type="submit"
-              disabled={saving || !isValid}
-              className="sm:flex-1"
-            >
+            <Button type="submit" disabled={saving} className="sm:flex-1">
               {saving ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

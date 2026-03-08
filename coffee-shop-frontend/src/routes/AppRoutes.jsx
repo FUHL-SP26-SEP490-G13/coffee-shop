@@ -183,7 +183,7 @@ const AppRoutes = () => {
         <Route path="discounts" element={<AdminDiscounts />} />
         <Route path="discounts/create" element={<AdminDiscountCreate />} />
         <Route path="discounts/edit/:id" element={<AdminDiscountEdit />} />
-        <Route path="newsletter" element={<AdminNewsletter />} />
+        <Route path="news-letter" element={<AdminNewsletter />} />
         <Route path="banners" element={<AdminBanner />} />
         <Route path="area" element={<AdminAreas />} />
         <Route path="tables" element={<AdminTables />} />

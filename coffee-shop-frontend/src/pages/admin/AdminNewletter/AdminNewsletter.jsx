@@ -3,7 +3,8 @@ import newsletterService from "@/services/newsletterService";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Trash2, Mail, Search, Copy } from "lucide-react";
+import { Trash2, Mail, Search, Copy, Bell } from "lucide-react";
+import socket from "@/lib/socket";
 
 export default function AdminNewsletter() {
   const [emails, setEmails] = useState([]);
@@ -12,21 +13,66 @@ export default function AdminNewsletter() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const itemsPerPage = 5;
+
+  const [notification, setNotification] = useState("");
+
+  // const fetchData = async () => {
+  //   try {
+  //     const res = await newsletterService.getAll();
+  //     const data = res.data.data || [];
+  //     setEmails(data);
+  //     setFilteredEmails(data);
+  //   } catch (err) {
+  //     console.error(err);
+  //     setEmails([]);
+  //     setFilteredEmails([]);
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
 
   const fetchData = async () => {
     try {
       const res = await newsletterService.getAll();
+      console.log("newsletter res:", res);
+
       const data = res.data || [];
       setEmails(data);
       setFilteredEmails(data);
     } catch (err) {
-      console.error(err);
+      console.error("newsletter error:", err);
       setEmails([]);
       setFilteredEmails([]);
     } finally {
       setLoading(false);
     }
   };
+  
+  useEffect(() => {
+    socket.emit("join-admin-room");
+
+    const handleNewNewsletter = (newItem) => {
+      setNotification(newItem.message || `Có email mới: ${newItem.email}`);
+
+      setEmails((prev) => {
+        const existed = prev.some((item) => item.id === newItem.id);
+        if (existed) return prev;
+        return [newItem, ...prev];
+      });
+
+      setTimeout(() => {
+        setNotification("");
+      }, 4000);
+    };
+
+    socket.on("newsletter:new", handleNewNewsletter);
+
+    return () => {
+      socket.off("newsletter:new", handleNewNewsletter);
+    };
+  }, []);
 
   useEffect(() => {
     fetchData();
@@ -58,6 +104,7 @@ export default function AdminNewsletter() {
     }
 
     setFilteredEmails(result);
+    setPage(1);
   }, [search, startDate, endDate, emails]);
 
   // 📋 Copy email
@@ -79,13 +126,31 @@ export default function AdminNewsletter() {
       const updated = emails.filter((e) => e.id !== id);
       setEmails(updated);
       setFilteredEmails(updated);
+
+      const newTotalPages = Math.ceil(updated.length / itemsPerPage);
+      if (page > newTotalPages && newTotalPages > 0) {
+        setPage(newTotalPages);
+      }
     } catch (err) {
       console.error(err);
     }
   };
 
+  const totalPages = Math.ceil(filteredEmails.length / itemsPerPage);
+  const startIndex = (page - 1) * itemsPerPage;
+  const currentEmails = filteredEmails.slice(
+    startIndex,
+    startIndex + itemsPerPage
+  );
+
   return (
-    <div className="p-4 sm:p-6">
+    <div className="px-4 sm:px-6 pt-0 pb-6">
+      {notification && (
+        <div className="fixed top-5 right-5 z-50 flex items-center gap-2 bg-green-600 text-white px-4 py-3 rounded-lg shadow-lg">
+          <Bell className="w-4 h-4" />
+          <span>{notification}</span>
+        </div>
+      )}
       <div className="flex items-center gap-3 mb-6">
         <div className="p-2 bg-primary/10 rounded-lg">
           <Mail className="h-6 w-6 text-primary" />
@@ -149,7 +214,7 @@ export default function AdminNewsletter() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredEmails.map((item) => (
+                  {currentEmails.map((item) => (
                     <tr
                       key={item.id}
                       className="border-b hover:bg-muted/50 transition-colors"
@@ -187,6 +252,39 @@ export default function AdminNewsletter() {
           </div>
         )}
       </Card>
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between pt-4">
+          <p className="text-sm text-muted-foreground">
+            Hiển thị {startIndex + 1} -{" "}
+            {Math.min(startIndex + itemsPerPage, filteredEmails.length)} /{" "}
+            {filteredEmails.length} email
+          </p>
+
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
+              disabled={page === 1}
+            >
+              Trước
+            </Button>
+
+            <span className="text-sm px-2">
+              Trang {page} / {totalPages}
+            </span>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage((prev) => Math.min(prev + 1, totalPages))}
+              disabled={page === totalPages}
+            >
+              Sau
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

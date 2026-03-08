@@ -9,7 +9,7 @@ const { authorize } = require("../middlewares/authorize");
 const upload = require("../middlewares/upload");
 const validate = require("../middlewares/validate");
 const { createNewsSchema } = require("../validators/newsValidator");
-const ROLES = require("../config/role");
+const { ROLES } = require("../config/constants");
 
 // =====================
 // PUBLIC ROUTES

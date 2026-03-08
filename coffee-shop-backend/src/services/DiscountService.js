@@ -2,94 +2,96 @@ const DiscountRepository = require("../repositories/DiscountRepository");
 
 class DiscountService {
   async getAll(params) {
-    return DiscountRepository.findAll(params);
+    return await DiscountRepository.findAll(params);
   }
 
   async getById(id) {
     const discount = await DiscountRepository.findById(id);
-    if (!discount) throw new Error("Discount không tồn tại");
+
+    if (!discount) {
+      throw new Error("Không tìm thấy mã giảm giá");
+    }
+
     return discount;
   }
 
   async create(data) {
-    data.code = data.code?.trim()?.toUpperCase();
+    const existing = await DiscountRepository.findByCode(data.code.trim());
 
-    const existing = await DiscountRepository.findByCode(data.code);
     if (existing) {
       throw new Error("Mã giảm giá đã tồn tại");
     }
 
-    return DiscountRepository.create({
+    return await DiscountRepository.create({
       ...data,
-      is_active: data.is_active ? 1 : 0,
+      code: data.code.trim(),
+      description: data.description?.trim() || null,
     });
   }
 
   async update(id, data) {
-    const current = await DiscountRepository.findById(id);
-    if (!current) throw new Error("Discount không tồn tại");
+    const discount = await DiscountRepository.findById(id);
 
-    const normalizedCode = data.code?.trim()?.toUpperCase();
-
-    if (Number(current.used_count) > 0) {
-      return DiscountRepository.update(id, {
-        description: data.description?.trim(),
-        valid_until: data.valid_until,
-        is_active: data.is_active ? 1 : 0,
-      });
+    if (!discount) {
+      throw new Error("Không tìm thấy mã giảm giá");
     }
 
-    const existing = await DiscountRepository.findByCode(normalizedCode);
-    if (existing && existing.id != id) {
-      throw new Error("Mã giảm giá đã tồn tại");
+    const usedCount = Number(discount.used_count || 0);
+
+    if (usedCount > 0) {
+      const allowedData = {};
+
+      if (data.description !== undefined) {
+        allowedData.description = data.description?.trim() || null;
+      }
+
+      if (data.valid_until !== undefined) {
+        allowedData.valid_until = data.valid_until;
+      }
+
+      if (Object.keys(allowedData).length === 0) {
+        throw new Error(
+          "Mã giảm giá đã được sử dụng, chỉ được sửa ngày kết thúc, mô tả"
+        );
+      }
+
+      await DiscountRepository.update(id, allowedData);
+      return true;
     }
 
-    return DiscountRepository.update(id, {
-      code: normalizedCode,
-      description: data.description?.trim(),
-      percentage: data.percentage,
-      min_order_amount: data.min_order_amount,
-      max_discount_amount: data.max_discount_amount,
-      usage_limit: data.usage_limit,
-      valid_from: data.valid_from,
-      valid_until: data.valid_until,
-      is_active: data.is_active ? 1 : 0,
+    if (
+      data.code &&
+      data.code.trim().toLowerCase() !==
+        String(discount.code).trim().toLowerCase()
+    ) {
+      const existing = await DiscountRepository.findByCode(data.code.trim());
+      if (existing) {
+        throw new Error("Mã giảm giá đã tồn tại");
+      }
+    }
+
+    await DiscountRepository.update(id, {
+      ...data,
+      code: data.code?.trim(),
+      description:
+        data.description !== undefined
+          ? data.description?.trim() || null
+          : undefined,
     });
+
+    return true;
   }
 
   async delete(id) {
     const discount = await DiscountRepository.findById(id);
 
     if (!discount) {
-      throw new Error("Không tồn tại");
+      throw new Error("Không tìm thấy mã giảm giá");
     }
 
-    // chưa có ai dùng → xóa cứng
-    if (Number(discount.used_count) === 0) {
-      await DiscountRepository.deleteHard(id);
-      return true;
-    }
-
-    // đã có người dùng → xóa mềm
-    const timestamp = this.getDeleteTimestamp();
-    const newCode = `${discount.code}__DELETED__${timestamp}`;
-
+    const newCode = `${discount.code}__deleted__${discount.id}__${Date.now()}`;
     await DiscountRepository.softDelete(id, newCode);
-
     return true;
-  }
-
-  getDeleteTimestamp() {
-    const now = new Date();
-
-    const yyyy = now.getFullYear();
-    const mm = String(now.getMonth() + 1).padStart(2, "0");
-    const dd = String(now.getDate()).padStart(2, "0");
-    const hh = String(now.getHours()).padStart(2, "0");
-    const mi = String(now.getMinutes()).padStart(2, "0");
-    const ss = String(now.getSeconds()).padStart(2, "0");
-
-    return `${yyyy}${mm}${dd}${hh}${mi}${ss}`;
   }
 }
 

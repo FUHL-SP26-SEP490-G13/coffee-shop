@@ -1,7 +1,7 @@
 import { useCallback, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, Search, Loader2, Plus, ArrowRight } from "lucide-react";
+import { Loader2, Plus, ArrowRight } from "lucide-react";
 import useFetch from "@/hooks/useFetch";
 import productService from "@/services/productService";
 import Footer from "@/components/layout/Footer";
@@ -24,7 +24,7 @@ export default function HomePage() {
   const products = data?.data || [];
 
   const fetchBanners = useCallback(() => {
-    return bannerService.getActiveList(); // API mới: /banners/active-list
+    return bannerService.getActiveList();
   }, []);
 
   const { data: bannerRes } = useFetch(fetchBanners);
@@ -34,7 +34,6 @@ export default function HomePage() {
     "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085";
 
   const YOUTUBE_VIDEO_ID = "eDyD7y3M_c0";
-
   const [activeBannerIndex, setActiveBannerIndex] = useState(0);
 
   return (
@@ -42,67 +41,73 @@ export default function HomePage() {
       <Header />
 
       {/* ===== HERO BANNER ===== */}
-      <section className="w-full pt-8">
-        <div className="w-full">
-          <div className="relative overflow-hidden">
-            <Swiper
-              modules={[Autoplay, Pagination, Navigation]}
-              autoplay={{ delay: 3500, disableOnInteraction: false }}
-              loop={true}
-              pagination={{ clickable: true }}
-              navigation
-              onSlideChange={(swiper) => {
-                setActiveBannerIndex(swiper.realIndex);
-              }}
-              className="w-full h-[420px] sm:h-[520px] lg:h-[650px]"
-            >
-              {(banners.length ? banners : [null]).map((b, idx) => (
-                <SwiperSlide key={b?.id ?? idx}>
-                  <div className="relative h-full">
-                    {/* IMAGE */}
-                    <img
-                      src={b?.image_url || defaultImage}
-                      alt={b?.title || "Banner"}
-                      className="w-full h-full object-cover"
-                    />
+      <section className="relative w-full h-[260px] sm:h-[340px] lg:h-[600px] overflow-hidden bg-gradient-to-b from-gray-50 to-white">
+        <Swiper
+          modules={[Autoplay, Pagination, Navigation]}
+          autoplay={{ delay: 5000, disableOnInteraction: false }}
+          loop={banners.length > 1}
+          pagination={{ clickable: true }}
+          navigation={banners.length > 1}
+          onSlideChange={(swiper) => setActiveBannerIndex(swiper.realIndex)}
+          className="w-full h-full homepage-banner-swiper"
+        >
+          {(banners.length ? banners : [null]).map((b, idx) => (
+            <SwiperSlide key={b?.id ?? idx}>
+              <div className="relative w-full h-full group">
+                <img
+                  src={b?.image_url || defaultImage}
+                  alt={b?.title || "Banner"}
+                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                />
 
-                    {/* BUTTON LEFT */}
-                    {b?.button_text && (
-                      <div className="absolute bottom-10 left-10">
+                <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/50 to-transparent">
+                  <div className="container mx-auto px-6 sm:px-10 lg:px-20 h-full flex items-center">
+                    <div className="max-w-2xl text-white">
+                      <h2 className="text-3xl sm:text-4xl lg:text-6xl font-bold mb-4 lg:mb-6 leading-tight">
+                        {b?.title || "Chào mừng đến với cửa hàng của chúng tôi"}
+                      </h2>
+
+                      <p className="text-base sm:text-lg lg:text-2xl mb-6 lg:mb-8 text-gray-100 leading-relaxed">
+                        {b?.subtitle ||
+                          "Khám phá những sản phẩm nổi bật hôm nay"}
+                      </p>
+
+                      {(b?.button_text || b?.button_link) && (
                         <Link to={b?.button_link || "/"}>
                           <Button
                             size="lg"
-                            className="bg-[#C65D2E] hover:bg-[#B55329] text-white px-8 py-3"
+                            className="bg-[#C65D2E] hover:bg-[#B55329] text-white px-6 sm:px-8 py-3 sm:py-4 rounded-full text-base sm:text-lg font-semibold shadow-lg transition-all duration-300 hover:scale-105"
                           >
-                            {b.button_text}
+                            {b?.button_text || "Xem ngay"}
+                            <ArrowRight className="ml-2 w-5 h-5" />
                           </Button>
                         </Link>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
-                </SwiperSlide>
-              ))}
-            </Swiper>
-            {/* DESCRIPTION */}
-            <div className="bg-[#f4eddc] py-6 text-center">
-              <h3 className="text-lg font-semibold text-gray-800">
-                {banners[activeBannerIndex]?.title}
-              </h3>
+                </div>
+              </div>
+            </SwiperSlide>
+          ))}
+        </Swiper>
 
-              <p className="text-gray-600 mt-2">
-                {banners[activeBannerIndex]?.subtitle}
-              </p>
-            </div>
+        {banners.length > 0 && (
+          <div className="bg-[#f4eddc] py-6 text-center">
+            <h3 className="text-lg font-semibold text-gray-800">
+              {banners[activeBannerIndex]?.title}
+            </h3>
+            <p className="text-gray-600 mt-2">
+              {banners[activeBannerIndex]?.subtitle}
+            </p>
           </div>
-        </div>
+        )}
       </section>
 
       {/* ===== MENU SECTION ===== */}
       <section className="w-full px-4 sm:px-6 lg:px-8 py-16 sm:py-20 lg:py-28">
         <div className="max-w-7xl mx-auto">
-          {/* Section Header */}
           <div className="text-center mb-14 sm:mb-20">
-            <p className="text-amber-600 text-2xl sm:text-1xl lg:text-2xl font-bold tracking-widest uppercase mb-3">
+            <p className="text-amber-600 text-2xl sm:text-xl lg:text-2xl font-bold tracking-widest uppercase mb-3">
               Menu Đặc Sắc
             </p>
             <p className="text-base sm:text-lg text-gray-600 max-w-2xl mx-auto">
@@ -110,7 +115,6 @@ export default function HomePage() {
             </p>
           </div>
 
-          {/* Loading State */}
           {loading && (
             <div className="flex items-center justify-center py-20">
               <div className="flex flex-col items-center gap-4">
@@ -120,7 +124,6 @@ export default function HomePage() {
             </div>
           )}
 
-          {/* Products Grid */}
           {!loading && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 sm:gap-6 lg:gap-8">
               {products.map((product, index) => (
@@ -132,28 +135,24 @@ export default function HomePage() {
                   }}
                 >
                   <Card className="overflow-hidden h-full flex flex-col bg-white border border-gray-200 hover:border-amber-300 shadow-md hover:shadow-2xl transition-all duration-500">
-                    {/* Image Container */}
                     <div className="relative overflow-hidden bg-gradient-to-br from-gray-200 to-gray-300 h-52 sm:h-60">
                       <img
                         src={product.image_url}
                         alt={product.name}
                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                        onError={(e) =>
-                          (e.target.src =
-                            "https://images.unsplash.com/photo-1509042239860-f550ce710b93")
-                        }
+                        onError={(e) => {
+                          e.currentTarget.src =
+                            "https://images.unsplash.com/photo-1509042239860-f550ce710b93";
+                        }}
                       />
 
-                      {/* Overlay Gradient on Hover */}
                       <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
-                      {/* Badge */}
                       <div className="absolute top-3 right-3 bg-amber-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">
                         Mới
                       </div>
                     </div>
 
-                    {/* Content */}
                     <div className="p-5 sm:p-6 flex flex-col flex-grow">
                       <h4 className="font-bold text-base sm:text-lg text-gray-900 mb-2 line-clamp-2 group-hover:text-amber-600 transition-colors duration-300">
                         {product.name}
@@ -164,7 +163,6 @@ export default function HomePage() {
                           "Thưởng thức hương vị đặc biệt của chúng tôi"}
                       </p>
 
-                      {/* Footer */}
                       <div className="flex justify-between items-center gap-3 pt-4 border-t border-gray-200">
                         <div>
                           <p className="text-2xl sm:text-3xl font-bold text-amber-600">
@@ -174,7 +172,7 @@ export default function HomePage() {
                         </div>
 
                         <Button size="sm" className="gap-1.5">
-                          <Plus className="w-4 h-4 transition-transform duration-300 group-hover/btn:rotate-90" />
+                          <Plus className="w-4 h-4" />
                           <span className="hidden sm:inline ml-1">Thêm</span>
                         </Button>
                       </div>
@@ -185,7 +183,6 @@ export default function HomePage() {
             </div>
           )}
 
-          {/* Empty State */}
           {!loading && products.length === 0 && (
             <div className="text-center py-20">
               <p className="text-xl text-gray-600">
@@ -196,17 +193,16 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ===== DIVIDER ===== */}
       <div className="w-full h-px bg-gradient-to-r from-transparent via-amber-300 to-transparent" />
 
       {/* ===== INTRO VIDEO ===== */}
       <section className="w-full px-4 sm:px-6 lg:px-8 py-14 sm:py-16 bg-white">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-8 sm:mb-10">
-            <p className="text-amber-600 font-bold sm:text-1xl lg:text-2xl tracking-widest uppercase mb-3">
+            <p className="text-amber-600 font-bold sm:text-xl lg:text-2xl tracking-widest uppercase mb-3">
               Giới thiệu
             </p>
-            <h4 className="text-xl sm:text-lg lg:text-2lg text-gray-900 mb-3 leading-tight">
+            <h4 className="text-xl sm:text-lg lg:text-2xl text-gray-900 mb-3 leading-tight">
               Một chút thư giãn với cà phê tuyệt hảo
             </h4>
             <p className="text-base sm:text-lg text-gray-600 max-w-2xl mx-auto">
@@ -216,7 +212,6 @@ export default function HomePage() {
           </div>
 
           <div className="rounded-2xl overflow-hidden shadow-lg border border-gray-200 bg-black">
-            {/* Responsive 16:9 */}
             <div className="relative w-full pt-[56.25%]">
               <iframe
                 className="absolute inset-0 w-full h-full"
@@ -231,12 +226,9 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ===== TIN TỨC NỔI BẬT ===== */}
       <FeaturedNews />
-
       <Footer />
 
-      {/* CSS Animation */}
       <style>{`
         @keyframes fadeInUp {
           from {
@@ -247,6 +239,31 @@ export default function HomePage() {
             opacity: 1;
             transform: translateY(0);
           }
+        }
+
+        .homepage-banner-swiper .swiper-button-prev,
+        .homepage-banner-swiper .swiper-button-next {
+          color: white;
+          background: rgba(255,255,255,0.18);
+          width: 48px;
+          height: 48px;
+          border-radius: 9999px;
+          backdrop-filter: blur(8px);
+        }
+
+        .homepage-banner-swiper .swiper-button-prev:after,
+        .homepage-banner-swiper .swiper-button-next:after {
+          font-size: 18px;
+          font-weight: 700;
+        }
+
+        .homepage-banner-swiper .swiper-pagination-bullet {
+          background: rgba(255,255,255,0.6);
+          opacity: 1;
+        }
+
+        .homepage-banner-swiper .swiper-pagination-bullet-active {
+          background: #C65D2E;
         }
       `}</style>
     </div>

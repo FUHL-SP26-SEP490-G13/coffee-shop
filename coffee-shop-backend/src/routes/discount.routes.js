@@ -9,7 +9,7 @@ const {
   createDiscountSchema,
   updateDiscountSchema,
 } = require("../validators/discountValidator");
-const ROLES = require("../config/role");
+const { ROLES } = require("../config/constants");
 
 router.get(
   "/",

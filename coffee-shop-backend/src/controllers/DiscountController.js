@@ -4,7 +4,7 @@ const response = require("../utils/response");
 class DiscountController {
   async getAll(req, res, next) {
     try {
-      const { page = 1, limit = 6, code = "", status = "" } = req.query;
+      const { page = 1, limit = 10, code = "", status = "" } = req.query;
 
       const discounts = await DiscountService.getAll({
         page: parseInt(page),
@@ -70,7 +70,7 @@ class DiscountController {
 
       if (
         error.message ===
-        "Mã giảm giá đã được sử dụng, chỉ được sửa mô tả, ngày kết thúc và trạng thái kích hoạt"
+        "Mã giảm giá đã được sử dụng, chỉ được sửa ngày kết thúc, mô tả"
       ) {
         return res.status(400).json({
           success: false,
@@ -79,7 +79,7 @@ class DiscountController {
             {
               field: "server",
               message:
-                "Mã giảm giá đã được sử dụng, chỉ được sửa mô tả, ngày kết thúc và trạng thái kích hoạt",
+                "Mã giảm giá đã được sử dụng, chỉ được sửa ngày kết thúc, mô tả",
             },
           ],
         });
@@ -92,7 +92,6 @@ class DiscountController {
   async delete(req, res, next) {
     try {
       await DiscountService.delete(req.params.id);
-
       return response.success(res, null, "Mã giảm giá đã xóa thành công");
     } catch (error) {
       next(error);
