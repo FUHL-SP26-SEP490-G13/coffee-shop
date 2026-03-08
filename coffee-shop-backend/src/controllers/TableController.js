@@ -1,4 +1,5 @@
 const TableService = require('../services/TableService');
+const TableReservationService = require('../services/TableReservationService');
 
 class TableController {
   /**
@@ -71,6 +72,22 @@ class TableController {
       res.json({
         success: true,
         message: 'Xóa bàn thành công',
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Reserve table
+   */
+  async reserveTable(req, res, next) {
+    try {
+      const reservation = await TableReservationService.createReservation(req.params.id, req.body);
+      res.status(201).json({
+        success: true,
+        data: reservation,
+        message: 'Đặt bàn thành công'
       });
     } catch (error) {
       next(error);

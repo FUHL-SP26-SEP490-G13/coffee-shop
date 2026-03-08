@@ -1,11 +1,11 @@
 const Joi = require('joi');
 
 const createTableSchema = Joi.object({
-  table_number: Joi.string().min(1).max(10).required().messages({
-    'string.empty': 'Số bàn không được để trống',
-    'string.min': 'Số bàn phải có ít nhất 1 ký tự',
-    'string.max': 'Số bàn không được vượt quá 10 ký tự',
-    'any.required': 'Số bàn là bắt buộc',
+  seatNumber: Joi.number().integer().min(1).required().messages({
+    'number.base': 'Số chỗ ngồi phải là số',
+    'number.integer': 'Số chỗ ngồi phải là số nguyên',
+    'number.min': 'Số chỗ ngồi phải lớn hơn 0',
+    'any.required': 'Số chỗ ngồi là bắt buộc',
   }),
   area_id: Joi.number().integer().positive().required().messages({
     'number.base': 'ID khu vực phải là số',
@@ -19,9 +19,10 @@ const createTableSchema = Joi.object({
 });
 
 const updateTableSchema = Joi.object({
-  table_number: Joi.string().min(1).max(10).optional().messages({
-    'string.min': 'Số bàn phải có ít nhất 1 ký tự',
-    'string.max': 'Số bàn không được vượt quá 10 ký tự',
+  seatNumber: Joi.number().integer().min(1).optional().messages({
+    'number.base': 'Số chỗ ngồi phải là số',
+    'number.integer': 'Số chỗ ngồi phải là số nguyên',
+    'number.min': 'Số chỗ ngồi phải lớn hơn 0',
   }),
   area_id: Joi.number().integer().positive().optional().messages({
     'number.base': 'ID khu vực phải là số',
