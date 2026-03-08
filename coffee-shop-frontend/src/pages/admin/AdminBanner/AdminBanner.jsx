@@ -15,19 +15,13 @@ import {
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import {
-  validateBannerForm,
-  validateBannerField,
-  BANNER_RULES,
-} from "@/utils/bannerValidation";
+import { validateBannerForm } from "@/utils/bannerValidation";
 
 export default function AdminBanner() {
   const [banners, setBanners] = useState([]);
@@ -36,6 +30,7 @@ export default function AdminBanner() {
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [keyword, setKeyword] = useState("");
+  const [status, setStatus] = useState("");
 
   const [showModal, setShowModal] = useState(false);
   const [editingBanner, setEditingBanner] = useState(null);
@@ -43,33 +38,73 @@ export default function AdminBanner() {
   const [previewImage, setPreviewImage] = useState(null);
   const [errors, setErrors] = useState({});
 
-  const [status, setStatus] = useState("");
-
-  const getCountText = (current, min) => `${current}/${min}`;
-
   const [form, setForm] = useState({
     title: "",
     subtitle: "",
     button_text: "",
     button_link: "",
     image: null,
-    is_active: true,
+    start_date: "",
+    end_date: "",
   });
 
   const limit = 5;
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
+  const resetForm = () => {
+    setEditingBanner(null);
+    setPreviewImage(null);
+    setErrors({});
+    setForm({
+      title: "",
+      subtitle: "",
+      button_text: "",
+      button_link: "",
+      image: null,
+      start_date: "",
+      end_date: "",
+    });
+  };
 
-    setForm((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+  const toDatetimeLocal = (value) => {
+    if (!value) return "";
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return "";
 
-    setErrors((prev) => ({
-      ...prev,
-      [name]: validateBannerField(name, value),
-    }));
+    const offset = d.getTimezoneOffset();
+    const local = new Date(d.getTime() - offset * 60000);
+    return local.toISOString().slice(0, 16);
+  };
+
+  const getBannerStatus = (banner) => {
+    const now = new Date();
+    const start = new Date(banner.start_date);
+    const end = new Date(banner.end_date);
+
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+      return {
+        text: "Không hợp lệ",
+        className: "bg-red-500/10 text-red-700 border-red-500/20",
+      };
+    }
+
+    if (now < start) {
+      return {
+        text: "Chưa bắt đầu",
+        className: "bg-yellow-500/10 text-yellow-700 border-yellow-500/20",
+      };
+    }
+
+    if (now > end) {
+      return {
+        text: "Đã kết thúc",
+        className: "bg-red-500/10 text-red-700 border-red-500/20",
+      };
+    }
+
+    return {
+      text: "Đang hoạt động",
+      className: "bg-green-500/10 text-green-700 border-green-500/20",
+    };
   };
 
   const fetchData = async () => {
@@ -82,10 +117,12 @@ export default function AdminBanner() {
         status,
       });
 
-      setBanners(res.data);
-      setTotal(res.total);
+      setBanners(res.data || []);
+      setTotal(res.total || 0);
     } catch (err) {
-      console.error(err);
+      console.error("Lỗi load banner:", err);
+      setBanners([]);
+      setTotal(0);
     } finally {
       setLoading(false);
     }
@@ -95,7 +132,21 @@ export default function AdminBanner() {
     fetchData();
   }, [page, keyword, status]);
 
-  // ================= CREATE / UPDATE =================
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+
+    setForm((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+
+    setErrors((prev) => ({
+      ...prev,
+      [name]: "",
+      server: "",
+    }));
+  };
+
   const handleSubmit = async () => {
     const newErrors = validateBannerForm(form, {
       requireImage: !editingBanner,
@@ -109,12 +160,15 @@ export default function AdminBanner() {
       const fd = new FormData();
       fd.append("title", form.title.trim());
       fd.append("subtitle", form.subtitle.trim());
-      fd.append("is_active", form.is_active);
       fd.append("button_text", form.button_text.trim());
       fd.append("button_link", form.button_link.trim());
+      fd.append("start_date", form.start_date);
+      fd.append("end_date", form.end_date);
       fd.append("type", "banner");
 
-      if (form.image) fd.append("image", form.image);
+      if (form.image) {
+        fd.append("image", form.image);
+      }
 
       if (editingBanner) {
         await bannerService.update(editingBanner.id, fd);
@@ -123,18 +177,7 @@ export default function AdminBanner() {
       }
 
       setShowModal(false);
-      setEditingBanner(null);
-      setPreviewImage(null);
-      setErrors({});
-      setForm({
-        title: "",
-        subtitle: "",
-        button_text: "",
-        button_link: "",
-        image: null,
-        is_active: true,
-      });
-
+      resetForm();
       fetchData();
     } catch (err) {
       if (err.response?.data?.errors) {
@@ -156,18 +199,22 @@ export default function AdminBanner() {
       }
     }
   };
-  // ================= DELETE =================
+
   const handleDelete = async (id) => {
     if (!window.confirm("Bạn có chắc muốn xóa quảng cáo này?")) return;
-    await bannerService.delete(id);
-    fetchData();
+
+    try {
+      await bannerService.delete(id);
+      fetchData();
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const totalPages = Math.ceil(total / limit);
 
   return (
     <div className="p-4 sm:p-6">
-      {/* HEADER */}
       <div className="mb-4 sm:mb-6 flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-primary/10 rounded-lg">
@@ -184,17 +231,7 @@ export default function AdminBanner() {
         <Button
           className="gap-2 w-full sm:w-auto"
           onClick={() => {
-            setEditingBanner(null);
-            setPreviewImage(null);
-            setErrors({});
-            setForm({
-              title: "",
-              subtitle: "",
-              button_text: "",
-              button_link: "",
-              image: null,
-              is_active: true,
-            });
+            resetForm();
             setShowModal(true);
           }}
         >
@@ -203,15 +240,17 @@ export default function AdminBanner() {
         </Button>
       </div>
 
-      {/* TABLE */}
       <Card className="p-4 sm:p-6 space-y-4">
         <div className="flex gap-3 flex-col sm:flex-row">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
-              placeholder="Tìm theo tiêu đề hoặc mô tả..."
+              placeholder="Tìm theo tiêu đề..."
               value={keyword}
-              onChange={(e) => setKeyword(e.target.value)}
+              onChange={(e) => {
+                setKeyword(e.target.value);
+                setPage(1);
+              }}
               className="pl-9"
             />
           </div>
@@ -225,8 +264,8 @@ export default function AdminBanner() {
             className="border rounded-md px-3 py-2 text-sm"
           >
             <option value="">Tất cả trạng thái</option>
-            <option value="active">Hoạt động</option>
-            <option value="inactive">Ngừng hoạt động</option>
+            <option value="active">Đang hoạt động</option>
+            <option value="inactive">Chưa bắt đầu / Đã kết thúc</option>
           </select>
         </div>
 
@@ -244,7 +283,9 @@ export default function AdminBanner() {
                   <tr className="border-b">
                     <th className="text-left py-3 px-4 font-medium">Ảnh</th>
                     <th className="text-left py-3 px-4 font-medium">Tiêu đề</th>
-                    <th className="text-left py-3 px-4 font-medium">Mô tả</th>
+                    <th className="text-left py-3 px-4 font-medium">
+                      Thời gian
+                    </th>
                     <th className="text-center py-3 px-4 font-medium">
                       Trạng thái
                     </th>
@@ -254,82 +295,96 @@ export default function AdminBanner() {
                   </tr>
                 </thead>
                 <tbody>
-                  {banners.map((b) => (
-                    <tr
-                      key={b.id}
-                      className="border-b hover:bg-muted/50 transition-colors"
-                    >
-                      <td className="py-3 px-4">
-                        <img
-                          src={b.image_url}
-                          alt={b.title}
-                          className="w-24 h-12 object-cover rounded-md border"
-                        />
-                      </td>
-                      <td className="py-3 px-4">{b.title}</td>
-                      <td className="py-3 px-4 text-muted-foreground max-w-xs truncate">
-                        {b.subtitle || "-"}
-                      </td>
-                      <td className="py-3 px-4 text-center">
-                        <Badge
-                          variant="secondary"
-                          className={
-                            b.is_active
-                              ? "bg-green-500/10 text-green-700 border-green-500/20"
-                              : "bg-red-500/10 text-red-700 border-red-500/20"
-                          }
-                        >
-                          {b.is_active ? "Hoạt động" : "Ngừng hoạt động"}
-                        </Badge>
-                      </td>
-                      <td className="py-3 px-4">
-                        <div className="flex gap-2 justify-end">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => {
-                              setEditingBanner(b);
-                              setErrors({});
-                              setForm({
-                                title: b.title,
-                                subtitle: b.subtitle,
-                                button_text: b.button_text || "",
-                                button_link: b.button_link || "",
-                                image: null,
-                                is_active: !!b.is_active,
-                              });
-                              setPreviewImage(b.image_url);
-                              setShowModal(true);
-                            }}
-                          >
-                            <Edit2 className="w-4 h-4 sm:mr-1" />
-                            <span className="hidden sm:inline">Sửa</span>
-                          </Button>
+                  {banners.map((b) => {
+                    const bannerStatus = getBannerStatus(b);
 
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => handleDelete(b.id)}
+                    return (
+                      <tr
+                        key={b.id}
+                        className="border-b hover:bg-muted/50 transition-colors"
+                      >
+                        <td className="py-3 px-4">
+                          <img
+                            src={b.image_url}
+                            alt={b.title}
+                            className="w-24 h-12 object-cover rounded-md border"
+                          />
+                        </td>
+
+                        <td className="py-3 px-4">{b.title}</td>
+
+                        <td className="py-3 px-4 text-muted-foreground whitespace-nowrap">
+                          <div>
+                            <div>
+                              Bắt đầu:{" "}
+                              {toDatetimeLocal(b.start_date).replace("T", " ")}
+                            </div>
+                            <div>
+                              Kết thúc:{" "}
+                              {toDatetimeLocal(b.end_date).replace("T", " ")}
+                            </div>
+                          </div>
+                        </td>
+
+                        <td className="py-3 px-4 text-center">
+                          <Badge
+                            variant="secondary"
+                            className={bannerStatus.className}
                           >
-                            <Trash2 className="w-4 h-4 sm:mr-1" />
-                            <span className="hidden sm:inline">Xóa</span>
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                            {bannerStatus.text}
+                          </Badge>
+                        </td>
+
+                        <td className="py-3 px-4">
+                          <div className="flex gap-2 justify-end">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setEditingBanner(b);
+                                setErrors({});
+                                setForm({
+                                  title: b.title || "",
+                                  subtitle: b.subtitle || "",
+                                  button_text: b.button_text || "",
+                                  button_link: b.button_link || "",
+                                  image: null,
+                                  start_date: toDatetimeLocal(b.start_date),
+                                  end_date: toDatetimeLocal(b.end_date),
+                                });
+                                setPreviewImage(b.image_url || null);
+                                setShowModal(true);
+                              }}
+                            >
+                              <Edit2 className="w-4 h-4 sm:mr-1" />
+                              <span className="hidden sm:inline">Sửa</span>
+                            </Button>
+
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => handleDelete(b.id)}
+                            >
+                              <Trash2 className="w-4 h-4 sm:mr-1" />
+                              <span className="hidden sm:inline">Xóa</span>
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
           </div>
         )}
 
-        {/* PAGINATION */}
         {totalPages > 1 && (
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6">
             <div className="text-xs sm:text-sm text-muted-foreground">
               Trang {page} / {totalPages}
             </div>
+
             <div className="flex items-center gap-2">
               <Button
                 variant="outline"
@@ -353,6 +408,7 @@ export default function AdminBanner() {
                   } else {
                     pageNum = page - 2 + i;
                   }
+
                   return (
                     <Button
                       key={pageNum}
@@ -381,24 +437,12 @@ export default function AdminBanner() {
         )}
       </Card>
 
-      {/* MODAL */}
       <Dialog
         open={showModal}
         onOpenChange={(open) => {
           setShowModal(open);
-
           if (!open) {
-            setErrors({});
-            setEditingBanner(null);
-            setPreviewImage(null);
-            setForm({
-              title: "",
-              subtitle: "",
-              button_text: "",
-              button_link: "",
-              image: null,
-              is_active: true,
-            });
+            resetForm();
           }
         }}
       >
@@ -407,11 +451,6 @@ export default function AdminBanner() {
             <DialogTitle>
               {editingBanner ? "Chỉnh sửa quảng cáo" : "Tạo quảng cáo mới"}
             </DialogTitle>
-            {/* <DialogDescription>
-              {editingBanner
-                ? "Cập nhật thông tin banner"
-                : "Thêm banner mới vào hệ thống"}
-            </DialogDescription> */}
           </DialogHeader>
 
           <div className="space-y-4 py-4">
@@ -424,28 +463,13 @@ export default function AdminBanner() {
                 value={form.title}
                 onChange={handleChange}
               />
-            </div>
-
-            <div className="flex items-center justify-between">
-              {errors.title ? (
+              {errors.title && (
                 <p className="text-sm text-red-500">{errors.title}</p>
-              ) : (
-                <p className="text-xs text-muted-foreground">
-                  {form.title.trim().length > 0 &&
-                    `Tiến độ: ${getCountText(
-                      form.title.trim().length,
-                      BANNER_RULES.TITLE_MIN
-                    )}`}
-                </p>
               )}
-
-              <p className="text-xs text-muted-foreground">
-                {form.title.length}/{BANNER_RULES.TITLE_MAX}
-              </p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="subtitle">Mô tả *</Label>
+              <Label htmlFor="subtitle">Mô tả</Label>
               <Input
                 id="subtitle"
                 name="subtitle"
@@ -453,172 +477,68 @@ export default function AdminBanner() {
                 value={form.subtitle}
                 onChange={handleChange}
               />
-            </div>
-
-            <div className="flex items-center justify-between">
-              {errors.subtitle ? (
+              {errors.subtitle && (
                 <p className="text-sm text-red-500">{errors.subtitle}</p>
-              ) : (
-                <p className="text-xs text-muted-foreground">
-                  {form.subtitle.trim().length > 0 &&
-                    `Tiến độ: ${getCountText(
-                      form.subtitle.trim().length,
-                      BANNER_RULES.SUBTITLE_MIN
-                    )}`}
-                </p>
               )}
-
-              <p className="text-xs text-muted-foreground">
-                {form.subtitle.length}/{BANNER_RULES.SUBTITLE_MAX}
-              </p>
             </div>
 
-            {/* <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="button_text">Text nút *</Label>
-                <Input
-                  id="button_text"
-                  name="button_text"
-                  placeholder="VD: Xem ngay"
-                  value={form.button_text}
-                  onChange={handleChange}
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                {errors.button_text ? (
-                  <p className="text-sm text-red-500">{errors.button_text}</p>
-                ) : (
-                  <p className="text-xs text-muted-foreground">
-                    {form.button_text.trim().length > 0 &&
-                      `Tiến độ: ${getCountText(
-                        form.button_text.trim().length,
-                        BANNER_RULES.BUTTON_TEXT_MIN
-                      )}`}
-                  </p>
-                )}
-
-                <p className="text-xs text-muted-foreground">
-                  {form.button_text.length}/{BANNER_RULES.BUTTON_TEXT_MAX}
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="button_link">Link nút *</Label>
-                <Input
-                  id="button_link"
-                  name="button_link"
-                  placeholder="VD: /products"
-                  value={form.button_link}
-                  onChange={handleChange}
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                {errors.button_link ? (
-                  <p className="text-sm text-red-500">{errors.button_link}</p>
-                ) : (
-                  <p className="text-xs text-muted-foreground">
-                    {form.button_link.trim().length > 0 &&
-                      `Tiến độ: ${getCountText(
-                        form.button_link.trim().length,
-                        BANNER_RULES.BUTTON_LINK_MIN
-                      )}`}
-                  </p>
-                )}
-
-                <p className="text-xs text-muted-foreground">
-                  {form.button_link.length}/{BANNER_RULES.BUTTON_LINK_MAX}
-                </p>
-              </div>
-            </div> */}
-            <div className="space-y-4">
-              <div>
-                <div className="space-y-2">
-                  <Label htmlFor="button_text">Text nút *</Label>
-                  <Input
-                    id="button_text"
-                    name="button_text"
-                    placeholder="VD: Xem ngay"
-                    value={form.button_text}
-                    onChange={handleChange}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between mt-2">
-                  {errors.button_text ? (
-                    <p className="text-sm text-red-500">{errors.button_text}</p>
-                  ) : (
-                    <p className="text-xs text-muted-foreground">
-                      {form.button_text.trim().length > 0 &&
-                        `Tiến độ: ${getCountText(
-                          form.button_text.trim().length,
-                          BANNER_RULES.BUTTON_TEXT_MIN
-                        )}`}
-                    </p>
-                  )}
-
-                  <p className="text-xs text-muted-foreground">
-                    {form.button_text.length}/{BANNER_RULES.BUTTON_TEXT_MAX}
-                  </p>
-                </div>
-              </div>
-
-              <div>
-                <div className="space-y-2">
-                  <Label htmlFor="button_link">Link nút *</Label>
-                  <Input
-                    id="button_link"
-                    name="button_link"
-                    placeholder="VD: /products"
-                    value={form.button_link}
-                    onChange={handleChange}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between mt-2">
-                  {errors.button_link ? (
-                    <p className="text-sm text-red-500">{errors.button_link}</p>
-                  ) : (
-                    <p className="text-xs text-muted-foreground">
-                      {form.button_link.trim().length > 0 &&
-                        `Tiến độ: ${getCountText(
-                          form.button_link.trim().length,
-                          BANNER_RULES.BUTTON_LINK_MIN
-                        )}`}
-                    </p>
-                  )}
-
-                  <p className="text-xs text-muted-foreground">
-                    {form.button_link.length}/{BANNER_RULES.BUTTON_LINK_MAX}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between py-2 px-3 rounded-lg border">
-              <div className="space-y-0.5">
-                <Label htmlFor="is_active" className="text-sm font-medium">
-                  Trạng thái quảng cáo
-                </Label>
-                <p className="text-xs text-muted-foreground">
-                  Bật để hiển thị quảng cáo trên trang chủ
-                </p>
-              </div>
-              <Switch
-                checked={form.is_active}
-                onCheckedChange={(checked) =>
-                  setForm((prev) => ({
-                    ...prev,
-                    is_active: checked,
-                  }))
-                }
+            <div className="space-y-2">
+              <Label htmlFor="button_text">Text nút</Label>
+              <Input
+                id="button_text"
+                name="button_text"
+                placeholder="VD: Xem ngay"
+                value={form.button_text}
+                onChange={handleChange}
               />
+              {errors.button_text && (
+                <p className="text-sm text-red-500">{errors.button_text}</p>
+              )}
             </div>
 
-            {errors.is_active && (
-              <p className="text-sm text-red-500">{errors.is_active}</p>
-            )}
+            <div className="space-y-2">
+              <Label htmlFor="button_link">Link nút *</Label>
+              <Input
+                id="button_link"
+                name="button_link"
+                placeholder="VD: /products hoặc https://example.com"
+                value={form.button_link}
+                onChange={handleChange}
+              />
+              {errors.button_link && (
+                <p className="text-sm text-red-500">{errors.button_link}</p>
+              )}
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="start_date">Ngày bắt đầu *</Label>
+                <Input
+                  id="start_date"
+                  name="start_date"
+                  type="datetime-local"
+                  value={form.start_date}
+                  onChange={handleChange}
+                />
+                {errors.start_date && (
+                  <p className="text-sm text-red-500">{errors.start_date}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="end_date">Ngày kết thúc *</Label>
+                <Input
+                  id="end_date"
+                  name="end_date"
+                  type="datetime-local"
+                  value={form.end_date}
+                  onChange={handleChange}
+                />
+                {errors.end_date && (
+                  <p className="text-sm text-red-500">{errors.end_date}</p>
+                )}
+              </div>
+            </div>
 
             <div className="space-y-2">
               <Label htmlFor="image">Ảnh quảng cáo</Label>
@@ -640,15 +560,16 @@ export default function AdminBanner() {
 
                   setErrors((prev) => ({
                     ...prev,
-                    image: validateBannerField("image", file, {
-                      required: !editingBanner,
-                    }),
+                    image: "",
+                    server: "",
                   }));
                 }}
               />
+
               {errors.image && (
                 <p className="text-sm text-red-500">{errors.image}</p>
               )}
+
               {!editingBanner && (
                 <p className="text-xs text-muted-foreground">
                   * Bắt buộc khi tạo mới
@@ -658,13 +579,17 @@ export default function AdminBanner() {
 
             {previewImage && (
               <div className="space-y-2">
-                <Label>Xem trước</Label>
+                <Label>Xem trước ảnh</Label>
                 <img
                   src={previewImage}
                   alt="Preview"
                   className="w-full h-48 object-cover rounded-lg border"
                 />
               </div>
+            )}
+
+            {errors.server && (
+              <p className="text-sm text-red-500">{errors.server}</p>
             )}
           </div>
 

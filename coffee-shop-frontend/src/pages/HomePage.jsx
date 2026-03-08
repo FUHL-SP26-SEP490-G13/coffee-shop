@@ -28,13 +28,31 @@ export default function HomePage() {
   }, []);
 
   const { data: bannerRes } = useFetch(fetchBanners);
-  const banners = bannerRes?.data ?? [];
+
+  const banners = (bannerRes?.data ?? []).filter((b) => {
+    if (!b) return false;
+
+    const now = new Date();
+    const start = b.start_date ? new Date(b.start_date) : null;
+    const end = b.end_date ? new Date(b.end_date) : null;
+
+    if (start && Number.isNaN(start.getTime())) return false;
+    if (end && Number.isNaN(end.getTime())) return false;
+
+    if (start && now < start) return false;
+    if (end && now > end) return false;
+
+    return true;
+  });
 
   const defaultImage =
     "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085";
 
   const YOUTUBE_VIDEO_ID = "eDyD7y3M_c0";
   const [activeBannerIndex, setActiveBannerIndex] = useState(0);
+
+  const safeBannerIndex =
+    banners.length > 0 ? activeBannerIndex % banners.length : 0;
 
   return (
     <div className="min-h-screen flex flex-col bg-white">
@@ -94,10 +112,10 @@ export default function HomePage() {
         {banners.length > 0 && (
           <div className="bg-[#f4eddc] py-6 text-center">
             <h3 className="text-lg font-semibold text-gray-800">
-              {banners[activeBannerIndex]?.title}
+              {banners[safeBannerIndex]?.title}
             </h3>
             <p className="text-gray-600 mt-2">
-              {banners[activeBannerIndex]?.subtitle}
+              {banners[safeBannerIndex]?.subtitle}
             </p>
           </div>
         )}

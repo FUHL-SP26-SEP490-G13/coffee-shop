@@ -9,12 +9,27 @@ class BannerService {
     return bannerRepository.findAll(params);
   }
 
+  validateDateRange(start_date, end_date) {
+    const start = new Date(start_date);
+    const end = new Date(end_date);
+
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+      throw new Error("Ngày bắt đầu hoặc ngày kết thúc không hợp lệ");
+    }
+
+    if (end < start) {
+      throw new Error("Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu");
+    }
+  }
+
   async create(data) {
     const existedTitle = await bannerRepository.findByTitle(data.title);
 
     if (existedTitle) {
       throw new Error("Tiêu đề quảng cáo đã tồn tại");
     }
+
+    this.validateDateRange(data.start_date, data.end_date);
 
     return bannerRepository.create(data);
   }
@@ -28,6 +43,8 @@ class BannerService {
     if (existedTitle) {
       throw new Error("Tiêu đề quảng cáo đã tồn tại");
     }
+
+    this.validateDateRange(data.start_date, data.end_date);
 
     return bannerRepository.update(id, data);
   }

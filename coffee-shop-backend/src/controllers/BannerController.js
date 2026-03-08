@@ -21,7 +21,7 @@ class BannerController {
         status,
       });
 
-      res.json({ success: true, ...result });
+      return res.json({ success: true, ...result });
     } catch (err) {
       next(err);
     }
@@ -47,7 +47,8 @@ class BannerController {
       const payload = {
         ...req.body,
         image_url: imageUrl,
-        is_active: Boolean(req.body.is_active === "true" || req.body.is_active),
+        start_date: req.body.start_date,
+        end_date: req.body.end_date,
       };
 
       await bannerService.create(payload);
@@ -70,6 +71,32 @@ class BannerController {
         });
       }
 
+      if (err.message === "Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu") {
+        return res.status(400).json({
+          success: false,
+          message: "Dữ liệu không hợp lệ",
+          errors: [
+            {
+              field: "end_date",
+              message: "Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu",
+            },
+          ],
+        });
+      }
+
+      if (err.message === "Ngày bắt đầu hoặc ngày kết thúc không hợp lệ") {
+        return res.status(400).json({
+          success: false,
+          message: "Dữ liệu không hợp lệ",
+          errors: [
+            {
+              field: "start_date",
+              message: "Ngày bắt đầu hoặc ngày kết thúc không hợp lệ",
+            },
+          ],
+        });
+      }
+
       next(err);
     }
   }
@@ -81,11 +108,8 @@ class BannerController {
 
       const data = {
         ...body,
-        is_active:
-          body.is_active === true ||
-          body.is_active === "true" ||
-          body.is_active === 1 ||
-          body.is_active === "1",
+        start_date: body.start_date,
+        end_date: body.end_date,
       };
 
       if (req.file) {
@@ -116,6 +140,32 @@ class BannerController {
         return res.status(404).json({
           success: false,
           message: "Không tìm thấy quảng cáo",
+        });
+      }
+
+      if (err.message === "Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu") {
+        return res.status(400).json({
+          success: false,
+          message: "Dữ liệu không hợp lệ",
+          errors: [
+            {
+              field: "end_date",
+              message: "Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu",
+            },
+          ],
+        });
+      }
+
+      if (err.message === "Ngày bắt đầu hoặc ngày kết thúc không hợp lệ") {
+        return res.status(400).json({
+          success: false,
+          message: "Dữ liệu không hợp lệ",
+          errors: [
+            {
+              field: "start_date",
+              message: "Ngày bắt đầu hoặc ngày kết thúc không hợp lệ",
+            },
+          ],
         });
       }
 
