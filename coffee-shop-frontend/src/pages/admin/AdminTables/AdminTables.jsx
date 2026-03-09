@@ -35,8 +35,15 @@ import tableService from "@/services/tableService";
 import areaService from "@/services/areaService";
 import TableModal from "./TableModal";
 import AreaModal from "../AdminAreas/AreaModal";
+import ReservationModal from "./ReservationModal";
+import { STORAGE_KEYS } from "@/constants";
+import { jwtDecode } from "jwt-decode";
 
 export default function AdminTables() {
+  const token = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN) || sessionStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
+  const user = token ? jwtDecode(token) : null;
+  const isStaff = user?.role_id === 2;
+
   const [tables, setTables] = useState([]);
   const [areas, setAreas] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -55,6 +62,10 @@ export default function AdminTables() {
   const [selectedArea, setSelectedArea] = useState(null);
   const [deleteAreaConfirmOpen, setDeleteAreaConfirmOpen] = useState(false);
   const [areaToDelete, setAreaToDelete] = useState(null);
+
+  // Reservation Modal States
+  const [isReservationModalOpen, setIsReservationModalOpen] = useState(false);
+  const [tableToReserve, setTableToReserve] = useState(null);
 
   // Pagination states
   const [page, setPage] = useState(1);
@@ -109,6 +120,21 @@ export default function AdminTables() {
     }
   };
 
+  const handleStatusChange = async (table, newStatus) => {
+    try {
+      await tableService.update(table.id, { status: newStatus });
+      toast.success("Cập nhật trạng thái thành công");
+      fetchData();
+    } catch (error) {
+      toast.error(error.message || "Cập nhật thất bại");
+    }
+  };
+
+  const handleReserveTable = (table) => {
+    setTableToReserve(table);
+    setIsReservationModalOpen(true);
+  };
+
   // -- AREA HANDLERS --
   const handleAddArea = () => {
     setSelectedArea(null);
@@ -143,7 +169,7 @@ export default function AdminTables() {
   };
 
   const filteredTables = tables.filter((table) => {
-    const matchesSearch = table.table_number
+    const matchesSearch = table.code
       ?.toLowerCase()
       .includes(searchTerm.toLowerCase());
     const matchesArea =
@@ -201,7 +227,7 @@ export default function AdminTables() {
           <div className="relative flex-1 w-full">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
             <Input
-              placeholder="Tìm theo số bàn..."
+              placeholder="Tìm theo mã bàn (VD: TB-01)..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10 h-10 w-full bg-white/50"
@@ -373,18 +399,16 @@ export default function AdminTables() {
                               : "text-amber-700"
                         }`}
                       >
-                        {table.table_number
-                          .replace("Table ", "")
-                          .replace("Bàn ", "")}
+                        {table.code?.replace("TB-", "")}
                       </span>
                     </div>
 
                     <div className="text-center space-y-1">
-                      <h3 className="text-sm font-bold text-foreground line-clamp-1">
-                        {table.table_number}
+                      <h3 className="text-sm font-bold text-foreground flex items-center justify-center gap-1">
+                        Bàn {table.code}
                       </h3>
-                      <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-widest">
-                        {table.area_name}
+                      <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-widest text-center">
+                        {table.area_name} • {table.seatNumber} Chỗ
                       </p>
                     </div>
 
@@ -413,6 +437,24 @@ export default function AdminTables() {
                           ? "Có khách"
                           : "Đã đặt"}
                     </div>
+
+                    {/* Staff Status Actions */}
+                    {isStaff && (
+                      <div className="flex gap-2 w-full justify-center mt-2 z-10 transition-all duration-300">
+                        {table.status === "available" && (
+                          <>
+                            <Button size="sm" onClick={(e) => { e.stopPropagation(); handleStatusChange(table, "occupied"); }}>Có khách</Button>
+                            <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); handleReserveTable(table); }}>Đã đặt</Button>
+                          </>
+                        )}
+                        {table.status === "reserved" && (
+                          <Button size="sm" onClick={(e) => { e.stopPropagation(); handleStatusChange(table, "occupied"); }}>Có khách</Button>
+                        )}
+                        {table.status === "occupied" && (
+                          <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); handleStatusChange(table, "available"); }}>Trống</Button>
+                        )}
+                      </div>
+                    )}
                   </Card>
                 ))
               ) : (
@@ -474,6 +516,13 @@ export default function AdminTables() {
         onSuccess={fetchData}
       />
 
+      <ReservationModal
+        isOpen={isReservationModalOpen}
+        onClose={() => setIsReservationModalOpen(false)}
+        table={tableToReserve}
+        onSuccess={fetchData}
+      />
+
       <AreaModal
         isOpen={isAreaModalOpen}
         onClose={() => setIsAreaModalOpen(false)}
@@ -491,7 +540,7 @@ export default function AdminTables() {
             <AlertDialogTitle>Xác nhận xóa bàn</AlertDialogTitle>
             <AlertDialogDescription>
               Bạn có chắc chắn muốn xóa bàn{" "}
-              <strong>{tableToDelete?.table_number}</strong> (
+              <strong>{tableToDelete?.code}</strong> (
               {tableToDelete?.area_name})? Hành động này không thể hoàn tác.
             </AlertDialogDescription>
           </AlertDialogHeader>
