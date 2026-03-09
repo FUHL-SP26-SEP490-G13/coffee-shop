@@ -10,7 +10,11 @@ class ProductRepository extends BaseRepository {
    * Find product by name
    */
   async findByName(name) {
-    return this.findOne({ name });
+    return this.findOne({ name, is_deleted: 0 });
+  }
+
+  async findByCode(code) {
+    return this.findOne({ code, is_deleted: 0 });
   }
 
   /**

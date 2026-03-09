@@ -57,35 +57,42 @@ class ProductService {
 
   /**
    * Create new product
-   * CHỈ TẠO: name, category_id, status, description, images
+   * CHỈ TẠO: name, code ,category_id, status, description, images
    */
   async createProduct(data) {
-    // 1. Validate category exists
+    // Validate category exists
     const category = await CategoryRepository.findById(data.category_id);
     if (!category || category.is_deleted === 1) {
       throw new ErrorResponse(404, 'Category không tồn tại');
     }
 
-    // 2. Check if product name already exists
-    const existingProduct = await ProductRepository.findByName(data.name);
-    if (existingProduct) {
-      throw new ErrorResponse(409, 'Tên product đã tồn tại');
+    // Check if product name already exists
+    const existingNameProduct = await ProductRepository.findByName(data.name);
+    if (existingNameProduct) {
+      throw new ErrorResponse(409, 'Tên sản phẩm đã tồn tại');
     }
 
-    // 3. Validate images
+    // Check if product code already exists
+    const existingCodeProduct = await ProductRepository.findByCode(data.code);
+    if (existingCodeProduct) {
+      throw new ErrorResponse(409, 'Mã code sản phẩm đã tồn tại');
+    }
+
+    // Validate images
     if (data.images && data.images.length > 5) {
       throw new ErrorResponse(400, 'Tối đa chỉ được upload 5 ảnh');
     }
 
-    // 4. Create product (KHÔNG có sizes)
+    // Create product (KHÔNG có sizes)
     const product = await ProductRepository.create({
       name: data.name.trim(),
+      code: data.code.trim().toUpperCase(),
       category_id: data.category_id,
       status: data.status || 'available',
       description: data.description || null,
     });
 
-    // 5. Create product images
+    // Create product images
     // ẢNH ĐẦU TIÊN LÀ THUMBNAIL
     if (data.images && Array.isArray(data.images)) {
       for (let i = 0; i < data.images.length; i++) {
@@ -102,16 +109,16 @@ class ProductService {
 
   /**
    * Update product
-   * CÓ THỂ: name, category_id, status, description, sizes, images
+   * CÓ THỂ: name, code ,category_id, status, description, sizes, images
    */
   async updateProduct(id, data) {
-    // 1. Check if product exists
+    // Check if product exists
     const existingProduct = await ProductRepository.findById(id);
     if (!existingProduct) {
       throw new ErrorResponse(404, 'Product không tồn tại');
     }
 
-    // 2. Prepare update data for product table
+    // Prepare update data for product table
     const updateData = {};
 
     if (data.name !== undefined) {
@@ -120,9 +127,20 @@ class ProductService {
         data.name.trim(),
       );
       if (duplicateProduct && duplicateProduct.id !== parseInt(id)) {
-        throw new ErrorResponse(409, 'Tên product đã tồn tại');
+        throw new ErrorResponse(409, 'Tên sản phẩm đã tồn tại');
       }
       updateData.name = data.name.trim();
+    }
+
+    if (data.code !== undefined) {
+      // Check duplicate code
+      const duplicateCodeProduct = await ProductRepository.findByCode(
+        data.code.trim(),
+      );
+      if (duplicateCodeProduct && duplicateCodeProduct.id !== parseInt(id)) {
+        throw new ErrorResponse(409, 'Mã code sản phẩm đã tồn tại');
+      }
+      updateData.code = data.code.trim().toUpperCase();
     }
 
     if (data.category_id !== undefined) {
@@ -169,12 +187,12 @@ class ProductService {
       const sizes = data.sizes.map((s) => s.size);
       const uniqueSizes = [...new Set(sizes)];
       if (sizes.length !== uniqueSizes.length) {
-       throw new ErrorResponse(400, 'Không được có size trùng lặp');
+        throw new ErrorResponse(400, 'Không được có size trùng lặp');
       }
 
       // Max 3 sizes
       if (data.sizes.length > 3) {
-         throw new ErrorResponse(400, 'Tối đa chỉ có 3 loại size (S, M, L)');
+        throw new ErrorResponse(400, 'Tối đa chỉ có 3 loại size (S, M, L)');
       }
 
       // Get list of sizes to keep
@@ -319,7 +337,7 @@ class ProductService {
     const product = await ProductRepository.findById(id);
 
     if (!product) {
-       throw new ErrorResponse(404, 'Product không tồn tại');
+      throw new ErrorResponse(404, 'Product không tồn tại');
     }
 
     if (product.status === 'available') {

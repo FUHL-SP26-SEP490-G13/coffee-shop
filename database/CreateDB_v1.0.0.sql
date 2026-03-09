@@ -348,7 +348,7 @@ CREATE TABLE `product_sizes` (
   `id` int NOT NULL AUTO_INCREMENT,
   `product_id` int NOT NULL,
   `size` enum('S','M','L') NOT NULL,
-  `price` decimal(10,2) NOT NULL,
+  `price` INT NOT NULL,
   `is_deleted` tinyint(1) DEFAULT '0',
   PRIMARY KEY (`id`),
   UNIQUE KEY `product_id` (`product_id`,`size`),
