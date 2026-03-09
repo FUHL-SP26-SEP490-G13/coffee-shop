@@ -6,7 +6,7 @@ const newsletterService = {
   },
 
   delete(id) {
-    return axios.delete(`/news-letter${id}`);
+    return axios.delete(`/news-letter/${id}`);
   },
 };
 

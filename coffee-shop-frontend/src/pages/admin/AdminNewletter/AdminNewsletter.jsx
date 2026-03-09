@@ -18,21 +18,6 @@ export default function AdminNewsletter() {
 
   const [notification, setNotification] = useState("");
 
-  // const fetchData = async () => {
-  //   try {
-  //     const res = await newsletterService.getAll();
-  //     const data = res.data.data || [];
-  //     setEmails(data);
-  //     setFilteredEmails(data);
-  //   } catch (err) {
-  //     console.error(err);
-  //     setEmails([]);
-  //     setFilteredEmails([]);
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
-
   const fetchData = async () => {
     try {
       const res = await newsletterService.getAll();
@@ -51,26 +36,22 @@ export default function AdminNewsletter() {
   };
   
   useEffect(() => {
-    socket.emit("join-admin-room");
+    const handleAdminNotification = (data) => {
+      if (data?.type !== "newsletter") return;
 
-    const handleNewNewsletter = (newItem) => {
-      setNotification(newItem.message || `Có email mới: ${newItem.email}`);
+      setNotification(data.message || "Có email đăng ký mới");
 
-      setEmails((prev) => {
-        const existed = prev.some((item) => item.id === newItem.id);
-        if (existed) return prev;
-        return [newItem, ...prev];
-      });
+      fetchData();
 
       setTimeout(() => {
         setNotification("");
       }, 4000);
     };
 
-    socket.on("newsletter:new", handleNewNewsletter);
+    socket.on("admin:notification", handleAdminNotification);
 
     return () => {
-      socket.off("newsletter:new", handleNewNewsletter);
+      socket.off("admin:notification", handleAdminNotification);
     };
   }, []);
 

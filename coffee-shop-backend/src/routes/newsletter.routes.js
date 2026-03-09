@@ -3,7 +3,7 @@ const router = express.Router();
 const controller = require("../controllers/NewsletterController");
 const { authenticate } = require("../middlewares/auth");
 const { authorize } = require("../middlewares/authorize");
-const { ROLES } = require("../config/constants");
+const { ROLES_STRING } = require("../config/constants");
 
 // PUBLIC
 router.post("/", controller.subscribe.bind(controller));
@@ -12,14 +12,14 @@ router.post("/", controller.subscribe.bind(controller));
 router.get(
   "/",
   authenticate,
-  authorize([ROLES.MANAGER]),
+  authorize([ROLES_STRING.MANAGER]),
   controller.getAll.bind(controller)
 );
 
 router.delete(
   "/:id",
   authenticate,
-  authorize([ROLES.MANAGER]),
+  authorize([ROLES_STRING.MANAGER]),
   controller.delete.bind(controller)
 );
 
