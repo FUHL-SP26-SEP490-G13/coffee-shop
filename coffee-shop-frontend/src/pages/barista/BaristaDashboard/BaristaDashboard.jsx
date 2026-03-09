@@ -13,10 +13,10 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
-} from "../../components/ui/card";
-import { Button } from "../../components/ui/button";
-import { Progress } from "../../components/ui/progress";
-import baristaDashboardService from "../../services/baristaDashboardService";
+} from "../../../components/ui/card";
+import { Button } from "../../../components/ui/button";
+import { Progress } from "../../../components/ui/progress";
+import baristaDashboardService from "../../../services/baristaDashboardService";
 
 // Define StatCard outside component to avoid creating components during render
 const StatCard = (props) => {
@@ -125,6 +125,8 @@ export function BaristaDashboard() {
   const completed = dashboardData.completedToday;
   const preparing = dashboardData.preparingOrders;
 
+  const maxOrders = Math.max(...orderStats.map((s) => s.orders), 1);
+
   return (
     <div className="flex-1 p-8">
       {/* Loading State */}
@@ -158,9 +160,9 @@ export function BaristaDashboard() {
           <div className="mb-8">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-3xl font-semibold">Dashboard</h1>
+                <h1 className="text-3xl font-semibold">Tổng quan</h1>
                 <p className="text-muted-foreground mt-1">
-                  Tổng quan hoạt động pha chế hôm nay
+                  Hoạt động pha chế hôm nay
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -324,7 +326,7 @@ export function BaristaDashboard() {
                   >
                     <div
                       className="w-full bg-gradient-to-t from-blue-500 to-blue-400 rounded-t-lg transition-all hover:from-blue-600 hover:to-blue-500"
-                      style={{ height: `${(stat.orders / 12) * 100}%` }}
+                      style={{ height: `${(stat.orders / maxOrders) * 100}%` }}
                     ></div>
                     <span className="text-xs text-muted-foreground">
                       {stat.hour}:00

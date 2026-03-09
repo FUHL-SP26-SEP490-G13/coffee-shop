@@ -15,18 +15,13 @@ export default function AdminDiscounts() {
   const [searchCode, setSearchCode] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
 
-  const [filters, setFilters] = useState({
-    code: "",
-    status: "",
-  });
-
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
   const abortRef = useRef(null);
   const navigate = useNavigate();
 
-  const fetchDiscounts = async () => {
+  const fetchDiscounts = async (customPage = page) => {
     try {
       if (abortRef.current) {
         abortRef.current.abort();
@@ -35,13 +30,11 @@ export default function AdminDiscounts() {
       const controller = new AbortController();
       abortRef.current = controller;
 
-      setLoading(true);
-
       const res = await discountService.getAll(
         {
-          page,
-          code: filters.code,
-          status: filters.status,
+          page: customPage,
+          code: searchCode,
+          status: statusFilter,
         },
         controller.signal
       );
@@ -57,34 +50,44 @@ export default function AdminDiscounts() {
     }
   };
 
-  // Load lần đầu
+  /* =============================
+     LOAD LẦN ĐẦU
+  ============================= */
   useEffect(() => {
     fetchDiscounts();
   }, []);
 
-  // Khi đổi page
+  /* =============================
+     KHI ĐỔI PAGE
+  ============================= */
   useEffect(() => {
-    fetchDiscounts();
+    fetchDiscounts(page);
   }, [page]);
 
-  // Khi filter thay đổi (sau khi bấm nút)
+  /* =============================
+     REAL-TIME FILTER (DEBOUNCE)
+  ============================= */
   useEffect(() => {
-    fetchDiscounts();
-  }, [filters]);
+    const delay = setTimeout(() => {
+      setPage(1);
+      fetchDiscounts(1);
+    }, 500);
 
-  const handleSearch = () => {
-    setPage(1);
-    setFilters({
-      code: searchCode,
-      status: statusFilter,
-    });
-  };
+    return () => clearTimeout(delay);
+  }, [searchCode, statusFilter]);
 
-  const handleDelete = async (id) => {
+  const handleDelete = async (discount) => {
+    if (discount.used_count > 0) {
+      alert(
+        "Mã giảm giá đã được sử dụng nên không thể xóa. Bạn có thể tắt nó thay vì xóa."
+      );
+      return;
+    }
+
     if (!window.confirm("Bạn có chắc muốn xóa mã giảm giá?")) return;
 
     try {
-      await discountService.delete(id);
+      await discountService.delete(discount.id);
       fetchDiscounts();
     } catch (e) {
       alert("Xóa thất bại");
@@ -114,17 +117,16 @@ export default function AdminDiscounts() {
       </div>
 
       {/* FILTER */}
-      <Card className="p-4 mb-6">
+      <Card className="p-4 flex flex-col h-full">
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               type="text"
-              placeholder="Tìm theo mã giảm giá..."
+              placeholder="Tìm theo code, mô tả, %..."
               className="pl-10"
               value={searchCode}
               onChange={(e) => setSearchCode(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
             />
           </div>
 
@@ -134,108 +136,108 @@ export default function AdminDiscounts() {
             onChange={(e) => setStatusFilter(e.target.value)}
           >
             <option value="">Tất cả trạng thái</option>
-            <option value="active">Còn hạn</option>
+            <option value="active">Còn hạn (đang bật)</option>
             <option value="expired">Hết hạn</option>
+            <option value="enabled">Đang bật</option>
+            <option value="disabled">Đang tắt</option>
           </select>
-
-          <Button onClick={handleSearch}>
-            <Search className="w-4 h-4 mr-2" />
-            Tìm kiếm
-          </Button>
         </div>
       </Card>
 
       {/* GRID */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {loading
-          ? Array.from({ length: 6 }).map((_, i) => (
-              <Card key={i} className="p-4">
-                <div className="h-40 flex items-center justify-center">
-                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        {loading ? (
+          Array.from({ length: 6 }).map((_, i) => (
+            <Card key={i} className="p-4">
+              <div className="h-40 flex items-center justify-center">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            </Card>
+          ))
+        ) : items.length === 0 ? (
+          <div className="col-span-full text-center py-12 text-muted-foreground">
+            Không có mã giảm giá nào!
+          </div>
+        ) : (
+          items.map((d) => {
+            const usagePercentage =
+              d.usage_limit > 0 ? (d.used_count / d.usage_limit) * 100 : 0;
+
+            const expired = d.valid_until
+              ? new Date(d.valid_until).getTime() < Date.now()
+              : false;
+
+            return (
+              <Card key={d.id} className="p-4">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                      <Percent className="w-5 h-5" />
+                    </div>
+
+                    <div>
+                      <div className="text-sm mb-1">{d.percentage}% OFF</div>
+
+                      <div className="text-xs text-muted-foreground">
+                        Min order:{" "}
+                        {Number(d.min_order_amount || 0).toLocaleString()}đ
+                      </div>
+
+                      {d.max_discount_amount != null && (
+                        <div className="text-xs text-muted-foreground">
+                          Max: {Number(d.max_discount_amount).toLocaleString()}đ
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <Badge variant="secondary">
+                    {d.is_active ? (expired ? "Hết hạn" : "Còn hạn") : "Tắt"}
+                  </Badge>
+                </div>
+
+                <div className="bg-secondary rounded-lg p-3 mb-3">
+                  <div className="font-mono text-lg text-center">{d.code}</div>
+                  {d.description && (
+                    <div className="text-xs text-muted-foreground mt-1 text-center">
+                      {d.description}
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Usage</span>
+                    <span>
+                      {d.used_count} / {d.usage_limit || "∞"}
+                    </span>
+                  </div>
+                  <Progress value={usagePercentage} />
+                </div>
+
+                <div className="flex gap-2 mt-auto pt-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => navigate(`/admin/discounts/edit/${d.id}`)}
+                  >
+                    Edit
+                  </Button>
+
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-destructive"
+                    onClick={() => handleDelete(d)}
+                  >
+                    Delete
+                  </Button>
                 </div>
               </Card>
-            ))
-          : items.map((d) => {
-              const usagePercentage =
-                d.usage_limit > 0 ? (d.used_count / d.usage_limit) * 100 : 0;
-
-              const expired = d.valid_until
-                ? new Date(d.valid_until).getTime() < Date.now()
-                : false;
-
-              return (
-                <Card key={d.id} className="p-4">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-center gap-2">
-                      <div className="p-2 rounded-lg bg-primary/10 text-primary">
-                        <Percent className="w-5 h-5" />
-                      </div>
-
-                      <div>
-                        <div className="text-sm mb-1">{d.percentage}% OFF</div>
-
-                        <div className="text-xs text-muted-foreground">
-                          Min order:{" "}
-                          {Number(d.min_order_amount || 0).toLocaleString()}đ
-                        </div>
-
-                        {d.max_discount_amount != null && (
-                          <div className="text-xs text-muted-foreground">
-                            Max:{" "}
-                            {Number(d.max_discount_amount).toLocaleString()}đ
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    <Badge variant="secondary">
-                      {d.is_active ? (expired ? "Hết hạn" : "Còn hạn") : "Tắt"}
-                    </Badge>
-                  </div>
-
-                  <div className="bg-secondary rounded-lg p-3 mb-3">
-                    <div className="font-mono text-lg text-center">
-                      {d.code}
-                    </div>
-                    {d.description && (
-                      <div className="text-xs text-muted-foreground mt-1 text-center">
-                        {d.description}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Usage</span>
-                      <span>
-                        {d.used_count} / {d.usage_limit || "∞"}
-                      </span>
-                    </div>
-                    <Progress value={usagePercentage} />
-                  </div>
-
-                  <div className="flex gap-2 mt-4">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex-1"
-                      onClick={() => navigate(`/admin/discounts/edit/${d.id}`)}
-                    >
-                      Edit
-                    </Button>
-
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-destructive"
-                      onClick={() => handleDelete(d.id)}
-                    >
-                      Delete
-                    </Button>
-                  </div>
-                </Card>
-              );
-            })}
+            );
+          })
+        )}
       </div>
 
       {/* PAGINATION */}

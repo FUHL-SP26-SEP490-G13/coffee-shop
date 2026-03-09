@@ -28,6 +28,10 @@ router.get('/search', validate(searchProductSchema, 'query'), ProductController.
 // Get products by category
 router.get('/category/:categoryId', ProductController.getByCategory);
 
+
+// Get sizes by product ID
+router.get('/:id/sizes', validate(productIdSchema, 'params'), ProductController.getSizesByProductId);
+
 // Get product by ID
 router.get('/:id', validate(productIdSchema, 'params'), ProductController.getById);
 

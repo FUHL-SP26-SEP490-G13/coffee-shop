@@ -37,9 +37,8 @@ process.on('uncaughtException', (error) => {
 });
 
 // Handle unhandled promise rejections
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-  gracefulShutdown('UNHANDLED_REJECTION');
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("Unhandled Rejection at:", promise, "reason:", reason);
 });
 
 module.exports = server;

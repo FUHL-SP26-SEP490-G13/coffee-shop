@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Coffee, Lock, Mail } from "lucide-react";
+import { Coffee, Lock, Mail, Eye, EyeOff } from "lucide-react";
 import GoogleButton from "@/components/ui/GoogleButton";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -16,6 +16,7 @@ export default function LoginPage() {
 	const [remember, setRemember] = useState(true);
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [errorMessage, setErrorMessage] = useState("");
+	const [showPassword, setShowPassword] = useState(false);
 
 	const handleSubmit = async (event) => {
 		event.preventDefault();
@@ -150,13 +151,24 @@ export default function LoginPage() {
 										<Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
 										<Input
 											id="password"
-											type="password"
+											type={showPassword ? "text" : "password"}
 											placeholder="Nhập mật khẩu"
-											className="pl-9"
+											className="pl-9 pr-10"
 											autoComplete="current-password"
 											value={password}
 											onChange={(event) => setPassword(event.target.value)}
 										/>
+										<button
+											type="button"
+											onClick={() => setShowPassword(!showPassword)}
+											className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+										>
+											{showPassword ? (
+												<EyeOff className="h-4 w-4" />
+											) : (
+												<Eye className="h-4 w-4" />
+											)}
+										</button>
 									</div>
 								</div>
 

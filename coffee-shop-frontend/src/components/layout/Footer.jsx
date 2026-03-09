@@ -53,7 +53,7 @@ function Footer() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 lg:gap-10">
         {/* Company */}
         <div>
-          <img src={Logo} alt="Coffee Shop Logo" className="h-16 w-auto mb-4" style={{ display: "block", margin: "0 auto" }} />
+          <img src={Logo} alt="Coffee Shop Logo" className="h-16 w-auto mb-4"/>
           <p className="text-sm text-muted-foreground mb-4">
             Hương vị cà phê chuẩn vị, phục vụ mỗi ngày.
           </p>
@@ -93,7 +93,30 @@ function Footer() {
               </Link>
             </li>
 
-            <li>Thanh toán</li>
+            <li>
+              <Link
+                to="/payment-policy"
+                className="hover:text-black transition"
+              >
+                Chính sách thanh toán
+              </Link>
+            </li>
+            <li>
+              <Link
+                to="/terms-of-service"
+                className="hover:text-black transition"
+              >
+                Điều khoản sử dụng
+              </Link>
+            </li>
+            <li>
+              <Link
+                to="/return-policy"
+                className="hover:text-black transition"
+              >
+                Chính sách hoàn trả
+              </Link>
+            </li>
           </ul>
         </div>
 

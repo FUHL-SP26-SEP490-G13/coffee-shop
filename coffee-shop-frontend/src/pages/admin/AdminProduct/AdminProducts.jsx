@@ -20,18 +20,23 @@ import {
 import CreateProduct from './Action/CreateProduct';
 import UpdateProduct from './Action/UpdateProduct';
 import DeleteProduct from './Action/DeleteProduct';
+import AddRecipeModal from './Action/AddRecipeModal';
+import ViewRecipeModal from './Action/ViewRecipeModal';
 
 export default function AdminProducts() {
   const [searchQuery, setSearchQuery] = useState('');
 
+
   const [modal, setModal] = useState({
-    type: null, // "create" | "update" | "delete"
+    type: null, // "create" | "update" | "delete" | "recipe"
     data: null,
   });
+
 
   const openModal = (type, data = null) => {
     setModal({ type, data });
   };
+
 
   const closeModal = () => {
     setModal({ type: null, data: null });
@@ -45,10 +50,14 @@ export default function AdminProducts() {
   const {
     data: response,
     loading,
+    error,
     execute: refetch,
   } = useFetch(fetchProducts);
 
-  const products = response?.data.filter((p) => p.is_deleted === 0) || [];
+  const products = useMemo(() => {
+    const productList = Array.isArray(response?.data) ? response.data : [];
+    return productList.filter((p) => Number(p?.is_deleted ?? 0) === 0);
+  }, [response]);
 
   // Fetch Categories
   const fetchCategories = useCallback(() => {
@@ -133,6 +142,12 @@ export default function AdminProducts() {
 
       {/* ===== TABLE ===== */}
       <div className='bg-card rounded-xl border border-border'>
+        {error && (
+          <div className='px-4 py-3 text-sm text-red-600 border-b border-red-200 bg-red-50'>
+            Không thể tải danh sách sản phẩm. Vui lòng thử lại.
+          </div>
+        )}
+
         <Table>
           <TableHeader>
             <TableRow>
@@ -214,6 +229,22 @@ export default function AdminProducts() {
                     <TableCell className='text-right'>
                       <div className='flex items-center justify-end gap-2'>
                         <Button
+                          variant='outline'
+                          size='sm'
+                          className='cursor-pointer'
+                          onClick={() => openModal('recipe', product)}
+                        >
+                          Thêm công thức
+                        </Button>
+                        <Button
+                          variant='secondary'
+                          size='sm'
+                          className='cursor-pointer'
+                          onClick={() => openModal('view-recipe', product)}
+                        >
+                          Xem công thức
+                        </Button>
+                        <Button
                           variant='ghost'
                           size='sm'
                           className={'cursor-pointer'}
@@ -221,7 +252,6 @@ export default function AdminProducts() {
                         >
                           <Edit className='w-4 h-4' />
                         </Button>
-
                         <Button
                           variant='ghost'
                           size='sm'
@@ -266,6 +296,22 @@ export default function AdminProducts() {
           open={true}
           onClose={closeModal}
           onSuccess={refetch}
+        />
+      )}
+
+      {modal.type === 'recipe' && (
+        <AddRecipeModal
+          product={modal.data}
+          open={true}
+          onClose={closeModal}
+          onSuccess={closeModal}
+        />
+      )}
+      {modal.type === 'view-recipe' && (
+        <ViewRecipeModal
+          product={modal.data}
+          open={true}
+          onClose={closeModal}
         />
       )}
     </div>

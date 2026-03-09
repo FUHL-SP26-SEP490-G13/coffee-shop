@@ -4,10 +4,46 @@
 
 @custom-variant dark (&:is(.dark *));
 
+@font-face {
+  font-family: "SF Pro Display";
+  src: url("/assets/fonts/SF-Pro-Display-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "SF Pro Display";
+  src: url("/assets/fonts/SF-Pro-Display-Medium.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "SF Pro Display";
+  src: url("/assets/fonts/SF-Pro-Display-Semibold.woff2") format("woff2");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "SF Pro Display";
+  src: url("/assets/fonts/SF-Pro-Display-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 /* =========================
    THEME MAPPING (GIỮ NGUYÊN)
    ========================= */
 @theme inline {
+  --font-family-sans:
+    -apple-system, system-ui, "SF Pro Display", "SF Pro Text", "Segoe UI",
+    Roboto, "Helvetica Neue", Arial, sans-serif;
+
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -57,8 +93,13 @@
 :root {
   --radius: 0.75rem;
 
+  /* San Francisco Font (Apple) with fallbacks */
+  --font-sans:
+    -apple-system, system-ui, "SF Pro Display", "SF Pro Text", "Segoe UI",
+    Roboto, "Helvetica Neue", Arial, sans-serif;
+
   /* Nền trắng kem sáng sủa hơn, bớt ám vàng */
-  --background: #fffcf9; 
+  --background: #fffcf9;
   --foreground: #2d2420; /* Đen nâu nhẹ, dịu mắt hơn đen tuyền */
 
   --card: #ffffff;
@@ -68,11 +109,11 @@
   --popover-foreground: #2d2420;
 
   /* ĐỔI: Cam đất nung (Terracotta) - Nổi bật, ấm áp nhưng không già */
-  --primary: #c25e28; 
+  --primary: #c25e28;
   --primary-foreground: #ffffff;
 
   /* ĐỔI: Be hồng nhạt - Sạch sẽ hơn */
-  --secondary: #f4efe9; 
+  --secondary: #f4efe9;
   --secondary-foreground: #4a3b32;
 
   /* ĐỔI: Xám ấm nhẹ */
@@ -80,7 +121,7 @@
   --muted-foreground: #8a7a70;
 
   /* ĐỔI: Xanh Teal/Cổ vịt - Tạo điểm nhấn đối lập cực đẹp với màu cam đất */
-  --accent: #4c7f75; 
+  --accent: #4c7f75;
   --accent-foreground: #ffffff;
 
   --destructive: #d94646;
@@ -106,13 +147,12 @@
   --sidebar-ring: #c25e28;
 }
 
-
 /* =========================
    DARK MODE – SÂU LẮNG & HIỆN ĐẠI
    ========================= */
 .dark {
   /* Nền tối sâu (Warm Black) thay vì nâu nhờ */
-  --background: #14110f; 
+  --background: #14110f;
   --foreground: #f0e6dd;
 
   --card: #1c1917; /* Card nổi nhẹ lên */
@@ -122,7 +162,7 @@
   --popover-foreground: #f0e6dd;
 
   /* Primary Dark: Cam cháy rực rỡ hơn để nổi trên nền đen */
-  --primary: #e07a48; 
+  --primary: #e07a48;
   --primary-foreground: #14110f;
 
   --secondary: #292524;
@@ -132,7 +172,7 @@
   --muted-foreground: #a89c94;
 
   /* Accent Dark: Xanh ngọc trầm */
-  --accent: #5d968b; 
+  --accent: #5d968b;
   --accent-foreground: #14110f;
 
   --destructive: #e05d5d;
@@ -164,5 +204,6 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   }
 }

@@ -1,6 +1,6 @@
 import { Calendar as CalendarIcon, Clock } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
-import { Badge } from '../../components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
+import { Badge } from '../../../components/ui/badge';
 
 export function BaristaSchedule() {
   const baristaShifts = [

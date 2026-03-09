@@ -34,8 +34,10 @@ export default function FeaturedNews() {
       <div className="max-w-7xl mx-auto px-4 md:px-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-10">
           <div>
-            <h3 className="text-3xl md:text-4xl font-bold mb-2">Tin tức nổi bật</h3>
-            <p className="text-muted-foreground">Cập nhật những tin tức mới nhất từ Coffee Shop</p>
+            <h3 className="text-2xl md:text-2xl mb-2">Tin tức nổi bật</h3>
+            <p className="text-muted-foreground">
+              Cập nhật những tin tức mới nhất
+            </p>
           </div>
 
           <Link to="/news">

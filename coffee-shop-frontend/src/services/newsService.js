@@ -9,9 +9,9 @@ const newsService = {
 
   getDetail: (slug) => axiosClient.get(`/news/${slug}`),
   delete: (id) => axiosClient.delete(`/news/${id}`),
-  getAllAdmin(page = 1, title = "") {
+  getAllAdmin(page = 1, keyword = "") {
     return axiosClient.get("/news/admin", {
-      params: { page, limit: 10, title },
+      params: { page, limit: 10, keyword },
     });
   },
   update: (id, data) =>
@@ -27,6 +27,9 @@ const newsService = {
         "Content-Type": "multipart/form-data",
       },
     }),
+  getRelated(params) {
+    return axiosClient.get("/news/related", { params });
+  },
 };
 
 export default newsService;

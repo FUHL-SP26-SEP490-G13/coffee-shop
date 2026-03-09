@@ -33,6 +33,8 @@ export const API_ENDPOINTS = {
     GET_BY_ID: '/users/{id}',
   },
   ORDERS: '/orders',
+  TOPPINGS: '/toppings',
+  TOPPINGS_ADMIN: '/admin/toppings',
   AREAS: '/area',
 };
 
