@@ -41,7 +41,7 @@ export default function NewsListPage() {
               <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
                 <Newspaper className="h-8 w-8 text-primary" />
               </div>
-              <h1 className="text-1xl md:text-1xl lg:text-4xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+              <h1 className="text-2xl md:text-3xl lg:text-3xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
                 Tin tức & Sự kiện
               </h1>
               <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">

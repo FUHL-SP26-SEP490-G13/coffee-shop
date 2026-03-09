@@ -241,204 +241,212 @@ export default function AdminNewsCreatePage() {
   };
 
   return (
-    <div className="p-6">
-      <div className="mb-6">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => navigate("/admin/news-list")}
-          className="mb-4"
-        >
-          <ChevronLeft className="h-4 w-4 mr-1" />
-          Quay lại
-        </Button>
+    <div className="p-6 flex justify-center">
+      <div className="w-full max-w-4xl">
+        <div className="mb-6">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate("/admin/news-list")}
+            className="mb-4"
+          >
+            <ChevronLeft className="h-4 w-4 mr-1" />
+            Quay lại
+          </Button>
 
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-primary/10 rounded-lg">
-            <Newspaper className="h-6 w-6 text-primary" />
-          </div>
-          <div>
-            <span className="text-lg mb-1">Tạo bài viết mới</span>
-            <p className="text-sm text-muted-foreground mt-1">
-              Chia sẻ thông tin hữu ích cho mọi người
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div className="bg-card rounded-xl border border-border p-6 max-w-4xl">
-        <div className="space-y-6">
-          <div className="space-y-2">
-            <div className="flex items-center justify-between gap-3">
-              <Label htmlFor="title">Tiêu đề *</Label>
-              {aiLoadingTitle && (
-                <span className="text-xs text-muted-foreground flex items-center gap-1">
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                  AI đang gợi ý từ tiêu đề...
-                </span>
-              )}
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-primary/10 rounded-lg">
+              <Newspaper className="h-6 w-6 text-primary" />
             </div>
-
-            <Input
-              id="title"
-              name="title"
-              value={form.title}
-              onChange={handleChange}
-              placeholder="Nhập tiêu đề bài viết..."
-            />
-
-            {errors.title && (
-              <p className="text-sm text-red-500">{errors.title}</p>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="tag">Tag *</Label>
-            <Input
-              id="tag"
-              name="tag"
-              value={form.tag}
-              onChange={handleChange}
-              placeholder="Ví dụ: #vanct"
-            />
-
-            {errors.tag && <p className="text-sm text-red-500">{errors.tag}</p>}
-          </div>
-
-          {form.tag && (
-            <div className="pt-1">
-              <span className="text-xs text-muted-foreground mr-2">
-                Preview:
-              </span>
-              <span className="px-2 py-1 text-xs rounded bg-secondary">
-                {form.tag}
-              </span>
-            </div>
-          )}
-
-          <div className="space-y-2">
-            <Label htmlFor="thumbnail">Hình ảnh bài viết *</Label>
-
-            <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary transition cursor-pointer relative">
-              <input
-                id="thumbnail"
-                type="file"
-                accept="image/*"
-                onChange={handleThumbnailChange}
-                className="absolute inset-0 opacity-0 cursor-pointer"
-              />
-
-              <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-              <p className="text-sm font-medium">Chọn hình ảnh để tải lên</p>
-              <p className="text-xs text-muted-foreground">
-                Hỗ trợ JPG, PNG, WebP
+            <div>
+              <span className="text-lg mb-1">Tạo bài viết mới</span>
+              <p className="text-sm text-muted-foreground mt-1">
+                Chia sẻ thông tin hữu ích cho mọi người
               </p>
             </div>
-
-            {errors.thumbnail && (
-              <p className="text-sm text-red-500">{errors.thumbnail}</p>
-            )}
           </div>
+        </div>
 
-          {preview && (
-            <div className="mt-4 flex justify-center">
-              <img
-                src={preview}
-                className="max-h-48 w-auto object-contain rounded-lg border"
-                alt="Preview"
+        <div className="bg-card rounded-xl border border-border p-6 max-w-4xl">
+          <div className="space-y-6">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-3">
+                <Label htmlFor="title">Tiêu đề *</Label>
+                {aiLoadingTitle && (
+                  <span className="text-xs text-muted-foreground flex items-center gap-1">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    AI đang gợi ý từ tiêu đề...
+                  </span>
+                )}
+              </div>
+
+              <Input
+                id="title"
+                name="title"
+                value={form.title}
+                onChange={handleChange}
+                placeholder="Nhập tiêu đề bài viết..."
               />
-            </div>
-          )}
 
-          <div className="space-y-2">
-            <div className="flex items-center justify-between gap-3">
-              <Label htmlFor="summary">Tóm tắt *</Label>
-              {aiLoadingSummary && (
-                <span className="text-xs text-muted-foreground flex items-center gap-1">
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                  AI đang tạo nội dung từ tóm tắt...
-                </span>
+              {errors.title && (
+                <p className="text-sm text-red-500">{errors.title}</p>
               )}
             </div>
 
-            <Textarea
-              id="summary"
-              name="summary"
-              value={form.summary}
-              onChange={handleChange}
-              placeholder="Nhập tóm tắt bài viết..."
-              rows={3}
-            />
+            <div className="space-y-2">
+              <Label htmlFor="tag">Tag *</Label>
+              <Input
+                id="tag"
+                name="tag"
+                value={form.tag}
+                onChange={handleChange}
+                placeholder="Ví dụ: #vanct"
+              />
 
-            {errors.summary && (
-              <p className="text-sm text-red-500">{errors.summary}</p>
+              {errors.tag && (
+                <p className="text-sm text-red-500">{errors.tag}</p>
+              )}
+            </div>
+
+            {form.tag && (
+              <div className="pt-1">
+                <span className="text-xs text-muted-foreground mr-2">
+                  Preview:
+                </span>
+                <span className="px-2 py-1 text-xs rounded bg-secondary">
+                  {form.tag}
+                </span>
+              </div>
             )}
-          </div>
 
-          <div className="space-y-2">
-            <div className="flex items-center justify-between gap-3">
-              <Label>Nội dung *</Label>
+            <div className="space-y-2">
+              <Label htmlFor="thumbnail">Hình ảnh bài viết *</Label>
+
+              <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary transition cursor-pointer relative">
+                <input
+                  id="thumbnail"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleThumbnailChange}
+                  className="absolute inset-0 opacity-0 cursor-pointer"
+                />
+
+                <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                <p className="text-sm font-medium">Chọn hình ảnh để tải lên</p>
+                <p className="text-xs text-muted-foreground">
+                  Hỗ trợ JPG, PNG, WebP
+                </p>
+              </div>
+
+              {errors.thumbnail && (
+                <p className="text-sm text-red-500">{errors.thumbnail}</p>
+              )}
+            </div>
+
+            {preview && (
+              <div className="mt-4 flex justify-center">
+                <img
+                  src={preview}
+                  className="max-h-48 w-auto object-contain rounded-lg border"
+                  alt="Preview"
+                />
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-3">
+                <Label htmlFor="summary">Tóm tắt *</Label>
+                {aiLoadingSummary && (
+                  <span className="text-xs text-muted-foreground flex items-center gap-1">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    AI đang tạo nội dung từ tóm tắt...
+                  </span>
+                )}
+              </div>
+
+              <Textarea
+                id="summary"
+                name="summary"
+                value={form.summary}
+                onChange={handleChange}
+                placeholder="Nhập tóm tắt bài viết..."
+                rows={3}
+              />
+
+              {errors.summary && (
+                <p className="text-sm text-red-500">{errors.summary}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-3">
+                <Label>Nội dung *</Label>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleSuggestAgain}
+                  disabled={
+                    aiLoadingSummary ||
+                    form.title.trim().length < 10 ||
+                    form.summary.trim().length < 10
+                  }
+                >
+                  {aiLoadingSummary ? (
+                    <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-4 w-4 mr-1" />
+                  )}
+                  Gợi ý lại bằng AI
+                </Button>
+              </div>
+
+              <div className="border border-border rounded-lg overflow-hidden">
+                <RichTextEditor
+                  value={form.content}
+                  onChange={(value) => {
+                    setForm((prev) => ({
+                      ...prev,
+                      content: value,
+                    }));
+
+                    setErrors((prev) => ({
+                      ...prev,
+                      content: "",
+                      server: "",
+                    }));
+                  }}
+                />
+              </div>
+
+              {errors.content && (
+                <p className="text-sm text-red-500">{errors.content}</p>
+              )}
+            </div>
+
+            {errors.server && (
+              <p className="text-sm text-red-500">{errors.server}</p>
+            )}
+
+            <div className="flex gap-3 pt-4">
+              <Button
+                onClick={handleSubmit}
+                disabled={loading}
+                className="gap-2"
+              >
+                {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+                {loading ? "Đang đăng..." : "Đăng bài"}
+              </Button>
 
               <Button
-                type="button"
                 variant="outline"
-                size="sm"
-                onClick={handleSuggestAgain}
-                disabled={
-                  aiLoadingSummary ||
-                  form.title.trim().length < 10 ||
-                  form.summary.trim().length < 10
-                }
+                onClick={() => navigate("/admin/news-list")}
+                disabled={loading}
               >
-                {aiLoadingSummary ? (
-                  <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                ) : (
-                  <Sparkles className="h-4 w-4 mr-1" />
-                )}
-                Gợi ý lại bằng AI
+                Hủy
               </Button>
             </div>
-
-            <div className="border border-border rounded-lg overflow-hidden">
-              <RichTextEditor
-                value={form.content}
-                onChange={(value) => {
-                  setForm((prev) => ({
-                    ...prev,
-                    content: value,
-                  }));
-
-                  setErrors((prev) => ({
-                    ...prev,
-                    content: "",
-                    server: "",
-                  }));
-                }}
-              />
-            </div>
-
-            {errors.content && (
-              <p className="text-sm text-red-500">{errors.content}</p>
-            )}
-          </div>
-
-          {errors.server && (
-            <p className="text-sm text-red-500">{errors.server}</p>
-          )}
-
-          <div className="flex gap-3 pt-4">
-            <Button onClick={handleSubmit} disabled={loading} className="gap-2">
-              {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-              {loading ? "Đang đăng..." : "Đăng bài"}
-            </Button>
-
-            <Button
-              variant="outline"
-              onClick={() => navigate("/admin/news-list")}
-              disabled={loading}
-            >
-              Hủy
-            </Button>
           </div>
         </div>
       </div>

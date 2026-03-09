@@ -30,8 +30,9 @@ class AdminDashboardRepository {
     const [[row]] = await pool.query(`
     SELECT COUNT(*) as total
     FROM discount
-    WHERE (valid_until IS NULL OR valid_until >= NOW())
-      AND is_active = 1
+    WHERE deleted_at IS NULL
+      AND valid_from <= NOW()
+      AND (valid_until IS NULL OR valid_until >= NOW())
   `);
 
     return Number(row.total || 0);

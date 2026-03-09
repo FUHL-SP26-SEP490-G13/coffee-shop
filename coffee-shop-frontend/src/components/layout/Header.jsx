@@ -126,9 +126,10 @@ function Header() {
             variant="ghost"
             size="sm"
             onClick={() => navigate("/news")}
-            className="gap-1 sm:gap-2 text-xs sm:text-sm hidden lg:block"
+            className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm hidden lg:flex"
           >
             <Newspaper className="w-4 h-4" />
+            <span>Tin tức</span>
           </Button>
 
           <div className="hidden sm:flex items-center gap-1 lg:gap-2">
@@ -147,8 +148,6 @@ function Header() {
             {user && (
               <>
                 <div className="flex items-center gap-1 lg:gap-2">
-                  
-
                   <Button
                     variant="ghost"
                     size="sm"
@@ -285,7 +284,9 @@ function Header() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => setMobileUserDropdownOpen(!mobileUserDropdownOpen)}
+                  onClick={() =>
+                    setMobileUserDropdownOpen(!mobileUserDropdownOpen)
+                  }
                   className="w-full justify-start text-gray-700 text-xs gap-2"
                 >
                   <div className="w-6 h-6 rounded-full bg-amber-500 flex items-center justify-center text-white text-xs font-bold">
@@ -368,7 +369,6 @@ function Header() {
               <Newspaper className="w-4 h-4 mr-2" />
               Tin tức
             </Button>
-            
           </div>
         </div>
       )}

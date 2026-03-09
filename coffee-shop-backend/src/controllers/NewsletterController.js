@@ -18,7 +18,7 @@ class NewsletterController {
       const io = req.app.get("io");
 
       const result = await NotificationService.createForRole(ROLES.MANAGER, {
-        type: "newsletter",
+        type: "news-letter",
         title: "Email đăng ký mới",
         message: `${subscriber.email} vừa đăng ký nhận tin`,
         link: "/admin/news-letter",
