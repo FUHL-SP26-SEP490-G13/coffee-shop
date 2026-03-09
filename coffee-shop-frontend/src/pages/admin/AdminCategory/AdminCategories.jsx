@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
-import { Plus, Search, Edit, Trash2 } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Image as ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import categoryService from '../../../services/categoryService';
 import useFetch from '../../../hooks/useFetch';
@@ -58,13 +58,13 @@ export default function AdminCategories() {
     );
   }, [categories, searchQuery]);
 
-  // ✅ Handle create success - thêm vào đầu danh sách
+  // Handle create success - thêm vào đầu danh sách
   const handleCreateSuccess = (newCategory) => {
     setData((prev) => {
       if (!prev?.data) {
-        return { 
+        return {
           success: true,
-          data: [newCategory] 
+          data: [newCategory],
         };
       }
 
@@ -77,133 +77,138 @@ export default function AdminCategories() {
   };
 
   return (
-    <div className='p-6'>
+    <div className='p-6 max-w-7xl mx-auto'>
       {/* ===== HEADER ===== */}
-      <div className='flex items-center justify-between mb-6'>
+      <div className='flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8'>
         <div>
-          <h2 className='text-2xl font-semibold mb-1'>Danh mục</h2>
-          <p className='text-sm text-muted-foreground'>
-            Quản lý danh mục sản phẩm
+          <h2 className='text-3xl font-bold tracking-tight mb-1'>Danh mục</h2>
+          <p className='text-base text-muted-foreground'>
+            Quản lý các danh mục sản phẩm của bạn.
           </p>
         </div>
 
-        <Button onClick={() => openModal('create')} className={'cursor-pointer'}> 
-          <Plus className='w-4 h-4 mr-2' />
+        <Button onClick={() => openModal('create')} className='cursor-pointer shadow-sm'>
+          <Plus className='w-5 h-5 mr-2' />
           Thêm danh mục
         </Button>
       </div>
 
-      {/* ===== SEARCH ===== */}
-      <div className='mb-4'>
-        <div className='relative max-w-sm'>
-          <Search className='absolute left-3 top-2.5 w-4 h-4 text-muted-foreground' />
+      {/* ===== SEARCH & FILTER ===== */}
+      <div className='flex items-center mb-6'>
+        <div className='relative w-full max-w-md'>
+          <Search className='absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground' />
           <Input
-            placeholder='Tìm kiếm danh mục...'
+            placeholder='Tìm kiếm theo tên danh mục...'
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className='pl-9'
+            className='pl-10 h-11 text-base shadow-sm'
           />
         </div>
       </div>
 
       {/* ===== ERROR ===== */}
       {error && (
-        <div className='bg-red-50 text-red-600 px-4 py-3 rounded-md mb-4'>
-          Có lỗi xảy ra khi tải dữ liệu
+        <div className='bg-red-50/50 border border-red-200 text-red-600 px-4 py-3 rounded-lg mb-6'>
+          Có lỗi xảy ra khi tải dữ liệu. Vui lòng thử lại sau.
         </div>
       )}
 
       {/* ===== TABLE ===== */}
-      <div className='bg-card rounded-xl border border-border'>
+      <div className='bg-card rounded-xl border border-border shadow-sm overflow-hidden'>
         <Table>
-          <TableHeader>
+          <TableHeader className='bg-muted/50'>
             <TableRow>
-              <TableHead>Tên danh mục</TableHead>
-              <TableHead>Hình ảnh</TableHead>
-              <TableHead>Trạng thái</TableHead>
-              <TableHead className='text-right'>Hành động</TableHead>
+              {/* Đã set width cố định cho các cột để không bị co giãn lộn xộn */}
+              <TableHead className='w-[40%] text-base font-semibold py-4'>Tên danh mục</TableHead>
+              <TableHead className='w-[20%] text-base font-semibold py-4'>Mã Code</TableHead>
+              <TableHead className='w-[20%] text-base font-semibold py-4'>Hình ảnh</TableHead>
+              <TableHead className='w-[20%] text-base font-semibold py-4 text-right pr-6'>Hành động</TableHead>
             </TableRow>
           </TableHeader>
 
           <TableBody>
             {loading && (
               <TableRow>
-                <TableCell colSpan={4} className='text-center py-6'>
-                  Đang tải...
+                <TableCell colSpan={4} className='text-center py-12 text-muted-foreground text-base'>
+                  Đang tải dữ liệu...
                 </TableCell>
               </TableRow>
             )}
 
             {!loading && filteredCategories.length === 0 && (
               <TableRow>
-                <TableCell colSpan={4} className='text-center py-6'>
-                  Không có danh mục nào
+                <TableCell colSpan={4} className='text-center py-12 text-muted-foreground text-base'>
+                  Không tìm thấy danh mục nào.
                 </TableCell>
               </TableRow>
             )}
 
-            {!loading && filteredCategories.map((category) => (
-              <TableRow key={category.id}>
-                <TableCell>
-                  <div className='font-medium'>{category.name}</div>
-                </TableCell>
-
-                <TableCell>
-                  {category.image_url ? (
-                    <img
-                      src={category.image_url}
-                      alt={category.name}
-                      className='w-12 h-12 object-cover rounded-md'
-                    />
-                  ) : (
-                    <span className='text-muted-foreground text-sm'>
-                      Không có ảnh
+            {!loading &&
+              filteredCategories.map((category) => (
+                <TableRow key={category.id} className='hover:bg-muted/30 transition-colors'>
+                  {/* Tên danh mục */}
+                  <TableCell className='py-4'>
+                    <span className='text-base font-medium text-foreground'>
+                      {category.name}
                     </span>
-                  )}
-                </TableCell>
+                  </TableCell>
 
-                <TableCell>
-                  <Badge
-                    variant="outline"
-                    className={
-                      category.is_deleted === 0
-                        ? 'bg-green-500/10 text-green-700 border-green-500/20'
-                        : 'bg-red-500/10 text-red-700 border-red-500/20'
-                    }
-                  >
-                    {category.is_deleted === 0 ? 'Hoạt động' : 'Đã xóa'}
-                  </Badge>
-                </TableCell>
+                  <TableCell className='py-4'>
+                    <Badge variant='secondary' className='text-sm px-2.5 py-1 font-mono'>
+                      {category.code || 'N/A'}
+                    </Badge>
+                  </TableCell>
 
-                <TableCell className='text-right'>
-                  <div className='flex items-center justify-end gap-2'>
-                    <Button
-                      variant='ghost'
-                      className={'cursor-pointer'}
-                      size='sm'
-                      onClick={() => openModal('update', category) }
-                    >
-                      <Edit className='w-4 h-4' />
-                    </Button>
+                  {/* Hình ảnh: Tăng size, thêm viền và icon placeholder nếu lỗi/không có ảnh */}
+                  <TableCell className='py-4'>
+                    {category.image_url ? (
+                      <div className='w-16 h-16 rounded-lg border bg-muted/30 overflow-hidden flex items-center justify-center'>
+                        <img
+                          src={category.image_url}
+                          alt={category.name}
+                          className='w-full h-full object-cover'
+                          loading='lazy'
+                        />
+                      </div>
+                    ) : (
+                      <div className='w-16 h-16 rounded-lg border border-dashed bg-muted/10 flex flex-col items-center justify-center text-muted-foreground'>
+                        <ImageIcon className='w-6 h-6 mb-1 opacity-50' />
+                        <span className='text-[10px] font-medium'>No image</span>
+                      </div>
+                    )}
+                  </TableCell>
 
-                    <Button
-                      variant='ghost'
-                      size='sm'
-                      className='text-destructive hover:text-destructive cursor-pointer'
-                      onClick={() => openModal('delete', category)}
-                    >
-                      <Trash2 className='w-4 h-4' />
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
+                  {/* Hành động */}
+                  <TableCell className='py-4 pr-6 text-right'>
+                    <div className='flex items-center justify-end gap-1'>
+                      <Button
+                        variant='ghost'
+                        size='icon'
+                        className='h-9 w-9 cursor-pointer hover:bg-primary/10 hover:text-primary transition-colors'
+                        onClick={() => openModal('update', category)}
+                        title='Chỉnh sửa'
+                      >
+                        <Edit className='w-4 h-4' />
+                      </Button>
+
+                      <Button
+                        variant='ghost'
+                        size='icon'
+                        className='h-9 w-9 cursor-pointer text-destructive hover:bg-destructive/10 hover:text-destructive transition-colors'
+                        onClick={() => openModal('delete', category)}
+                        title='Xóa'
+                      >
+                        <Trash2 className='w-4 h-4' />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
           </TableBody>
         </Table>
       </div>
 
       {/* ===== MODALS ===== */}
-
       {modal.type === 'create' && (
         <CreateCategory
           open={true}

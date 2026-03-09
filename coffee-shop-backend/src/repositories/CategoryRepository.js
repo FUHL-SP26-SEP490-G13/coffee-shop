@@ -10,11 +10,14 @@ class CategoryRepository extends BaseRepository {
    * Get all active categories (not deleted)
    */
   async findAllActive(options = {}) {
-    return this.findAll({ is_deleted: 0 }, {
-      ...options,
-      orderBy: options.orderBy || 'name',
-      order: options.order || 'ASC'
-    });
+    return this.findAll(
+      { is_deleted: 0 },
+      {
+        ...options,
+        orderBy: options.orderBy || 'name',
+        order: options.order || 'ASC',
+      },
+    );
   }
 
   /**
@@ -22,6 +25,10 @@ class CategoryRepository extends BaseRepository {
    */
   async findByName(name) {
     return this.findOne({ name, is_deleted: 0 });
+  }
+
+  async findByCode(code) {
+    return this.findOne({ code, is_deleted: 0 });
   }
 
   /**
@@ -92,7 +99,7 @@ class CategoryRepository extends BaseRepository {
     const [rows] = await db.query(query, [
       searchPattern,
       parseInt(limit),
-      parseInt(offset)
+      parseInt(offset),
     ]);
     return rows;
   }

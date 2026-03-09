@@ -51,6 +51,7 @@ DROP TABLE IF EXISTS `area`;
 CREATE TABLE `area` (
   `id` int NOT NULL AUTO_INCREMENT,
   `name` varchar(50) DEFAULT NULL,
+  `image` VARCHAR(255) DEFAULT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -84,6 +85,7 @@ DROP TABLE IF EXISTS `category`;
 CREATE TABLE `category` (
   `id` int NOT NULL AUTO_INCREMENT,
   `name` varchar(100) NOT NULL,
+  `code` varchar(50) NOT NULL,
   `is_deleted` tinyint(1) DEFAULT '0',
   `image_url` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`)
@@ -364,6 +366,7 @@ DROP TABLE IF EXISTS `products`;
 CREATE TABLE `products` (
   `id` int NOT NULL AUTO_INCREMENT,
   `name` varchar(100) NOT NULL,
+  `code` varchar(50) NOT NULL,
   `category_id` int NOT NULL,
   `status` varchar(20) NOT NULL,
   `description` varchar(255) DEFAULT NULL,
@@ -470,7 +473,8 @@ DROP TABLE IF EXISTS `tables`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `tables` (
   `id` int NOT NULL AUTO_INCREMENT,
-  `table_number` varchar(10) DEFAULT NULL,
+  `seat_number` INT DEFAULT 4,
+  `code` VARCHAR(20) NOT NULL UNIQUE, 
   `area_id` int NOT NULL,
   `status` varchar(20) DEFAULT NULL,
   `is_deleted` tinyint(1) DEFAULT '0',

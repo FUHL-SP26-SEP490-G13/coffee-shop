@@ -156,6 +156,7 @@ class ProductService {
           throw new ErrorResponse(400, `Size "${sizeItem.size}" không hợp lệ`);
         }
 
+        // có thể thêm điều kiện price ở đây nữa nếu muốn
         if (!sizeItem.price || sizeItem.price <= 0) {
           throw new ErrorResponse(
             400,

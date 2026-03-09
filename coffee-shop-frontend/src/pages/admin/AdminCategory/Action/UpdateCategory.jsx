@@ -13,18 +13,20 @@ import { Label } from '../../../../components/ui/label';
 
 export default function UpdateCategory({ category, open, onClose, onSuccess }) {
   const [name, setName] = useState('');
+  const [code, setCode] = useState('');
   const [image, setImage] = useState(null);
   const [preview, setPreview] = useState(null);
   const [removeImage, setRemoveImage] = useState(false);
   const [loading, setLoading] = useState(false);
-  
-  // ✅ State lưu lỗi của từng field
+
+  // State lưu lỗi của từng field
   const [fieldErrors, setFieldErrors] = useState({});
 
   // Load initial data
   useEffect(() => {
     if (category) {
       setName(category.name || '');
+      setCode(category.code || '');
       setPreview(category.image_url || null);
       setRemoveImage(false);
       setImage(null);
@@ -38,13 +40,19 @@ export default function UpdateCategory({ category, open, onClose, onSuccess }) {
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      setFieldErrors(prev => ({ ...prev, image: 'Vui lòng chọn file hình ảnh' }));
+      setFieldErrors((prev) => ({
+        ...prev,
+        image: 'Vui lòng chọn file hình ảnh',
+      }));
       return;
     }
 
     // Validate file size (5MB)
     if (file.size > 5 * 1024 * 1024) {
-      setFieldErrors(prev => ({ ...prev, image: 'Kích thước ảnh tối đa 5MB' }));
+      setFieldErrors((prev) => ({
+        ...prev,
+        image: 'Kích thước ảnh tối đa 5MB',
+      }));
       return;
     }
 
@@ -52,14 +60,14 @@ export default function UpdateCategory({ category, open, onClose, onSuccess }) {
     setPreview(URL.createObjectURL(file));
     setRemoveImage(false);
     // Clear error khi chọn ảnh hợp lệ
-    setFieldErrors(prev => ({ ...prev, image: null }));
+    setFieldErrors((prev) => ({ ...prev, image: null }));
   };
 
   const handleRemoveImage = () => {
     setImage(null);
     setPreview(null);
     setRemoveImage(true);
-    setFieldErrors(prev => ({ ...prev, image: null }));
+    setFieldErrors((prev) => ({ ...prev, image: null }));
   };
 
   const handleUpdate = async () => {
@@ -72,12 +80,23 @@ export default function UpdateCategory({ category, open, onClose, onSuccess }) {
       errors.name = 'Vui lòng nhập tên danh mục';
     } else if (name.trim().length < 2) {
       errors.name = 'Tên danh mục phải có ít nhất 2 ký tự';
+    } else if (name.trim().length > 100) {
+      errors.name = 'Tên danh mục không được vượt quá 100 ký tự';
+    }
+
+    const codePattern = /^[A-Z0-9-]+$/;
+
+    if (!code.trim()) {
+      errors.code = 'Vui lòng nhập mã code';
+    } else if (code.trim().length < 2) {
+      errors.code = 'Mã code phải có ít nhất 2 ký tự';
+    } else if (!codePattern.test(code.trim().toUpperCase())) {
+      errors.code = 'Code chỉ được chứa chữ in hoa, số và dấu "-"';
     }
 
     // Nếu có lỗi client-side, hiển thị ngay
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors);
-      toast.error('Vui lòng kiểm tra lại thông tin');
       return;
     }
 
@@ -88,6 +107,8 @@ export default function UpdateCategory({ category, open, onClose, onSuccess }) {
 
       // Luôn gửi name
       formData.append('name', name.trim());
+
+      formData.append('code', code.trim().toUpperCase());
 
       // Nếu có upload ảnh mới
       if (image) {
@@ -112,24 +133,25 @@ export default function UpdateCategory({ category, open, onClose, onSuccess }) {
       }
     } catch (err) {
       console.error('Error updating category:', err);
-      
-      // ✅ Xử lý validation errors từ BE
-      if (err.response?.data?.errors && Array.isArray(err.response.data.errors)) {
+
+      // Xử lý validation errors từ BE
+      if (
+        err.response?.data?.errors &&
+        Array.isArray(err.response.data.errors)
+      ) {
         const errors = {};
         err.response.data.errors.forEach((error) => {
           errors[error.field] = error.message;
         });
         setFieldErrors(errors);
-        
-        // Toast tổng quát
-        toast.error(err.response.data.message || 'Vui lòng kiểm tra lại thông tin');
+        return;
       } else {
         // Lỗi thông thường (500, network, etc.)
-        const errorMessage = 
-          err.response?.data?.message || 
+        const errorMessage =
+          err.response?.data?.message ||
           err.message ||
           'Có lỗi xảy ra khi cập nhật danh mục';
-        
+
         toast.error(errorMessage);
       }
     } finally {
@@ -161,24 +183,62 @@ export default function UpdateCategory({ category, open, onClose, onSuccess }) {
             <Label htmlFor='name'>
               Tên danh mục <span className='text-red-500'>*</span>
             </Label>
-            <Input 
+            <Input
               id='name'
-              value={name} 
+              value={name}
               onChange={(e) => {
                 setName(e.target.value);
                 // Clear error khi user gõ
                 if (fieldErrors.name) {
-                  setFieldErrors(prev => ({ ...prev, name: null }));
+                  setFieldErrors((prev) => ({ ...prev, name: null }));
                 }
               }}
               disabled={loading}
-              className={fieldErrors.name ? 'border-red-500 focus-visible:ring-red-500' : ''}
+              className={
+                fieldErrors.name
+                  ? 'border-red-500 focus-visible:ring-red-500'
+                  : ''
+              }
             />
-            {/* ✅ Hiển thị lỗi */}
+            {/* Hiển thị lỗi */}
             {fieldErrors.name && (
               <p className='text-sm text-red-500 flex items-center gap-1'>
                 <span className='inline-block w-1 h-1 rounded-full bg-red-500'></span>
                 {fieldErrors.name}
+              </p>
+            )}
+          </div>
+
+          {/* Mã code danh mục */}
+
+          <div className='space-y-2'>
+            <Label htmlFor='code'>
+              Mã code <span className='text-red-500'>*</span>
+            </Label>
+
+            <Input
+              id='code'
+              placeholder='VD: CF, TEA-02...'
+              value={code}
+              onChange={(e) => {
+                setCode(e.target.value);
+
+                if (fieldErrors.code) {
+                  setFieldErrors((prev) => ({ ...prev, code: null }));
+                }
+              }}
+              disabled={loading}
+              className={
+                fieldErrors.code
+                  ? 'border-red-500 focus-visible:ring-red-500'
+                  : ''
+              }
+            />
+
+            {fieldErrors.code && (
+              <p className='text-sm text-red-500 flex items-center gap-1'>
+                <span className='inline-block w-1 h-1 rounded-full bg-red-500'></span>
+                {fieldErrors.code}
               </p>
             )}
           </div>
@@ -208,15 +268,19 @@ export default function UpdateCategory({ category, open, onClose, onSuccess }) {
               <p className='text-sm text-muted-foreground'>Không có ảnh</p>
             )}
 
-            <Input 
+            <Input
               id='image'
-              type='file' 
+              type='file'
               accept='image/*'
               onChange={handleImageChange}
               disabled={loading}
-              className={fieldErrors.image ? 'border-red-500 focus-visible:ring-red-500' : ''}
+              className={
+                fieldErrors.image
+                  ? 'border-red-500 focus-visible:ring-red-500'
+                  : ''
+              }
             />
-            {/* ✅ Hiển thị lỗi */}
+            {/* Hiển thị lỗi */}
             {fieldErrors.image && (
               <p className='text-sm text-red-500 flex items-center gap-1'>
                 <span className='inline-block w-1 h-1 rounded-full bg-red-500'></span>
@@ -227,16 +291,12 @@ export default function UpdateCategory({ category, open, onClose, onSuccess }) {
 
           {/* Buttons */}
           <div className='flex justify-end gap-2 pt-4'>
-            <Button 
-              variant='outline' 
-              onClick={onClose}
-              disabled={loading}
-            >
+            <Button variant='outline' onClick={onClose} disabled={loading}>
               Hủy
             </Button>
-            <Button 
-              onClick={handleUpdate} 
-              disabled={loading || !name.trim()}
+            <Button
+              onClick={handleUpdate}
+              disabled={loading || !name.trim() || !code.trim()}
             >
               {loading ? 'Đang cập nhật...' : 'Cập nhật'}
             </Button>

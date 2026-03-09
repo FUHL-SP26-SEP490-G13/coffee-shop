@@ -4,12 +4,26 @@ const Joi = require('joi');
  * Validation schema for creating category
  */
 const createCategorySchema = Joi.object({
-  name: Joi.string().min(2).max(100).required().messages({
+  name: Joi.string().trim().min(2).max(100).required().messages({
     'string.empty': 'Tên category không được để trống',
     'string.min': 'Tên category phải có ít nhất 2 ký tự',
     'string.max': 'Tên category không được vượt quá 100 ký tự',
     'any.required': 'Tên category là bắt buộc',
   }),
+  code: Joi.string()
+    .trim()
+    .pattern(/^[A-Z0-9-]+$/)
+    .min(2)
+    .max(50)
+    .required()
+    .messages({
+      'string.empty': 'Code category không được để trống',
+      'string.min': 'Code category phải có ít nhất 2 ký tự',
+      'string.max': 'Code category không được vượt quá 50 ký tự',
+      'string.pattern.base':
+        'Code chỉ được chứa chữ in hoa, số và dấu "-"',
+      'any.required': 'Code category là bắt buộc',
+    }),
 });
 
 /**
@@ -21,12 +35,23 @@ const updateCategorySchema = Joi.object({
     'string.min': 'Tên category phải có ít nhất 2 ký tự',
     'string.max': 'Tên category không được vượt quá 100 ký tự',
   }),
-  remove_image: Joi.alternatives()
-    .try(
-      Joi.boolean(),
-      Joi.string().valid('true', 'false')
-    )
+  code: Joi.string()
+    .trim()
+    .pattern(/^[A-Z0-9-]+$/)
+    .min(2)
+    .max(50)
     .optional()
+    .messages({
+      'string.empty': 'Code category không được để trống',
+      'string.min': 'Code category phải có ít nhất 2 ký tự',
+      'string.max': 'Code category không được vượt quá 50 ký tự',
+      'string.pattern.base':
+        'Code chỉ được chứa chữ in hoa, số và dấu "-"',
+      'any.required': 'Code category là bắt buộc',
+    }),
+  remove_image: Joi.alternatives()
+    .try(Joi.boolean(), Joi.string().valid('true', 'false'))
+    .optional(),
 });
 
 /**
@@ -48,11 +73,17 @@ const searchCategorySchema = Joi.object({
   keyword: Joi.string().allow('').optional().messages({
     'string.base': 'Từ khóa tìm kiếm phải là chuỗi',
   }),
-  limit: Joi.number().integer().min(1).max(100).optional().default(20).messages({
-    'number.base': 'Limit phải là số',
-    'number.min': 'Limit tối thiểu là 1',
-    'number.max': 'Limit tối đa là 100',
-  }),
+  limit: Joi.number()
+    .integer()
+    .min(1)
+    .max(100)
+    .optional()
+    .default(20)
+    .messages({
+      'number.base': 'Limit phải là số',
+      'number.min': 'Limit tối thiểu là 1',
+      'number.max': 'Limit tối đa là 100',
+    }),
   offset: Joi.number().integer().min(0).optional().default(0).messages({
     'number.base': 'Offset phải là số',
     'number.min': 'Offset không được âm',
