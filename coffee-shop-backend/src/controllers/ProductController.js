@@ -26,38 +26,31 @@ class ProductController {
    */
   async getAll(req, res, next) {
     try {
-      const { page, limit, status } = req.query;
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 8;
+      const { status } = req.query;
 
-      if (page && limit) {
-        if (page <= 0 || limit <= 0) {
-          throw new ErrorResponse(400, 'page và limit phải lớn hơn 0');
-        }
-
-        const offset = (page - 1) * limit;
-        const products = await ProductService.getAllProducts({
-          limit: parseInt(limit),
-          offset: parseInt(offset),
-          status,
-        });
-
-        const total = await ProductService.countProducts(status);
-
-        return response.paginate(
-          res,
-          products,
-          page,
-          limit,
-          total,
-          'Lấy danh sách products thành công',
-        );
+      if (page <= 0 || limit <= 0) {
+        throw new ErrorResponse(400, "page và limit phải lớn hơn 0");
       }
 
-      const products = await ProductService.getAllProducts({ status });
+      const offset = (page - 1) * limit;
 
-      return response.success(
+      const products = await ProductService.getAllProducts({
+        limit: parseInt(limit),
+        offset: parseInt(offset),
+        status,
+      });
+
+      const total = await ProductService.countProducts(status);
+
+      return response.paginate(
         res,
         products,
-        'Lấy danh sách products thành công',
+        page,
+        limit,
+        total,
+        "Lấy danh sách products thành công"
       );
     } catch (error) {
       next(error);

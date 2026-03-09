@@ -281,8 +281,9 @@ export default function AdminBanner() {
             className="border rounded-md px-3 py-2 text-sm"
           >
             <option value="">Tất cả trạng thái</option>
-            <option value="active">Đang hoạt động</option>
-            <option value="inactive">Chưa bắt đầu / Đã kết thúc</option>
+            <option value="active">Còn hạn</option>
+            <option value="upcoming">Chưa diễn ra</option>
+            <option value="expired">Hết hạn</option>
           </select>
         </div>
 

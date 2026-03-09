@@ -50,6 +50,8 @@ import { BaristaSchedule } from "@/pages/barista/BaristaSchedule/BaristaSchedule
 import { BaristaRequests } from "@/pages/barista/BaristaRequest/BaristaRequests";
 import { StaffApp } from "@/pages/staff/StaffApp";
 import { BaristaApp } from "@/pages/barista/BaristaApp";
+import ProductListPage from "../pages/common/ProductListPage";
+import ProductDetailPage from "../pages/common/ProductDetailPage";
 
 const getStoredValue = (key) =>
   localStorage.getItem(key) || sessionStorage.getItem(key);
@@ -105,6 +107,8 @@ const AppRoutes = () => {
   return (
     <Routes>
       <Route path="/" element={<HomePage />} />
+      <Route path="/products" element={<ProductListPage />} />
+      <Route path="/products/:id" element={<ProductDetailPage />} />
       <Route path={APP_ROUTES.LOGIN} element={<LoginPage />} />
       <Route path={APP_ROUTES.REGISTER} element={<RegisterPage />} />
       <Route
@@ -188,7 +192,6 @@ const AppRoutes = () => {
         <Route path="banners" element={<AdminBanner />} />
         <Route path="tables" element={<AdminTables />} />
         <Route path="toppings" element={<AdminToppings />} />
-
       </Route>
 
       <Route path="/news/:slug" element={<NewsDetailPage />} />

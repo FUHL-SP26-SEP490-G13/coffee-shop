@@ -292,7 +292,7 @@ class ProductService {
   async countProducts(status) {
     const conditions = {};
     if (status) conditions.status = status;
-    return ProductRepository.count(conditions);
+    return ProductRepository.countAll(conditions);
   }
 
   /**
@@ -326,7 +326,11 @@ class ProductService {
       throw new ErrorResponse(400, 'Product chưa bị xóa');
     }
 
-    await ProductRepository.update(id, { status: 'available' });
+    if (Number(product.is_deleted) === 0) {
+      throw new ErrorResponse(400, "Product chưa bị xóa");
+    }
+
+    await ProductRepository.update(id, { is_deleted: 0 });
 
     return this.getProductById(id);
   }
