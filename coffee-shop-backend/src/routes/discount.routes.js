@@ -9,26 +9,24 @@ const {
   createDiscountSchema,
   updateDiscountSchema,
 } = require("../validators/discountValidator");
-const { ROLES } = require("../config/constants");
-
 router.get(
   "/",
   authenticate,
-  authorize([ROLES.MANAGER]),
+  authorize(["manager"]),
   DiscountController.getAll
 );
 
 router.get(
   "/:id",
   authenticate,
-  authorize([ROLES.MANAGER]),
+  authorize(["manager"]),
   DiscountController.getById
 );
 
 router.post(
   "/",
   authenticate,
-  authorize([ROLES.MANAGER]),
+  authorize(["manager"]),
   validate(createDiscountSchema),
   DiscountController.create
 );
@@ -36,7 +34,7 @@ router.post(
 router.put(
   "/:id",
   authenticate,
-  authorize([ROLES.MANAGER]),
+  authorize(["manager"]),
   validate(updateDiscountSchema),
   DiscountController.update
 );
@@ -44,7 +42,7 @@ router.put(
 router.delete(
   "/:id",
   authenticate,
-  authorize([ROLES.MANAGER]),
+  authorize(["manager"]),
   DiscountController.delete
 );
 

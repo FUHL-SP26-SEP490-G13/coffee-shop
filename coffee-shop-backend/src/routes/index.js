@@ -39,6 +39,7 @@ router.use('/product-sizes', productSizeRoutes);
 router.use('/dashboard', adminDashboardRoutes);
 router.use('/banners', bannerRoutes);
 router.use("/notifications", notificationRoutes);
+router.use('/discounts', discountRoutes);
 
 
 // Health check endpoint
