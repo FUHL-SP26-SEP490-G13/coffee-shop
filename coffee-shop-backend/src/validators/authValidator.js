@@ -54,19 +54,6 @@ const registerSchema = Joi.object({
     'any.required': 'Tên là bắt buộc',
   }),
 
-  gender: Joi.number().integer().valid(0, 1).optional().allow(null).messages({
-    'number.base': 'Giới tính phải là số',
-    'any.only': 'Giới tính không hợp lệ (0: Nữ, 1: Nam)',
-  }),
-
-  dob: Joi.date().iso().max('now').required().messages({
-    'date.base': 'Ngày sinh không hợp lệ',
-    'date.max': 'Ngày sinh không được là tương lai',
-    'any.required': 'Ngày sinh là bắt buộc',
-  }),
-
-  address: Joi.string().max(255).optional().allow(null, ''),
-
   role_id: Joi.number().integer().valid(1, 2, 3, 4).optional().messages({
     'number.base': 'Role ID phải là số',
     'any.only': 'Role ID không hợp lệ',
@@ -110,17 +97,6 @@ const staffCreateSchema = Joi.object({
     'string.empty': 'Tên không được để trống',
     'string.max': 'Tên không được vượt quá 30 ký tự',
     'any.required': 'Tên là bắt buộc',
-  }),
-
-  gender: Joi.number().integer().valid(0, 1).optional().allow(null).messages({
-    'number.base': 'Giới tính phải là số',
-    'any.only': 'Giới tính không hợp lệ (0: Nữ, 1: Nam)',
-  }),
-
-  dob: Joi.date().iso().max('now').required().messages({
-    'date.base': 'Ngày sinh không hợp lệ',
-    'date.max': 'Ngày sinh không được là tương lai',
-    'any.required': 'Ngày sinh là bắt buộc',
   }),
 
   role_id: Joi.number().integer().valid(2, 3).required().messages({
@@ -188,16 +164,6 @@ const updateProfileSchema = Joi.object({
     .messages({
       'string.pattern.base': 'Số điện thoại phải có 10-11 chữ số',
     }),
-
-  gender: Joi.number().integer().valid(0, 1).optional().allow(null).messages({
-    'number.base': 'Giới tính phải là số',
-    'any.only': 'Giới tính không hợp lệ (0: Nữ, 1: Nam)',
-  }),
-
-  dob: Joi.date().iso().max('now').optional().messages({
-    'date.base': 'Ngày sinh không hợp lệ',
-    'date.max': 'Ngày sinh không được là tương lai',
-  }),
 
   address: Joi.string().max(255).optional().allow(null, ''),
 });

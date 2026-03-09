@@ -40,7 +40,6 @@ class UserRepository extends BaseRepository {
     const query = `
       SELECT 
         u.*,
-        DATE_FORMAT(u.dob, '%Y-%m-%d') as dob,
         r.role_name,
         r.id as role_id
       FROM ${this.tableName} u
@@ -59,7 +58,6 @@ class UserRepository extends BaseRepository {
     const query = `
       SELECT 
         u.*,
-        DATE_FORMAT(u.dob, '%Y-%m-%d') as dob,
         r.role_name,
         JSON_ARRAYAGG(
           CASE 
@@ -162,8 +160,6 @@ class UserRepository extends BaseRepository {
     const allowedFields = [
       'first_name',
       'last_name',
-      'gender',
-      'dob',
       'phone',
     ];
 

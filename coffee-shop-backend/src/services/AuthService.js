@@ -126,8 +126,6 @@ class AuthService {
       email: data.email,
       first_name: data.first_name,
       last_name: data.last_name,
-      gender: data.gender ?? null,
-      dob: data.dob,
       role_id: data.role_id || ROLES.CUSTOMER,
       isActive: 1,
       isVerified: 0, // Email chưa được xác thực
@@ -516,8 +514,6 @@ class AuthService {
           first_name: given_name || "",
           last_name: family_name || "",
           phone: null,
-          gender: null,
-          dob: birthday || null,
           role_id: ROLES.CUSTOMER,
           isActive: 1,
         });
@@ -653,6 +649,14 @@ class AuthService {
 
     if (!user) {
       throw new Error("User không tồn tại");
+    }
+
+    // If updating phone, check if it's already used by another user
+    if (data.phone && data.phone !== user.phone) {
+      const phoneExists = await UserRepository.phoneExists(data.phone, userId);
+      if (phoneExists) {
+        throw new Error("Số điện thoại đã được sử dụng");
+      }
     }
 
     // Update profile (only allowed fields: first_name, last_name, gender, dob)

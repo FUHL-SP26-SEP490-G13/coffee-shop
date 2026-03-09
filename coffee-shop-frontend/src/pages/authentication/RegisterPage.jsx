@@ -16,8 +16,6 @@ export default function RegisterPage() {
 	const [email, setEmail] = useState("");
 	const [phone, setPhone] = useState("");
 	const [username, setUsername] = useState("");
-	const [gender, setGender] = useState("");
-	const [dob, setDob] = useState("");
 	const [password, setPassword] = useState("");
 	const [confirmPassword, setConfirmPassword] = useState("");
 	const [isSubmitting, setIsSubmitting] = useState(false);
@@ -124,14 +122,6 @@ export default function RegisterPage() {
 			errors.username = "Username phải >= 3 ký tự, chỉ chứa chữ/số/_";
 		}
 
-		if (gender !== "0" && gender !== "1") {
-			errors.gender = "Vui lòng chọn giới tính";
-		}
-
-		if (!dob) {
-			errors.dob = "Ngày sinh không được để trống";
-		}
-
 		if (!password) {
 			errors.password = "Mật khẩu không được để trống";
 		} else if (!isValidPasswordStrict(password)) {
@@ -171,8 +161,6 @@ export default function RegisterPage() {
 				email: email.toLowerCase(),
 				phone: phone.replace(/\s/g, ""),
 				username: username,
-				gender: Number(gender),
-				dob,
 				password,
 				password_confirm: confirmPassword,
 			});
@@ -191,8 +179,6 @@ export default function RegisterPage() {
 				email: email.toLowerCase(),
 				phone: phone.replace(/\s/g, ""),
 				username: username,
-				gender: Number(gender),
-				dob,
 				password,
 				password_confirm: confirmPassword,
 				userId: userId,
@@ -498,64 +484,6 @@ export default function RegisterPage() {
 											{validationErrors.username}
 										</p>
 									)}
-								</div>
-
-								{/* Gender & Date of Birth */}
-								<div className="grid grid-cols-2 gap-3">
-									<div className="space-y-2">
-										<Label htmlFor="gender">Giới tính</Label>
-										<select
-											id="gender"
-											value={gender}
-											onChange={(event) => {
-												setGender(event.target.value);
-												if (validationErrors.gender) {
-													setValidationErrors({
-														...validationErrors,
-														gender: "",
-													});
-												}
-											}}
-											className={`h-10 w-full rounded-md border border-input bg-background px-3 text-sm ${
-												validationErrors.gender ? "border-destructive" : ""
-											}`}
-										>
-											<option value="">Chọn</option>
-											<option value="1">Nam</option>
-											<option value="0">Nữ</option>
-										</select>
-										{validationErrors.gender && (
-											<p className="flex items-center gap-2 text-xs text-destructive">
-												<AlertCircle className="h-3 w-3" />
-												{validationErrors.gender}
-											</p>
-										)}
-									</div>
-
-									<div className="space-y-2">
-										<Label htmlFor="dob">Ngày sinh</Label>
-										<Input
-											id="dob"
-											type="date"
-											value={dob}
-											onChange={(event) => {
-												setDob(event.target.value);
-												if (validationErrors.dob) {
-													setValidationErrors({
-														...validationErrors,
-														dob: "",
-													});
-												}
-											}}
-											className={validationErrors.dob ? "border-destructive" : ""}
-										/>
-										{validationErrors.dob && (
-											<p className="flex items-center gap-2 text-xs text-destructive">
-												<AlertCircle className="h-3 w-3" />
-												{validationErrors.dob}
-											</p>
-										)}
-									</div>
 								</div>
 
 								{/* Password Input with Strength Indicator */}
