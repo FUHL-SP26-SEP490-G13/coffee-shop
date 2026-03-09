@@ -12,15 +12,16 @@ class BannerController {
 
   async getAll(req, res, next) {
     try {
-      const { page = 1, limit = 5, keyword = "" } = req.query;
+      const { page = 1, limit = 5, keyword = "", status = "" } = req.query;
 
       const result = await bannerService.getAll({
         page: Number(page),
         limit: Number(limit),
         keyword,
+        status,
       });
 
-      res.json({ success: true, ...result });
+      return res.json({ success: true, ...result });
     } catch (err) {
       next(err);
     }
@@ -28,37 +29,74 @@ class BannerController {
 
   async create(req, res, next) {
     try {
-      // CloudinaryStorage trả URL ở req.file.path
       const imageUrl = req.file?.path || null;
 
       if (!imageUrl) {
         return res.status(400).json({
           success: false,
-          message: "Vui lòng upload ảnh banner (field: image).",
-        });
-      }
-
-      if (!req.file) {
-        return res.status(400).json({
-          success: false,
-          message: "Ảnh banner là bắt buộc",
+          message: "Dữ liệu không hợp lệ",
+          errors: [
+            {
+              field: "image",
+              message: "Ảnh quảng cáo là bắt buộc",
+            },
+          ],
         });
       }
 
       const payload = {
         ...req.body,
         image_url: imageUrl,
-        // is_active từ FormData thường là string -> ép kiểu
-        is_active:
-          req.body.is_active === true ||
-          req.body.is_active === "true" ||
-          req.body.is_active === 1 ||
-          req.body.is_active === "1",
+        start_date: req.body.start_date,
+        end_date: req.body.end_date,
       };
 
       await bannerService.create(payload);
-      return res.json({ success: true, message: "Tạo banner thành công" });
+
+      return res.json({
+        success: true,
+        message: "Tạo quảng cáo thành công",
+      });
     } catch (err) {
+      if (err.message === "Tiêu đề quảng cáo đã tồn tại") {
+        return res.status(400).json({
+          success: false,
+          message: "Dữ liệu không hợp lệ",
+          errors: [
+            {
+              field: "title",
+              message: "Tiêu đề quảng cáo đã tồn tại",
+            },
+          ],
+        });
+      }
+
+      if (err.message === "Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu") {
+        return res.status(400).json({
+          success: false,
+          message: "Dữ liệu không hợp lệ",
+          errors: [
+            {
+              field: "end_date",
+              message: "Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu",
+            },
+          ],
+        });
+      }
+
+      if (err.message === "Ngày bắt đầu hoặc ngày kết thúc không hợp lệ") {
+        return res.status(400).json({
+          success: false,
+          message: "Dữ liệu không hợp lệ",
+          errors: [
+            {
+              field: "start_date",
+              message: "Ngày bắt đầu hoặc ngày kết thúc không hợp lệ",
+            },
+          ],
+        });
+      }
+
       next(err);
     }
   }
@@ -66,13 +104,12 @@ class BannerController {
   async update(req, res, next) {
     try {
       const id = req.params.id;
-
-      // TÁCH type RA - chỉ dùng cho upload, không phải dữ liệu DB
       const { type, ...body } = req.body;
 
       const data = {
         ...body,
-        is_active: body.is_active === true || body.is_active === "true",
+        start_date: body.start_date,
+        end_date: body.end_date,
       };
 
       if (req.file) {
@@ -81,8 +118,57 @@ class BannerController {
 
       await bannerService.update(id, data);
 
-      res.json({ success: true, message: "Cập nhật thành công" });
+      return res.json({
+        success: true,
+        message: "Cập nhật thành công",
+      });
     } catch (err) {
+      if (err.message === "Tiêu đề quảng cáo đã tồn tại") {
+        return res.status(400).json({
+          success: false,
+          message: "Dữ liệu không hợp lệ",
+          errors: [
+            {
+              field: "title",
+              message: "Tiêu đề quảng cáo đã tồn tại",
+            },
+          ],
+        });
+      }
+
+      if (err.message === "Không tìm thấy quảng cáo") {
+        return res.status(404).json({
+          success: false,
+          message: "Không tìm thấy quảng cáo",
+        });
+      }
+
+      if (err.message === "Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu") {
+        return res.status(400).json({
+          success: false,
+          message: "Dữ liệu không hợp lệ",
+          errors: [
+            {
+              field: "end_date",
+              message: "Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu",
+            },
+          ],
+        });
+      }
+
+      if (err.message === "Ngày bắt đầu hoặc ngày kết thúc không hợp lệ") {
+        return res.status(400).json({
+          success: false,
+          message: "Dữ liệu không hợp lệ",
+          errors: [
+            {
+              field: "start_date",
+              message: "Ngày bắt đầu hoặc ngày kết thúc không hợp lệ",
+            },
+          ],
+        });
+      }
+
       next(err);
     }
   }
@@ -90,7 +176,16 @@ class BannerController {
   async delete(req, res, next) {
     try {
       await bannerService.delete(req.params.id);
-      return res.json({ success: true, message: "Xóa banner thành công" });
+      return res.json({ success: true, message: "Xóa quảng cáo thành công" });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async getActiveList(req, res, next) {
+    try {
+      const data = await bannerService.getActiveList();
+      return res.json({ success: true, data });
     } catch (err) {
       next(err);
     }

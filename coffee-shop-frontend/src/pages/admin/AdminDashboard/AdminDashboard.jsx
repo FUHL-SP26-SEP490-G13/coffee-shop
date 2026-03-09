@@ -11,9 +11,10 @@ import {
   XAxis,
   YAxis,
   Tooltip,
-  BarChart, Bar,
+  BarChart,
+  Bar,
 } from "recharts";
-import { Newspaper } from "lucide-react";
+import { LayoutDashboard} from "lucide-react";
 
 const formatMoney = (n) => `${Number(n || 0).toLocaleString()}đ`;
 
@@ -91,43 +92,6 @@ export default function AdminDashboard() {
     }
   };
 
-//   const loadData = async () => {
-//   try {
-//     setLoading(true);
-
-//     // Các API bắt buộc - nếu lỗi thì báo
-//     const ov = await adminDashService.getOverview();
-//     setOverview(ov);
-
-//     const series = await adminDashService.getRevenueSeries(rangeDays);
-//     setRevenueSeries(series);
-
-//     const top = await adminDashService.getTopProducts({ days: rangeDays, limit: 5 });
-//     setTopProducts(top);
-
-//     // Các API optional - lỗi thì bỏ qua, không crash
-//     await adminDashService.getPaymentMethodBreakdown(rangeDays)
-//       .then(setPaymentMethod).catch(() => {});
-
-//     await adminDashService.getOrderTypeRevenue(rangeDays)
-//       .then(setOrderTypeRevenue).catch(() => {});
-
-//     await adminDashService.getTableStatusSummary()
-//       .then(setTableSummary).catch(() => {}); // ← đây đang 404
-
-//     await adminDashService.getComparison(rangeDays)
-//       .then(setComparison).catch(() => {});
-
-//     await adminDashService.getStaffSummary()
-//       .then(setStaffSummary).catch(() => {}); // ← giờ sẽ chạy được
-
-//   } catch (err) {
-//     console.error("loadData error:", err);
-//   } finally {
-//     setLoading(false);
-//   }
-// };
-
   useEffect(() => {
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -142,20 +106,20 @@ export default function AdminDashboard() {
   if (!overview) return <div className="p-6">Không có dữ liệu dashboard</div>;
   console.log("overview:", overview);
 
-
   return (
     <div className="space-y-6">
       {/* Header controls */}
       <div className="flex items-center justify-between">
-        {/* <div>
-          <h2 className="text-2xl font-semibold">Tổng quan dashboard</h2>
-          <p className="text-sm text-muted-foreground">
-            Tổng quan hoạt động cửa hàng
-          </p>
-        </div> */}
         <div className="flex items-center gap-3">
-          <Newspaper className="w-6 h-6 text-primary" />
-          <h1 className="text-2xl font-semibold mb-1">Tổng quan cửa hàng</h1>
+          <div className="p-2 bg-primary/10 rounded-lg">
+            <LayoutDashboard className="h-6 w-6 text-primary" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-semibold mb-1">Tổng quan cửa hàng</h2>
+            <p className="text-sm text-muted-foreground">
+              Khái quát chung cửa hàng của bạn
+            </p>
+          </div>
         </div>
 
         <div className="flex gap-2">
@@ -393,7 +357,7 @@ export default function AdminDashboard() {
         )}
       </Card>
 
-{/* Optional: tóm tắt số lượng nhân viên theo vai trò (barista, phục vụ, quản lý) để dashboard có thêm vài số liệu hữu ích */}
+      {/* Optional: tóm tắt số lượng nhân viên theo vai trò (barista, phục vụ, quản lý) để dashboard có thêm vài số liệu hữu ích */}
       <Card className="p-6">
         <h3 className="text-lg font-semibold mb-4">Tình hình nhân sự</h3>
 

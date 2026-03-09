@@ -9,7 +9,8 @@ const { authorize } = require("../middlewares/authorize");
 const upload = require("../middlewares/upload");
 const validate = require("../middlewares/validate");
 const { createNewsSchema } = require("../validators/newsValidator");
-const ROLES = require("../config/role");
+const { ROLES } = require("../config/constants");
+const NewsAIController = require("../controllers/NewsAIController");
 
 // =====================
 // PUBLIC ROUTES
@@ -61,6 +62,20 @@ router.get(
   NewsController.getById
 );
 router.get("/related", NewsController.getRelated);
+
+router.post(
+  "/ai/suggest-by-title",
+  authenticate,
+  authorize([ROLES.MANAGER]),
+  NewsAIController.suggestByTitle
+);
+
+router.post(
+  "/ai/suggest-by-summary",
+  authenticate,
+  authorize([ROLES.MANAGER]),
+  NewsAIController.suggestContentBySummary
+);
 
 router.get("/:slug", NewsController.getDetail);
 

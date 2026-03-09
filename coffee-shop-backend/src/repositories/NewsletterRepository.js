@@ -3,7 +3,14 @@ const pool = require("../config/database");
 class NewsletterRepository {
   async create(email) {
     const sql = "INSERT INTO newsletter_subscribers (email) VALUES (?)";
-    await pool.query(sql, [email]);
+    const [result] = await pool.query(sql, [email]);
+
+    const [rows] = await pool.query(
+      "SELECT * FROM newsletter_subscribers WHERE id = ?",
+      [result.insertId]
+    );
+
+    return rows[0];
   }
 
   async findByEmail(email) {

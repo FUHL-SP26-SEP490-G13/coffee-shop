@@ -1,12 +1,13 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { Loader2, ChevronLeft, Upload } from "lucide-react";
+import { Loader2, ChevronLeft, Upload, Newspaper } from "lucide-react";
 import newsService from "@/services/newsService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import RichTextEditor from "../../../components/RichTextEditor/RichTextEditor";
+import { validateNewsForm } from "@/utils/newsValidation";
 
 export default function AdminEditNewsPage() {
   const { id } = useParams();
@@ -23,10 +24,8 @@ export default function AdminEditNewsPage() {
 
   const [loading, setLoading] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(true);
-
-  const [newPreview, setNewPreview] = useState([]);
-  const [newFiles, setNewFiles] = useState([]);
-
+  const [newPreview, setNewPreview] = useState(null);
+  const [newFile, setNewFile] = useState(null);
   const [errors, setErrors] = useState({});
 
   useEffect(() => {
@@ -36,9 +35,9 @@ export default function AdminEditNewsPage() {
         const data = res.data?.data || res.data;
 
         setForm({
-          title: data.title,
-          summary: data.summary,
-          content: data.content,
+          title: data.title || "",
+          summary: data.summary || "",
+          content: data.content || "",
           tag: data.tag || "",
           thumbnail: data.thumbnail || "",
           views: data.views ?? 0,
@@ -53,50 +52,45 @@ export default function AdminEditNewsPage() {
     fetchData();
   }, [id]);
 
-  const validate = () => {
-    const newErrors = {};
-
-    if (!form.title.trim()) {
-      newErrors.title = "Tiêu đề không được để trống";
-    }
-
-    if (!form.content || form.content.trim() === "") {
-      newErrors.content = "Nội dung không được để trống";
-    }
-
-    if (!form.summary.trim()) {
-      newErrors.summary = "Tóm tắt không được để trống";
-    }
-
-    if (!form.tag.trim()) {
-      newErrors.tag = "Tag không được để trống";
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
   const handleChange = (e) => {
-    setForm({
-      ...form,
-      [e.target.name]: e.target.value,
-    });
+    const { name, value } = e.target;
+
+    setForm((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+
+    setErrors((prev) => ({
+      ...prev,
+      [name]: "",
+      server: "",
+    }));
   };
 
   const handleSubmit = async () => {
-    if (!validate()) return;
+    const newErrors = validateNewsForm(
+      {
+        ...form,
+        thumbnail: newFile || form.thumbnail,
+      },
+      { requireThumbnail: false }
+    );
+
+    setErrors(newErrors);
+
+    if (Object.keys(newErrors).length > 0) return;
 
     try {
       setLoading(true);
 
       const formData = new FormData();
-      formData.append("title", form.title);
-      formData.append("summary", form.summary);
+      formData.append("title", form.title.trim());
+      formData.append("summary", form.summary.trim());
       formData.append("content", form.content);
-      formData.append("tag", form.tag?.trim().toLowerCase());
+      formData.append("tag", form.tag.trim().toLowerCase());
 
-      if (newFiles.length > 0) {
-        formData.append("thumbnail", newFiles[0]);
+      if (newFile) {
+        formData.append("thumbnail", newFile);
       }
 
       await newsService.update(id, formData);
@@ -114,7 +108,10 @@ export default function AdminEditNewsPage() {
 
         setErrors(serverErrors);
       } else {
-        setErrors({ server: res?.message || "Có lỗi xảy ra" });
+        setErrors((prev) => ({
+          ...prev,
+          server: res?.message || "Có lỗi xảy ra",
+        }));
       }
     } finally {
       setLoading(false);
@@ -131,26 +128,32 @@ export default function AdminEditNewsPage() {
 
   return (
     <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-2xl font-semibold mb-1">Chỉnh sửa bài viết</h2>
-          <p className="text-sm text-muted-foreground">
-            Cập nhật thông tin bài viết tin tức
-          </p>
-        </div>
+      <div className="mb-6">
         <Button
-          variant="outline"
-          onClick={() => navigate(-1)}
-          className="gap-2"
+          variant="ghost"
+          size="sm"
+          onClick={() => navigate("/admin/news-list")}
+          className="mb-4"
         >
-          <ChevronLeft className="h-4 w-4" />
+          <ChevronLeft className="h-4 w-4 mr-1" />
           Quay lại
         </Button>
+
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-primary/10 rounded-lg">
+            <Newspaper className="h-6 w-6 text-primary" />
+          </div>
+          <div>
+            <span className="text-lg mb-1">Chỉnh sửa bài viết</span>
+            <p className="text-sm text-muted-foreground mt-1">
+              Cập nhật thông tin mới nhất
+            </p>
+          </div>
+        </div>
       </div>
 
       <div className="bg-card rounded-xl border border-border p-6 max-w-4xl">
         <div className="space-y-6">
-          {/* Title */}
           <div className="space-y-2">
             <Label htmlFor="title">Tiêu đề *</Label>
             <Input
@@ -161,7 +164,7 @@ export default function AdminEditNewsPage() {
               placeholder="Nhập tiêu đề bài viết..."
             />
             {errors.title && (
-              <p className="text-red-500 text-sm mt-1">{errors.title}</p>
+              <p className="text-red-500 text-sm">{errors.title}</p>
             )}
           </div>
 
@@ -174,10 +177,7 @@ export default function AdminEditNewsPage() {
               onChange={handleChange}
               placeholder="Ví dụ: #vanct..."
             />
-
-            {errors.tag && (
-              <p className="text-red-500 text-sm mt-1">{errors.tag}</p>
-            )}
+            {errors.tag && <p className="text-red-500 text-sm">{errors.tag}</p>}
           </div>
 
           {form.tag && (
@@ -193,15 +193,9 @@ export default function AdminEditNewsPage() {
 
           <div className="space-y-2">
             <Label htmlFor="views">Lượt xem</Label>
-            <Input
-              id="views"
-              name="views"
-              value={form.views ?? 0}
-              disabled // ✅ không cho edit
-            />
+            <Input id="views" name="views" value={form.views ?? 0} disabled />
           </div>
 
-          {/* Images Upload */}
           <div className="space-y-2">
             <Label htmlFor="images">Hình ảnh bài viết</Label>
 
@@ -214,8 +208,14 @@ export default function AdminEditNewsPage() {
                   const file = e.target.files?.[0];
                   if (!file) return;
 
-                  setNewFiles([file]);
-                  setNewPreview([URL.createObjectURL(file)]);
+                  setNewFile(file);
+                  setNewPreview(URL.createObjectURL(file));
+
+                  setErrors((prev) => ({
+                    ...prev,
+                    thumbnail: "",
+                    server: "",
+                  }));
                 }}
                 className="absolute inset-0 opacity-0 cursor-pointer"
               />
@@ -226,42 +226,38 @@ export default function AdminEditNewsPage() {
                 Hỗ trợ JPG, PNG, WebP
               </p>
             </div>
-            {errors.images && (
-              <p className="text-red-500 text-sm mt-1">{errors.images}</p>
+
+            {errors.thumbnail && (
+              <p className="text-red-500 text-sm">{errors.thumbnail}</p>
             )}
           </div>
 
-          {newPreview.length > 0 && (
+          {newPreview && (
             <div className="space-y-2">
               <p className="text-sm font-medium">Ảnh mới:</p>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {newPreview.map((src, idx) => (
-                  <img
-                    key={idx}
-                    src={src}
-                    className="w-full h-40 object-cover rounded-lg border"
-                    alt={`new-${idx}`}
-                  />
-                ))}
+              <div className="flex justify-center">
+                <img
+                  src={newPreview}
+                  className="w-64 h-40 object-cover rounded-lg border"
+                  alt="new-thumbnail"
+                />
               </div>
             </div>
           )}
 
-          {form.thumbnail && (
+          {form.thumbnail && !newPreview && (
             <div className="space-y-2">
               <p className="text-sm font-medium">Ảnh hiện tại:</p>
-              <img
-                src={form.thumbnail}
-                className="w-64 h-40 object-cover rounded-lg border"
-                alt="thumbnail"
-              />
-              {errors.thumbnail && (
-                <p className="text-red-500 text-sm mt-1">{errors.thumbnail}</p>
-              )}
+              <div className="flex justify-center">
+                <img
+                  src={form.thumbnail}
+                  className="w-64 h-40 object-cover rounded-lg border"
+                  alt="thumbnail"
+                />
+              </div>
             </div>
           )}
 
-          {/* Summary */}
           <div className="space-y-2">
             <Label htmlFor="summary">Tóm tắt</Label>
             <Textarea
@@ -273,30 +269,38 @@ export default function AdminEditNewsPage() {
               rows={3}
             />
             {errors.summary && (
-              <p className="text-red-500 text-sm mt-1">{errors.summary}</p>
+              <p className="text-sm text-red-500">{errors.summary}</p>
             )}
           </div>
 
-          {/* Content */}
           <div className="space-y-2">
             <Label>Nội dung *</Label>
             <div className="border border-border rounded-lg overflow-hidden">
               <RichTextEditor
                 value={form.content}
-                onChange={(value) =>
+                onChange={(value) => {
                   setForm((prev) => ({
                     ...prev,
                     content: value,
-                  }))
-                }
+                  }));
+
+                  setErrors((prev) => ({
+                    ...prev,
+                    content: "",
+                    server: "",
+                  }));
+                }}
               />
             </div>
             {errors.content && (
-              <p className="text-red-500 text-sm mt-1">{errors.content}</p>
+              <p className="text-sm text-red-500">{errors.content}</p>
             )}
           </div>
 
-          {/* Buttons */}
+          {errors.server && (
+            <p className="text-sm text-red-500">{errors.server}</p>
+          )}
+
           <div className="flex gap-3 pt-4">
             <Button onClick={handleSubmit} disabled={loading} className="gap-2">
               {loading && <Loader2 className="h-4 w-4 animate-spin" />}

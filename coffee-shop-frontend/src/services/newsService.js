@@ -30,6 +30,13 @@ const newsService = {
   getRelated(params) {
     return axiosClient.get("/news/related", { params });
   },
+  suggestByTitle(data) {
+    return axiosClient.post("/news/ai/suggest-by-title", data);
+  },
+
+  suggestBySummary(data) {
+    return axiosClient.post("/news/ai/suggest-by-summary", data);
+  },
 };
 
 export default newsService;
