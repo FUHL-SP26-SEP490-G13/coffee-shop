@@ -7,7 +7,6 @@ import {
   Package,
   Menu,
   X,
-  Heart,
   Newspaper,
   LogIn,
   ChevronDown,
@@ -29,6 +28,8 @@ const placeholders = [
   "Trà đào cam sả",
   "Sinh tố bơ béo ngậy",
 ];
+
+const CART_KEY = "cart_items";
 
 function Header() {
   const navigate = useNavigate();
@@ -67,6 +68,7 @@ function Header() {
   const [mobileSearchLoading, setMobileSearchLoading] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [mobileResultOpen, setMobileResultOpen] = useState(false);
+  const [cartCount, setCartCount] = useState(0);
 
   const defaultImage =
     "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085";
@@ -84,6 +86,31 @@ function Header() {
   useEffect(() => {
     fetchCategories();
   }, [fetchCategories]);
+
+  useEffect(() => {
+    const updateCartCount = () => {
+      try {
+        const cart = JSON.parse(localStorage.getItem(CART_KEY) || "[]");
+        const total = Array.isArray(cart)
+          ? cart.reduce((sum, item) => sum + (Number(item.quantity) || 1), 0)
+          : 0;
+
+        setCartCount(total);
+      } catch (error) {
+        setCartCount(0);
+      }
+    };
+
+    updateCartCount();
+
+    window.addEventListener("storage", updateCartCount);
+    window.addEventListener("cartUpdated", updateCartCount);
+
+    return () => {
+      window.removeEventListener("storage", updateCartCount);
+      window.removeEventListener("cartUpdated", updateCartCount);
+    };
+  }, []);
 
   useEffect(() => {
     if (subIndex < placeholders[index].length) {
@@ -395,6 +422,19 @@ function Header() {
           </Button>
 
           <div className="hidden sm:flex items-center gap-1 lg:gap-2">
+            <Button
+              onClick={() => navigate("/cart")}
+              size="sm"
+              className="relative gap-1 sm:gap-2 text-xs sm:text-sm"
+            >
+              <ShoppingCart className="w-4 h-4" />
+              {cartCount > 0 && (
+                <span className="absolute -top-2 -right-2 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center leading-none">
+                  {cartCount > 99 ? "99+" : cartCount}
+                </span>
+              )}
+            </Button>
+
             {!user && (
               <Button
                 onClick={() => navigate("/login")}
@@ -408,23 +448,6 @@ function Header() {
 
             {user && (
               <div className="flex items-center gap-1 lg:gap-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => navigate("/wishlist")}
-                  className="gap-1 sm:gap-2 text-xs sm:text-sm hidden lg:block"
-                >
-                  <Heart className="w-4 h-4" />
-                </Button>
-
-                <Button
-                  onClick={() => navigate("/cart")}
-                  size="sm"
-                  className="gap-1 sm:gap-2 text-xs sm:text-sm"
-                >
-                  <ShoppingCart className="w-4 h-4" />
-                </Button>
-
                 <div className="relative" ref={dropdownRef}>
                   <Button
                     variant="ghost"
@@ -593,6 +616,26 @@ function Header() {
               </div>
             )}
 
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                navigate("/cart");
+                setMobileMenuOpen(false);
+              }}
+              className="w-full justify-start text-gray-700 text-xs"
+            >
+              <div className="relative mr-2">
+                <ShoppingCart className="w-4 h-4" />
+                {cartCount > 0 && (
+                  <span className="absolute -top-2 -right-2 min-w-[16px] h-[16px] px-1 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center leading-none">
+                    {cartCount > 99 ? "99+" : cartCount}
+                  </span>
+                )}
+              </div>
+              Giỏ hàng
+            </Button>
+
             {!user && (
               <Button
                 variant="ghost"
@@ -638,34 +681,6 @@ function Header() {
                     >
                       <User className="w-4 h-4 mr-2" />
                       Hồ sơ cá nhân
-                    </Button>
-
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        navigate("/cart");
-                        setMobileUserDropdownOpen(false);
-                        setMobileMenuOpen(false);
-                      }}
-                      className="w-full justify-start text-gray-700 text-xs"
-                    >
-                      <ShoppingCart className="w-4 h-4 mr-2" />
-                      Giỏ hàng
-                    </Button>
-
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        navigate("/wishlist");
-                        setMobileUserDropdownOpen(false);
-                        setMobileMenuOpen(false);
-                      }}
-                      className="w-full justify-start text-gray-700 text-xs"
-                    >
-                      <Heart className="w-4 h-4 mr-2" />
-                      Yêu thích
                     </Button>
 
                     <div className="border-t border-gray-200 my-1" />

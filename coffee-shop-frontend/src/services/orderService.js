@@ -1,22 +1,18 @@
 import axiosClient from "./axiosClient";
 
 const orderService = {
-  // Lấy tất cả đơn của user đang login
+  checkout(data) {
+    return axiosClient.post("/orders/checkout", data);
+  },
+
   getMyOrders() {
-    return axiosClient.get("/orders/my");
+    return axiosClient.get("/orders/my-orders");
   },
 
-  // Lấy chi tiết đơn hàng
-  getById(id) {
-    return axiosClient.get(`/orders/${id}`);
+  getMyOrderDetail(id) {
+    return axiosClient.get(`/orders/my-orders/${id}`);
   },
 
-  // Tạo đơn mới (checkout)
-  create(data) {
-    return axiosClient.post("/orders", data);
-  },
-
-  // Hủy đơn hàng
   cancel(id) {
     return axiosClient.put(`/orders/${id}/cancel`);
   },

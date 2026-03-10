@@ -52,6 +52,8 @@ import { StaffApp } from "@/pages/staff/StaffApp";
 import { BaristaApp } from "@/pages/barista/BaristaApp";
 import ProductListPage from "../pages/common/ProductListPage";
 import ProductDetailPage from "../pages/common/ProductDetailPage";
+import CartPage from "@/pages/common/CartPage";
+import CheckoutPage from "@/pages/common/CheckoutPage";
 
 const getStoredValue = (key) =>
   localStorage.getItem(key) || sessionStorage.getItem(key);
@@ -197,7 +199,10 @@ const AppRoutes = () => {
       <Route path="/payment-policy" element={<PaymentPolicyPage />} />
       <Route path="/terms-of-service" element={<TermsOfServicePage />} />
       <Route path="/return-policy" element={<ReturnPolicyPage />} />
-      
+
+      <Route path="/cart" element={<CartPage />} />
+      <Route path="/checkout" element={<CheckoutPage />} />
+
       {/* 404 */}
       <Route
         path="*"

@@ -104,8 +104,47 @@ export default function ProductDetailPage() {
     }
 
     localStorage.setItem(CART_KEY, JSON.stringify(nextCart));
-    window.dispatchEvent(new Event("cart-updated"));
+    window.dispatchEvent(new Event("cartUpdated"));
     alert("Đã thêm vào giỏ hàng");
+  };
+
+  const buyNow = () => {
+    if (!product || !selectedSizeObj) {
+      alert("Vui lòng chọn size.");
+      return;
+    }
+
+    const cartItem = {
+      productId: product.id,
+      productSizeId: selectedSizeObj.id,
+      name: product.name,
+      image: displayImages[0]?.image_url || defaultImage,
+      size: selectedSizeObj.size,
+      price: Number(selectedSizeObj.price),
+      quantity,
+    };
+
+    const existingCart = JSON.parse(localStorage.getItem(CART_KEY) || "[]");
+
+    const index = existingCart.findIndex(
+      (item) => item.productSizeId === cartItem.productSizeId
+    );
+
+    const nextCart = [...existingCart];
+
+    if (index >= 0) {
+      nextCart[index] = {
+        ...nextCart[index],
+        quantity: nextCart[index].quantity + quantity,
+      };
+    } else {
+      nextCart.push(cartItem);
+    }
+
+    localStorage.setItem(CART_KEY, JSON.stringify(nextCart));
+    window.dispatchEvent(new Event("cartUpdated"));
+
+    navigate("/checkout");
   };
 
   if (loading) {
@@ -237,13 +276,23 @@ export default function ProductDetailPage() {
               </button>
             </div>
 
-            <Button
-              onClick={addToCart}
-              className="bg-amber-600 hover:bg-amber-700 text-white px-8 py-6 text-base"
-            >
-              <Plus className="w-5 h-5 mr-2" />
-              Thêm vào giỏ hàng
-            </Button>
+            <div className="flex gap-4">
+              <Button
+                onClick={addToCart}
+                className="bg-amber-600 hover:bg-amber-700 text-white px-8 py-6 text-base"
+              >
+                <Plus className="w-5 h-5 mr-2" />
+                Thêm vào giỏ hàng
+              </Button>
+
+              <Button
+                onClick={buyNow}
+                variant="outline"
+                className="px-8 py-6 text-base border-amber-600 text-amber-600 hover:bg-amber-50"
+              >
+                Mua ngay
+              </Button>
+            </div>
           </div>
         </div>
       </section>
