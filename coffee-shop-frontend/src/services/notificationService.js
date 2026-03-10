@@ -1,24 +1,28 @@
-import axios from "@/services/axiosClient";
+import axiosClient from "@/services/axiosClient";
 
 const notificationService = {
   getMine() {
-    return axios.get("/notifications/me");
+    return axiosClient.get("/notifications/me");
+  },
+
+  getUnreadCount() {
+    return axiosClient.get("/notifications/me/unread-count");
   },
 
   markAsRead(recipientId) {
-    return axios.patch(`/notifications/me/${recipientId}/read`);
-  },
-
-  markAsUnread(recipientId) {
-    return axios.patch(`/notifications/me/${recipientId}/unread`);
+    return axiosClient.patch(`/notifications/me/${recipientId}/read`);
   },
 
   markAllAsRead() {
-    return axios.patch("/notifications/me/read-all");
+    return axiosClient.patch("/notifications/me/read-all");
+  },
+
+  markAsUnread(recipientId) {
+    return axiosClient.patch(`/notifications/me/${recipientId}/unread`);
   },
 
   markAllAsUnread() {
-    return axios.patch("/notifications/me/unread-all");
+    return axiosClient.patch("/notifications/me/unread-all");
   },
 };
 

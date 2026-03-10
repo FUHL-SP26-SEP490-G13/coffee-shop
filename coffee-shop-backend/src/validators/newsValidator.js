@@ -8,11 +8,11 @@ const createNewsSchema = Joi.object({
     "string.max": "Tiêu đề không được vượt quá 100 ký tự",
   }),
 
-  summary: Joi.string().trim().min(10).max(120).required().messages({
+  summary: Joi.string().trim().min(10).max(2000).required().messages({
     "string.empty": "Tóm tắt không được để trống",
     "any.required": "Tóm tắt là bắt buộc",
     "string.min": "Tóm tắt phải có ít nhất 10 ký tự",
-    "string.max": "Tóm tắt không được vượt quá 120 ký tự",
+    "string.max": "Tóm tắt không được vượt quá 2000 ký tự",
   }),
 
   content: Joi.string().trim().min(120).max(5000).required().messages({

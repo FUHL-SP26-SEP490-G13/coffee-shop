@@ -60,14 +60,26 @@ export default function AdminApp() {
       const initNotifications = async () => {
         try {
           const profileRes = await authenticationService.getProfile();
-          const user = profileRes?.data;
+          console.log("profileRes:", profileRes);
+
+          const user = profileRes?.data || profileRes?.data;
+          console.log("resolved user:", user);
 
           if (user?.id) {
+            if (!socket.connected) {
+              socket.connect();
+            }
+
             socket.emit("join-user-room", user.id);
+            console.log("emit join-user-room:", `user-${user.id}`);
+          } else {
+            console.log("Không tìm thấy user.id");
           }
 
           const notificationRes = await notificationService.getMine();
-          setNotifications(notificationRes?.data || []);
+          setNotifications(
+            notificationRes?.data?.data || notificationRes?.data || []
+          );
         } catch (error) {
           console.error("Init notifications error:", error);
         }
@@ -76,13 +88,16 @@ export default function AdminApp() {
       initNotifications();
 
       const handleNewNotification = (data) => {
+        console.log("received socket notification:", data);
+
         setNotifications((prev) => {
-          const existed = prev.some(
+          const list = Array.isArray(prev) ? prev : [];
+          const existed = list.some(
             (item) => item.recipient_id === data.recipient_id
           );
-          if (existed) return prev;
+          if (existed) return list;
 
-          return [{ ...data, is_read: false }, ...prev];
+          return [{ ...data, is_read: 0 }, ...list];
         });
       };
 

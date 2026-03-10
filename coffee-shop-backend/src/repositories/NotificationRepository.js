@@ -108,20 +108,20 @@ class NotificationRepository {
 
   async markAsUnread(recipientId, userId) {
     const sql = `
-    UPDATE notification_recipients
-    SET is_read = 0, read_at = NULL
-    WHERE id = ? AND user_id = ?
-  `;
+      UPDATE notification_recipients
+      SET is_read = 0, read_at = NULL
+      WHERE id = ? AND user_id = ?
+    `;
 
     await db.query(sql, [recipientId, userId]);
   }
 
   async markAllAsUnread(userId) {
     const sql = `
-    UPDATE notification_recipients
-    SET is_read = 0, read_at = NULL
-    WHERE user_id = ? AND is_read = 1
-  `;
+      UPDATE notification_recipients
+      SET is_read = 0, read_at = NULL
+      WHERE user_id = ? AND is_read = 1
+    `;
 
     await db.query(sql, [userId]);
   }

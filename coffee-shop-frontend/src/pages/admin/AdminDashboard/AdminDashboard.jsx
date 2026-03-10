@@ -14,7 +14,7 @@ import {
   BarChart,
   Bar,
 } from "recharts";
-import { LayoutDashboard} from "lucide-react";
+import { LayoutDashboard } from "lucide-react";
 
 const formatMoney = (n) => `${Number(n || 0).toLocaleString()}đ`;
 
@@ -42,6 +42,7 @@ export default function AdminDashboard() {
   const [paymentMethod, setPaymentMethod] = useState([]);
 
   const [loading, setLoading] = useState(true);
+  const [errors, setErrors] = useState({});
 
   const [orderTypeRevenue, setOrderTypeRevenue] = useState([]);
   const [tableSummary, setTableSummary] = useState(null);
@@ -52,41 +53,37 @@ export default function AdminDashboard() {
   const loadData = async () => {
     try {
       setLoading(true);
+      setErrors(null);
 
-      // 1) overview (có sẵn series7 + top5 nếu muốn dùng luôn)
       const ov = await adminDashService.getOverview();
       setOverview(ov);
 
-      // 2) chart theo range chọn
       const series = await adminDashService.getRevenueSeries(rangeDays);
       setRevenueSeries(series);
 
-      // 3) top products theo range chọn
       const top = await adminDashService.getTopProducts({
         days: rangeDays,
         limit: 5,
       });
       setTopProducts(top);
 
-      // 4) payment breakdown (optional nhưng hợp DB)
       const pm = await adminDashService.getPaymentMethodBreakdown(rangeDays);
       setPaymentMethod(pm);
 
-      // 5) order type revenue (optional)
       const orderType = await adminDashService.getOrderTypeRevenue(rangeDays);
       setOrderTypeRevenue(orderType);
 
-      // 6) table status summary (optional)
       const table = await adminDashService.getTableStatusSummary();
       setTableSummary(table);
 
-      // 7) comparison (optional)
       const cmp = await adminDashService.getComparison(rangeDays);
       setComparison(cmp);
 
-      // 8) staff summary (optional)
       const staff = await adminDashService.getStaffSummary();
       setStaffSummary(staff);
+    } catch (err) {
+      console.error("Dashboard error:", err);
+      setErrors("Không thể tải dữ liệu dashboard");
     } finally {
       setLoading(false);
     }
@@ -102,9 +99,25 @@ export default function AdminDashboard() {
     [revenueSeries, rangeDays]
   );
 
-  if (loading) return <div className="p-6">Đang tải dashboard...</div>;
-  if (!overview) return <div className="p-6">Không có dữ liệu dashboard</div>;
-  console.log("overview:", overview);
+  if (loading) {
+    return <div className="p-6">Đang tải dashboard...</div>;
+  }
+
+  if (errors) {
+    return (
+      <div className="p-6 text-center text-red-500">
+        <p>{errors}</p>
+
+        <Button variant="outline" className="mt-4" onClick={loadData}>
+          Thử lại
+        </Button>
+      </div>
+    );
+  }
+
+  if (!overview) {
+    return <div className="p-6">Không có dữ liệu dashboard</div>;
+  }
 
   return (
     <div className="space-y-6">

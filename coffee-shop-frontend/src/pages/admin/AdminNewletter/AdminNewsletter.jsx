@@ -17,32 +17,21 @@ export default function AdminNewsletter() {
   const itemsPerPage = 5;
 
   const [notification, setNotification] = useState("");
-
-  // const fetchData = async () => {
-  //   try {
-  //     const res = await newsletterService.getAll();
-  //     const data = res.data.data || [];
-  //     setEmails(data);
-  //     setFilteredEmails(data);
-  //   } catch (err) {
-  //     console.error(err);
-  //     setEmails([]);
-  //     setFilteredEmails([]);
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
+  const [error, setError] = useState(null);
 
   const fetchData = async () => {
     try {
-      const res = await newsletterService.getAll();
-      console.log("newsletter res:", res);
+      setLoading(true);
+      setError(null);
 
+      const res = await newsletterService.getAll();
       const data = res.data || [];
+
       setEmails(data);
       setFilteredEmails(data);
     } catch (err) {
       console.error("newsletter error:", err);
+      setError("Không thể tải danh sách email");
       setEmails([]);
       setFilteredEmails([]);
     } finally {
@@ -51,26 +40,22 @@ export default function AdminNewsletter() {
   };
   
   useEffect(() => {
-    socket.emit("join-admin-room");
+    const handleAdminNotification = (data) => {
+      if (data?.type !== "news-letter") return;
 
-    const handleNewNewsletter = (newItem) => {
-      setNotification(newItem.message || `Có email mới: ${newItem.email}`);
+      setNotification(data.message || "Có email đăng ký mới");
 
-      setEmails((prev) => {
-        const existed = prev.some((item) => item.id === newItem.id);
-        if (existed) return prev;
-        return [newItem, ...prev];
-      });
+      fetchData();
 
       setTimeout(() => {
         setNotification("");
       }, 4000);
     };
 
-    socket.on("newsletter:new", handleNewNewsletter);
+    socket.on("admin:notification", handleAdminNotification);
 
     return () => {
-      socket.off("newsletter:new", handleNewNewsletter);
+      socket.off("admin:notification", handleAdminNotification);
     };
   }, []);
 
@@ -142,6 +127,24 @@ export default function AdminNewsletter() {
     startIndex,
     startIndex + itemsPerPage
   );
+
+  if (error && emails.length === 0) {
+    return (
+      <div className="p-6 text-center text-red-500">
+        <p>Lỗi: {error}</p>
+        <Button
+          variant="outline"
+          className="mt-4"
+          onClick={() => {
+            console.log("bấm thử lại");
+            fetchData();
+          }}
+        >
+          Thử lại
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="px-4 sm:px-6 pt-0 pb-6">

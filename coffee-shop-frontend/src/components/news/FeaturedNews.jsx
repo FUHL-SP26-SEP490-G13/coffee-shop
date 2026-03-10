@@ -41,7 +41,7 @@ export default function FeaturedNews() {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-6 mb-12">
           <div className="space-y-3">
             <div className="inline-block">
-              <h3 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+              <h3 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
                 Tin tức nổi bật
               </h3>
               <div className="h-1 w-20 bg-gradient-to-r from-primary to-primary/50 rounded-full mt-2" />

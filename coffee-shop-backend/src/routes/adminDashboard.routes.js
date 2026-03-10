@@ -4,13 +4,13 @@ const router = express.Router();
 const AdminDashboardController = require("../controllers/AdminDashboardController");
 const { authenticate } = require("../middlewares/auth");
 const { authorize } = require("../middlewares/authorize");
-const { ROLES } = require("../config/constants");
+const { ROLES_STRING } = require("../config/constants");
 
 // /api/dashboard
 router.get(
   "/",
   authenticate,
-  authorize([ROLES.MANAGER]),
+  authorize([ROLES_STRING.MANAGER]),
   AdminDashboardController.getOverview
 );
 
@@ -18,7 +18,7 @@ router.get(
 router.get(
   "/revenue",
   authenticate,
-  authorize([ROLES.MANAGER]),
+  authorize([ROLES_STRING.MANAGER]),
   AdminDashboardController.getRevenueSeries
 );
 
@@ -26,7 +26,7 @@ router.get(
 router.get(
   "/top-products",
   authenticate,
-  authorize([ROLES.MANAGER]),
+  authorize([ROLES_STRING.MANAGER]),
   AdminDashboardController.getTopProducts
 );
 
@@ -34,7 +34,7 @@ router.get(
 router.get(
   "/payment-method",
   authenticate,
-  authorize([ROLES.MANAGER]),
+  authorize([ROLES_STRING.MANAGER]),
   AdminDashboardController.getPaymentMethodBreakdown
 );
 
@@ -42,7 +42,7 @@ router.get(
 router.get(
   "/order-type",
   authenticate,
-  authorize([ROLES.MANAGER]),
+  authorize([ROLES_STRING.MANAGER]),
   AdminDashboardController.getOrderTypeRevenue
 );
 
@@ -50,7 +50,7 @@ router.get(
 router.get(
   "/comparison",
   authenticate,
-  authorize([ROLES.MANAGER]),
+  authorize([ROLES_STRING.MANAGER]),
   AdminDashboardController.getComparison
 );
 
@@ -58,9 +58,9 @@ router.get(
 router.get(
   "/staff-summary",
   authenticate,
-  authorize([ROLES.MANAGER]),
+  authorize([ROLES_STRING.MANAGER]),
   AdminDashboardController.getStaffSummary
 );
 
-router.get("/table-status", authenticate, authorize([ROLES.MANAGER]), AdminDashboardController.getTableStatus);
+router.get("/table-status", authenticate, authorize([ROLES_STRING.MANAGER]), AdminDashboardController.getTableStatus);
 module.exports = router;

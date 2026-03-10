@@ -37,6 +37,8 @@ export default function AdminBanner() {
 
   const [previewImage, setPreviewImage] = useState(null);
   const [errors, setErrors] = useState({});
+  
+  const [error, setError] = useState(null);
 
   const [form, setForm] = useState({
     title: "",
@@ -110,6 +112,8 @@ export default function AdminBanner() {
   const fetchData = async () => {
     try {
       setLoading(true);
+      setError(null);
+
       const res = await bannerService.getAll({
         page,
         limit,
@@ -121,6 +125,7 @@ export default function AdminBanner() {
       setTotal(res.total || 0);
     } catch (err) {
       console.error("Lỗi load banner:", err);
+      setError("Không thể tải danh sách banner");
       setBanners([]);
       setTotal(0);
     } finally {
@@ -212,6 +217,18 @@ export default function AdminBanner() {
   };
 
   const totalPages = Math.ceil(total / limit);
+
+  if (error && banners.length === 0) {
+    return (
+      <div className="p-6 text-center text-red-500">
+        <p>Lỗi: {error}</p>
+
+        <Button variant="outline" className="mt-4" onClick={fetchData}>
+          Thử lại
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 sm:p-6">
