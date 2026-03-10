@@ -14,7 +14,15 @@ const errorHandler = (err, req, res, next) => {
     switch (err.code) {
       case 'ER_DUP_ENTRY':
         statusCode = 400;
-        message = 'Duplicate entry - Record already exists';
+        if (err.sqlMessage?.includes('phone')) {
+          message = 'Số điện thoại đã được sử dụng';
+        } else if (err.sqlMessage?.includes('email')) {
+          message = 'Email đã được sử dụng';
+        } else if (err.sqlMessage?.includes('username')) {
+          message = 'Username đã được sử dụng';
+        } else {
+          message = 'Dữ liệu đã tồn tại';
+        }
         break;
       case 'ER_NO_REFERENCED_ROW_2':
         statusCode = 400;

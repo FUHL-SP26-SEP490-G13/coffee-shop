@@ -44,6 +44,11 @@ class NewsService {
   }
 
   async createNews(data, userId) {
+    const existedTitle = await NewsRepository.findByTitle(data.title);
+    if (existedTitle) {
+      throw new Error("Tiêu đề bài viết đã tồn tại");
+    }
+
     const slug = await this.generateUniqueSlug(data.title);
 
     const news = await NewsRepository.create({
@@ -79,6 +84,11 @@ class NewsService {
   }
 
   async updateNews(id, { title, summary, content, tag, thumbnail }) {
+    const existedTitle = await NewsRepository.findByTitleExcludeId(title, id);
+    if (existedTitle) {
+      throw new Error("Tiêu đề bài viết đã tồn tại");
+    }
+
     await NewsRepository.updateById(id, {
       title,
       summary,

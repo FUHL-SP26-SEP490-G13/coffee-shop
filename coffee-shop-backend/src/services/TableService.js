@@ -19,7 +19,7 @@ class TableService {
       params.push(options.status);
     }
     
-    query += ` ORDER BY a.name ASC, t.table_number ASC`;
+    query += ` ORDER BY a.name ASC, t.code ASC`;
     
     const [rows] = await TableRepository.db.query(query, params);
     return rows;
@@ -46,14 +46,21 @@ class TableService {
       throw new Error('Khu vực không tồn tại');
     }
 
-    // Check if table number already exists in this area
-    const exists = await TableRepository.existsInArea(data.table_number, data.area_id);
-    if (exists) {
-      throw new Error(`Bàn số ${data.table_number} đã tồn tại trong khu vực này`);
+    // Auto-generate table code
+    const lastTableQuery = 'SELECT code FROM tables WHERE code LIKE "TB-%" AND is_deleted = 0 ORDER BY CAST(SUBSTRING(code, 4) AS UNSIGNED) DESC LIMIT 1';
+    const [lastTable] = await TableRepository.db.query(lastTableQuery);
+    let newCode = 'TB-01';
+    if (lastTable.length > 0 && lastTable[0].code) {
+      const match = lastTable[0].code.match(/TB-(\d+)/);
+      if (match) {
+        const num = parseInt(match[1], 10) + 1;
+        newCode = `TB-${num.toString().padStart(2, '0')}`;
+      }
     }
 
     return await TableRepository.create({
-      table_number: data.table_number,
+      code: newCode,
+      seatNumber: data.seatNumber || 4,
       area_id: data.area_id,
       status: 'available',
       is_deleted: 0
@@ -73,18 +80,6 @@ class TableService {
       }
     }
 
-    // If changing table number or area, check for uniqueness
-    if ((data.table_number && data.table_number !== table.table_number) || 
-        (data.area_id && data.area_id.toString() !== table.area_id.toString())) {
-      const targetNumber = data.table_number || table.table_number;
-      const targetAreaId = data.area_id || table.area_id;
-      
-      const exists = await TableRepository.existsInArea(targetNumber, targetAreaId, id);
-      if (exists) {
-        throw new Error(`Bàn số ${targetNumber} đã tồn tại trong khu vực này`);
-      }
-    }
-
     return await TableRepository.update(id, data);
   }
 
@@ -92,7 +87,10 @@ class TableService {
    * Soft delete table
    */
   async deleteTable(id) {
-    await this.getTableById(id);
+    const table = await this.getTableById(id);
+    if (table.code) {
+      await TableRepository.update(id, { code: `${table.code}-del-${id}` });
+    }
     return await TableRepository.softDelete(id);
   }
 

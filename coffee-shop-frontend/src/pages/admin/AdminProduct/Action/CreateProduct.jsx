@@ -122,11 +122,6 @@ export default function CreateProduct({ open, onClose, onSuccess }) {
       return;
     }
 
-    if (trimmedDescription.length > 255) {
-      toast.error('Mô tả không được vượt quá 255 ký tự');
-      return;
-    }
-
     try {
       setSubmitting(true);
 

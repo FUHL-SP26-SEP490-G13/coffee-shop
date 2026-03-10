@@ -5,7 +5,7 @@ const controller = require("../controllers/BannerController");
 const { authenticate } = require("../middlewares/auth");
 const { authorize } = require("../middlewares/authorize");
 const upload = require("../middlewares/upload");
-const ROLES = require("../config/role");
+const { ROLES_STRING } = require("../config/constants");
 const validate = require("../middlewares/validate");
 const {
   createBannerSchema,
@@ -19,14 +19,14 @@ router.get("/active", controller.getActive.bind(controller));
 router.get(
   "/admin",
   authenticate,
-  authorize([ROLES.MANAGER]),
+  authorize([ROLES_STRING.MANAGER]),
   controller.getAll.bind(controller)
 );
 
 router.post(
   "/admin",
   authenticate,
-  authorize([ROLES.MANAGER]),
+  authorize([ROLES_STRING.MANAGER]),
   upload.single("image"),
   validate(createBannerSchema),
   controller.create.bind(controller)
@@ -35,7 +35,7 @@ router.post(
 router.put(
   "/admin/:id",
   authenticate,
-  authorize([ROLES.MANAGER]),
+  authorize([ROLES_STRING.MANAGER]),
   upload.single("image"),
   validate(updateBannerSchema),
   controller.update.bind(controller)
@@ -44,8 +44,10 @@ router.put(
 router.delete(
   "/admin/:id",
   authenticate,
-  authorize([ROLES.MANAGER]),
+  authorize([ROLES_STRING.MANAGER]),
   controller.delete.bind(controller)
 );
+
+router.get("/active-list", controller.getActiveList.bind(controller));
 
 module.exports = router;

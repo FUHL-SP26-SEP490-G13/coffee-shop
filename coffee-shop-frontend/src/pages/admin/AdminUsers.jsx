@@ -31,8 +31,6 @@ export default function AdminUsers() {
     email: '',
     phone: '',
     username: '',
-    gender: '',
-    dob: '',
     role_id: '2',
   });
   const [isPasswordOpen, setIsPasswordOpen] = useState(false);
@@ -88,9 +86,6 @@ export default function AdminUsers() {
     if (!createForm.username.trim()) {
       errors.username = 'Username không được để trống';
     }
-    if (!createForm.dob) {
-      errors.dob = 'Ngày sinh không được để trống';
-    }
     if (!['2', '3'].includes(createForm.role_id)) {
       errors.role_id = 'Vai trò không hợp lệ';
     }
@@ -106,8 +101,6 @@ export default function AdminUsers() {
       email: '',
       phone: '',
       username: '',
-      gender: '',
-      dob: '',
       role_id: '2',
     });
     setCreateFieldErrors({});
@@ -130,8 +123,6 @@ export default function AdminUsers() {
         email: createForm.email.trim(),
         phone: createForm.phone.trim(),
         username: createForm.username.trim(),
-        gender: createForm.gender === '' ? null : parseInt(createForm.gender, 10),
-        dob: createForm.dob,
         role_id: parseInt(createForm.role_id, 10),
       };
 
@@ -367,7 +358,6 @@ export default function AdminUsers() {
               <TableHead>Tên đăng nhập</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Điện thoại</TableHead>
-              <TableHead>Giới tính</TableHead>
               <TableHead>Vai trò</TableHead>
               <TableHead>Trạng thái</TableHead>
             </TableRow>
@@ -403,11 +393,6 @@ export default function AdminUsers() {
                   <TableCell>{user.username}</TableCell>
                   <TableCell className="text-muted-foreground">{user.email}</TableCell>
                   <TableCell className="text-muted-foreground">{user.phone}</TableCell>
-                  <TableCell className="text-muted-foreground">
-                    <div className={`${genderInfo.color} cursor-help hover:opacity-80 transition-opacity`} title={genderInfo.label}>
-                      {genderInfo.icon}
-                    </div>
-                  </TableCell>
                   <TableCell>
                     <Badge
                       variant="secondary"
@@ -554,31 +539,6 @@ export default function AdminUsers() {
                 {createFieldErrors.username && (
                   <p className="text-xs text-destructive">{createFieldErrors.username}</p>
                 )}
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="staffDob">Ngày sinh</Label>
-                <Input
-                  id="staffDob"
-                  type="date"
-                  value={createForm.dob}
-                  onChange={(e) => handleCreateChange('dob', e.target.value)}
-                  className={createFieldErrors.dob ? 'border-destructive' : ''}
-                />
-                {createFieldErrors.dob && (
-                  <p className="text-xs text-destructive">{createFieldErrors.dob}</p>
-                )}
-              </div>
-              <div className="space-y-2">
-                <Label>Giới tính</Label>
-                <Select value={createForm.gender} onValueChange={(value) => handleCreateChange('gender', value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Chọn" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1">Nam</SelectItem>
-                    <SelectItem value="0">Nữ</SelectItem>
-                  </SelectContent>
-                </Select>
               </div>
               <div className="space-y-2">
                 <Label>Vai trò</Label>

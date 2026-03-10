@@ -1,87 +1,97 @@
 const DiscountRepository = require("../repositories/DiscountRepository");
-const Joi = require("joi");
-
-const createSchema = Joi.object({
-  code: Joi.string().trim().min(3).max(50).required(),
-  description: Joi.string().trim().min(3).required(),
-  percentage: Joi.number().min(1).max(100).required(),
-  min_order_amount: Joi.number().min(0).required(),
-  max_discount_amount: Joi.number().min(0).required(),
-  usage_limit: Joi.number().integer().min(1).required(),
-  valid_from: Joi.date().required(),
-  valid_until: Joi.date().greater(Joi.ref("valid_from")).required(),
-  is_active: Joi.boolean().required(),
-});
 
 class DiscountService {
   async getAll(params) {
-    return DiscountRepository.findAll(params);
+    return await DiscountRepository.findAll(params);
   }
 
   async getById(id) {
     const discount = await DiscountRepository.findById(id);
-    if (!discount) throw new Error("Discount không tồn tại");
+
+    if (!discount) {
+      throw new Error("Không tìm thấy mã giảm giá");
+    }
+
     return discount;
   }
 
   async create(data) {
-    // 1️⃣ Validate bằng Joi
-    const { error, value } = createSchema.validate(data, {
-      abortEarly: false,
-    });
+    const existing = await DiscountRepository.findByCode(data.code.trim());
 
-    if (error) {
-      throw new Error(error.details.map((e) => e.message).join(", "));
-    }
-
-    // 2️⃣ Chuẩn hóa code
-    value.code = value.code.toUpperCase();
-
-    // 3️⃣ Check trùng code
-    const existing = await DiscountRepository.findByCode(value.code);
     if (existing) {
       throw new Error("Mã giảm giá đã tồn tại");
     }
 
-    // 4️⃣ Lưu
-    return DiscountRepository.create({
-      ...value,
-      is_active: value.is_active ? 1 : 0,
+    return await DiscountRepository.create({
+      ...data,
+      code: data.code.trim(),
+      description: data.description?.trim() || null,
     });
   }
 
   async update(id, data) {
-    const { error, value } = createSchema.validate(data, {
-      abortEarly: false,
-    });
+    const discount = await DiscountRepository.findById(id);
 
-    if (error) {
-      throw new Error(error.details.map((e) => e.message).join(", "));
+    if (!discount) {
+      throw new Error("Không tìm thấy mã giảm giá");
     }
 
-    value.code = value.code.toUpperCase();
+    const usedCount = Number(discount.used_count || 0);
 
-    // Check trùng nhưng không tính chính nó
-    const existing = await DiscountRepository.findByCode(value.code);
-    if (existing && existing.id != id) {
-      throw new Error("Mã giảm giá đã tồn tại");
+    if (usedCount > 0) {
+      const allowedData = {};
+
+      if (data.description !== undefined) {
+        allowedData.description = data.description?.trim() || null;
+      }
+
+      if (data.valid_until !== undefined) {
+        allowedData.valid_until = data.valid_until;
+      }
+
+      if (Object.keys(allowedData).length === 0) {
+        throw new Error(
+          "Mã giảm giá đã được sử dụng, chỉ được sửa ngày kết thúc, mô tả"
+        );
+      }
+
+      await DiscountRepository.update(id, allowedData);
+      return true;
     }
 
-    return DiscountRepository.update(id, {
-      ...value,
-      is_active: value.is_active ? 1 : 0,
+    if (
+      data.code &&
+      data.code.trim().toLowerCase() !==
+        String(discount.code).trim().toLowerCase()
+    ) {
+      const existing = await DiscountRepository.findByCode(data.code.trim());
+      if (existing) {
+        throw new Error("Mã giảm giá đã tồn tại");
+      }
+    }
+
+    await DiscountRepository.update(id, {
+      ...data,
+      code: data.code?.trim(),
+      description:
+        data.description !== undefined
+          ? data.description?.trim() || null
+          : undefined,
     });
+
+    return true;
   }
 
   async delete(id) {
     const discount = await DiscountRepository.findById(id);
-    if (!discount) throw new Error("Không tồn tại");
 
-    if (Number(discount.used_count) > 0) {
-      throw new Error("Mã giảm giá đã được sử dụng nên không thể xóa");
+    if (!discount) {
+      throw new Error("Không tìm thấy mã giảm giá");
     }
 
-    return DiscountRepository.delete(id);
+    const newCode = `${discount.code}__deleted__${discount.id}__${Date.now()}`;
+    await DiscountRepository.softDelete(id, newCode);
+    return true;
   }
 }
 

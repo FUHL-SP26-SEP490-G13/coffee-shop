@@ -72,52 +72,6 @@ class UserService {
   }
 
   /**
-   * Create new user (admin only)
-   */
-  async createUser(data) {
-    // Check if email exists
-    const existingEmail = await UserRepository.findByEmail(data.email);
-    if (existingEmail) {
-      throw new Error('Email đã được sử dụng');
-    }
-
-    // Check if phone exists
-    const existingPhone = await UserRepository.findByPhone(data.phone);
-    if (existingPhone) {
-      throw new Error('Số điện thoại đã được sử dụng');
-    }
-
-    // Check if username exists
-    const existingUsername = await UserRepository.findByUsername(data.username);
-    if (existingUsername) {
-      throw new Error('Username đã được sử dụng');
-    }
-
-    // Hash password
-    const hashedPassword = await hashPassword(data.password);
-
-    // Create user
-    const user = await UserRepository.create({
-      phone: data.phone,
-      username: data.username,
-      password: hashedPassword,
-      email: data.email,
-      first_name: data.first_name,
-      last_name: data.last_name,
-      gender: data.gender || null,
-      dob: data.dob,
-      address: data.address || null,
-      role_id: data.role_id || ROLES.CUSTOMER,
-      isActive: 1,
-    });
-
-    // Remove password from response
-    delete user.password;
-
-    return user;
-  }
-
-  /**
    * Create new staff or barista (admin only)
    */
   async createStaffUser(data) {
@@ -151,8 +105,6 @@ class UserService {
       email: data.email,
       first_name: data.first_name,
       last_name: data.last_name,
-      gender: data.gender ?? null,
-      dob: data.dob,
       role_id: roleId,
       isActive: 1,
       isVerified: 1,

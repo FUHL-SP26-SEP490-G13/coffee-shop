@@ -23,6 +23,11 @@ const tableService = {
     return response.data;
   },
 
+  reserve: async (id, data) => {
+    const response = await axios.post(`${API_URL}/tables/${id}/reserve`, data);
+    return response.data;
+  },
+
   delete: async (id) => {
     const response = await axios.delete(`${API_URL}/tables/${id}`);
     return response.data;

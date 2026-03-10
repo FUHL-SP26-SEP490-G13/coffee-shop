@@ -15,14 +15,16 @@ const adminDashboardRoutes = require('./adminDashboard.routes');
 const recipeRoutes = require('./recipe.routes');
 const areaRoutes = require("./area.routes");
 const tableRoutes = require("./table.routes");
+const notificationRoutes = require("./notificationRoutes.routes");
 const ingredientRoutes = require('./ingredient.routes');
 const productSizeRoutes = require('./productSize.routes');
 
 // Mount routes
-router.use('/auth', authRoutes);
-router.use('/categories', categoryRoutes);
-router.use('/discounts', discountRoutes);
-router.use('/products', productRoutes);
+router.use("/auth", authRoutes);
+router.use("/categories", categoryRoutes);
+router.use("/users", userRoutes);
+router.use("/products", productRoutes);
+router.use("/news-letter", newsLetterRoutes);
 router.use('/news', newsRoutes);
 router.use('/newsletter', newsLetterRoutes);
 router.use('/users', userRoutes);
@@ -36,6 +38,8 @@ router.use('/ingredients', ingredientRoutes);
 router.use('/product-sizes', productSizeRoutes);
 router.use('/dashboard', adminDashboardRoutes);
 router.use('/banners', bannerRoutes);
+router.use("/notifications", notificationRoutes);
+router.use("/discounts", discountRoutes);
 
 // Health check endpoint
 router.get('/health', (req, res) => {

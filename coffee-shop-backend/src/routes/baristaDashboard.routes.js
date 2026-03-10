@@ -3,19 +3,19 @@ const router = express.Router();
 const controller = require("../controllers/BaristaDashboardController");
 const { authenticate } = require("../middlewares/auth");
 const { authorize } = require("../middlewares/authorize");
-const ROLES = require("../config/role");
+const { ROLES_STRING } = require("../config/constants");
 
 router.get(
   "/dashboard",
   authenticate,
-  authorize([ROLES.BARISTA]),
+  authorize([ROLES_STRING.BARISTA]),
   controller.getOverview
 );
 
 router.get(
   "/dashboard/trends",
   authenticate,
-  authorize([ROLES.BARISTA]),
+  authorize([ROLES_STRING.BARISTA]),
   controller.getTrends
 );
 

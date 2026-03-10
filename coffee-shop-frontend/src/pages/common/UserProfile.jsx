@@ -19,7 +19,6 @@ export function UserProfile() {
   const [profile, setProfile] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [phoneHasBeenSet, setPhoneHasBeenSet] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -34,10 +33,6 @@ export function UserProfile() {
 
         if (isMounted) {
           setProfile(response.data || null);
-          // Check if phone has been set
-          if (response.data?.phone) {
-            setPhoneHasBeenSet(true);
-          }
         }
       } catch (error) {
         const message =
@@ -74,32 +69,6 @@ export function UserProfile() {
     return profile.role_name || profile.role || 'staff';
   }, [profile]);
 
-  const genderLabel = useMemo(() => {
-    if (!profile) return '';
-    const gender = profile.gender;
-    if (gender === 1) return 'Nam';
-    if (gender === 0) return 'Nữ';
-    return 'Khác';
-  }, [profile]);
-
-  const toUtc7DateString = (value) => {
-    if (!value) return '';
-    const raw = String(value);
-    if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
-      return raw;
-    }
-    const parsed = new Date(value);
-    if (Number.isNaN(parsed.getTime())) {
-      return raw.split('T')[0];
-    }
-    const utcTime = parsed.getTime() + parsed.getTimezoneOffset() * 60 * 1000;
-    const utc7Time = utcTime + 7 * 60 * 60 * 1000;
-    return new Date(utc7Time).toISOString().slice(0, 10);
-  };
-
-  const toDateInputValue = (value) => toUtc7DateString(value);
-  const toDateDisplayValue = (value) => toUtc7DateString(value) || '-';
-
   const handleSave = async () => {
     setIsSaving(true);
     try {
@@ -107,8 +76,6 @@ export function UserProfile() {
       const updateData = {
         first_name: profile.first_name,
         last_name: profile.last_name,
-        gender: profile.gender,
-        dob: profile.dob,
         phone: profile.phone,
       };
 
@@ -122,10 +89,6 @@ export function UserProfile() {
         ...prev,
         ...response.data,
       }));
-      // Mark phone as set if it was just added
-      if (response.data?.phone) {
-        setPhoneHasBeenSet(true);
-      }
       setIsEditing(false);
       toast.success('Cập nhật thông tin thành công');
     } catch (error) {
@@ -216,12 +179,12 @@ export function UserProfile() {
                 </div>
               </div>
 
-              {/* Phone - Editable only if not set yet */}
+              {/* Phone - Editable */}
               <div>
                 <Label htmlFor="phone">Số điện thoại</Label>
                 <div className="flex items-center gap-2 mt-1">
                   <Phone className="w-4 h-4 text-muted-foreground" />
-                  {isEditing && !phoneHasBeenSet ? (
+                  {isEditing ? (
                     <Input
                       id="phone"
                       type="tel"
@@ -234,13 +197,7 @@ export function UserProfile() {
                       }
                     />
                   ) : (
-                    <Input
-                      id="phone"
-                      type="tel"
-                      value={profile?.phone || ''}
-                      disabled
-                      className="bg-muted"
-                    />
+                    <span>{profile?.phone || '-'}</span>
                   )}
                 </div>
               </div>
@@ -285,59 +242,6 @@ export function UserProfile() {
                       />
                     ) : (
                       <span>{profile?.last_name || '-'}</span>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Gender & Date of Birth - Same row - Editable */}
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <Label htmlFor="gender">Giới tính</Label>
-                  <div className="flex items-center gap-2 mt-1">
-                    <User className="w-4 h-4 text-muted-foreground" />
-                    {isEditing ? (
-                      <Select
-                        value={profile?.gender?.toString() || ''}
-                        onValueChange={(value) =>
-                          setProfile((prev) => ({
-                            ...prev,
-                            gender: parseInt(value),
-                          }))
-                        }
-                      >
-                        <SelectTrigger className="flex-1">
-                          <SelectValue placeholder="Chọn giới tính" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="1">Nam</SelectItem>
-                          <SelectItem value="0">Nữ</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    ) : (
-                      <span>{genderLabel || '-'}</span>
-                    )}
-                  </div>
-                </div>
-
-                <div>
-                  <Label htmlFor="dob">Ngày sinh</Label>
-                  <div className="flex items-center gap-2 mt-1">
-                    <Calendar className="w-4 h-4 text-muted-foreground" />
-                    {isEditing ? (
-                      <Input
-                        id="dob"
-                        type="date"
-                        value={toDateInputValue(profile?.dob)}
-                        onChange={(e) =>
-                          setProfile((prev) => ({
-                            ...prev,
-                            dob: e.target.value,
-                          }))
-                        }
-                      />
-                    ) : (
-                      <span>{toDateDisplayValue(profile?.dob)}</span>
                     )}
                   </div>
                 </div>
