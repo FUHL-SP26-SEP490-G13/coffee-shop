@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import {
   ShoppingCart,
   Search,
@@ -7,10 +7,11 @@ import {
   Package,
   Menu,
   X,
-  Home,
   Heart,
   Newspaper,
   LogIn,
+  ChevronDown,
+  Grid3X3,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,6 +19,7 @@ import { useNavigate } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
 import { STORAGE_KEYS } from "@/constants";
 import Logo from "/logo/Logo.png";
+import categoryService from "@/services/categoryService";
 
 const placeholders = [
   "Xin chào, bạn cần gì hôm nay?",
@@ -29,8 +31,8 @@ const placeholders = [
 function Header() {
   const navigate = useNavigate();
   const dropdownRef = useRef(null);
+  const categoryDropdownRef = useRef(null);
 
-  // ===== USER =====
   const token =
     localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN) ||
     sessionStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
@@ -42,7 +44,6 @@ function Header() {
     navigate("/");
   };
 
-  // ===== Typing Effect =====
   const [text, setText] = useState("");
   const [index, setIndex] = useState(0);
   const [subIndex, setSubIndex] = useState(0);
@@ -50,6 +51,24 @@ function Header() {
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileUserDropdownOpen, setMobileUserDropdownOpen] = useState(false);
+
+  const [categories, setCategories] = useState([]);
+  const [categoryOpen, setCategoryOpen] = useState(false);
+  const [mobileCategoryOpen, setMobileCategoryOpen] = useState(false);
+
+  const fetchCategories = useCallback(async () => {
+    try {
+      const res = await categoryService.getAll();
+      const list = Array.isArray(res?.data) ? res.data : [];
+      setCategories(list);
+    } catch (error) {
+      console.error("Lỗi lấy danh mục:", error);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchCategories();
+  }, [fetchCategories]);
 
   useEffect(() => {
     if (subIndex < placeholders[index].length) {
@@ -68,21 +87,34 @@ function Header() {
     }
   }, [subIndex, index]);
 
-  // ===== Click outside dropdown =====
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
         setOpen(false);
       }
+
+      if (
+        categoryDropdownRef.current &&
+        !categoryDropdownRef.current.contains(e.target)
+      ) {
+        setCategoryOpen(false);
+      }
     };
+
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const goToCategory = (category) => {
+    navigate(`/products?category=${category.id}`);
+    setCategoryOpen(false);
+    setMobileCategoryOpen(false);
+    setMobileMenuOpen(false);
+  };
+
   return (
     <header className="border-b border-gray-200 bg-white sticky top-0 z-50 shadow-sm">
       <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-3 sm:py-4 flex justify-between items-center gap-2 sm:gap-3 lg:gap-4">
-        {/* Logo */}
         <div
           className="flex-shrink-0 cursor-pointer"
           onClick={() => navigate("/")}
@@ -94,7 +126,6 @@ function Header() {
           />
         </div>
 
-        {/* Search - Desktop */}
         <div className="flex-1 mx-2 sm:mx-4 lg:mx-8 hidden md:flex">
           <div className="w-full relative">
             <Input
@@ -108,9 +139,7 @@ function Header() {
           </div>
         </div>
 
-        {/* Right section */}
         <div className="flex items-center gap-1 sm:gap-2 lg:gap-4">
-          {/* Mobile Search Button */}
           <Button
             variant="ghost"
             size="icon"
@@ -120,7 +149,38 @@ function Header() {
             <Search className="w-5 h-5" />
           </Button>
 
-          {/* Desktop Navigation */}
+          <div className="relative hidden lg:block" ref={categoryDropdownRef}>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setCategoryOpen(!categoryOpen)}
+              className="flex items-center gap-2 text-sm"
+            >
+              <Grid3X3 className="w-4 h-4" />
+              <span>Danh mục</span>
+              <ChevronDown className="w-4 h-4" />
+            </Button>
+
+            {categoryOpen && (
+              <div className="absolute left-0 mt-2 w-64 bg-white border border-gray-200 rounded-2xl shadow-xl p-2 z-50">
+                {categories.length === 0 ? (
+                  <div className="px-3 py-2 text-sm text-gray-500">
+                    Không có danh mục
+                  </div>
+                ) : (
+                  categories.map((category) => (
+                    <button
+                      key={category.id}
+                      onClick={() => goToCategory(category)}
+                      className="w-full text-left px-3 py-2 rounded-xl hover:bg-amber-50 hover:text-amber-700 transition text-sm"
+                    >
+                      {category.name}
+                    </button>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
 
           <Button
             variant="ghost"
@@ -144,91 +204,87 @@ function Header() {
               </Button>
             )}
 
-            {/* User Dropdown */}
             {user && (
-              <>
-                <div className="flex items-center gap-1 lg:gap-2">
+              <div className="flex items-center gap-1 lg:gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => navigate("/wishlist")}
+                  className="gap-1 sm:gap-2 text-xs sm:text-sm hidden lg:block"
+                >
+                  <Heart className="w-4 h-4" />
+                </Button>
+
+                <Button
+                  onClick={() => navigate("/cart")}
+                  size="sm"
+                  className="gap-1 sm:gap-2 text-xs sm:text-sm"
+                >
+                  <ShoppingCart className="w-4 h-4" />
+                </Button>
+
+                <div className="relative" ref={dropdownRef}>
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => navigate("/wishlist")}
-                    className="gap-1 sm:gap-2 text-xs sm:text-sm hidden lg:block"
+                    onClick={() => setOpen(!open)}
+                    className="gap-1 sm:gap-2 text-gray-700 transition p-1.5 sm:p-2"
                   >
-                    <Heart className="w-4 h-4" />
-                  </Button>
-                  {/* Shopping Cart Button */}
-                  <Button
-                    onClick={() => navigate("/cart")}
-                    size="sm"
-                    className="gap-1 sm:gap-2 text-xs sm:text-sm"
-                  >
-                    <ShoppingCart className="w-4 h-4" />
+                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-amber-500 flex items-center justify-center text-white text-xs font-bold">
+                      {user.first_name?.charAt(0).toUpperCase()}
+                    </div>
+                    <span className="hidden lg:inline text-sm">
+                      Xin chào, {user.first_name} {user.last_name}!
+                    </span>
                   </Button>
 
-                  <div className="relative" ref={dropdownRef}>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setOpen(!open)}
-                      className="gap-1 sm:gap-2 text-gray-700 transition p-1.5 sm:p-2"
-                    >
-                      <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-amber-500 flex items-center justify-center text-white text-xs font-bold">
-                        {user.first_name?.charAt(0).toUpperCase()}
-                      </div>
-                      <span className="hidden lg:inline text-sm">
-                        Xin chào, {user.first_name} {user.last_name}!
-                      </span>
-                    </Button>
+                  {open && (
+                    <div className="absolute right-0 mt-1 w-48 sm:w-56 bg-white shadow-xl rounded-lg sm:rounded-2xl p-1.5 sm:p-2 border border-gray-200 animate-in fade-in zoom-in-95 flex flex-col gap-0">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          navigate("/my-orders");
+                          setOpen(false);
+                        }}
+                        className="w-full text-left px-3 py-2 text-gray-700 transition text-xs sm:text-sm justify-start"
+                      >
+                        <Package className="w-4 h-4 mr-2" />
+                        <span>Đơn hàng</span>
+                      </Button>
 
-                    {open && (
-                      <div className="absolute right-0 mt-1 w-48 sm:w-56 bg-white shadow-xl rounded-lg sm:rounded-2xl p-1.5 sm:p-2 border border-gray-200 animate-in fade-in zoom-in-95 flex flex-col gap-0">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            navigate("/my-orders");
-                            setOpen(false);
-                          }}
-                          className="w-full text-left px-3 py-2 text-gray-700 transition text-xs sm:text-sm justify-start"
-                        >
-                          <Package className="w-4 h-4 mr-2" />
-                          <span>Đơn hàng</span>
-                        </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          navigate("/customer/profile");
+                          setOpen(false);
+                        }}
+                        className="w-full text-left px-3 py-2 text-gray-700 transition text-xs sm:text-sm justify-start"
+                      >
+                        <User className="w-4 h-4 mr-2" />
+                        <span>Hồ sơ cá nhân</span>
+                      </Button>
 
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            navigate("/customer/profile");
-                            setOpen(false);
-                          }}
-                          className="w-full text-left px-3 py-2 text-gray-700 transition text-xs sm:text-sm justify-start"
-                        >
-                          <User className="w-4 h-4 mr-2" />
-                          <span>Hồ sơ cá nhân</span>
-                        </Button>
+                      <div className="my-0.5 border-t border-gray-200" />
 
-                        <div className="my-0.5 border-t border-gray-200" />
-
-                        <button
-                          onClick={() => {
-                            handleLogout();
-                            setOpen(false);
-                          }}
-                          className="w-full text-left px-3 py-2 text-red-600 hover:bg-red-50 rounded transition flex items-center gap-2 text-xs sm:text-sm"
-                        >
-                          <LogOut className="w-4 h-4" />
-                          Đăng xuất
-                        </button>
-                      </div>
-                    )}
-                  </div>
+                      <button
+                        onClick={() => {
+                          handleLogout();
+                          setOpen(false);
+                        }}
+                        className="w-full text-left px-3 py-2 text-red-600 hover:bg-red-50 rounded transition flex items-center gap-2 text-xs sm:text-sm"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        Đăng xuất
+                      </button>
+                    </div>
+                  )}
                 </div>
-              </>
+              </div>
             )}
           </div>
 
-          {/* Mobile Menu Button */}
           <Button
             variant="ghost"
             size="icon"
@@ -244,7 +300,6 @@ function Header() {
         </div>
       </div>
 
-      {/* Mobile Search Bar */}
       {mobileSearchOpen && (
         <div className="md:hidden px-3 pb-3 border-t border-gray-200 bg-gray-50">
           <div className="w-full relative">
@@ -260,10 +315,39 @@ function Header() {
         </div>
       )}
 
-      {/* Mobile Menu */}
       {mobileMenuOpen && (
         <div className="sm:hidden border-t border-gray-200 bg-gray-50">
           <div className="px-3 py-2 space-y-0.5">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setMobileCategoryOpen(!mobileCategoryOpen)}
+              className="w-full justify-start text-gray-700 text-xs"
+            >
+              <Grid3X3 className="w-4 h-4 mr-2" />
+              Danh mục
+            </Button>
+
+            {mobileCategoryOpen && (
+              <div className="bg-white border border-gray-200 rounded-lg p-2 ml-2 mb-2 space-y-1">
+                {categories.length === 0 ? (
+                  <div className="px-3 py-2 text-xs text-gray-500">
+                    Không có danh mục
+                  </div>
+                ) : (
+                  categories.map((category) => (
+                    <button
+                      key={category.id}
+                      onClick={() => goToCategory(category)}
+                      className="w-full text-left px-3 py-2 rounded text-xs text-gray-700 hover:bg-amber-50"
+                    >
+                      {category.name}
+                    </button>
+                  ))
+                )}
+              </div>
+            )}
+
             {!user && (
               <Button
                 variant="ghost"

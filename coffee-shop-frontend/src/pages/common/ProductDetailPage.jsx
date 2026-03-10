@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Heart, Loader2, Plus } from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
@@ -12,18 +12,14 @@ import "swiper/css";
 import "swiper/css/pagination";
 import "swiper/css/navigation";
 
-const FAVORITES_KEY = "favorite_products";
 const CART_KEY = "cart_items";
 
 export default function ProductDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [selectedSize, setSelectedSize] = useState(null);
-  const [favorites, setFavorites] = useState([]);
 
-  useEffect(() => {
-    setFavorites(JSON.parse(localStorage.getItem(FAVORITES_KEY) || "[]"));
-  }, []);
+  const [selectedSize, setSelectedSize] = useState(null);
+  const [quantity, setQuantity] = useState(1);
 
   const fetchProduct = useCallback(() => {
     return productService.getById(id);
@@ -41,6 +37,11 @@ export default function ProductDetailPage() {
     }
   }, [sizes, selectedSize]);
 
+  useEffect(() => {
+    setQuantity(1);
+    setSelectedSize(null);
+  }, [id]);
+
   const selectedSizeObj = useMemo(() => {
     return sizes.find((s) => s.size === selectedSize) || null;
   }, [sizes, selectedSize]);
@@ -51,18 +52,23 @@ export default function ProductDetailPage() {
   const displayImages =
     images.length > 0 ? images : [{ image_url: defaultImage }];
 
-  const isFavorite = favorites.includes(product?.id);
+  const fetchRelatedProducts = useCallback(() => {
+    if (!product?.category_id) {
+      return Promise.resolve({ data: [] });
+    }
 
-  const toggleFavorite = () => {
-    if (!product?.id) return;
+    return productService.getByCategory(product.category_id, {
+      status: "available",
+    });
+  }, [product?.category_id]);
 
-    const next = isFavorite
-      ? favorites.filter((item) => item !== product.id)
-      : [...favorites, product.id];
+  const { data: relatedData, loading: relatedLoading } =
+    useFetch(fetchRelatedProducts);
 
-    setFavorites(next);
-    localStorage.setItem(FAVORITES_KEY, JSON.stringify(next));
-  };
+  const relatedProducts = useMemo(() => {
+    const list = Array.isArray(relatedData?.data) ? relatedData.data : [];
+    return list.filter((item) => String(item.id) !== String(product?.id));
+  }, [relatedData, product?.id]);
 
   const addToCart = () => {
     if (!product || !selectedSizeObj) {
@@ -72,34 +78,33 @@ export default function ProductDetailPage() {
 
     const cartItem = {
       productId: product.id,
+      productSizeId: selectedSizeObj.id,
       name: product.name,
       image: displayImages[0]?.image_url || defaultImage,
       size: selectedSizeObj.size,
       price: Number(selectedSizeObj.price),
-      quantity: 1,
-      category_id: product.category_id,
-      category_name: product.category_name,
+      quantity,
     };
 
     const existingCart = JSON.parse(localStorage.getItem(CART_KEY) || "[]");
 
     const index = existingCart.findIndex(
-      (item) =>
-        item.productId === cartItem.productId && item.size === cartItem.size
+      (item) => item.productSizeId === cartItem.productSizeId
     );
 
-    let nextCart = [...existingCart];
+    const nextCart = [...existingCart];
 
     if (index >= 0) {
       nextCart[index] = {
         ...nextCart[index],
-        quantity: nextCart[index].quantity + 1,
+        quantity: nextCart[index].quantity + quantity,
       };
     } else {
       nextCart.push(cartItem);
     }
 
     localStorage.setItem(CART_KEY, JSON.stringify(nextCart));
+    window.dispatchEvent(new Event("cart-updated"));
     alert("Đã thêm vào giỏ hàng");
   };
 
@@ -130,19 +135,21 @@ export default function ProductDetailPage() {
   return (
     <div className="min-h-screen flex flex-col bg-white">
       <Header />
+
       <section className="w-full px-4 sm:px-6 lg:px-8 py-14">
         <div className="max-w-7xl mx-auto">
           <Button variant="ghost" onClick={() => navigate(-1)} className="mb-4">
             ← Quay lại
           </Button>
         </div>
+
         <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
           <div>
             <Swiper
               modules={[Pagination, Navigation, Autoplay]}
               pagination={{ clickable: true }}
               autoplay={{ delay: 3000, disableOnInteraction: false }}
-              loop={true}
+              loop
               className="rounded-2xl overflow-hidden border border-gray-200"
             >
               {displayImages.map((img, index) => (
@@ -169,18 +176,6 @@ export default function ProductDetailPage() {
                   {product.name}
                 </h1>
               </div>
-
-              <button
-                type="button"
-                onClick={toggleFavorite}
-                className="w-11 h-11 rounded-full border border-gray-200 flex items-center justify-center"
-              >
-                <Heart
-                  className={`w-5 h-5 ${
-                    isFavorite ? "fill-red-500 text-red-500" : "text-gray-500"
-                  }`}
-                />
-              </button>
             </div>
 
             <p className="text-gray-600 leading-8 mb-6">
@@ -222,6 +217,26 @@ export default function ProductDetailPage() {
               </p>
             </div>
 
+            <div className="flex items-center gap-4 mb-6">
+              <button
+                type="button"
+                onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                className="w-9 h-9 border rounded"
+              >
+                -
+              </button>
+
+              <span className="text-lg font-semibold">{quantity}</span>
+
+              <button
+                type="button"
+                onClick={() => setQuantity(quantity + 1)}
+                className="w-9 h-9 border rounded"
+              >
+                +
+              </button>
+            </div>
+
             <Button
               onClick={addToCart}
               className="bg-amber-600 hover:bg-amber-700 text-white px-8 py-6 text-base"
@@ -230,6 +245,81 @@ export default function ProductDetailPage() {
               Thêm vào giỏ hàng
             </Button>
           </div>
+        </div>
+      </section>
+
+      <section className="w-full px-4 sm:px-6 lg:px-8 pb-14">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold text-gray-900">
+              Sản phẩm liên quan
+            </h2>
+
+            <Button
+              variant="ghost"
+              onClick={() => navigate("/products")}
+              className="text-amber-600"
+            >
+              Xem tất cả
+            </Button>
+          </div>
+
+          {relatedLoading ? (
+            <div className="flex justify-center py-10">
+              <Loader2 className="w-8 h-8 animate-spin text-amber-600" />
+            </div>
+          ) : relatedProducts.length === 0 ? (
+            <div className="text-gray-500 py-6">
+              Không có sản phẩm liên quan
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {relatedProducts.slice(0, 4).map((item) => {
+                const itemImages = Array.isArray(item.images)
+                  ? item.images
+                  : [];
+                const itemSizes = Array.isArray(item.sizes) ? item.sizes : [];
+                const itemImage = itemImages[0]?.image_url || defaultImage;
+
+                const minPrice =
+                  itemSizes.length > 0
+                    ? Math.min(...itemSizes.map((s) => Number(s.price)))
+                    : null;
+
+                return (
+                  <div
+                    key={item.id}
+                    onClick={() => navigate(`/products/${item.id}`)}
+                    className="bg-white rounded-2xl border border-gray-200 overflow-hidden cursor-pointer hover:shadow-lg transition"
+                  >
+                    <div className="h-56 bg-gray-100">
+                      <img
+                        src={itemImage}
+                        alt={item.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+
+                    <div className="p-4">
+                      <p className="text-sm text-gray-500 mb-1">
+                        {item.category_name || "Danh mục"}
+                      </p>
+
+                      <h3 className="font-semibold text-gray-900 line-clamp-2 min-h-[48px]">
+                        {item.name}
+                      </h3>
+
+                      <p className="text-amber-600 font-bold text-lg mt-3">
+                        {minPrice !== null
+                          ? `${minPrice.toLocaleString("vi-VN")}đ`
+                          : "Liên hệ"}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </section>
 

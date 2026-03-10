@@ -190,7 +190,7 @@ class ProductRepository extends BaseRepository {
     const query = `
       SELECT COUNT(*) as total 
       FROM products 
-      WHERE category_id = ? AND status = 'available'  AND p.is_deleted = 0
+      WHERE category_id = ? AND status = 'available'  AND is_deleted = 0
     `;
 
     const [rows] = await db.query(query, [categoryId]);

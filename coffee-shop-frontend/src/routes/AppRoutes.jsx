@@ -115,7 +115,6 @@ const AppRoutes = () => {
         path={APP_ROUTES.FORGOT_PASSWORD}
         element={<ForgotPasswordPage />}
       />
-
       <Route
         path={APP_ROUTES.CHANGE_PASSWORD}
         element={
@@ -124,7 +123,6 @@ const AppRoutes = () => {
           </RoleGuard>
         }
       />
-
       {/* STAFF NESTED ROUTES */}
       <Route
         path="/staff"
@@ -144,7 +142,6 @@ const AppRoutes = () => {
         <Route path="schedule" element={<StaffSchedule />} />
         <Route path="profile" element={<UserProfile />} />
       </Route>
-
       {/* BARISTA NESTED ROUTES */}
       <Route
         path="/barista"
@@ -162,7 +159,6 @@ const AppRoutes = () => {
         <Route path="requests" element={<BaristaRequests />} />
         <Route path="profile" element={<UserProfile />} />
       </Route>
-
       {/* ADMIN NESTED ROUTES */}
       <Route
         path="/admin"
@@ -193,7 +189,6 @@ const AppRoutes = () => {
         <Route path="tables" element={<AdminTables />} />
         <Route path="toppings" element={<AdminToppings />} />
       </Route>
-
       <Route path="/news/:slug" element={<NewsDetailPage />} />
       <Route path="/news" element={<NewsListPage />} />
       <Route path="/customer/profile" element={<UserProfile />} />
@@ -202,7 +197,7 @@ const AppRoutes = () => {
       <Route path="/payment-policy" element={<PaymentPolicyPage />} />
       <Route path="/terms-of-service" element={<TermsOfServicePage />} />
       <Route path="/return-policy" element={<ReturnPolicyPage />} />
-
+      
       {/* 404 */}
       <Route
         path="*"

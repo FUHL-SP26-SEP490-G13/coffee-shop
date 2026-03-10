@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Plus, ArrowRight, Heart } from "lucide-react";
+import { Loader2, Plus, ArrowRight} from "lucide-react";
 import useFetch from "@/hooks/useFetch";
 import productService from "@/services/productService";
 import Footer from "@/components/layout/Footer";
@@ -16,22 +16,11 @@ import "swiper/css/pagination";
 import "swiper/css/navigation";
 
 const PAGE_SIZE = 8;
-const FAVORITES_KEY = "favorite_products";
 const CART_KEY = "cart_items";
 
 export default function HomePage() {
-  const [activeBannerIndex, setActiveBannerIndex] = useState(0);
-  const [favorites, setFavorites] = useState([]);
+  const [activeBannerIndex, setActiveBannerIndex] = useState(0);;
   const [cart, setCart] = useState([]);
-
-  useEffect(() => {
-    const savedFavorites = JSON.parse(
-      localStorage.getItem(FAVORITES_KEY) || "[]"
-    );
-    const savedCart = JSON.parse(localStorage.getItem(CART_KEY) || "[]");
-    setFavorites(savedFavorites);
-    setCart(savedCart);
-  }, []);
 
   const fetchProducts = useCallback(() => {
     return productService.getAll({
@@ -86,17 +75,6 @@ export default function HomePage() {
     }
 
     return product?.image_url || defaultImage;
-  };
-
-  const isFavorite = (productId) => favorites.includes(productId);
-
-  const toggleFavorite = (productId) => {
-    const nextFavorites = isFavorite(productId)
-      ? favorites.filter((id) => id !== productId)
-      : [...favorites, productId];
-
-    setFavorites(nextFavorites);
-    localStorage.setItem(FAVORITES_KEY, JSON.stringify(nextFavorites));
   };
 
   const getDefaultCartSize = (product) => {
@@ -301,19 +279,6 @@ export default function HomePage() {
                             {product.category_name || "Danh mục"}
                           </p>
 
-                          <button
-                            type="button"
-                            onClick={() => toggleFavorite(product.id)}
-                            className="w-9 h-9 rounded-full border border-gray-200 flex items-center justify-center shrink-0"
-                          >
-                            <Heart
-                              className={`w-4 h-4 ${
-                                isFavorite(product.id)
-                                  ? "fill-red-500 text-red-500"
-                                  : "text-gray-500"
-                              }`}
-                            />
-                          </button>
                         </div>
 
                         <Link to={`/products/${product.id}`}>
