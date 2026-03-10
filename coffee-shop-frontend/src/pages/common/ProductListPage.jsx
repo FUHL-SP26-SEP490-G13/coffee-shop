@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState, useEffect } from "react";
+import { useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import Header from "@/components/layout/Header";
@@ -14,6 +14,7 @@ export default function ProductListPage() {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const categoryId = searchParams.get("category") || "";
+  const keyword = searchParams.get("keyword") || "";
   const sortBy = searchParams.get("sort") || "";
   const currentPage = Number(searchParams.get("page") || 1);
 
@@ -22,10 +23,12 @@ export default function ProductListPage() {
       status: "available",
       page: currentPage,
       limit: PAGE_SIZE,
+      sort: sortBy,
     };
 
-    if (sortBy) {
-      params.sort = sortBy;
+    if (keyword) {
+      params.keyword = keyword;
+      return productService.search(params);
     }
 
     if (categoryId) {
@@ -33,17 +36,14 @@ export default function ProductListPage() {
     }
 
     return productService.getAll(params);
-  }, [categoryId, sortBy, currentPage]);
+  }, [categoryId, keyword, currentPage, sortBy]);
 
   const { data, loading } = useFetch(fetchProducts);
 
   const defaultImage =
     "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085";
 
-  const products = useMemo(() => {
-    return Array.isArray(data?.data) ? data.data : [];
-  }, [data]);
-
+  const products = Array.isArray(data?.data) ? data.data : [];
   const pagination = data?.pagination || {};
   const totalPages = Number(pagination.totalPages || 1);
   const page = Number(pagination.page || currentPage);
@@ -77,12 +77,6 @@ export default function ProductListPage() {
     });
   };
 
-  useEffect(() => {
-    if (currentPage < 1) {
-      updateQuery({ page: 1 });
-    }
-  }, [currentPage]);
-
   return (
     <div className="min-h-screen flex flex-col bg-white">
       <Header />
@@ -95,11 +89,15 @@ export default function ProductListPage() {
                 Danh sách sản phẩm
               </h1>
               <p className="text-gray-500 mt-1">
-                {categoryId ? "Sản phẩm theo danh mục" : "Tất cả sản phẩm"}
+                {keyword
+                  ? `Kết quả tìm kiếm cho "${keyword}"`
+                  : categoryId
+                  ? "Sản phẩm theo danh mục"
+                  : "Tất cả sản phẩm"}
               </p>
             </div>
 
-            <div className="w-full sm:w-64">
+            <div className="w-full sm:w-72">
               <select
                 value={sortBy}
                 onChange={(e) => handleSortChange(e.target.value)}

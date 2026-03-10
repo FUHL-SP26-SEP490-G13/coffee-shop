@@ -12,6 +12,7 @@ import {
   LogIn,
   ChevronDown,
   Grid3X3,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +21,7 @@ import { jwtDecode } from "jwt-decode";
 import { STORAGE_KEYS } from "@/constants";
 import Logo from "/logo/Logo.png";
 import categoryService from "@/services/categoryService";
+import productService from "@/services/productService";
 
 const placeholders = [
   "Xin chào, bạn cần gì hôm nay?",
@@ -32,6 +34,7 @@ function Header() {
   const navigate = useNavigate();
   const dropdownRef = useRef(null);
   const categoryDropdownRef = useRef(null);
+  const searchRef = useRef(null);
 
   const token =
     localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN) ||
@@ -55,6 +58,18 @@ function Header() {
   const [categories, setCategories] = useState([]);
   const [categoryOpen, setCategoryOpen] = useState(false);
   const [mobileCategoryOpen, setMobileCategoryOpen] = useState(false);
+
+  const [keyword, setKeyword] = useState("");
+  const [mobileKeyword, setMobileKeyword] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [mobileSearchResults, setMobileSearchResults] = useState([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [mobileSearchLoading, setMobileSearchLoading] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [mobileResultOpen, setMobileResultOpen] = useState(false);
+
+  const defaultImage =
+    "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085";
 
   const fetchCategories = useCallback(async () => {
     try {
@@ -99,6 +114,11 @@ function Header() {
       ) {
         setCategoryOpen(false);
       }
+
+      if (searchRef.current && !searchRef.current.contains(e.target)) {
+        setSearchOpen(false);
+        setMobileResultOpen(false);
+      }
     };
 
     document.addEventListener("mousedown", handleClickOutside);
@@ -110,6 +130,147 @@ function Header() {
     setCategoryOpen(false);
     setMobileCategoryOpen(false);
     setMobileMenuOpen(false);
+  };
+
+  const normalizeProducts = (res) => {
+    const raw = res?.data;
+    if (Array.isArray(raw)) return raw;
+    if (Array.isArray(raw?.data)) return raw.data;
+    return [];
+  };
+
+  const searchProducts = useCallback(async (value, isMobile = false) => {
+    const trimmed = value.trim();
+
+    if (!trimmed) {
+      if (isMobile) {
+        setMobileSearchResults([]);
+        setMobileResultOpen(false);
+      } else {
+        setSearchResults([]);
+        setSearchOpen(false);
+      }
+      return;
+    }
+
+    try {
+      if (isMobile) {
+        setMobileSearchLoading(true);
+      } else {
+        setSearchLoading(true);
+      }
+
+      const res = await productService.search({
+        keyword: trimmed,
+        limit: 5,
+        status: "available",
+      });
+
+      const list = normalizeProducts(res);
+
+      if (isMobile) {
+        setMobileSearchResults(list);
+        setMobileResultOpen(true);
+      } else {
+        setSearchResults(list);
+        setSearchOpen(true);
+      }
+    } catch (error) {
+      console.error("Lỗi tìm kiếm sản phẩm:", error);
+      if (isMobile) {
+        setMobileSearchResults([]);
+      } else {
+        setSearchResults([]);
+      }
+    } finally {
+      if (isMobile) {
+        setMobileSearchLoading(false);
+      } else {
+        setSearchLoading(false);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      searchProducts(keyword, false);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [keyword, searchProducts]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      searchProducts(mobileKeyword, true);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [mobileKeyword, searchProducts]);
+
+  const goToSearchPage = (value, isMobile = false) => {
+    const trimmed = value.trim();
+    if (!trimmed) return;
+
+    navigate(`/products?keyword=${encodeURIComponent(trimmed)}`);
+
+    if (isMobile) {
+      setMobileResultOpen(false);
+      setMobileSearchOpen(false);
+      setMobileMenuOpen(false);
+    } else {
+      setSearchOpen(false);
+    }
+  };
+
+  const goToProductDetail = (productId, isMobile = false) => {
+    navigate(`/products/${productId}`);
+    if (isMobile) {
+      setMobileResultOpen(false);
+      setMobileSearchOpen(false);
+      setMobileMenuOpen(false);
+    } else {
+      setSearchOpen(false);
+    }
+  };
+
+  const renderSearchItem = (item, isMobile = false) => {
+    const itemImages = Array.isArray(item.images) ? item.images : [];
+    const itemSizes = Array.isArray(item.sizes) ? item.sizes : [];
+
+    const image = itemImages[0]?.image_url || defaultImage;
+    const minPrice =
+      itemSizes.length > 0
+        ? Math.min(...itemSizes.map((s) => Number(s.price)))
+        : null;
+
+    return (
+      <button
+        key={item.id}
+        type="button"
+        onClick={() => goToProductDetail(item.id, isMobile)}
+        className="w-full flex items-center gap-3 px-3 py-3 hover:bg-amber-50 transition text-left"
+      >
+        <img
+          src={image}
+          alt={item.name}
+          className="w-14 h-14 rounded-lg object-cover border border-gray-200 flex-shrink-0"
+        />
+
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-medium text-gray-900 line-clamp-2">
+            {item.name}
+          </p>
+          <p className="text-xs text-gray-500 mt-1">
+            {item.category_name || "Danh mục"}
+          </p>
+          <p className="text-sm font-semibold text-amber-600 mt-1">
+            {minPrice !== null
+              ? `${minPrice.toLocaleString("vi-VN")}đ`
+              : "Liên hệ"}
+          </p>
+        </div>
+      </button>
+    );
   };
 
   return (
@@ -127,15 +288,56 @@ function Header() {
         </div>
 
         <div className="flex-1 mx-2 sm:mx-4 lg:mx-8 hidden md:flex">
-          <div className="w-full relative">
+          <div className="w-full relative" ref={searchRef}>
             <Input
               type="text"
+              value={keyword}
+              onChange={(e) => setKeyword(e.target.value)}
+              onFocus={() => {
+                if (searchResults.length > 0) setSearchOpen(true);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  goToSearchPage(keyword);
+                }
+              }}
               placeholder={text || "Tìm kiếm sản phẩm..."}
               className="w-full rounded-full py-2 pl-4 pr-12 bg-gray-50 border border-gray-200 focus:border-amber-500 focus:bg-white transition"
             />
-            <button className="absolute right-2 top-1/2 -translate-y-1/2 bg-primary text-white p-2 rounded-full hover:bg-primary/90 transition">
+
+            <button
+              type="button"
+              onClick={() => goToSearchPage(keyword)}
+              className="absolute right-2 top-1/2 -translate-y-1/2 bg-primary text-white p-2 rounded-full hover:bg-primary/90 transition"
+            >
               <Search className="w-4 h-4" />
             </button>
+
+            {searchOpen && (
+              <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-2xl shadow-xl overflow-hidden z-50">
+                {searchLoading ? (
+                  <div className="flex items-center justify-center py-6 text-gray-500">
+                    <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                    Đang tìm kiếm...
+                  </div>
+                ) : searchResults.length === 0 ? (
+                  <div className="px-4 py-4 text-sm text-gray-500">
+                    Không tìm thấy sản phẩm phù hợp
+                  </div>
+                ) : (
+                  <>
+                    {searchResults.map((item) => renderSearchItem(item))}
+                    <button
+                      type="button"
+                      onClick={() => goToSearchPage(keyword)}
+                      className="w-full px-4 py-3 text-sm text-center text-amber-600 border-t border-gray-100 hover:bg-amber-50"
+                    >
+                      Xem tất cả kết quả cho "{keyword.trim()}"
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
@@ -302,15 +504,58 @@ function Header() {
 
       {mobileSearchOpen && (
         <div className="md:hidden px-3 pb-3 border-t border-gray-200 bg-gray-50">
-          <div className="w-full relative">
+          <div className="w-full relative" ref={searchRef}>
             <Input
               type="text"
+              value={mobileKeyword}
+              onChange={(e) => setMobileKeyword(e.target.value)}
+              onFocus={() => {
+                if (mobileSearchResults.length > 0) setMobileResultOpen(true);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  goToSearchPage(mobileKeyword, true);
+                }
+              }}
               placeholder={text || "Tìm kiếm sản phẩm..."}
               className="w-full rounded-full py-2 pl-4 pr-12 bg-gray-50 border border-gray-200 focus:border-amber-500 focus:bg-white transition"
             />
-            <button className="absolute right-2 top-1/2 -translate-y-1/2 bg-amber-500 hover:bg-amber-600 text-white p-2 rounded-full transition duration-300">
+
+            <button
+              type="button"
+              onClick={() => goToSearchPage(mobileKeyword, true)}
+              className="absolute right-2 top-1/2 -translate-y-1/2 bg-amber-500 hover:bg-amber-600 text-white p-2 rounded-full transition duration-300"
+            >
               <Search className="w-4 h-4" />
             </button>
+
+            {mobileResultOpen && (
+              <div className="mt-2 bg-white border border-gray-200 rounded-2xl shadow-lg overflow-hidden">
+                {mobileSearchLoading ? (
+                  <div className="flex items-center justify-center py-6 text-gray-500">
+                    <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                    Đang tìm kiếm...
+                  </div>
+                ) : mobileSearchResults.length === 0 ? (
+                  <div className="px-4 py-4 text-sm text-gray-500">
+                    Không tìm thấy sản phẩm phù hợp
+                  </div>
+                ) : (
+                  <>
+                    {mobileSearchResults.map((item) =>
+                      renderSearchItem(item, true)
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => goToSearchPage(mobileKeyword, true)}
+                      className="w-full px-4 py-3 text-sm text-center text-amber-600 border-t border-gray-100 hover:bg-amber-50"
+                    >
+                      Xem tất cả kết quả cho "{mobileKeyword.trim()}"
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}
