@@ -29,11 +29,11 @@ export default function NewsDetailPage() {
   }, [news?.tag, news?.id]);
 
   const handleBack = () => {
-    if (window.history.length > 1) {
-      navigate(-1);
-    } else {
+    // if (window.history.length > 1) {
+    //   navigate(-1);
+    // } else {
       navigate("/news");
-    }
+    //}
   };
 
   if (loading) {
@@ -102,7 +102,7 @@ export default function NewsDetailPage() {
           <article className="space-y-8">
             {/* Article Header */}
             <div className="space-y-6">
-              <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold leading-tight tracking-tight">
+              <h1 className="text-1xl md:text-2xl lg:text-3xl font-bold leading-tight tracking-tight">
                 {news.title}
               </h1>
 

@@ -24,33 +24,33 @@ class BannerRepository {
       where.push("title LIKE ?");
       params.push(`%${keyword}%`);
     }
-    
+
     if (status === "active") {
       where.push("NOW() >= start_date AND NOW() <= end_date");
-    }
-
-    if (status === "inactive") {
-      where.push("(NOW() < start_date OR NOW() > end_date)");
+    } else if (status === "upcoming") {
+      where.push("NOW() < start_date");
+    } else if (status === "expired") {
+      where.push("NOW() > end_date");
     }
 
     const whereClause = where.length ? "WHERE " + where.join(" AND ") : "";
 
     const sql = `
-      SELECT *
-      FROM banners
-      ${whereClause}
-      ORDER BY created_at DESC
-      LIMIT ?, ?
-    `;
+    SELECT *
+    FROM banners
+    ${whereClause}
+    ORDER BY created_at DESC
+    LIMIT ?, ?
+  `;
 
     const queryParams = [...params, offset, limit];
     const [rows] = await pool.query(sql, queryParams);
 
     const countSql = `
-      SELECT COUNT(*) as total
-      FROM banners
-      ${whereClause}
-    `;
+    SELECT COUNT(*) as total
+    FROM banners
+    ${whereClause}
+  `;
     const [countRows] = await pool.query(countSql, params);
 
     return {
