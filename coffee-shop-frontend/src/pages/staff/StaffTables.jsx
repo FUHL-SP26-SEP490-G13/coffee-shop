@@ -20,7 +20,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import tableService from "@/services/tableService";
 import areaService from "@/services/areaService";
-import ReservationModal from "../admin/AdminTables/ReservationModal";
+// import ReservationModal from "../admin/AdminTables/ReservationModal";
 
 export function StaffTables() {
   const [tables, setTables] = useState([]);
@@ -31,8 +31,8 @@ export function StaffTables() {
   const [selectedStatus, setSelectedStatus] = useState("all");
 
   // Reservation Modal States
-  const [isReservationModalOpen, setIsReservationModalOpen] = useState(false);
-  const [tableToReserve, setTableToReserve] = useState(null);
+  // const [isReservationModalOpen, setIsReservationModalOpen] = useState(false);
+  // const [tableToReserve, setTableToReserve] = useState(null);
 
   // Pagination states
   const [page, setPage] = useState(1);
@@ -69,10 +69,10 @@ export function StaffTables() {
     }
   };
 
-  const handleReserveTable = (table) => {
-    setTableToReserve(table);
-    setIsReservationModalOpen(true);
-  };
+  // const handleReserveTable = (table) => {
+  //   setTableToReserve(table);
+  //   setIsReservationModalOpen(true);
+  // };
 
   const filteredTables = tables.filter((table) => {
     const matchesSearch = table.code
@@ -137,7 +137,7 @@ export function StaffTables() {
               <SelectItem value="all">Tất cả trạng thái</SelectItem>
               <SelectItem value="available">Trống</SelectItem>
               <SelectItem value="occupied">Có khách</SelectItem>
-              <SelectItem value="reserved">Đã đặt</SelectItem>
+              {/* <SelectItem value="reserved">Đã đặt</SelectItem> */}
             </SelectContent>
           </Select>
         </Card>
@@ -300,7 +300,7 @@ export function StaffTables() {
                       {table.status === "available" && (
                         <>
                           <Button size="sm" onClick={(e) => { e.stopPropagation(); handleStatusChange(table, "occupied"); }}>Có khách</Button>
-                          <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); handleReserveTable(table); }}>Đã đặt</Button>
+                          {/* <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); handleReserveTable(table); }}>Đã đặt</Button> */}
                         </>
                       )}
                       {table.status === "reserved" && (
@@ -362,12 +362,12 @@ export function StaffTables() {
         </TabsContent>
       </Tabs>
 
-      <ReservationModal
+      {/* <ReservationModal
         isOpen={isReservationModalOpen}
         onClose={() => setIsReservationModalOpen(false)}
         table={tableToReserve}
         onSuccess={fetchData}
-      />
+      /> */}
     </div>
   );
 }

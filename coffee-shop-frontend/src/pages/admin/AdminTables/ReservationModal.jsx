@@ -1,3 +1,4 @@
+/*
 import React, { useState } from "react";
 import {
   Dialog,
@@ -83,3 +84,4 @@ export default function ReservationModal({ isOpen, onClose, table, onSuccess }) 
     </Dialog>
   );
 }
+*/
