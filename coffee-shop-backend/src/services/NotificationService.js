@@ -60,6 +60,85 @@ class NotificationService {
     };
   }
 
+  async createForBaristas(notificationData) {
+    const baristas = await UserRepository.findByRole(ROLES.BARISTA);
+
+    if (!baristas.length) return null;
+
+    const userIds = baristas.map((user) => user.id);
+
+    const notification = await NotificationRepository.createNotification(
+      notificationData
+    );
+
+    const recipients = await NotificationRepository.addRecipients(
+      notification.id,
+      userIds
+    );
+
+    return {
+      notification,
+      users: baristas,
+      recipients,
+    };
+  }
+  /*
+  const result = await NotificationService.createForBaristas({
+  type: "new_order",
+  title: "Đơn hàng mới",
+  message: "Có đơn hàng mới cần pha chế",
+  link: "/barista/orders",
+  entity_type: "order",
+  entity_id: order.id,
+});
+  */
+
+  async createForCustomers(notificationData) {
+    const customers = await UserRepository.findByRole(ROLES.CUSTOMER);
+
+    if (!customers.length) return null;
+
+    const userIds = customers.map((user) => user.id);
+
+    const notification = await NotificationRepository.createNotification(
+      notificationData
+    );
+
+    const recipients = await NotificationRepository.addRecipients(
+      notification.id,
+      userIds
+    );
+
+    return {
+      notification,
+      users: customers,
+      recipients,
+    };
+  }
+
+  async createForStaffs(notificationData) {
+    const staffs = await UserRepository.findByRole(ROLES.STAFF);
+
+    if (!staffs.length) return null;
+
+    const userIds = staffs.map((user) => user.id);
+
+    const notification = await NotificationRepository.createNotification(
+      notificationData
+    );
+
+    const recipients = await NotificationRepository.addRecipients(
+      notification.id,
+      userIds
+    );
+
+    return {
+      notification,
+      users: staffs,
+      recipients,
+    };
+  }
+
   async getMyNotifications(userId) {
     return NotificationRepository.getNotificationsByUser(userId);
   }

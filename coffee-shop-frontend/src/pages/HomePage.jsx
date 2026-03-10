@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Plus, ArrowRight} from "lucide-react";
+import { Loader2, Plus, ArrowRight } from "lucide-react";
 import useFetch from "@/hooks/useFetch";
 import productService from "@/services/productService";
 import Footer from "@/components/layout/Footer";
@@ -19,15 +19,11 @@ const PAGE_SIZE = 8;
 const CART_KEY = "cart_items";
 
 export default function HomePage() {
-  const [activeBannerIndex, setActiveBannerIndex] = useState(0);;
+  const [activeBannerIndex, setActiveBannerIndex] = useState(0);
   const [cart, setCart] = useState([]);
 
   const fetchProducts = useCallback(() => {
-    return productService.getAll({
-      status: "available",
-      page: 1,
-      limit: PAGE_SIZE,
-    });
+    return productService.getBestSellers({ limit: 8 });
   }, []);
 
   const { data, loading } = useFetch(fetchProducts);
@@ -235,10 +231,10 @@ export default function HomePage() {
               <div className="flex items-center justify-between mb-6">
                 <div>
                   <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
-                    Sản phẩm nổi bật
+                    Sản phẩm bán chạy
                   </h2>
                   <p className="text-sm text-gray-500">
-                    Những món được khách hàng yêu thích
+                    Những món được khách hàng yêu thích nhất
                   </p>
                 </div>
 
@@ -278,7 +274,6 @@ export default function HomePage() {
                           <p className="text-xs uppercase tracking-wide text-gray-500">
                             {product.category_name || "Danh mục"}
                           </p>
-
                         </div>
 
                         <Link to={`/products/${product.id}`}>
@@ -299,15 +294,6 @@ export default function HomePage() {
                             </p>
                             <p className="text-xs text-gray-500">VNĐ</p>
                           </div>
-
-                          <Button
-                            size="sm"
-                            className="gap-1.5 shrink-0"
-                            onClick={() => addToCart(product)}
-                          >
-                            <Plus className="w-4 h-4" />
-                            <span className="ml-1">Thêm</span>
-                          </Button>
                         </div>
                       </div>
                     </Card>

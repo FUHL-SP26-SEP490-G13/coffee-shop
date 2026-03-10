@@ -101,22 +101,6 @@ function Footer() {
                 Chính sách thanh toán
               </Link>
             </li>
-            <li>
-              <Link
-                to="/terms-of-service"
-                className="hover:text-black transition"
-              >
-                Điều khoản sử dụng
-              </Link>
-            </li>
-            <li>
-              <Link
-                to="/return-policy"
-                className="hover:text-black transition"
-              >
-                Chính sách hoàn trả
-              </Link>
-            </li>
           </ul>
         </div>
 
@@ -124,12 +108,6 @@ function Footer() {
         <div>
           <h4 className="font-semibold mb-4">Hỗ trợ</h4>
           <ul className="space-y-2 text-sm text-muted-foreground">
-            <li>
-              <Link to="/search" className="hover:text-black transition">
-                Tìm kiếm
-              </Link>
-            </li>
-
             <li>
               <Link to="/login" className="hover:text-black transition">
                 Đăng nhập
@@ -145,12 +123,6 @@ function Footer() {
             <li>
               <Link to="/cart" className="hover:text-black transition">
                 Giỏ hàng
-              </Link>
-            </li>
-
-            <li>
-              <Link to="/contact" className="hover:text-black transition">
-                Liên hệ
               </Link>
             </li>
           </ul>

@@ -203,6 +203,17 @@ export default function ProductDetailPage() {
                 </SwiperSlide>
               ))}
             </Swiper>
+
+            {/* Mô tả sản phẩm */}
+            <div className="mt-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                Mô tả sản phẩm
+              </h3>
+              <p className="text-gray-600 leading-8">
+                {product.description ||
+                  "Thưởng thức hương vị đặc biệt của chúng tôi"}
+              </p>
+            </div>
           </div>
 
           <div>
@@ -216,11 +227,6 @@ export default function ProductDetailPage() {
                 </h1>
               </div>
             </div>
-
-            <p className="text-gray-600 leading-8 mb-6">
-              {product.description ||
-                "Thưởng thức hương vị đặc biệt của chúng tôi"}
-            </p>
 
             {sizes.length > 0 && (
               <div className="mb-6">

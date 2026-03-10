@@ -277,6 +277,29 @@ class ProductRepository extends BaseRepository {
     const [rows] = await db.query(query, params);
     return rows[0].total;
   }
+
+  async findBestSellers(limit = 8) {
+    const [products] = await db.query(
+      `
+    SELECT
+      p.*,
+      c.name AS category_name,
+      SUM(od.quantity) AS total_sold
+    FROM order_details od
+    JOIN product_sizes ps ON ps.id = od.product_size_id
+    JOIN products p ON p.id = ps.product_id
+    LEFT JOIN category c ON c.id = p.category_id
+    WHERE p.is_deleted = 0
+      AND p.status = 'available'
+    GROUP BY p.id
+    ORDER BY total_sold DESC, p.id DESC
+    LIMIT ?
+    `,
+      [parseInt(limit)]
+    );
+
+    return this.attachSizesAndImages(products);
+  }
 }
 
 module.exports = new ProductRepository();

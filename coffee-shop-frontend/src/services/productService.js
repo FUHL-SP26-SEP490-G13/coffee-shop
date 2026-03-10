@@ -3,7 +3,7 @@ import axiosClient from './axiosClient';
 const productService = {
   // Get all products
   getAll(params) {
-    return axiosClient.get('/products', { params });
+    return axiosClient.get("/products", { params });
   },
 
   // Get product by ID
@@ -18,23 +18,23 @@ const productService = {
 
   // Search products
   search(params) {
-    return axiosClient.get('/products/search', { params });
+    return axiosClient.get("/products/search", { params });
   },
 
-  // Create new product 
+  // Create new product
   create(formData) {
-    return axiosClient.post('/products', formData, {
+    return axiosClient.post("/products", formData, {
       headers: {
-        'Content-Type': 'multipart/form-data',
+        "Content-Type": "multipart/form-data",
       },
     });
   },
 
-  // Update product 
+  // Update product
   update(id, formData) {
     return axiosClient.put(`/products/${id}`, formData, {
       headers: {
-        'Content-Type': 'multipart/form-data',
+        "Content-Type": "multipart/form-data",
       },
     });
   },
@@ -48,6 +48,10 @@ const productService = {
   // restore(id) {
   //   return axiosClient.post(`/products/${id}/restore`);
   // },
+
+  getBestSellers(params) {
+    return axiosClient.get("/products/best-sellers", { params });
+  },
 };
 
 export default productService;
