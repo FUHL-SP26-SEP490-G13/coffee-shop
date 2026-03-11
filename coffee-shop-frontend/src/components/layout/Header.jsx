@@ -79,12 +79,47 @@ function Header() {
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
 
+  const [cartItems, setCartItems] = useState([]);
+  const [showCartPreview, setShowCartPreview] = useState(false);
+
   const unreadCount = notifications.filter(
     (item) => Number(item.is_read) === 0
   ).length;
 
   const defaultImage =
     "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085";
+
+  const loadCartItems = useCallback(() => {
+    try {
+      const cart = JSON.parse(localStorage.getItem(CART_KEY) || "[]");
+      const list = Array.isArray(cart) ? cart : [];
+
+      setCartItems(list);
+
+      const total = list.reduce(
+        (sum, item) => sum + (Number(item.quantity) || 1),
+        0
+      );
+
+      setCartCount(total);
+    } catch (error) {
+      setCartItems([]);
+      setCartCount(0);
+    }
+  }, []);
+
+  const getCartSubtotal = () => {
+    return cartItems.reduce((sum, item) => {
+      const price =
+        Number(item.price) ||
+        Number(item.selectedPrice) ||
+        Number(item.unit_price) ||
+        0;
+
+      const quantity = Number(item.quantity) || 1;
+      return sum + price * quantity;
+    }, 0);
+  };
 
   const fetchCategories = useCallback(async () => {
     try {
@@ -101,29 +136,16 @@ function Header() {
   }, [fetchCategories]);
 
   useEffect(() => {
-    const updateCartCount = () => {
-      try {
-        const cart = JSON.parse(localStorage.getItem(CART_KEY) || "[]");
-        const total = Array.isArray(cart)
-          ? cart.reduce((sum, item) => sum + (Number(item.quantity) || 1), 0)
-          : 0;
+    loadCartItems();
 
-        setCartCount(total);
-      } catch (error) {
-        setCartCount(0);
-      }
-    };
-
-    updateCartCount();
-
-    window.addEventListener("storage", updateCartCount);
-    window.addEventListener("cartUpdated", updateCartCount);
+    window.addEventListener("storage", loadCartItems);
+    window.addEventListener("cartUpdated", loadCartItems);
 
     return () => {
-      window.removeEventListener("storage", updateCartCount);
-      window.removeEventListener("cartUpdated", updateCartCount);
+      window.removeEventListener("storage", loadCartItems);
+      window.removeEventListener("cartUpdated", loadCartItems);
     };
-  }, []);
+  }, [loadCartItems]);
 
   useEffect(() => {
     if (subIndex < placeholders[index].length) {
@@ -570,18 +592,115 @@ function Header() {
           </Button>
 
           <div className="hidden sm:flex items-center gap-1 lg:gap-2">
-            <Button
-              onClick={() => navigate("/cart")}
-              size="sm"
-              className="relative gap-1 sm:gap-2 text-xs sm:text-sm"
+            <div
+              className="relative"
+              onMouseEnter={() => {
+                loadCartItems();
+                setShowCartPreview(true);
+              }}
+              onMouseLeave={() => setShowCartPreview(false)}
             >
-              <ShoppingCart className="w-4 h-4" />
-              {cartCount > 0 && (
-                <span className="absolute -top-2 -right-2 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center leading-none">
-                  {cartCount > 99 ? "99+" : cartCount}
-                </span>
+              <Button
+                onClick={() => navigate("/cart")}
+                size="sm"
+                className="relative gap-1 sm:gap-2 text-xs sm:text-sm"
+              >
+                <ShoppingCart className="w-4 h-4" />
+                <span className="hidden sm:inline">Giỏ hàng</span>
+
+                {cartCount > 0 && (
+                  <span className="absolute -top-2 -right-2 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center leading-none">
+                    {cartCount > 99 ? "99+" : cartCount}
+                  </span>
+                )}
+              </Button>
+
+              {showCartPreview && (
+                <div className="absolute right-0 mt-2 w-[360px] bg-white border border-gray-200 rounded-xl shadow-xl z-50 overflow-hidden">
+                  <div className="max-h-80 overflow-y-auto">
+                    {cartItems.length === 0 ? (
+                      <div className="p-4 text-sm text-gray-500">
+                        Giỏ hàng đang trống
+                      </div>
+                    ) : (
+                      cartItems.map((item, idx) => {
+                        const image =
+                          item.image ||
+                          item.image_url ||
+                          item.thumbnail ||
+                          item.product_image ||
+                          defaultImage;
+
+                        const price =
+                          Number(item.price) ||
+                          Number(item.selectedPrice) ||
+                          Number(item.unit_price) ||
+                          0;
+
+                        const quantity = Number(item.quantity) || 1;
+
+                        return (
+                          <div
+                            key={`${item.product_id || item.id}-${
+                              item.size || idx
+                            }`}
+                            onClick={() =>
+                              navigate(
+                                `/products/${item.product_id || item.id}`
+                              )
+                            }
+                            className="flex gap-3 p-3 border-b last:border-b-0 cursor-pointer hover:bg-gray-50"
+                          >
+                            <img
+                              src={image}
+                              alt={item.name}
+                              className="w-14 h-14 rounded object-cover border"
+                            />
+
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-gray-800 line-clamp-2">
+                                {item.name}
+                              </p>
+
+                              {item.size && (
+                                <p className="text-xs text-gray-500 mt-1">
+                                  {item.size}
+                                </p>
+                              )}
+
+                              <p className="text-sm text-red-600 font-semibold mt-1">
+                                {price.toLocaleString("vi-VN")}đ x {quantity}
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+
+                  {cartItems.length > 0 && (
+                    <div className="p-3 border-t bg-white">
+                      <p className="text-sm text-gray-700 mb-3">
+                        Tổng tiền tạm tính:{" "}
+                        <span className="font-semibold text-red-600">
+                          {getCartSubtotal().toLocaleString("vi-VN")}đ
+                        </span>
+                      </p>
+
+                      <Button
+                        onClick={() => {
+                          setShowCartPreview(false);
+                          navigate("/checkout");
+                        }}
+                        className="w-full bg-red-600 hover:bg-red-700 text-white"
+                      >
+                        Tiến hành thanh toán
+                      </Button>
+                    </div>
+                  )}
+                </div>
               )}
-            </Button>
+            </div>
 
             {user && (
               <div className="relative" ref={notificationRef}>
