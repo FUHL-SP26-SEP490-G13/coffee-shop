@@ -1,9 +1,16 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Loader2, ChevronLeft, ChevronRight, Calendar, ArrowRight, Newspaper } from "lucide-react";
+import {
+  Loader2,
+  ChevronLeft,
+  ChevronRight,
+  Calendar,
+  ArrowRight,
+  Newspaper,
+} from "lucide-react";
 import newsService from "@/services/newsService";
-import Header from "../layout/Header";
-import Footer from "../layout/Footer";
+import Header from "../../../components/layout/Header";
+import Footer from "../../../components/layout/Footer";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
@@ -45,7 +52,8 @@ export default function NewsListPage() {
                 Tin tức & Sự kiện
               </h1>
               <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
-                Khám phá những câu chuyện thú vị và cập nhật tin tức mới nhất từ chúng tôi
+                Khám phá những câu chuyện thú vị và cập nhật tin tức mới nhất từ
+                chúng tôi
               </p>
             </div>
           </div>
@@ -73,7 +81,8 @@ export default function NewsListPage() {
                 Chưa có bài viết nào
               </h3>
               <p className="text-muted-foreground text-lg max-w-md">
-                Vui lòng quay lại sau để xem những tin tức và sự kiện mới nhất từ chúng tôi
+                Vui lòng quay lại sau để xem những tin tức và sự kiện mới nhất
+                từ chúng tôi
               </p>
             </div>
           )}
@@ -167,7 +176,9 @@ export default function NewsListPage() {
                         size="default"
                         onClick={() => setPage(pageNum)}
                         className={`min-w-[44px] h-11 px-4 font-semibold shadow-sm transition-all ${
-                          page === pageNum ? "shadow-lg scale-110" : "hover:shadow-md"
+                          page === pageNum
+                            ? "shadow-lg scale-110"
+                            : "hover:shadow-md"
                         }`}
                       >
                         {pageNum}
@@ -190,7 +201,8 @@ export default function NewsListPage() {
 
               <div className="text-center mt-6">
                 <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-muted text-sm font-medium">
-                  Trang <span className="font-bold text-primary">{page}</span> / {totalPages}
+                  Trang <span className="font-bold text-primary">{page}</span> /{" "}
+                  {totalPages}
                 </span>
               </div>
             </div>

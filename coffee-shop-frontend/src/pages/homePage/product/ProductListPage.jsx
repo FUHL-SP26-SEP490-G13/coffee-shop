@@ -158,21 +158,24 @@ export default function ProductListPage() {
                           {item.name}
                         </h3>
 
-                        <p className="text-amber-600 font-bold text-lg mt-3">
-                          {minPrice !== null
-                            ? `${minPrice.toLocaleString("vi-VN")}đ`
-                            : "Liên hệ"}
-                        </p>
+                        <div className="flex items-center justify-between mt-4">
+                          <p className="text-amber-600 font-bold text-lg">
+                            {minPrice !== null
+                              ? `${minPrice.toLocaleString("vi-VN")}đ`
+                              : "Liên hệ"}
+                          </p>
 
-                        <Button
-                          className="mt-4 w-full bg-amber-600 hover:bg-amber-700 text-white"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate(`/products/${item.id}`);
-                          }}
-                        >
-                          Xem chi tiết
-                        </Button>
+                          <Button
+                            size="sm"
+                            className="bg-amber-600 hover:bg-amber-700 text-white"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/products/${item.id}`);
+                            }}
+                          >
+                            Thêm
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   );

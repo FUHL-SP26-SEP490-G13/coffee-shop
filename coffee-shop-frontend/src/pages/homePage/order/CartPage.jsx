@@ -268,7 +268,7 @@ export default function CartPage() {
                               }
                               className="text-amber-600 text-sm hover:underline"
                             >
-                              {isEditing ? "Đóng sửa topping" : "Sửa topping"}
+                              {isEditing ? "Đóng thêm topping" : "Thêm topping"}
                             </button>
 
                             <button

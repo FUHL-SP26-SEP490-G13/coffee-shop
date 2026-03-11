@@ -1,10 +1,17 @@
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { useCallback, useEffect, useState } from "react";
-import { ChevronLeft, Loader2, Calendar, Clock, Tag, ArrowRight } from "lucide-react";
+import {
+  ChevronLeft,
+  Loader2,
+  Calendar,
+  Clock,
+  Tag,
+  ArrowRight,
+} from "lucide-react";
 import useFetch from "@/hooks/useFetch";
 import newsService from "@/services/newsService";
-import Header from "../layout/Header";
-import Footer from "../layout/Footer";
+import Header from "../../../components/layout/Header";
+import Footer from "../../../components/layout/Footer";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
@@ -32,7 +39,7 @@ export default function NewsDetailPage() {
     // if (window.history.length > 1) {
     //   navigate(-1);
     // } else {
-      navigate("/news");
+    navigate("/news");
     //}
   };
 
@@ -67,7 +74,11 @@ export default function NewsDetailPage() {
               <p className="text-muted-foreground max-w-md">
                 Bài viết này có thể đã bị xóa hoặc không tồn tại
               </p>
-              <Button variant="default" onClick={handleBack} className="mt-4 hover:bg-primary/5 hover:text-primary">
+              <Button
+                variant="default"
+                onClick={handleBack}
+                className="mt-4 hover:bg-primary/5 hover:text-primary"
+              >
                 <ChevronLeft className="h-4 w-4 mr-2" />
                 Quay lại danh sách
               </Button>
@@ -87,9 +98,9 @@ export default function NewsDetailPage() {
         {/* Breadcrumb & Back Button */}
         <div className="border-b bg-muted/30">
           <div className="max-w-5xl mx-auto py-6 px-4 md:px-6">
-            <Button 
-              variant="ghost" 
-              onClick={handleBack} 
+            <Button
+              variant="ghost"
+              onClick={handleBack}
               className="gap-2 hover:gap-3 transition-all -ml-2 hover:bg-background hover:text-primary"
             >
               <ChevronLeft className="h-4 w-4" />
@@ -118,7 +129,7 @@ export default function NewsDetailPage() {
                     })}
                   </time>
                 </div>
-                
+
                 {news.tag && (
                   <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-muted text-muted-foreground">
                     <Tag className="h-4 w-4" />
@@ -189,7 +200,10 @@ export default function NewsDetailPage() {
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Clock className="h-4 w-4" />
                 <span>
-                  Cập nhật: {new Date(news.updated_at || news.created_at).toLocaleDateString("vi-VN")}
+                  Cập nhật:{" "}
+                  {new Date(
+                    news.updated_at || news.created_at
+                  ).toLocaleDateString("vi-VN")}
                 </span>
               </div>
             </div>
@@ -199,7 +213,9 @@ export default function NewsDetailPage() {
           {relatedNews.length > 0 && (
             <div className="mt-16 pt-16 border-t border-border">
               <div className="mb-8 space-y-2">
-                <h3 className="text-2xl md:text-3xl font-bold">Bài viết liên quan</h3>
+                <h3 className="text-2xl md:text-3xl font-bold">
+                  Bài viết liên quan
+                </h3>
                 <p className="text-muted-foreground">
                   Khám phá thêm những nội dung thú vị khác
                 </p>
@@ -207,11 +223,13 @@ export default function NewsDetailPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {relatedNews.map((item) => (
-                  <Link 
-                    key={item.id} 
+                  <Link
+                    key={item.id}
                     to={`/news/${item.slug}`}
                     className="group"
-                    onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                    onClick={() =>
+                      window.scrollTo({ top: 0, behavior: "smooth" })
+                    }
                   >
                     <Card className="overflow-hidden h-full hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border-border hover:border-primary/50 bg-card/50 backdrop-blur">
                       {item.thumbnail && (
@@ -229,7 +247,7 @@ export default function NewsDetailPage() {
                         <h4 className="text-lg font-bold line-clamp-2 min-h-[56px] group-hover:text-primary transition-colors leading-tight">
                           {item.title}
                         </h4>
-                        
+
                         <div className="flex items-center gap-2 text-primary font-medium text-sm group-hover:gap-3 transition-all">
                           <span>Đọc thêm</span>
                           <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />

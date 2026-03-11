@@ -1,16 +1,17 @@
 import axiosClient from "@/services/axiosClient";
+import { API_ENDPOINTS } from "../constants";
 
 const bannerService = {
   getActive() {
-    return axiosClient.get("/banners/active");
+    return axiosClient.get(API_ENDPOINTS.BANNERS.ACTIVE);
   },
 
   getAll(params) {
-    return axiosClient.get("/banners/admin", { params });
+    return axiosClient.get(API_ENDPOINTS.BANNERS.ADMIN, { params });
   },
 
   create(formData) {
-    return axiosClient.post("/banners/admin", formData, {
+    return axiosClient.post(API_ENDPOINTS.BANNERS.ADMIN, formData, {
       headers: {
         "Content-Type": "multipart/form-data",
       },
@@ -18,7 +19,8 @@ const bannerService = {
   },
 
   update(id, formData) {
-    return axiosClient.put(`/banners/admin/${id}`, formData, {
+    const url = API_ENDPOINTS.BANNERS.GET_BY_ID.replace("{id}", id);
+    return axiosClient.put(url, formData, {
       headers: {
         "Content-Type": "multipart/form-data",
       },
@@ -26,11 +28,12 @@ const bannerService = {
   },
 
   delete(id) {
-    return axiosClient.delete(`/banners/admin/${id}`);
+    const url = API_ENDPOINTS.BANNERS.GET_BY_ID.replace("{id}", id);
+    return axiosClient.delete(url);
   },
 
   getActiveList() {
-    return axiosClient.get("/banners/active-list");
+    return axiosClient.get(API_ENDPOINTS.BANNERS.ACTIVE_LIST);
   },
 };
 

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Loader2, Plus } from "lucide-react";
+import { Loader2, Plus, ChevronDown, ChevronUp } from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,7 @@ export default function ProductDetailPage() {
 
   const [toppings, setToppings] = useState([]);
   const [selectedToppings, setSelectedToppings] = useState([]);
+  const [showToppings, setShowToppings] = useState(false);
 
   const fetchProduct = useCallback(() => {
     return productService.getById(id);
@@ -50,6 +51,7 @@ export default function ProductDetailPage() {
     setQuantity(1);
     setSelectedSize(null);
     setSelectedToppings([]);
+    setShowToppings(false);
   }, [id]);
 
   useEffect(() => {
@@ -310,82 +312,136 @@ export default function ProductDetailPage() {
             {toppings.length > 0 && (
               <div className="mb-8">
                 <p className="text-sm font-semibold text-gray-800 mb-3">
-                  Chọn topping
+                  Topping
                 </p>
 
-                <div className="max-h-[320px] overflow-y-auto pr-2 space-y-3">
-                  {toppings.map((topping) => {
-                    const checked = isToppingSelected(topping.id);
-                    const selectedTopping = getSelectedTopping(topping.id);
+                <button
+                  type="button"
+                  onClick={() => setShowToppings((prev) => !prev)}
+                  className="w-full flex items-center justify-between rounded-2xl border border-gray-300 bg-white px-4 py-3 hover:border-amber-500 transition"
+                >
+                  <span className="font-medium text-gray-800">
+                    Muốn gọi thêm
+                    {selectedToppings.length > 0
+                      ? ` (${selectedToppings.length} loại đã chọn)`
+                      : ""}
+                  </span>
 
-                    return (
-                      <div
-                        key={topping.id}
-                        className="border border-gray-200 rounded-2xl p-4 bg-white"
-                      >
-                        <div className="flex items-center justify-between gap-4">
-                          <label className="flex items-center gap-3 cursor-pointer flex-1">
-                            <input
-                              type="checkbox"
-                              checked={checked}
-                              onChange={() => toggleTopping(topping)}
-                              className="w-4 h-4 shrink-0"
-                            />
+                  {showToppings ? (
+                    <ChevronUp className="w-5 h-5 text-gray-600" />
+                  ) : (
+                    <ChevronDown className="w-5 h-5 text-gray-600" />
+                  )}
+                </button>
 
-                            <div className="min-w-0">
-                              <p className="font-medium text-gray-900 break-words">
-                                {topping.name}
-                              </p>
-                              <p className="text-sm text-amber-600 font-semibold">
-                                +{Number(topping.price).toLocaleString("vi-VN")}
-                                đ
-                              </p>
-                            </div>
-                          </label>
+                {showToppings && (
+                  <div className="mt-4 max-h-[320px] overflow-y-auto pr-2 space-y-3">
+                    {toppings.map((topping) => {
+                      const checked = isToppingSelected(topping.id);
+                      const selectedTopping = getSelectedTopping(topping.id);
 
-                          {checked && (
-                            <div className="flex items-center gap-2 shrink-0">
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  updateToppingQuantity(
-                                    topping.id,
-                                    Math.max(
-                                      1,
-                                      Number(selectedTopping?.quantity || 1) - 1
+                      return (
+                        <div
+                          key={topping.id}
+                          className="border border-gray-200 rounded-2xl p-4 bg-white"
+                        >
+                          <div className="flex items-center justify-between gap-4">
+                            <label className="flex items-center gap-3 cursor-pointer flex-1">
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                onChange={() => toggleTopping(topping)}
+                                className="w-4 h-4 shrink-0"
+                              />
+
+                              <div className="min-w-0">
+                                <p className="font-medium text-gray-900 break-words">
+                                  {topping.name}
+                                </p>
+                                <p className="text-sm text-amber-600 font-semibold">
+                                  +
+                                  {Number(topping.price).toLocaleString(
+                                    "vi-VN"
+                                  )}
+                                  đ
+                                </p>
+                              </div>
+                            </label>
+
+                            {checked && (
+                              <div className="flex items-center gap-2 shrink-0">
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    updateToppingQuantity(
+                                      topping.id,
+                                      Math.max(
+                                        1,
+                                        Number(selectedTopping?.quantity || 1) -
+                                          1
+                                      )
                                     )
-                                  )
-                                }
-                                className="w-8 h-8 border rounded-lg hover:bg-gray-50"
-                              >
-                                -
-                              </button>
+                                  }
+                                  className="w-8 h-8 border rounded-lg hover:bg-gray-50"
+                                >
+                                  -
+                                </button>
 
-                              <span className="min-w-[24px] text-center font-medium">
-                                {selectedTopping?.quantity || 1}
-                              </span>
+                                <span className="min-w-[24px] text-center font-medium">
+                                  {selectedTopping?.quantity || 1}
+                                </span>
 
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  updateToppingQuantity(
-                                    topping.id,
-                                    Number(selectedTopping?.quantity || 1) + 1
-                                  )
-                                }
-                                className="w-8 h-8 border rounded-lg hover:bg-gray-50"
-                              >
-                                +
-                              </button>
-                            </div>
-                          )}
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    updateToppingQuantity(
+                                      topping.id,
+                                      Number(selectedTopping?.quantity || 1) + 1
+                                    )
+                                  }
+                                  className="w-8 h-8 border rounded-lg hover:bg-gray-50"
+                                >
+                                  +
+                                </button>
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {selectedToppings.length > 0 && (
+                  <div className="mt-4 rounded-2xl bg-amber-50 border border-amber-100 p-4">
+                    <p className="text-sm font-semibold text-gray-800 mb-2">
+                      Topping đã chọn
+                    </p>
+
+                    <div className="space-y-1 text-sm text-gray-600">
+                      {selectedToppings.map((item) => (
+                        <div
+                          key={item.topping_id}
+                          className="flex items-center justify-between gap-3"
+                        >
+                          <span>
+                            {item.name} x {item.quantity}
+                          </span>
+                          <span className="font-medium text-amber-600">
+                            +
+                            {(
+                              Number(item.price) * Number(item.quantity)
+                            ).toLocaleString("vi-VN")}
+                            đ
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
+
             <div className="mb-8">
               <p className="text-sm text-gray-500 mb-1">Giá</p>
               <p className="text-4xl font-bold text-amber-600">

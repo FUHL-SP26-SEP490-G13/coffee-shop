@@ -1,8 +1,9 @@
 import axiosClient from "@/services/axiosClient";
+import { API_ENDPOINTS } from "@/constants";
 
 const discountService = {
   getAll: async (params = {}, signal) => {
-    const res = await axiosClient.get("/discounts", {
+    const res = await axiosClient.get(API_ENDPOINTS.DISCOUNTS, {
       params,
       signal,
     });
@@ -10,15 +11,16 @@ const discountService = {
   },
 
   getById: async (id) => {
-    const res = await axiosClient.get(`/discounts/${id}`);
+    const res = await axiosClient.get(`${API_ENDPOINTS.DISCOUNTS}/${id}`);
     return res.data;
   },
 
-  create: (data) => axiosClient.post("/discounts", data),
+  create: (data) => axiosClient.post(API_ENDPOINTS.DISCOUNTS, data),
 
-  update: (id, data) => axiosClient.put(`/discounts/${id}`, data),
+  update: (id, data) =>
+    axiosClient.put(`${API_ENDPOINTS.DISCOUNTS}/${id}`, data),
 
-  delete: (id) => axiosClient.delete(`/discounts/${id}`),
+  delete: (id) => axiosClient.delete(`${API_ENDPOINTS.DISCOUNTS}/${id}`),
 };
 
 export default discountService;
