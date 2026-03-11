@@ -62,48 +62,15 @@ export default function CheckoutPage() {
     loadProfile();
   }, [token]);
 
-  const subtotalAmount = cart.reduce(
-    (sum, item) => sum + Number(item.price) * Number(item.quantity),
-    0
-  );
+  const subtotalAmount = useMemo(() => {
+    return cart.reduce(
+      (sum, item) => sum + cartService.getItemSubtotal(item),
+      0
+    );
+  }, [cart]);
 
   const discountAmount = 0;
   const totalAmount = subtotalAmount - discountAmount;
-  //     const formErrors = validateOrderForm(form);
-
-  //     if (Object.keys(formErrors).length > 0) {
-  //       setErrors(formErrors);
-  //       return;
-  //     }
-
-  //     try {
-  //       setSubmitting(true);
-
-  //       const payload = {
-  //         order_type: form.order_type,
-  //         payment_method: form.payment_method,
-  //         receiver_name: form.receiver_name.trim(),
-  //         receiver_phone: form.receiver_phone.trim(),
-  //         receiver_email: form.receiver_email.trim(),
-  //         address: form.address.trim(),
-  //         note: form.note.trim(),
-  //         items: cart.map((item) => ({
-  //           product_size_id: item.productSizeId,
-  //           quantity: item.quantity,
-  //         })),
-  //       };
-
-  //       await orderService.checkout(payload);
-  //       cartService.clearCart();
-
-  //       alert("Đặt hàng thành công");
-  //       navigate("/");
-  //     } catch (error) {
-  //       alert(error?.message || "Đặt hàng thất bại");
-  //     } finally {
-  //       setSubmitting(false);
-  //     }
-  //   };
 
   const handleSubmit = async () => {
     const formErrors = validateOrderForm(form);
@@ -127,6 +94,12 @@ export default function CheckoutPage() {
         items: cart.map((item) => ({
           product_size_id: item.productSizeId || item.product_size_id,
           quantity: Number(item.quantity),
+          toppings: Array.isArray(item.toppings)
+            ? item.toppings.map((topping) => ({
+                topping_id: topping.topping_id,
+                quantity: Number(topping.quantity || 1),
+              }))
+            : [],
         })),
       };
 
@@ -337,21 +310,32 @@ export default function CheckoutPage() {
             <div className="space-y-3 mb-5">
               {cart.map((item) => (
                 <div
-                  key={item.productSizeId}
-                  className="flex items-center justify-between gap-3"
+                  key={item.cartKey}
+                  className="flex items-start justify-between gap-3"
                 >
                   <div>
                     <p className="font-medium text-sm">{item.name}</p>
                     <p className="text-xs text-gray-500">
                       {item.size} x {item.quantity}
                     </p>
+
+                    {Array.isArray(item.toppings) &&
+                      item.toppings.length > 0 && (
+                        <div className="mt-1">
+                          {item.toppings.map((topping) => (
+                            <p
+                              key={topping.topping_id}
+                              className="text-xs text-gray-500"
+                            >
+                              + {topping.name} x {topping.quantity}
+                            </p>
+                          ))}
+                        </div>
+                      )}
                   </div>
 
                   <p className="text-sm font-semibold">
-                    {(
-                      Number(item.price) * Number(item.quantity)
-                    ).toLocaleString("vi-VN")}
-                    đ
+                    {cartService.getItemSubtotal(item).toLocaleString("vi-VN")}đ
                   </p>
                 </div>
               ))}

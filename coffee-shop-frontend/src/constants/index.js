@@ -38,8 +38,6 @@ export const API_ENDPOINTS = {
   AREAS: '/area',
 };
 
-
-
 // Các hằng số khác
 export const STORAGE_KEYS = {
   ACCESS_TOKEN: 'access_token',

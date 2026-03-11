@@ -5,6 +5,8 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
 import productService from "@/services/productService";
+import toppingService from "@/services/toppingService";
+import { cartService } from "@/services/cartService";
 import useFetch from "@/hooks/useFetch";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Pagination, Navigation, Autoplay } from "swiper/modules";
@@ -12,14 +14,15 @@ import "swiper/css";
 import "swiper/css/pagination";
 import "swiper/css/navigation";
 
-const CART_KEY = "cart_items";
-
 export default function ProductDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
 
   const [selectedSize, setSelectedSize] = useState(null);
   const [quantity, setQuantity] = useState(1);
+
+  const [toppings, setToppings] = useState([]);
+  const [selectedToppings, setSelectedToppings] = useState([]);
 
   const fetchProduct = useCallback(() => {
     return productService.getById(id);
@@ -31,6 +34,12 @@ export default function ProductDetailPage() {
   const sizes = Array.isArray(product?.sizes) ? product.sizes : [];
   const images = Array.isArray(product?.images) ? product.images : [];
 
+  const defaultImage =
+    "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085";
+
+  const displayImages =
+    images.length > 0 ? images : [{ image_url: defaultImage }];
+
   useEffect(() => {
     if (sizes.length > 0 && !selectedSize) {
       setSelectedSize(sizes[0].size);
@@ -40,17 +49,43 @@ export default function ProductDetailPage() {
   useEffect(() => {
     setQuantity(1);
     setSelectedSize(null);
+    setSelectedToppings([]);
   }, [id]);
+
+  useEffect(() => {
+    const fetchToppings = async () => {
+      try {
+        const res = await toppingService.getAll();
+        const list = Array.isArray(res?.data?.data)
+          ? res.data.data
+          : Array.isArray(res?.data)
+          ? res.data
+          : [];
+        setToppings(list);
+      } catch (error) {
+        console.error("Lỗi lấy danh sách topping:", error);
+        setToppings([]);
+      }
+    };
+
+    fetchToppings();
+  }, []);
 
   const selectedSizeObj = useMemo(() => {
     return sizes.find((s) => s.size === selectedSize) || null;
   }, [sizes, selectedSize]);
 
-  const defaultImage =
-    "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085";
+  const selectedToppingsTotal = useMemo(() => {
+    return selectedToppings.reduce(
+      (sum, item) => sum + Number(item.price) * Number(item.quantity),
+      0
+    );
+  }, [selectedToppings]);
 
-  const displayImages =
-    images.length > 0 ? images : [{ image_url: defaultImage }];
+  const displayPrice = useMemo(() => {
+    const basePrice = Number(selectedSizeObj?.price) || 0;
+    return basePrice + selectedToppingsTotal;
+  }, [selectedSizeObj, selectedToppingsTotal]);
 
   const fetchRelatedProducts = useCallback(() => {
     if (!product?.category_id) {
@@ -70,41 +105,89 @@ export default function ProductDetailPage() {
     return list.filter((item) => String(item.id) !== String(product?.id));
   }, [relatedData, product?.id]);
 
+  const isToppingSelected = (toppingId) => {
+    return selectedToppings.some(
+      (item) => Number(item.topping_id) === Number(toppingId)
+    );
+  };
+
+  const getSelectedTopping = (toppingId) => {
+    return (
+      selectedToppings.find(
+        (item) => Number(item.topping_id) === Number(toppingId)
+      ) || null
+    );
+  };
+
+  const toggleTopping = (topping) => {
+    setSelectedToppings((prev) => {
+      const exists = prev.some(
+        (item) => Number(item.topping_id) === Number(topping.id)
+      );
+
+      if (exists) {
+        return prev.filter(
+          (item) => Number(item.topping_id) !== Number(topping.id)
+        );
+      }
+
+      return [
+        ...prev,
+        {
+          topping_id: Number(topping.id),
+          name: topping.name,
+          price: Number(topping.price) || 0,
+          quantity: 1,
+        },
+      ];
+    });
+  };
+
+  const updateToppingQuantity = (toppingId, nextQuantity) => {
+    setSelectedToppings((prev) =>
+      prev.map((item) =>
+        Number(item.topping_id) === Number(toppingId)
+          ? {
+              ...item,
+              quantity: Math.max(1, Number(nextQuantity) || 1),
+            }
+          : item
+      )
+    );
+  };
+
+  const buildCartItem = () => {
+    if (!product || !selectedSizeObj) return null;
+
+    return {
+      id: product.id,
+      product_id: product.id,
+      productId: product.id,
+      productSizeId: selectedSizeObj.id,
+      product_size_id: selectedSizeObj.id,
+      name: product.name,
+      image: displayImages[0]?.image_url || defaultImage,
+      size: selectedSizeObj.size,
+      price: Number(selectedSizeObj.price),
+      basePrice: Number(selectedSizeObj.price),
+      quantity: Math.max(1, Number(quantity) || 1),
+      toppings: selectedToppings.map((item) => ({
+        topping_id: Number(item.topping_id),
+        name: item.name,
+        price: Number(item.price) || 0,
+        quantity: Math.max(1, Number(item.quantity) || 1),
+      })),
+    };
+  };
+
   const addToCart = () => {
     if (!product || !selectedSizeObj) {
       alert("Vui lòng chọn size.");
       return;
     }
 
-    const cartItem = {
-      productId: product.id,
-      productSizeId: selectedSizeObj.id,
-      name: product.name,
-      image: displayImages[0]?.image_url || defaultImage,
-      size: selectedSizeObj.size,
-      price: Number(selectedSizeObj.price),
-      quantity,
-    };
-
-    const existingCart = JSON.parse(localStorage.getItem(CART_KEY) || "[]");
-
-    const index = existingCart.findIndex(
-      (item) => item.productSizeId === cartItem.productSizeId
-    );
-
-    const nextCart = [...existingCart];
-
-    if (index >= 0) {
-      nextCart[index] = {
-        ...nextCart[index],
-        quantity: nextCart[index].quantity + quantity,
-      };
-    } else {
-      nextCart.push(cartItem);
-    }
-
-    localStorage.setItem(CART_KEY, JSON.stringify(nextCart));
-    window.dispatchEvent(new Event("cartUpdated"));
+    const cartItem = buildCartItem();
+    cartService.addItem(cartItem);
     alert("Đã thêm vào giỏ hàng");
   };
 
@@ -114,36 +197,8 @@ export default function ProductDetailPage() {
       return;
     }
 
-    const cartItem = {
-      productId: product.id,
-      productSizeId: selectedSizeObj.id,
-      name: product.name,
-      image: displayImages[0]?.image_url || defaultImage,
-      size: selectedSizeObj.size,
-      price: Number(selectedSizeObj.price),
-      quantity,
-    };
-
-    const existingCart = JSON.parse(localStorage.getItem(CART_KEY) || "[]");
-
-    const index = existingCart.findIndex(
-      (item) => item.productSizeId === cartItem.productSizeId
-    );
-
-    const nextCart = [...existingCart];
-
-    if (index >= 0) {
-      nextCart[index] = {
-        ...nextCart[index],
-        quantity: nextCart[index].quantity + quantity,
-      };
-    } else {
-      nextCart.push(cartItem);
-    }
-
-    localStorage.setItem(CART_KEY, JSON.stringify(nextCart));
-    window.dispatchEvent(new Event("cartUpdated"));
-
+    const cartItem = buildCartItem();
+    cartService.addItem(cartItem);
     navigate("/checkout");
   };
 
@@ -204,7 +259,6 @@ export default function ProductDetailPage() {
               ))}
             </Swiper>
 
-            {/* Mô tả sản phẩm */}
             <div className="mt-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
                 Mô tả sản phẩm
@@ -253,13 +307,107 @@ export default function ProductDetailPage() {
               </div>
             )}
 
+            {toppings.length > 0 && (
+              <div className="mb-8">
+                <p className="text-sm font-semibold text-gray-800 mb-3">
+                  Chọn topping
+                </p>
+
+                <div className="max-h-[320px] overflow-y-auto pr-2 space-y-3">
+                  {toppings.map((topping) => {
+                    const checked = isToppingSelected(topping.id);
+                    const selectedTopping = getSelectedTopping(topping.id);
+
+                    return (
+                      <div
+                        key={topping.id}
+                        className="border border-gray-200 rounded-2xl p-4 bg-white"
+                      >
+                        <div className="flex items-center justify-between gap-4">
+                          <label className="flex items-center gap-3 cursor-pointer flex-1">
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() => toggleTopping(topping)}
+                              className="w-4 h-4 shrink-0"
+                            />
+
+                            <div className="min-w-0">
+                              <p className="font-medium text-gray-900 break-words">
+                                {topping.name}
+                              </p>
+                              <p className="text-sm text-amber-600 font-semibold">
+                                +{Number(topping.price).toLocaleString("vi-VN")}
+                                đ
+                              </p>
+                            </div>
+                          </label>
+
+                          {checked && (
+                            <div className="flex items-center gap-2 shrink-0">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  updateToppingQuantity(
+                                    topping.id,
+                                    Math.max(
+                                      1,
+                                      Number(selectedTopping?.quantity || 1) - 1
+                                    )
+                                  )
+                                }
+                                className="w-8 h-8 border rounded-lg hover:bg-gray-50"
+                              >
+                                -
+                              </button>
+
+                              <span className="min-w-[24px] text-center font-medium">
+                                {selectedTopping?.quantity || 1}
+                              </span>
+
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  updateToppingQuantity(
+                                    topping.id,
+                                    Number(selectedTopping?.quantity || 1) + 1
+                                  )
+                                }
+                                className="w-8 h-8 border rounded-lg hover:bg-gray-50"
+                              >
+                                +
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
             <div className="mb-8">
               <p className="text-sm text-gray-500 mb-1">Giá</p>
               <p className="text-4xl font-bold text-amber-600">
                 {selectedSizeObj
-                  ? `${Number(selectedSizeObj.price).toLocaleString("vi-VN")}đ`
+                  ? `${displayPrice.toLocaleString("vi-VN")}đ`
                   : "Liên hệ"}
               </p>
+
+              {selectedToppings.length > 0 && (
+                <div className="mt-3 text-sm text-gray-500 space-y-1">
+                  <p>
+                    Giá size:{" "}
+                    {Number(selectedSizeObj?.price || 0).toLocaleString(
+                      "vi-VN"
+                    )}
+                    đ
+                  </p>
+                  <p>
+                    Topping: +{selectedToppingsTotal.toLocaleString("vi-VN")}đ
+                  </p>
+                </div>
+              )}
             </div>
 
             <div className="flex items-center gap-4 mb-6">
@@ -282,7 +430,7 @@ export default function ProductDetailPage() {
               </button>
             </div>
 
-            <div className="flex gap-4">
+            <div className="flex gap-4 flex-wrap">
               <Button
                 onClick={addToCart}
                 className="bg-amber-600 hover:bg-amber-700 text-white px-8 py-6 text-base"

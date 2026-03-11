@@ -110,14 +110,24 @@ function Header() {
 
   const getCartSubtotal = () => {
     return cartItems.reduce((sum, item) => {
-      const price =
+      const basePrice =
+        Number(item.basePrice) ||
         Number(item.price) ||
         Number(item.selectedPrice) ||
         Number(item.unit_price) ||
         0;
 
+      const toppingsTotal = Array.isArray(item.toppings)
+        ? item.toppings.reduce(
+            (tSum, topping) =>
+              tSum +
+              (Number(topping.price) || 0) * (Number(topping.quantity) || 1),
+            0
+          )
+        : 0;
+
       const quantity = Number(item.quantity) || 1;
-      return sum + price * quantity;
+      return sum + (basePrice + toppingsTotal) * quantity;
     }, 0);
   };
 
@@ -556,7 +566,7 @@ function Header() {
               className="flex items-center gap-2 text-sm"
             >
               <Grid3X3 className="w-4 h-4" />
-              <span>Danh mục</span>
+              <span>Danh mục sản phẩm</span>
               <ChevronDown className="w-4 h-4" />
             </Button>
 
@@ -631,12 +641,25 @@ function Header() {
                           item.product_image ||
                           defaultImage;
 
-                        const price =
+                        const basePrice =
+                          Number(item.basePrice) ||
                           Number(item.price) ||
                           Number(item.selectedPrice) ||
                           Number(item.unit_price) ||
                           0;
 
+                        const toppingsTotal = Array.isArray(item.toppings)
+                          ? item.toppings.reduce(
+                              (sum, topping) =>
+                                sum +
+                                (Number(topping.price) || 0) *
+                                  (Number(topping.quantity) || 1),
+                              0
+                            )
+                          : 0;
+
+                        const price = basePrice + toppingsTotal;
+                        
                         const quantity = Number(item.quantity) || 1;
 
                         return (
@@ -667,6 +690,20 @@ function Header() {
                                   {item.size}
                                 </p>
                               )}
+
+                              {Array.isArray(item.toppings) &&
+                                item.toppings.length > 0 && (
+                                  <div className="mt-1 space-y-0.5">
+                                    {item.toppings.map((topping) => (
+                                      <p
+                                        key={topping.topping_id}
+                                        className="text-[11px] text-gray-500"
+                                      >
+                                        + {topping.name} x {topping.quantity}
+                                      </p>
+                                    ))}
+                                  </div>
+                                )}
 
                               <p className="text-sm text-red-600 font-semibold mt-1">
                                 {price.toLocaleString("vi-VN")}đ x {quantity}

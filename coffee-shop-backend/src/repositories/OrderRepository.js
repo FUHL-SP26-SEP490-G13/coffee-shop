@@ -25,6 +25,20 @@ class OrderRepository {
     return rows[0];
   }
 
+  async findToppingById(connection, toppingId) {
+    const [rows] = await connection.query(
+      `
+      SELECT id, name, price
+      FROM toppings
+      WHERE id = ? AND is_deleted = 0
+      LIMIT 1
+      `,
+      [toppingId]
+    );
+
+    return rows[0];
+  }
+
   async createOrder(connection, data) {
     const [result] = await connection.query(
       `
@@ -52,17 +66,34 @@ class OrderRepository {
   }
 
   async createOrderDetail(connection, data) {
+    const [result] = await connection.query(
+      `
+    INSERT INTO order_details (
+      order_id,
+      product_size_id,
+      quantity,
+      price
+    )
+    VALUES (?, ?, ?, ?)
+    `,
+      [data.order_id, data.product_size_id, data.quantity, data.price]
+    );
+
+    return result.insertId;
+  }
+
+  async createOrderDetailTopping(connection, data) {
     await connection.query(
       `
-      INSERT INTO order_details (
-        order_id,
-        product_size_id,
+      INSERT INTO order_detail_toppings (
+        order_detail_id,
+        topping_id,
         quantity,
         price
       )
       VALUES (?, ?, ?, ?)
       `,
-      [data.order_id, data.product_size_id, data.quantity, data.price]
+      [data.order_detail_id, data.topping_id, data.quantity, data.price]
     );
   }
 
@@ -176,6 +207,25 @@ class OrderRepository {
       `,
       [orderId]
     );
+
+    for (const item of rows) {
+      const [toppings] = await db.query(
+        `
+        SELECT
+          odt.id,
+          odt.topping_id,
+          odt.quantity,
+          odt.price,
+          t.name
+        FROM order_detail_toppings odt
+        JOIN toppings t ON t.id = odt.topping_id
+        WHERE odt.order_detail_id = ?
+        `,
+        [item.id]
+      );
+
+      item.toppings = toppings;
+    }
 
     return rows;
   }
