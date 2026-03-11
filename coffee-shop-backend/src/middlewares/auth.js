@@ -71,9 +71,11 @@ const authenticate = async (req, res, next) => {
  */
 const optionalAuth = async (req, res, next) => {
   try {
+    req.user = null;
+
     const authHeader = req.headers.authorization;
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return next();
     }
 
@@ -97,6 +99,7 @@ const optionalAuth = async (req, res, next) => {
 
     next();
   } catch (error) {
+    req.user = null;
     next();
   }
 };

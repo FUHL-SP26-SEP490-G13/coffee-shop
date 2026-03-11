@@ -38,10 +38,6 @@ import { StaffSchedule } from "@/pages/staff/StaffSchedule";
 import AdminBanner from "@/pages/admin/AdminBanner/AdminBanner";
 import AdminTables from "@/pages/admin/AdminTables/AdminTables";
 import AdminToppings from "../pages/admin/AdminTopping/AdminToppings";
-
-
-import TermsOfServicePage from "@/pages/common/TermsOfServicePage";
-import ReturnPolicyPage from "@/pages/common/ReturnPolicyPage";
 import PaymentPolicyPage from "@/pages/common/PaymentPolicyPage";
 import { BaristaDashboard } from "@/pages/barista/BaristaDashboard/BaristaDashboard";
 import { BaristaOrders } from "@/pages/barista/BaristaOrder/BaristaOrders";
@@ -52,6 +48,8 @@ import { StaffApp } from "@/pages/staff/StaffApp";
 import { BaristaApp } from "@/pages/barista/BaristaApp";
 import ProductListPage from "../pages/common/ProductListPage";
 import ProductDetailPage from "../pages/common/ProductDetailPage";
+import CartPage from "@/pages/common/CartPage";
+import CheckoutPage from "@/pages/common/CheckoutPage";
 
 const getStoredValue = (key) =>
   localStorage.getItem(key) || sessionStorage.getItem(key);
@@ -195,9 +193,10 @@ const AppRoutes = () => {
       <Route path="/order-policy" element={<OrderPolicy />} />
       <Route path="/privacy-policy" element={<PrivacyPolicy />} />
       <Route path="/payment-policy" element={<PaymentPolicyPage />} />
-      <Route path="/terms-of-service" element={<TermsOfServicePage />} />
-      <Route path="/return-policy" element={<ReturnPolicyPage />} />
-      
+
+      <Route path="/cart" element={<CartPage />} />
+      <Route path="/checkout" element={<CheckoutPage />} />
+
       {/* 404 */}
       <Route
         path="*"
