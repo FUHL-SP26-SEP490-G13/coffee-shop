@@ -153,19 +153,18 @@ class UserController {
   }
 
   /**
-   * Create new user (admin only)
-   * POST /api/users
+   * Create new staff/barista (admin only)
+   * POST /api/users/staff
    */
-  async create(req, res, next) {
+  async createStaff(req, res, next) {
     try {
-      const user = await UserService.createUser(req.body);
+      const result = await UserService.createStaffUser(req.body);
 
-      return response.success(
-        res,
-        user,
-        'Tạo user thành công',
-        201
-      );
+      const message = result.emailSent
+        ? 'Tạo nhân viên thành công'
+        : 'Tạo nhân viên thành công nhưng gửi email thất bại';
+
+      return response.success(res, result, message, 201);
     } catch (error) {
       next(error);
     }
@@ -197,7 +196,14 @@ class UserController {
   async deactivate(req, res, next) {
     try {
       const { id } = req.params;
-      await UserService.deactivateUser(id);
+      const { password } = req.body;
+      const adminId = req.user.id;
+
+      if (!password) {
+        return response.error(res, 'Mật khẩu là bắt buộc', 400);
+      }
+
+      await UserService.deactivateUser(id, adminId, password);
 
       return response.success(
         res,
@@ -216,7 +222,14 @@ class UserController {
   async activate(req, res, next) {
     try {
       const { id } = req.params;
-      await UserService.activateUser(id);
+      const { password } = req.body;
+      const adminId = req.user.id;
+
+      if (!password) {
+        return response.error(res, 'Mật khẩu là bắt buộc', 400);
+      }
+
+      await UserService.activateUser(id, adminId, password);
 
       return response.success(
         res,

@@ -21,6 +21,13 @@ module.exports = {
   // CORS
   CLIENT_URL: process.env.CLIENT_URL || 'http://localhost:3000',
 
+  // Email/SMTP
+  SMTP_HOST: process.env.SMTP_HOST || 'smtp.gmail.com',
+  SMTP_PORT: parseInt(process.env.SMTP_PORT) || 587,
+  SMTP_SECURE: process.env.SMTP_SECURE === 'true' || false,
+  SMTP_USER: process.env.SMTP_USER || '',
+  SMTP_PASSWORD: process.env.SMTP_PASSWORD || '',
+
   // Upload
   UPLOAD_PATH: process.env.UPLOAD_PATH || './uploads',
   MAX_FILE_SIZE: parseInt(process.env.MAX_FILE_SIZE) || 5242880, // 5MB

@@ -70,6 +70,49 @@ const generateRandomString = (length = 10) => {
 };
 
 /**
+ * Generate strong password (8-20 chars, upper/lower/number/special)
+ */
+const generateStrongPassword = (length = 12) => {
+  const minLength = 8;
+  const maxLength = 20;
+  const finalLength = Math.max(minLength, Math.min(maxLength, length));
+
+  const lowers = 'abcdefghijklmnopqrstuvwxyz';
+  const uppers = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const numbers = '0123456789';
+  const specials = '!@#$%^&*()_+-=[]{};:\"\\|,.<>/?';
+  const allChars = `${lowers}${uppers}${numbers}${specials}`;
+
+  const pick = (chars) => chars.charAt(Math.floor(Math.random() * chars.length));
+
+  const passwordChars = [
+    pick(lowers),
+    pick(uppers),
+    pick(numbers),
+    pick(specials),
+  ];
+
+  for (let i = passwordChars.length; i < finalLength; i++) {
+    passwordChars.push(pick(allChars));
+  }
+
+  for (let i = passwordChars.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [passwordChars[i], passwordChars[j]] = [passwordChars[j], passwordChars[i]];
+  }
+
+  return passwordChars.join('');
+};
+
+/**
+ * Generate OTP (8 digits)
+ */
+const generateOTP = () => {
+  // Generate 8-digit OTP
+  return Math.floor(10000000 + Math.random() * 90000000).toString();
+};
+
+/**
  * Format phone number
  */
 const formatPhoneNumber = (phone) => {
@@ -92,6 +135,8 @@ module.exports = {
   verifyToken,
   verifyRefreshToken,
   generateRandomString,
+  generateStrongPassword,
+  generateOTP,
   formatPhoneNumber,
   calculateOffset,
 };

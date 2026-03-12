@@ -1,89 +1,429 @@
-import { useState } from 'react';
-import { PackageOpen, Calendar, Clock, FileText, User } from 'lucide-react';
-import { BaristaOrders } from './BaristaOrders';
-import { BaristaSchedule } from './BaristaSchedule';
-import { BaristaAttendance } from './BaristaAttendance';
-import { BaristaRequests } from './BaristaRequests';
-import { BaristaProfile } from './BaristaProfile';
+import { useEffect, useRef, useState } from "react";
+import { useLocation, useNavigate, Outlet } from "react-router-dom";
+import {
+  PackageOpen,
+  Calendar,
+  Clock,
+  FileText,
+  User,
+  LogOut,
+  Menu,
+  X,
+  LayoutDashboard,
+  Bell,
+} from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "../../components/ui/alert-dialog";
+import authenticationService from "../../services/authenticationService";
+import notificationService from "@/services/notificationService";
+import socket from "@/lib/socket";
+import { getNotificationLink } from "@/utils/getNotificationLink";
+import Logo from "/logo/Logo.png";
 
 export function BaristaApp() {
-  const [currentPage, setCurrentPage] = useState('orders');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+
+  const navigate = useNavigate();
+  const location = useLocation();
+  const notificationRef = useRef(null);
+
+  const unreadCount = notifications.filter(
+    (item) => Number(item.is_read) === 0
+  ).length;
+
+  const handleLogout = () => {
+    authenticationService.logout();
+    window.location.href = "/";
+  };
+
+  const getCurrentPage = () => {
+    const path = location.pathname;
+    if (path.includes("orders")) return "orders";
+    if (path.includes("attendance")) return "attendance";
+    if (path.includes("schedule")) return "schedule";
+    if (path.includes("requests")) return "requests";
+    if (path.includes("profile")) return "profile";
+    return "dashboard";
+  };
+
+  const currentPage = getCurrentPage();
+
+  const menuItems = [
+    {
+      id: "dashboard",
+      icon: LayoutDashboard,
+      label: "Bảng điều khiển",
+      path: "/barista",
+    },
+    {
+      id: "orders",
+      icon: PackageOpen,
+      label: "Đơn hàng",
+      path: "/barista/orders",
+    },
+    {
+      id: "attendance",
+      icon: Clock,
+      label: "Chấm công",
+      path: "/barista/attendance",
+    },
+    {
+      id: "schedule",
+      icon: Calendar,
+      label: "Lịch làm việc",
+      path: "/barista/schedule",
+    },
+    {
+      id: "requests",
+      icon: FileText,
+      label: "Yêu cầu",
+      path: "/barista/requests",
+    },
+    {
+      id: "profile",
+      icon: User,
+      label: "Hồ sơ cá nhân",
+      path: "/barista/profile",
+    },
+  ];
+
+  useEffect(() => {
+    const initNotifications = async () => {
+      try {
+        const profileRes = await authenticationService.getProfile();
+        const user = profileRes?.data || profileRes?.data?.data;
+
+        if (user?.id) {
+          if (!socket.connected) {
+            socket.connect();
+          }
+
+          socket.emit("join-user-room", user.id);
+          console.log("Barista joined room:", `user-${user.id}`);
+        } else {
+          console.log("Không tìm thấy user.id");
+        }
+
+        const notificationRes = await notificationService.getMine();
+        setNotifications(
+          notificationRes?.data?.data || notificationRes?.data || []
+        );
+      } catch (error) {
+        console.error("Init barista notifications error:", error);
+      }
+    };
+
+    initNotifications();
+
+    const handleNewNotification = (data) => {
+      console.log("received barista notification:", data);
+
+      setNotifications((prev) => {
+        const list = Array.isArray(prev) ? prev : [];
+        const existed = list.some(
+          (item) => item.recipient_id === data.recipient_id
+        );
+
+        if (existed) return list;
+
+        return [{ ...data, is_read: 0 }, ...list];
+      });
+    };
+
+    // Nếu backend của bạn emit event khác thì đổi tên ở đây
+    socket.on("barista:notification", handleNewNotification);
+
+    return () => {
+      socket.off("barista:notification", handleNewNotification);
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        notificationRef.current &&
+        !notificationRef.current.contains(event.target)
+      ) {
+        setShowNotifications(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  const handleReadNotification = async (item) => {
+    try {
+      if (Number(item.is_read) === 0 && item.recipient_id) {
+        await notificationService.markAsRead(item.recipient_id);
+      }
+
+      setNotifications((prev) =>
+        prev.map((n) =>
+          n.recipient_id === item.recipient_id ? { ...n, is_read: 1 } : n
+        )
+      );
+
+      setShowNotifications(false);
+
+      const targetLink = getNotificationLink(item);
+      navigate(targetLink);
+    } catch (error) {
+      console.error("Read barista notification error:", error);
+    }
+  };
+
+  const handleToggleRead = async (item, e) => {
+    e.stopPropagation();
+
+    try {
+      if (Number(item.is_read) === 0) {
+        await notificationService.markAsRead(item.recipient_id);
+
+        setNotifications((prev) =>
+          prev.map((n) =>
+            n.recipient_id === item.recipient_id
+              ? { ...n, is_read: 1, read_at: new Date().toISOString() }
+              : n
+          )
+        );
+      } else {
+        await notificationService.markAsUnread(item.recipient_id);
+
+        setNotifications((prev) =>
+          prev.map((n) =>
+            n.recipient_id === item.recipient_id
+              ? { ...n, is_read: 0, read_at: null }
+              : n
+          )
+        );
+      }
+    } catch (error) {
+      console.error("Toggle barista notification error:", error);
+    }
+  };
+
+  const toggleAllReadStatus = async () => {
+    try {
+      const hasUnread = notifications.some(
+        (item) => Number(item.is_read) === 0
+      );
+
+      if (hasUnread) {
+        await notificationService.markAllAsRead();
+        setNotifications((prev) =>
+          prev.map((item) => ({
+            ...item,
+            is_read: 1,
+            read_at: new Date().toISOString(),
+          }))
+        );
+      } else {
+        await notificationService.markAllAsUnread();
+        setNotifications((prev) =>
+          prev.map((item) => ({
+            ...item,
+            is_read: 0,
+            read_at: null,
+          }))
+        );
+      }
+    } catch (error) {
+      console.error("Toggle all barista notifications error:", error);
+    }
+  };
 
   return (
     <div className="flex min-h-screen bg-background">
+      {/* Mobile Menu Button */}
+      <button
+        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+        className="md:hidden fixed top-4 left-4 z-50 p-2 bg-card border border-border rounded-lg shadow-lg"
+      >
+        {mobileMenuOpen ? (
+          <X className="w-5 h-5" />
+        ) : (
+          <Menu className="w-5 h-5" />
+        )}
+      </button>
+
+      {/* Overlay */}
+      {mobileMenuOpen && (
+        <div
+          className="md:hidden fixed inset-0 bg-black/50 z-30"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
+
       {/* Sidebar Navigation */}
-      <div className="w-64 bg-card border-r border-border flex flex-col">
-        <div className="p-6 border-b border-border">
-          <h1 className="text-2xl font-semibold text-primary">Coffee Shop</h1>
-          <p className="text-sm text-muted-foreground mt-1">Barista Portal</p>
+      <div
+        className={`
+          fixed md:static inset-y-0 left-0 z-40
+          w-64 bg-card border-r border-border flex flex-col
+          transform transition-transform duration-300 ease-in-out
+          ${
+            mobileMenuOpen
+              ? "translate-x-0"
+              : "-translate-x-full md:translate-x-0"
+          }
+        `}
+      >
+        <div
+          className="p-6 border-b border-border"
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+          }}
+        >
+          <img src={Logo} alt="Coffee Shop Logo" className="h-20 w-auto" />
+          <p className="text-sm text-muted-foreground mt-1">Cổng Pha chế</p>
         </div>
-        
+
         <nav className="flex-1 p-4 overflow-auto">
-          <button
-            onClick={() => setCurrentPage('orders')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all mb-2 ${
-              currentPage === 'orders'
-                ? 'bg-primary text-primary-foreground'
-                : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-            }`}
-          >
-            <PackageOpen className="w-5 h-5" />
-            <span>Orders</span>
-          </button>
-          <button
-            onClick={() => setCurrentPage('attendance')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all mb-2 ${
-              currentPage === 'attendance'
-                ? 'bg-primary text-primary-foreground'
-                : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-            }`}
-          >
-            <Clock className="w-5 h-5" />
-            <span>Attendance</span>
-          </button>
-          <button
-            onClick={() => setCurrentPage('schedule')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all mb-2 ${
-              currentPage === 'schedule'
-                ? 'bg-primary text-primary-foreground'
-                : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-            }`}
-          >
-            <Calendar className="w-5 h-5" />
-            <span>Schedule</span>
-          </button>
-          <button
-            onClick={() => setCurrentPage('requests')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all mb-2 ${
-              currentPage === 'requests'
-                ? 'bg-primary text-primary-foreground'
-                : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-            }`}
-          >
-            <FileText className="w-5 h-5" />
-            <span>Requests</span>
-          </button>
-          <button
-            onClick={() => setCurrentPage('profile')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all mb-2 ${
-              currentPage === 'profile'
-                ? 'bg-primary text-primary-foreground'
-                : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-            }`}
-          >
-            <User className="w-5 h-5" />
-            <span>Profile</span>
-          </button>
+          {menuItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <button
+                key={item.id}
+                onClick={() => {
+                  navigate(item.path);
+                  setMobileMenuOpen(false);
+                }}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all mb-2 ${
+                  currentPage === item.id
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                }`}
+              >
+                <Icon className="w-5 h-5 flex-shrink-0" />
+                <span className="text-sm">{item.label}</span>
+              </button>
+            );
+          })}
+
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all mt-4 text-red-600 hover:bg-red-100">
+                <LogOut className="w-5 h-5 flex-shrink-0" />
+                <span className="text-sm">Đăng xuất</span>
+              </button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Xác nhận đăng xuất</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Bạn có chắc chắn muốn đăng xuất khỏi hệ thống không?
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Hủy</AlertDialogCancel>
+                <AlertDialogAction onClick={handleLogout}>
+                  Đăng xuất
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </nav>
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-auto">
-        {currentPage === 'orders' && <BaristaOrders />}
-        {currentPage === 'attendance' && <BaristaAttendance />}
-        {currentPage === 'schedule' && <BaristaSchedule />}
-        {currentPage === 'requests' && <BaristaRequests />}
-        {currentPage === 'profile' && <BaristaProfile />}
+      <div className="flex-1 w-full md:w-auto overflow-auto">
+        {/* Topbar notification */}
+        <div
+          ref={notificationRef}
+          className="flex justify-end px-4 md:px-8 pt-4 md:pt-4 pb-0 relative"
+        >
+          <button
+            onClick={() => setShowNotifications((prev) => !prev)}
+            className="relative p-2 rounded-full border bg-white hover:bg-gray-50 shadow-sm"
+          >
+            <Bell className="w-5 h-5" />
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-red-500 text-white text-xs flex items-center justify-center">
+                {unreadCount}
+              </span>
+            )}
+          </button>
+
+          {showNotifications && (
+            <div className="absolute top-14 right-4 md:right-8 w-[360px] bg-white border rounded-xl shadow-xl z-50 overflow-hidden">
+              <div className="flex items-center justify-between px-4 py-3 border-b">
+                <h3 className="font-semibold">Thông báo</h3>
+                {notifications.length > 0 && (
+                  <button
+                    onClick={toggleAllReadStatus}
+                    className="text-sm text-primary hover:underline"
+                  >
+                    {notifications.some((item) => Number(item.is_read) === 0)
+                      ? "Đánh dấu tất cả đã đọc"
+                      : "Đánh dấu tất cả chưa đọc"}
+                  </button>
+                )}
+              </div>
+
+              <div className="max-h-96 overflow-y-auto">
+                {notifications.length === 0 ? (
+                  <div className="p-4 text-sm text-muted-foreground">
+                    Chưa có thông báo nào
+                  </div>
+                ) : (
+                  notifications.map((item) => (
+                    <button
+                      key={item.recipient_id || `${item.id}-${item.created_at}`}
+                      onClick={() => handleReadNotification(item)}
+                      className={`w-full text-left px-4 py-3 border-b hover:bg-gray-50 ${
+                        Number(item.is_read) === 0 ? "bg-orange-50" : "bg-white"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1">
+                          <p className="font-medium text-sm">{item.title}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {item.message}
+                          </p>
+                          <p className="text-xs text-gray-400 mt-1">
+                            {new Date(item.created_at).toLocaleString("vi-VN")}
+                          </p>
+                        </div>
+
+                        <div className="flex flex-col items-end gap-2 shrink-0">
+                          {Number(item.is_read) === 0 && (
+                            <span className="w-2 h-2 rounded-full bg-red-500 mt-1" />
+                          )}
+
+                          <button
+                            onClick={(e) => handleToggleRead(item, e)}
+                            className="text-xs text-primary hover:underline"
+                          >
+                            {Number(item.is_read) === 0 ? "Đã đọc" : "Chưa đọc"}
+                          </button>
+                        </div>
+                      </div>
+                    </button>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="p-4 md:p-8 pt-2 md:pt-2">
+          <Outlet />
+        </div>
       </div>
     </div>
   );

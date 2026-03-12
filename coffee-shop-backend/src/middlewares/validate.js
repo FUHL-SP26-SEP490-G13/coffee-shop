@@ -7,6 +7,7 @@ const validate = (schema, property = 'body') => {
     const { error, value } = schema.validate(req[property], {
       abortEarly: false, // Return all errors, not just the first one
       stripUnknown: true, // Remove unknown keys
+      convert: true, // Attempt to cast values to the correct type tức là covert "true"/"false" thành boolean, "123" thành number, ...
     });
 
     if (error) {

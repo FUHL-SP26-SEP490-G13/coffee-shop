@@ -1,5 +1,5 @@
-const AuthService = require('../services/AuthService');
-const response = require('../utils/response');
+const AuthService = require("../services/AuthService");
+const response = require("../utils/response");
 
 class AuthController {
   /**
@@ -10,12 +10,51 @@ class AuthController {
     try {
       const result = await AuthService.register(req.body);
 
+      return response.success(res, result, "Đăng ký thành công", 201);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Send email OTP
+   * POST /api/auth/send-otp
+   */
+  async sendOTP(req, res, next) {
+    try {
+      const { userId } = req.body;
+
+      if (!userId) {
+        return response.error(res, "Thiếu userId", 400);
+      }
+
+      const result = await AuthService.sendEmailOTP(userId);
+
+      return response.success(res, result, "Gửi OTP thành công");
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**   * Verify email OTP
+   * POST /api/auth/verify-email
+   */
+  async verifyEmail(req, res, next) {
+    try {
+      const { userId, otp } = req.body;
+
+      if (!userId || !otp) {
+        return response.error(res, "Thiếu userId hoặc otp", 400);
+      }
+
+      const result = await AuthService.verifyEmailOTP(userId, otp);
+
       return response.success(
         res,
         result,
-        'Đăng ký thành công',
-        201
+        "Xác thực email thành công"
       );
+
     } catch (error) {
       next(error);
     }
@@ -30,11 +69,7 @@ class AuthController {
       const { identifier, password } = req.body;
       const result = await AuthService.login(identifier, password);
 
-      return response.success(
-        res,
-        result,
-        'Đăng nhập thành công'
-      );
+      return response.success(res, result, "Đăng nhập thành công");
     } catch (error) {
       next(error);
     }
@@ -49,11 +84,7 @@ class AuthController {
       const { refreshToken } = req.body;
       const result = await AuthService.refreshToken(refreshToken);
 
-      return response.success(
-        res,
-        result,
-        'Refresh token thành công'
-      );
+      return response.success(res, result, "Refresh token thành công");
     } catch (error) {
       next(error);
     }
@@ -67,11 +98,7 @@ class AuthController {
     try {
       const user = await AuthService.getProfile(req.user.id);
 
-      return response.success(
-        res,
-        user,
-        'Lấy thông tin profile thành công'
-      );
+      return response.success(res, user, "Lấy thông tin profile thành công");
     } catch (error) {
       next(error);
     }
@@ -85,11 +112,7 @@ class AuthController {
     try {
       const user = await AuthService.updateProfile(req.user.id, req.body);
 
-      return response.success(
-        res,
-        user,
-        'Cập nhật profile thành công'
-      );
+      return response.success(res, user, "Cập nhật profile thành công");
     } catch (error) {
       next(error);
     }
@@ -105,11 +128,7 @@ class AuthController {
 
       await AuthService.changePassword(req.user.id, oldPassword, newPassword);
 
-      return response.success(
-        res,
-        null,
-        'Đổi mật khẩu thành công'
-      );
+      return response.success(res, null, "Đổi mật khẩu thành công");
     } catch (error) {
       next(error);
     }
@@ -124,11 +143,7 @@ class AuthController {
       const { email } = req.body;
       const result = await AuthService.resetPassword(email);
 
-      return response.success(
-        res,
-        result,
-        result.message
-      );
+      return response.success(res, result, result.message);
     } catch (error) {
       next(error);
     }
@@ -144,11 +159,63 @@ class AuthController {
       // by removing the token. If you implement token blacklisting,
       // you would add the token to a blacklist here.
 
-      return response.success(
-        res,
-        null,
-        'Đăng xuất thành công'
-      );
+      return response.success(res, null, "Đăng xuất thành công");
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Verify OTP for password reset
+   * POST /api/auth/forgot-password/verify-otp
+   */
+  async verifyForgotPasswordOtp(req, res, next) {
+    try {
+      const { email, otp } = req.body;
+
+      if (!email || !otp) {
+        return response.error(res, "Thiếu email hoặc otp", 400);
+      }
+
+      const result = await AuthService.verifyForgotPasswordOtp(email, otp);
+
+      return response.success(res, result, "OTP xác thực thành công");
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Reset password with OTP
+   * POST /api/auth/forgot-password/reset
+   */
+  async resetPasswordWithOtp(req, res, next) {
+    try {
+      const { email, otp, newPassword, confirmPassword } = req.body;
+
+      if (!email || !otp || !newPassword || !confirmPassword) {
+        return response.error(res, "Thiếu thông tin bắt buộc", 400);
+      }
+
+      const result = await AuthService.resetPasswordWithOtp(email, otp, newPassword, confirmPassword);
+
+      return response.success(res, result, "Mật khẩu đã được đặt lại thành công");
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Google OAuth Login
+   * POST /api/auth/google
+   */
+  async googleLogin(req, res, next) {
+    try {
+      const { accessToken, idToken } = req.body;
+
+      const result = await AuthService.loginWithGoogle(idToken, accessToken);
+
+      return response.success(res, result, "Đăng nhập Google thành công");
     } catch (error) {
       next(error);
     }

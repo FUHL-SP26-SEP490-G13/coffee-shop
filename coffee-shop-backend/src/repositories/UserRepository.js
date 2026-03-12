@@ -160,9 +160,6 @@ class UserRepository extends BaseRepository {
     const allowedFields = [
       'first_name',
       'last_name',
-      'gender',
-      'dob',
-      'address',
       'phone',
     ];
 
@@ -175,10 +172,11 @@ class UserRepository extends BaseRepository {
     });
 
     if (Object.keys(updateData).length === 0) {
-      return this.findById(userId);
+      return this.findByIdWithRole(userId);
     }
 
-    return this.update(userId, updateData);
+    await this.update(userId, updateData);
+    return this.findByIdWithRole(userId);
   }
 
   /**

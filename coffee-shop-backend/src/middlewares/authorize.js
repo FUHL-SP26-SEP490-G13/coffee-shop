@@ -3,7 +3,7 @@ const { ROLES, ROLE_NAMES } = require('../config/constants');
 /**
  * Authorization middleware
  * Check if user has required role(s)
- * @param {Array<string>} allowedRoles - Array of allowed role names (e.g., ['admin', 'staff'])
+ * @param {Array<string>} allowedRoles - Array of allowed role names (e.g., ['manager', 'staff'])
  */
 const authorize = (allowedRoles = []) => {
   return (req, res, next) => {
@@ -35,11 +35,11 @@ const authorize = (allowedRoles = []) => {
 /**
  * Check if user is admin
  */
-const isAdmin = (req, res, next) => {
-  if (!req.user || req.user.role_id !== ROLES.ADMIN) {
+const isManager = (req, res, next) => {
+  if (!req.user || req.user.role_id !== ROLES.MANAGER) {
     return res.status(403).json({
       success: false,
-      message: 'Forbidden - Chỉ admin mới có quyền truy cập',
+      message: 'Forbidden - Chỉ manager mới có quyền truy cập',
     });
   }
   next();
@@ -51,7 +51,7 @@ const isAdmin = (req, res, next) => {
 const isStaff = (req, res, next) => {
   if (
     !req.user ||
-    ![ROLES.STAFF, ROLES.BARISTA, ROLES.ADMIN].includes(req.user.role_id)
+    ![ROLES.STAFF, ROLES.BARISTA, ROLES.MANAGER].includes(req.user.role_id)
   ) {
     return res.status(403).json({
       success: false,
@@ -65,7 +65,7 @@ const isStaff = (req, res, next) => {
  * Check if user is barista
  */
 const isBarista = (req, res, next) => {
-  if (!req.user || ![ROLES.BARISTA, ROLES.ADMIN].includes(req.user.role_id)) {
+  if (!req.user || ![ROLES.BARISTA, ROLES.MANAGER].includes(req.user.role_id)) {
     return res.status(403).json({
       success: false,
       message: 'Forbidden - Chỉ barista mới có quyền truy cập',
@@ -100,7 +100,7 @@ const isOwnerOrAdmin = (resourceUserIdField = 'user_id') => {
     }
 
     // Admin can access all resources
-    if (req.user.role_id === ROLES.ADMIN) {
+    if (req.user.role_id === ROLES.MANAGER) {
       return next();
     }
 
@@ -123,7 +123,7 @@ const isOwnerOrAdmin = (resourceUserIdField = 'user_id') => {
 
 module.exports = {
   authorize,
-  isAdmin,
+  isManager,
   isStaff,
   isBarista,
   isCustomer,
