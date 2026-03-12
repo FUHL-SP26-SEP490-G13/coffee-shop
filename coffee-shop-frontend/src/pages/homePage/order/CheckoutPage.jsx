@@ -1,16 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Banknote, CreditCard } from "lucide-react";
+import { Banknote } from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { cartService } from "@/services/cartService";
-import orderService from "@/services/orderService";
 import authenticationService from "@/services/authenticationService";
+import PlaceOrderButton from "@/components/order/PlaceOrderButton";
 import { STORAGE_KEYS } from "@/constants";
-import { validateOrderForm, validateOrderField } from "@/utils/orderValidation";
+import { validateOrderField } from "@/utils/orderValidation";
 import PayOSLogo from "/logo/payOS.svg";
 
 export default function CheckoutPage() {
@@ -20,7 +20,6 @@ export default function CheckoutPage() {
     localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN) ||
     sessionStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
 
-  const [submitting, setSubmitting] = useState(false);
   const [discountCode, setDiscountCode] = useState("");
   const [errors, setErrors] = useState({});
   const [form, setForm] = useState({
@@ -73,102 +72,6 @@ export default function CheckoutPage() {
 
   const discountAmount = 0;
   const totalAmount = subtotalAmount - discountAmount;
-
-  const handleSubmit = async () => {
-    const formErrors = validateOrderForm(form);
-
-    if (Object.keys(formErrors).length > 0) {
-      setErrors(formErrors);
-      return;
-    }
-
-    try {
-      setSubmitting(true);
-
-      const payload = {
-        order_type: form.order_type,
-        payment_method: form.payment_method,
-        receiver_name: form.receiver_name.trim(),
-        receiver_phone: form.receiver_phone.trim(),
-        receiver_email: form.receiver_email.trim(),
-        address: form.address.trim(),
-        note: form.note.trim(),
-        items: cart.map((item) => ({
-          product_size_id: item.productSizeId || item.product_size_id,
-          quantity: Number(item.quantity),
-          toppings: Array.isArray(item.toppings)
-            ? item.toppings.map((topping) => ({
-                topping_id: topping.topping_id,
-                quantity: Number(topping.quantity || 1),
-              }))
-            : [],
-        })),
-      };
-
-      console.log("Checkout payload:", payload);
-
-      const orderRes = await orderService.checkout(payload);
-      const orderData = orderRes?.data || {};
-      const order_id = Number(orderData?.order_id);
-
-      if (form.payment_method === "payos") {
-        if (!order_id || Number.isNaN(order_id)) {
-          alert("Không lấy được mã đơn hàng để tạo thanh toán PayOS");
-          return;
-        }
-
-        const payosItems = cart.flatMap((item) => {
-          const itemQuantity = Math.max(1, Number(item.quantity) || 1);
-          const basePrice = Math.max(0, Math.round(Number(item.basePrice || item.price) || 0));
-
-          const productItem = {
-            name: `${item.name} (${item.size})`,
-            quantity: itemQuantity,
-            price: basePrice,
-          };
-
-          const toppingItems = Array.isArray(item.toppings)
-            ? item.toppings
-                .filter((topping) => Number(topping.price) > 0)
-                .map((topping) => ({
-                  name: `Topping: ${topping.name}`,
-                  quantity:
-                    itemQuantity * Math.max(1, Number(topping.quantity) || 1),
-                  price: Math.max(0, Math.round(Number(topping.price) || 0)),
-                }))
-            : [];
-
-          return [productItem, ...toppingItems].filter(
-            (payosItem) => payosItem.quantity > 0 && payosItem.price > 0
-          );
-        });
-
-        const payosRes = await orderService.createPaymentLink({
-          orderCode: order_id,
-          amount: Math.max(0, Math.round(totalAmount)),
-          description: `DH #${order_id}`.slice(0, 25),
-          items: payosItems,
-        });
-
-        cartService.clearCart();
-        const checkoutUrl = payosRes?.data?.checkoutUrl;
-        if (checkoutUrl) {
-          window.location.href = checkoutUrl;
-        } else {
-          alert("Không lấy được link thanh toán PayOS");
-        }
-      } else {
-        cartService.clearCart();
-        alert("Đặt hàng thành công");
-        navigate("/");
-      }
-    } catch (error) {
-      console.error("Checkout error:", error?.response?.data || error);
-      alert(error?.response?.data?.message || "Đặt hàng thất bại");
-    } finally {
-      setSubmitting(false);
-    }
-  };
 
   return (
     <div className="min-h-screen flex flex-col bg-white">
@@ -468,21 +371,13 @@ export default function CheckoutPage() {
               </div>
             </div>
 
-            <Button
-              className="w-full mb-3"
-              onClick={handleSubmit}
-              disabled={submitting}
-            >
-              {submitting ? "Đang xử lý..." : "Đặt hàng"}
-            </Button>
-
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={() => navigate("/cart")}
-            >
-              ← Quay lại giỏ hàng
-            </Button>
+            <PlaceOrderButton
+              form={form}
+              cart={cart}
+              totalAmount={totalAmount}
+              onValidateError={(errs) => setErrors(errs)}
+              onSuccess={() => navigate("/")}
+            />
           </div>
         </div>
       </section>

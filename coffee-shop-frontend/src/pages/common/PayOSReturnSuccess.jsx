@@ -6,6 +6,7 @@ import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import orderService from "@/services/orderService";
 
 // PayOS trả về query params:
 // code=00 (thành công) / code khác (thất bại)
@@ -34,6 +35,15 @@ export default function PayOSReturnSuccess() {
   const isPending   = !isCancelled && !isSuccess;
 
   const [countdown, setCountdown] = useState(8);
+
+  // Lưu mã giao dịch PayOS vào DB ngay khi trang load
+  useEffect(() => {
+    if (!orderCode) return;
+    orderService
+      .savePayosReturn({ orderCode, payosId, status })
+      .catch((err) => console.error("Lưu mã giao dịch thất bại:", err));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Tự động điều hướng sau 8s nếu thành công
   useEffect(() => {

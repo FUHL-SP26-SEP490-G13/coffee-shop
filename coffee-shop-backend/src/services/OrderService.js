@@ -148,13 +148,9 @@ class OrderService {
       await OrderRepository.createOrderPayment(connection, {
         order_id: orderId,
         payment_method,
-        payment_status: payment_method === "payos" ? "paid" : "pending",
+        payment_status: "pending",
         amount: totalAmount,
       });
-
-      if (payment_method === "payos") {
-        await OrderRepository.markOrderAsPaid(connection, orderId);
-      }
 
       await connection.commit();
 
@@ -187,6 +183,24 @@ class OrderService {
       ...order,
       items,
     };
+  }
+
+  async savePayosReturn({ orderCode, payosId, status }) {
+    if (!orderCode) throw new Error("Thiếu orderCode");
+
+    const isPaid = status === "PAID";
+    const paymentStatus = isPaid ? "paid" : status === "CANCELLED" ? "cancelled" : "pending";
+
+    await OrderRepository.updatePaymentByOrderCode(orderCode, {
+      transaction_id: payosId || null,
+      payment_status: paymentStatus,
+    });
+
+    if (isPaid) {
+      await OrderRepository.updateOrderPaidStatus(orderCode, true);
+    }
+
+    return { saved: true };
   }
 }
 

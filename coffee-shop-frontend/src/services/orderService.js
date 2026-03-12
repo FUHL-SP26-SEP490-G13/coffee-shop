@@ -30,6 +30,10 @@ const orderService = {
   createPaymentLink(data) {
     return _payosAxios.post("/create-payment-link", data);
   },
+
+  savePayosReturn(data) {
+    return axiosClient.post(API_ENDPOINTS.ORDERSLIST.PAYOS_RETURN, data);
+  },
 };
 
 export default orderService;
