@@ -278,6 +278,10 @@ class ProductService {
 
     return this.getProductById(id);
   }
+
+  async getBestSellerProducts(limit = 8) {
+    return ProductRepository.findBestSellers(limit);
+  }
 }
 
 module.exports = new ProductService();

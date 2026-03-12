@@ -141,13 +141,6 @@ export default function AdminDiscounts() {
     return Number(value).toLocaleString("vi-VN") + "đ";
   };
 
-  const formatDateTime = (value) => {
-    if (!value) return "—";
-    const d = new Date(value);
-    if (Number.isNaN(d.getTime())) return "—";
-    return d.toLocaleString("vi-VN");
-  };
-
   if (error && data.length === 0) {
     return (
       <div className="p-6 text-center text-red-500">

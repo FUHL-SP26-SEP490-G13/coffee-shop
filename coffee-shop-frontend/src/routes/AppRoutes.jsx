@@ -6,7 +6,7 @@ import RegisterPage from "../pages/authentication/RegisterPage";
 import AdminOrders from "../pages/admin/AdminOrders";
 import AdminUsers from "../pages/admin/AdminUsers";
 import authenticationService from "../services/authenticationService";
-import HomePage from "@/pages/HomePage";
+import HomePage from "@/pages/homePage/HomePage";
 import ChangePasswordPage from "../pages/authentication/ChangePasswordPage";
 import ForgotPasswordPage from "../pages/authentication/ForgotPasswordPage";
 import AdminStaffSchedule from "@/pages/admin/AdminStaffSchedule";
@@ -16,10 +16,10 @@ import AdminNewsCreatePage from "@/pages/admin/AdminNew/AdminNewsCreatePage";
 import AdminNewsList from "@/pages/admin/AdminNew/AdminNewsList";
 import AdminProducts from "@/pages/admin/AdminProduct/AdminProducts";
 import AdminCategories from "@/pages/admin/AdminCategory/AdminCategories";
-import NewsDetailPage from "@/components/news/NewsDetailPage";
+import NewsDetailPage from "@/pages/homePage/news/NewsDetailPage";
 import AdminEditNewsPage from "@/pages/admin/AdminNew/AdminEditNewsPage";
 import AdminNewsDetailPage from "@/pages/admin/AdminNew/AdminNewsDetailPage";
-import NewsListPage from "@/components/news/NewsListPage";
+import NewsListPage from "@/pages/homePage/news/NewsListPage";
 import AdminDashboard from "../pages/admin/AdminDashboard/AdminDashboard";
 import AdminDiscounts from "@/pages/admin/AdminDiscount/AdminDiscounts";
 import AdminDiscountCreate from "@/pages/admin/AdminDiscount/AdminDiscountCreate";
@@ -38,10 +38,6 @@ import { StaffSchedule } from "@/pages/staff/StaffSchedule";
 import AdminBanner from "@/pages/admin/AdminBanner/AdminBanner";
 import AdminTables from "@/pages/admin/AdminTables/AdminTables";
 import AdminToppings from "../pages/admin/AdminTopping/AdminToppings";
-
-
-import TermsOfServicePage from "@/pages/common/TermsOfServicePage";
-import ReturnPolicyPage from "@/pages/common/ReturnPolicyPage";
 import PaymentPolicyPage from "@/pages/common/PaymentPolicyPage";
 import { BaristaDashboard } from "@/pages/barista/BaristaDashboard/BaristaDashboard";
 import { BaristaOrders } from "@/pages/barista/BaristaOrder/BaristaOrders";
@@ -50,8 +46,10 @@ import { BaristaSchedule } from "@/pages/barista/BaristaSchedule/BaristaSchedule
 import { BaristaRequests } from "@/pages/barista/BaristaRequest/BaristaRequests";
 import { StaffApp } from "@/pages/staff/StaffApp";
 import { BaristaApp } from "@/pages/barista/BaristaApp";
-import ProductListPage from "../pages/common/ProductListPage";
-import ProductDetailPage from "../pages/common/ProductDetailPage";
+import ProductListPage from "../pages/homePage/product/ProductListPage";
+import ProductDetailPage from "../pages/homePage/product/ProductDetailPage";
+import CartPage from "@/pages/homePage/order/CartPage";
+import CheckoutPage from "@/pages/homePage/order/CheckoutPage";
 
 const getStoredValue = (key) =>
   localStorage.getItem(key) || sessionStorage.getItem(key);
@@ -195,9 +193,10 @@ const AppRoutes = () => {
       <Route path="/order-policy" element={<OrderPolicy />} />
       <Route path="/privacy-policy" element={<PrivacyPolicy />} />
       <Route path="/payment-policy" element={<PaymentPolicyPage />} />
-      <Route path="/terms-of-service" element={<TermsOfServicePage />} />
-      <Route path="/return-policy" element={<ReturnPolicyPage />} />
-      
+
+      <Route path="/cart" element={<CartPage />} />
+      <Route path="/checkout" element={<CheckoutPage />} />
+
       {/* 404 */}
       <Route
         path="*"
