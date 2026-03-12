@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import adminDashService from "@/services/adminDashboardService";
+import adminDBService from "@/services/adminDBService";
 
 import {
   ResponsiveContainer,
@@ -33,7 +33,7 @@ function fillMissingDates(series, days) {
   return result;
 }
 
-export default function AdminDashboard() {
+export default function AdminDB() {
   const [rangeDays, setRangeDays] = useState(7);
 
   const [overview, setOverview] = useState(null);
@@ -55,31 +55,31 @@ export default function AdminDashboard() {
       setLoading(true);
       setErrors(null);
 
-      const ov = await adminDashService.getOverview();
+      const ov = await adminDBService.getOverview();
       setOverview(ov);
 
-      const series = await adminDashService.getRevenueSeries(rangeDays);
+      const series = await adminDBService.getRevenueSeries(rangeDays);
       setRevenueSeries(series);
 
-      const top = await adminDashService.getTopProducts({
+      const top = await adminDBService.getTopProducts({
         days: rangeDays,
         limit: 5,
       });
       setTopProducts(top);
 
-      const pm = await adminDashService.getPaymentMethodBreakdown(rangeDays);
+      const pm = await adminDBService.getPaymentMethodBreakdown(rangeDays);
       setPaymentMethod(pm);
 
-      const orderType = await adminDashService.getOrderTypeRevenue(rangeDays);
+      const orderType = await adminDBService.getOrderTypeRevenue(rangeDays);
       setOrderTypeRevenue(orderType);
 
-      const table = await adminDashService.getTableStatusSummary();
+      const table = await adminDBService.getTableStatusSummary();
       setTableSummary(table);
 
-      const cmp = await adminDashService.getComparison(rangeDays);
+      const cmp = await adminDBService.getComparison(rangeDays);
       setComparison(cmp);
 
-      const staff = await adminDashService.getStaffSummary();
+      const staff = await adminDBService.getStaffSummary();
       setStaffSummary(staff);
     } catch (err) {
       console.error("Dashboard error:", err);

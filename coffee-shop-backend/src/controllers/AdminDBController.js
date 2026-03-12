@@ -1,10 +1,10 @@
-const AdminDashboardService = require("../services/AdminDashboardService");
+const AdminDBService = require("../services/AdminDBService");
 const response = require("../utils/response");
 
-class AdminDashboardController {
+class AdminDBController {
   async getOverview(req, res, next) {
     try {
-      const data = await AdminDashboardService.getOverview();
+      const data = await AdminDBService.getOverview();
       return response.success(res, data, "Lấy dashboard thành công");
     } catch (error) {
       next(error);
@@ -14,7 +14,7 @@ class AdminDashboardController {
   async getRevenueSeries(req, res, next) {
     try {
       const { days = 7 } = req.query;
-      const data = await AdminDashboardService.getRevenueSeries({
+      const data = await AdminDBService.getRevenueSeries({
         days: parseInt(days),
       });
       return response.success(res, data, "Lấy biểu đồ doanh thu thành công");
@@ -26,7 +26,7 @@ class AdminDashboardController {
   async getTopProducts(req, res, next) {
     try {
       const { days = 7, limit = 5 } = req.query;
-      const data = await AdminDashboardService.getTopProducts({
+      const data = await AdminDBService.getTopProducts({
         days: parseInt(days),
         limit: parseInt(limit),
       });
@@ -43,7 +43,7 @@ class AdminDashboardController {
   async getPaymentMethodBreakdown(req, res, next) {
     try {
       const { days = 7 } = req.query;
-      const data = await AdminDashboardService.getPaymentMethodBreakdown({
+      const data = await AdminDBService.getPaymentMethodBreakdown({
         days: parseInt(days),
       });
       return response.success(
@@ -60,7 +60,7 @@ class AdminDashboardController {
   async getOrderTypeRevenue(req, res, next) {
     try {
       const { days = 7 } = req.query;
-      const data = await AdminDashboardService.getOrderTypeRevenue({
+      const data = await AdminDBService.getOrderTypeRevenue({
         days: parseInt(days),
       });
       return response.success(
@@ -77,7 +77,7 @@ class AdminDashboardController {
   async getComparison(req, res, next) {
     try {
       const { days = 7 } = req.query;
-      const data = await AdminDashboardService.getComparison({
+      const data = await AdminDBService.getComparison({
         days: parseInt(days),
       });
       return response.success(res, data, "So sánh kỳ trước thành công");
@@ -89,7 +89,7 @@ class AdminDashboardController {
   // Optional: tóm tắt số lượng nhân viên theo vai trò (barista, phục vụ, quản lý) để dashboard có thêm vài số liệu hữu ích
   async getStaffSummary(req, res) {
     try {
-      const data = await AdminDashboardService.getStaffSummary();
+      const data = await AdminDBService.getStaffSummary();
 
       res.json({
         success: true,
@@ -106,7 +106,7 @@ class AdminDashboardController {
 
   async getTableStatus(req, res, next) {
     try {
-      const data = await AdminDashboardService.getTableStatus();
+      const data = await AdminDBService.getTableStatus();
 
       return response.success(res, data, "Lấy trạng thái bàn thành công");
     } catch (err) {
@@ -115,4 +115,4 @@ class AdminDashboardController {
   }
 }
 
-module.exports = new AdminDashboardController();
+module.exports = new AdminDBController();
