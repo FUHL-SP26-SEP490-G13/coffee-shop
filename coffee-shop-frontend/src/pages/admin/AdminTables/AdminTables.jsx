@@ -35,7 +35,7 @@ import tableService from "@/services/tableService";
 import areaService from "@/services/areaService";
 import TableModal from "./TableModal";
 import AreaModal from "../AdminAreas/AreaModal";
-import ReservationModal from "./ReservationModal";
+// import ReservationModal from "./ReservationModal";
 import { STORAGE_KEYS } from "@/constants";
 import { jwtDecode } from "jwt-decode";
 
@@ -64,8 +64,8 @@ export default function AdminTables() {
   const [areaToDelete, setAreaToDelete] = useState(null);
 
   // Reservation Modal States
-  const [isReservationModalOpen, setIsReservationModalOpen] = useState(false);
-  const [tableToReserve, setTableToReserve] = useState(null);
+  // const [isReservationModalOpen, setIsReservationModalOpen] = useState(false);
+  // const [tableToReserve, setTableToReserve] = useState(null);
 
   // Pagination states
   const [page, setPage] = useState(1);
@@ -130,10 +130,10 @@ export default function AdminTables() {
     }
   };
 
-  const handleReserveTable = (table) => {
-    setTableToReserve(table);
-    setIsReservationModalOpen(true);
-  };
+  // const handleReserveTable = (table) => {
+  //   setTableToReserve(table);
+  //   setIsReservationModalOpen(true);
+  // };
 
   // -- AREA HANDLERS --
   const handleAddArea = () => {
@@ -242,7 +242,7 @@ export default function AdminTables() {
               <SelectItem value="all">Tất cả trạng thái</SelectItem>
               <SelectItem value="available">Trống</SelectItem>
               <SelectItem value="occupied">Có khách</SelectItem>
-              <SelectItem value="reserved">Đã đặt</SelectItem>
+              {/* <SelectItem value="reserved">Đã đặt</SelectItem> */}
             </SelectContent>
           </Select>
         </Card>
@@ -444,7 +444,7 @@ export default function AdminTables() {
                         {table.status === "available" && (
                           <>
                             <Button size="sm" onClick={(e) => { e.stopPropagation(); handleStatusChange(table, "occupied"); }}>Có khách</Button>
-                            <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); handleReserveTable(table); }}>Đã đặt</Button>
+                            {/* <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); handleReserveTable(table); }}>Đã đặt</Button> */}
                           </>
                         )}
                         {table.status === "reserved" && (
@@ -516,12 +516,12 @@ export default function AdminTables() {
         onSuccess={fetchData}
       />
 
-      <ReservationModal
+      {/* <ReservationModal
         isOpen={isReservationModalOpen}
         onClose={() => setIsReservationModalOpen(false)}
         table={tableToReserve}
         onSuccess={fetchData}
-      />
+      /> */}
 
       <AreaModal
         isOpen={isAreaModalOpen}
