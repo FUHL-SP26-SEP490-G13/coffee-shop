@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
-const controller = require("../controllers/BaristaDashboardController");
+
+const controller = require("../controllers/BaristaDBController");
 const { authenticate } = require("../middlewares/auth");
 const { authorize } = require("../middlewares/authorize");
 const { ROLES_STRING } = require("../config/constants");

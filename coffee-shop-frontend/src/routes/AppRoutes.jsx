@@ -37,7 +37,7 @@ import AdminBanner from "@/pages/admin/AdminBanner/AdminBanner";
 import AdminTables from "@/pages/admin/AdminTables/AdminTables";
 import AdminToppings from "../pages/admin/AdminTopping/AdminToppings";
 import PaymentPolicyPage from "@/pages/common/PaymentPolicyPage";
-import { BaristaDashboard } from "@/pages/barista/BaristaDashboard/BaristaDashboard";
+import { BaristaDB } from "@/pages/barista/BaristaDashboard/BaristaDB";
 import { BaristaOrders } from "@/pages/barista/BaristaOrder/BaristaOrders";
 import { BaristaAttendance } from "@/pages/barista/BaristaAttendance/BaristaAttendance";
 import { BaristaSchedule } from "@/pages/barista/BaristaSchedule/BaristaSchedule";
@@ -51,6 +51,7 @@ import CheckoutPage from "@/pages/homePage/order/CheckoutPage";
 import PayOSReturnSuccess from "@/pages/common/PayOSReturnSuccess";
 import AdminDB from "@/pages/admin/AdminDB/AdminDB";
 import AdminSubscriber from "@/pages/admin/AdminSubscriber/AdminSubscriber";
+import { BaristaDashboard } from "@/pages/barista/BaristaDashboard";
 
 const getStoredValue = (key) =>
   localStorage.getItem(key) || sessionStorage.getItem(key);
@@ -150,8 +151,8 @@ const AppRoutes = () => {
           </RoleGuard>
         }
       >
-        <Route index element={<Navigate to="dashboard" replace />} />
-        <Route path="dashboard" element={<BaristaDashboard />} />
+        <Route index element={<Navigate to="dashboardB" replace />} />
+        <Route path="dashboardB" element={<BaristaDB />} />
         <Route path="orders" element={<BaristaOrders />} />
         <Route path="attendance" element={<BaristaAttendance />} />
         <Route path="schedule" element={<BaristaSchedule />} />

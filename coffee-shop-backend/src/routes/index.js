@@ -11,8 +11,9 @@ const subscriberRoutes = require('./subscriber.routes');
 const userRoutes = require('./user.routes');
 const bannerRoutes = require('./banner.routes');
 const { publicToppingRoutes, adminToppingRoutes } = require('./topping.routes');
-const adminDBRoutes = require('./adminDB.routes');
 const recipeRoutes = require('./recipe.routes');
+const adminDBRoutes = require('./adminDB.routes');
+const baristaDBRoutes = require('./baristaDB.routes');
 const areaRoutes = require("./area.routes");
 const tableRoutes = require("./table.routes");
 const notificationRoutes = require("./notification.routes");
@@ -37,6 +38,7 @@ router.use('/admin/recipes', recipeRoutes);
 router.use('/ingredients', ingredientRoutes);
 router.use('/product-sizes', productSizeRoutes);
 router.use('/dashboard', adminDBRoutes);
+router.use("/barista", baristaDBRoutes);
 router.use('/banners', bannerRoutes);
 router.use("/notifications", notificationRoutes);
 router.use("/discounts", discountRoutes);
@@ -55,67 +57,72 @@ router.get('/health', (req, res) => {
 router.get('/', (req, res) => {
   res.json({
     success: true,
-    message: 'Coffee Shop Management API',
-    version: '1.0.0',
+    message: "Coffee Shop Management API",
+    version: "1.0.0",
     endpoints: {
       auth: {
-        register: 'POST /api/auth/register',
-        login: 'POST /api/auth/login',
-        profile: 'GET /api/auth/profile',
-        updateProfile: 'PUT /api/auth/profile',
-        changePassword: 'POST /api/auth/change-password',
-        refreshToken: 'POST /api/auth/refresh-token',
-        resetPassword: 'POST /api/auth/reset-password',
-        logout: 'POST /api/auth/logout',
+        register: "POST /api/auth/register",
+        login: "POST /api/auth/login",
+        profile: "GET /api/auth/profile",
+        updateProfile: "PUT /api/auth/profile",
+        changePassword: "POST /api/auth/change-password",
+        refreshToken: "POST /api/auth/refresh-token",
+        resetPassword: "POST /api/auth/reset-password",
+        logout: "POST /api/auth/logout",
       },
       categories: {
-        getAll: 'GET /api/categories',
-        getById: 'GET /api/categories/:id',
-        search: 'GET /api/categories/search',
-        create: 'POST /api/categories (Admin)',
-        update: 'PUT /api/categories/:id (Admin)',
-        delete: 'DELETE /api/categories/:id (Admin)',
-        restore: 'POST /api/categories/:id/restore (Admin)',
+        getAll: "GET /api/categories",
+        getById: "GET /api/categories/:id",
+        search: "GET /api/categories/search",
+        create: "POST /api/categories (Admin)",
+        update: "PUT /api/categories/:id (Admin)",
+        delete: "DELETE /api/categories/:id (Admin)",
+        restore: "POST /api/categories/:id/restore (Admin)",
       },
       users: {
-        getAll: 'GET /api/users (Admin)',
-        getById: 'GET /api/users/:id (Admin)',
-        search: 'GET /api/users/search (Admin)',
-        getByRole: 'GET /api/users/role/:roleId (Admin)',
-        getStaff: 'GET /api/users/staff (Admin)',
-        getCustomers: 'GET /api/users/customers (Admin)',
-        getStats: 'GET /api/users/stats (Admin)',
-        create: 'POST /api/users (Admin)',
-        update: 'PUT /api/users/:id (Admin)',
-        deactivate: 'POST /api/users/:id/deactivate (Admin)',
-        activate: 'POST /api/users/:id/activate (Admin)',
-        delete: 'DELETE /api/users/:id (Admin)',
+        getAll: "GET /api/users (Admin)",
+        getById: "GET /api/users/:id (Admin)",
+        search: "GET /api/users/search (Admin)",
+        getByRole: "GET /api/users/role/:roleId (Admin)",
+        getStaff: "GET /api/users/staff (Admin)",
+        getCustomers: "GET /api/users/customers (Admin)",
+        getStats: "GET /api/users/stats (Admin)",
+        create: "POST /api/users (Admin)",
+        update: "PUT /api/users/:id (Admin)",
+        deactivate: "POST /api/users/:id/deactivate (Admin)",
+        activate: "POST /api/users/:id/activate (Admin)",
+        delete: "DELETE /api/users/:id (Admin)",
       },
       toppings: {
-        getAll: 'GET /api/toppings',
-        getById: 'GET /api/toppings/:id',
-        search: 'GET /api/toppings/search',
-        create: 'POST /api/admin/toppings (Admin)',
-        update: 'PUT /api/admin/toppings/:id (Admin)',
-        delete: 'DELETE /api/admin/toppings/:id (Admin)',
-        restore: 'POST /api/admin/toppings/:id/restore (Admin)',
+        getAll: "GET /api/toppings",
+        getById: "GET /api/toppings/:id",
+        search: "GET /api/toppings/search",
+        create: "POST /api/admin/toppings (Admin)",
+        update: "PUT /api/admin/toppings/:id (Admin)",
+        delete: "DELETE /api/admin/toppings/:id (Admin)",
+        restore: "POST /api/admin/toppings/:id/restore (Admin)",
       },
       recipes: {
-        getByProductSize: 'GET /api/recipes/by-size/:productSizeId (Admin)',
-        getByProductGrouped: 'GET /api/recipes/product/:productId/by-size (Admin)',
-        getByProduct: 'GET /api/recipes/product/:productId (Admin)',
-        getById: 'GET /api/recipes/:id (Admin)',
-        create: 'POST /api/recipes/by-size/:productSizeId (Admin/Barista)',
-        update: 'PUT /api/recipes/by-size/:productSizeId (Admin/Barista)',
-        delete: 'DELETE /api/recipes/:id (Admin/Barista)',
+        getByProductSize: "GET /api/recipes/by-size/:productSizeId (Admin)",
+        getByProductGrouped:
+          "GET /api/recipes/product/:productId/by-size (Admin)",
+        getByProduct: "GET /api/recipes/product/:productId (Admin)",
+        getById: "GET /api/recipes/:id (Admin)",
+        create: "POST /api/recipes/by-size/:productSizeId (Admin/Barista)",
+        update: "PUT /api/recipes/by-size/:productSizeId (Admin/Barista)",
+        delete: "DELETE /api/recipes/:id (Admin/Barista)",
       },
       ingredients: {
-        getAll: 'GET /api/ingredients (Admin)',
-        getById: 'GET /api/ingredients/:id (Admin)',
-        search: 'GET /api/ingredients/search (Admin)',
-        create: 'POST /api/ingredients (Admin)',
-        update: 'PUT /api/ingredients/:id (Admin)',
-        delete: 'DELETE /api/ingredients/:id (Admin)',
+        getAll: "GET /api/ingredients (Admin)",
+        getById: "GET /api/ingredients/:id (Admin)",
+        search: "GET /api/ingredients/search (Admin)",
+        create: "POST /api/ingredients (Admin)",
+        update: "PUT /api/ingredients/:id (Admin)",
+        delete: "DELETE /api/ingredients/:id (Admin)",
+      },
+      baristaDashboard: {
+        overview: "GET /api/barista/dashboard",
+        trends: "GET /api/barista/dashboard/trends?hours=6",
       },
     },
   });

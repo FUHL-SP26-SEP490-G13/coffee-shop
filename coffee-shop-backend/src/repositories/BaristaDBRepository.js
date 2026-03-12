@@ -1,24 +1,25 @@
 const pool = require("../config/database");
 
-class BaristaDashboardRepository {
+class BaristaDBRepository {
   async getOverview() {
     const [[stats]] = await pool.query(`
       SELECT
         COUNT(*) AS totalOrders,
-        SUM(status='pending') AS pendingOrders,
-        SUM(status='preparing') AS preparingOrders,
-        SUM(status='served') AS readyOrders,
-        SUM(status='completed') AS completedToday
+        SUM(status = 'pending') AS pendingOrders,
+        SUM(status = 'preparing') AS preparingOrders,
+        SUM(status = 'served') AS readyOrders,
+        SUM(status = 'completed') AS completedToday
       FROM orders
       WHERE DATE(created_at) = CURDATE()
     `);
 
     const [[avgTime]] = await pool.query(`
       SELECT 
-        IFNULL(AVG(TIMESTAMPDIFF(MINUTE, created_at, paid_at)),0) AS avgPrepTime
+        IFNULL(AVG(TIMESTAMPDIFF(MINUTE, created_at, paid_at)), 0) AS avgPrepTime
       FROM orders
-      WHERE status='completed'
-      AND DATE(created_at)=CURDATE()
+      WHERE status = 'completed'
+        AND DATE(created_at) = CURDATE()
+        AND paid_at IS NOT NULL
     `);
 
     return {
@@ -32,6 +33,8 @@ class BaristaDashboardRepository {
   }
 
   async getOrderTrends(hours = 6) {
+    const safeHours = Math.max(1, Math.min(Number(hours) || 6, 24));
+
     const [rows] = await pool.query(
       `
       SELECT
@@ -40,13 +43,16 @@ class BaristaDashboardRepository {
       FROM orders
       WHERE created_at >= NOW() - INTERVAL ? HOUR
       GROUP BY HOUR(created_at)
-      ORDER BY hour
-    `,
-      [hours]
+      ORDER BY hour ASC
+      `,
+      [safeHours]
     );
 
-    return rows;
+    return rows.map((row) => ({
+      hour: Number(row.hour),
+      orders: Number(row.orders),
+    }));
   }
 }
 
-module.exports = new BaristaDashboardRepository();
+module.exports = new BaristaDBRepository();
