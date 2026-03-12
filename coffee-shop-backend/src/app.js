@@ -6,6 +6,7 @@ const morgan = require('morgan')
 const rateLimit = require('express-rate-limit');
 
 const env = require('./config/env');
+const { createPaymentLink } = require('./config/payos');
 const routes = require('./routes');
 const { errorHandler, notFoundHandler } = require('./middlewares/errorHandler');
 
@@ -62,6 +63,9 @@ app.use('/api/auth/register', authLimiter);
 
 // Mount routes
 app.use('/api', routes);
+
+// PayOS sample endpoint
+app.post('/create-payment-link', createPaymentLink);
 
 // Root endpoint
 app.get('/', (req, res) => {

@@ -21,6 +21,15 @@ module.exports = {
   // CORS
   CLIENT_URL: process.env.CLIENT_URL || 'http://localhost:3000',
 
+  // PayOS
+  PAYOS_CLIENT_ID: process.env.PAYOS_CLIENT_ID || '',
+  PAYOS_API_KEY: process.env.PAYOS_API_KEY || '',
+  PAYOS_CHECKSUM_KEY: process.env.PAYOS_CHECKSUM_KEY || '',
+  PAYOS_RETURN_URL:
+    process.env.PAYOS_RETURN_URL || `${process.env.CLIENT_URL || 'http://localhost:5173'}/payment-result`,
+  PAYOS_CANCEL_URL:
+    process.env.PAYOS_CANCEL_URL || `${process.env.CLIENT_URL || 'http://localhost:5173'}/payment-result?cancel=true`,
+
   // Email/SMTP
   SMTP_HOST: process.env.SMTP_HOST || 'smtp.gmail.com',
   SMTP_PORT: parseInt(process.env.SMTP_PORT) || 587,

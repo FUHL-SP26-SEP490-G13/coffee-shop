@@ -12,6 +12,7 @@ export const APP_ROUTES = {
   FORGOT_PASSWORD: "/forgot-password",
   PRODUCT_DETAIL: "/product/:id",
   AREAS: "/admin/area",
+  PAYMENT_RESULT: "/payment-result",
 };
 
 
@@ -60,6 +61,7 @@ export const API_ENDPOINTS = {
     MY_ORDERS: "/orders/my-orders",
     MY_ORDER_DETAIL: (id) => `/orders/my-orders/${id}`,
     CANCEL: (id) => `/orders/${id}/cancel`,
+    PAYOS_RETURN: "/orders/payos-return",
   },
   PRODUCTSLIST: {
     BASE: "/products",

@@ -22,7 +22,7 @@ class OrderService {
       throw new Error("Loại đơn hàng không hợp lệ");
     }
 
-    if (!["cash", "card", "momo", "banking"].includes(payment_method)) {
+    if (!["cash", "payos"].includes(payment_method)) {
       throw new Error("Phương thức thanh toán không hợp lệ");
     }
 
@@ -148,6 +148,7 @@ class OrderService {
       await OrderRepository.createOrderPayment(connection, {
         order_id: orderId,
         payment_method,
+        payment_status: "pending",
         amount: totalAmount,
       });
 
@@ -182,6 +183,24 @@ class OrderService {
       ...order,
       items,
     };
+  }
+
+  async savePayosReturn({ orderCode, payosId, status }) {
+    if (!orderCode) throw new Error("Thiếu orderCode");
+
+    const isPaid = status === "PAID";
+    const paymentStatus = isPaid ? "paid" : status === "CANCELLED" ? "cancelled" : "pending";
+
+    await OrderRepository.updatePaymentByOrderCode(orderCode, {
+      transaction_id: payosId || null,
+      payment_status: paymentStatus,
+    });
+
+    if (isPaid) {
+      await OrderRepository.updateOrderPaidStatus(orderCode, true);
+    }
+
+    return { saved: true };
   }
 }
 

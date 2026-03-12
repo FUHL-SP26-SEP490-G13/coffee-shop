@@ -128,11 +128,65 @@ class OrderRepository {
         order_id,
         payment_method,
         payment_status,
-        amount
+        amount,
+        transaction_id,
+        paid_at
       )
-      VALUES (?, ?, 'pending', ?)
+      VALUES (?, ?, ?, ?, ?, ?)
       `,
-      [data.order_id, data.payment_method, data.amount]
+      [
+        data.order_id,
+        data.payment_method,
+        data.payment_status || "pending",
+        data.amount,
+        data.transaction_id || null,
+        data.payment_status === "paid" ? new Date() : null,
+      ]
+    );
+  }
+
+  async markOrderAsPaid(connection, orderId) {
+    await connection.query(
+      `
+      UPDATE orders
+      SET is_paid = 1,
+          paid_at = NOW()
+      WHERE id = ?
+      `,
+      [orderId]
+    );
+  }
+
+  async updatePaymentByOrderCode(orderCode, { transaction_id, payment_status }) {
+    // order_payments.order_id = orderCode because we use order_id as the PayOS orderCode
+    const setParts = [];
+    const params = [];
+
+    if (transaction_id !== undefined) {
+      setParts.push("transaction_id = ?");
+      params.push(transaction_id);
+    }
+    if (payment_status !== undefined) {
+      setParts.push("payment_status = ?");
+      params.push(payment_status);
+      if (payment_status === "paid") {
+        setParts.push("paid_at = NOW()");
+      }
+    }
+
+    if (setParts.length === 0) return;
+
+    params.push(Number(orderCode));
+    await db.query(
+      `UPDATE order_payments SET ${setParts.join(", ")} WHERE order_id = ?`,
+      params
+    );
+  }
+
+  async updateOrderPaidStatus(orderCode, isPaid) {
+    await db.query(
+      `UPDATE orders SET is_paid = ?, paid_at = IF(? = 1, NOW(), paid_at) WHERE id = ?`,
+      [isPaid ? 1 : 0, isPaid ? 1 : 0, Number(orderCode)]
     );
   }
 

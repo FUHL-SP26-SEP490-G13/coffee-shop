@@ -26,4 +26,10 @@ router.get(
   AsyncMiddleware(OrderController.getMyOrderDetail)
 );
 
+// Nhận callback từ frontend sau khi PayOS redirect, lưu mã giao dịch vào DB
+router.post(
+  "/payos-return",
+  AsyncMiddleware(OrderController.payosReturn)
+);
+
 module.exports = router;

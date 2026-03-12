@@ -39,6 +39,16 @@ class OrderController {
       message: "Lấy chi tiết đơn hàng thành công",
     });
   }
+
+  async payosReturn(req, res, next) {
+    try {
+      const { orderCode, payosId, status } = req.body;
+      const result = await OrderService.savePayosReturn({ orderCode, payosId, status });
+      return res.json({ success: true, data: result });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 module.exports = new OrderController();
