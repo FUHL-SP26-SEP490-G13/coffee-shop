@@ -22,7 +22,7 @@ class OrderService {
       throw new Error("Loại đơn hàng không hợp lệ");
     }
 
-    if (!["cash", "card", "momo", "banking"].includes(payment_method)) {
+    if (!["cash", "payos"].includes(payment_method)) {
       throw new Error("Phương thức thanh toán không hợp lệ");
     }
 
@@ -148,8 +148,13 @@ class OrderService {
       await OrderRepository.createOrderPayment(connection, {
         order_id: orderId,
         payment_method,
+        payment_status: payment_method === "payos" ? "paid" : "pending",
         amount: totalAmount,
       });
+
+      if (payment_method === "payos") {
+        await OrderRepository.markOrderAsPaid(connection, orderId);
+      }
 
       await connection.commit();
 

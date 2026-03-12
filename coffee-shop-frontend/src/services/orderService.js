@@ -1,5 +1,14 @@
+import axios from "axios";
 import axiosClient from "./axiosClient";
 import { API_ENDPOINTS } from "@/constants";
+
+const _payosAxios = axios.create({
+  baseURL: (import.meta.env.VITE_API_URL || "http://localhost:5000/api").replace(
+    /\/api\/?$/,
+    ""
+  ),
+  headers: { "Content-Type": "application/json" },
+});
 
 const orderService = {
   checkout(data) {
@@ -16,6 +25,10 @@ const orderService = {
 
   cancel(id) {
     return axiosClient.put(API_ENDPOINTS.ORDERSLIST.CANCEL(id));
+  },
+
+  createPaymentLink(data) {
+    return _payosAxios.post("/create-payment-link", data);
   },
 };
 

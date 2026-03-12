@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Banknote, CreditCard } from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
@@ -10,6 +11,7 @@ import orderService from "@/services/orderService";
 import authenticationService from "@/services/authenticationService";
 import { STORAGE_KEYS } from "@/constants";
 import { validateOrderForm, validateOrderField } from "@/utils/orderValidation";
+import PayOSLogo from "/logo/payOS.svg";
 
 export default function CheckoutPage() {
   const navigate = useNavigate();
@@ -105,11 +107,61 @@ export default function CheckoutPage() {
 
       console.log("Checkout payload:", payload);
 
-      await orderService.checkout(payload);
-      cartService.clearCart();
+      const orderRes = await orderService.checkout(payload);
+      const orderData = orderRes?.data || {};
+      const order_id = Number(orderData?.order_id);
 
-      alert("Đặt hàng thành công");
-      navigate("/");
+      if (form.payment_method === "payos") {
+        if (!order_id || Number.isNaN(order_id)) {
+          alert("Không lấy được mã đơn hàng để tạo thanh toán PayOS");
+          return;
+        }
+
+        const payosItems = cart.flatMap((item) => {
+          const itemQuantity = Math.max(1, Number(item.quantity) || 1);
+          const basePrice = Math.max(0, Math.round(Number(item.basePrice || item.price) || 0));
+
+          const productItem = {
+            name: `${item.name} (${item.size})`,
+            quantity: itemQuantity,
+            price: basePrice,
+          };
+
+          const toppingItems = Array.isArray(item.toppings)
+            ? item.toppings
+                .filter((topping) => Number(topping.price) > 0)
+                .map((topping) => ({
+                  name: `Topping: ${topping.name}`,
+                  quantity:
+                    itemQuantity * Math.max(1, Number(topping.quantity) || 1),
+                  price: Math.max(0, Math.round(Number(topping.price) || 0)),
+                }))
+            : [];
+
+          return [productItem, ...toppingItems].filter(
+            (payosItem) => payosItem.quantity > 0 && payosItem.price > 0
+          );
+        });
+
+        const payosRes = await orderService.createPaymentLink({
+          orderCode: order_id,
+          amount: Math.max(0, Math.round(totalAmount)),
+          description: `DH #${order_id}`.slice(0, 25),
+          items: payosItems,
+        });
+
+        cartService.clearCart();
+        const checkoutUrl = payosRes?.data?.checkoutUrl;
+        if (checkoutUrl) {
+          window.location.href = checkoutUrl;
+        } else {
+          alert("Không lấy được link thanh toán PayOS");
+        }
+      } else {
+        cartService.clearCart();
+        alert("Đặt hàng thành công");
+        navigate("/");
+      }
     } catch (error) {
       console.error("Checkout error:", error?.response?.data || error);
       alert(error?.response?.data?.message || "Đặt hàng thất bại");
@@ -255,31 +307,67 @@ export default function CheckoutPage() {
             )}
 
             <div className="mb-4">
-              <label className="text-sm font-medium mb-2 block">
+              <label className="text-sm font-medium mb-3 block">
                 Phương thức thanh toán
               </label>
-              <select
-                value={form.payment_method}
-                onChange={(e) => {
-                  const value = e.target.value;
-
-                  setForm((prev) => ({
-                    ...prev,
-                    payment_method: value,
-                  }));
-
-                  setErrors((prev) => ({
-                    ...prev,
-                    payment_method: validateOrderField("payment_method", value),
-                  }));
-                }}
-                className="w-full border rounded-md h-10 px-3"
-              >
-                <option value="cash">Tiền mặt</option>
-                <option value="banking">Chuyển khoản</option>
-                <option value="momo">MoMo</option>
-                <option value="card">Thẻ</option>
-              </select>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {[
+                  {
+                    value: "cash",
+                    label: "Tiền mặt",
+                    sub: "Thanh toán khi nhận hàng",
+                    icon: <Banknote className="w-5 h-5 text-green-600" />,
+                  },
+                  {
+                    value: "payos",
+                    label: "PayOS",
+                    sub: "Thanh toán trực tuyến qua PayOS",
+                    icon: <img src={PayOSLogo} alt="PayOS" className="w-20 object-contain" />,
+                  },
+                ].map((opt) => {
+                  const selected = form.payment_method === opt.value;
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() =>
+                        setForm((prev) => ({
+                          ...prev,
+                          payment_method: opt.value,
+                        }))
+                      }
+                      className={`flex items-center gap-3 rounded-xl border-2 px-4 py-3 text-left transition-all ${
+                        selected
+                          ? "border-amber-500 bg-amber-50"
+                          : "border-gray-200 bg-white hover:border-gray-300"
+                      }`}
+                    >
+                      <span
+                        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
+                          selected ? "bg-amber-100" : "bg-gray-100"
+                        }`}
+                      >
+                        {opt.icon}
+                      </span>
+                      <span>
+                        <span className="block text-sm font-medium text-gray-900">
+                          {opt.label}
+                        </span>
+                        <span className="block text-xs text-gray-500">
+                          {opt.sub}
+                        </span>
+                      </span>
+                      <span
+                        className={`ml-auto h-4 w-4 shrink-0 rounded-full border-2 ${
+                          selected
+                            ? "border-amber-500 bg-amber-500"
+                            : "border-gray-300"
+                        }`}
+                      />
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             <div>

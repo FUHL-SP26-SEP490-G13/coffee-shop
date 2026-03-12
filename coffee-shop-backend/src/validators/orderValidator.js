@@ -10,7 +10,7 @@ const checkoutOrderSchema = Joi.object({
   }),
 
   payment_method: Joi.string()
-    .valid("cash", "card", "momo", "banking") //sửa cái thanh toán ở đây nhé văn dz
+    .valid("cash","payos")
     .required()
     .messages({
       "any.only": "Phương thức thanh toán không hợp lệ",

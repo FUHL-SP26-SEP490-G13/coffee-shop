@@ -50,6 +50,7 @@ import ProductListPage from "../pages/homePage/product/ProductListPage";
 import ProductDetailPage from "../pages/homePage/product/ProductDetailPage";
 import CartPage from "@/pages/homePage/order/CartPage";
 import CheckoutPage from "@/pages/homePage/order/CheckoutPage";
+import PayOSReturnSuccess from "@/pages/common/PayOSReturnSuccess";
 
 const getStoredValue = (key) =>
   localStorage.getItem(key) || sessionStorage.getItem(key);
@@ -196,6 +197,7 @@ const AppRoutes = () => {
 
       <Route path="/cart" element={<CartPage />} />
       <Route path="/checkout" element={<CheckoutPage />} />
+      <Route path="/payment-result" element={<PayOSReturnSuccess />} />
 
       {/* 404 */}
       <Route

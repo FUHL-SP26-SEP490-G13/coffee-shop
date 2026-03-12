@@ -12,6 +12,7 @@ export const APP_ROUTES = {
   FORGOT_PASSWORD: "/forgot-password",
   PRODUCT_DETAIL: "/product/:id",
   AREAS: "/admin/area",
+  PAYMENT_RESULT: "/payment-result",
 };
 
 

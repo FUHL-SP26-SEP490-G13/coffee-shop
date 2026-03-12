@@ -128,11 +128,32 @@ class OrderRepository {
         order_id,
         payment_method,
         payment_status,
-        amount
+        amount,
+        transaction_id,
+        paid_at
       )
-      VALUES (?, ?, 'pending', ?)
+      VALUES (?, ?, ?, ?, ?, ?)
       `,
-      [data.order_id, data.payment_method, data.amount]
+      [
+        data.order_id,
+        data.payment_method,
+        data.payment_status || "pending",
+        data.amount,
+        data.transaction_id || null,
+        data.payment_status === "paid" ? new Date() : null,
+      ]
+    );
+  }
+
+  async markOrderAsPaid(connection, orderId) {
+    await connection.query(
+      `
+      UPDATE orders
+      SET is_paid = 1,
+          paid_at = NOW()
+      WHERE id = ?
+      `,
+      [orderId]
     );
   }
 
