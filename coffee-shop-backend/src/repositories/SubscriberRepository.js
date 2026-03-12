@@ -1,6 +1,6 @@
 const pool = require("../config/database");
 
-class NewsletterRepository {
+class SubscriberRepository {
   async create(email) {
     const sql = "INSERT INTO newsletter_subscribers (email) VALUES (?)";
     const [result] = await pool.query(sql, [email]);
@@ -31,4 +31,4 @@ class NewsletterRepository {
   }
 }
 
-module.exports = new NewsletterRepository();
+module.exports = new SubscriberRepository();

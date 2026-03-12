@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
-import newsletterService from "@/services/newsletterService";
+import adminSubscriberService from "@/services/adminSubscriberService";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Trash2, Mail, Search, Copy, Bell } from "lucide-react";
 import socket from "@/lib/socket";
 
-export default function AdminNewsletter() {
+export default function AdminSubscriber() {
   const [emails, setEmails] = useState([]);
   const [filteredEmails, setFilteredEmails] = useState([]);
   const [search, setSearch] = useState("");
@@ -24,7 +24,7 @@ export default function AdminNewsletter() {
       setLoading(true);
       setError(null);
 
-      const res = await newsletterService.getAll();
+      const res = await adminSubscriberService.getAll();
       const data = res.data || [];
 
       setEmails(data);
@@ -38,10 +38,10 @@ export default function AdminNewsletter() {
       setLoading(false);
     }
   };
-  
+
   useEffect(() => {
     const handleAdminNotification = (data) => {
-      if (data?.type !== "news-letter") return;
+      if (data?.type !== "subcriber") return;
 
       setNotification(data.message || "Có email đăng ký mới");
 
@@ -106,7 +106,7 @@ export default function AdminNewsletter() {
     if (!confirm("Bạn có chắc muốn xóa email này?")) return;
 
     try {
-      await newsletterService.delete(id);
+      await adminSubscriberService.delete(id);
 
       const updated = emails.filter((e) => e.id !== id);
       setEmails(updated);

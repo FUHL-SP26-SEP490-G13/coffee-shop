@@ -152,7 +152,7 @@ export default function AdminApp() {
     { path: "/admin/inventory", icon: ClipboardList, label: "Kho hàng" },
     { path: "/admin/discounts", icon: Tag, label: "Mã giảm giá" },
     { path: "/admin/news-list", icon: ClipboardList, label: "Quản lý bài viết" },
-    { path: "/admin/news-letter", icon: Mail, label: "Email đăng kí" },
+    { path: "/admin/subscriber", icon: Mail, label: "Email đăng kí" },
     { path: "/admin/banners", icon: ImagePlus, label: "Quản lý quảng cáo" },
     { path: "/admin/tables", icon: LayoutGrid, label: "Quản lý bàn" },
     { path: "/admin/profile", icon: User, label: "Thông tin cá nhân" },

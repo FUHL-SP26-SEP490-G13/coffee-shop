@@ -25,7 +25,6 @@ import AdminDiscountCreate from "@/pages/admin/AdminDiscount/AdminDiscountCreate
 import AdminDiscountEdit from "@/pages/admin/AdminDiscount/AdminDiscountEdit";
 import OrderPolicy from "@/pages/common/OrderPolicy";
 import PrivacyPolicy from "@/pages/common/PrivacyPolicy";
-import AdminNewsletter from "@/pages/admin/AdminNewletter/AdminNewsletter";
 import AdminApp from "../pages/admin/AdminApp";
 import { StaffPOS } from "@/pages/staff/StaffPOS";
 import { StaffAttendance } from "@/pages/staff/StaffAttendance";
@@ -51,6 +50,7 @@ import CartPage from "@/pages/homePage/order/CartPage";
 import CheckoutPage from "@/pages/homePage/order/CheckoutPage";
 import PayOSReturnSuccess from "@/pages/common/PayOSReturnSuccess";
 import AdminDB from "@/pages/admin/AdminDB/AdminDB";
+import AdminSubscriber from "@/pages/admin/AdminSubscriber/AdminSubscriber";
 
 const getStoredValue = (key) =>
   localStorage.getItem(key) || sessionStorage.getItem(key);
@@ -183,7 +183,7 @@ const AppRoutes = () => {
         <Route path="discounts" element={<AdminDiscounts />} />
         <Route path="discounts/create" element={<AdminDiscountCreate />} />
         <Route path="discounts/edit/:id" element={<AdminDiscountEdit />} />
-        <Route path="news-letter" element={<AdminNewsletter />} />
+        <Route path="subscriber" element={<AdminSubscriber />} />
         <Route path="banners" element={<AdminBanner />} />
         <Route path="tables" element={<AdminTables />} />
         <Route path="toppings" element={<AdminToppings />} />
