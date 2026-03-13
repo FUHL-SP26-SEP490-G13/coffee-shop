@@ -1,482 +1,566 @@
-const NewsService = require('../../src/services/NewsService');
-const NewsRepository = require('../../src/repositories/NewsRepository');
+const NewsService = require("../../src/services/NewsService");
+const NewsRepository = require("../../src/repositories/NewsRepository");
 
-// Mock dependencies
-jest.mock('../../src/repositories/NewsRepository');
-jest.mock('slugify', () => jest.fn((text) => text.toLowerCase().replace(/\s+/g, '-')));
+jest.mock("../../src/repositories/NewsRepository");
+jest.mock("slugify", () =>
+  jest.fn((title) => title.toLowerCase().replace(/\s+/g, "-"))
+);
 
-describe('NewsService', () => {
+describe("NewsService", () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  // ========== GENERATE UNIQUE SLUG TESTS ==========
-  describe('generateUniqueSlug', () => {
-    it('NewsService - GENERATE_SLUG - TC-1: should generate unique slug', async () => {
-      console.log('\n' + '='.repeat(50));
-      console.log('NewsService - GENERATE_SLUG - TC-1: Tạo slug unique');
-      console.log('='.repeat(50));
+  describe("generateUniqueSlug", () => {
+    it("NewsService - GENERATE_UNIQUE_SLUG - TC-1: should generate base slug when slug does not exist", async () => {
+      console.log("\n" + "=".repeat(50));
+      console.log(
+        "NewsService - GENERATE_UNIQUE_SLUG - TC-1: Tạo slug cơ bản khi chưa tồn tại"
+      );
+      console.log("=".repeat(50));
 
       // INPUT
-      const input = { title: 'Khuyến mãi cuối tuần' };
-      console.log('\n📝 INPUT:', JSON.stringify(input, null, 2));
+      const input = { title: "Bài viết mới" };
+      console.log("\n📝 INPUT:", JSON.stringify(input, null, 2));
 
       // Arrange
       NewsRepository.findBySlug.mockResolvedValue(null);
 
       // OUTPUT EXPECT
-      console.log('✅ OUTPUT EXPECT: Slug = "khuyến-mãi-cuối-tuần"');
+      console.log("✅ OUTPUT EXPECT: bai-viet-moi");
 
       // Act
       const result = await NewsService.generateUniqueSlug(input.title);
 
       // OUTPUT REALITY
-      console.log('🎯 OUTPUT REALITY: Slug =', result);
+      console.log("🎯 OUTPUT REALITY:", result);
 
       // Assert
-      expect(result).toBe('khuyến-mãi-cuối-tuần');
+      expect(NewsRepository.findBySlug).toHaveBeenCalledWith("bài-viết-mới");
+      expect(result).toBe("bài-viết-mới");
     });
 
-    it('NewsService - GENERATE_SLUG - TC-2: should append number if slug exists', async () => {
-      console.log('\n' + '='.repeat(50));
-      console.log('NewsService - GENERATE_SLUG - TC-2: Thêm số nếu slug đã tồn tại');
-      console.log('='.repeat(50));
+    it("NewsService - GENERATE_UNIQUE_SLUG - TC-2: should append number when slug already exists", async () => {
+      console.log("\n" + "=".repeat(50));
+      console.log(
+        "NewsService - GENERATE_UNIQUE_SLUG - TC-2: Tạo slug duy nhất khi slug đã tồn tại"
+      );
+      console.log("=".repeat(50));
 
       // INPUT
-      const input = { title: 'News Title' };
-      console.log('\n📝 INPUT:', JSON.stringify(input, null, 2));
+      const input = { title: "Tin Hot" };
+      console.log("\n📝 INPUT:", JSON.stringify(input, null, 2));
 
       // Arrange
       NewsRepository.findBySlug
-        .mockResolvedValueOnce({ id: 1, slug: 'news-title' })
+        .mockResolvedValueOnce({ id: 1, slug: "tin-hot" })
+        .mockResolvedValueOnce({ id: 2, slug: "tin-hot-1" })
         .mockResolvedValueOnce(null);
 
       // OUTPUT EXPECT
-      console.log('✅ OUTPUT EXPECT: Slug = "news-title-1"');
+      console.log("✅ OUTPUT EXPECT: tin-hot-2");
 
       // Act
       const result = await NewsService.generateUniqueSlug(input.title);
 
       // OUTPUT REALITY
-      console.log('🎯 OUTPUT REALITY: Slug =', result);
+      console.log("🎯 OUTPUT REALITY:", result);
 
       // Assert
-      expect(result).toBe('news-title-1');
+      expect(NewsRepository.findBySlug).toHaveBeenNthCalledWith(1, "tin-hot");
+      expect(NewsRepository.findBySlug).toHaveBeenNthCalledWith(2, "tin-hot-1");
+      expect(NewsRepository.findBySlug).toHaveBeenNthCalledWith(3, "tin-hot-2");
+      expect(result).toBe("tin-hot-2");
     });
   });
 
-  // ========== GET ALL PUBLISHED TESTS ==========
-  describe('getAllPublished', () => {
-    it('NewsService - GET_PUBLISHED - TC-1: should get published news with pagination', async () => {
-      console.log('\n' + '='.repeat(50));
-      console.log('NewsService - GET_PUBLISHED - TC-1: Lấy tin đã publish với phân trang');
-      console.log('='.repeat(50));
+  describe("getAllPublished", () => {
+    it("NewsService - GET_ALL_PUBLISHED - TC-1: should get published news successfully", async () => {
+      console.log("\n" + "=".repeat(50));
+      console.log(
+        "NewsService - GET_ALL_PUBLISHED - TC-1: Lấy danh sách tin published thành công"
+      );
+      console.log("=".repeat(50));
 
       // INPUT
-      const input = { page: 1, limit: 6 };
-      console.log('\n📝 INPUT:', JSON.stringify(input, null, 2));
+      const input = { page: 2, limit: 6 };
+      console.log("\n📝 INPUT:", JSON.stringify(input, null, 2));
 
       // Arrange
-      const mockNews = [
-        { id: 1, title: 'News 1', slug: 'news-1' },
-        { id: 2, title: 'News 2', slug: 'news-2' },
-      ];
-      NewsRepository.findPublishedPaginated.mockResolvedValue(mockNews);
-      NewsRepository.countAll.mockResolvedValue(10);
+      const mockItems = [{ id: 1, title: "Tin 1" }];
+      NewsRepository.findPublishedPaginated.mockResolvedValue(mockItems);
+      NewsRepository.countAll.mockResolvedValue(13);
 
       // OUTPUT EXPECT
-      console.log('✅ OUTPUT EXPECT: Paginated news list');
+      const expectedOutput = {
+        items: mockItems,
+        total: 13,
+        page: 2,
+        totalPages: 3,
+      };
+      console.log("✅ OUTPUT EXPECT:", JSON.stringify(expectedOutput, null, 2));
 
       // Act
       const result = await NewsService.getAllPublished(input);
 
       // OUTPUT REALITY
-      console.log('🎯 OUTPUT REALITY:', JSON.stringify(result, null, 2));
+      console.log("🎯 OUTPUT REALITY:", JSON.stringify(result, null, 2));
 
       // Assert
-      expect(NewsRepository.findPublishedPaginated).toHaveBeenCalledWith(6, 0);
-      expect(result.items).toHaveLength(2);
-      expect(result.total).toBe(10);
-      expect(result.page).toBe(1);
-      expect(result.totalPages).toBe(2);
+      expect(NewsRepository.findPublishedPaginated).toHaveBeenCalledWith(6, 6);
+      expect(NewsRepository.countAll).toHaveBeenCalledWith();
+      expect(result).toEqual(expectedOutput);
     });
   });
 
-  // ========== GET DETAIL BY SLUG TESTS ==========
-  describe('getDetailBySlug', () => {
-    it('NewsService - GET_BY_SLUG - TC-1: should get news detail and increase view', async () => {
-      console.log('\n' + '='.repeat(50));
-      console.log('NewsService - GET_BY_SLUG - TC-1: Lấy chi tiết tin và tăng lượt xem');
-      console.log('='.repeat(50));
+  describe("getDetailBySlug", () => {
+    it("NewsService - GET_DETAIL_BY_SLUG - TC-1: should get detail and increase view successfully", async () => {
+      console.log("\n" + "=".repeat(50));
+      console.log(
+        "NewsService - GET_DETAIL_BY_SLUG - TC-1: Lấy chi tiết bài viết và tăng lượt xem thành công"
+      );
+      console.log("=".repeat(50));
 
       // INPUT
-      const input = { slug: 'news-slug' };
-      console.log('\n📝 INPUT:', JSON.stringify(input, null, 2));
+      const input = { slug: "bai-viet-ca-phe" };
+      console.log("\n📝 INPUT:", JSON.stringify(input, null, 2));
 
       // Arrange
-      const mockNews = { id: 1, title: 'News Title', slug: 'news-slug', views: 10 };
+      const mockNews = {
+        id: 1,
+        slug: "bai-viet-ca-phe",
+        title: "Bài viết cà phê",
+      };
       NewsRepository.findBySlug.mockResolvedValue(mockNews);
       NewsRepository.increaseView.mockResolvedValue(true);
 
       // OUTPUT EXPECT
-      console.log('✅ OUTPUT EXPECT: News detail, view count increased');
+      console.log("✅ OUTPUT EXPECT:", JSON.stringify(mockNews, null, 2));
 
       // Act
       const result = await NewsService.getDetailBySlug(input.slug);
 
       // OUTPUT REALITY
-      console.log('🎯 OUTPUT REALITY:', JSON.stringify(result, null, 2));
+      console.log("🎯 OUTPUT REALITY:", JSON.stringify(result, null, 2));
 
       // Assert
-      expect(NewsRepository.findBySlug).toHaveBeenCalledWith('news-slug');
+      expect(NewsRepository.findBySlug).toHaveBeenCalledWith("bai-viet-ca-phe");
       expect(NewsRepository.increaseView).toHaveBeenCalledWith(1);
-      expect(result.id).toBe(1);
+      expect(result).toEqual(mockNews);
     });
 
-    it('NewsService - GET_BY_SLUG - TC-2: should throw error when news not found', async () => {
-      console.log('\n' + '='.repeat(50));
-      console.log('NewsService - GET_BY_SLUG - TC-2: Lỗi khi tin không tồn tại');
-      console.log('='.repeat(50));
+    it("NewsService - GET_DETAIL_BY_SLUG - TC-2: should throw error when news does not exist", async () => {
+      console.log("\n" + "=".repeat(50));
+      console.log(
+        "NewsService - GET_DETAIL_BY_SLUG - TC-2: Lỗi khi tin không tồn tại"
+      );
+      console.log("=".repeat(50));
 
       // INPUT
-      const input = { slug: 'non-existent' };
-      console.log('\n📝 INPUT:', JSON.stringify(input, null, 2));
+      const input = { slug: "not-found" };
+      console.log("\n📝 INPUT:", JSON.stringify(input, null, 2));
 
       // Arrange
       NewsRepository.findBySlug.mockResolvedValue(null);
 
       // OUTPUT EXPECT
-      const expectedError = 'Tin không tồn tại';
-      console.log('✅ OUTPUT EXPECT: Error -', expectedError);
+      const expectedError = "Tin không tồn tại";
+      console.log("✅ OUTPUT EXPECT: Error -", expectedError);
 
       // Act & Assert
-      await expect(NewsService.getDetailBySlug(input.slug)).rejects.toThrow(expectedError);
+      await expect(NewsService.getDetailBySlug(input.slug)).rejects.toThrow(
+        expectedError
+      );
 
       // OUTPUT REALITY
-      console.log('🎯 OUTPUT REALITY: Thrown error -', expectedError);
+      console.log("🎯 OUTPUT REALITY: throw error -", expectedError);
 
       expect(NewsRepository.increaseView).not.toHaveBeenCalled();
     });
   });
 
-  // ========== GET FEATURED TESTS ==========
-  describe('getFeatured', () => {
-    it('NewsService - GET_FEATURED - TC-1: should get featured news', async () => {
-      console.log('\n' + '='.repeat(50));
-      console.log('NewsService - GET_FEATURED - TC-1: Lấy tin nổi bật');
-      console.log('='.repeat(50));
-
-      // INPUT
-      const input = { limit: 3 };
-      console.log('\n📝 INPUT:', JSON.stringify(input, null, 2));
+  describe("getFeatured", () => {
+    it("NewsService - GET_FEATURED - TC-1: should get featured news successfully", async () => {
+      console.log("\n" + "=".repeat(50));
+      console.log(
+        "NewsService - GET_FEATURED - TC-1: Lấy tin nổi bật thành công"
+      );
+      console.log("=".repeat(50));
 
       // Arrange
-      const mockFeatured = [
-        { id: 1, title: 'Featured 1', is_featured: 1 },
-        { id: 2, title: 'Featured 2', is_featured: 1 },
-      ];
-      NewsRepository.findFeatured.mockResolvedValue(mockFeatured);
+      const mockNews = [{ id: 1 }, { id: 2 }, { id: 3 }];
+      NewsRepository.findFeatured.mockResolvedValue(mockNews);
 
-      // OUTPUT EXPECT
-      console.log('✅ OUTPUT EXPECT: Array of featured news (max 3)');
+      const result = await NewsService.getFeatured(3);
 
-      // Act
-      const result = await NewsService.getFeatured(input.limit);
-
-      // OUTPUT REALITY
-      console.log('🎯 OUTPUT REALITY:', JSON.stringify(result, null, 2));
-
-      // Assert
       expect(NewsRepository.findFeatured).toHaveBeenCalledWith(3);
-      expect(result).toHaveLength(2);
+      expect(result).toEqual(mockNews);
     });
   });
 
-  // ========== CREATE NEWS TESTS ==========
-  describe('createNews', () => {
-    it('NewsService - CREATE - TC-1: should create news successfully', async () => {
-      console.log('\n' + '='.repeat(50));
-      console.log('NewsService - CREATE - TC-1: Tạo tin tức thành công');
-      console.log('='.repeat(50));
+  describe("createNews", () => {
+    it("NewsService - CREATE_NEWS - TC-1: should create news successfully", async () => {
+      console.log("\n" + "=".repeat(50));
+      console.log("NewsService - CREATE_NEWS - TC-1: Tạo bài viết thành công");
+      console.log("=".repeat(50));
 
       // INPUT
       const input = {
-        title: 'New Article',
-        summary: 'Summary',
-        content: 'Content',
-        tag: 'promotion',
-        thumbnail: 'image.jpg',
+        data: {
+          title: "Bài viết mới về cà phê",
+          summary: "Tóm tắt bài viết mới",
+          content: "<p>Nội dung bài viết mới...</p>",
+          tag: "#coffee",
+          thumbnail: "uploads/news/thumb.jpg",
+        },
+        userId: 1,
       };
-      const userId = 1;
-      console.log('\n📝 INPUT:', JSON.stringify({ ...input, userId }, null, 2));
+      console.log("\n📝 INPUT:", JSON.stringify(input, null, 2));
 
       // Arrange
+      NewsRepository.findByTitle.mockResolvedValue(null);
       NewsRepository.findBySlug.mockResolvedValue(null);
-      const mockCreatedNews = { id: 1, ...input, slug: 'new-article', created_by: userId };
-      NewsRepository.create.mockResolvedValue(mockCreatedNews);
+      const createdNews = {
+        id: 10,
+        ...input.data,
+        slug: "bài-viết-mới-về-cà-phê",
+        created_by: 1,
+      };
+      NewsRepository.create.mockResolvedValue(createdNews);
 
       // OUTPUT EXPECT
-      console.log('✅ OUTPUT EXPECT: Created news with generated slug');
+      console.log("✅ OUTPUT EXPECT:", JSON.stringify(createdNews, null, 2));
 
       // Act
-      const result = await NewsService.createNews(input, userId);
+      const result = await NewsService.createNews(input.data, input.userId);
 
       // OUTPUT REALITY
-      console.log('🎯 OUTPUT REALITY:', JSON.stringify(result, null, 2));
+      console.log("🎯 OUTPUT REALITY:", JSON.stringify(result, null, 2));
 
       // Assert
+      expect(NewsRepository.findByTitle).toHaveBeenCalledWith(input.data.title);
       expect(NewsRepository.create).toHaveBeenCalledWith({
-        ...input,
-        slug: 'new-article',
-        created_by: userId,
+        ...input.data,
+        slug: "bài-viết-mới-về-cà-phê",
+        created_by: 1,
       });
-      expect(result.id).toBe(1);
+      expect(result).toEqual(createdNews);
+    });
+
+    it("NewsService - CREATE_NEWS - TC-2: should throw error when title already exists", async () => {
+      console.log("\n" + "=".repeat(50));
+      console.log(
+        "NewsService - CREATE_NEWS - TC-2: Lỗi khi tiêu đề bài viết đã tồn tại"
+      );
+      console.log("=".repeat(50));
+
+      // INPUT
+      const input = {
+        title: "Bài viết trùng tiêu đề",
+      };
+      console.log("\n📝 INPUT:", JSON.stringify(input, null, 2));
+
+      // Arrange
+      NewsRepository.findByTitle.mockResolvedValue({
+        id: 1,
+        title: input.title,
+      });
+
+      // OUTPUT EXPECT
+      const expectedError = "Tiêu đề bài viết đã tồn tại";
+      console.log("✅ OUTPUT EXPECT: Error -", expectedError);
+
+      // Act & Assert
+      await expect(
+        NewsService.createNews(
+          {
+            title: input.title,
+            summary: "summary",
+            content: "content",
+            tag: "#tag",
+            thumbnail: null,
+          },
+          1
+        )
+      ).rejects.toThrow(expectedError);
+
+      // OUTPUT REALITY
+      console.log("🎯 OUTPUT REALITY: throw error -", expectedError);
+
+      expect(NewsRepository.create).not.toHaveBeenCalled();
     });
   });
 
-  // ========== GET ALL ADMIN TESTS ==========
-  describe('getAllAdmin', () => {
-    it('NewsService - GET_ALL_ADMIN - TC-1: should get all news for admin', async () => {
-      console.log('\n' + '='.repeat(50));
-      console.log('NewsService - GET_ALL_ADMIN - TC-1: Lấy tất cả tin cho admin');
-      console.log('='.repeat(50));
+  describe("getAllAdmin", () => {
+    it("NewsService - GET_ALL_ADMIN - TC-1: should get all admin news successfully", async () => {
+      console.log("\n" + "=".repeat(50));
+      console.log(
+        "NewsService - GET_ALL_ADMIN - TC-1: Lấy danh sách tin admin thành công"
+      );
+      console.log("=".repeat(50));
 
       // INPUT
-      const input = { page: 1, limit: 10, keyword: '' };
-      console.log('\n📝 INPUT:', JSON.stringify(input, null, 2));
+      const input = { page: 2, limit: 10, keyword: "coffee" };
+      console.log("\n📝 INPUT:", JSON.stringify(input, null, 2));
 
       // Arrange
-      const mockNews = [
-        { id: 1, title: 'News 1' },
-        { id: 2, title: 'News 2' },
-      ];
-      NewsRepository.findAllAdminPaginated.mockResolvedValue(mockNews);
-      NewsRepository.countAll.mockResolvedValue(15);
+      const mockItems = [{ id: 1, title: "Coffee News" }];
+      NewsRepository.findAllAdminPaginated.mockResolvedValue(mockItems);
+      NewsRepository.countAll.mockResolvedValue(13);
 
       // OUTPUT EXPECT
-      console.log('✅ OUTPUT EXPECT: Paginated admin news list');
+      const expectedOutput = {
+        items: mockItems,
+        total: 13,
+        page: 2,
+        totalPages: 2,
+      };
+      console.log("✅ OUTPUT EXPECT:", JSON.stringify(expectedOutput, null, 2));
 
       // Act
       const result = await NewsService.getAllAdmin(input);
 
       // OUTPUT REALITY
-      console.log('🎯 OUTPUT REALITY:', JSON.stringify(result, null, 2));
+      console.log("🎯 OUTPUT REALITY:", JSON.stringify(result, null, 2));
 
       // Assert
-      expect(NewsRepository.findAllAdminPaginated).toHaveBeenCalledWith(10, 0, '');
-      expect(result.items).toHaveLength(2);
-      expect(result.total).toBe(15);
-      expect(result.totalPages).toBe(2);
-    });
-
-    it('NewsService - GET_ALL_ADMIN - TC-2: should search news with keyword', async () => {
-      console.log('\n' + '='.repeat(50));
-      console.log('NewsService - GET_ALL_ADMIN - TC-2: Tìm kiếm tin với từ khóa');
-      console.log('='.repeat(50));
-
-      // INPUT
-      const input = { page: 1, limit: 10, keyword: 'khuyến mãi' };
-      console.log('\n📝 INPUT:', JSON.stringify(input, null, 2));
-
-      // Arrange
-      const mockResults = [
-        { id: 1, title: 'Khuyến mãi mùa hè' },
-      ];
-      NewsRepository.findAllAdminPaginated.mockResolvedValue(mockResults);
-      NewsRepository.countAll.mockResolvedValue(1);
-
-      // OUTPUT EXPECT
-      console.log('✅ OUTPUT EXPECT: Filtered news by keyword');
-
-      // Act
-      const result = await NewsService.getAllAdmin(input);
-
-      // OUTPUT REALITY
-      console.log('🎯 OUTPUT REALITY:', JSON.stringify(result, null, 2));
-
-      // Assert
-      expect(NewsRepository.findAllAdminPaginated).toHaveBeenCalledWith(10, 0, 'khuyến mãi');
-      expect(result.items).toHaveLength(1);
+      expect(NewsRepository.findAllAdminPaginated).toHaveBeenCalledWith(
+        10,
+        10,
+        "coffee"
+      );
+      expect(NewsRepository.countAll).toHaveBeenCalledWith("coffee");
+      expect(result).toEqual(expectedOutput);
     });
   });
 
-  // ========== DELETE NEWS TESTS ==========
-  describe('deleteNews', () => {
-    it('NewsService - DELETE - TC-1: should delete news successfully', async () => {
-      console.log('\n' + '='.repeat(50));
-      console.log('NewsService - DELETE - TC-1: Xóa tin tức thành công');
-      console.log('='.repeat(50));
+  describe("deleteNews", () => {
+    it("NewsService - DELETE_NEWS - TC-1: should delete news successfully", async () => {
+      console.log("\n" + "=".repeat(50));
+      console.log("NewsService - DELETE_NEWS - TC-1: Xóa bài viết thành công");
+      console.log("=".repeat(50));
 
       // INPUT
       const input = { id: 1 };
-      console.log('\n📝 INPUT:', JSON.stringify(input, null, 2));
+      console.log("\n📝 INPUT:", JSON.stringify(input, null, 2));
 
       // Arrange
-      NewsRepository.deleteById.mockResolvedValue(true);
+      const mockResult = { affectedRows: 1 };
+      NewsRepository.deleteById.mockResolvedValue(mockResult);
 
       // OUTPUT EXPECT
-      console.log('✅ OUTPUT EXPECT: News deleted');
+      console.log("✅ OUTPUT EXPECT:", JSON.stringify(mockResult, null, 2));
 
       // Act
       const result = await NewsService.deleteNews(input.id);
 
       // OUTPUT REALITY
-      console.log('🎯 OUTPUT REALITY: Deleted =', result);
+      console.log("🎯 OUTPUT REALITY:", JSON.stringify(result, null, 2));
 
       // Assert
       expect(NewsRepository.deleteById).toHaveBeenCalledWith(1);
-      expect(result).toBe(true);
+      expect(result).toEqual(mockResult);
     });
   });
 
-  // ========== UPDATE NEWS TESTS ==========
-  describe('updateNews', () => {
-    it('NewsService - UPDATE - TC-1: should update news successfully', async () => {
-      console.log('\n' + '='.repeat(50));
-      console.log('NewsService - UPDATE - TC-1: Cập nhật tin tức thành công');
-      console.log('='.repeat(50));
+  describe("updateNews", () => {
+    it("NewsService - UPDATE_NEWS - TC-1: should update news successfully", async () => {
+      console.log("\n" + "=".repeat(50));
+      console.log(
+        "NewsService - UPDATE_NEWS - TC-1: Cập nhật bài viết thành công"
+      );
+      console.log("=".repeat(50));
 
       // INPUT
       const input = {
         id: 1,
-        title: 'Updated Title',
-        summary: 'Updated Summary',
-        content: 'Updated Content',
-        tag: 'news',
-        thumbnail: 'new-image.jpg',
+        data: {
+          title: "Tiêu đề mới",
+          summary: "Tóm tắt mới",
+          content: "<p>Nội dung mới...</p>",
+          tag: "#new",
+          thumbnail: "uploads/news/new-thumb.jpg",
+        },
       };
-      console.log('\n📝 INPUT:', JSON.stringify(input, null, 2));
+      console.log("\n📝 INPUT:", JSON.stringify(input, null, 2));
 
       // Arrange
+      NewsRepository.findByTitleExcludeId.mockResolvedValue(null);
       NewsRepository.updateById.mockResolvedValue(true);
 
       // OUTPUT EXPECT
-      console.log('✅ OUTPUT EXPECT: News updated successfully');
+      console.log("✅ OUTPUT EXPECT: true");
 
       // Act
-      const result = await NewsService.updateNews(input.id, input);
+      const result = await NewsService.updateNews(input.id, input.data);
 
       // OUTPUT REALITY
-      console.log('🎯 OUTPUT REALITY: Updated =', result);
+      console.log("🎯 OUTPUT REALITY:", result);
 
       // Assert
-      expect(NewsRepository.updateById).toHaveBeenCalledWith(1, {
-        title: input.title,
-        summary: input.summary,
-        content: input.content,
-        tag: input.tag,
-        thumbnail: input.thumbnail,
-      });
+      expect(NewsRepository.findByTitleExcludeId).toHaveBeenCalledWith(
+        "Tiêu đề mới",
+        1
+      );
+      expect(NewsRepository.updateById).toHaveBeenCalledWith(1, input.data);
       expect(result).toBe(true);
+    });
+
+    it("NewsService - UPDATE_NEWS - TC-2: should throw error when title already exists", async () => {
+      console.log("\n" + "=".repeat(50));
+      console.log(
+        "NewsService - UPDATE_NEWS - TC-2: Lỗi khi tiêu đề bài viết đã tồn tại"
+      );
+      console.log("=".repeat(50));
+
+      // INPUT
+      const input = {
+        id: 1,
+        title: "Tiêu đề trùng",
+      };
+      console.log("\n📝 INPUT:", JSON.stringify(input, null, 2));
+
+      // Arrange
+      NewsRepository.findByTitleExcludeId.mockResolvedValue({
+        id: 99,
+        title: input.title,
+      });
+
+      // OUTPUT EXPECT
+      const expectedError = "Tiêu đề bài viết đã tồn tại";
+      console.log("✅ OUTPUT EXPECT: Error -", expectedError);
+
+      // Act & Assert
+      await expect(
+        NewsService.updateNews(1, {
+          title: "Tiêu đề trùng",
+          summary: "summary",
+          content: "content",
+          tag: "#tag",
+          thumbnail: undefined,
+        })
+      ).rejects.toThrow(expectedError);
+
+      // OUTPUT REALITY
+      console.log("🎯 OUTPUT REALITY: throw error -", expectedError);
+
+      expect(NewsRepository.updateById).not.toHaveBeenCalled();
     });
   });
 
-  // ========== GET BY ID TESTS ==========
-  describe('getById', () => {
-    it('NewsService - GET_BY_ID - TC-1: should get news by ID', async () => {
-      console.log('\n' + '='.repeat(50));
-      console.log('NewsService - GET_BY_ID - TC-1: Lấy tin theo ID');
-      console.log('='.repeat(50));
+  describe("getById", () => {
+    it("NewsService - GET_BY_ID - TC-1: should get news by id successfully", async () => {
+      console.log("\n" + "=".repeat(50));
+      console.log(
+        "NewsService - GET_BY_ID - TC-1: Lấy bài viết theo id thành công"
+      );
+      console.log("=".repeat(50));
 
       // INPUT
       const input = { id: 1 };
-      console.log('\n📝 INPUT:', JSON.stringify(input, null, 2));
+      console.log("\n📝 INPUT:", JSON.stringify(input, null, 2));
 
       // Arrange
-      const mockNews = { id: 1, title: 'News Title' };
+      const mockNews = { id: 1, title: "Tin 1" };
       NewsRepository.findOne.mockResolvedValue(mockNews);
 
       // OUTPUT EXPECT
-      console.log('✅ OUTPUT EXPECT: News object with id = 1');
+      console.log("✅ OUTPUT EXPECT:", JSON.stringify(mockNews, null, 2));
 
       // Act
-      const result = await NewsService.getById(input.id);
+      const result = await NewsService.getById(1);
 
       // OUTPUT REALITY
-      console.log('🎯 OUTPUT REALITY:', JSON.stringify(result, null, 2));
+      console.log("🎯 OUTPUT REALITY:", JSON.stringify(result, null, 2));
 
       // Assert
       expect(NewsRepository.findOne).toHaveBeenCalledWith({ id: 1 });
-      expect(result.id).toBe(1);
+      expect(result).toEqual(mockNews);
     });
 
-    it('NewsService - GET_BY_ID - TC-2: should throw error when not found', async () => {
-      console.log('\n' + '='.repeat(50));
-      console.log('NewsService - GET_BY_ID - TC-2: Lỗi khi không tìm thấy');
-      console.log('='.repeat(50));
+    it("NewsService - GET_BY_ID - TC-2: should throw error when news not found", async () => {
+      console.log("\n" + "=".repeat(50));
+      console.log(
+        "NewsService - GET_BY_ID - TC-2: Lỗi khi không tìm thấy bài viết"
+      );
+      console.log("=".repeat(50));
 
       // INPUT
       const input = { id: 999 };
-      console.log('\n📝 INPUT:', JSON.stringify(input, null, 2));
+      console.log("\n📝 INPUT:", JSON.stringify(input, null, 2));
 
       // Arrange
       NewsRepository.findOne.mockResolvedValue(null);
 
       // OUTPUT EXPECT
-      const expectedError = 'Không tìm thấy bài viết';
-      console.log('✅ OUTPUT EXPECT: Error -', expectedError);
+      const expectedError = "Không tìm thấy bài viết";
+      console.log("✅ OUTPUT EXPECT: Error -", expectedError);
 
       // Act & Assert
-      await expect(NewsService.getById(input.id)).rejects.toThrow(expectedError);
+      await expect(NewsService.getById(999)).rejects.toThrow(expectedError);
 
       // OUTPUT REALITY
-      console.log('🎯 OUTPUT REALITY: Thrown error -', expectedError);
+      console.log("🎯 OUTPUT REALITY: throw error -", expectedError);
     });
   });
 
-  // ========== GET RELATED TESTS ==========
-  describe('getRelated', () => {
-    it('NewsService - GET_RELATED - TC-1: should get related news by tag', async () => {
-      console.log('\n' + '='.repeat(50));
-      console.log('NewsService - GET_RELATED - TC-1: Lấy tin liên quan theo tag');
-      console.log('='.repeat(50));
+  describe("getRelated", () => {
+    it("NewsService - GET_RELATED - TC-1: should return empty array when tag is missing", async () => {
+      console.log("\n" + "=".repeat(50));
+      console.log(
+        "NewsService - GET_RELATED - TC-1: Trả về mảng rỗng khi không có tag"
+      );
+      console.log("=".repeat(50));
 
       // INPUT
-      const input = { tag: 'promotion', excludeId: 1 };
-      console.log('\n📝 INPUT:', JSON.stringify(input, null, 2));
-
-      // Arrange
-      const mockRelated = [
-        { id: 2, title: 'Related 1', tag: 'promotion' },
-        { id: 3, title: 'Related 2', tag: 'promotion' },
-      ];
-      NewsRepository.findRelatedByTag.mockResolvedValue(mockRelated);
+      const input = { tag: "", excludeId: 1 };
+      console.log("\n📝 INPUT:", JSON.stringify(input, null, 2));
 
       // OUTPUT EXPECT
-      console.log('✅ OUTPUT EXPECT: Array of related news (max 3)');
+      console.log("✅ OUTPUT EXPECT: []");
 
       // Act
       const result = await NewsService.getRelated(input.tag, input.excludeId);
 
       // OUTPUT REALITY
-      console.log('🎯 OUTPUT REALITY:', JSON.stringify(result, null, 2));
-
-      // Assert
-      expect(NewsRepository.findRelatedByTag).toHaveBeenCalledWith('promotion', 1, 3);
-      expect(result).toHaveLength(2);
-    });
-
-    it('NewsService - GET_RELATED - TC-2: should return empty when no tag', async () => {
-      console.log('\n' + '='.repeat(50));
-      console.log('NewsService - GET_RELATED - TC-2: Trả về rỗng khi không có tag');
-      console.log('='.repeat(50));
-
-      // INPUT
-      const input = { tag: null, excludeId: 1 };
-      console.log('\n📝 INPUT:', JSON.stringify(input, null, 2));
-
-      // OUTPUT EXPECT
-      console.log('✅ OUTPUT EXPECT: Empty array');
-
-      // Act
-      const result = await NewsService.getRelated(input.tag, input.excludeId);
-
-      // OUTPUT REALITY
-      console.log('🎯 OUTPUT REALITY: Got empty array');
+      console.log("🎯 OUTPUT REALITY:", JSON.stringify(result));
 
       // Assert
       expect(result).toEqual([]);
       expect(NewsRepository.findRelatedByTag).not.toHaveBeenCalled();
+    });
+
+    it("NewsService - GET_RELATED - TC-2: should get related news successfully", async () => {
+      console.log("\n" + "=".repeat(50));
+      console.log(
+        "NewsService - GET_RELATED - TC-2: Lấy tin liên quan thành công"
+      );
+      console.log("=".repeat(50));
+
+      // INPUT
+      const input = { tag: "#coffee", excludeId: 1 };
+      console.log("\n📝 INPUT:", JSON.stringify(input, null, 2));
+
+      // Arrange
+      const mockNews = [{ id: 2 }, { id: 3 }];
+      NewsRepository.findRelatedByTag.mockResolvedValue(mockNews);
+
+      // OUTPUT EXPECT
+      console.log("✅ OUTPUT EXPECT:", JSON.stringify(mockNews, null, 2));
+
+      // Act
+      const result = await NewsService.getRelated(input.tag, input.excludeId);
+
+      // OUTPUT REALITY
+      console.log("🎯 OUTPUT REALITY:", JSON.stringify(result, null, 2));
+
+      // Assert
+      expect(NewsRepository.findRelatedByTag).toHaveBeenCalledWith(
+        "#coffee",
+        1,
+        3
+      );
+      expect(result).toEqual(mockNews);
     });
   });
 });
