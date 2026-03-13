@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import RichTextEditor from "../../../components/RichTextEditor/RichTextEditor";
 import { validateNewsForm } from "@/utils/newsValidation";
+import { toast } from "sonner";
 
 export default function AdminNewsCreatePage() {
   const navigate = useNavigate();
@@ -89,6 +90,7 @@ export default function AdminNewsCreatePage() {
         ...prev,
         server: "Không thể lấy gợi ý AI từ tiêu đề",
       }));
+      toast.error("Không thể lấy gợi ý AI từ tiêu đề");
     } finally {
       setAiLoadingTitle(false);
     }
@@ -118,6 +120,7 @@ export default function AdminNewsCreatePage() {
         ...prev,
         server: "Không thể lấy gợi ý nội dung từ tóm tắt",
       }));
+      toast.error("Không thể lấy gợi ý nội dung từ tóm tắt");
     } finally {
       setAiLoadingSummary(false);
     }
@@ -183,6 +186,7 @@ export default function AdminNewsCreatePage() {
         ...prev,
         title: "Tiêu đề phải có ít nhất 10 ký tự",
       }));
+      toast.error("Tiêu đề phải có ít nhất 10 ký tự");
       return;
     }
 
@@ -191,6 +195,7 @@ export default function AdminNewsCreatePage() {
         ...prev,
         summary: "Tóm tắt phải có ít nhất 10 ký tự",
       }));
+      toast.error("Tóm tắt phải có ít nhất 10 ký tự");
       return;
     }
 
@@ -201,7 +206,11 @@ export default function AdminNewsCreatePage() {
     const newErrors = validateNewsForm(form, { requireThumbnail: true });
     setErrors(newErrors);
 
-    if (Object.keys(newErrors).length > 0) return;
+    if (Object.keys(newErrors).length > 0) {
+      const firstError = Object.values(newErrors)[0];
+      toast.error(firstError || "Dữ liệu không hợp lệ");
+      return;
+    }
 
     try {
       setLoading(true);
@@ -216,6 +225,7 @@ export default function AdminNewsCreatePage() {
 
       await newsService.create(formData);
 
+      toast.success("Tạo bài viết thành công");
       navigate("/admin/news-list");
     } catch (error) {
       if (error.response?.data?.errors) {
@@ -223,17 +233,25 @@ export default function AdminNewsCreatePage() {
         error.response.data.errors.forEach((err) => {
           backendErrors[err.field] = err.message;
         });
+
         setErrors(backendErrors);
+
+        const firstError = Object.values(backendErrors)[0];
+        toast.error(
+          firstError || error.response?.data?.message || "Dữ liệu không hợp lệ"
+        );
       } else if (error.response?.data?.message) {
         setErrors((prev) => ({
           ...prev,
           server: error.response.data.message,
         }));
+        toast.error(error.response.data.message);
       } else {
         setErrors((prev) => ({
           ...prev,
           server: "Có lỗi xảy ra!",
         }));
+        toast.error("Tạo bài viết thất bại");
       }
     } finally {
       setLoading(false);

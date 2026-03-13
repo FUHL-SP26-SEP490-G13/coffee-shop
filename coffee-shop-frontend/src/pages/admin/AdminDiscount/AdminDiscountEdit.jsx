@@ -17,6 +17,7 @@ import {
   validateDiscountForm,
   validateDiscountField,
 } from "@/utils/discountValidation";
+import { toast } from "sonner";
 
 export default function AdminDiscountEdit() {
   const { id } = useParams();
@@ -123,7 +124,11 @@ export default function AdminDiscountEdit() {
     const nextErrors = getSubmitErrors();
     setErrors(nextErrors);
 
-    if (Object.keys(nextErrors).length > 0) return;
+    if (Object.keys(nextErrors).length > 0) {
+      const firstError = Object.values(nextErrors)[0];
+      toast.error(firstError || "Dữ liệu không hợp lệ");
+      return;
+    }
 
     try {
       setSaving(true);
@@ -146,7 +151,7 @@ export default function AdminDiscountEdit() {
 
       await discountService.update(id, payload);
 
-      alert("Cập nhật thành công");
+      toast.success("Cập nhật mã giảm giá thành công");
       navigate("/admin/discounts");
     } catch (err) {
       const response = err?.response?.data;
@@ -158,7 +163,11 @@ export default function AdminDiscountEdit() {
             beErrors[item.field] = item.message;
           }
         });
+
         setErrors(beErrors);
+
+        const firstError = Object.values(beErrors)[0];
+        toast.error(firstError || response?.message || "Dữ liệu không hợp lệ");
         return;
       }
 
@@ -166,6 +175,7 @@ export default function AdminDiscountEdit() {
         ...prev,
         server: response?.message || "Cập nhật thất bại",
       }));
+      toast.error(response?.message || "Cập nhật thất bại");
     } finally {
       setSaving(false);
     }

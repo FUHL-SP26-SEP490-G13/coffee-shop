@@ -15,6 +15,7 @@ class NewsController {
       };
 
       const news = await NewsService.createNews(data, req.user.id);
+      //const news = await NewsService.createNews(data, 1);
 
       return response.success(res, news, "Tạo tin thành công", 201);
     } catch (error) {

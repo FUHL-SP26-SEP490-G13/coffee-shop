@@ -1,24 +1,24 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
 
 // Import routes
-const authRoutes = require('./auth.routes');
-const categoryRoutes = require('./category.routes');
-const discountRoutes = require('./discount.routes');
-const productRoutes = require('./product.routes');
-const newsRoutes = require('./news.routes');
-const subscriberRoutes = require('./subscriber.routes');
-const userRoutes = require('./user.routes');
-const bannerRoutes = require('./banner.routes');
-const { publicToppingRoutes, adminToppingRoutes } = require('./topping.routes');
-const recipeRoutes = require('./recipe.routes');
-const adminDBRoutes = require('./adminDB.routes');
-const baristaDBRoutes = require('./baristaDB.routes');
+const authRoutes = require("./auth.routes");
+const categoryRoutes = require("./category.routes");
+const discountRoutes = require("./discount.routes");
+const productRoutes = require("./product.routes");
+const newsRoutes = require("./news.routes");
+const subscriberRoutes = require("./subscriber.routes");
+const userRoutes = require("./user.routes");
+const bannerRoutes = require("./banner.routes");
+const { publicToppingRoutes, adminToppingRoutes } = require("./topping.routes");
+const recipeRoutes = require("./recipe.routes");
+const adminDBRoutes = require("./adminDB.routes");
+const baristaDBRoutes = require("./baristaDB.routes");
 const areaRoutes = require("./area.routes");
 const tableRoutes = require("./table.routes");
 const notificationRoutes = require("./notification.routes");
-const ingredientRoutes = require('./ingredient.routes');
-const productSizeRoutes = require('./productSize.routes');
+const ingredientRoutes = require("./ingredient.routes");
+const productSizeRoutes = require("./productSize.routes");
 const orderRoutes = require("./order.routes");
 
 // Mount routes
@@ -27,34 +27,34 @@ router.use("/categories", categoryRoutes);
 router.use("/users", userRoutes);
 router.use("/products", productRoutes);
 router.use("/subscriber", subscriberRoutes);
-router.use('/news', newsRoutes);
-router.use('/users', userRoutes);
-router.use('/toppings', publicToppingRoutes);
-router.use('/admin/toppings', adminToppingRoutes);
-router.use('/recipes', recipeRoutes);
+router.use("/news", newsRoutes);
+router.use("/users", userRoutes);
+router.use("/toppings", publicToppingRoutes);
+router.use("/admin/toppings", adminToppingRoutes);
+router.use("/recipes", recipeRoutes);
 router.use("/area", areaRoutes);
 router.use("/tables", tableRoutes);
-router.use('/admin/recipes', recipeRoutes);
-router.use('/ingredients', ingredientRoutes);
-router.use('/product-sizes', productSizeRoutes);
-router.use('/dashboard', adminDBRoutes);
+router.use("/admin/recipes", recipeRoutes);
+router.use("/ingredients", ingredientRoutes);
+router.use("/product-sizes", productSizeRoutes);
+router.use("/dashboard", adminDBRoutes);
 router.use("/barista", baristaDBRoutes);
-router.use('/banners', bannerRoutes);
+router.use("/banners", bannerRoutes);
 router.use("/notifications", notificationRoutes);
 router.use("/discounts", discountRoutes);
 router.use("/orders", orderRoutes);
 
 // Health check endpoint
-router.get('/health', (req, res) => {
+router.get("/health", (req, res) => {
   res.json({
     success: true,
-    message: 'API is running',
+    message: "API is running",
     timestamp: new Date().toISOString(),
   });
 });
 
 // API documentation endpoint
-router.get('/', (req, res) => {
+router.get("/", (req, res) => {
   res.json({
     success: true,
     message: "Coffee Shop Management API",
@@ -123,6 +123,228 @@ router.get('/', (req, res) => {
       baristaDashboard: {
         overview: "GET /api/barista/dashboard",
         trends: "GET /api/barista/dashboard/trends?hours=6",
+      },
+      discounts: {
+        getAll: "GET /api/discounts?page=1&limit=10&code=&status= (Manager)",
+        /*
+        - http://localhost:5000/api/discounts
+        - http://localhost:5000/api/discounts?page=1&limit=10
+        - http://localhost:5000/api/discounts?page=1&limit=10&code=WELCOME10&status=active
+        */
+        getById: "GET /api/discounts/:id (Manager)",
+        /*  
+        - http://localhost:5000/api/discounts/{id}
+        */
+        create: "POST /api/discounts (Manager)",
+        /*
+        - http://localhost:5000/api/discounts
+        {
+          "code": "SUMMER2026",
+          "description": "Giảm giá mùa hè",
+          "percentage": 10,
+          "min_order_amount": 100000,
+          "max_discount_amount": 50000,
+          "usage_limit": 100,
+          "valid_from": "2026-06-01T00:00:00",
+          "valid_until": "2026-06-30T23:59:59"
+        }
+          thiếu 1 số trường
+        */
+        update: "PUT /api/discounts/:id (Manager)",
+        /*
+        - http://localhost:5000/api/discounts/{id}
+        {
+        "description": "Giảm giá mùa hè cập nhật",
+        "percentage": 15
+        }
+        */
+        delete: "DELETE /api/discounts/:id (Manager)",
+        /*
+        - http://localhost:3000/api/discounts/{id} 
+        */
+      },
+      news: {
+        getAll: "GET /api/news?page=1&limit=6",
+        /*
+        - http://localhost:5000/api/news
+        - http://localhost:5000/api/news?page=1&limit=5
+        */
+        getDetail: "GET /api/news/:slug",
+        /*
+        - http://localhost:5000/api/news/chill-he-cung-coffee
+        */
+        getFeatured: "GET /api/news/featured",
+        /*
+        - http://localhost:5000/api/news/featured
+        */
+        getRelated: "GET /api/news/related?tag=&excludeId=",
+        /*
+        - http://localhost:5000/api/news/related?tag=Tips&excludeId=
+        */
+        create: "POST /api/news (Manager, multipart/form-data)",
+        /*
+        - http://localhost:5000/api/news
+        đổi const news = await NewsService.createNews(data, req.user.id);
+        thành const news = await NewsService.createNews(data, 1);
+        {
+        "title": "Khuyến mãi cà phê mùa hè",
+        "summary": "Ưu đãi đặc biệt dành cho khách hàng trong tháng này.",
+        "content": "<p>Chào mừng mùa hè với chương trình khuyến mãi đặc biệt tại Coffee Shop.</p><h2>Ưu đãi hấp dẫn</h2><ul><li>Giảm 20% cho mọi loại cà phê</li><li>Tặng bánh miễn phí cho hóa đơn trên 100k</li></ul><h2>Thời gian áp dụng</h2><p>Từ ngày 1/6 đến 30/6</p>",
+        "tag": "#khuyenmai",
+        "thumbnail": "https://picsum.photos/seed/coffee10/600/400"
+        }
+        thiếu slug, views, ... -> mỗi thêm trường nào thì thêm
+        */
+        getAllAdmin: "GET /api/news/admin?page=1&limit=10&keyword= (Manager)",
+        /*
+        http://localhost:5000/api/news/admin?page=1&limit=10
+        http://localhost:5000/api/news/admin?page=1&limit=10&keyword=coffee
+        */
+        getById: "GET /api/news/admin/:id (Manager)",
+        /*
+        http://localhost:5000/api/news/admin/2
+        */
+        update: "PUT /api/news/:id (Manager, multipart/form-data)",
+        /*
+      - http://localhost:5000/api/news/63
+        {
+        "title": "Khuyến mãi cà phê mùa hè CẬP NHẬT",
+        "summary": "Ưu đãi đặc biệt dành cho khách hàng trong tháng này CẬP NHẬT",
+        "content": "<p>NỘI DUNG CẬP NHẬT Chào mừng mùa hè với chương trình khuyến mãi đặc biệt tại Coffee Shop. Ưu đãi hấp dẫn</p>NỘI DUNG CẬP NHẬT Chào mừng mùa hè với chương trình khuyến mãi đặc biệt tại Coffee Shop. Ưu đãi hấp dẫn",
+        "tag": "#capnhat",
+        "thumbnail": "https://picsum.photos/seed/coffee10/600/400"
+        thiếu slug, views, ... -> mỗi thêm trường nào thì thêm
+        }
+        */
+        delete: "DELETE /api/news/:id (Manager)",
+        /*
+        http://localhost:5000/api/news/63
+        */
+        aiSuggestByTitle: "POST /api/news/ai/suggest-by-title (Manager)",
+        /*
+        http://localhost:5000/api/news/ai/suggest-by-title
+        {
+        "title": "Khuyến mãi cà phê mùa hè dành cho khách hàng thân thiết"
+        }
+        -> xong AI sẽ gợi ý tag, summary, content
+        */
+        aiSuggestBySummary: "POST /api/news/ai/suggest-by-summary (Manager)",
+        /*
+      - http://localhost:5000/api/news/ai/suggest-by-summary
+        {
+        "title": "Khuyến mãi cà phê mùa hè dành cho khách hàng thân thiết",
+        "summary": "Chương trình ưu đãi dành cho khách hàng yêu thích cà phê trong mùa hè này."
+        }
+        */
+      },
+      banners: {
+        getActive: "GET /api/banners/active",
+        /*
+        http://localhost:5000/api/banners/active
+        */
+        getActiveList: "GET /api/banners/active-list",
+        /*
+        http://localhost:5000/api/banners/active-list
+        */
+        getAllAdmin:
+          "GET /api/banners/admin?page=1&limit=5&keyword=&status= (Manager)",
+        /*
+        http://localhost:5000/api/banners/admin
+        http://localhost:5000/api/banners/admin?page=1&limit=5
+        http://localhost:5000/api/banners/admin?page=1&limit=5&keyword=khuyen mai
+        http://localhost:5000/api/banners/admin?page=1&limit=5&status=active
+        http://localhost:5000/api/banners/admin?page=1&limit=5&keyword=khuyen mai&status=active
+        */
+        create: "POST /api/banners/admin (Manager, multipart/form-data)",
+        /*
+        http://localhost:5000/api/banners/admin
+        {
+        "title": "Khuyến mãi mùa hè",
+        "subtitle": "Giảm giá đồ uống cho khách hàng trong tháng này",
+        "button_text": "Xem ngay",
+        "button_link": "/products",
+        "start_date": "2026-06-01T00:00",
+        "end_date": "2026-06-30T23:59",
+        "type": "banner",
+        "image_url": "https://images.unsplash.com/photo-1504754524776-8f4f37790ca0"
+        }
+        -> sửa bannerBaseSchema back end: type: Joi.string().allow("", null),
+                                          image_url: Joi.string().uri().allow("", null),
+        */
+        update: "PUT /api/banners/admin/:id (Manager, multipart/form-data)",
+        /*
+        http://localhost:5000/api/banners/admin/59
+        {
+        "title": "Khuyến mãi mùa hè cập nhật",
+        "subtitle": "Giảm giá đồ uống cho khách hàng trong tháng này cập nhật",
+        "button_text": "Mua ngay",
+        "button_link": "/products/10",
+        "start_date": "2026-07-01T00:00",
+        "end_date": "2026-07-30T23:59",
+        "type": "banner",
+        "image_url": "https://images.unsplash.com/photo-1504754524776-8f4f37790ca0"
+        }
+        */
+        delete: "DELETE /api/banners/admin/:id (Manager)",
+        /*
+        http://localhost:5000/api/banners/admin/59
+        */
+      },
+      orders: {
+        checkout: "POST /api/orders/checkout",
+        /*
+        http://localhost:5000/api/orders/checkout
+        takeaway
+        {
+        "order_type": "takeaway",
+        "payment_method": "cash",
+        "receiver_name": "Trần Thị B",
+        "receiver_phone": "0912345678",
+        "receiver_email": "tranb@gmail.com",
+        "address": "",
+        "note": "Tôi sẽ tự đến lấy",
+        "items": [
+          {
+            "product_size_id": 2,
+            "quantity": 1,
+            "toppings": [
+                {
+                  "topping_id": 1,
+                  "quantity": 1
+                }
+              ]
+            }
+          ]
+        }
+        */
+        getMyOrders: "GET /api/orders/my-orders (Authenticated)",
+        /*
+        http://localhost:5000/api/orders/my-orders
+        LẤY TOKEN: http://localhost:5000/api/auth/login
+          {
+            "identifier": "admin@gmail.com",
+            "password": "admin123"
+          }
+            -> sẽ lấy đơn hàng thành công
+        */
+        getMyOrderDetail: "GET /api/orders/my-orders/:id (Authenticated)",
+        /*
+        http://localhost:5000/api/orders/my-orders/35
+        login cus: {
+          "identifier": "cus1@gmail.com",
+          "password": "admin123"
+          }
+
+        */
+        payosReturn: "POST /api/orders/payos-return",
+        /*
+        http://localhost:5000/api/orders/payos-return
+        {
+        "orderCode": "123456",
+        "payosId": "PAYOS_ABC_999",
+        "status": "PAID"
+        }
+        */
       },
     },
   });

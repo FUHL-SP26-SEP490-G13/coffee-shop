@@ -12,20 +12,22 @@ export default function HomeBanner({
   setActiveBannerIndex,
   defaultImage,
 }) {
+  const visibleBanners = banners.filter((b) => b?.is_active !== false);
+
   const safeBannerIndex =
-    banners.length > 0 ? activeBannerIndex % banners.length : 0;
+    visibleBanners.length > 0 ? activeBannerIndex % visibleBanners.length : 0;
 
   return (
     <section className="relative w-full h-[260px] sm:h-[340px] lg:h-[600px] overflow-hidden bg-gradient-to-b from-gray-50 to-white">
       <Swiper
         modules={[Autoplay, Pagination]}
         autoplay={{ delay: 3000, disableOnInteraction: false }}
-        loop={banners.length > 1}
+        loop={visibleBanners.length > 1}
         pagination={{ clickable: true }}
         onSlideChange={(swiper) => setActiveBannerIndex(swiper.realIndex)}
         className="w-full h-full homepage-banner-swiper"
       >
-        {(banners.length ? banners : [null]).map((b, idx) => (
+        {(visibleBanners.length ? visibleBanners : [null]).map((b, idx) => (
           <SwiperSlide key={b?.id ?? idx}>
             <div className="relative w-full h-full group">
               <img
@@ -45,8 +47,8 @@ export default function HomeBanner({
                       {b?.subtitle || "Khám phá những sản phẩm nổi bật hôm nay"}
                     </p>
 
-                    {(b?.button_text || b?.button_link) && (
-                      <Link to={b?.button_link || "/"}>
+                    {b?.button_link && (
+                      <Link to={b.button_link}>
                         <Button
                           size="lg"
                           className="bg-[#C65D2E] hover:bg-[#B55329] text-white px-6 sm:px-8 py-3 sm:py-4 rounded-full text-base sm:text-lg font-semibold shadow-lg transition-all duration-300 hover:scale-105"
@@ -64,13 +66,13 @@ export default function HomeBanner({
         ))}
       </Swiper>
 
-      {banners.length > 0 && (
+      {visibleBanners.length > 0 && (
         <div className="bg-[#f4eddc] py-6 text-center">
           <h3 className="text-lg font-semibold text-gray-800">
-            {banners[safeBannerIndex]?.title}
+            {visibleBanners[safeBannerIndex]?.title}
           </h3>
           <p className="text-gray-600 mt-2">
-            {banners[safeBannerIndex]?.subtitle}
+            {visibleBanners[safeBannerIndex]?.subtitle}
           </p>
         </div>
       )}

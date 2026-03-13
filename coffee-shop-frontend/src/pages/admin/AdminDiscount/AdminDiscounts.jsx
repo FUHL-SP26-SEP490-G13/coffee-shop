@@ -22,6 +22,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
 
 export default function AdminDiscounts() {
   const [data, setData] = useState([]);
@@ -98,10 +99,11 @@ export default function AdminDiscounts() {
     try {
       setLoadingId(id);
       await discountService.delete(id);
+      toast.success("Xóa mã giảm giá thành công");
       await fetchDiscounts(page, keyword, statusFilter);
     } catch (err) {
       console.error(err);
-      alert(err?.response?.data?.message || "Xóa thất bại");
+      toast.error(err?.response?.data?.message || "Xóa thất bại");
     } finally {
       setLoadingId(null);
     }
@@ -224,6 +226,7 @@ export default function AdminDiscounts() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="text-center w-[60px]">STT</TableHead>
                 <TableHead className="min-w-[180px]">Mã giảm giá</TableHead>
                 <TableHead className="text-center min-w-[100px]">%</TableHead>
                 <TableHead className="text-center min-w-[130px]">
@@ -255,11 +258,14 @@ export default function AdminDiscounts() {
                   </TableCell>
                 </TableRow>
               ) : (
-                data.map((item) => {
+                data.map((item, index) => {
                   const status = getStatusInfo(item);
-
+                  const stt = (page - 1) * 10 + index + 1;
                   return (
                     <TableRow key={item.id}>
+                      <TableCell className="text-center font-medium">
+                        {stt}
+                      </TableCell>
                       <TableCell>
                         <div className="font-mono font-medium">{item.code}</div>
                       </TableCell>

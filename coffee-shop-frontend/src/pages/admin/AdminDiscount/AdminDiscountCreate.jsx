@@ -14,6 +14,7 @@ import {
   Users,
 } from "lucide-react";
 import { validateDiscountForm } from "@/utils/discountValidation";
+import { toast } from "sonner";
 
 export default function AdminDiscountCreate() {
   const navigate = useNavigate();
@@ -62,8 +63,11 @@ export default function AdminDiscountCreate() {
     const nextErrors = validateDiscountForm(form);
     setErrors(nextErrors);
 
-    if (Object.keys(nextErrors).length > 0) return;
-
+    if (Object.keys(nextErrors).length > 0) {
+      const firstError = Object.values(nextErrors)[0];
+      toast.error(firstError || "Dữ liệu không hợp lệ");
+      return;
+    }
     try {
       setLoading(true);
 
@@ -78,7 +82,7 @@ export default function AdminDiscountCreate() {
         valid_until: form.valid_until,
       });
 
-      alert("Tạo mã giảm giá thành công");
+      toast.success("Tạo mã giảm giá thành công");
       navigate("/admin/discounts");
     } catch (err) {
       const response = err?.response?.data;
@@ -90,7 +94,11 @@ export default function AdminDiscountCreate() {
             beErrors[item.field] = item.message;
           }
         });
+
         setErrors(beErrors);
+
+        const firstError = Object.values(beErrors)[0];
+        toast.error(firstError || response.message || "Dữ liệu không hợp lệ");
         return;
       }
 
@@ -98,6 +106,7 @@ export default function AdminDiscountCreate() {
         ...prev,
         server: response?.message || "Tạo thất bại",
       }));
+      toast.error(response?.message || "Tạo thất bại");
     } finally {
       setLoading(false);
     }

@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import RichTextEditor from "../../../components/RichTextEditor/RichTextEditor";
 import { validateNewsForm } from "@/utils/newsValidation";
+import { toast } from "sonner";
 
 export default function AdminEditNewsPage() {
   const { id } = useParams();
@@ -78,7 +79,11 @@ export default function AdminEditNewsPage() {
 
     setErrors(newErrors);
 
-    if (Object.keys(newErrors).length > 0) return;
+    if (Object.keys(newErrors).length > 0) {
+      const firstError = Object.values(newErrors)[0];
+      toast.error(firstError || "Dữ liệu không hợp lệ");
+      return;
+    }
 
     try {
       setLoading(true);
@@ -95,6 +100,8 @@ export default function AdminEditNewsPage() {
 
       await newsService.update(id, formData);
 
+      toast.success("Cập nhật bài viết thành công");
+
       navigate("/admin/news-list");
     } catch (error) {
       const res = error.response?.data;
@@ -107,11 +114,16 @@ export default function AdminEditNewsPage() {
         });
 
         setErrors(serverErrors);
+
+        const firstError = Object.values(serverErrors)[0];
+        toast.error(firstError || res?.message || "Dữ liệu không hợp lệ");
       } else {
         setErrors((prev) => ({
           ...prev,
           server: res?.message || "Có lỗi xảy ra",
         }));
+
+        toast.error(res?.message || "Cập nhật thất bại");
       }
     } finally {
       setLoading(false);

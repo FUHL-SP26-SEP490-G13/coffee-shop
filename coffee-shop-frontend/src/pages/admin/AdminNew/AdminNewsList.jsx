@@ -1,11 +1,30 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Loader2, Search, ChevronLeft, ChevronRight, Trash2, Eye, Edit, Mail, Newspaper, Plus } from "lucide-react";
+import {
+  Loader2,
+  Search,
+  ChevronLeft,
+  ChevronRight,
+  Trash2,
+  Eye,
+  Edit,
+  Mail,
+  Newspaper,
+  Plus,
+} from "lucide-react";
 import newsService from "@/services/newsService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
 
 export default function AdminNewsList() {
   const [data, setData] = useState([]);
@@ -30,11 +49,13 @@ export default function AdminNewsList() {
     } catch (error) {
       console.error("Lỗi lấy danh sách tin:", error);
       setError("Không thể tải danh sách bài viết");
+
+      toast.error("Không thể tải danh sách bài viết");
     } finally {
       setIsLoading(false);
     }
   };
-  
+
   useEffect(() => {
     const timeout = setTimeout(() => {
       fetchNews(page, keyword);
@@ -43,16 +64,21 @@ export default function AdminNewsList() {
     return () => clearTimeout(timeout);
   }, [keyword, page]);
 
-
   const handleDelete = async (id) => {
     if (!window.confirm("Bạn có chắc muốn xóa bài viết này?")) return;
 
     try {
       setLoadingId(id);
+
       await newsService.delete(id);
+
+      toast.success("Xóa bài viết thành công");
+
       fetchNews(page, keyword);
     } catch (error) {
-      alert("Xóa thất bại");
+      console.error(error);
+      toast.error("Xóa bài viết thất bại");
+    } finally {
       setLoadingId(null);
     }
   };
@@ -61,7 +87,11 @@ export default function AdminNewsList() {
     return (
       <div className="p-6 text-center text-red-500">
         <p>Lỗi: {error}</p>
-        <Button variant="outline" className="mt-4" onClick={() => fetchNews(1, "")}>
+        <Button
+          variant="outline"
+          className="mt-4"
+          onClick={() => fetchNews(1, "")}
+        >
           Thử lại
         </Button>
       </div>
@@ -112,6 +142,7 @@ export default function AdminNewsList() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-[5%] text-center">STT</TableHead>
                 <TableHead className="w-[45%] min-w-[280px]">Tiêu đề</TableHead>
                 <TableHead className="w-[10%] min-w-[100px] text-center">
                   Lượt xem
@@ -131,84 +162,92 @@ export default function AdminNewsList() {
               {data.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={3}
+                    colSpan={6}
                     className="text-center py-8 text-muted-foreground"
                   >
                     Không có bài viết nào
                   </TableCell>
                 </TableRow>
               ) : (
-                data.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell className="max-w-[0] truncate">
-                      {item.title}
-                    </TableCell>
+                data.map((item, index) => {
+                  const stt = (page - 1) * 10 + index + 1;
 
-                    <TableCell className="text-center">
-                      {item.views ?? 0}
-                    </TableCell>
+                  return (
+                    <TableRow key={item.id}>
+                      <TableCell className="text-center font-medium">
+                        {stt}
+                      </TableCell>
 
-                    <TableCell className="text-center">
-                      {item.tag ? (
-                        <Badge
-                          variant="secondary"
-                          className="capitalize inline-flex min-w-[70px] justify-center"
-                        >
-                          {item.tag}
-                        </Badge>
-                      ) : (
-                        <span className="text-muted-foreground text-sm inline-block text-center">
-                          Chưa có tag
-                        </span>
-                      )}
-                    </TableCell>
+                      <TableCell className="max-w-[0] truncate">
+                        {item.title}
+                      </TableCell>
 
-                    <TableCell className="text-center text-muted-foreground text-sm">
-                      {new Date(item.created_at).toLocaleDateString("vi-VN")}
-                    </TableCell>
+                      <TableCell className="text-center">
+                        {item.views ?? 0}
+                      </TableCell>
 
-                    <TableCell>
-                      <div className="flex items-center justify-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() =>
-                            navigate(`/admin/news-detail/${item.slug}`)
-                          }
-                          title="Xem chi tiết"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
+                      <TableCell className="text-center">
+                        {item.tag ? (
+                          <Badge
+                            variant="secondary"
+                            className="capitalize inline-flex min-w-[70px] justify-center"
+                          >
+                            {item.tag}
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground text-sm inline-block text-center">
+                            Chưa có tag
+                          </span>
+                        )}
+                      </TableCell>
 
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() =>
-                            navigate(`/admin/edit-news/${item.id}`)
-                          }
-                          title="Chỉnh sửa"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
+                      <TableCell className="text-center text-muted-foreground text-sm">
+                        {new Date(item.created_at).toLocaleDateString("vi-VN")}
+                      </TableCell>
 
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDelete(item.id)}
-                          disabled={loadingId === item.id}
-                          title="Xóa"
-                          className="hover:text-red-600"
-                        >
-                          {loadingId === item.id ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Trash2 className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
+                      <TableCell>
+                        <div className="flex items-center justify-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() =>
+                              navigate(`/admin/news-detail/${item.slug}`)
+                            }
+                            title="Xem chi tiết"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() =>
+                              navigate(`/admin/edit-news/${item.id}`)
+                            }
+                            title="Chỉnh sửa"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDelete(item.id)}
+                            disabled={loadingId === item.id}
+                            title="Xóa"
+                            className="hover:text-red-600"
+                          >
+                            {loadingId === item.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
               )}
             </TableBody>
           </Table>
