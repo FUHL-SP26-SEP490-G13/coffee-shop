@@ -11,6 +11,10 @@ const _payosAxios = axios.create({
 });
 
 const orderService = {
+  validateDiscount(data) {
+    return axiosClient.post("/orders/validate-discount", data);
+  },
+
   checkout(data) {
     return axiosClient.post(API_ENDPOINTS.ORDERSLIST.CHECKOUT, data);
   },

@@ -1,14 +1,22 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Banknote } from "lucide-react";
+import { Banknote, MapPin } from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { cartService } from "@/services/cartService";
 import authenticationService from "@/services/authenticationService";
 import PlaceOrderButton from "@/components/order/PlaceOrderButton";
+import orderService from "@/services/orderService";
 import { STORAGE_KEYS } from "@/constants";
 import { validateOrderField } from "@/utils/orderValidation";
 import PayOSLogo from "/logo/payOS.svg";
@@ -21,7 +29,13 @@ export default function CheckoutPage() {
     sessionStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
 
   const [discountCode, setDiscountCode] = useState("");
+  const [appliedDiscount, setAppliedDiscount] = useState(null);
+  const [isApplyingDiscount, setIsApplyingDiscount] = useState(false);
   const [errors, setErrors] = useState({});
+  const [addresses, setAddresses] = useState([]);
+  const [selectedAddressId, setSelectedAddressId] = useState(null);
+  const [isAddressLoading, setIsAddressLoading] = useState(false);
+  const [isAddressDialogOpen, setIsAddressDialogOpen] = useState(false);
   const [form, setForm] = useState({
     order_type: "delivery",
     payment_method: "cash",
@@ -30,6 +44,7 @@ export default function CheckoutPage() {
     receiver_email: "",
     address: "",
     note: "",
+    discount_code: "",
   });
 
   useEffect(() => {
@@ -39,29 +54,78 @@ export default function CheckoutPage() {
   }, [cart, navigate]);
 
   useEffect(() => {
-    const loadProfile = async () => {
+    const loadCheckoutData = async () => {
       if (!token) return;
 
       try {
-        const res = await authenticationService.getProfile();
-        const user = res?.data;
+        const [profileRes, addressesRes] = await Promise.all([
+          authenticationService.getProfile(),
+          authenticationService.getMyAddresses(),
+        ]);
+
+        const user = profileRes?.data;
+        const addressList = Array.isArray(addressesRes?.data)
+          ? addressesRes.data
+          : [];
+        const defaultAddress =
+          addressList.find((item) => Number(item.is_default) === 1) ||
+          addressList[0] ||
+          null;
+
+        setAddresses(addressList);
+        setSelectedAddressId(defaultAddress?.id || null);
 
         setForm((prev) => ({
           ...prev,
-          receiver_name: `${user?.first_name || ""} ${
-            user?.last_name || ""
-          }`.trim(),
-          receiver_phone: user?.phone || "",
+          receiver_name:
+            defaultAddress?.receiver_name ||
+            `${user?.first_name || ""} ${user?.last_name || ""}`.trim(),
+          receiver_phone: defaultAddress?.receiver_phone || user?.phone || "",
           receiver_email: user?.email || "",
-          address: user?.address || "",
+          address: defaultAddress?.address || user?.address || "",
         }));
       } catch (error) {
         console.error("Không lấy được thông tin profile:", error);
+      } finally {
+        setIsAddressLoading(false);
       }
     };
 
-    loadProfile();
+    setIsAddressLoading(true);
+    loadCheckoutData();
   }, [token]);
+
+  const getAddressTypeLabel = (type) => {
+    if (type === "work") return "Văn phòng";
+    if (type === "other") return "Khác";
+    return "Nhà riêng";
+  };
+
+  const handleSelectAddress = (item) => {
+    setSelectedAddressId(item.id);
+    setForm((prev) => ({
+      ...prev,
+      receiver_name: item.receiver_name || prev.receiver_name,
+      receiver_phone: item.receiver_phone || prev.receiver_phone,
+      address: item.address || "",
+    }));
+    setErrors((prev) => ({
+      ...prev,
+      receiver_name: validateOrderField(
+        "receiver_name",
+        item.receiver_name || form.receiver_name
+      ),
+      receiver_phone: validateOrderField(
+        "receiver_phone",
+        item.receiver_phone || form.receiver_phone
+      ),
+      address: validateOrderField("address", item.address || ""),
+    }));
+    setIsAddressDialogOpen(false);
+  };
+
+  const selectedAddress =
+    addresses.find((item) => item.id === selectedAddressId) || null;
 
   const subtotalAmount = useMemo(() => {
     return cart.reduce(
@@ -70,8 +134,45 @@ export default function CheckoutPage() {
     );
   }, [cart]);
 
-  const discountAmount = 0;
+  const discountAmount = Number(appliedDiscount?.discount_amount || 0);
   const totalAmount = subtotalAmount - discountAmount;
+
+  const handleApplyDiscount = async () => {
+    const code = discountCode.trim();
+
+    if (!code) {
+      alert("Vui lòng nhập mã giảm giá");
+      return;
+    }
+
+    setIsApplyingDiscount(true);
+    try {
+      const res = await orderService.validateDiscount({
+        code,
+        order_amount: subtotalAmount,
+      });
+
+      const discountData = res?.data;
+      setAppliedDiscount(discountData || null);
+
+      setForm((prev) => ({
+        ...prev,
+        discount_code: discountData?.code || code,
+      }));
+
+      alert("Áp dụng mã giảm giá thành công");
+    } catch (error) {
+      setAppliedDiscount(null);
+      setForm((prev) => ({
+        ...prev,
+        discount_code: "",
+      }));
+
+      alert(error?.response?.data?.message || "Mã giảm giá không hợp lệ");
+    } finally {
+      setIsApplyingDiscount(false);
+    }
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-white">
@@ -185,27 +286,77 @@ export default function CheckoutPage() {
             </div>
 
             {form.order_type === "delivery" && (
-              <div className="mb-4">
-                <label className="text-sm font-medium mb-2 block">
-                  Địa chỉ giao hàng
-                </label>
-                <Input
-                  value={form.address}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    setForm((prev) => ({
-                      ...prev,
-                      address: value,
-                    }));
-                    setErrors((prev) => ({
-                      ...prev,
-                      address: validateOrderField("address", value),
-                    }));
-                  }}
-                />
-                {errors.address && (
-                  <p className="text-sm text-red-500 mt-1">{errors.address}</p>
+              <div className="mb-4 space-y-4">
+                {token && (
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <MapPin className="w-4 h-4 text-amber-600" />
+                      <label className="text-sm font-medium block">
+                        Địa chỉ đã lưu
+                      </label>
+                    </div>
+
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setIsAddressDialogOpen(true)}
+                      disabled={isAddressLoading || addresses.length === 0}
+                    >
+                      {isAddressLoading
+                        ? "Đang tải địa chỉ..."
+                        : addresses.length === 0
+                          ? "Chưa có địa chỉ đã lưu"
+                          : "Chọn địa chỉ giao hàng"}
+                    </Button>
+
+                    {addresses.length === 0 && !isAddressLoading && (
+                      <p className="text-sm text-gray-500 mt-2">
+                        Bạn chưa lưu địa chỉ nào. Hãy nhập địa chỉ giao hàng bên dưới.
+                      </p>
+                    )}
+
+                    {selectedAddress && (
+                      <div className="mt-3 border rounded-xl p-3 bg-amber-50 border-amber-200">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-sm font-semibold text-gray-900">
+                            {selectedAddress.receiver_name || "Địa chỉ giao hàng"}
+                          </p>
+                          <span className="text-xs text-gray-600">
+                            {getAddressTypeLabel(selectedAddress.address_type)}
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-600 mt-1">
+                          {selectedAddress.receiver_phone || "Chưa có số điện thoại"}
+                        </p>
+                        <p className="text-sm text-gray-800 mt-1">{selectedAddress.address}</p>
+                      </div>
+                    )}
+                  </div>
                 )}
+
+                <div>
+                  <label className="text-sm font-medium mb-2 block">
+                    Địa chỉ giao hàng
+                  </label>
+                  <Input
+                    value={form.address}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setSelectedAddressId(null);
+                      setForm((prev) => ({
+                        ...prev,
+                        address: value,
+                      }));
+                      setErrors((prev) => ({
+                        ...prev,
+                        address: validateOrderField("address", value),
+                      }));
+                    }}
+                  />
+                  {errors.address && (
+                    <p className="text-sm text-red-500 mt-1">{errors.address}</p>
+                  )}
+                </div>
               </div>
             )}
 
@@ -340,16 +491,30 @@ export default function CheckoutPage() {
                 <Input
                   placeholder="Nhập mã giảm giá"
                   value={discountCode}
-                  onChange={(e) => setDiscountCode(e.target.value)}
+                  onChange={(e) => {
+                    setDiscountCode(e.target.value);
+                    setAppliedDiscount(null);
+                    setForm((prev) => ({
+                      ...prev,
+                      discount_code: "",
+                    }));
+                  }}
                 />
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => alert("Chức năng đang phát triển")}
+                  onClick={handleApplyDiscount}
+                  disabled={isApplyingDiscount || subtotalAmount <= 0}
                 >
-                  Áp dụng
+                  {isApplyingDiscount ? "Đang áp dụng..." : "Áp dụng"}
                 </Button>
               </div>
+
+              {appliedDiscount && (
+                <p className="text-xs text-green-600 mt-2">
+                  Đã áp dụng mã {appliedDiscount.code} giảm {discountAmount.toLocaleString("vi-VN")}đ
+                </p>
+              )}
             </div>
 
             <div className="space-y-3 border-t pt-4 mb-4">
@@ -381,6 +546,63 @@ export default function CheckoutPage() {
           </div>
         </div>
       </section>
+
+      <Dialog open={isAddressDialogOpen} onOpenChange={setIsAddressDialogOpen}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Chọn địa chỉ giao hàng</DialogTitle>
+            <DialogDescription>
+              Chọn một địa chỉ đã lưu để tự động điền thông tin giao hàng.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="max-h-[60vh] overflow-y-auto space-y-3">
+            {addresses.length === 0 ? (
+              <div className="text-sm text-gray-500 border rounded-xl p-4 bg-gray-50">
+                Bạn chưa có địa chỉ đã lưu.
+              </div>
+            ) : (
+              addresses.map((item) => {
+                const isSelected = selectedAddressId === item.id;
+
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => handleSelectAddress(item)}
+                    className={`w-full text-left border rounded-xl p-4 transition ${
+                      isSelected
+                        ? "border-amber-500 bg-amber-50"
+                        : "border-gray-200 hover:border-gray-300 bg-white"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-3 mb-2">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-semibold text-gray-900">
+                          {item.receiver_name || "Địa chỉ giao hàng"}
+                        </p>
+                        {Number(item.is_default) === 1 && (
+                          <span className="text-[11px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
+                            Mặc định
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-xs text-gray-500">
+                        {getAddressTypeLabel(item.address_type)}
+                      </span>
+                    </div>
+
+                    <p className="text-sm text-gray-600">
+                      {item.receiver_phone || "Chưa có số điện thoại"}
+                    </p>
+                    <p className="text-sm text-gray-800 mt-1">{item.address}</p>
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Footer />
     </div>

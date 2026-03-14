@@ -39,6 +39,31 @@ class OrderRepository {
     return rows[0];
   }
 
+  async findDiscountByCodeForCheckout(connection, code) {
+    const [rows] = await connection.query(
+      `
+      SELECT *
+      FROM discount
+      WHERE LOWER(code) = LOWER(?) AND deleted_at IS NULL
+      LIMIT 1
+      `,
+      [code]
+    );
+
+    return rows[0] || null;
+  }
+
+  async incrementDiscountUsedCount(connection, discountId) {
+    await connection.query(
+      `
+      UPDATE discount
+      SET used_count = COALESCE(used_count, 0) + 1
+      WHERE id = ?
+      `,
+      [discountId]
+    );
+  }
+
   async createOrder(connection, data) {
     const [result] = await connection.query(
       `

@@ -16,6 +16,22 @@ class OrderController {
     }
   }
 
+  async validateDiscount(req, res, next) {
+    try {
+      const { code, order_amount } = req.body;
+
+      const result = await OrderService.validateDiscount(code, order_amount);
+
+      return res.json({
+        success: true,
+        data: result,
+        message: "Áp dụng mã giảm giá thành công",
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async getMyOrders(req, res) {
     const userId = req.user.id;
     const result = await OrderService.getOrdersByUser(userId);

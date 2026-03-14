@@ -1,6 +1,12 @@
 const OrderRepository = require("../repositories/OrderRepository");
 
 class OrderService {
+  createBadRequestError(message) {
+    const error = new Error(message);
+    error.statusCode = 400;
+    return error;
+  }
+
   async checkout(payload, user) {
     console.log("CHECKOUT BODY:", JSON.stringify(payload, null, 2));
     const {
@@ -11,6 +17,7 @@ class OrderService {
       receiver_email,
       address,
       note,
+      discount_code,
       items,
     } = payload;
 
@@ -104,6 +111,69 @@ class OrderService {
         });
       }
 
+      let discountAmount = 0;
+      let discountCodeApplied = null;
+      let discountIdApplied = null;
+
+      const normalizedDiscountCode = String(discount_code || "").trim();
+      if (normalizedDiscountCode) {
+        const discount = await OrderRepository.findDiscountByCodeForCheckout(
+          connection,
+          normalizedDiscountCode
+        );
+
+        if (!discount) {
+          throw this.createBadRequestError("Mã giảm giá không tồn tại");
+        }
+
+        const now = new Date();
+        const validFrom = discount.valid_from ? new Date(discount.valid_from) : null;
+        const validUntil = discount.valid_until ? new Date(discount.valid_until) : null;
+
+        if (validFrom && now < validFrom) {
+          throw this.createBadRequestError("Mã giảm giá chưa đến thời gian sử dụng");
+        }
+
+        if (validUntil && now > validUntil) {
+          throw this.createBadRequestError("Mã giảm giá đã hết hạn");
+        }
+
+        const usageLimit =
+          discount.usage_limit === null || discount.usage_limit === undefined
+            ? null
+            : Number(discount.usage_limit);
+        const usedCount = Number(discount.used_count || 0);
+
+        if (usageLimit !== null && usedCount >= usageLimit) {
+          throw this.createBadRequestError("Mã giảm giá đã hết lượt sử dụng");
+        }
+
+        const minOrderAmount = Number(discount.min_order_amount || 0);
+        if (totalAmount < minOrderAmount) {
+          throw this.createBadRequestError(
+            `Đơn tối thiểu ${minOrderAmount.toLocaleString("vi-VN")}đ để áp dụng mã này`
+          );
+        }
+
+        const percentage = Number(discount.percentage || 0);
+        let calculatedDiscount = Math.round((totalAmount * percentage) / 100);
+        const maxDiscount =
+          discount.max_discount_amount === null ||
+          discount.max_discount_amount === undefined
+            ? null
+            : Number(discount.max_discount_amount);
+
+        if (maxDiscount !== null) {
+          calculatedDiscount = Math.min(calculatedDiscount, maxDiscount);
+        }
+
+        discountAmount = Math.min(totalAmount, Math.max(0, calculatedDiscount));
+        discountCodeApplied = discount.code;
+        discountIdApplied = discount.id;
+      }
+
+      const finalAmount = Math.max(0, totalAmount - discountAmount);
+
       const userId = user?.id || null;
 
       const orderId = await OrderRepository.createOrder(connection, {
@@ -111,7 +181,7 @@ class OrderService {
         created_by: userId,
         customer_type: user ? "registered" : "guest",
         order_type,
-        total_amount: totalAmount,
+        total_amount: finalAmount,
       });
 
       for (const item of normalizedItems) {
@@ -149,18 +219,104 @@ class OrderService {
         order_id: orderId,
         payment_method,
         payment_status: "pending",
-        amount: totalAmount,
+        amount: finalAmount,
       });
+
+      if (discountIdApplied) {
+        await OrderRepository.incrementDiscountUsedCount(connection, discountIdApplied);
+      }
 
       await connection.commit();
 
       return {
         order_id: orderId,
-        total_amount: totalAmount,
+        subtotal_amount: totalAmount,
+        discount_amount: discountAmount,
+        discount_code: discountCodeApplied,
+        total_amount: finalAmount,
       };
     } catch (error) {
       await connection.rollback();
       throw error;
+    } finally {
+      connection.release();
+    }
+  }
+
+  async validateDiscount(code, orderAmount) {
+    const normalizedCode = String(code || "").trim();
+
+    if (!normalizedCode) {
+      throw this.createBadRequestError("Vui lòng nhập mã giảm giá");
+    }
+
+    const subtotal = Number(orderAmount || 0);
+    if (Number.isNaN(subtotal) || subtotal < 0) {
+      throw this.createBadRequestError("Giá trị đơn hàng không hợp lệ");
+    }
+
+    const connection = await OrderRepository.getConnection();
+    try {
+      const discount = await OrderRepository.findDiscountByCodeForCheckout(
+        connection,
+        normalizedCode
+      );
+
+      if (!discount) {
+        throw this.createBadRequestError("Mã giảm giá không tồn tại");
+      }
+
+      const now = new Date();
+      const validFrom = discount.valid_from ? new Date(discount.valid_from) : null;
+      const validUntil = discount.valid_until ? new Date(discount.valid_until) : null;
+
+      if (validFrom && now < validFrom) {
+        throw this.createBadRequestError("Mã giảm giá chưa đến thời gian sử dụng");
+      }
+
+      if (validUntil && now > validUntil) {
+        throw this.createBadRequestError("Mã giảm giá đã hết hạn");
+      }
+
+      const usageLimit =
+        discount.usage_limit === null || discount.usage_limit === undefined
+          ? null
+          : Number(discount.usage_limit);
+      const usedCount = Number(discount.used_count || 0);
+
+      if (usageLimit !== null && usedCount >= usageLimit) {
+        throw this.createBadRequestError("Mã giảm giá đã hết lượt sử dụng");
+      }
+
+      const minOrderAmount = Number(discount.min_order_amount || 0);
+      if (subtotal < minOrderAmount) {
+        throw this.createBadRequestError(
+          `Đơn tối thiểu ${minOrderAmount.toLocaleString("vi-VN")}đ để áp dụng mã này`
+        );
+      }
+
+      const percentage = Number(discount.percentage || 0);
+      let discountAmount = Math.round((subtotal * percentage) / 100);
+      const maxDiscount =
+        discount.max_discount_amount === null ||
+        discount.max_discount_amount === undefined
+          ? null
+          : Number(discount.max_discount_amount);
+
+      if (maxDiscount !== null) {
+        discountAmount = Math.min(discountAmount, maxDiscount);
+      }
+
+      discountAmount = Math.min(subtotal, Math.max(0, discountAmount));
+
+      return {
+        code: discount.code,
+        percentage,
+        min_order_amount: minOrderAmount,
+        max_discount_amount: maxDiscount,
+        discount_amount: discountAmount,
+        final_amount: Math.max(0, subtotal - discountAmount),
+      };
     } finally {
       connection.release();
     }

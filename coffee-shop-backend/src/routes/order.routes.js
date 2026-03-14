@@ -4,8 +4,18 @@ const router = express.Router();
 const OrderController = require("../controllers/OrderController");
 const AsyncMiddleware = require("../middlewares/async.middleware");
 const validate = require("../middlewares/validate");
-const { checkoutOrderSchema } = require("../validators/orderValidator");
+const {
+  checkoutOrderSchema,
+  validateDiscountSchema,
+} = require("../validators/orderValidator");
 const { optionalAuth, authenticate } = require("../middlewares/auth");
+
+router.post(
+  "/validate-discount",
+  optionalAuth,
+  validate(validateDiscountSchema),
+  AsyncMiddleware(OrderController.validateDiscount)
+);
 
 router.post(
   "/checkout",
