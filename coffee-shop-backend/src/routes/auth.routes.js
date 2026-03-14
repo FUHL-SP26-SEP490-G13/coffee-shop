@@ -12,6 +12,9 @@ const {
   resetPasswordSchema,
   verifyForgotPasswordOtpSchema,
   resetPasswordWithOtpSchema,
+  createAddressSchema,
+  updateAddressSchema,
+  addressIdParamSchema,
 } = require("../validators/authValidator");
 
 /**
@@ -86,5 +89,41 @@ router.post(
 
 // Logout
 router.post("/logout", authenticate, AuthController.logout);
+
+// Get my addresses
+router.get('/address', authenticate, AuthController.getMyAddresses);
+
+// Create new address
+router.post(
+  '/address',
+  authenticate,
+  validate(createAddressSchema),
+  AuthController.createAddress,
+);
+
+// Update address
+router.put(
+  '/address/:id',
+  authenticate,
+  validate(addressIdParamSchema, 'params'),
+  validate(updateAddressSchema),
+  AuthController.updateAddress,
+);
+
+// Delete address (soft delete)
+router.delete(
+  '/address/:id',
+  authenticate,
+  validate(addressIdParamSchema, 'params'),
+  AuthController.deleteAddress,
+);
+
+// Set default address
+router.patch(
+  '/address/:id/default',
+  authenticate,
+  validate(addressIdParamSchema, 'params'),
+  AuthController.setDefaultAddress,
+);
 
 module.exports = router;

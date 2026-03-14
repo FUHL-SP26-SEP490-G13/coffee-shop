@@ -67,6 +67,11 @@ router.get('/', (req, res) => {
         refreshToken: 'POST /api/auth/refresh-token',
         resetPassword: 'POST /api/auth/reset-password',
         logout: 'POST /api/auth/logout',
+        getAddresses: 'GET /api/auth/address',
+        createAddress: 'POST /api/auth/address',
+        updateAddress: 'PUT /api/auth/address/:id',
+        deleteAddress: 'DELETE /api/auth/address/:id',
+        setDefaultAddress: 'PATCH /api/auth/address/:id/default',
       },
       categories: {
         getAll: 'GET /api/categories',

@@ -16,9 +16,21 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { useNavigate } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
 import { STORAGE_KEYS } from "@/constants";
+import authenticationService from "@/services/authenticationService";
 import Logo from "/logo/Logo.png";
 import categoryService from "@/services/categoryService";
 import productService from "@/services/productService";
@@ -48,10 +60,22 @@ function Header() {
 
   const user = token ? jwtDecode(token) : null;
 
-  const handleLogout = () => {
-    localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
-    sessionStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
-    navigate("/");
+  const handleLogout = async () => {
+    try {
+      await authenticationService.logout();
+    } finally {
+      // Ensure auth is fully cleared even if service call changes later.
+      localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
+      sessionStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
+      localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
+      sessionStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
+
+      if (socket.connected) {
+        socket.disconnect();
+      }
+
+      window.location.replace("/");
+    }
   };
 
   const [text, setText] = useState("");
@@ -75,6 +99,7 @@ function Header() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [mobileResultOpen, setMobileResultOpen] = useState(false);
   const [cartCount, setCartCount] = useState(0);
+  const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
 
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -102,7 +127,7 @@ function Header() {
       );
 
       setCartCount(total);
-    } catch (error) {
+    } catch {
       setCartItems([]);
       setCartCount(0);
     }
@@ -891,8 +916,8 @@ function Header() {
 
                       <button
                         onClick={() => {
-                          handleLogout();
                           setOpen(false);
+                          setLogoutDialogOpen(true);
                         }}
                         className="w-full text-left px-3 py-2 text-red-600 hover:bg-red-50 rounded transition flex items-center gap-2 text-xs sm:text-sm"
                       >
@@ -1169,9 +1194,9 @@ function Header() {
 
                     <button
                       onClick={() => {
-                        handleLogout();
                         setMobileUserDropdownOpen(false);
                         setMobileMenuOpen(false);
+                        setLogoutDialogOpen(true);
                       }}
                       className="w-full text-left px-3 py-2 text-red-600 hover:bg-red-50 rounded transition flex items-center gap-2 text-xs"
                     >
@@ -1198,6 +1223,27 @@ function Header() {
           </div>
         </div>
       )}
+
+      <AlertDialog open={logoutDialogOpen} onOpenChange={setLogoutDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Xác nhận đăng xuất</AlertDialogTitle>
+            <AlertDialogDescription>
+              Bạn có chắc muốn đăng xuất?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Hủy</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                handleLogout();
+              }}
+            >
+              Đăng xuất
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </header>
   );
 }
