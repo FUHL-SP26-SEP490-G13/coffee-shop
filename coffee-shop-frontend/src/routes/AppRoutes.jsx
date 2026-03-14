@@ -73,18 +73,21 @@ const getRoleHomeRoute = (roleId) => {
 const RoleGuard = ({ allowedRoles, children }) => {
   const token = getStoredValue(STORAGE_KEYS.ACCESS_TOKEN);
   const [roleId, setRoleId] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(Boolean(token));
 
   useEffect(() => {
     if (!token) {
-      setIsLoading(false);
       return;
     }
 
-    authenticationService.getProfile().then((res) => {
-      setRoleId(Number(res?.data?.role_id));
-      setIsLoading(false);
-    });
+    authenticationService
+      .getProfile()
+      .then((res) => {
+        setRoleId(Number(res?.data?.role_id));
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
   }, [token]);
 
   if (!token) return <Navigate to={APP_ROUTES.LOGIN} replace />;
@@ -190,7 +193,14 @@ const AppRoutes = () => {
       </Route>
       <Route path="/news/:slug" element={<NewsDetailPage />} />
       <Route path="/news" element={<NewsListPage />} />
-      <Route path="/customer/profile" element={<UserProfile />} />
+      <Route
+        path="/customer/profile"
+        element={
+          <RoleGuard allowedRoles={[4]}>
+            <UserProfile />
+          </RoleGuard>
+        }
+      />
       <Route path="/order-policy" element={<OrderPolicy />} />
       <Route path="/privacy-policy" element={<PrivacyPolicy />} />
       <Route path="/payment-policy" element={<PaymentPolicyPage />} />
