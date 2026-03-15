@@ -84,9 +84,7 @@ export default function FavoritePage() {
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center gap-3 mb-8">
             <Heart className="w-7 h-7 text-red-500 fill-current" />
-            <h1 className="text-1xl text-gray-900">
-              Danh sách yêu thích
-            </h1>
+            <h1 className="text-1xl text-gray-900">Danh sách yêu thích</h1>
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3 mb-8">
@@ -121,7 +119,6 @@ export default function FavoritePage() {
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 {favorites.map((item) => {
-
                   const itemSizes = Array.isArray(item.sizes) ? item.sizes : [];
                   const image = item.image_url || defaultImage;
 

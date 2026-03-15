@@ -1,11 +1,13 @@
-import { useCallback } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Loader2 } from "lucide-react";
+import { Loader2, Heart } from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
 import productService from "@/services/productService";
+import favoriteService from "@/services/favoriteService";
 import useFetch from "@/hooks/useFetch";
+import { STORAGE_KEYS } from "@/constants";
 
 const PAGE_SIZE = 8;
 
@@ -13,10 +15,19 @@ export default function ProductListPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
+  const token =
+    localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN) ||
+    sessionStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
+
+  const isLoggedIn = !!token;
+
   const categoryId = searchParams.get("category") || "";
   const keyword = searchParams.get("keyword") || "";
   const sortBy = searchParams.get("sort") || "";
   const currentPage = Number(searchParams.get("page") || 1);
+
+  const [favoriteMap, setFavoriteMap] = useState({});
+  const [favoriteLoadingMap, setFavoriteLoadingMap] = useState({});
 
   const fetchProducts = useCallback(() => {
     const params = {
@@ -48,6 +59,52 @@ export default function ProductListPage() {
   const totalPages = Number(pagination.totalPages || 1);
   const page = Number(pagination.page || currentPage);
 
+  const productIds = useMemo(
+    () => products.map((item) => Number(item.id)).filter(Boolean),
+    [products]
+  );
+
+  useEffect(() => {
+    const fetchFavoriteStatus = async () => {
+      if (!isLoggedIn || productIds.length === 0) {
+        setFavoriteMap({});
+        return;
+      }
+
+      try {
+        const results = await Promise.all(
+          productIds.map(async (productId) => {
+            try {
+              const res = await favoriteService.checkFavorite(productId);
+              const payload = res?.data?.data || res?.data || res || {};
+              return {
+                productId,
+                isFavorite: Boolean(payload.isFavorite),
+              };
+            } catch (error) {
+              return {
+                productId,
+                isFavorite: false,
+              };
+            }
+          })
+        );
+
+        const nextMap = {};
+        results.forEach((item) => {
+          nextMap[item.productId] = item.isFavorite;
+        });
+
+        setFavoriteMap(nextMap);
+      } catch (error) {
+        console.error("Lỗi kiểm tra trạng thái yêu thích:", error);
+        setFavoriteMap({});
+      }
+    };
+
+    fetchFavoriteStatus();
+  }, [isLoggedIn, productIds]);
+
   const updateQuery = (nextValues) => {
     const nextParams = new URLSearchParams(searchParams);
 
@@ -75,6 +132,50 @@ export default function ProductListPage() {
     updateQuery({
       page: nextPage,
     });
+  };
+
+  const handleToggleFavorite = async (e, productId) => {
+    e.stopPropagation();
+
+    if (!isLoggedIn) {
+      alert("Bạn phải đăng nhập để thêm sản phẩm yêu thích");
+      navigate("/login");
+      return;
+    }
+
+    const currentFavorite = Boolean(favoriteMap[productId]);
+
+    try {
+      setFavoriteLoadingMap((prev) => ({
+        ...prev,
+        [productId]: true,
+      }));
+
+      const res = await favoriteService.toggleFavorite(
+        productId,
+        currentFavorite
+      );
+
+      const payload = res?.data?.data || res?.data || res || {};
+
+      setFavoriteMap((prev) => ({
+        ...prev,
+        [productId]:
+          typeof payload.isFavorite === "boolean"
+            ? payload.isFavorite
+            : !currentFavorite,
+      }));
+
+      window.dispatchEvent(new Event("favoriteUpdated"));
+    } catch (error) {
+      console.error("Lỗi cập nhật yêu thích:", error);
+      alert(error?.response?.data?.message || "Không thể cập nhật yêu thích");
+    } finally {
+      setFavoriteLoadingMap((prev) => ({
+        ...prev,
+        [productId]: false,
+      }));
+    }
   };
 
   return (
@@ -135,18 +236,49 @@ export default function ProductListPage() {
                       ? Math.min(...itemSizes.map((s) => Number(s.price)))
                       : null;
 
+                  const isFavorite = Boolean(favoriteMap[item.id]);
+                  const isFavoriteLoading = Boolean(
+                    favoriteLoadingMap[item.id]
+                  );
+
                   return (
                     <div
                       key={item.id}
                       onClick={() => navigate(`/products/${item.id}`)}
                       className="bg-white rounded-2xl border border-gray-200 overflow-hidden cursor-pointer hover:shadow-lg transition"
                     >
-                      <div className="h-56 bg-gray-100">
+                      <div className="relative h-56 bg-gray-100">
                         <img
                           src={itemImage}
                           alt={item.name}
                           className="w-full h-full object-cover"
                         />
+
+                        <button
+                          type="button"
+                          onClick={(e) => handleToggleFavorite(e, item.id)}
+                          disabled={isFavoriteLoading}
+                          className={`absolute top-3 right-3 z-10 w-10 h-10 rounded-full border shadow-sm flex items-center justify-center transition ${
+                            isFavorite
+                              ? "bg-red-50 border-red-500 text-red-500"
+                              : "bg-white border-gray-300 text-gray-500 hover:border-red-400 hover:text-red-500"
+                          }`}
+                          title={
+                            isFavorite
+                              ? "Bỏ khỏi yêu thích"
+                              : "Thêm vào yêu thích"
+                          }
+                        >
+                          {isFavoriteLoading ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Heart
+                              className={`w-5 h-5 ${
+                                isFavorite ? "fill-current" : ""
+                              }`}
+                            />
+                          )}
+                        </button>
                       </div>
 
                       <div className="p-4">
@@ -158,7 +290,7 @@ export default function ProductListPage() {
                           {item.name}
                         </h3>
 
-                        <div className="flex items-center justify-between mt-4">
+                        <div className="flex items-center justify-between mt-4 gap-3">
                           <p className="text-amber-600 font-bold text-lg">
                             {minPrice !== null
                               ? `${minPrice.toLocaleString("vi-VN")}đ`
@@ -182,7 +314,7 @@ export default function ProductListPage() {
                 })}
               </div>
 
-              <div className="flex items-center justify-center gap-2 mt-10">
+              <div className="flex items-center justify-center gap-2 mt-10 flex-wrap">
                 <Button
                   variant="outline"
                   disabled={page <= 1}

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Loader2, Plus, ChevronDown, ChevronUp, Heart, Star } from "lucide-react";
+import { Loader2, Plus, ChevronDown, ChevronUp, Heart } from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
@@ -15,8 +15,6 @@ import "swiper/css/pagination";
 import "swiper/css/navigation";
 import favoriteService from "@/services/favoriteService";
 import { STORAGE_KEYS } from "@/constants";
-import reviewService from "@/services/reviewService";
-import { Textarea } from "@/components/ui/textarea";
 
 export default function ProductDetailPage() {
   const { id } = useParams();
@@ -37,15 +35,6 @@ export default function ProductDetailPage() {
 
   const [isFavorite, setIsFavorite] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
-
-  const [reviews, setReviews] = useState([]);
-  const [reviewLoading, setReviewLoading] = useState(false);
-  const [averageRating, setAverageRating] = useState(0);
-
-  const [myRating, setMyRating] = useState(0);
-  const [myComment, setMyComment] = useState("");
-  const [canReview, setCanReview] = useState(false);
-  const [reviewSubmitting, setReviewSubmitting] = useState(false);
 
   const fetchProduct = useCallback(() => {
     return productService.getById(id);
@@ -113,98 +102,6 @@ export default function ProductDetailPage() {
 
     fetchFavoriteStatus();
   }, [product?.id, isLoggedIn]);
-
-  useEffect(() => {
-    const fetchReviews = async () => {
-      if (!product?.id) return;
-
-      try {
-        setReviewLoading(true);
-        const res = await reviewService.getByProductId(product.id);
-        const result = res?.data || {};
-
-        setReviews(Array.isArray(result?.items) ? result.items : []);
-        setAverageRating(Number(result?.averageRating) || 0);
-      } catch (error) {
-        console.error("Lỗi lấy đánh giá sản phẩm:", error);
-        setReviews([]);
-        setAverageRating(0);
-      } finally {
-        setReviewLoading(false);
-      }
-    };
-
-    fetchReviews();
-  }, [product?.id]);
-
-  useEffect(() => {
-    const fetchMyReview = async () => {
-      if (!product?.id || !isLoggedIn) {
-        setCanReview(false);
-        setMyRating(0);
-        setMyComment("");
-        return;
-      }
-
-      try {
-        const res = await reviewService.getMyReview(product.id);
-        const result = res?.data|| {};
-
-        setCanReview(Boolean(result?.canReview));
-        setMyRating(Number(result?.review?.rating) || 0);
-        setMyComment(result?.review?.comment || "");
-      } catch (error) {
-        console.error("Lỗi lấy đánh giá của bạn:", error);
-        setCanReview(false);
-        setMyRating(0);
-        setMyComment("");
-      }
-    };
-
-    fetchMyReview();
-  }, [product?.id, isLoggedIn]);
-
-  const handleSubmitReview = async () => {
-    if (!product?.id) return;
-
-    if (!isLoggedIn) {
-      alert("Bạn phải đăng nhập để đánh giá sản phẩm");
-      return;
-    }
-
-    if (!canReview) {
-      alert("Bạn chỉ có thể đánh giá sản phẩm đã mua");
-      return;
-    }
-
-    if (!myRating || myRating < 1 || myRating > 5) {
-      alert("Vui lòng chọn số sao từ 1 đến 5");
-      return;
-    }
-
-    try {
-      setReviewSubmitting(true);
-
-      const res = await reviewService.createOrUpdate({
-        product_id: product.id,
-        rating: myRating,
-        comment: myComment,
-      });
-
-      alert(res?.data?.message || "Gửi đánh giá thành công");
-
-      const reviewRes = await reviewService.getByProductId(product.id);
-      const reviewResult = reviewRes?.data?.data || {};
-
-      setReviews(Array.isArray(reviewResult?.items) ? reviewResult.items : []);
-      setAverageRating(Number(reviewResult?.averageRating) || 0);
-    } catch (error) {
-      console.error("Lỗi gửi đánh giá:", error);
-      alert(error?.response?.data?.message || "Không thể gửi đánh giá");
-    } finally {
-      setReviewSubmitting(false);
-    }
-  };
 
   const selectedSizeObj = useMemo(() => {
     return sizes.find((s) => s.size === selectedSize) || null;
@@ -432,141 +329,6 @@ export default function ProductDetailPage() {
                 {product.description ||
                   "Thưởng thức hương vị đặc biệt của chúng tôi"}
               </p>
-            </div>
-            <div className="mt-6 bg-gray-50 border border-gray-200 rounded-2xl p-4">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-lg font-semibold text-gray-900">
-                  Đánh giá
-                </h3>
-
-                <div className="flex items-center gap-1 text-amber-500">
-                  <Star className="w-4 h-4 fill-current" />
-                  <span className="font-semibold text-gray-800">
-                    {averageRating > 0 ? averageRating : "--"}
-                  </span>
-                </div>
-              </div>
-
-              {reviewLoading ? (
-                <div className="flex items-center justify-center py-6 text-gray-500">
-                  <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                  Đang tải đánh giá...
-                </div>
-              ) : reviews.length === 0 ? (
-                <p className="text-sm text-gray-500">Chưa có đánh giá nào</p>
-              ) : (
-                <div className="space-y-3 max-h-[320px] overflow-y-auto pr-2">
-                  {reviews.map((item) => (
-                    <div
-                      key={item.id}
-                      className="bg-white border border-gray-200 rounded-xl px-3 py-3"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0 flex-1">
-                          <p className="font-medium text-gray-900 break-words">
-                            {item.full_name}
-                          </p>
-
-                          <p className="text-xs text-gray-400 mt-1">
-                            {item.created_at
-                              ? new Date(item.created_at).toLocaleDateString(
-                                  "vi-VN"
-                                )
-                              : ""}
-                            {item.is_edited ? " • Đã chỉnh sửa" : ""}
-                          </p>
-                        </div>
-
-                        <div className="flex items-center gap-1 text-amber-500 shrink-0">
-                          {Array.from({ length: 5 }).map((_, index) => (
-                            <Star
-                              key={index}
-                              className={`w-4 h-4 ${
-                                index < Number(item.rating)
-                                  ? "fill-current"
-                                  : "text-gray-300"
-                              }`}
-                            />
-                          ))}
-                        </div>
-                      </div>
-
-                      {item.comment && (
-                        <p className="text-sm text-gray-600 mt-3 leading-6 break-words">
-                          {item.comment}
-                        </p>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <div className="mt-4 pt-4 border-t border-gray-200">
-                <h4 className="font-semibold text-gray-900 mb-3">
-                  Đánh giá của bạn
-                </h4>
-
-                {!isLoggedIn ? (
-                  <p className="text-sm text-gray-500">
-                    Vui lòng đăng nhập để đánh giá sản phẩm.
-                  </p>
-                ) : !canReview ? (
-                  <p className="text-sm text-gray-500">
-                    Bạn chỉ có thể đánh giá sản phẩm đã mua và đã hoàn tất đơn
-                    hàng.
-                  </p>
-                ) : (
-                  <>
-                    <div className="flex items-center gap-2 mb-4">
-                      {Array.from({ length: 5 }).map((_, index) => {
-                        const starValue = index + 1;
-
-                        return (
-                          <button
-                            key={starValue}
-                            type="button"
-                            onClick={() => setMyRating(starValue)}
-                            className="transition"
-                          >
-                            <Star
-                              className={`w-6 h-6 ${
-                                starValue <= myRating
-                                  ? "text-amber-500 fill-current"
-                                  : "text-gray-300"
-                              }`}
-                            />
-                          </button>
-                        );
-                      })}
-                    </div>
-
-                    <Textarea
-                      value={myComment}
-                      onChange={(e) => setMyComment(e.target.value)}
-                      rows={4}
-                      placeholder="Chia sẻ cảm nhận của bạn về sản phẩm..."
-                      className="w-full rounded-xl text-sm"
-                    />
-
-                    <div className="mt-3">
-                      <Button
-                        onClick={handleSubmitReview}
-                        disabled={reviewSubmitting}
-                        className="bg-amber-600 hover:bg-amber-700 text-white"
-                      >
-                        {reviewSubmitting ? (
-                          <>
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            Đang gửi...
-                          </>
-                        ) : (
-                          "Gửi đánh giá"
-                        )}
-                      </Button>
-                    </div>
-                  </>
-                )}
-              </div>
             </div>
           </div>
 
