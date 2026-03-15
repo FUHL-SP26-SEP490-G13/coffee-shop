@@ -1,0 +1,58 @@
+const ReviewService = require("../services/ReviewService");
+const response = require("../utils/response");
+
+class ReviewController {
+  async getByProductId(req, res, next) {
+    try {
+      const { productId } = req.params;
+      const data = await ReviewService.getByProductId(Number(productId));
+
+      return response.success(res, data, "Lấy danh sách đánh giá thành công");
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async createOrUpdate(req, res, next) {
+    try {
+      const userId = req.user.id;
+      const { product_id, rating, comment } = req.body;
+
+      if (!product_id || !rating) {
+        return res.status(400).json({
+          success: false,
+          message: "product_id và rating là bắt buộc",
+        });
+      }
+
+      const result = await ReviewService.createOrUpdateReview(
+        userId,
+        Number(product_id),
+        Number(rating),
+        comment || ""
+      );
+
+      return response.success(res, result, result.message);
+    } catch (error) {
+      return res.status(400).json({
+        success: false,
+        message: error.message || "Không thể đánh giá sản phẩm",
+      });
+    }
+  }
+
+  async getMyReview(req, res, next) {
+    try {
+      const userId = req.user.id;
+      const { productId } = req.params;
+
+      const data = await ReviewService.getMyReview(userId, Number(productId));
+
+      return response.success(res, data, "Lấy đánh giá của bạn thành công");
+    } catch (error) {
+      next(error);
+    }
+  }
+}
+
+module.exports = new ReviewController();

@@ -84,7 +84,7 @@ export default function FavoritePage() {
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center gap-3 mb-8">
             <Heart className="w-7 h-7 text-red-500 fill-current" />
-            <h1 className="text-3xl font-bold text-gray-900">
+            <h1 className="text-1xl text-gray-900">
               Danh sách yêu thích
             </h1>
           </div>
