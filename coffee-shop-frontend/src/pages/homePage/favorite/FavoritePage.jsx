@@ -121,13 +121,9 @@ export default function FavoritePage() {
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 {favorites.map((item) => {
-                  const itemImages = Array.isArray(item.images)
-                    ? item.images
-                    : [];
 
                   const itemSizes = Array.isArray(item.sizes) ? item.sizes : [];
-
-                  const image = itemImages[0]?.image_url || defaultImage;
+                  const image = item.image_url || defaultImage;
 
                   const minPrice =
                     itemSizes.length > 0
