@@ -16,9 +16,9 @@ class FavoriteRepository extends BaseRepository {
     return rows[0] || null;
   }
 
-  async getFavoritesByUser(userId, { keyword = "", page = 1, limit = 8 }) {
+  async getFavoritesByUser(userId, { keyword = "", page = 1, limit = 4 }) {
     const currentPage = Math.max(1, Number(page) || 1);
-    const pageSize = Math.max(1, Number(limit) || 8);
+    const pageSize = Math.max(1, Number(limit) || 4);
     const offset = (currentPage - 1) * pageSize;
     const searchKeyword = `%${keyword}%`;
 

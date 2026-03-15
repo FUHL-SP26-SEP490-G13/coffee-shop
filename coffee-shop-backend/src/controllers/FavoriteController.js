@@ -5,7 +5,7 @@ class FavoriteController {
   async getMyFavorites(req, res, next) {
     try {
       const userId = req.user.id;
-      const { keyword = "", page = 1, limit = 8 } = req.query;
+      const { keyword = "", page = 1, limit = 4 } = req.query;
 
       const favorites = await FavoriteService.getMyFavorites(userId, {
         keyword,
