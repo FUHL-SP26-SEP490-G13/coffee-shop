@@ -10,20 +10,22 @@ const bannerService = {
     return axiosClient.get(API_ENDPOINTS.BANNERS.ADMIN, { params });
   },
 
-  create(formData) {
+  create(formData, config = {}) {
     return axiosClient.post(API_ENDPOINTS.BANNERS.ADMIN, formData, {
       headers: {
         "Content-Type": "multipart/form-data",
       },
+      ...config,
     });
   },
 
-  update(id, formData) {
+  update(id, formData, config = {}) {
     const url = API_ENDPOINTS.BANNERS.GET_BY_ID.replace("{id}", id);
     return axiosClient.put(url, formData, {
       headers: {
         "Content-Type": "multipart/form-data",
       },
+      ...config,
     });
   },
 

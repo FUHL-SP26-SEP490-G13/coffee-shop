@@ -80,7 +80,7 @@ class NewsController {
 
   async getAllAdmin(req, res, next) {
     try {
-      const { page = 1, limit = 10, keyword = "" } = req.query;
+      const { page = 1, limit = 7, keyword = "" } = req.query;
 
       const news = await NewsService.getAllAdmin({
         page: parseInt(page),

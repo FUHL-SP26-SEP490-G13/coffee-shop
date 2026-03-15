@@ -8,6 +8,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Loader2 } from "lucide-react";
 
 export default function BannerFormDialog({
   open,
@@ -21,9 +22,17 @@ export default function BannerFormDialog({
   setErrors,
   handleChange,
   handleSubmit,
+  submitting,
+  uploadProgress,
 }) {
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (submitting) return;
+        onOpenChange(nextOpen);
+      }}
+    >
       <DialogContent className="max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
@@ -171,12 +180,38 @@ export default function BannerFormDialog({
           )}
         </div>
 
+        {submitting && uploadProgress > 0 && (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-sm">
+              <span>Đang tải ảnh lên...</span>
+              <span>{uploadProgress}%</span>
+            </div>
+
+            <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+              <div
+                className="h-full bg-primary transition-all duration-300"
+                style={{ width: `${uploadProgress}%` }}
+              />
+            </div>
+          </div>
+        )}
+        
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={submitting}
+          >
             Hủy
           </Button>
-          <Button onClick={handleSubmit}>
-            {editingBanner ? "Cập nhật" : "Tạo mới"}
+
+          <Button onClick={handleSubmit} disabled={submitting}>
+            {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {submitting
+              ? "Đang lưu..."
+              : editingBanner
+              ? "Cập nhật"
+              : "Tạo mới"}
           </Button>
         </DialogFooter>
       </DialogContent>

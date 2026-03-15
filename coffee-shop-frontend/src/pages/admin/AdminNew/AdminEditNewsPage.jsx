@@ -23,7 +23,8 @@ export default function AdminEditNewsPage() {
     views: 0,
   });
 
-  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [newPreview, setNewPreview] = useState(null);
   const [newFile, setNewFile] = useState(null);
@@ -80,14 +81,13 @@ export default function AdminEditNewsPage() {
     setErrors(newErrors);
 
     if (Object.keys(newErrors).length > 0) {
-      const firstError = Object.values(newErrors)[0];
-      toast.error(firstError || "Dữ liệu không hợp lệ");
       return;
     }
 
-    try {
-      setLoading(true);
+    setSubmitting(true);
+    setUploadProgress(0);
 
+    try {
       const formData = new FormData();
       formData.append("title", form.title.trim());
       formData.append("summary", form.summary.trim());
@@ -98,10 +98,19 @@ export default function AdminEditNewsPage() {
         formData.append("thumbnail", newFile);
       }
 
-      await newsService.update(id, formData);
+      const config = {
+        onUploadProgress: (progressEvent) => {
+          const total = progressEvent.total || 0;
+          if (!total) return;
+
+          const percent = Math.round((progressEvent.loaded * 100) / total);
+          setUploadProgress(percent);
+        },
+      };
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await newsService.update(id, formData, config);
 
       toast.success("Cập nhật bài viết thành công");
-
       navigate("/admin/news-list");
     } catch (error) {
       const res = error.response?.data;
@@ -115,18 +124,24 @@ export default function AdminEditNewsPage() {
 
         setErrors(serverErrors);
 
-        const firstError = Object.values(serverErrors)[0];
-        toast.error(firstError || res?.message || "Dữ liệu không hợp lệ");
+        const duplicatedTitleError = res.errors.find(
+          (err) =>
+            err.field === "title" &&
+            err.message === "Tiêu đề bài viết đã tồn tại"
+        );
+
+        if (duplicatedTitleError) {
+          toast.error("Tiêu đề bài viết đã tồn tại");
+        }
       } else {
         setErrors((prev) => ({
           ...prev,
           server: res?.message || "Có lỗi xảy ra",
         }));
-
-        toast.error(res?.message || "Cập nhật thất bại");
       }
     } finally {
-      setLoading(false);
+      setSubmitting(false);
+      setUploadProgress(0);
     }
   };
 
@@ -316,18 +331,43 @@ export default function AdminEditNewsPage() {
               <p className="text-sm text-red-500">{errors.server}</p>
             )}
 
+            {submitting && (
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm text-muted-foreground">
+                  <span>
+                    {uploadProgress > 0
+                      ? "Đang tải ảnh..."
+                      : "Đang lưu dữ liệu..."}
+                  </span>
+                  <span>
+                    {uploadProgress > 0 ? `${uploadProgress}%` : "Vui lòng chờ"}
+                  </span>
+                </div>
+
+                <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-primary transition-all duration-200"
+                    style={{
+                      width: uploadProgress > 0 ? `${uploadProgress}%` : "50%",
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+
             <div className="flex gap-3 pt-4">
               <Button
                 onClick={handleSubmit}
-                disabled={loading}
+                disabled={submitting}
                 className="gap-2"
               >
-                {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-                {loading ? "Đang lưu..." : "Lưu thay đổi"}
+                {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
+                {submitting ? "Đang lưu..." : "Lưu thay đổi"}
               </Button>
               <Button
                 variant="outline"
                 onClick={() => navigate("/admin/news-list")}
+                disabled={submitting}
               >
                 Hủy
               </Button>

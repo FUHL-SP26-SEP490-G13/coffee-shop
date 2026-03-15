@@ -38,6 +38,8 @@ export default function AdminDiscounts() {
   const abortRef = useRef(null);
   const navigate = useNavigate();
 
+  const PAGE_SIZE = 7;
+
   const fetchDiscounts = async (
     currentPage = page,
     search = keyword,
@@ -57,6 +59,7 @@ export default function AdminDiscounts() {
       const res = await discountService.getAll(
         {
           page: currentPage,
+          limit: PAGE_SIZE,
           code: search,
           status,
         },
@@ -103,7 +106,6 @@ export default function AdminDiscounts() {
       await fetchDiscounts(page, keyword, statusFilter);
     } catch (err) {
       console.error(err);
-      toast.error(err?.response?.data?.message || "Xóa thất bại");
     } finally {
       setLoadingId(null);
     }
@@ -260,7 +262,7 @@ export default function AdminDiscounts() {
               ) : (
                 data.map((item, index) => {
                   const status = getStatusInfo(item);
-                  const stt = (page - 1) * 10 + index + 1;
+                  const stt = (page - 1) * PAGE_SIZE + index + 1;
                   return (
                     <TableRow key={item.id}>
                       <TableCell className="text-center font-medium">

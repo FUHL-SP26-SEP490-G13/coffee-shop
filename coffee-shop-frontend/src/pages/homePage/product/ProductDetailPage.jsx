@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Loader2, Plus, ChevronDown, ChevronUp } from "lucide-react";
+import { Loader2, Plus, ChevronDown, ChevronUp, Heart } from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
@@ -13,10 +13,18 @@ import { Pagination, Navigation, Autoplay } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/pagination";
 import "swiper/css/navigation";
+import favoriteService from "@/services/favoriteService";
+import { STORAGE_KEYS } from "@/constants";
 
 export default function ProductDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+
+  const token =
+    localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN) ||
+    sessionStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
+
+  const isLoggedIn = !!token;
 
   const [selectedSize, setSelectedSize] = useState(null);
   const [quantity, setQuantity] = useState(1);
@@ -24,6 +32,9 @@ export default function ProductDetailPage() {
   const [toppings, setToppings] = useState([]);
   const [selectedToppings, setSelectedToppings] = useState([]);
   const [showToppings, setShowToppings] = useState(false);
+
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [favoriteLoading, setFavoriteLoading] = useState(false);
 
   const fetchProduct = useCallback(() => {
     return productService.getById(id);
@@ -72,6 +83,25 @@ export default function ProductDetailPage() {
 
     fetchToppings();
   }, []);
+
+  useEffect(() => {
+    const fetchFavoriteStatus = async () => {
+      if (!product?.id || !isLoggedIn) {
+        setIsFavorite(false);
+        return;
+      }
+
+      try {
+        const res = await favoriteService.checkFavorite(product.id);
+        setIsFavorite(Boolean(res?.data?.isFavorite));
+      } catch (error) {
+        console.error("Lỗi kiểm tra yêu thích:", error);
+        setIsFavorite(false);
+      }
+    };
+
+    fetchFavoriteStatus();
+  }, [product?.id, isLoggedIn]);
 
   const selectedSizeObj = useMemo(() => {
     return sizes.find((s) => s.size === selectedSize) || null;
@@ -143,6 +173,35 @@ export default function ProductDetailPage() {
         },
       ];
     });
+  };
+
+  const handleToggleFavorite = async () => {
+    if (!product?.id) return;
+
+    if (!isLoggedIn) {
+      alert("Bạn phải đăng nhập để thêm sản phẩm yêu thích");
+      return;
+    }
+
+    try {
+      setFavoriteLoading(true);
+
+      const res = await favoriteService.toggleFavorite(product.id, isFavorite);
+
+      setIsFavorite(Boolean(res?.data?.isFavorite));
+
+      alert(
+        res?.message ||
+          (!isFavorite
+            ? "Đã thêm sản phẩm vào yêu thích"
+            : "Đã bỏ sản phẩm khỏi yêu thích")
+      );
+    } catch (error) {
+      console.error("Lỗi cập nhật yêu thích:", error);
+      alert(error?.message || "Không thể cập nhật yêu thích");
+    } finally {
+      setFavoriteLoading(false);
+    }
   };
 
   const updateToppingQuantity = (toppingId, nextQuantity) => {
@@ -282,6 +341,26 @@ export default function ProductDetailPage() {
                   {product.name}
                 </h1>
               </div>
+
+              <button
+                type="button"
+                onClick={handleToggleFavorite}
+                disabled={favoriteLoading}
+                className={`shrink-0 w-12 h-12 rounded-full border flex items-center justify-center transition ${
+                  isFavorite
+                    ? "bg-red-50 border-red-500 text-red-500"
+                    : "bg-white border-gray-300 text-gray-500 hover:border-red-400 hover:text-red-500"
+                }`}
+                title={isFavorite ? "Bỏ yêu thích" : "Thêm vào yêu thích"}
+              >
+                {favoriteLoading ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <Heart
+                    className={`w-5 h-5 ${isFavorite ? "fill-current" : ""}`}
+                  />
+                )}
+              </button>
             </div>
 
             {sizes.length > 0 && (

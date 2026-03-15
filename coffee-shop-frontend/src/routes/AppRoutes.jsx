@@ -52,6 +52,7 @@ import PayOSReturnSuccess from "@/pages/common/PayOSReturnSuccess";
 import AdminDB from "@/pages/admin/AdminDB/AdminDB";
 import AdminSubscriber from "@/pages/admin/AdminSubscriber/AdminSubscriber";
 import { BaristaDashboard } from "@/pages/barista/BaristaDashboard";
+import FavoritePage from "@/pages/homePage/favorite/FavoritePage";
 
 const getStoredValue = (key) =>
   localStorage.getItem(key) || sessionStorage.getItem(key);
@@ -192,6 +193,14 @@ const AppRoutes = () => {
       <Route path="/news/:slug" element={<NewsDetailPage />} />
       <Route path="/news" element={<NewsListPage />} />
       <Route path="/customer/profile" element={<UserProfile />} />
+      <Route
+        path="/favorites"
+        element={
+          <RoleGuard allowedRoles={[4]}>
+            <FavoritePage />
+          </RoleGuard>
+        }
+      />
       <Route path="/order-policy" element={<OrderPolicy />} />
       <Route path="/privacy-policy" element={<PrivacyPolicy />} />
       <Route path="/payment-policy" element={<PaymentPolicyPage />} />

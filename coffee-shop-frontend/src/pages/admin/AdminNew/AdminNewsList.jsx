@@ -2,13 +2,11 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Loader2,
-  Search,
   ChevronLeft,
   ChevronRight,
   Trash2,
   Eye,
   Edit,
-  Mail,
   Newspaper,
   Plus,
 } from "lucide-react";
@@ -26,6 +24,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 
+const PAGE_SIZE = 7;
+
 export default function AdminNewsList() {
   const [data, setData] = useState([]);
   const [page, setPage] = useState(1);
@@ -33,10 +33,10 @@ export default function AdminNewsList() {
   const [loadingId, setLoadingId] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
-  const navigate = useNavigate();
   const [keyword, setKeyword] = useState("");
+  const navigate = useNavigate();
 
-  const fetchNews = async (currentPage = page, search = keyword) => {
+  const fetchNews = async (currentPage = 1, search = "") => {
     try {
       setIsLoading(true);
       setError(null);
@@ -49,8 +49,6 @@ export default function AdminNewsList() {
     } catch (error) {
       console.error("Lỗi lấy danh sách tin:", error);
       setError("Không thể tải danh sách bài viết");
-
-      toast.error("Không thể tải danh sách bài viết");
     } finally {
       setIsLoading(false);
     }
@@ -62,7 +60,13 @@ export default function AdminNewsList() {
     }, 600);
 
     return () => clearTimeout(timeout);
-  }, [keyword, page]);
+  }, [page, keyword]);
+
+  const handleSearchChange = (e) => {
+    const value = e.target.value;
+    setKeyword(value);
+    setPage(1);
+  };
 
   const handleDelete = async (id) => {
     if (!window.confirm("Bạn có chắc muốn xóa bài viết này?")) return;
@@ -71,13 +75,15 @@ export default function AdminNewsList() {
       setLoadingId(id);
 
       await newsService.delete(id);
-
       toast.success("Xóa bài viết thành công");
 
-      fetchNews(page, keyword);
+      if (data.length === 1 && page > 1) {
+        setPage((prev) => prev - 1);
+      } else {
+        fetchNews(page, keyword);
+      }
     } catch (error) {
       console.error(error);
-      toast.error("Xóa bài viết thất bại");
     } finally {
       setLoadingId(null);
     }
@@ -90,7 +96,11 @@ export default function AdminNewsList() {
         <Button
           variant="outline"
           className="mt-4"
-          onClick={() => fetchNews(1, "")}
+          onClick={() => {
+            setPage(1);
+            setKeyword("");
+            fetchNews(1, "");
+          }}
         >
           Thử lại
         </Button>
@@ -100,7 +110,6 @@ export default function AdminNewsList() {
 
   return (
     <div className="p-6">
-      {/* HEADER */}
       <div className="mb-6">
         <div className="flex justify-between items-start mb-6">
           <div className="flex items-center gap-3">
@@ -121,16 +130,14 @@ export default function AdminNewsList() {
           </Button>
         </div>
 
-        {/* SEARCH */}
         <Input
           placeholder="Tìm theo tiêu đề hoặc tag..."
           value={keyword}
-          onChange={(e) => setKeyword(e.target.value)}
+          onChange={handleSearchChange}
           className="pl-9"
         />
       </div>
 
-      {/* TABLE */}
       <div className="relative bg-card rounded-xl border border-border overflow-hidden">
         {isLoading && (
           <div className="absolute inset-0 bg-white/50 flex items-center justify-center z-10">
@@ -158,6 +165,7 @@ export default function AdminNewsList() {
                 </TableHead>
               </TableRow>
             </TableHeader>
+
             <TableBody>
               {data.length === 0 ? (
                 <TableRow>
@@ -170,7 +178,7 @@ export default function AdminNewsList() {
                 </TableRow>
               ) : (
                 data.map((item, index) => {
-                  const stt = (page - 1) * 10 + index + 1;
+                  const stt = (page - 1) * PAGE_SIZE + index + 1;
 
                   return (
                     <TableRow key={item.id}>
@@ -254,17 +262,17 @@ export default function AdminNewsList() {
         )}
       </div>
 
-      {/* PAGINATION */}
       {!isLoading && totalPages > 1 && (
         <div className="mt-6 flex items-center justify-between">
           <div className="text-sm text-muted-foreground">
             Trang {page} / {totalPages}
           </div>
+
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              onClick={() => setPage((prev) => Math.max(1, prev - 1))}
               disabled={page === 1}
             >
               <ChevronLeft className="h-4 w-4 mr-1" />
@@ -274,6 +282,7 @@ export default function AdminNewsList() {
             <div className="flex gap-1">
               {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                 let pageNum;
+
                 if (totalPages <= 5) {
                   pageNum = i + 1;
                 } else if (page <= 3) {
@@ -283,6 +292,7 @@ export default function AdminNewsList() {
                 } else {
                   pageNum = page - 2 + i;
                 }
+
                 return (
                   <Button
                     key={pageNum}
@@ -300,7 +310,7 @@ export default function AdminNewsList() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
               disabled={page === totalPages}
             >
               Sau

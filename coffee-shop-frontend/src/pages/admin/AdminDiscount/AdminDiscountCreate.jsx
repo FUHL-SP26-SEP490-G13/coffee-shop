@@ -30,7 +30,7 @@ export default function AdminDiscountCreate() {
     valid_until: "",
   });
 
-  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
 
   const formatCurrency = (value) => {
@@ -64,20 +64,24 @@ export default function AdminDiscountCreate() {
     setErrors(nextErrors);
 
     if (Object.keys(nextErrors).length > 0) {
-      const firstError = Object.values(nextErrors)[0];
-      toast.error(firstError || "Dữ liệu không hợp lệ");
       return;
     }
+
+    setSubmitting(true);
+
     try {
-      setLoading(true);
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
       await discountService.create({
         code: form.code.trim(),
         description: form.description.trim(),
         percentage: Number(form.percentage),
         min_order_amount: Number(form.min_order_amount),
-        max_discount_amount: Number(form.max_discount_amount),
-        usage_limit: Number(form.usage_limit),
+        max_discount_amount:
+          form.max_discount_amount === ""
+            ? null
+            : Number(form.max_discount_amount),
+        usage_limit: form.usage_limit === "" ? null : Number(form.usage_limit),
         valid_from: form.valid_from,
         valid_until: form.valid_until,
       });
@@ -97,8 +101,15 @@ export default function AdminDiscountCreate() {
 
         setErrors(beErrors);
 
-        const firstError = Object.values(beErrors)[0];
-        toast.error(firstError || response.message || "Dữ liệu không hợp lệ");
+        const duplicatedCodeError = response.errors.find(
+          (item) =>
+            item.field === "code" && item.message === "Mã giảm giá đã tồn tại"
+        );
+
+        if (duplicatedCodeError) {
+          toast.error("Mã giảm giá đã tồn tại");
+        }
+
         return;
       }
 
@@ -106,9 +117,8 @@ export default function AdminDiscountCreate() {
         ...prev,
         server: response?.message || "Tạo thất bại",
       }));
-      toast.error(response?.message || "Tạo thất bại");
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
 
@@ -385,12 +395,25 @@ export default function AdminDiscountCreate() {
             <p className="text-sm text-destructive">{errors.server}</p>
           )}
 
+          {submitting && (
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm text-muted-foreground">
+                <span>Đang lưu dữ liệu...</span>
+                <span>Vui lòng chờ</span>
+              </div>
+
+              <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+                <div className="h-full w-1/2 bg-primary animate-pulse" />
+              </div>
+            </div>
+          )}
+
           <div className="flex flex-col sm:flex-row gap-3 pt-4">
-            <Button type="submit" disabled={loading} className="sm:flex-1">
-              {loading ? (
+            <Button type="submit" disabled={submitting} className="sm:flex-1">
+              {submitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Đang tạo...
+                  Đang lưu...
                 </>
               ) : (
                 <>
@@ -404,7 +427,7 @@ export default function AdminDiscountCreate() {
               type="button"
               variant="outline"
               onClick={() => navigate("/admin/discounts")}
-              disabled={loading}
+              disabled={submitting}
               className="sm:flex-1"
             >
               Hủy

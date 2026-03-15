@@ -28,7 +28,8 @@ export default function AdminNewsCreatePage() {
   });
 
   const [preview, setPreview] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [aiLoadingTitle, setAiLoadingTitle] = useState(false);
   const [aiLoadingSummary, setAiLoadingSummary] = useState(false);
   const [errors, setErrors] = useState({});
@@ -90,7 +91,6 @@ export default function AdminNewsCreatePage() {
         ...prev,
         server: "Không thể lấy gợi ý AI từ tiêu đề",
       }));
-      toast.error("Không thể lấy gợi ý AI từ tiêu đề");
     } finally {
       setAiLoadingTitle(false);
     }
@@ -120,7 +120,6 @@ export default function AdminNewsCreatePage() {
         ...prev,
         server: "Không thể lấy gợi ý nội dung từ tóm tắt",
       }));
-      toast.error("Không thể lấy gợi ý nội dung từ tóm tắt");
     } finally {
       setAiLoadingSummary(false);
     }
@@ -186,7 +185,6 @@ export default function AdminNewsCreatePage() {
         ...prev,
         title: "Tiêu đề phải có ít nhất 10 ký tự",
       }));
-      toast.error("Tiêu đề phải có ít nhất 10 ký tự");
       return;
     }
 
@@ -195,7 +193,6 @@ export default function AdminNewsCreatePage() {
         ...prev,
         summary: "Tóm tắt phải có ít nhất 10 ký tự",
       }));
-      toast.error("Tóm tắt phải có ít nhất 10 ký tự");
       return;
     }
 
@@ -207,14 +204,13 @@ export default function AdminNewsCreatePage() {
     setErrors(newErrors);
 
     if (Object.keys(newErrors).length > 0) {
-      const firstError = Object.values(newErrors)[0];
-      toast.error(firstError || "Dữ liệu không hợp lệ");
       return;
     }
 
-    try {
-      setLoading(true);
+    setSubmitting(true);
+    setUploadProgress(0);
 
+    try {
       const formData = new FormData();
       formData.append("title", form.title.trim());
       formData.append("summary", form.summary.trim());
@@ -223,7 +219,18 @@ export default function AdminNewsCreatePage() {
       formData.append("tag", form.tag.trim().toLowerCase());
       formData.append("thumbnail", form.thumbnail);
 
-      await newsService.create(formData);
+      const config = {
+        onUploadProgress: (progressEvent) => {
+          const total = progressEvent.total || 0;
+          if (!total) return;
+
+          const percent = Math.round((progressEvent.loaded * 100) / total);
+          setUploadProgress(percent);
+        },
+      };
+
+      //await new Promise((resolve) => setTimeout(resolve, 800));
+      await newsService.create(formData, config);
 
       toast.success("Tạo bài viết thành công");
       navigate("/admin/news-list");
@@ -236,25 +243,29 @@ export default function AdminNewsCreatePage() {
 
         setErrors(backendErrors);
 
-        const firstError = Object.values(backendErrors)[0];
-        toast.error(
-          firstError || error.response?.data?.message || "Dữ liệu không hợp lệ"
+        const duplicatedTitleError = error.response.data.errors.find(
+          (err) =>
+            err.field === "title" &&
+            err.message === "Tiêu đề bài viết đã tồn tại"
         );
+
+        if (duplicatedTitleError) {
+          toast.error("Tiêu đề bài viết đã tồn tại");
+        }
       } else if (error.response?.data?.message) {
         setErrors((prev) => ({
           ...prev,
           server: error.response.data.message,
         }));
-        toast.error(error.response.data.message);
       } else {
         setErrors((prev) => ({
           ...prev,
           server: "Có lỗi xảy ra!",
         }));
-        toast.error("Tạo bài viết thất bại");
       }
     } finally {
-      setLoading(false);
+      setSubmitting(false);
+      setUploadProgress(0);
     }
   };
 
@@ -447,20 +458,44 @@ export default function AdminNewsCreatePage() {
               <p className="text-sm text-red-500">{errors.server}</p>
             )}
 
+            {submitting && (
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm text-muted-foreground">
+                  <span>
+                    {uploadProgress > 0
+                      ? "Đang tải ảnh..."
+                      : "Đang lưu dữ liệu..."}
+                  </span>
+                  <span>
+                    {uploadProgress > 0 ? `${uploadProgress}%` : "Vui lòng chờ"}
+                  </span>
+                </div>
+
+                <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-primary transition-all duration-200"
+                    style={{
+                      width: uploadProgress > 0 ? `${uploadProgress}%` : "50%",
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+
             <div className="flex gap-3 pt-4">
               <Button
                 onClick={handleSubmit}
-                disabled={loading}
+                disabled={submitting}
                 className="gap-2"
               >
-                {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-                {loading ? "Đang đăng..." : "Đăng bài"}
+                {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
+                {submitting ? "Đang lưu..." : "Đăng bài"}
               </Button>
 
               <Button
                 variant="outline"
                 onClick={() => navigate("/admin/news-list")}
-                disabled={loading}
+                disabled={submitting}
               >
                 Hủy
               </Button>

@@ -15,6 +15,9 @@ export default function AdminBanner() {
   const [banners, setBanners] = useState([]);
   const [loading, setLoading] = useState(false);
 
+  const [submitting, setSubmitting] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [keyword, setKeyword] = useState("");
@@ -147,10 +150,11 @@ export default function AdminBanner() {
     setErrors(newErrors);
 
     if (Object.keys(newErrors).length > 0) {
-      const firstError = Object.values(newErrors)[0];
-      toast.error(firstError || "Dữ liệu không hợp lệ");
       return;
     }
+
+    setSubmitting(true);
+    setUploadProgress(0);
 
     try {
       const fd = new FormData();
@@ -166,11 +170,23 @@ export default function AdminBanner() {
         fd.append("image", form.image);
       }
 
+      const config = {
+        onUploadProgress: (progressEvent) => {
+          const total = progressEvent.total || 0;
+          if (!total) return;
+
+          const percent = Math.round((progressEvent.loaded * 100) / total);
+          setUploadProgress(percent);
+        },
+      };
+
       if (editingBanner) {
-        await bannerService.update(editingBanner.id, fd);
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        await bannerService.update(editingBanner.id, fd, config);
         toast.success("Cập nhật quảng cáo thành công");
       } else {
-        await bannerService.create(fd);
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        await bannerService.create(fd, config);
         toast.success("Tạo quảng cáo thành công");
       }
 
@@ -186,23 +202,28 @@ export default function AdminBanner() {
 
         setErrors(backendErrors);
 
-        const firstError = Object.values(backendErrors)[0];
-        toast.error(
-          firstError || err.response?.data?.message || "Dữ liệu không hợp lệ"
+        const duplicatedTitleError = err.response.data.errors.find(
+          (e) =>
+            e.field === "title" && e.message === "Tiêu đề quảng cáo đã tồn tại"
         );
+
+        if (duplicatedTitleError) {
+          toast.error("Tiêu đề quảng cáo đã tồn tại");
+        }
       } else if (err.response?.data?.message) {
         setErrors((prev) => ({
           ...prev,
           server: err.response.data.message,
         }));
-        toast.error(err.response.data.message);
       } else {
         setErrors((prev) => ({
           ...prev,
           server: "Có lỗi xảy ra!",
         }));
-        toast.error("Thao tác thất bại");
       }
+    } finally {
+      setSubmitting(false);
+      setUploadProgress(0);
     }
   };
 
@@ -215,7 +236,6 @@ export default function AdminBanner() {
       fetchData();
     } catch (err) {
       console.error(err);
-      toast.error("Xóa quảng cáo thất bại");
     }
   };
 
@@ -318,6 +338,8 @@ export default function AdminBanner() {
         setErrors={setErrors}
         handleChange={handleChange}
         handleSubmit={handleSubmit}
+        submitting={submitting}
+        uploadProgress={uploadProgress}
       />
     </div>
   );

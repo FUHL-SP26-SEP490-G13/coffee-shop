@@ -13,6 +13,7 @@ import {
   Grid3X3,
   Loader2,
   Bell,
+  Heart,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -659,7 +660,7 @@ function Header() {
                           : 0;
 
                         const price = basePrice + toppingsTotal;
-                        
+
                         const quantity = Number(item.quantity) || 1;
 
                         return (
@@ -872,6 +873,19 @@ function Header() {
                       >
                         <Package className="w-4 h-4 mr-2" />
                         <span>Đơn hàng</span>
+                      </Button>
+
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          navigate("/favorites");
+                          setOpen(false);
+                        }}
+                        className="w-full text-left px-3 py-2 text-gray-700 transition text-xs sm:text-sm justify-start"
+                      >
+                        <Heart className="w-4 h-4 mr-2" />
+                        <span>Yêu thích</span>
                       </Button>
 
                       <Button
@@ -1149,6 +1163,20 @@ function Header() {
                     >
                       <Package className="w-4 h-4 mr-2" />
                       Đơn hàng
+                    </Button>
+
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        navigate("/favorites");
+                        setMobileUserDropdownOpen(false);
+                        setMobileMenuOpen(false);
+                      }}
+                      className="w-full justify-start text-gray-700 text-xs"
+                    >
+                      <Heart className="w-4 h-4 mr-2" />
+                      Yêu thích
                     </Button>
 
                     <Button

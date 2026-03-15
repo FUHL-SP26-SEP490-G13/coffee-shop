@@ -20,6 +20,7 @@ const notificationRoutes = require("./notification.routes");
 const ingredientRoutes = require("./ingredient.routes");
 const productSizeRoutes = require("./productSize.routes");
 const orderRoutes = require("./order.routes");
+const favoriteRoutes = require("./favorite.routes");
 
 // Mount routes
 router.use("/auth", authRoutes);
@@ -43,6 +44,7 @@ router.use("/banners", bannerRoutes);
 router.use("/notifications", notificationRoutes);
 router.use("/discounts", discountRoutes);
 router.use("/orders", orderRoutes);
+router.use("/favorites", favoriteRoutes);
 
 // Health check endpoint
 router.get("/health", (req, res) => {

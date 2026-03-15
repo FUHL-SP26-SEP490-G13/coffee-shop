@@ -70,6 +70,11 @@ export const API_ENDPOINTS = {
     SEARCH: "/products/search",
     BEST_SELLERS: "/products/best-sellers",
   },
+  FAVORITES: {
+    BASE: "/favorites",
+    CHECK: (productId) => `/favorites/check/${productId}`,
+    REMOVE: (productId) => `/favorites/${productId}`,
+  },
   ORDERS: "/orders",
   TOPPINGS: "/toppings",
   TOPPINGS_ADMIN: "/admin/toppings",

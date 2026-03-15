@@ -4,7 +4,7 @@ const response = require("../utils/response");
 class DiscountController {
   async getAll(req, res, next) {
     try {
-      const { page = 1, limit = 10, code = "", status = "" } = req.query;
+      const { page = 1, limit = 7, code = "", status = "" } = req.query;
 
       const discounts = await DiscountService.getAll({
         page: parseInt(page),
