@@ -139,7 +139,6 @@ export default function ProductListPage() {
 
     if (!isLoggedIn) {
       alert("Bạn phải đăng nhập để thêm sản phẩm yêu thích");
-      navigate("/login");
       return;
     }
 

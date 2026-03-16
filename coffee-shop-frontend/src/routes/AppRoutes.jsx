@@ -53,6 +53,7 @@ import AdminDB from "@/pages/admin/AdminDB/AdminDB";
 import AdminSubscriber from "@/pages/admin/AdminSubscriber/AdminSubscriber";
 import { BaristaDashboard } from "@/pages/barista/BaristaDashboard";
 import FavoritePage from "@/pages/homePage/favorite/FavoritePage";
+import AdminReviews from "@/pages/admin/AdminReview/AdminReview";
 
 const getStoredValue = (key) =>
   localStorage.getItem(key) || sessionStorage.getItem(key);
@@ -189,6 +190,7 @@ const AppRoutes = () => {
         <Route path="banners" element={<AdminBanner />} />
         <Route path="tables" element={<AdminTables />} />
         <Route path="toppings" element={<AdminToppings />} />
+        <Route path="reviews" element={<AdminReviews />} />
       </Route>
       <Route path="/news/:slug" element={<NewsDetailPage />} />
       <Route path="/news" element={<NewsListPage />} />

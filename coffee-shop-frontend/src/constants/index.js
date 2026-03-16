@@ -79,6 +79,11 @@ export const API_ENDPOINTS = {
   TOPPINGS: "/toppings",
   TOPPINGS_ADMIN: "/admin/toppings",
   AREAS: "/area",
+  REVIEWS: {
+    BASE: "/reviews",
+    BY_PRODUCT: (productId) => `/reviews/product/${productId}`,
+    MY_REVIEW: (productId) => `/reviews/me/${productId}`,
+  },
 };
 
 // Các hằng số khác

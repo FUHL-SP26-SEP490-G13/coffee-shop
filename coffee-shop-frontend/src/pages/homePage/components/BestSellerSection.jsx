@@ -70,7 +70,6 @@ export default function BestSellerSection({
 
     if (!isLoggedIn) {
       alert("Bạn phải đăng nhập để thêm sản phẩm yêu thích");
-      navigate("/login");
       return;
     }
 
