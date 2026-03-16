@@ -350,6 +350,55 @@ router.get("/", (req, res) => {
         }
         */
       },
+      reviews: {
+        getByProduct: "GET /api/reviews/product/:productId",
+        /*
+        http://localhost:5000/api/reviews/product/12
+        -> Lấy danh sách đánh giá của sản phẩm
+        */
+
+        getMyReview: "GET /api/reviews/me/:productId (Authenticated)",
+        /*
+        http://localhost:5000/api/reviews/me/1
+
+        Lấy review của chính user cho sản phẩm.
+
+        Cần token:
+        http://localhost:5000/api/auth/login
+        {
+        "identifier": "cus1@gmail.com",
+        "password": "admin123"
+        }
+        */
+        createOrUpdate: "POST /api/reviews (Authenticated)",
+        /*
+        http://localhost:5000/api/reviews
+
+        {
+          "product_id": 1,
+          "rating": 5,
+          "comment": "Cà phê rất ngon"
+        }
+
+        - Nếu chưa review -> tạo mới
+        - Nếu đã review -> update
+        - Chỉ review được sản phẩm đã mua
+        */
+
+        getAllAdmin: "GET /api/reviews?page=1&limit=7&keyword= (Authenticated)",
+        /*
+        http://localhost:5000/api/reviews
+        http://localhost:5000/api/reviews?page=1&limit=7
+        http://localhost:5000/api/reviews?page=1&limit=7&keyword=coffee
+
+        -> Lấy danh sách tất cả review (admin quản lý)
+        -> Search theo:
+          - tên sản phẩm
+          - tên người dùng
+          - comment
+          - rating
+        */
+      },
     },
   });
 });
