@@ -1,5 +1,4 @@
 const ReviewService = require("../services/ReviewService");
-const response = require("../utils/response");
 
 class ReviewController {
   async getByProductId(req, res, next) {
@@ -7,7 +6,11 @@ class ReviewController {
       const { productId } = req.params;
       const data = await ReviewService.getByProductId(Number(productId));
 
-      return response.success(res, data, "Lấy danh sách đánh giá thành công");
+      return res.status(200).json({
+        success: true,
+        data,
+        message: "Lấy danh sách đánh giá thành công",
+      });
     } catch (error) {
       next(error);
     }
@@ -32,7 +35,11 @@ class ReviewController {
         comment || ""
       );
 
-      return response.success(res, result, result.message);
+      return res.status(200).json({
+        success: true,
+        data: result,
+        message: result.message,
+      });
     } catch (error) {
       return res.status(400).json({
         success: false,
@@ -48,7 +55,11 @@ class ReviewController {
 
       const data = await ReviewService.getMyReview(userId, Number(productId));
 
-      return response.success(res, data, "Lấy đánh giá của bạn thành công");
+      return res.status(200).json({
+        success: true,
+        data,
+        message: "Lấy đánh giá của bạn thành công",
+      });
     } catch (error) {
       next(error);
     }
@@ -64,7 +75,11 @@ class ReviewController {
         limit: Number(limit),
       });
 
-      return response.success(res, data, "Lấy danh sách review thành công");
+      return res.status(200).json({
+        success: true,
+        data,
+        message: "Lấy danh sách review thành công",
+      });
     } catch (error) {
       next(error);
     }
