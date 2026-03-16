@@ -1,14 +1,18 @@
-const UserRepository = require('../repositories/UserRepository');
-const { hashPassword, generateStrongPassword, comparePassword } = require('../utils/helpers');
-const EmailService = require('./EmailService');
-const { ROLES } = require('../config/constants');
+const UserRepository = require("../repositories/UserRepository");
+const {
+  hashPassword,
+  generateStrongPassword,
+  comparePassword,
+} = require("../utils/helpers");
+const EmailService = require("./EmailService");
+const { ROLES } = require("../config/constants");
 
 class UserService {
   /**
    * Get all users
    */
   async getAllUsers(options = {}) {
-    return UserRepository.findAll({ }, options);
+    return UserRepository.findAll({}, options);
   }
 
   /**
@@ -18,7 +22,7 @@ class UserService {
     const user = await UserRepository.findByIdWithRole(id);
 
     if (!user) {
-      throw new Error('User không tồn tại');
+      throw new Error("User không tồn tại");
     }
 
     // Remove password from response
@@ -34,7 +38,7 @@ class UserService {
     const user = await UserRepository.findByIdWithAddresses(id);
 
     if (!user) {
-      throw new Error('User không tồn tại');
+      throw new Error("User không tồn tại");
     }
 
     // Remove password from response
@@ -59,7 +63,7 @@ class UserService {
    * Search users
    */
   async searchUsers(keyword, options = {}) {
-    if (!keyword || keyword.trim() === '') {
+    if (!keyword || keyword.trim() === "") {
       return this.getAllUsers(options);
     }
 
@@ -77,22 +81,22 @@ class UserService {
   async createStaffUser(data) {
     const roleId = parseInt(data.role_id, 10);
     if (![ROLES.STAFF, ROLES.BARISTA].includes(roleId)) {
-      throw new Error('Role không hợp lệ');
+      throw new Error("Role không hợp lệ");
     }
 
     const existingEmail = await UserRepository.findByEmail(data.email);
     if (existingEmail) {
-      throw new Error('Email đã được sử dụng');
+      throw new Error("Email đã được sử dụng");
     }
 
     const existingPhone = await UserRepository.findByPhone(data.phone);
     if (existingPhone) {
-      throw new Error('Số điện thoại đã được sử dụng');
+      throw new Error("Số điện thoại đã được sử dụng");
     }
 
     const existingUsername = await UserRepository.findByUsername(data.username);
     if (existingUsername) {
-      throw new Error('Username đã được sử dụng');
+      throw new Error("Username đã được sử dụng");
     }
 
     const tempPassword = generateStrongPassword(12);
@@ -112,7 +116,7 @@ class UserService {
 
     delete user.password;
 
-    const roleLabel = roleId === ROLES.BARISTA ? 'Pha chế' : 'Phục vụ';
+    const roleLabel = roleId === ROLES.BARISTA ? "Pha chế" : "Phục vụ";
     let emailSent = true;
     try {
       await EmailService.sendStaffAccountEmail(
@@ -136,14 +140,14 @@ class UserService {
     const user = await UserRepository.findById(id);
 
     if (!user) {
-      throw new Error('User không tồn tại');
+      throw new Error("User không tồn tại");
     }
 
     // If updating email, check if it's already used by another user
     if (data.email && data.email !== user.email) {
       const emailExists = await UserRepository.emailExists(data.email, id);
       if (emailExists) {
-        throw new Error('Email đã được sử dụng');
+        throw new Error("Email đã được sử dụng");
       }
     }
 
@@ -151,15 +155,18 @@ class UserService {
     if (data.phone && data.phone !== user.phone) {
       const phoneExists = await UserRepository.phoneExists(data.phone, id);
       if (phoneExists) {
-        throw new Error('Số điện thoại đã được sử dụng');
+        throw new Error("Số điện thoại đã được sử dụng");
       }
     }
 
     // If updating username, check if it's already used by another user
     if (data.username && data.username !== user.username) {
-      const usernameExists = await UserRepository.usernameExists(data.username, id);
+      const usernameExists = await UserRepository.usernameExists(
+        data.username,
+        id
+      );
       if (usernameExists) {
-        throw new Error('Username đã được sử dụng');
+        throw new Error("Username đã được sử dụng");
       }
     }
 
@@ -185,14 +192,14 @@ class UserService {
     const user = await UserRepository.findById(userId);
 
     if (!user) {
-      throw new Error('User không tồn tại');
+      throw new Error("User không tồn tại");
     }
 
     // If updating phone, check if it's already used by another user
     if (data.phone && data.phone !== user.phone) {
       const phoneExists = await UserRepository.phoneExists(data.phone, userId);
       if (phoneExists) {
-        throw new Error('Số điện thoại đã được sử dụng');
+        throw new Error("Số điện thoại đã được sử dụng");
       }
     }
 
@@ -212,30 +219,30 @@ class UserService {
     // Verify admin password
     const admin = await UserRepository.findById(adminId);
     if (!admin) {
-      throw new Error('Admin không tồn tại');
+      throw new Error("Admin không tồn tại");
     }
 
     const isPasswordValid = await comparePassword(password, admin.password);
     if (!isPasswordValid) {
-      throw new Error('Mật khẩu không chính xác');
+      throw new Error("Mật khẩu không chính xác");
     }
 
     // Check if user exists
     const user = await UserRepository.findById(id);
 
     if (!user) {
-      throw new Error('User không tồn tại');
+      throw new Error("User không tồn tại");
     }
 
     if (user.isActive === 0) {
-      throw new Error('User đã bị vô hiệu hóa');
+      throw new Error("User đã bị vô hiệu hóa");
     }
 
     // Deactivate
     const deactivated = await UserRepository.deactivate(id);
 
     if (!deactivated) {
-      throw new Error('Vô hiệu hóa user thất bại');
+      throw new Error("Vô hiệu hóa user thất bại");
     }
 
     return true;
@@ -248,30 +255,30 @@ class UserService {
     // Verify admin password
     const admin = await UserRepository.findById(adminId);
     if (!admin) {
-      throw new Error('Admin không tồn tại');
+      throw new Error("Admin không tồn tại");
     }
 
     const isPasswordValid = await comparePassword(password, admin.password);
     if (!isPasswordValid) {
-      throw new Error('Mật khẩu không chính xác');
+      throw new Error("Mật khẩu không chính xác");
     }
 
     // Check if user exists
     const user = await UserRepository.findById(id);
 
     if (!user) {
-      throw new Error('User không tồn tại');
+      throw new Error("User không tồn tại");
     }
 
     if (user.isActive === 1) {
-      throw new Error('User đang hoạt động');
+      throw new Error("User đang hoạt động");
     }
 
     // Activate
     const activated = await UserRepository.activate(id);
 
     if (!activated) {
-      throw new Error('Kích hoạt user thất bại');
+      throw new Error("Kích hoạt user thất bại");
     }
 
     return true;
@@ -285,19 +292,19 @@ class UserService {
     const user = await UserRepository.findById(id);
 
     if (!user) {
-      throw new Error('User không tồn tại');
+      throw new Error("User không tồn tại");
     }
 
     // Don't allow deleting admin users
     if (user.role_id === ROLES.MANAGER) {
-      throw new Error('Không thể xóa tài khoản admin');
+      throw new Error("Không thể xóa tài khoản admin");
     }
 
     // Hard delete
     const deleted = await UserRepository.hardDelete(id);
 
     if (!deleted) {
-      throw new Error('Xóa user thất bại');
+      throw new Error("Xóa user thất bại");
     }
 
     return true;

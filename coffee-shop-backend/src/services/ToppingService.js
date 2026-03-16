@@ -1,4 +1,4 @@
-const ToppingRepository = require('../repositories/ToppingRepository');
+const ToppingRepository = require("../repositories/ToppingRepository");
 
 class ToppingService {
   /**
@@ -15,11 +15,11 @@ class ToppingService {
     const topping = await ToppingRepository.findById(id);
 
     if (!topping) {
-      throw new Error('Topping không tồn tại');
+      throw new Error("Topping không tồn tại");
     }
 
     if (topping.is_deleted === 1) {
-      throw new Error('Topping đã bị xóa');
+      throw new Error("Topping đã bị xóa");
     }
 
     return topping;
@@ -33,7 +33,7 @@ class ToppingService {
     const existingTopping = await ToppingRepository.findByName(data.name);
 
     if (existingTopping) {
-      throw new Error('Topping đã tồn tại');
+      throw new Error("Topping đã tồn tại");
     }
 
     // Create topping
@@ -57,7 +57,7 @@ class ToppingService {
       const existingTopping = await ToppingRepository.findByName(data.name);
 
       if (existingTopping && existingTopping.id !== id) {
-        throw new Error('Tên topping đã tồn tại');
+        throw new Error("Tên topping đã tồn tại");
       }
     }
 
@@ -81,7 +81,7 @@ class ToppingService {
     const deleted = await ToppingRepository.softDelete(id);
 
     if (!deleted) {
-      throw new Error('Xóa topping thất bại');
+      throw new Error("Xóa topping thất bại");
     }
 
     return true;
@@ -91,7 +91,7 @@ class ToppingService {
    * Search toppings
    */
   async searchToppings(keyword, options = {}) {
-    if (!keyword || keyword.trim() === '') {
+    if (!keyword || keyword.trim() === "") {
       return this.getAllToppings(options);
     }
 
@@ -105,11 +105,11 @@ class ToppingService {
     const topping = await ToppingRepository.findById(id);
 
     if (!topping) {
-      throw new Error('Topping không tồn tại');
+      throw new Error("Topping không tồn tại");
     }
 
     if (topping.is_deleted === 0) {
-      throw new Error('Topping chưa bị xóa');
+      throw new Error("Topping chưa bị xóa");
     }
 
     // Restore by setting is_deleted = 0

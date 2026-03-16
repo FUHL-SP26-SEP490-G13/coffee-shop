@@ -20,6 +20,7 @@ import {
   MapPin,
   LayoutGrid,
   Bell,
+  MessageSquare,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import authenticationService from '../../services/authenticationService';
@@ -151,12 +152,16 @@ export default function AdminApp() {
     { path: "/admin/schedule", icon: Calendar, label: "Lịch làm việc" },
     { path: "/admin/inventory", icon: ClipboardList, label: "Kho hàng" },
     { path: "/admin/discounts", icon: Tag, label: "Mã giảm giá" },
-    { path: "/admin/news-list", icon: ClipboardList, label: "Quản lý bài viết" },
+    {
+      path: "/admin/news-list",
+      icon: ClipboardList,
+      label: "Quản lý bài viết",
+    },
     { path: "/admin/subscriber", icon: Mail, label: "Email đăng kí" },
     { path: "/admin/banners", icon: ImagePlus, label: "Quản lý quảng cáo" },
     { path: "/admin/tables", icon: LayoutGrid, label: "Quản lý bàn" },
+    { path: "/admin/reviews", icon: MessageSquare, label: "Quản lý đánh giá" },
     { path: "/admin/profile", icon: User, label: "Thông tin cá nhân" },
-
   ];
 
   const handleToggleRead = async (item, e) => {
