@@ -7,6 +7,7 @@ import {
   AlertCircle,
   CheckCircle,
   Activity,
+  Flame,
 } from "lucide-react";
 import {
   Card,
@@ -31,13 +32,13 @@ const StatCard = ({
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm text-muted-foreground">{title}</p>
-            <p className="text-3xl font-bold mt-2">{value}</p>
+            <p className="mt-2 text-3xl font-bold">{value}</p>
             {subtitle && (
-              <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{subtitle}</p>
             )}
           </div>
-          <div className={`${color} p-3 rounded-lg text-white`}>
-            <Icon className="w-6 h-6" />
+          <div className={`${color} rounded-lg p-3 text-white`}>
+            <Icon className="h-6 w-6" />
           </div>
         </div>
       </CardContent>
@@ -56,15 +57,91 @@ function fillMissingHours(series, hours = 6) {
   for (let i = safeHours - 1; i >= 0; i--) {
     const d = new Date(now);
     d.setHours(now.getHours() - i);
-    const hour = d.getHours();
 
     result.push({
-      hour,
-      orders: map.get(hour) || 0,
+      hour: d.getHours(),
+      orders: map.get(d.getHours()) || 0,
     });
   }
 
   return result;
+}
+
+function formatPrice(value) {
+  return Number(value || 0).toLocaleString("vi-VN");
+}
+
+function formatDateTime(value) {
+  if (!value) return "-";
+  return new Date(value).toLocaleString("vi-VN");
+}
+
+function formatTime(value) {
+  if (!value) return "-";
+  return new Date(value).toLocaleTimeString("vi-VN", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function getStatusLabel(status) {
+  switch (status) {
+    case "pending":
+      return "Chờ xử lý";
+    case "preparing":
+      return "Đang pha chế";
+    case "served":
+      return "Đã pha xong";
+    case "completed":
+      return "Hoàn thành";
+    case "cancelled":
+      return "Đã hủy";
+    default:
+      return status || "-";
+  }
+}
+
+function getStatusBadgeClass(status) {
+  switch (status) {
+    case "pending":
+      return "bg-orange-100 text-orange-700 border-orange-200";
+    case "preparing":
+      return "bg-blue-100 text-blue-700 border-blue-200";
+    case "served":
+      return "bg-green-100 text-green-700 border-green-200";
+    case "completed":
+      return "bg-emerald-100 text-emerald-700 border-emerald-200";
+    case "cancelled":
+      return "bg-red-100 text-red-700 border-red-200";
+    default:
+      return "bg-gray-100 text-gray-700 border-gray-200";
+  }
+}
+
+function getNextStatus(status) {
+  switch (status) {
+    case "pending":
+      return "preparing";
+    case "preparing":
+      return "served";
+    case "served":
+      return "completed";
+    default:
+      return null;
+  }
+}
+
+function getNextStatusLabel(status) {
+  switch (status) {
+    case "pending":
+      return "Bắt đầu pha";
+    case "preparing":
+      return "Đánh dấu đã xong";
+    case "served":
+      return "Hoàn thành";
+    default:
+      return null;
+  }
 }
 
 export function BaristaDB() {
@@ -79,22 +156,38 @@ export function BaristaDB() {
   });
 
   const [orderStats, setOrderStats] = useState([]);
+  const [activeOrders, setActiveOrders] = useState([]);
+  const [delayedOrders, setDelayedOrders] = useState([]);
+  const [topProducts, setTopProducts] = useState([]);
   const [hoursRange] = useState(6);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [actionLoadingId, setActionLoadingId] = useState(null);
 
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
       setError("");
 
-      const overviewRes = await baristaDashboardService.getOverview();
-      const trendsRes = await baristaDashboardService.getOrderTrends(
-        hoursRange
-      );
+      const [
+        overviewRes,
+        trendsRes,
+        activeOrdersRes,
+        delayedOrdersRes,
+        topProductsRes,
+      ] = await Promise.all([
+        baristaDashboardService.getOverview(),
+        baristaDashboardService.getOrderTrends(hoursRange),
+        baristaDashboardService.getActiveOrders(),
+        baristaDashboardService.getDelayedOrders(15),
+        baristaDashboardService.getTopProductsToday(5),
+      ]);
 
-      const overview = overviewRes?.data || overviewRes || {};
-      const trends = trendsRes?.data || trendsRes || [];
+      const overview = overviewRes?.data || {};
+      const trends = trendsRes?.data || [];
+      const activeOrdersData = activeOrdersRes?.data || [];
+      const delayedOrdersData = delayedOrdersRes?.data || [];
+      const topProductsData = topProductsRes?.data || [];
 
       setDashboardData({
         totalOrders: Number(overview.totalOrders || 0),
@@ -107,14 +200,22 @@ export function BaristaDB() {
       });
 
       setOrderStats(Array.isArray(trends) ? trends : []);
+      setActiveOrders(Array.isArray(activeOrdersData) ? activeOrdersData : []);
+      setDelayedOrders(
+        Array.isArray(delayedOrdersData) ? delayedOrdersData : []
+      );
+      setTopProducts(Array.isArray(topProductsData) ? topProductsData : []);
     } catch (err) {
       console.error("Failed to fetch barista dashboard data:", err);
       setError(
         err?.response?.data?.message ||
-          err.message ||
+          err?.message ||
           "Không thể tải dữ liệu dashboard"
       );
       setOrderStats([]);
+      setActiveOrders([]);
+      setDelayedOrders([]);
+      setTopProducts([]);
     } finally {
       setLoading(false);
     }
@@ -123,6 +224,27 @@ export function BaristaDB() {
   useEffect(() => {
     fetchDashboardData();
   }, []);
+
+  const handleQuickUpdateStatus = async (orderId, currentStatus) => {
+    const nextStatus = getNextStatus(currentStatus);
+    if (!nextStatus) return;
+
+    try {
+      setActionLoadingId(orderId);
+      setError("");
+      await baristaDashboardService.updateOrderStatus(orderId, nextStatus);
+      await fetchDashboardData();
+    } catch (err) {
+      console.error("Update order status failed:", err);
+      setError(
+        err?.response?.data?.message ||
+          err?.message ||
+          "Không thể cập nhật trạng thái đơn"
+      );
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
 
   const pending = dashboardData.pendingOrders;
   const ready = dashboardData.readyOrders;
@@ -139,9 +261,9 @@ export function BaristaDB() {
   return (
     <div className="flex-1 p-8">
       {loading && (
-        <div className="flex items-center justify-center h-96">
+        <div className="flex h-96 items-center justify-center">
           <div className="text-center">
-            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+            <div className="inline-block h-12 w-12 animate-spin rounded-full border-b-2 border-primary"></div>
             <p className="mt-4 text-muted-foreground">Đang tải dashboard...</p>
           </div>
         </div>
@@ -150,11 +272,11 @@ export function BaristaDB() {
       {!loading && (
         <>
           {error && (
-            <Card className="mb-8 bg-red-50 border-red-200">
+            <Card className="mb-8 border-red-200 bg-red-50">
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
-                    <AlertCircle className="w-5 h-5 text-red-600" />
+                    <AlertCircle className="h-5 w-5 text-red-600" />
                     <div>
                       <p className="font-medium text-red-900">
                         Lỗi tải dữ liệu
@@ -175,12 +297,12 @@ export function BaristaDB() {
             <div className="flex items-center justify-between">
               <div>
                 <h1 className="text-3xl font-semibold">Tổng quan</h1>
-                <p className="text-muted-foreground mt-1">
+                <p className="mt-1 text-muted-foreground">
                   Hoạt động pha chế hôm nay
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                <div className="h-3 w-3 animate-pulse rounded-full bg-green-500"></div>
                 <span className="text-sm font-medium capitalize">
                   {dashboardData.status}
                 </span>
@@ -188,7 +310,7 @@ export function BaristaDB() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
             <StatCard
               icon={PackageOpen}
               title="Đơn hàng chờ"
@@ -197,29 +319,29 @@ export function BaristaDB() {
               color="bg-orange-500"
             />
             <StatCard
-              icon={Coffee}
-              title="Đã hoàn thành"
-              value={completed}
-              subtitle="Hôm nay"
-              color="bg-green-500"
+              icon={Activity}
+              title="Đang pha chế"
+              value={preparing}
+              subtitle="Đang thực hiện"
+              color="bg-blue-500"
             />
             <StatCard
               icon={CheckCircle}
-              title="Sẵn sàng"
+              title="Đã pha xong"
               value={ready}
-              subtitle="Chờ lấy"
-              color="bg-blue-500"
+              subtitle="Chờ giao / phục vụ"
+              color="bg-green-500"
             />
             <StatCard
               icon={Clock}
               title="Thời gian trung bình"
               value={`${dashboardData.avgPrepTime} min`}
-              subtitle="Pha chế"
+              subtitle="Hoàn tất đơn"
               color="bg-purple-500"
             />
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          <div className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
             <Card className="lg:col-span-2">
               <CardHeader>
                 <CardTitle>Trình trạng đơn hàng</CardTitle>
@@ -227,9 +349,9 @@ export function BaristaDB() {
               <CardContent>
                 <div className="space-y-6">
                   <div>
-                    <div className="flex items-center justify-between mb-2">
+                    <div className="mb-2 flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <AlertCircle className="w-4 h-4 text-orange-500" />
+                        <AlertCircle className="h-4 w-4 text-orange-500" />
                         <span className="text-sm font-medium">Chờ xử lý</span>
                       </div>
                       <span className="text-lg font-bold">{pending}</span>
@@ -241,9 +363,9 @@ export function BaristaDB() {
                   </div>
 
                   <div>
-                    <div className="flex items-center justify-between mb-2">
+                    <div className="mb-2 flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <Activity className="w-4 h-4 text-blue-500" />
+                        <Activity className="h-4 w-4 text-blue-500" />
                         <span className="text-sm font-medium">
                           Đang pha chế
                         </span>
@@ -257,10 +379,10 @@ export function BaristaDB() {
                   </div>
 
                   <div>
-                    <div className="flex items-center justify-between mb-2">
+                    <div className="mb-2 flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <CheckCircle className="w-4 h-4 text-green-500" />
-                        <span className="text-sm font-medium">Sẵn sàng</span>
+                        <CheckCircle className="h-4 w-4 text-green-500" />
+                        <span className="text-sm font-medium">Đã pha xong</span>
                       </div>
                       <span className="text-lg font-bold">{ready}</span>
                     </div>
@@ -327,7 +449,7 @@ export function BaristaDB() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle>Xu hướng đơn hàng ({hoursRange} giờ qua)</CardTitle>
-                <TrendingUp className="w-5 h-5 text-muted-foreground" />
+                <TrendingUp className="h-5 w-5 text-muted-foreground" />
               </div>
             </CardHeader>
             <CardContent>
@@ -336,16 +458,19 @@ export function BaristaDB() {
                   Chưa có dữ liệu
                 </div>
               ) : (
-                <div className="flex items-end justify-between h-64 gap-2">
+                <div className="flex h-64 items-end justify-between gap-2">
                   {chartData.map((stat, idx) => (
                     <div
                       key={`${stat.hour}-${idx}`}
-                      className="flex-1 flex flex-col items-center justify-end gap-2"
+                      className="flex flex-1 flex-col items-center justify-end gap-2"
                     >
                       <div
-                        className="w-full bg-gradient-to-t from-blue-500 to-blue-400 rounded-t-lg transition-all hover:from-blue-600 hover:to-blue-500"
+                        className="w-full rounded-t-lg bg-gradient-to-t from-blue-500 to-blue-400 transition-all hover:from-blue-600 hover:to-blue-500"
                         style={{
-                          height: `${(stat.orders / maxOrders) * 100}%`,
+                          height: `${Math.max(
+                            (stat.orders / maxOrders) * 100,
+                            6
+                          )}%`,
                         }}
                         title={`${stat.orders} đơn`}
                       ></div>
@@ -359,22 +484,190 @@ export function BaristaDB() {
             </CardContent>
           </Card>
 
+          <Card className="mb-8 border-orange-200">
+            <CardHeader>
+              <CardTitle>Đơn bị trễ trên 15 phút</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {delayedOrders.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  Không có đơn bị trễ
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {delayedOrders.map((order) => (
+                    <div
+                      key={order.id}
+                      className="flex items-center justify-between rounded-lg border border-orange-200 bg-orange-50 p-3"
+                    >
+                      <div>
+                        <p className="font-medium">Đơn #{order.id}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {order.order_type} • {getStatusLabel(order.status)}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold text-orange-600">
+                          {order.waitingMinutes} phút
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {formatTime(order.created_at)}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <div className="mb-8 grid grid-cols-1 gap-6 xl:grid-cols-3">
+            <Card className="xl:col-span-2">
+              <CardHeader>
+                <CardTitle>Đơn cần xử lý ngay</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {activeOrders.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    Không có đơn đang xử lý
+                  </p>
+                ) : (
+                  <div className="space-y-4">
+                    {activeOrders.map((order) => (
+                      <div key={order.id} className="rounded-lg border p-4">
+                        <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                          <div>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <p className="font-semibold">Đơn #{order.id}</p>
+                              <span
+                                className={`rounded-full border px-2 py-1 text-xs font-medium ${getStatusBadgeClass(
+                                  order.status
+                                )}`}
+                              >
+                                {getStatusLabel(order.status)}
+                              </span>
+                            </div>
+
+                            <p className="mt-2 text-sm text-muted-foreground">
+                              {order.order_type} • {order.itemCount} món
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              {formatDateTime(order.created_at)}
+                            </p>
+                          </div>
+
+                          <div className="xl:text-right">
+                            <p className="font-bold">
+                              {formatPrice(order.total_amount)}đ
+                            </p>
+
+                            {getNextStatus(order.status) && (
+                              <Button
+                                className="mt-2"
+                                size="sm"
+                                disabled={actionLoadingId === order.id}
+                                onClick={() =>
+                                  handleQuickUpdateStatus(
+                                    order.id,
+                                    order.status
+                                  )
+                                }
+                              >
+                                {actionLoadingId === order.id
+                                  ? "Đang xử lý..."
+                                  : getNextStatusLabel(order.status)}
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+
+                        {Array.isArray(order.items) &&
+                          order.items.length > 0 && (
+                            <div className="mt-4 rounded-md bg-muted/40 p-3">
+                              <p className="mb-2 text-sm font-medium">
+                                Danh sách món
+                              </p>
+                              <div className="space-y-2">
+                                {order.items.map((item, idx) => (
+                                  <div
+                                    key={`${order.id}-${idx}`}
+                                    className="flex flex-col justify-between gap-1 text-sm md:flex-row"
+                                  >
+                                    <span>
+                                      {item.productName} ({item.size}) x{" "}
+                                      {item.quantity}
+                                    </span>
+                                    <span className="text-muted-foreground">
+                                      {item.note || "-"}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Top sản phẩm hôm nay</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {topProducts.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    Chưa có dữ liệu
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    {topProducts.map((product, index) => (
+                      <div
+                        key={product.id}
+                        className="flex items-center justify-between rounded-lg border p-3"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-sm font-bold">
+                            {index + 1}
+                          </div>
+                          <div>
+                            <p className="font-medium">{product.name}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {product.totalOrders} đơn
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1 font-bold text-green-600">
+                          <Flame className="h-4 w-4" />
+                          {product.totalSold}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
           <Card>
             <CardHeader>
               <CardTitle>Hành động nhanh</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                 <Button className="bg-green-600 hover:bg-green-700">
-                  <CheckCircle className="w-4 h-4 mr-2" />
+                  <CheckCircle className="mr-2 h-4 w-4" />
                   Bắt đầu ca làm việc
                 </Button>
                 <Button variant="outline">
-                  <Clock className="w-4 h-4 mr-2" />
+                  <Clock className="mr-2 h-4 w-4" />
                   Chấm công
                 </Button>
                 <Button variant="outline">
-                  <Coffee className="w-4 h-4 mr-2" />
+                  <Coffee className="mr-2 h-4 w-4" />
                   Báo cáo sự cố
                 </Button>
               </div>
