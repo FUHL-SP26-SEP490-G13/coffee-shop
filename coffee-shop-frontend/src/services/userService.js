@@ -34,7 +34,20 @@ const userService = {
     });
 
     if (!response.ok) {
-      throw new Error('Failed to create staff');
+      let errorMessage = 'Failed to create staff';
+
+      try {
+        const error = await response.json();
+        if (Array.isArray(error?.errors) && error.errors.length > 0) {
+          errorMessage = error.errors.map((item) => item.message).join(', ');
+        } else if (error?.message) {
+          errorMessage = error.message;
+        }
+      } catch {
+        // Keep fallback message when response is not JSON
+      }
+
+      throw new Error(errorMessage);
     }
 
     return await response.json();
