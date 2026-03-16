@@ -1,4 +1,5 @@
 const AreaRepository = require('../repositories/AreaRepository');
+const ErrorResponse = require('../utils/ErrorResponse');
 
 class AreaService {
   /**
@@ -14,7 +15,7 @@ class AreaService {
   async getAreaById(id) {
     const area = await AreaRepository.findById(id);
     if (!area) {
-      throw new Error('Khu vực không tồn tại');
+      throw new ErrorResponse(404, 'Khu vực không tồn tại');
     }
     return area;
   }
@@ -26,7 +27,7 @@ class AreaService {
     // Check if area name already exists
     const existingArea = await AreaRepository.findOne({ name: data.name });
     if (existingArea) {
-      throw new Error('Tên khu vực đã tồn tại');
+      throw new ErrorResponse(400, 'Tên khu vực đã tồn tại');
     }
 
     const newArea = {
@@ -48,7 +49,7 @@ class AreaService {
     if (data.name && data.name !== area.name) {
       const existingArea = await AreaRepository.findOne({ name: data.name });
       if (existingArea) {
-        throw new Error('Tên khu vực đã tồn tại');
+        throw new ErrorResponse(400, 'Tên khu vực đã tồn tại');
       }
     }
 

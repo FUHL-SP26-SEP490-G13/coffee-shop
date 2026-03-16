@@ -1,4 +1,5 @@
 const AddressRepository = require('../repositories/AddressRepository');
+const ErrorResponse = require('../utils/ErrorResponse');
 const { ADDRESS_TYPES } = require('../config/constants');
 
 class AddressService {
@@ -47,7 +48,7 @@ class AddressService {
     const existing = await AddressRepository.findByIdAndUser(addressId, userId);
 
     if (!existing) {
-      throw new Error('Địa chỉ không tồn tại');
+      throw new ErrorResponse(404, 'Địa chỉ không tồn tại');
     }
 
     const updateData = {};
@@ -92,7 +93,7 @@ class AddressService {
     const target = await AddressRepository.findByIdAndUser(addressId, userId);
 
     if (!target) {
-      throw new Error('Địa chỉ không tồn tại');
+      throw new ErrorResponse(404, 'Địa chỉ không tồn tại');
     }
 
     await AddressRepository.softDeleteByIdAndUser(addressId, userId);
@@ -112,7 +113,7 @@ class AddressService {
     const target = await AddressRepository.findByIdAndUser(addressId, userId);
 
     if (!target) {
-      throw new Error('Địa chỉ không tồn tại');
+      throw new ErrorResponse(404, 'Địa chỉ không tồn tại');
     }
 
     await AddressRepository.clearDefaultByUserId(userId);

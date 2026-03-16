@@ -1,4 +1,5 @@
 const OrderRepository = require("../repositories/OrderRepository");
+const ErrorResponse = require("../utils/ErrorResponse");
 
 class OrderService {
   createBadRequestError(message) {
@@ -22,19 +23,19 @@ class OrderService {
     } = payload;
 
     if (!Array.isArray(items) || items.length === 0) {
-      throw new Error("Giỏ hàng trống");
+      throw new ErrorResponse(400, "Giỏ hàng trống");
     }
 
     if (!["delivery", "takeaway"].includes(order_type)) {
-      throw new Error("Loại đơn hàng không hợp lệ");
+      throw new ErrorResponse(400, "Loại đơn hàng không hợp lệ");
     }
 
     if (!["cash", "payos"].includes(payment_method)) {
-      throw new Error("Phương thức thanh toán không hợp lệ");
+      throw new ErrorResponse(400, "Phương thức thanh toán không hợp lệ");
     }
 
     if (!receiver_name || !receiver_phone) {
-      throw new Error("Vui lòng nhập tên và số điện thoại người nhận");
+      throw new ErrorResponse(400, "Vui lòng nhập tên và số điện thoại người nhận");
     }
 
     const connection = await OrderRepository.getConnection();
@@ -52,7 +53,7 @@ class OrderService {
         const toppings = Array.isArray(item.toppings) ? item.toppings : [];
 
         if (!item.product_size_id || quantity <= 0) {
-          throw new Error("Dữ liệu sản phẩm trong giỏ hàng không hợp lệ");
+          throw new ErrorResponse(400, "Dữ liệu sản phẩm trong giỏ hàng không hợp lệ");
         }
 
         const productSize = await OrderRepository.findProductSizeById(
@@ -61,11 +62,11 @@ class OrderService {
         );
 
         if (!productSize) {
-          throw new Error("Sản phẩm không tồn tại");
+          throw new ErrorResponse(400, "Sản phẩm không tồn tại");
         }
 
         if (productSize.status !== "available") {
-          throw new Error(`Sản phẩm "${productSize.name}" hiện không khả dụng`);
+          throw new ErrorResponse(400, `Sản phẩm "${productSize.name}" hiện không khả dụng`);
         }
 
         const basePrice = Number(productSize.price);
@@ -77,7 +78,7 @@ class OrderService {
           const toppingQty = Math.max(1, Number(toppingItem.quantity) || 1);
 
           if (!toppingId) {
-            throw new Error("Topping không hợp lệ");
+            throw new ErrorResponse(400, "Topping không hợp lệ");
           }
 
           const topping = await OrderRepository.findToppingById(
@@ -86,7 +87,7 @@ class OrderService {
           );
 
           if (!topping) {
-            throw new Error("Topping không tồn tại");
+            throw new ErrorResponse(400, "Topping không tồn tại");
           }
 
           const toppingPrice = Number(topping.price || 0);
@@ -123,7 +124,7 @@ class OrderService {
         );
 
         if (!discount) {
-          throw this.createBadRequestError("Mã giảm giá không tồn tại");
+          throw new ErrorResponse(400, "Mã giảm giá không tồn tại");
         }
 
         const now = new Date();
@@ -330,7 +331,7 @@ class OrderService {
     const order = await OrderRepository.findOrderByIdAndUser(orderId, userId);
 
     if (!order) {
-      throw new Error("Đơn hàng không tồn tại");
+      throw new ErrorResponse(404, "Đơn hàng không tồn tại");
     }
 
     const items = await OrderRepository.findOrderItems(orderId);
@@ -342,7 +343,7 @@ class OrderService {
   }
 
   async savePayosReturn({ orderCode, payosId, status }) {
-    if (!orderCode) throw new Error("Thiếu orderCode");
+    if (!orderCode) throw new ErrorResponse(400, "Thiếu orderCode");
 
     const isPaid = status === "PAID";
     const paymentStatus = isPaid ? "paid" : status === "CANCELLED" ? "cancelled" : "pending";

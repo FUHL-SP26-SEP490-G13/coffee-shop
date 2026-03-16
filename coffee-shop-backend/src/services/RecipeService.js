@@ -1,4 +1,5 @@
 const RecipeRepository = require('../repositories/RecipeRepository');
+const ErrorResponse = require('../utils/ErrorResponse');
 
 class RecipeService {
   /**
@@ -76,7 +77,7 @@ class RecipeService {
     const recipe = await RecipeRepository.getRecipeById(recipeId);
 
     if (!recipe) {
-      throw new Error('Công thức không tồn tại');
+      throw new ErrorResponse(404, 'Công thức không tồn tại');
     }
 
     return recipe;
@@ -89,13 +90,13 @@ class RecipeService {
     // Check if ingredient exists
     const ingredient = await RecipeRepository.getIngredientById(ingredientId);
     if (!ingredient) {
-      throw new Error('Nguyên liệu không tồn tại');
+      throw new ErrorResponse(404, 'Nguyên liệu không tồn tại');
     }
 
     // Check if recipe already exists
     const exists = await RecipeRepository.recipeExists(productSizeId, ingredientId);
     if (exists) {
-      throw new Error('Công thức cho nguyên liệu này đã tồn tại');
+      throw new ErrorResponse(400, 'Công thức cho nguyên liệu này đã tồn tại');
     }
 
     const recipe = await RecipeRepository.createRecipe(
@@ -114,13 +115,13 @@ class RecipeService {
     // Check if recipe exists
     const recipe = await RecipeRepository.getRecipeById(recipeId);
     if (!recipe) {
-      throw new Error('Công thức không tồn tại');
+      throw new ErrorResponse(404, 'Công thức không tồn tại');
     }
 
     // Check if ingredient exists
     const ingredient = await RecipeRepository.getIngredientById(ingredientId);
     if (!ingredient) {
-      throw new Error('Nguyên liệu không tồn tại');
+      throw new ErrorResponse(404, 'Nguyên liệu không tồn tại');
     }
 
     return RecipeRepository.updateRecipe(recipeId, ingredientId, quantity);
@@ -132,13 +133,13 @@ class RecipeService {
   async deleteRecipe(recipeId) {
     const recipe = await RecipeRepository.getRecipeById(recipeId);
     if (!recipe) {
-      throw new Error('Công thức không tồn tại');
+      throw new ErrorResponse(404, 'Công thức không tồn tại');
     }
 
     const deleted = await RecipeRepository.deleteRecipe(recipeId);
 
     if (!deleted) {
-      throw new Error('Không thể xóa công thức');
+      throw new ErrorResponse(500, 'Không thể xóa công thức');
     }
 
     return { id: recipeId };
@@ -158,7 +159,7 @@ class RecipeService {
     const ingredient = await RecipeRepository.getIngredientById(ingredientId);
 
     if (!ingredient) {
-      throw new Error('Nguyên liệu không tồn tại');
+      throw new ErrorResponse(404, 'Nguyên liệu không tồn tại');
     }
 
     return ingredient;
@@ -178,7 +179,7 @@ class RecipeService {
     const ingredient = await RecipeRepository.getIngredientById(ingredientId);
 
     if (!ingredient) {
-      throw new Error('Nguyên liệu không tồn tại');
+      throw new ErrorResponse(404, 'Nguyên liệu không tồn tại');
     }
 
     return RecipeRepository.updateIngredient(ingredientId, name, unitType, unit);
@@ -191,13 +192,13 @@ class RecipeService {
     const ingredient = await RecipeRepository.getIngredientById(ingredientId);
 
     if (!ingredient) {
-      throw new Error('Nguyên liệu không tồn tại');
+      throw new ErrorResponse(404, 'Nguyên liệu không tồn tại');
     }
 
     const deleted = await RecipeRepository.deleteIngredient(ingredientId);
 
     if (!deleted) {
-      throw new Error('Không thể xóa nguyên liệu');
+      throw new ErrorResponse(500, 'Không thể xóa nguyên liệu');
     }
 
     return { id: ingredientId };

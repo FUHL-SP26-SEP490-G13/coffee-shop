@@ -1,4 +1,5 @@
 const ToppingRepository = require('../repositories/ToppingRepository');
+const ErrorResponse = require('../utils/ErrorResponse');
 
 class ToppingService {
   /**
@@ -15,11 +16,11 @@ class ToppingService {
     const topping = await ToppingRepository.findById(id);
 
     if (!topping) {
-      throw new Error('Topping không tồn tại');
+      throw new ErrorResponse(404, 'Topping không tồn tại');
     }
 
     if (topping.is_deleted === 1) {
-      throw new Error('Topping đã bị xóa');
+      throw new ErrorResponse(400, 'Topping đã bị xóa');
     }
 
     return topping;
@@ -33,7 +34,7 @@ class ToppingService {
     const existingTopping = await ToppingRepository.findByName(data.name);
 
     if (existingTopping) {
-      throw new Error('Topping đã tồn tại');
+      throw new ErrorResponse(400, 'Topping đã tồn tại');
     }
 
     // Create topping
@@ -57,7 +58,7 @@ class ToppingService {
       const existingTopping = await ToppingRepository.findByName(data.name);
 
       if (existingTopping && existingTopping.id !== id) {
-        throw new Error('Tên topping đã tồn tại');
+        throw new ErrorResponse(400, 'Tên topping đã tồn tại');
       }
     }
 
@@ -81,7 +82,7 @@ class ToppingService {
     const deleted = await ToppingRepository.softDelete(id);
 
     if (!deleted) {
-      throw new Error('Xóa topping thất bại');
+      throw new ErrorResponse(500, 'Xóa topping thất bại');
     }
 
     return true;
@@ -105,11 +106,11 @@ class ToppingService {
     const topping = await ToppingRepository.findById(id);
 
     if (!topping) {
-      throw new Error('Topping không tồn tại');
+      throw new ErrorResponse(404, 'Topping không tồn tại');
     }
 
     if (topping.is_deleted === 0) {
-      throw new Error('Topping chưa bị xóa');
+      throw new ErrorResponse(400, 'Topping chưa bị xóa');
     }
 
     // Restore by setting is_deleted = 0

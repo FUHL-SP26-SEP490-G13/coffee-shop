@@ -1,4 +1,5 @@
 const bannerRepository = require("../repositories/BannerRepository");
+const ErrorResponse = require("../utils/ErrorResponse");
 
 class BannerService {
   async getActive() {
@@ -14,11 +15,11 @@ class BannerService {
     const end = new Date(end_date);
 
     if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
-      throw new Error("Ngày bắt đầu hoặc ngày kết thúc không hợp lệ");
+      throw new ErrorResponse(400, "Ngày bắt đầu hoặc ngày kết thúc không hợp lệ");
     }
 
     if (end < start) {
-      throw new Error("Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu");
+      throw new ErrorResponse(400, "Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu");
     }
   }
 
@@ -26,7 +27,7 @@ class BannerService {
     const existedTitle = await bannerRepository.findByTitle(data.title);
 
     if (existedTitle) {
-      throw new Error("Tiêu đề quảng cáo đã tồn tại");
+      throw new ErrorResponse(400, "Tiêu đề quảng cáo đã tồn tại");
     }
 
     this.validateDateRange(data.start_date, data.end_date);
@@ -41,7 +42,7 @@ class BannerService {
     );
 
     if (existedTitle) {
-      throw new Error("Tiêu đề quảng cáo đã tồn tại");
+      throw new ErrorResponse(400, "Tiêu đề quảng cáo đã tồn tại");
     }
 
     this.validateDateRange(data.start_date, data.end_date);
