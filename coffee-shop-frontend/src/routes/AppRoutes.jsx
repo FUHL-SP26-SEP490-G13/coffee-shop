@@ -51,7 +51,6 @@ import CheckoutPage from "@/pages/homePage/order/CheckoutPage";
 import PayOSReturnSuccess from "@/pages/common/PayOSReturnSuccess";
 import AdminDB from "@/pages/admin/AdminDB/AdminDB";
 import AdminSubscriber from "@/pages/admin/AdminSubscriber/AdminSubscriber";
-import { BaristaDashboard } from "@/pages/barista/BaristaDashboard";
 import FavoritePage from "@/pages/homePage/favorite/FavoritePage";
 import AdminReviews from "@/pages/admin/AdminReview/AdminReview";
 
@@ -156,8 +155,8 @@ const AppRoutes = () => {
           </RoleGuard>
         }
       >
-        <Route index element={<Navigate to="dashboardB" replace />} />
-        <Route path="dashboardB" element={<BaristaDB />} />
+        <Route index element={<Navigate to="dashboard" replace />} />
+        <Route path="dashboard" element={<BaristaDB />} />
         <Route path="orders" element={<BaristaOrders />} />
         <Route path="attendance" element={<BaristaAttendance />} />
         <Route path="schedule" element={<BaristaSchedule />} />
