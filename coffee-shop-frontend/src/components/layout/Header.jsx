@@ -13,6 +13,7 @@ import {
   Grid3X3,
   Loader2,
   Bell,
+  Heart,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,6 +38,7 @@ import productService from "@/services/productService";
 import notificationService from "@/services/notificationService";
 import socket from "@/lib/socket";
 import { getNotificationLink } from "@/utils/getNotificationLink";
+import favoriteService from "@/services/favoriteService";
 
 const placeholders = [
   "Xin chào, bạn cần gì hôm nay?",
@@ -104,6 +106,9 @@ function Header() {
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
 
+  const [favoriteCount, setFavoriteCount] = useState(0);
+  const [favoriteLoading, setFavoriteLoading] = useState(false);
+
   const [cartItems, setCartItems] = useState([]);
   const [showCartPreview, setShowCartPreview] = useState(false);
 
@@ -165,6 +170,34 @@ function Header() {
       console.error("Lỗi lấy danh mục:", error);
     }
   }, []);
+
+  const loadFavorites = useCallback(async () => {
+    if (!user?.id) {
+      setFavoriteCount(0);
+      return;
+    }
+
+    try {
+      setFavoriteLoading(true);
+
+      const res = await favoriteService.getMyFavorites({
+        page: 1,
+        limit: 100,
+        keyword: "",
+      });
+
+      const payload = res?.data?.data || res?.data || {};
+      const items = Array.isArray(payload?.items) ? payload.items : [];
+      const total = Number(payload?.total ?? items.length ?? 0);
+
+      setFavoriteCount(total);
+    } catch (error) {
+      console.error("Lỗi lấy danh sách yêu thích:", error);
+      setFavoriteCount(0);
+    } finally {
+      setFavoriteLoading(false);
+    }
+  }, [user?.id]);
 
   useEffect(() => {
     fetchCategories();
@@ -275,6 +308,16 @@ function Header() {
       socket.off("notification:new", handleNewNotification);
     };
   }, [user?.id]);
+
+  useEffect(() => {
+    loadFavorites();
+
+    window.addEventListener("favoriteUpdated", loadFavorites);
+
+    return () => {
+      window.removeEventListener("favoriteUpdated", loadFavorites);
+    };
+  }, [loadFavorites]);
 
   const goToCategory = (category) => {
     navigate(`/products?category=${category.id}`);
@@ -684,7 +727,7 @@ function Header() {
                           : 0;
 
                         const price = basePrice + toppingsTotal;
-                        
+
                         const quantity = Number(item.quantity) || 1;
 
                         return (
@@ -897,6 +940,23 @@ function Header() {
                       >
                         <Package className="w-4 h-4 mr-2" />
                         <span>Đơn hàng</span>
+                      </Button>
+
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          navigate("/favorites");
+                          setOpen(false);
+                        }}
+                        className="w-full text-left px-3 py-2 text-gray-700 transition text-xs sm:text-sm justify-start"
+                      >
+                        <Heart className="w-4 h-4 mr-2" />
+                        <span className="flex-1 text-left">Yêu thích</span>
+
+                        <span className="text-xs font-semibold text-red-500">
+                          {favoriteLoading ? "..." : favoriteCount}
+                        </span>
                       </Button>
 
                       <Button
@@ -1174,6 +1234,23 @@ function Header() {
                     >
                       <Package className="w-4 h-4 mr-2" />
                       Đơn hàng
+                    </Button>
+
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        navigate("/wishlists");
+                        setMobileUserDropdownOpen(false);
+                        setMobileMenuOpen(false);
+                      }}
+                      className="w-full justify-start text-gray-700 text-xs"
+                    >
+                      <Heart className="w-4 h-4 mr-2" />
+                      <span className="flex-1 text-left">Yêu thích</span>
+                      <span className="text-xs font-semibold text-red-500">
+                        {favoriteLoading ? "..." : favoriteCount}
+                      </span>
                     </Button>
 
                     <Button

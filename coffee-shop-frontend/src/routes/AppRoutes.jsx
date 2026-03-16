@@ -20,13 +20,11 @@ import NewsDetailPage from "@/pages/homePage/news/NewsDetailPage";
 import AdminEditNewsPage from "@/pages/admin/AdminNew/AdminEditNewsPage";
 import AdminNewsDetailPage from "@/pages/admin/AdminNew/AdminNewsDetailPage";
 import NewsListPage from "@/pages/homePage/news/NewsListPage";
-import AdminDashboard from "../pages/admin/AdminDashboard/AdminDashboard";
 import AdminDiscounts from "@/pages/admin/AdminDiscount/AdminDiscounts";
 import AdminDiscountCreate from "@/pages/admin/AdminDiscount/AdminDiscountCreate";
 import AdminDiscountEdit from "@/pages/admin/AdminDiscount/AdminDiscountEdit";
 import OrderPolicy from "@/pages/common/OrderPolicy";
 import PrivacyPolicy from "@/pages/common/PrivacyPolicy";
-import AdminNewsletter from "@/pages/admin/AdminNewletter/AdminNewsletter";
 import AdminApp from "../pages/admin/AdminApp";
 import { StaffPOS } from "@/pages/staff/StaffPOS";
 import { StaffAttendance } from "@/pages/staff/StaffAttendance";
@@ -39,7 +37,7 @@ import AdminBanner from "@/pages/admin/AdminBanner/AdminBanner";
 import AdminTables from "@/pages/admin/AdminTables/AdminTables";
 import AdminToppings from "../pages/admin/AdminTopping/AdminToppings";
 import PaymentPolicyPage from "@/pages/common/PaymentPolicyPage";
-import { BaristaDashboard } from "@/pages/barista/BaristaDashboard/BaristaDashboard";
+import { BaristaDB } from "@/pages/barista/BaristaDashboard/BaristaDB";
 import { BaristaOrders } from "@/pages/barista/BaristaOrder/BaristaOrders";
 import { BaristaAttendance } from "@/pages/barista/BaristaAttendance/BaristaAttendance";
 import { BaristaSchedule } from "@/pages/barista/BaristaSchedule/BaristaSchedule";
@@ -51,6 +49,11 @@ import ProductDetailPage from "../pages/homePage/product/ProductDetailPage";
 import CartPage from "@/pages/homePage/order/CartPage";
 import CheckoutPage from "@/pages/homePage/order/CheckoutPage";
 import PayOSReturnSuccess from "@/pages/common/PayOSReturnSuccess";
+import AdminDB from "@/pages/admin/AdminDB/AdminDB";
+import AdminSubscriber from "@/pages/admin/AdminSubscriber/AdminSubscriber";
+import { BaristaDashboard } from "@/pages/barista/BaristaDashboard";
+import FavoritePage from "@/pages/homePage/favorite/FavoritePage";
+import AdminReviews from "@/pages/admin/AdminReview/AdminReview";
 
 const getStoredValue = (key) =>
   localStorage.getItem(key) || sessionStorage.getItem(key);
@@ -153,8 +156,8 @@ const AppRoutes = () => {
           </RoleGuard>
         }
       >
-        <Route index element={<Navigate to="dashboard" replace />} />
-        <Route path="dashboard" element={<BaristaDashboard />} />
+        <Route index element={<Navigate to="dashboardB" replace />} />
+        <Route path="dashboardB" element={<BaristaDB />} />
         <Route path="orders" element={<BaristaOrders />} />
         <Route path="attendance" element={<BaristaAttendance />} />
         <Route path="schedule" element={<BaristaSchedule />} />
@@ -171,7 +174,7 @@ const AppRoutes = () => {
         }
       >
         <Route index element={<Navigate to="dashboard" replace />} />
-        <Route path="dashboard" element={<AdminDashboard />} />
+        <Route path="dashboard" element={<AdminDB />} />
         <Route path="menu/products" element={<AdminProducts />} />
         <Route path="menu/categories" element={<AdminCategories />} />
         <Route path="orders" element={<AdminOrders />} />
@@ -186,18 +189,20 @@ const AppRoutes = () => {
         <Route path="discounts" element={<AdminDiscounts />} />
         <Route path="discounts/create" element={<AdminDiscountCreate />} />
         <Route path="discounts/edit/:id" element={<AdminDiscountEdit />} />
-        <Route path="news-letter" element={<AdminNewsletter />} />
+        <Route path="subscriber" element={<AdminSubscriber />} />
         <Route path="banners" element={<AdminBanner />} />
         <Route path="tables" element={<AdminTables />} />
         <Route path="toppings" element={<AdminToppings />} />
+        <Route path="reviews" element={<AdminReviews />} />
       </Route>
       <Route path="/news/:slug" element={<NewsDetailPage />} />
       <Route path="/news" element={<NewsListPage />} />
+      <Route path="/customer/profile" element={<UserProfile />} />
       <Route
-        path="/customer/profile"
+        path="/favorites"
         element={
           <RoleGuard allowedRoles={[4]}>
-            <UserProfile />
+            <FavoritePage />
           </RoleGuard>
         }
       />

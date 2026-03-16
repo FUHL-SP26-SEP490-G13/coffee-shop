@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   PackageOpen,
   TrendingUp,
@@ -16,12 +16,15 @@ import {
 } from "../../../components/ui/card";
 import { Button } from "../../../components/ui/button";
 import { Progress } from "../../../components/ui/progress";
-import baristaDashboardService from "../../../services/baristaDashboardService";
+import baristaDashboardService from "../../../services/baristaDBService";
 
-// Define StatCard outside component to avoid creating components during render
-const StatCard = (props) => {
-  const { icon: Icon, title, value, subtitle, color = "bg-blue-500" } = props;
-
+const StatCard = ({
+  icon: Icon,
+  title,
+  value,
+  subtitle,
+  color = "bg-blue-500",
+}) => {
   return (
     <Card>
       <CardContent className="pt-6">
@@ -42,7 +45,29 @@ const StatCard = (props) => {
   );
 };
 
-export function BaristaDashboard() {
+function fillMissingHours(series, hours = 6) {
+  const safeHours = Math.max(1, Math.min(Number(hours) || 6, 24));
+  const now = new Date();
+  const map = new Map(
+    (series || []).map((item) => [Number(item.hour), Number(item.orders)])
+  );
+
+  const result = [];
+  for (let i = safeHours - 1; i >= 0; i--) {
+    const d = new Date(now);
+    d.setHours(now.getHours() - i);
+    const hour = d.getHours();
+
+    result.push({
+      hour,
+      orders: map.get(hour) || 0,
+    });
+  }
+
+  return result;
+}
+
+export function BaristaDB() {
   const [dashboardData, setDashboardData] = useState({
     totalOrders: 0,
     pendingOrders: 0,
@@ -52,71 +77,50 @@ export function BaristaDashboard() {
     avgPrepTime: 0,
     status: "online",
   });
+
   const [orderStats, setOrderStats] = useState([]);
+  const [hoursRange] = useState(6);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState("");
+
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const overviewRes = await baristaDashboardService.getOverview();
+      const trendsRes = await baristaDashboardService.getOrderTrends(
+        hoursRange
+      );
+
+      const overview = overviewRes?.data || overviewRes || {};
+      const trends = trendsRes?.data || trendsRes || [];
+
+      setDashboardData({
+        totalOrders: Number(overview.totalOrders || 0),
+        pendingOrders: Number(overview.pendingOrders || 0),
+        completedToday: Number(overview.completedToday || 0),
+        readyOrders: Number(overview.readyOrders || 0),
+        preparingOrders: Number(overview.preparingOrders || 0),
+        avgPrepTime: Number(overview.avgPrepTime || 0),
+        status: "online",
+      });
+
+      setOrderStats(Array.isArray(trends) ? trends : []);
+    } catch (err) {
+      console.error("Failed to fetch barista dashboard data:", err);
+      setError(
+        err?.response?.data?.message ||
+          err.message ||
+          "Không thể tải dữ liệu dashboard"
+      );
+      setOrderStats([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
-        setLoading(true);
-
-        // Fetch dashboard overview data
-        const overviewRes = await baristaDashboardService.getOverview();
-
-        // Fetch order trends
-        const trendsRes = await baristaDashboardService.getOrderTrends(6);
-
-        // Validate and set dashboard data from backend
-        const overview = overviewRes?.data || overviewRes || {};
-
-        setDashboardData({
-          totalOrders: overview.totalOrders || 0,
-          pendingOrders: overview.pendingOrders || 0,
-          completedToday: overview.completedToday || 0,
-          readyOrders: overview.readyOrders || 0,
-          preparingOrders: overview.preparingOrders || 0,
-          avgPrepTime: overview.avgPrepTime || 8,
-          status: "online",
-        });
-
-        // Set trends data with proper validation
-        const trends = trendsRes?.data || trendsRes || [];
-        if (Array.isArray(trends)) {
-          setOrderStats(trends);
-        } else if (trends && Array.isArray(trends.data)) {
-          setOrderStats(trends.data);
-        } else {
-          // Use default trends if API returns nothing
-          setOrderStats([
-            { hour: 10, orders: 5 },
-            { hour: 11, orders: 8 },
-            { hour: 12, orders: 6 },
-            { hour: 13, orders: 10 },
-            { hour: 14, orders: 7 },
-            { hour: 15, orders: 9 },
-          ]);
-        }
-
-        setError(null);
-      } catch (err) {
-        console.error("Failed to fetch barista dashboard data:", err);
-        setError(err.message || "Không thể tải dữ liệu dashboard");
-
-        // Fall back to static data if API fails
-        setOrderStats([
-          { hour: 10, orders: 5 },
-          { hour: 11, orders: 8 },
-          { hour: 12, orders: 6 },
-          { hour: 13, orders: 10 },
-          { hour: 14, orders: 7 },
-          { hour: 15, orders: 9 },
-        ]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchDashboardData();
   }, []);
 
@@ -125,11 +129,15 @@ export function BaristaDashboard() {
   const completed = dashboardData.completedToday;
   const preparing = dashboardData.preparingOrders;
 
-  const maxOrders = Math.max(...orderStats.map((s) => s.orders), 1);
+  const chartData = useMemo(
+    () => fillMissingHours(orderStats, hoursRange),
+    [orderStats, hoursRange]
+  );
+
+  const maxOrders = Math.max(...chartData.map((s) => s.orders), 1);
 
   return (
     <div className="flex-1 p-8">
-      {/* Loading State */}
       {loading && (
         <div className="flex items-center justify-center h-96">
           <div className="text-center">
@@ -139,24 +147,30 @@ export function BaristaDashboard() {
         </div>
       )}
 
-      {/* Error State */}
-      {error && (
-        <Card className="mb-8 bg-red-50 border-red-200">
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-3">
-              <AlertCircle className="w-5 h-5 text-red-600" />
-              <div>
-                <p className="font-medium text-red-900">Lỗi tải dữ liệu</p>
-                <p className="text-sm text-red-700">{error}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
       {!loading && (
         <>
-          {/* Header */}
+          {error && (
+            <Card className="mb-8 bg-red-50 border-red-200">
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <AlertCircle className="w-5 h-5 text-red-600" />
+                    <div>
+                      <p className="font-medium text-red-900">
+                        Lỗi tải dữ liệu
+                      </p>
+                      <p className="text-sm text-red-700">{error}</p>
+                    </div>
+                  </div>
+
+                  <Button variant="outline" onClick={fetchDashboardData}>
+                    Thử lại
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           <div className="mb-8">
             <div className="flex items-center justify-between">
               <div>
@@ -174,7 +188,6 @@ export function BaristaDashboard() {
             </div>
           </div>
 
-          {/* Key Metrics */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
             <StatCard
               icon={PackageOpen}
@@ -206,16 +219,13 @@ export function BaristaDashboard() {
             />
           </div>
 
-          {/* Main Content Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-            {/* Orders by Status */}
             <Card className="lg:col-span-2">
               <CardHeader>
                 <CardTitle>Trình trạng đơn hàng</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-6">
-                  {/* Pending */}
                   <div>
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
@@ -224,10 +234,12 @@ export function BaristaDashboard() {
                       </div>
                       <span className="text-lg font-bold">{pending}</span>
                     </div>
-                    <Progress value={(pending / 20) * 100} className="h-2" />
+                    <Progress
+                      value={Math.min((pending / 20) * 100, 100)}
+                      className="h-2"
+                    />
                   </div>
 
-                  {/* Preparing */}
                   <div>
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
@@ -238,27 +250,29 @@ export function BaristaDashboard() {
                       </div>
                       <span className="text-lg font-bold">{preparing}</span>
                     </div>
-                    <Progress value={(preparing / 20) * 100} className="h-2" />
+                    <Progress
+                      value={Math.min((preparing / 20) * 100, 100)}
+                      className="h-2"
+                    />
                   </div>
 
-                  {/* Ready */}
                   <div>
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
                         <CheckCircle className="w-4 h-4 text-green-500" />
                         <span className="text-sm font-medium">Sẵn sàng</span>
                       </div>
-                      <span className="text-lg font-bold">
-                        {dashboardData.readyOrders}
-                      </span>
+                      <span className="text-lg font-bold">{ready}</span>
                     </div>
-                    <Progress value={(ready / 20) * 100} className="h-2" />
+                    <Progress
+                      value={Math.min((ready / 20) * 100, 100)}
+                      className="h-2"
+                    />
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Today's Summary */}
             <Card>
               <CardHeader>
                 <CardTitle>Tóm tắt hôm nay</CardTitle>
@@ -309,35 +323,42 @@ export function BaristaDashboard() {
             </Card>
           </div>
 
-          {/* Orders Trend Chart */}
           <Card className="mb-8">
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle>Xu hướng đơn hàng (6 giờ qua)</CardTitle>
+                <CardTitle>Xu hướng đơn hàng ({hoursRange} giờ qua)</CardTitle>
                 <TrendingUp className="w-5 h-5 text-muted-foreground" />
               </div>
             </CardHeader>
             <CardContent>
-              <div className="flex items-end justify-between h-64 gap-2">
-                {orderStats.map((stat, idx) => (
-                  <div
-                    key={idx}
-                    className="flex-1 flex flex-col items-center justify-end gap-2"
-                  >
+              {chartData.length === 0 ? (
+                <div className="text-sm text-muted-foreground">
+                  Chưa có dữ liệu
+                </div>
+              ) : (
+                <div className="flex items-end justify-between h-64 gap-2">
+                  {chartData.map((stat, idx) => (
                     <div
-                      className="w-full bg-gradient-to-t from-blue-500 to-blue-400 rounded-t-lg transition-all hover:from-blue-600 hover:to-blue-500"
-                      style={{ height: `${(stat.orders / maxOrders) * 100}%` }}
-                    ></div>
-                    <span className="text-xs text-muted-foreground">
-                      {stat.hour}:00
-                    </span>
-                  </div>
-                ))}
-              </div>
+                      key={`${stat.hour}-${idx}`}
+                      className="flex-1 flex flex-col items-center justify-end gap-2"
+                    >
+                      <div
+                        className="w-full bg-gradient-to-t from-blue-500 to-blue-400 rounded-t-lg transition-all hover:from-blue-600 hover:to-blue-500"
+                        style={{
+                          height: `${(stat.orders / maxOrders) * 100}%`,
+                        }}
+                        title={`${stat.orders} đơn`}
+                      ></div>
+                      <span className="text-xs text-muted-foreground">
+                        {String(stat.hour).padStart(2, "0")}:00
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
 
-          {/* Quick Actions */}
           <Card>
             <CardHeader>
               <CardTitle>Hành động nhanh</CardTitle>

@@ -28,8 +28,10 @@ class BannerController {
   }
 
   async create(req, res, next) {
+    console.log("req.body =", req.body);
+    console.log("req.file =", req.file);
     try {
-      const imageUrl = req.file?.path || null;
+      const imageUrl = req.file?.path || req.body.image_url || null;
 
       if (!imageUrl) {
         return res.status(400).json({

@@ -1,6 +1,6 @@
-const service = require("../services/BaristaDashboardService");
+const service = require("../services/BaristaDBService");
 
-class BaristaDashboardController {
+class BaristaDBController {
   async getOverview(req, res, next) {
     try {
       const data = await service.getOverview();
@@ -16,8 +16,7 @@ class BaristaDashboardController {
 
   async getTrends(req, res, next) {
     try {
-      const hours = req.query.hours || 6;
-
+      const hours = parseInt(req.query.hours, 10) || 6;
       const data = await service.getOrderTrends(hours);
 
       return res.json({
@@ -30,4 +29,4 @@ class BaristaDashboardController {
   }
 }
 
-module.exports = new BaristaDashboardController();
+module.exports = new BaristaDBController();

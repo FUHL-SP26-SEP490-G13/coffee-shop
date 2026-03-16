@@ -24,7 +24,8 @@ export const validateBannerField = (name, value, extra = {}) => {
 
     case "subtitle": {
       const v = value?.trim() || "";
-      if (v && v.length < BANNER_RULES.SUBTITLE_MIN) {
+      if (!v) return "Mô tả không được để trống";
+      if (v.length < BANNER_RULES.SUBTITLE_MIN) {
         return `Mô tả phải có ít nhất ${BANNER_RULES.SUBTITLE_MIN} ký tự`;
       }
       if (v.length > BANNER_RULES.SUBTITLE_MAX) {
@@ -35,7 +36,8 @@ export const validateBannerField = (name, value, extra = {}) => {
 
     case "button_text": {
       const v = value?.trim() || "";
-      if (v && v.length < BANNER_RULES.BUTTON_TEXT_MIN) {
+      if (!v) return "Text nút không được để trống";
+      if (v.length < BANNER_RULES.BUTTON_TEXT_MIN) {
         return `Text nút phải có ít nhất ${BANNER_RULES.BUTTON_TEXT_MIN} ký tự`;
       }
       if (v.length > BANNER_RULES.BUTTON_TEXT_MAX) {

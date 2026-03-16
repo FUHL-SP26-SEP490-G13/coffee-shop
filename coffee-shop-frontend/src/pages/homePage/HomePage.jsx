@@ -31,20 +31,7 @@ export default function HomePage() {
 
   const { data: bannerRes } = useFetch(fetchBanners);
 
-  const banners = (bannerRes?.data ?? []).filter((b) => {
-    if (!b) return false;
-
-    const now = new Date();
-    const start = b.start_date ? new Date(b.start_date) : null;
-    const end = b.end_date ? new Date(b.end_date) : null;
-
-    if (start && Number.isNaN(start.getTime())) return false;
-    if (end && Number.isNaN(end.getTime())) return false;
-    if (start && now < start) return false;
-    if (end && now > end) return false;
-
-    return true;
-  });
+  const banners = bannerRes?.data ?? [];
 
   const defaultImage =
     "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085";

@@ -92,7 +92,7 @@ class ToppingService {
    * Search toppings
    */
   async searchToppings(keyword, options = {}) {
-    if (!keyword || keyword.trim() === '') {
+    if (!keyword || keyword.trim() === "") {
       return this.getAllToppings(options);
     }
 

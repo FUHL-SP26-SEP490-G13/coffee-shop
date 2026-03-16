@@ -6,7 +6,9 @@ class RecipeService {
    * Get recipes for a specific product size
    */
   async getRecipesByProductSize(productSizeId) {
-    const recipes = await RecipeRepository.getRecipesByProductSize(productSizeId);
+    const recipes = await RecipeRepository.getRecipesByProductSize(
+      productSizeId
+    );
 
     if (recipes.length === 0) {
       return [];
@@ -19,7 +21,9 @@ class RecipeService {
    * Get recipes organized by product size
    */
   async getRecipesByProductGroupedBySize(productId) {
-    const rows = await RecipeRepository.getRecipesByProductGroupedBySize(productId);
+    const rows = await RecipeRepository.getRecipesByProductGroupedBySize(
+      productId
+    );
 
     if (rows.length === 0) {
       return {
@@ -94,7 +98,10 @@ class RecipeService {
     }
 
     // Check if recipe already exists
-    const exists = await RecipeRepository.recipeExists(productSizeId, ingredientId);
+    const exists = await RecipeRepository.recipeExists(
+      productSizeId,
+      ingredientId
+    );
     if (exists) {
       throw new ErrorResponse(400, 'Công thức cho nguyên liệu này đã tồn tại');
     }
@@ -182,7 +189,12 @@ class RecipeService {
       throw new ErrorResponse(404, 'Nguyên liệu không tồn tại');
     }
 
-    return RecipeRepository.updateIngredient(ingredientId, name, unitType, unit);
+    return RecipeRepository.updateIngredient(
+      ingredientId,
+      name,
+      unitType,
+      unit
+    );
   }
 
   /**

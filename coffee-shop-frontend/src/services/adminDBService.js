@@ -1,6 +1,6 @@
 import axiosClient from "./axiosClient";
 
-const adminDashboardService = {
+const adminDBService = {
   getOverview: async () => {
     const res = await axiosClient.get("/dashboard");
     // axiosClient trả về response.data rồi
@@ -50,4 +50,4 @@ const adminDashboardService = {
   },
 };
 
-export default adminDashboardService;
+export default adminDBService;

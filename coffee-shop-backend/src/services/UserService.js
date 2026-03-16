@@ -9,7 +9,7 @@ class UserService {
    * Get all users
    */
   async getAllUsers(options = {}) {
-    return UserRepository.findAll({ }, options);
+    return UserRepository.findAll({}, options);
   }
 
   /**
@@ -60,7 +60,7 @@ class UserService {
    * Search users
    */
   async searchUsers(keyword, options = {}) {
-    if (!keyword || keyword.trim() === '') {
+    if (!keyword || keyword.trim() === "") {
       return this.getAllUsers(options);
     }
 
@@ -113,7 +113,7 @@ class UserService {
 
     delete user.password;
 
-    const roleLabel = roleId === ROLES.BARISTA ? 'Pha chế' : 'Phục vụ';
+    const roleLabel = roleId === ROLES.BARISTA ? "Pha chế" : "Phục vụ";
     let emailSent = true;
     try {
       await EmailService.sendStaffAccountEmail(
@@ -158,7 +158,10 @@ class UserService {
 
     // If updating username, check if it's already used by another user
     if (data.username && data.username !== user.username) {
-      const usernameExists = await UserRepository.usernameExists(data.username, id);
+      const usernameExists = await UserRepository.usernameExists(
+        data.username,
+        id
+      );
       if (usernameExists) {
         throw new ErrorResponse(400, 'Username đã được sử dụng');
       }

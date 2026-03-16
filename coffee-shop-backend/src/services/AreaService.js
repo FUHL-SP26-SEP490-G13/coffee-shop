@@ -6,7 +6,7 @@ class AreaService {
    * Get all areas
    */
   async getAllAreas() {
-    return await AreaRepository.findAll({}, { orderBy: 'name', order: 'ASC' });
+    return await AreaRepository.findAll({}, { orderBy: "name", order: "ASC" });
   }
 
   /**
@@ -31,7 +31,7 @@ class AreaService {
     }
 
     const newArea = {
-      name: data.name
+      name: data.name,
     };
     if (data.image) {
       newArea.image = data.image;
@@ -54,7 +54,7 @@ class AreaService {
     }
 
     const updateData = {
-      name: data.name || area.name
+      name: data.name || area.name,
     };
     if (data.image) {
       updateData.image = data.image;
@@ -71,16 +71,19 @@ class AreaService {
     return await AreaRepository.hardDelete(id);
   }
 
-
   /**
    * Search areas
    */
   async searchAreas(keyword, options = {}) {
     const { limit = 20, offset = 0 } = options;
-    
+
     let query = `SELECT * FROM area WHERE name LIKE ? ORDER BY name ASC LIMIT ? OFFSET ?`;
 
-    const [rows] = await AreaRepository.db.query(query, [`%${keyword}%`, limit, offset]);
+    const [rows] = await AreaRepository.db.query(query, [
+      `%${keyword}%`,
+      limit,
+      offset,
+    ]);
     return rows;
   }
 }

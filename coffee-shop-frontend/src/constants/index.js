@@ -70,10 +70,20 @@ export const API_ENDPOINTS = {
     SEARCH: "/products/search",
     BEST_SELLERS: "/products/best-sellers",
   },
+  FAVORITES: {
+    BASE: "/favorites",
+    CHECK: (productId) => `/favorites/check/${productId}`,
+    REMOVE: (productId) => `/favorites/${productId}`,
+  },
   ORDERS: "/orders",
   TOPPINGS: "/toppings",
   TOPPINGS_ADMIN: "/admin/toppings",
   AREAS: "/area",
+  REVIEWS: {
+    BASE: "/reviews",
+    BY_PRODUCT: (productId) => `/reviews/product/${productId}`,
+    MY_REVIEW: (productId) => `/reviews/me/${productId}`,
+  },
 };
 
 // Các hằng số khác

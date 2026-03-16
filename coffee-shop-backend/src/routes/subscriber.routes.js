@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const controller = require("../controllers/NewsletterController");
+const controller = require("../controllers/SubscriberController");
 const { authenticate } = require("../middlewares/auth");
 const { authorize } = require("../middlewares/authorize");
 const { ROLES_STRING } = require("../config/constants");

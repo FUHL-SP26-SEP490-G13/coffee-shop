@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 
-const AdminDashboardController = require("../controllers/AdminDashboardController");
+const AdminDBController = require("../controllers/AdminDBController");
 const { authenticate } = require("../middlewares/auth");
 const { authorize } = require("../middlewares/authorize");
 const { ROLES_STRING } = require("../config/constants");
@@ -11,7 +11,7 @@ router.get(
   "/",
   authenticate,
   authorize([ROLES_STRING.MANAGER]),
-  AdminDashboardController.getOverview
+  AdminDBController.getOverview
 );
 
 // /api/dashboard/revenue?days=7
@@ -19,7 +19,7 @@ router.get(
   "/revenue",
   authenticate,
   authorize([ROLES_STRING.MANAGER]),
-  AdminDashboardController.getRevenueSeries
+  AdminDBController.getRevenueSeries
 );
 
 // /api/dashboard/top-products?days=7&limit=5
@@ -27,7 +27,7 @@ router.get(
   "/top-products",
   authenticate,
   authorize([ROLES_STRING.MANAGER]),
-  AdminDashboardController.getTopProducts
+  AdminDBController.getTopProducts
 );
 
 // /api/dashboard/payment-method?days=7
@@ -35,7 +35,7 @@ router.get(
   "/payment-method",
   authenticate,
   authorize([ROLES_STRING.MANAGER]),
-  AdminDashboardController.getPaymentMethodBreakdown
+  AdminDBController.getPaymentMethodBreakdown
 );
 
 // /api/dashboard/order-type?days=7 doanh thu theo loại đơn hàng (tại quán, mang về, giao hàng)
@@ -43,7 +43,7 @@ router.get(
   "/order-type",
   authenticate,
   authorize([ROLES_STRING.MANAGER]),
-  AdminDashboardController.getOrderTypeRevenue
+  AdminDBController.getOrderTypeRevenue
 );
 
 // Optional: tóm tắt tình trạng bàn (occupied, available) để dashboard có thêm vài số liệu hữu ích, hợp DB vì có status trong bảng tables rồi, khỏi phải đoán dựa vào order hay gì đó
@@ -51,7 +51,7 @@ router.get(
   "/comparison",
   authenticate,
   authorize([ROLES_STRING.MANAGER]),
-  AdminDashboardController.getComparison
+  AdminDBController.getComparison
 );
 
 // Optional: tóm tắt số lượng nhân viên theo vai trò (barista, phục vụ, quản lý) để dashboard có thêm vài số liệu hữu ích
@@ -59,8 +59,8 @@ router.get(
   "/staff-summary",
   authenticate,
   authorize([ROLES_STRING.MANAGER]),
-  AdminDashboardController.getStaffSummary
+  AdminDBController.getStaffSummary
 );
 
-router.get("/table-status", authenticate, authorize([ROLES_STRING.MANAGER]), AdminDashboardController.getTableStatus);
+router.get("/table-status", authenticate, authorize([ROLES_STRING.MANAGER]), AdminDBController.getTableStatus);
 module.exports = router;

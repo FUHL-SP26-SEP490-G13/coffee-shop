@@ -1,7 +1,7 @@
 const pool = require("../config/database");
 
 class DiscountRepository {
-  async findAll({ page = 1, limit = 10, code = "", status = "" }) {
+  async findAll({ page = 1, limit = 7, code = "", status = "" }) {
     const offset = (page - 1) * limit;
 
     const conditions = ["deleted_at IS NULL"];

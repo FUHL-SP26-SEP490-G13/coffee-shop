@@ -61,7 +61,7 @@ class NewsService {
     return news;
   }
 
-  async getAllAdmin({ page = 1, limit = 10, keyword = "" }) {
+  async getAllAdmin({ page = 1, limit = 7, keyword = "" }) {
     const offset = (page - 1) * limit;
 
     const items = await NewsRepository.findAllAdminPaginated(

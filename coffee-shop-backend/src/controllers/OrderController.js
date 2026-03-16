@@ -33,7 +33,15 @@ class OrderController {
   }
 
   async getMyOrders(req, res) {
-    const userId = req.user.id;
+    const userId = req.user.id || null;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Bạn cần đăng nhập để xem đơn hàng",
+      });
+    }
+    
     const result = await OrderService.getOrdersByUser(userId);
 
     return res.json({

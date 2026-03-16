@@ -1,8 +1,8 @@
-const newsletterService = require("../services/NewsletterService");
+const subscriberService = require("../services/SubscriberService");
 const NotificationService = require("../services/NotificationService");
 const { ROLES } = require("../config/constants");
 
-class NewsletterController {
+class SubscriberController {
   async subscribe(req, res) {
     try {
       const { email } = req.body;
@@ -14,15 +14,15 @@ class NewsletterController {
         });
       }
 
-      const subscriber = await newsletterService.subscribe(email);
+      const subscriber = await subscriberService.subscribe(email);
       const io = req.app.get("io");
 
       const result = await NotificationService.createForRole(ROLES.MANAGER, {
-        type: "news-letter",
+        type: "subscriber",
         title: "Email đăng ký mới",
         message: `${subscriber.email} vừa đăng ký nhận tin`,
-        link: "/admin/news-letter",
-        entity_type: "newsletter_subscriber",
+        link: "/admin/subscriner",
+        entity_type: "email_subscriber",
         entity_id: subscriber.id,
       });
 
@@ -65,7 +65,7 @@ class NewsletterController {
 
   async getAll(req, res) {
     try {
-      const data = await newsletterService.getAll();
+      const data = await subscriberService.getAll();
 
       return res.json({
         success: true,
@@ -83,7 +83,7 @@ class NewsletterController {
 
   async delete(req, res) {
     try {
-      await newsletterService.delete(req.params.id);
+      await subscriberService.delete(req.params.id);
 
       return res.json({
         success: true,
@@ -98,4 +98,4 @@ class NewsletterController {
   }
 }
 
-module.exports = new NewsletterController();
+module.exports = new SubscriberController();

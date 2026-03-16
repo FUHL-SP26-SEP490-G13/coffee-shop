@@ -1,6 +1,6 @@
 const pool = require("../config/database");
 
-class AdminDashboardRepository {
+class AdminDBRepository {
   async getRevenueToday() {
     const [[row]] = await pool.query(`
       SELECT IFNULL(SUM(total_amount),0) as revenue
@@ -258,4 +258,4 @@ class AdminDashboardRepository {
   }
 }
 
-module.exports = new AdminDashboardRepository();
+module.exports = new AdminDBRepository();

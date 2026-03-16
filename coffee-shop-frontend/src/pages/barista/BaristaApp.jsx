@@ -61,7 +61,7 @@ export function BaristaApp() {
 
   const menuItems = [
     {
-      id: "dashboard",
+      id: "dashboardB",
       icon: LayoutDashboard,
       label: "Bảng điều khiển",
       path: "/barista",

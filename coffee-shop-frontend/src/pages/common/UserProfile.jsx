@@ -429,7 +429,7 @@ export function UserProfile() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <div className="flex items-center justify-between py-3 border-b">
+                {/* <div className="flex items-center justify-between py-3 border-b">
                   <div>
                     <p className="font-medium">Vai trò</p>
                     <p className="text-sm text-muted-foreground capitalize">
@@ -442,7 +442,7 @@ export function UserProfile() {
                     <p className="font-medium">Mã người dùng</p>
                     <p className="text-sm text-muted-foreground">{profile?.id || '-'}</p>
                   </div>
-                </div>
+                </div> */}
                 <div className="flex items-center justify-between py-3">
                   <div>
                     <p className="font-medium">Đổi mật khẩu</p>

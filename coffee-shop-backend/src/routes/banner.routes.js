@@ -14,6 +14,7 @@ const {
 
 // PUBLIC
 router.get("/active", controller.getActive.bind(controller));
+router.get("/active-list", controller.getActiveList.bind(controller));
 
 // ADMIN
 router.get(
@@ -47,7 +48,5 @@ router.delete(
   authorize([ROLES_STRING.MANAGER]),
   controller.delete.bind(controller)
 );
-
-router.get("/active-list", controller.getActiveList.bind(controller));
 
 module.exports = router;
