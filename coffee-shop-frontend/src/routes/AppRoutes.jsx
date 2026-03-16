@@ -198,6 +198,8 @@ const AppRoutes = () => {
       <Route path="/news/:slug" element={<NewsDetailPage />} />
       <Route path="/news" element={<NewsListPage />} />
       <Route path="/customer/profile" element={<UserProfile />} />
+      
+      {/* Only allow customers to access favorites */}
       <Route
         path="/favorites"
         element={
