@@ -4,7 +4,7 @@ const response = require("../utils/response");
 class DiscountController {
   async getAll(req, res, next) {
     try {
-      const { page = 1, limit = 6, code = "", status = "" } = req.query;
+      const { page = 1, limit = 7, code = "", status = "" } = req.query;
 
       const discounts = await DiscountService.getAll({
         page: parseInt(page),
@@ -33,6 +33,19 @@ class DiscountController {
       const id = await DiscountService.create(req.body);
       return response.success(res, { id }, "Tạo discount thành công", 201);
     } catch (error) {
+      if (error.message === "Mã giảm giá đã tồn tại") {
+        return res.status(400).json({
+          success: false,
+          message: "Dữ liệu không hợp lệ",
+          errors: [
+            {
+              field: "code",
+              message: "Mã giảm giá đã tồn tại",
+            },
+          ],
+        });
+      }
+
       next(error);
     }
   }
@@ -42,6 +55,36 @@ class DiscountController {
       await DiscountService.update(req.params.id, req.body);
       return response.success(res, null, "Cập nhật thành công");
     } catch (error) {
+      if (error.message === "Mã giảm giá đã tồn tại") {
+        return res.status(400).json({
+          success: false,
+          message: "Dữ liệu không hợp lệ",
+          errors: [
+            {
+              field: "code",
+              message: "Mã giảm giá đã tồn tại",
+            },
+          ],
+        });
+      }
+
+      if (
+        error.message ===
+        "Mã giảm giá đã được sử dụng, chỉ được sửa ngày kết thúc, mô tả"
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: "Dữ liệu không hợp lệ",
+          errors: [
+            {
+              field: "server",
+              message:
+                "Mã giảm giá đã được sử dụng, chỉ được sửa ngày kết thúc, mô tả",
+            },
+          ],
+        });
+      }
+
       next(error);
     }
   }
@@ -49,7 +92,7 @@ class DiscountController {
   async delete(req, res, next) {
     try {
       await DiscountService.delete(req.params.id);
-      return response.success(res, null, "Đã xóa");
+      return response.success(res, null, "Mã giảm giá đã xóa thành công");
     } catch (error) {
       next(error);
     }

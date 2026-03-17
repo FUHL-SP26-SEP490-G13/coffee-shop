@@ -1,5 +1,5 @@
-const { verifyToken } = require('../utils/helpers');
-const UserRepository = require('../repositories/UserRepository');
+const { verifyToken } = require("../utils/helpers");
+const UserRepository = require("../repositories/UserRepository");
 
 /**
  * Authentication middleware
@@ -10,10 +10,10 @@ const authenticate = async (req, res, next) => {
     // Get token from header
     const authHeader = req.headers.authorization;
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return res.status(401).json({
         success: false,
-        message: 'Token không được cung cấp',
+        message: "Token không được cung cấp",
       });
     }
 
@@ -25,7 +25,7 @@ const authenticate = async (req, res, next) => {
     if (!decoded) {
       return res.status(401).json({
         success: false,
-        message: 'Token không hợp lệ hoặc đã hết hạn',
+        message: "Token không hợp lệ hoặc đã hết hạn",
       });
     }
 
@@ -35,14 +35,14 @@ const authenticate = async (req, res, next) => {
     if (!user) {
       return res.status(401).json({
         success: false,
-        message: 'User không tồn tại',
+        message: "User không tồn tại",
       });
     }
 
     if (!user.isActive) {
       return res.status(401).json({
         success: false,
-        message: 'Tài khoản đã bị vô hiệu hóa',
+        message: "Tài khoản đã bị vô hiệu hóa",
       });
     }
 
@@ -58,7 +58,7 @@ const authenticate = async (req, res, next) => {
   } catch (error) {
     return res.status(401).json({
       success: false,
-      message: 'Authentication failed',
+      message: "Authentication failed",
       error: error.message,
     });
   }
@@ -71,9 +71,11 @@ const authenticate = async (req, res, next) => {
  */
 const optionalAuth = async (req, res, next) => {
   try {
+    req.user = null;
+
     const authHeader = req.headers.authorization;
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return next();
     }
 
@@ -97,6 +99,7 @@ const optionalAuth = async (req, res, next) => {
 
     next();
   } catch (error) {
+    req.user = null;
     next();
   }
 };

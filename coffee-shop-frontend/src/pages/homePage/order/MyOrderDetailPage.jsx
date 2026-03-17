@@ -1,0 +1,352 @@
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { Loader2, ArrowLeft, RotateCcw } from "lucide-react";
+import Header from "@/components/layout/Header";
+import Footer from "@/components/layout/Footer";
+import { Button } from "@/components/ui/button";
+import orderService from "@/services/orderService";
+import { handleBuyAgain } from "@/utils/handleBuyAgain";
+
+export default function MyOrderDetailPage() {
+  const navigate = useNavigate();
+  const { id } = useParams();
+
+  const [order, setOrder] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [buyAgainLoading, setBuyAgainLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchOrderDetail = async () => {
+      try {
+        const res = await orderService.getMyOrderDetail(id);
+        const data = res?.data?.data || res?.data || null;
+        setOrder(data);
+      } catch (error) {
+        console.error("Lỗi lấy chi tiết đơn hàng:", error);
+        setOrder(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (id) {
+      fetchOrderDetail();
+    }
+  }, [id]);
+
+  const getOrderTypeLabel = (type) => {
+    switch (type) {
+      case "delivery":
+        return "Giao hàng";
+      case "takeaway":
+        return "Mang đi";
+      case "dine-in":
+        return "Tại quán";
+      default:
+        return type;
+    }
+  };
+
+  const getStatusLabel = (status) => {
+    switch (status) {
+      case "pending":
+        return "Chờ xác nhận";
+      case "preparing":
+        return "Đang chuẩn bị";
+      case "served":
+        return "Đã phục vụ";
+      case "delivering":
+        return "Đang giao";
+      case "completed":
+        return "Hoàn tất";
+      case "cancelled":
+        return "Đã hủy";
+      default:
+        return status;
+    }
+  };
+
+  const getStatusClass = (status) => {
+    switch (status) {
+      case "pending":
+        return "bg-yellow-100 text-yellow-700";
+      case "preparing":
+        return "bg-blue-100 text-blue-700";
+      case "served":
+        return "bg-indigo-100 text-indigo-700";
+      case "delivering":
+        return "bg-cyan-100 text-cyan-700";
+      case "completed":
+        return "bg-green-100 text-green-700";
+      case "cancelled":
+        return "bg-red-100 text-red-700";
+      default:
+        return "bg-gray-100 text-gray-700";
+    }
+  };
+
+  const onBuyAgain = async () => {
+    try {
+      setBuyAgainLoading(true);
+      await handleBuyAgain(id, navigate);
+    } finally {
+      setBuyAgainLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col bg-white">
+        <Header />
+        <div className="flex-1 flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-amber-600" />
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (!order) {
+    return (
+      <div className="min-h-screen flex flex-col bg-white">
+        <Header />
+        <div className="flex-1 flex items-center justify-center text-gray-600">
+          Không tìm thấy chi tiết đơn hàng
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  const items = Array.isArray(order.items) ? order.items : [];
+
+  return (
+    <div className="min-h-screen flex flex-col bg-white">
+      <Header />
+
+      <section className="flex-1 w-full px-4 sm:px-6 lg:px-8 py-10">
+        <div className="max-w-5xl mx-auto">
+          <Button
+            variant="outline"
+            onClick={() => navigate("/my-orders")}
+            className="mb-6"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Quay lại đơn hàng
+          </Button>
+
+          <div className="border rounded-2xl bg-white p-6 shadow-sm">
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">
+                  Đơn hàng #{order.id}
+                </h1>
+
+                <div className="mt-4 space-y-2 text-sm text-gray-600">
+                  <p>
+                    Loại đơn:{" "}
+                    <span className="font-medium text-gray-900">
+                      {getOrderTypeLabel(order.order_type)}
+                    </span>
+                  </p>
+
+                  <p>
+                    Trạng thái:{" "}
+                    <span
+                      className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold ${getStatusClass(
+                        order.status
+                      )}`}
+                    >
+                      {getStatusLabel(order.status)}
+                    </span>
+                  </p>
+
+                  <p>
+                    Thanh toán:{" "}
+                    <span className="font-medium text-gray-900">
+                      {Number(order.is_paid) === 1
+                        ? "Đã thanh toán"
+                        : "Chưa thanh toán"}
+                    </span>
+                  </p>
+
+                  <p>
+                    Ngày tạo:{" "}
+                    <span className="font-medium text-gray-900">
+                      {order.created_at
+                        ? new Date(order.created_at).toLocaleString("vi-VN")
+                        : "--"}
+                    </span>
+                  </p>
+
+                  {order.payment_method && (
+                    <p>
+                      Phương thức thanh toán:{" "}
+                      <span className="font-medium text-gray-900">
+                        {order.payment_method}
+                      </span>
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="text-right">
+                <p className="text-sm text-gray-500">Tổng cộng</p>
+                <p className="text-3xl font-bold text-amber-600">
+                  {Number(order.total_amount || 0).toLocaleString("vi-VN")}đ
+                </p>
+              </div>
+            </div>
+
+            {(order.receiver_name ||
+              order.receiver_phone ||
+              order.receiver_email ||
+              order.address ||
+              order.note) && (
+              <div className="mt-8 border-t pt-6">
+                <h2 className="text-xl font-semibold text-gray-900 mb-4">
+                  Thông tin nhận hàng
+                </h2>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-700">
+                  {order.receiver_name && (
+                    <p>
+                      Người nhận:{" "}
+                      <span className="font-medium">{order.receiver_name}</span>
+                    </p>
+                  )}
+
+                  {order.receiver_phone && (
+                    <p>
+                      Số điện thoại:{" "}
+                      <span className="font-medium">
+                        {order.receiver_phone}
+                      </span>
+                    </p>
+                  )}
+
+                  {order.receiver_email && (
+                    <p>
+                      Email:{" "}
+                      <span className="font-medium">
+                        {order.receiver_email}
+                      </span>
+                    </p>
+                  )}
+
+                  {order.address && (
+                    <p className="md:col-span-2">
+                      Địa chỉ:{" "}
+                      <span className="font-medium">{order.address}</span>
+                    </p>
+                  )}
+
+                  {order.note && (
+                    <p className="md:col-span-2">
+                      Ghi chú: <span className="font-medium">{order.note}</span>
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            <div className="mt-8 border-t pt-6">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">
+                Sản phẩm đã đặt
+              </h2>
+
+              {items.length === 0 ? (
+                <p className="text-sm text-gray-500">
+                  Đơn hàng chưa có sản phẩm
+                </p>
+              ) : (
+                <div className="space-y-4">
+                  {items.map((item) => (
+                    <div
+                      key={item.id}
+                      className="border rounded-xl p-4 bg-gray-50"
+                    >
+                      <div className="flex items-start justify-between gap-4 flex-wrap">
+                        <div>
+                          <p className="text-lg font-semibold text-gray-900">
+                            {item.name}
+                          </p>
+
+                          <div className="mt-2 space-y-1 text-sm text-gray-600">
+                            <p>Size: {item.size}</p>
+                            <p>Số lượng: {item.quantity}</p>
+                            <p>
+                              Đơn giá:{" "}
+                              {Number(item.price || 0).toLocaleString("vi-VN")}đ
+                            </p>
+                          </div>
+
+                          {Array.isArray(item.toppings) &&
+                            item.toppings.length > 0 && (
+                              <div className="mt-3">
+                                <p className="text-sm font-medium text-gray-800 mb-1">
+                                  Topping:
+                                </p>
+
+                                <div className="space-y-1">
+                                  {item.toppings.map((topping) => (
+                                    <p
+                                      key={topping.id || topping.topping_id}
+                                      className="text-sm text-gray-600"
+                                    >
+                                      + {topping.name} x {topping.quantity} (
+                                      {Number(topping.price).toLocaleString(
+                                        "vi-VN"
+                                      )}
+                                      đ)
+                                    </p>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                        </div>
+
+                        <div className="text-right">
+                          <p className="text-sm text-gray-500">Thành tiền</p>
+                          <p className="text-lg font-bold text-amber-600">
+                            {(
+                              Number(item.price || 0) *
+                              Number(item.quantity || 1)
+                            ).toLocaleString("vi-VN")}
+                            đ
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="mt-8 flex gap-3 flex-wrap">
+              <Button
+                onClick={onBuyAgain}
+                disabled={buyAgainLoading}
+                className="bg-amber-600 hover:bg-amber-700 text-white"
+              >
+                {buyAgainLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Đang thêm...
+                  </>
+                ) : (
+                  <>
+                    <RotateCcw className="w-4 h-4 mr-2" />
+                    Mua lại đơn này
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <Footer />
+    </div>
+  );
+}

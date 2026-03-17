@@ -12,32 +12,39 @@ class NewsRepository extends BaseRepository {
 
   async findFeatured(limit = 3) {
     const sql = `
-      SELECT * FROM news
-      ORDER BY created_at DESC
-      LIMIT ?
-    `;
+    SELECT *
+    FROM news
+    ORDER BY created_at DESC
+    LIMIT ?
+  `;
+
     const [rows] = await pool.query(sql, [limit]);
-    return rows;
+
+    return rows.map((row) => ({
+      ...row,
+      images: row.images ? row.images.split(",") : [],
+    }));
   }
 
   async findPublishedPaginated(limit, offset) {
     const sql = `
-      SELECT * FROM news
-      ORDER BY created_at DESC
-      LIMIT ?, ?
-    `;
+    SELECT *
+    FROM news
+    ORDER BY created_at DESC
+    LIMIT ?, ?
+  `;
     const [rows] = await pool.query(sql, [offset, limit]);
+
     return rows;
   }
 
-  async findAllAdminPaginated(limit, offset, title = "") {
+  async findAllAdminPaginated(limit, offset, keyword = "") {
     let sql = `SELECT * FROM news WHERE 1=1`;
     const values = [];
 
-    // CHỈ filter khi title có giá trị thật sự
-    if (title && title.trim() !== "") {
-      sql += " AND title LIKE ?";
-      values.push(`%${title.trim()}%`);
+    if (keyword && keyword.trim() !== "") {
+      sql += ` AND (title LIKE ? OR tag LIKE ?)`;
+      values.push(`%${keyword.trim()}%`, `%${keyword.trim()}%`);
     }
 
     sql += " ORDER BY created_at DESC LIMIT ?, ?";
@@ -47,13 +54,13 @@ class NewsRepository extends BaseRepository {
     return rows;
   }
 
-  async countAll(title = "") {
+  async countAll(keyword = "") {
     let sql = `SELECT COUNT(*) as total FROM news WHERE 1=1`;
     const values = [];
 
-    if (title && title.trim() !== "") {
-      sql += " AND title LIKE ?";
-      values.push(`%${title.trim()}%`);
+    if (keyword && keyword.trim() !== "") {
+      sql += ` AND (title LIKE ? OR tag LIKE ?)`;
+      values.push(`%${keyword.trim()}%`, `%${keyword.trim()}%`);
     }
 
     const [rows] = await pool.query(sql, values);
@@ -90,6 +97,11 @@ class NewsRepository extends BaseRepository {
       values.push(data.thumbnail);
     }
 
+    if (data.tag !== undefined) {
+      fields.push("tag = ?");
+      values.push(data.tag);
+    }
+
     if (fields.length === 0) {
       throw new Error("Không có dữ liệu để cập nhật");
     }
@@ -109,6 +121,67 @@ class NewsRepository extends BaseRepository {
     }
 
     return true;
+  }
+
+  async increaseView(id) {
+    const sql = `
+    UPDATE news
+    SET views = views + 1
+    WHERE id = ?
+  `;
+    await pool.query(sql, [id]);
+  }
+
+  async deleteImagesByIds(ids = []) {
+    if (!ids.length) return [];
+
+    // lấy ra public_id để (nếu muốn) xoá cloudinary
+    const selectSql = `
+    SELECT id, image_url, public_id
+    FROM news_images
+    WHERE id IN (?)
+  `;
+    const [rows] = await pool.query(selectSql, [ids]);
+
+    const delSql = `DELETE FROM news_images WHERE id IN (?)`;
+    await pool.query(delSql, [ids]);
+
+    return rows;
+  }
+
+  async findRelatedByTag(tag, excludeId, limit = 3) {
+    const sql = `
+    SELECT *
+    FROM news
+    WHERE LOWER(tag) = LOWER(?)
+      AND id != ?
+    ORDER BY created_at DESC
+    LIMIT ?
+  `;
+
+    const [rows] = await pool.query(sql, [tag, excludeId, limit]);
+    return rows;
+  }
+
+  async findByTitle(title) {
+    const sql = `
+    SELECT * FROM news
+    WHERE LOWER(TRIM(title)) = LOWER(TRIM(?))
+    LIMIT 1
+  `;
+    const [rows] = await pool.query(sql, [title]);
+    return rows[0] || null;
+  }
+
+  async findByTitleExcludeId(title, id) {
+    const sql = `
+    SELECT * FROM news
+    WHERE LOWER(TRIM(title)) = LOWER(TRIM(?))
+      AND id != ?
+    LIMIT 1
+  `;
+    const [rows] = await pool.query(sql, [title, id]);
+    return rows[0] || null;
   }
 }
 

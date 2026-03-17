@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Coffee, Lock, Mail, User, Phone, CheckCircle2, AlertCircle, Shield } from "lucide-react";
+import { Coffee, Lock, Mail, User, Phone, CheckCircle2, AlertCircle, Shield, Eye, EyeOff } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,8 +16,6 @@ export default function RegisterPage() {
 	const [email, setEmail] = useState("");
 	const [phone, setPhone] = useState("");
 	const [username, setUsername] = useState("");
-	const [gender, setGender] = useState("");
-	const [dob, setDob] = useState("");
 	const [password, setPassword] = useState("");
 	const [confirmPassword, setConfirmPassword] = useState("");
 	const [isSubmitting, setIsSubmitting] = useState(false);
@@ -25,6 +23,8 @@ export default function RegisterPage() {
 	const [successMessage, setSuccessMessage] = useState("");
 	const [validationErrors, setValidationErrors] = useState({});
 	const [passwordStrength, setPasswordStrength] = useState(0);
+	const [showPassword, setShowPassword] = useState(false);
+	const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 	const [showOtpModal, setShowOtpModal] = useState(false);
 	const [otp, setOtp] = useState("");
 	const [otpError, setOtpError] = useState("");
@@ -122,14 +122,6 @@ export default function RegisterPage() {
 			errors.username = "Username phải >= 3 ký tự, chỉ chứa chữ/số/_";
 		}
 
-		if (gender !== "0" && gender !== "1") {
-			errors.gender = "Vui lòng chọn giới tính";
-		}
-
-		if (!dob) {
-			errors.dob = "Ngày sinh không được để trống";
-		}
-
 		if (!password) {
 			errors.password = "Mật khẩu không được để trống";
 		} else if (!isValidPasswordStrict(password)) {
@@ -169,8 +161,6 @@ export default function RegisterPage() {
 				email: email.toLowerCase(),
 				phone: phone.replace(/\s/g, ""),
 				username: username,
-				gender: Number(gender),
-				dob,
 				password,
 				password_confirm: confirmPassword,
 			});
@@ -189,8 +179,6 @@ export default function RegisterPage() {
 				email: email.toLowerCase(),
 				phone: phone.replace(/\s/g, ""),
 				username: username,
-				gender: Number(gender),
-				dob,
 				password,
 				password_confirm: confirmPassword,
 				userId: userId,
@@ -498,64 +486,6 @@ export default function RegisterPage() {
 									)}
 								</div>
 
-								{/* Gender & Date of Birth */}
-								<div className="grid grid-cols-2 gap-3">
-									<div className="space-y-2">
-										<Label htmlFor="gender">Giới tính</Label>
-										<select
-											id="gender"
-											value={gender}
-											onChange={(event) => {
-												setGender(event.target.value);
-												if (validationErrors.gender) {
-													setValidationErrors({
-														...validationErrors,
-														gender: "",
-													});
-												}
-											}}
-											className={`h-10 w-full rounded-md border border-input bg-background px-3 text-sm ${
-												validationErrors.gender ? "border-destructive" : ""
-											}`}
-										>
-											<option value="">Chọn</option>
-											<option value="1">Nam</option>
-											<option value="0">Nữ</option>
-										</select>
-										{validationErrors.gender && (
-											<p className="flex items-center gap-2 text-xs text-destructive">
-												<AlertCircle className="h-3 w-3" />
-												{validationErrors.gender}
-											</p>
-										)}
-									</div>
-
-									<div className="space-y-2">
-										<Label htmlFor="dob">Ngày sinh</Label>
-										<Input
-											id="dob"
-											type="date"
-											value={dob}
-											onChange={(event) => {
-												setDob(event.target.value);
-												if (validationErrors.dob) {
-													setValidationErrors({
-														...validationErrors,
-														dob: "",
-													});
-												}
-											}}
-											className={validationErrors.dob ? "border-destructive" : ""}
-										/>
-										{validationErrors.dob && (
-											<p className="flex items-center gap-2 text-xs text-destructive">
-												<AlertCircle className="h-3 w-3" />
-												{validationErrors.dob}
-											</p>
-										)}
-									</div>
-								</div>
-
 								{/* Password Input with Strength Indicator */}
 								<div className="space-y-2">
 									<Label htmlFor="password">Mật khẩu</Label>
@@ -563,9 +493,9 @@ export default function RegisterPage() {
 										<Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
 										<Input
 											id="password"
-											type="password"
+											type={showPassword ? "text" : "password"}
 											placeholder="Nhập mật khẩu"
-											className={`pl-9 ${
+											className={`pl-9 pr-10 ${
 												validationErrors.password
 													? "border-destructive"
 													: ""
@@ -584,6 +514,17 @@ export default function RegisterPage() {
 												}
 											}}
 										/>
+										<button
+											type="button"
+											onClick={() => setShowPassword(!showPassword)}
+											className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+										>
+											{showPassword ? (
+												<EyeOff className="h-4 w-4" />
+											) : (
+												<Eye className="h-4 w-4" />
+											)}
+										</button>
 									</div>
 
 									{/* Password Strength Indicator */}
@@ -647,9 +588,9 @@ export default function RegisterPage() {
 										<Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
 										<Input
 											id="confirmPassword"
-											type="password"
+											type={showConfirmPassword ? "text" : "password"}
 											placeholder="Nhập lại mật khẩu"
-											className={`pl-9 ${
+											className={`pl-9 pr-10 ${
 												validationErrors.confirmPassword
 													? "border-destructive"
 													: ""
@@ -666,6 +607,17 @@ export default function RegisterPage() {
 												}
 											}}
 										/>
+										<button
+											type="button"
+											onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+											className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+										>
+											{showConfirmPassword ? (
+												<EyeOff className="h-4 w-4" />
+											) : (
+												<Eye className="h-4 w-4" />
+											)}
+										</button>
 									</div>
 									{validationErrors.confirmPassword && (
 										<p className="flex items-center gap-2 text-xs text-destructive">

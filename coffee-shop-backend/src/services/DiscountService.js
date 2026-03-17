@@ -1,73 +1,96 @@
 const DiscountRepository = require("../repositories/DiscountRepository");
+const ErrorResponse = require("../utils/ErrorResponse");
 
 class DiscountService {
   async getAll(params) {
-    return DiscountRepository.findAll(params);
+    return await DiscountRepository.findAll(params);
   }
 
   async getById(id) {
     const discount = await DiscountRepository.findById(id);
-    if (!discount) throw new Error("Discount không tồn tại");
+
+    if (!discount) {
+      throw new ErrorResponse(404, "Không tìm thấy mã giảm giá");
+    }
+
     return discount;
   }
 
   async create(data) {
-    // validate nhẹ, đủ dùng
-    if (!data.code) throw new Error("code là bắt buộc");
-    if (data.percentage === undefined || data.percentage === null)
-      throw new Error("percentage là bắt buộc");
+    const existing = await DiscountRepository.findByCode(data.code.trim());
 
-    const percentage = Number(data.percentage);
-    if (Number.isNaN(percentage) || percentage <= 0 || percentage > 100) {
-      throw new Error("percentage phải nằm trong (0 - 100]");
+    if (existing) {
+      throw new ErrorResponse(400, "Mã giảm giá đã tồn tại");
     }
 
-    return DiscountRepository.create({
+    return await DiscountRepository.create({
       ...data,
-      percentage,
-      min_order_amount:
-        data.min_order_amount === "" || data.min_order_amount == null
-          ? 0
-          : Number(data.min_order_amount),
-      max_discount_amount:
-        data.max_discount_amount === "" || data.max_discount_amount == null
-          ? null
-          : Number(data.max_discount_amount),
-      usage_limit:
-        data.usage_limit === "" || data.usage_limit == null
-          ? null
-          : Number(data.usage_limit),
-      is_active: data.is_active ? 1 : 0,
+      code: data.code.trim(),
+      description: data.description?.trim() || null,
     });
   }
 
   async update(id, data) {
-    const percentage = Number(data.percentage);
-    if (Number.isNaN(percentage) || percentage <= 0 || percentage > 100) {
-      throw new Error("percentage phải nằm trong (0 - 100]");
+    const discount = await DiscountRepository.findById(id);
+
+    if (!discount) {
+      throw new ErrorResponse(404, "Không tìm thấy mã giảm giá");
     }
 
-    return DiscountRepository.update(id, {
+    const usedCount = Number(discount.used_count || 0);
+
+    if (usedCount > 0) {
+      const allowedData = {};
+
+      if (data.description !== undefined) {
+        allowedData.description = data.description?.trim() || null;
+      }
+
+      if (data.valid_until !== undefined) {
+        allowedData.valid_until = data.valid_until;
+      }
+
+      if (Object.keys(allowedData).length === 0) {
+        throw new ErrorResponse(400, "Mã giảm giá đã được sử dụng, chỉ được sửa ngày kết thúc, mô tả");
+      }
+
+      await DiscountRepository.update(id, allowedData);
+      return true;
+    }
+
+    if (
+      data.code &&
+      data.code.trim().toLowerCase() !==
+        String(discount.code).trim().toLowerCase()
+    ) {
+      const existing = await DiscountRepository.findByCode(data.code.trim());
+      if (existing) {
+        throw new ErrorResponse(400, "Mã giảm giá đã tồn tại");
+      }
+    }
+
+    await DiscountRepository.update(id, {
       ...data,
-      percentage,
-      min_order_amount:
-        data.min_order_amount === "" || data.min_order_amount == null
-          ? 0
-          : Number(data.min_order_amount),
-      max_discount_amount:
-        data.max_discount_amount === "" || data.max_discount_amount == null
-          ? null
-          : Number(data.max_discount_amount),
-      usage_limit:
-        data.usage_limit === "" || data.usage_limit == null
-          ? null
-          : Number(data.usage_limit),
-      is_active: data.is_active ? 1 : 0,
+      code: data.code?.trim(),
+      description:
+        data.description !== undefined
+          ? data.description?.trim() || null
+          : undefined,
     });
+
+    return true;
   }
 
   async delete(id) {
-    return DiscountRepository.delete(id);
+    const discount = await DiscountRepository.findById(id);
+
+    if (!discount) {
+      throw new ErrorResponse(404, "Không tìm thấy mã giảm giá");
+    }
+
+    const newCode = `${discount.code}__deleted__${discount.id}__${Date.now()}`;
+    await DiscountRepository.softDelete(id, newCode);
+    return true;
   }
 }
 

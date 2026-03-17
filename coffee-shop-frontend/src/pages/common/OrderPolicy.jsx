@@ -1,317 +1,115 @@
-import Footer from "@/components/layout/Footer";
 import Header from "@/components/layout/Header";
+import Footer from "@/components/layout/Footer";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { 
-  ShoppingBag, 
-  Clock, 
-  XCircle, 
-  RefreshCcw, 
-  CreditCard, 
-  UserCheck, 
-  Phone, 
-  MapPin, 
+import {
+  ShoppingBag,
+  Clock,
+  XCircle,
+  RefreshCcw,
+  CreditCard,
+  UserCheck,
+  Phone,
+  MapPin,
   Mail,
   CheckCircle2,
-  Store,
-  Truck
 } from "lucide-react";
 
 function OrderPolicy() {
   return (
-    <>
+    <div className="min-h-screen flex flex-col bg-white">
       <Header />
-      <div className="min-h-screen bg-background">
-        <div className="max-w-5xl mx-auto px-4 md:px-6 py-12 md:py-16">
-          {/* Header Section */}
-          <div className="text-center mb-12">
-            <Badge className="mb-4" variant="outline">
-              Chính sách
-            </Badge>
-            <h1 className="text-3xl md:text-4xl font-bold mb-4">
-              Chính sách đặt hàng
-            </h1>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              Tìm hiểu về quy trình đặt hàng, thanh toán và các chính sách hỗ trợ khách hàng tại Coffee Shop
-            </p>
-          </div>
 
-          <div className="space-y-6">
-            {/* 1. Hình thức đặt hàng */}
-            <Card className="p-6 md:p-8 border-border">
-              <div className="flex items-start gap-4 mb-4">
-                <div className="p-3 bg-primary/10 rounded-lg">
-                  <ShoppingBag className="h-6 w-6 text-primary" />
-                </div>
-                <div className="flex-1">
-                  <h2 className="text-xl md:text-2xl font-semibold mb-2">
-                    1. Hình thức đặt hàng
-                  </h2>
-                  <p className="text-muted-foreground">
-                    Coffee Shop hỗ trợ khách hàng đặt sản phẩm thông qua website hoặc mua trực tiếp tại cửa hàng.
-                  </p>
-                </div>
-              </div>
-
-              <div className="space-y-6 pl-4 md:pl-16">
-                <div>
-                  <div className="flex items-center gap-2 mb-3">
-                    <Truck className="h-5 w-5 text-primary" />
-                    <h3 className="font-semibold text-lg">Đặt hàng online</h3>
-                  </div>
-                  <ul className="space-y-2 text-sm md:text-base">
-                    <li className="flex items-start gap-2">
-                      <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5 shrink-0" />
-                      <span className="text-muted-foreground">Đặt giao tận nơi.</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5 shrink-0" />
-                      <span className="text-muted-foreground">Đặt nhận tại quán (Pickup).</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5 shrink-0" />
-                      <span className="text-muted-foreground">Hệ thống sẽ gửi xác nhận đơn hàng sau khi đặt thành công.</span>
-                    </li>
-                  </ul>
-                </div>
-
-                <div>
-                  <div className="flex items-center gap-2 mb-3">
-                    <Store className="h-5 w-5 text-primary" />
-                    <h3 className="font-semibold text-lg">Uống tại quán</h3>
-                  </div>
-                  <ul className="space-y-2 text-sm md:text-base">
-                    <li className="flex items-start gap-2">
-                      <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5 shrink-0" />
-                      <span className="text-muted-foreground">Gọi món trực tiếp tại quầy.</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5 shrink-0" />
-                      <span className="text-muted-foreground">Thanh toán tiền mặt hoặc QR Code thông qua dịch vụ PayOS.</span>
-                    </li>
-                  </ul>
-                </div>
-              </div>
-            </Card>
-
-            {/* 2. Thời gian xử lý */}
-            <Card className="p-6 md:p-8 border-border">
-              <div className="flex items-start gap-4 mb-4">
-                <div className="p-3 bg-blue-500/10 rounded-lg">
-                  <Clock className="h-6 w-6 text-blue-600" />
-                </div>
-                <div className="flex-1">
-                  <h2 className="text-xl md:text-2xl font-semibold mb-2">
-                    2. Thời gian xử lý đơn hàng
-                  </h2>
-                </div>
-              </div>
-
-              <ul className="space-y-2 pl-4 md:pl-16 text-sm md:text-base">
-                <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5 shrink-0" />
-                  <span className="text-muted-foreground">Đơn online được xác nhận trong vòng 5–15 phút.</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5 shrink-0" />
-                  <span className="text-muted-foreground">Thời gian giao hàng phụ thuộc khu vực và tình hình thực tế.</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5 shrink-0" />
-                  <span className="text-muted-foreground">Đơn tại quán được phục vụ theo thứ tự.</span>
-                </li>
-              </ul>
-
-              <div className="mt-4 p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg ml-4 md:ml-16">
-                <p className="text-sm text-amber-800 dark:text-amber-600">
-                  ⚠️ Trong giờ cao điểm, thời gian xử lý có thể kéo dài hơn dự kiến.
-                </p>
-              </div>
-            </Card>
-
-            {/* 3. Chính sách hủy đơn */}
-            <Card className="p-6 md:p-8 border-border">
-              <div className="flex items-start gap-4 mb-4">
-                <div className="p-3 bg-red-500/10 rounded-lg">
-                  <XCircle className="h-6 w-6 text-red-600" />
-                </div>
-                <div className="flex-1">
-                  <h2 className="text-xl md:text-2xl font-semibold mb-2">
-                    3. Chính sách hủy đơn
-                  </h2>
-                </div>
-              </div>
-
-              <div className="space-y-4 pl-4 md:pl-16">
-                <div>
-                  <h3 className="font-semibold mb-2">Đối với đơn online</h3>
-                  <ul className="space-y-2 text-sm md:text-base">
-                    <li className="flex items-start gap-2">
-                      <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5 shrink-0" />
-                      <span className="text-muted-foreground">Khách hàng có thể hủy trước khi cửa hàng bắt đầu pha chế.</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <XCircle className="h-5 w-5 text-red-600 mt-0.5 shrink-0" />
-                      <span className="text-muted-foreground">Sau khi đã pha chế, không hỗ trợ hủy.</span>
-                    </li>
-                  </ul>
-                </div>
-
-                <div>
-                  <h3 className="font-semibold mb-2">Đối với đơn tại quán</h3>
-                  <ul className="space-y-2 text-sm md:text-base">
-                    <li className="flex items-start gap-2">
-                      <XCircle className="h-5 w-5 text-red-600 mt-0.5 shrink-0" />
-                      <span className="text-muted-foreground">Không hỗ trợ hủy sau khi đã thanh toán và bắt đầu chế biến.</span>
-                    </li>
-                  </ul>
-                </div>
-              </div>
-            </Card>
-
-            {/* 4. Đổi trả và hoàn tiền */}
-            <Card className="p-6 md:p-8 border-border">
-              <div className="flex items-start gap-4 mb-4">
-                <div className="p-3 bg-green-500/10 rounded-lg">
-                  <RefreshCcw className="h-6 w-6 text-green-600" />
-                </div>
-                <div className="flex-1">
-                  <h2 className="text-xl md:text-2xl font-semibold mb-2">
-                    4. Chính sách đổi trả và hoàn tiền
-                  </h2>
-                  <p className="text-muted-foreground mb-4">
-                    Coffee Shop hỗ trợ đổi/trả trong các trường hợp sau:
-                  </p>
-                </div>
-              </div>
-
-              <div className="pl-4 md:pl-16 space-y-4">
-                <ul className="space-y-2 text-sm md:text-base">
-                  <li className="flex items-start gap-2">
-                    <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5 shrink-0" />
-                    <span className="text-muted-foreground">Sản phẩm bị sai món.</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5 shrink-0" />
-                    <span className="text-muted-foreground">Sản phẩm bị hư hỏng trong quá trình giao hàng.</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5 shrink-0" />
-                    <span className="text-muted-foreground">Sản phẩm không đảm bảo chất lượng.</span>
-                  </li>
-                </ul>
-
-                <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg space-y-2">
-                  <p className="text-sm">
-                    📝 Khách hàng cần thông báo trong vòng <strong>24 giờ</strong> và cung cấp hóa đơn hoặc hình ảnh liên quan.
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    ⚠️ Không áp dụng hoàn tiền cho các trường hợp thay đổi ý định mua hàng hoặc sản phẩm đã sử dụng quá 50%.
-                  </p>
-                </div>
-              </div>
-            </Card>
-
-            {/* 5. Thanh toán */}
-            <Card className="p-6 md:p-8 border-border">
-              <div className="flex items-start gap-4 mb-4">
-                <div className="p-3 bg-purple-500/10 rounded-lg">
-                  <CreditCard className="h-6 w-6 text-purple-600" />
-                </div>
-                <div className="flex-1">
-                  <h2 className="text-xl md:text-2xl font-semibold mb-2">
-                    5. Thanh toán
-                  </h2>
-                </div>
-              </div>
-
-              <ul className="space-y-2 pl-4 md:pl-16 text-sm md:text-base">
-                <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5 shrink-0" />
-                  <span className="text-muted-foreground">Thanh toán tiền mặt tại quầy.</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5 shrink-0" />
-                  <span className="text-muted-foreground">Thanh toán chuyển khoản hoặc QR Code thông qua dịch vụ PayOS.</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5 shrink-0" />
-                  <span className="text-muted-foreground">Thanh toán online (nếu có).</span>
-                </li>
-              </ul>
-            </Card>
-
-            {/* 6. Trách nhiệm khách hàng */}
-            <Card className="p-6 md:p-8 border-border">
-              <div className="flex items-start gap-4 mb-4">
-                <div className="p-3 bg-orange-500/10 rounded-lg">
-                  <UserCheck className="h-6 w-6 text-orange-600" />
-                </div>
-                <div className="flex-1">
-                  <h2 className="text-xl md:text-2xl font-semibold mb-2">
-                    6. Trách nhiệm của khách hàng
-                  </h2>
-                </div>
-              </div>
-
-              <ul className="space-y-2 pl-4 md:pl-16 text-sm md:text-base">
-                <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5 shrink-0" />
-                  <span className="text-muted-foreground">Cung cấp thông tin giao hàng chính xác.</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5 shrink-0" />
-                  <span className="text-muted-foreground">Kiểm tra sản phẩm khi nhận hàng.</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5 shrink-0" />
-                  <span className="text-muted-foreground">Bảo quản sản phẩm đúng hướng dẫn.</span>
-                </li>
-              </ul>
-            </Card>
-
-            {/* 7. Liên hệ hỗ trợ */}
-            <Card className="p-6 md:p-8 border-border bg-gradient-to-br from-primary/5 to-primary/10">
-              <div className="flex items-start gap-4 mb-6">
-                <div className="p-3 bg-primary/10 rounded-lg">
-                  <Phone className="h-6 w-6 text-primary" />
-                </div>
-                <div className="flex-1">
-                  <h2 className="text-xl md:text-2xl font-semibold mb-2">
-                    7. Liên hệ hỗ trợ
-                  </h2>
-                  <p className="text-muted-foreground">
-                    Chúng tôi luôn sẵn sàng hỗ trợ bạn
-                  </p>
-                </div>
-              </div>
-
-              <div className="space-y-3 pl-4 md:pl-16">
-                <div className="flex items-center gap-3">
-                  <MapPin className="h-5 w-5 text-primary shrink-0" />
-                  <span className="text-sm md:text-base">TP. Hồ Chí Minh</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Phone className="h-5 w-5 text-primary shrink-0" />
-                  <span className="text-sm md:text-base font-medium">0123 456 789</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Mail className="h-5 w-5 text-primary shrink-0" />
-                  <span className="text-sm md:text-base">support@coffeeshop.vn</span>
-                </div>
-              </div>
-
-              <div className="mt-6 p-4 bg-card rounded-lg border border-border ml-4 md:ml-16">
-                <p className="font-semibold text-center">
-                  ☕ Coffee Shop cam kết mang đến trải nghiệm tốt nhất cho khách hàng.
-                </p>
-              </div>
-            </Card>
-          </div>
-        </div>
+      <div className="text-center space-y-3 mt-10">
+        <h1 className="text-2xl md:text-3xl text-primary">
+          Chính sách đặt hàng
+        </h1>
+        <p className="text-gray-600 text-sm">
+          Thông tin chi tiết về quy trình đặt hàng, thanh toán và hỗ trợ
+          khách hàng.
+        </p>
       </div>
+
+      {/* ===== CONTENT ===== */}
+      <section className="w-full px-4 sm:px-6 lg:px-8 py-16 sm:py-20">
+        <div className="max-w-6xl mx-auto space-y-10">
+          {/* 1 */}
+          <PolicyCard icon={<ShoppingBag />} title="1. Hình thức đặt hàng">
+            <ul className="space-y-2">
+              <li>• Đặt online giao tận nơi hoặc nhận tại quán.</li>
+              <li>• Gọi món trực tiếp tại quầy.</li>
+              <li>• Hệ thống gửi xác nhận sau khi đặt thành công.</li>
+            </ul>
+          </PolicyCard>
+
+          {/* 2 */}
+          <PolicyCard icon={<Clock />} title="2. Thời gian xử lý">
+            <ul className="space-y-2">
+              <li>• Xác nhận đơn trong 5–15 phút.</li>
+              <li>• Giao hàng phụ thuộc khu vực.</li>
+              <li>• Giờ cao điểm có thể chậm hơn.</li>
+            </ul>
+          </PolicyCard>
+
+          {/* 3 */}
+          <PolicyCard icon={<XCircle />} title="3. Chính sách hủy đơn">
+            <ul className="space-y-2">
+              <li>• Được hủy trước khi bắt đầu pha chế.</li>
+              <li>• Không hỗ trợ hủy sau khi đã chế biến.</li>
+            </ul>
+          </PolicyCard>
+
+          {/* 4 */}
+          <PolicyCard icon={<RefreshCcw />} title="4. Đổi trả & hoàn tiền">
+            <ul className="space-y-2">
+              <li>• Sai món hoặc sản phẩm lỗi.</li>
+              <li>• Hư hỏng khi giao hàng.</li>
+              <li>• Thông báo trong 24 giờ.</li>
+            </ul>
+          </PolicyCard>
+
+          {/* 5 */}
+          <PolicyCard icon={<CreditCard />} title="5. Thanh toán">
+            <ul className="space-y-2">
+              <li>• Tiền mặt tại quầy.</li>
+              <li>• QR / chuyển khoản.</li>
+              <li>• Thanh toán online (nếu có).</li>
+            </ul>
+          </PolicyCard>
+
+          {/* 6 */}
+          <PolicyCard icon={<UserCheck />} title="6. Trách nhiệm khách hàng">
+            <ul className="space-y-2">
+              <li>• Cung cấp thông tin chính xác.</li>
+              <li>• Kiểm tra sản phẩm khi nhận.</li>
+              <li>• Bảo quản đúng hướng dẫn.</li>
+            </ul>
+          </PolicyCard>
+        </div>
+      </section>
+
+      {/* Divider giống Home */}
+      <div className="w-full h-px bg-gradient-to-r from-transparent via-amber-300 to-transparent" />
+
       <Footer />
-    </>
+    </div>
+  );
+}
+
+/* Reusable Policy Card */
+function PolicyCard({ icon, title, children }) {
+  return (
+    <Card className="rounded-3xl shadow-xl border border-gray-200 hover:border-amber-300 transition-all duration-300 p-8">
+      <div className="flex items-center gap-4 mb-6">
+        <div className="p-3 bg-amber-100 rounded-xl text-amber-600">{icon}</div>
+        <h2 className="text-lg sm:text-xl font-semibold text-gray-900">
+          {title}
+        </h2>
+      </div>
+      <div className="text-sm sm:text-base text-gray-600 leading-relaxed">
+        {children}
+      </div>
+    </Card>
   );
 }
 

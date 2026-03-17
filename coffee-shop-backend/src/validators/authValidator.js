@@ -54,19 +54,6 @@ const registerSchema = Joi.object({
     'any.required': 'Tên là bắt buộc',
   }),
 
-  gender: Joi.number().integer().valid(0, 1).optional().allow(null).messages({
-    'number.base': 'Giới tính phải là số',
-    'any.only': 'Giới tính không hợp lệ (0: Nữ, 1: Nam)',
-  }),
-
-  dob: Joi.date().iso().max('now').required().messages({
-    'date.base': 'Ngày sinh không hợp lệ',
-    'date.max': 'Ngày sinh không được là tương lai',
-    'any.required': 'Ngày sinh là bắt buộc',
-  }),
-
-  address: Joi.string().max(255).optional().allow(null, ''),
-
   role_id: Joi.number().integer().valid(1, 2, 3, 4).optional().messages({
     'number.base': 'Role ID phải là số',
     'any.only': 'Role ID không hợp lệ',
@@ -110,17 +97,6 @@ const staffCreateSchema = Joi.object({
     'string.empty': 'Tên không được để trống',
     'string.max': 'Tên không được vượt quá 30 ký tự',
     'any.required': 'Tên là bắt buộc',
-  }),
-
-  gender: Joi.number().integer().valid(0, 1).optional().allow(null).messages({
-    'number.base': 'Giới tính phải là số',
-    'any.only': 'Giới tính không hợp lệ (0: Nữ, 1: Nam)',
-  }),
-
-  dob: Joi.date().iso().max('now').required().messages({
-    'date.base': 'Ngày sinh không hợp lệ',
-    'date.max': 'Ngày sinh không được là tương lai',
-    'any.required': 'Ngày sinh là bắt buộc',
   }),
 
   role_id: Joi.number().integer().valid(2, 3).required().messages({
@@ -188,16 +164,6 @@ const updateProfileSchema = Joi.object({
     .messages({
       'string.pattern.base': 'Số điện thoại phải có 10-11 chữ số',
     }),
-
-  gender: Joi.number().integer().valid(0, 1).optional().allow(null).messages({
-    'number.base': 'Giới tính phải là số',
-    'any.only': 'Giới tính không hợp lệ (0: Nữ, 1: Nam)',
-  }),
-
-  dob: Joi.date().iso().max('now').optional().messages({
-    'date.base': 'Ngày sinh không hợp lệ',
-    'date.max': 'Ngày sinh không được là tương lai',
-  }),
 
   address: Joi.string().max(255).optional().allow(null, ''),
 });
@@ -272,6 +238,74 @@ const resetPasswordWithOtpSchema = Joi.object({
   }),
 });
 
+/**
+ * Validation schema for create address
+ */
+const createAddressSchema = Joi.object({
+  receiver_name: Joi.string().trim().max(100).optional().allow(null, '').messages({
+    'string.max': 'Tên người nhận không được vượt quá 100 ký tự',
+  }),
+  receiver_phone: Joi.string()
+    .trim()
+    .max(20)
+    .optional()
+    .allow(null, '')
+    .messages({
+      'string.max': 'Số điện thoại không được vượt quá 20 ký tự',
+    }),
+  address: Joi.string().trim().min(5).max(255).required().messages({
+    'string.empty': 'Địa chỉ không được để trống',
+    'string.min': 'Địa chỉ phải có ít nhất 5 ký tự',
+    'string.max': 'Địa chỉ không được vượt quá 255 ký tự',
+    'any.required': 'Địa chỉ là bắt buộc',
+  }),
+  address_type: Joi.string().valid('home', 'work', 'other').default('home').messages({
+    'any.only': 'Loại địa chỉ không hợp lệ',
+  }),
+  is_default: Joi.number().integer().valid(0, 1).optional(),
+});
+
+/**
+ * Validation schema for update address
+ */
+const updateAddressSchema = Joi.object({
+  receiver_name: Joi.string().trim().max(100).optional().allow(null, '').messages({
+    'string.max': 'Tên người nhận không được vượt quá 100 ký tự',
+  }),
+  receiver_phone: Joi.string()
+    .trim()
+    .max(20)
+    .optional()
+    .allow(null, '')
+    .messages({
+      'string.max': 'Số điện thoại không được vượt quá 20 ký tự',
+    }),
+  address: Joi.string().trim().min(5).max(255).optional().messages({
+    'string.min': 'Địa chỉ phải có ít nhất 5 ký tự',
+    'string.max': 'Địa chỉ không được vượt quá 255 ký tự',
+  }),
+  address_type: Joi.string().valid('home', 'work', 'other').optional().messages({
+    'any.only': 'Loại địa chỉ không hợp lệ',
+  }),
+  is_default: Joi.number().integer().valid(0, 1).optional(),
+})
+  .min(1)
+  .messages({
+    'object.min': 'Cần ít nhất 1 trường để cập nhật địa chỉ',
+  });
+
+/**
+ * Validation schema for address id param
+ */
+const addressIdParamSchema = Joi.object({
+  id: Joi.number().integer().positive().required().messages({
+    'number.base': 'ID địa chỉ phải là số',
+    'number.integer': 'ID địa chỉ phải là số nguyên',
+    'number.positive': 'ID địa chỉ phải lớn hơn 0',
+    'any.required': 'ID địa chỉ là bắt buộc',
+  }),
+});
+
 module.exports = {
   registerSchema,
   staffCreateSchema,
@@ -282,4 +316,7 @@ module.exports = {
   resetPasswordSchema,
   verifyForgotPasswordOtpSchema,
   resetPasswordWithOtpSchema,
+  createAddressSchema,
+  updateAddressSchema,
+  addressIdParamSchema,
 };

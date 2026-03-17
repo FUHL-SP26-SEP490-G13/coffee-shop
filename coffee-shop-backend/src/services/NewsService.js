@@ -1,7 +1,22 @@
 const NewsRepository = require("../repositories/NewsRepository");
+const cloudinary = require("../config/cloudinary");
 const slugify = require("slugify");
+const ErrorResponse = require("../utils/ErrorResponse");
 
 class NewsService {
+  async generateUniqueSlug(title) {
+    const baseSlug = slugify(title, { lower: true, strict: true });
+    let slug = baseSlug;
+    let count = 1;
+
+    while (await NewsRepository.findBySlug(slug)) {
+      slug = `${baseSlug}-${count}`;
+      count++;
+    }
+
+    return slug;
+  }
+
   async getAllPublished({ page = 1, limit = 6 }) {
     const offset = (page - 1) * limit;
 
@@ -18,7 +33,10 @@ class NewsService {
 
   async getDetailBySlug(slug) {
     const news = await NewsRepository.findBySlug(slug);
-    if (!news) throw new Error("Tin không tồn tại");
+    if (!news) throw new ErrorResponse(404, "Tin không tồn tại");
+
+    await NewsRepository.increaseView(news.id);
+
     return news;
   }
 
@@ -27,25 +45,32 @@ class NewsService {
   }
 
   async createNews(data, userId) {
-    const slug = slugify(data.title, { lower: true, strict: true });
+    const existedTitle = await NewsRepository.findByTitle(data.title);
+    if (existedTitle) {
+      throw new ErrorResponse(400, "Tiêu đề bài viết đã tồn tại");
+    }
 
-    return NewsRepository.create({
+    const slug = await this.generateUniqueSlug(data.title);
+
+    const news = await NewsRepository.create({
       ...data,
       slug,
       created_by: userId,
     });
+
+    return news;
   }
 
-  async getAllAdmin({ page = 1, limit = 10, title = "" }) {
+  async getAllAdmin({ page = 1, limit = 7, keyword = "" }) {
     const offset = (page - 1) * limit;
 
     const items = await NewsRepository.findAllAdminPaginated(
       limit,
       offset,
-      title
+      keyword
     );
 
-    const total = await NewsRepository.countAll(title);
+    const total = await NewsRepository.countAll(keyword);
 
     return {
       items,
@@ -59,14 +84,33 @@ class NewsService {
     return NewsRepository.deleteById(id);
   }
 
-  async updateNews(id, data) {
-    return NewsRepository.updateById(id, data);
+  async updateNews(id, { title, summary, content, tag, thumbnail }) {
+    const existedTitle = await NewsRepository.findByTitleExcludeId(title, id);
+    if (existedTitle) {
+      throw new ErrorResponse(400, "Tiêu đề bài viết đã tồn tại");
+    }
+
+    await NewsRepository.updateById(id, {
+      title,
+      summary,
+      content,
+      tag,
+      thumbnail,
+    });
+
+    return true;
   }
 
   async getById(id) {
     const news = await NewsRepository.findOne({ id });
-    if (!news) throw new Error("Không tìm thấy bài viết");
+    if (!news) throw new ErrorResponse(404, "Không tìm thấy bài viết");
+
     return news;
+  }
+
+  async getRelated(tag, excludeId) {
+    if (!tag) return [];
+    return NewsRepository.findRelatedByTag(tag, excludeId, 3);
   }
 }
 

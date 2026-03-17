@@ -12,101 +12,165 @@ class BannerController {
 
   async getAll(req, res, next) {
     try {
-      const { page = 1, limit = 5, keyword = "" } = req.query;
+      const { page = 1, limit = 5, keyword = "", status = "" } = req.query;
 
       const result = await bannerService.getAll({
         page: Number(page),
         limit: Number(limit),
         keyword,
+        status,
       });
 
-      res.json({ success: true, ...result });
+      return res.json({ success: true, ...result });
     } catch (err) {
       next(err);
     }
   }
 
   async create(req, res, next) {
+    console.log("req.body =", req.body);
+    console.log("req.file =", req.file);
     try {
-      // CloudinaryStorage trả URL ở req.file.path
-      const imageUrl = req.file?.path || null;
+      const imageUrl = req.file?.path || req.body.image_url || null;
 
       if (!imageUrl) {
         return res.status(400).json({
           success: false,
-          message: "Vui lòng upload ảnh banner (field: image).",
+          message: "Dữ liệu không hợp lệ",
+          errors: [
+            {
+              field: "image",
+              message: "Ảnh quảng cáo là bắt buộc",
+            },
+          ],
         });
       }
 
       const payload = {
         ...req.body,
         image_url: imageUrl,
-        // is_active từ FormData thường là string -> ép kiểu
-        is_active:
-          req.body.is_active === true ||
-          req.body.is_active === "true" ||
-          req.body.is_active === 1 ||
-          req.body.is_active === "1",
+        start_date: req.body.start_date,
+        end_date: req.body.end_date,
       };
 
       await bannerService.create(payload);
-      return res.json({ success: true, message: "Tạo banner thành công" });
+
+      return res.json({
+        success: true,
+        message: "Tạo quảng cáo thành công",
+      });
     } catch (err) {
+      if (err.message === "Tiêu đề quảng cáo đã tồn tại") {
+        return res.status(400).json({
+          success: false,
+          message: "Dữ liệu không hợp lệ",
+          errors: [
+            {
+              field: "title",
+              message: "Tiêu đề quảng cáo đã tồn tại",
+            },
+          ],
+        });
+      }
+
+      if (err.message === "Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu") {
+        return res.status(400).json({
+          success: false,
+          message: "Dữ liệu không hợp lệ",
+          errors: [
+            {
+              field: "end_date",
+              message: "Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu",
+            },
+          ],
+        });
+      }
+
+      if (err.message === "Ngày bắt đầu hoặc ngày kết thúc không hợp lệ") {
+        return res.status(400).json({
+          success: false,
+          message: "Dữ liệu không hợp lệ",
+          errors: [
+            {
+              field: "start_date",
+              message: "Ngày bắt đầu hoặc ngày kết thúc không hợp lệ",
+            },
+          ],
+        });
+      }
+
       next(err);
     }
   }
 
   async update(req, res, next) {
     try {
-      const bannerId = req.params.id;
+      const id = req.params.id;
+      const { type, ...body } = req.body;
 
-      const existingBanner = await bannerService.getById(bannerId);
+      const data = {
+        ...body,
+        start_date: body.start_date,
+        end_date: body.end_date,
+      };
 
-      if (!existingBanner) {
-        return res.status(404).json({
-          success: false,
-          message: "Banner không tồn tại",
-        });
+      if (req.file) {
+        data.image_url = req.file.path;
       }
 
-      const payload = {};
-
-      if (req.body.title !== undefined) {
-        payload.title = req.body.title;
-      }
-
-      if (req.body.subtitle !== undefined) {
-        payload.subtitle = req.body.subtitle;
-      }
-
-      if (req.body.button_text !== undefined) {
-        payload.button_text = req.body.button_text;
-      }
-
-      if (req.body.button_link !== undefined) {
-        payload.button_link = req.body.button_link;
-      }
-
-      if (req.body.is_active !== undefined) {
-        payload.is_active =
-          req.body.is_active === true ||
-          req.body.is_active === "true" ||
-          req.body.is_active === 1 ||
-          req.body.is_active === "1";
-      }
-
-      // 👇 QUAN TRỌNG NHẤT
-      if (req.file?.path) {
-        payload.image_url = req.file.path;
-      }
-
-      await bannerService.update(bannerId, payload);
+      await bannerService.update(id, data);
 
       return res.json({
         success: true,
-        message: "Cập nhật banner thành công",
+        message: "Cập nhật thành công",
       });
     } catch (err) {
+      if (err.message === "Tiêu đề quảng cáo đã tồn tại") {
+        return res.status(400).json({
+          success: false,
+          message: "Dữ liệu không hợp lệ",
+          errors: [
+            {
+              field: "title",
+              message: "Tiêu đề quảng cáo đã tồn tại",
+            },
+          ],
+        });
+      }
+
+      if (err.message === "Không tìm thấy quảng cáo") {
+        return res.status(404).json({
+          success: false,
+          message: "Không tìm thấy quảng cáo",
+        });
+      }
+
+      if (err.message === "Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu") {
+        return res.status(400).json({
+          success: false,
+          message: "Dữ liệu không hợp lệ",
+          errors: [
+            {
+              field: "end_date",
+              message: "Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu",
+            },
+          ],
+        });
+      }
+
+      if (err.message === "Ngày bắt đầu hoặc ngày kết thúc không hợp lệ") {
+        return res.status(400).json({
+          success: false,
+          message: "Dữ liệu không hợp lệ",
+          errors: [
+            {
+              field: "start_date",
+              message: "Ngày bắt đầu hoặc ngày kết thúc không hợp lệ",
+            },
+          ],
+        });
+      }
+
       next(err);
     }
   }
@@ -114,7 +178,16 @@ class BannerController {
   async delete(req, res, next) {
     try {
       await bannerService.delete(req.params.id);
-      return res.json({ success: true, message: "Xóa banner thành công" });
+      return res.json({ success: true, message: "Xóa quảng cáo thành công" });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async getActiveList(req, res, next) {
+    try {
+      const data = await bannerService.getActiveList();
+      return res.json({ success: true, data });
     } catch (err) {
       next(err);
     }

@@ -16,12 +16,17 @@ const createCategorySchema = Joi.object({
  * Validation schema for updating category
  */
 const updateCategorySchema = Joi.object({
-  name: Joi.string().min(2).max(100).required().messages({
+  name: Joi.string().min(2).max(100).optional().messages({
     'string.empty': 'Tên category không được để trống',
     'string.min': 'Tên category phải có ít nhất 2 ký tự',
     'string.max': 'Tên category không được vượt quá 100 ký tự',
-    'any.required': 'Tên category là bắt buộc',
   }),
+  remove_image: Joi.alternatives()
+    .try(
+      Joi.boolean(),
+      Joi.string().valid('true', 'false')
+    )
+    .optional()
 });
 
 /**
@@ -40,10 +45,25 @@ const categoryIdSchema = Joi.object({
  * Validation schema for search query
  */
 const searchCategorySchema = Joi.object({
-  keyword: Joi.string().allow('').optional(),
-  limit: Joi.number().integer().min(1).max(100).optional().default(20),
-  offset: Joi.number().integer().min(0).optional().default(0),
-  page: Joi.number().integer().min(1).optional().default(1),
+  keyword: Joi.string().allow('').optional().messages({
+    'string.base': 'Từ khóa tìm kiếm phải là chuỗi',
+  }),
+  limit: Joi.number().integer().min(1).max(100).optional().default(20).messages({
+    'number.base': 'Limit phải là số',
+    'number.min': 'Limit tối thiểu là 1',
+    'number.max': 'Limit tối đa là 100',
+  }),
+  offset: Joi.number().integer().min(0).optional().default(0).messages({
+    'number.base': 'Offset phải là số',
+    'number.min': 'Offset không được âm',
+  }),
+  page: Joi.number().integer().min(1).optional().default(1).messages({
+    'number.base': 'Page phải là số',
+    'number.min': 'Page tối thiểu là 1',
+  }),
+  with_count: Joi.string().valid('true', 'false').optional().messages({
+    'any.only': 'with_count chỉ chấp nhận "true" hoặc "false"',
+  }),
 });
 
 module.exports = {

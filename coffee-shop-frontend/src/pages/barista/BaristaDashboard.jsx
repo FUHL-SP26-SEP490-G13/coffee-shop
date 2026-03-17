@@ -16,7 +16,7 @@ import {
 } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { Progress } from "../../components/ui/progress";
-import baristaDashboardService from "../../services/baristaDashboardService";
+import baristaDashboardService from "../../services/baristaDBService";
 
 // Define StatCard outside component to avoid creating components during render
 const StatCard = (props) => {

@@ -81,12 +81,18 @@ class BaseRepository {
    */
   async update(id, data) {
     const keys = Object.keys(data);
-    const values = Object.values(data);
 
+    if (keys.length === 0) {
+      throw new Error('Không có dữ liệu để update');
+    }
+
+    const values = Object.values(data);
     const setClause = keys.map((key) => `${key} = ?`).join(',');
+
     const query = `UPDATE ${this.tableName} SET ${setClause} WHERE id = ?`;
 
     await db.query(query, [...values, id]);
+
     return this.findById(id);
   }
 

@@ -3,36 +3,28 @@ import { Navigate, Routes, Route } from "react-router-dom";
 import { APP_ROUTES, STORAGE_KEYS } from "../constants";
 import LoginPage from "../pages/authentication/LoginPage";
 import RegisterPage from "../pages/authentication/RegisterPage";
-import { StaffApp } from "../pages/staff/StaffApp";
-import { BaristaApp } from "../pages/barista/BaristaApp";
-import { BaristaDashboard } from "../pages/barista/BaristaDashboard";
-import { BaristaOrders } from "../pages/barista/BaristaOrders";
-import { BaristaSchedule } from "../pages/barista/BaristaSchedule";
-import { BaristaAttendance } from "../pages/barista/BaristaAttendance";
-import { BaristaRequests } from "../pages/barista/BaristaRequests";
 import AdminOrders from "../pages/admin/AdminOrders";
 import AdminUsers from "../pages/admin/AdminUsers";
 import authenticationService from "../services/authenticationService";
-import HomePage from "@/pages/HomePage";
+import HomePage from "@/pages/homePage/HomePage";
 import ChangePasswordPage from "../pages/authentication/ChangePasswordPage";
 import ForgotPasswordPage from "../pages/authentication/ForgotPasswordPage";
-import AdminStaffSchedule from "@/pages/admin/AdminStaffSchedule";
-import AdminInventory from "@/pages/admin/AdminInventory";
-import { UserProfile } from "@/pages/common/UserProfile";
-import AdminNewsCreatePage from "@/pages/admin/AdminNew/AdminNewsCreatePage";
-import AdminNewsList from "@/pages/admin/AdminNew/AdminNewsList";
+import AdminStaffSchedule from "../pages/admin/AdminStaffSchedule";
+import AdminInventory from "../pages/admin/AdminInventory";
+import { UserProfile } from "../pages/common/UserProfile";
+import AdminNewsCreatePage from "../pages/admin/AdminNew/AdminNewsCreatePage";
+import AdminNewsList from "../pages/admin/AdminNew/AdminNewsList";
 import AdminProducts from "@/pages/admin/AdminProduct/AdminProducts";
-import NewsDetailPage from "@/components/news/NewsDetailPage";
+import AdminCategories from "@/pages/admin/AdminCategory/AdminCategories";
+import NewsDetailPage from "@/pages/homePage/news/NewsDetailPage";
 import AdminEditNewsPage from "@/pages/admin/AdminNew/AdminEditNewsPage";
 import AdminNewsDetailPage from "@/pages/admin/AdminNew/AdminNewsDetailPage";
-import NewsListPage from "@/components/news/NewsListPage";
-import AdminDashboard from "../pages/admin/AdminDashboard/AdminDashboard";
+import NewsListPage from "@/pages/homePage/news/NewsListPage";
 import AdminDiscounts from "@/pages/admin/AdminDiscount/AdminDiscounts";
 import AdminDiscountCreate from "@/pages/admin/AdminDiscount/AdminDiscountCreate";
 import AdminDiscountEdit from "@/pages/admin/AdminDiscount/AdminDiscountEdit";
 import OrderPolicy from "@/pages/common/OrderPolicy";
 import PrivacyPolicy from "@/pages/common/PrivacyPolicy";
-import AdminNewsletter from "@/pages/admin/AdminNewletter/AdminNewsletter";
 import AdminApp from "../pages/admin/AdminApp";
 import { StaffPOS } from "@/pages/staff/StaffPOS";
 import { StaffAttendance } from "@/pages/staff/StaffAttendance";
@@ -43,8 +35,26 @@ import { StaffTables } from "@/pages/staff/StaffTables";
 import { StaffSchedule } from "@/pages/staff/StaffSchedule";
 import AdminBanner from "@/pages/admin/AdminBanner/AdminBanner";
 import AdminTables from "@/pages/admin/AdminTables/AdminTables";
-
-
+import AdminToppings from "../pages/admin/AdminTopping/AdminToppings";
+import PaymentPolicyPage from "@/pages/common/PaymentPolicyPage";
+import { BaristaDB } from "@/pages/barista/BaristaDashboard/BaristaDB";
+import { BaristaOrders } from "@/pages/barista/BaristaOrder/BaristaOrders";
+import { BaristaAttendance } from "@/pages/barista/BaristaAttendance/BaristaAttendance";
+import { BaristaSchedule } from "@/pages/barista/BaristaSchedule/BaristaSchedule";
+import { BaristaRequests } from "@/pages/barista/BaristaRequest/BaristaRequests";
+import { StaffApp } from "@/pages/staff/StaffApp";
+import { BaristaApp } from "@/pages/barista/BaristaApp";
+import ProductListPage from "../pages/homePage/product/ProductListPage";
+import ProductDetailPage from "../pages/homePage/product/ProductDetailPage";
+import CartPage from "@/pages/homePage/order/CartPage";
+import CheckoutPage from "@/pages/homePage/order/CheckoutPage";
+import PayOSReturnSuccess from "@/pages/common/PayOSReturnSuccess";
+import AdminDB from "@/pages/admin/AdminDB/AdminDB";
+import AdminSubscriber from "@/pages/admin/AdminSubscriber/AdminSubscriber";
+import FavoritePage from "@/pages/homePage/favorite/FavoritePage";
+import AdminReviews from "@/pages/admin/AdminReview/AdminReview";
+import MyOrdersPage from "../pages/homePage/order/MyOrdersPage";
+import MyOrderDetailPage from "../pages/homePage/order/MyOrderDetailPage";
 
 const getStoredValue = (key) =>
   localStorage.getItem(key) || sessionStorage.getItem(key);
@@ -67,18 +77,21 @@ const getRoleHomeRoute = (roleId) => {
 const RoleGuard = ({ allowedRoles, children }) => {
   const token = getStoredValue(STORAGE_KEYS.ACCESS_TOKEN);
   const [roleId, setRoleId] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(Boolean(token));
 
   useEffect(() => {
     if (!token) {
-      setIsLoading(false);
       return;
     }
 
-    authenticationService.getProfile().then((res) => {
-      setRoleId(Number(res?.data?.role_id));
-      setIsLoading(false);
-    });
+    authenticationService
+      .getProfile()
+      .then((res) => {
+        setRoleId(Number(res?.data?.role_id));
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
   }, [token]);
 
   if (!token) return <Navigate to={APP_ROUTES.LOGIN} replace />;
@@ -100,13 +113,14 @@ const AppRoutes = () => {
   return (
     <Routes>
       <Route path="/" element={<HomePage />} />
+      <Route path="/products" element={<ProductListPage />} />
+      <Route path="/products/:id" element={<ProductDetailPage />} />
       <Route path={APP_ROUTES.LOGIN} element={<LoginPage />} />
       <Route path={APP_ROUTES.REGISTER} element={<RegisterPage />} />
       <Route
         path={APP_ROUTES.FORGOT_PASSWORD}
         element={<ForgotPasswordPage />}
       />
-
       <Route
         path={APP_ROUTES.CHANGE_PASSWORD}
         element={
@@ -115,7 +129,6 @@ const AppRoutes = () => {
           </RoleGuard>
         }
       />
-
       {/* STAFF NESTED ROUTES */}
       <Route
         path="/staff"
@@ -135,7 +148,6 @@ const AppRoutes = () => {
         <Route path="schedule" element={<StaffSchedule />} />
         <Route path="profile" element={<UserProfile />} />
       </Route>
-
       {/* BARISTA NESTED ROUTES */}
       <Route
         path="/barista"
@@ -146,14 +158,13 @@ const AppRoutes = () => {
         }
       >
         <Route index element={<Navigate to="dashboard" replace />} />
-        <Route path="dashboard" element={<BaristaDashboard />} />
+        <Route path="dashboard" element={<BaristaDB />} />
         <Route path="orders" element={<BaristaOrders />} />
         <Route path="attendance" element={<BaristaAttendance />} />
         <Route path="schedule" element={<BaristaSchedule />} />
         <Route path="requests" element={<BaristaRequests />} />
         <Route path="profile" element={<UserProfile />} />
       </Route>
-
       {/* ADMIN NESTED ROUTES */}
       <Route
         path="/admin"
@@ -164,8 +175,9 @@ const AppRoutes = () => {
         }
       >
         <Route index element={<Navigate to="dashboard" replace />} />
-        <Route path="dashboard" element={<AdminDashboard />} />
-        <Route path="products" element={<AdminProducts />} />
+        <Route path="dashboard" element={<AdminDB />} />
+        <Route path="menu/products" element={<AdminProducts />} />
+        <Route path="menu/categories" element={<AdminCategories />} />
         <Route path="orders" element={<AdminOrders />} />
         <Route path="users" element={<AdminUsers />} />
         <Route path="schedule" element={<AdminStaffSchedule />} />
@@ -178,18 +190,48 @@ const AppRoutes = () => {
         <Route path="discounts" element={<AdminDiscounts />} />
         <Route path="discounts/create" element={<AdminDiscountCreate />} />
         <Route path="discounts/edit/:id" element={<AdminDiscountEdit />} />
-        <Route path="newsletter" element={<AdminNewsletter />} />
+        <Route path="subscriber" element={<AdminSubscriber />} />
         <Route path="banners" element={<AdminBanner />} />
         <Route path="tables" element={<AdminTables />} />
-
-
+        <Route path="toppings" element={<AdminToppings />} />
+        <Route path="reviews" element={<AdminReviews />} />
       </Route>
-
       <Route path="/news/:slug" element={<NewsDetailPage />} />
       <Route path="/news" element={<NewsListPage />} />
       <Route path="/customer/profile" element={<UserProfile />} />
+
+      {/* Only allow customers to access favorites */}
+      <Route
+        path="/favorites"
+        element={
+          <RoleGuard allowedRoles={[4]}>
+            <FavoritePage />
+          </RoleGuard>
+        }
+      />
       <Route path="/order-policy" element={<OrderPolicy />} />
       <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+      <Route path="/payment-policy" element={<PaymentPolicyPage />} />
+
+      <Route path="/cart" element={<CartPage />} />
+      <Route path="/checkout" element={<CheckoutPage />} />
+      <Route path="/payment-result" element={<PayOSReturnSuccess />} />
+      <Route
+        path="/my-orders"
+        element={
+          <RoleGuard allowedRoles={[4]}>
+            <MyOrdersPage />
+          </RoleGuard>
+        }
+      />
+      <Route
+        path="/my-orders/:id"
+        element={
+          <RoleGuard allowedRoles={[4]}>
+            <MyOrderDetailPage />
+          </RoleGuard>
+        }
+      />
 
       {/* 404 */}
       <Route

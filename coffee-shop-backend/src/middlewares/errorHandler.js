@@ -4,14 +4,6 @@ const env = require('../config/env');
  * Global error handler middleware
  */
 const errorHandler = (err, req, res, next) => {
-  // Log error
-  console.error('Error:', {
-    message: err.message,
-    stack: err.stack,
-    url: req.originalUrl,
-    method: req.method,
-    ip: req.ip,
-  });
 
   // Default error
   let statusCode = err.statusCode || 500;
@@ -22,7 +14,15 @@ const errorHandler = (err, req, res, next) => {
     switch (err.code) {
       case 'ER_DUP_ENTRY':
         statusCode = 400;
-        message = 'Duplicate entry - Record already exists';
+        if (err.sqlMessage?.includes('phone')) {
+          message = 'Số điện thoại đã được sử dụng';
+        } else if (err.sqlMessage?.includes('email')) {
+          message = 'Email đã được sử dụng';
+        } else if (err.sqlMessage?.includes('username')) {
+          message = 'Username đã được sử dụng';
+        } else {
+          message = 'Dữ liệu đã tồn tại';
+        }
         break;
       case 'ER_NO_REFERENCED_ROW_2':
         statusCode = 400;
@@ -77,7 +77,7 @@ const errorHandler = (err, req, res, next) => {
   // Include stack trace in development
   if (env.NODE_ENV === 'development') {
     response.stack = err.stack;
-    response.error = err;
+    // response.error = err;
   }
 
   res.status(statusCode).json(response);

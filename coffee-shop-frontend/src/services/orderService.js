@@ -1,24 +1,42 @@
+import axios from "axios";
 import axiosClient from "./axiosClient";
+import { API_ENDPOINTS } from "@/constants";
+
+const _payosAxios = axios.create({
+  baseURL: (import.meta.env.VITE_API_URL || "http://localhost:5000/api").replace(
+    /\/api\/?$/,
+    ""
+  ),
+  headers: { "Content-Type": "application/json" },
+});
 
 const orderService = {
-  // Lấy tất cả đơn của user đang login
+  validateDiscount(data) {
+    return axiosClient.post("/orders/validate-discount", data);
+  },
+
+  checkout(data) {
+    return axiosClient.post(API_ENDPOINTS.ORDERSLIST.CHECKOUT, data);
+  },
+
   getMyOrders() {
-    return axiosClient.get("/orders/my");
+    return axiosClient.get(API_ENDPOINTS.ORDERSLIST.MY_ORDERS);
   },
 
-  // Lấy chi tiết đơn hàng
-  getById(id) {
-    return axiosClient.get(`/orders/${id}`);
+  getMyOrderDetail(id) {
+    return axiosClient.get(API_ENDPOINTS.ORDERSLIST.MY_ORDER_DETAIL(id));
   },
 
-  // Tạo đơn mới (checkout)
-  create(data) {
-    return axiosClient.post("/orders", data);
-  },
-
-  // Hủy đơn hàng
   cancel(id) {
-    return axiosClient.put(`/orders/${id}/cancel`);
+    return axiosClient.put(API_ENDPOINTS.ORDERSLIST.CANCEL(id));
+  },
+
+  createPaymentLink(data) {
+    return _payosAxios.post("/create-payment-link", data);
+  },
+
+  savePayosReturn(data) {
+    return axiosClient.post(API_ENDPOINTS.ORDERSLIST.PAYOS_RETURN, data);
   },
 };
 

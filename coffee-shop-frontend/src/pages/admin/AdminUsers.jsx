@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Loader2, Search, ChevronLeft, ChevronRight, Mars, Venus, Plus, Users } from 'lucide-react';
+import { Loader2, Search, ChevronLeft, ChevronRight, Plus, Users } from 'lucide-react';
 import userService from '../../services/userService';
 import { Badge } from '../../components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../../components/ui/dialog';
 import { Label } from '../../components/ui/label';
 import { Switch } from '../../components/ui/switch';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 
 export default function AdminUsers() {
   const [users, setUsers] = useState([]);
@@ -17,7 +18,7 @@ export default function AdminUsers() {
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortOrder, setSortOrder] = useState('asc');
-  const [roleFilter, setRoleFilter] = useState('all');
+  const [activeTab, setActiveTab] = useState('2');
   const [statusFilter, setStatusFilter] = useState('1');
   const [currentPage, setCurrentPage] = useState(1);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -30,8 +31,6 @@ export default function AdminUsers() {
     email: '',
     phone: '',
     username: '',
-    gender: '',
-    dob: '',
     role_id: '2',
   });
   const [isPasswordOpen, setIsPasswordOpen] = useState(false);
@@ -40,6 +39,17 @@ export default function AdminUsers() {
   const [passwordError, setPasswordError] = useState('');
   const [isTogglingStatus, setIsTogglingStatus] = useState(false);
   const USERS_PER_PAGE = 10;
+
+  const normalizePhoneNumber = (phone) => {
+    const digitsOnly = (phone || '').replace(/\D/g, '');
+
+    // Convert +84xxxxxxxxx / 84xxxxxxxxx to local 0xxxxxxxxx format
+    if (digitsOnly.startsWith('84') && digitsOnly.length >= 11 && digitsOnly.length <= 12) {
+      return `0${digitsOnly.slice(2)}`;
+    }
+
+    return digitsOnly;
+  };
 
   const fetchUsers = async () => {
     try {
@@ -81,14 +91,14 @@ export default function AdminUsers() {
     }
     if (!createForm.phone.trim()) {
       errors.phone = 'Số điện thoại không được để trống';
-    } else if (!/^(\+84|0)[0-9]{9,11}$/.test(createForm.phone.replace(/\s/g, ''))) {
-      errors.phone = 'Số điện thoại không hợp lệ';
+    } else {
+      const normalizedPhone = normalizePhoneNumber(createForm.phone);
+      if (!/^[0-9]{10,11}$/.test(normalizedPhone)) {
+        errors.phone = 'Số điện thoại phải có 10-11 chữ số';
+      }
     }
     if (!createForm.username.trim()) {
       errors.username = 'Username không được để trống';
-    }
-    if (!createForm.dob) {
-      errors.dob = 'Ngày sinh không được để trống';
     }
     if (!['2', '3'].includes(createForm.role_id)) {
       errors.role_id = 'Vai trò không hợp lệ';
@@ -105,8 +115,6 @@ export default function AdminUsers() {
       email: '',
       phone: '',
       username: '',
-      gender: '',
-      dob: '',
       role_id: '2',
     });
     setCreateFieldErrors({});
@@ -127,10 +135,8 @@ export default function AdminUsers() {
         first_name: createForm.first_name.trim(),
         last_name: createForm.last_name.trim(),
         email: createForm.email.trim(),
-        phone: createForm.phone.trim(),
+        phone: normalizePhoneNumber(createForm.phone),
         username: createForm.username.trim(),
-        gender: createForm.gender === '' ? null : parseInt(createForm.gender, 10),
-        dob: createForm.dob,
         role_id: parseInt(createForm.role_id, 10),
       };
 
@@ -143,7 +149,7 @@ export default function AdminUsers() {
         setCreateError(response.message || 'Không thể tạo nhân viên');
       }
     } catch (err) {
-      setCreateError('Lỗi kết nối đến máy chủ');
+      setCreateError(err.message || 'Lỗi kết nối đến máy chủ');
       console.error(err);
     } finally {
       setIsCreating(false);
@@ -197,17 +203,6 @@ export default function AdminUsers() {
     }
   };
 
-  const getGenderLabel = (gender) => {
-    switch (gender) {
-      case 1:
-        return { icon: <Mars className="w-4 h-4" />, label: 'Nam', color: 'text-blue-600' };
-      case 0:
-        return { icon: <Venus className="w-4 h-4" />, label: 'Nữ', color: 'text-pink-600' };
-      default:
-        return { icon: null, label: 'Khác', color: 'text-gray-600' };
-    }
-  };
-
   const getRoleInfo = (roleId) => {
     switch (roleId) {
       case 1:
@@ -227,6 +222,12 @@ export default function AdminUsers() {
   const filteredAndSortedUsers = useMemo(() => {
     let result = [...users];
 
+    // Loại bỏ admin (role_id = 1)
+    result = result.filter(user => user.role_id !== 1);
+
+    // Lọc theo tab (role)
+    result = result.filter(user => user.role_id === parseInt(activeTab));
+
     // Tìm kiếm
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
@@ -239,11 +240,6 @@ export default function AdminUsers() {
           user.phone?.includes(query)
         );
       });
-    }
-
-    // Lọc theo Role
-    if (roleFilter !== 'all') {
-      result = result.filter(user => user.role_id === parseInt(roleFilter));
     }
 
     // Lọc theo trạng thái
@@ -266,7 +262,7 @@ export default function AdminUsers() {
     });
 
     return result;
-  }, [users, searchQuery, roleFilter, statusFilter, sortOrder]);
+  }, [users, searchQuery, activeTab, statusFilter, sortOrder]);
 
   // Tính toán dữ liệu phân trang
   const totalPages = Math.ceil(filteredAndSortedUsers.length / USERS_PER_PAGE);
@@ -277,7 +273,7 @@ export default function AdminUsers() {
   // Reset về trang 1 khi lọc thay đổi
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, roleFilter, statusFilter, sortOrder]);
+  }, [searchQuery, activeTab, statusFilter, sortOrder]);
 
   if (isLoading) {
     return (
@@ -305,63 +301,58 @@ export default function AdminUsers() {
           <Users className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
           <h1 className="text-xl sm:text-2xl font-semibold">Quản lý người dùng</h1>
         </div>
-        <Button onClick={() => setIsCreateOpen(true)} className="w-full sm:w-auto">
+        <Button onClick={() => setIsCreateOpen(true)} className="w-full sm:w-auto hover:bg-amber-600 text-white">
           <Plus className="h-4 w-4 mr-2" />
           Thêm nhân viên
         </Button>
       </div>
 
-      {/* Bộ lọc và tìm kiếm */}
-      <div className="mb-4 sm:mb-6 flex flex-wrap gap-2 sm:gap-4">
-        {/* Tìm kiếm */}
-        <div className="relative flex-1 min-w-[200px] sm:min-w-[250px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Tìm kiếm theo tên, email, số điện thoại..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9"
-          />
-        </div>
+      {/* Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="mb-4">
+          <TabsTrigger value="2">Phục vụ</TabsTrigger>
+          <TabsTrigger value="3">Pha chế</TabsTrigger>
+          <TabsTrigger value="4">Khách hàng</TabsTrigger>
+        </TabsList>
 
-        {/* Lọc theo Role */}
-        <Select value={roleFilter} onValueChange={setRoleFilter}>
-          <SelectTrigger className="w-full sm:w-[180px]">
-            <SelectValue placeholder="Vai trò" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Tất cả vai trò</SelectItem>
-            <SelectItem value="1">Quản lý</SelectItem>
-            <SelectItem value="2">Phục vụ</SelectItem>
-            <SelectItem value="3">Pha chế</SelectItem>
-            <SelectItem value="4">Khách hàng</SelectItem>
-          </SelectContent>
-        </Select>
+        <TabsContent value={activeTab} className="mt-0">
+          {/* Bộ lọc và tìm kiếm */}
+          <div className="mb-4 sm:mb-6 flex flex-wrap gap-2 sm:gap-4">
+            {/* Tìm kiếm */}
+            <div className="relative flex-1 min-w-[200px] sm:min-w-[250px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Tìm kiếm theo tên, email, số điện thoại..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+              />
+            </div>
 
-        {/* Lọc theo trạng thái */}
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-full sm:w-[160px]">
-            <SelectValue placeholder="Trạng thái" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="1">Active</SelectItem>
-            <SelectItem value="0">Inactive</SelectItem>
-          </SelectContent>
-        </Select>
+            {/* Lọc theo trạng thái */}
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-full sm:w-[160px]">
+                <SelectValue placeholder="Trạng thái" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="1">Active</SelectItem>
+                <SelectItem value="0">Inactive</SelectItem>
+              </SelectContent>
+            </Select>
 
-        {/* Sắp xếp theo tên */}
-        <Select value={sortOrder} onValueChange={setSortOrder}>
-          <SelectTrigger className="w-full sm:w-[160px]">
-            <SelectValue placeholder="Sắp xếp" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="asc">Tên A-Z</SelectItem>
-            <SelectItem value="desc">Tên Z-A</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+            {/* Sắp xếp theo tên */}
+            <Select value={sortOrder} onValueChange={setSortOrder}>
+              <SelectTrigger className="w-full sm:w-[160px]">
+                <SelectValue placeholder="Sắp xếp" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="asc">Tên A-Z</SelectItem>
+                <SelectItem value="desc">Tên Z-A</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-      <div className="bg-card rounded-xl border border-border overflow-hidden">
+          <div className="bg-card rounded-xl border border-border overflow-hidden">
         <div className="overflow-x-auto">
           <Table>
           <TableHeader>
@@ -370,7 +361,6 @@ export default function AdminUsers() {
               <TableHead>Tên đăng nhập</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Điện thoại</TableHead>
-              <TableHead>Giới tính</TableHead>
               <TableHead>Vai trò</TableHead>
               <TableHead>Trạng thái</TableHead>
             </TableRow>
@@ -385,7 +375,6 @@ export default function AdminUsers() {
             ) : (
               paginatedUsers.map((user) => {
               const roleInfo = getRoleInfo(user.role_id);
-              const genderInfo = getGenderLabel(user.gender);
               const fullName = `${user.first_name} ${user.last_name}`;
               
               return (
@@ -406,11 +395,6 @@ export default function AdminUsers() {
                   <TableCell>{user.username}</TableCell>
                   <TableCell className="text-muted-foreground">{user.email}</TableCell>
                   <TableCell className="text-muted-foreground">{user.phone}</TableCell>
-                  <TableCell className="text-muted-foreground">
-                    <div className={`${genderInfo.color} cursor-help hover:opacity-80 transition-opacity`} title={genderInfo.label}>
-                      {genderInfo.icon}
-                    </div>
-                  </TableCell>
                   <TableCell>
                     <Badge
                       variant="secondary"
@@ -432,9 +416,9 @@ export default function AdminUsers() {
           </TableBody>
         </Table>
         </div>
-      </div>
+          </div>
 
-      {/* Phân trang */}
+          {/* Phân trang */}
       {totalPages > 1 && (
         <div className="mt-4 sm:mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="text-xs sm:text-sm text-muted-foreground">
@@ -458,7 +442,7 @@ export default function AdminUsers() {
                   variant={currentPage === page ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => setCurrentPage(page)}
-                  className="w-8 h-8 sm:w-10 sm:h-10"
+                  className={`w-8 h-8 sm:w-10 sm:h-10 ${currentPage === page ? 'bg-amber-500 hover:bg-amber-600 text-white' : ''}`}
                 >
                   {page}
                 </Button>
@@ -476,7 +460,9 @@ export default function AdminUsers() {
             </Button>
           </div>
         </div>
-      )}
+          )}
+        </TabsContent>
+      </Tabs>
 
       <Dialog open={isCreateOpen} onOpenChange={(open) => {
         setIsCreateOpen(open);
@@ -557,31 +543,6 @@ export default function AdminUsers() {
                 )}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="staffDob">Ngày sinh</Label>
-                <Input
-                  id="staffDob"
-                  type="date"
-                  value={createForm.dob}
-                  onChange={(e) => handleCreateChange('dob', e.target.value)}
-                  className={createFieldErrors.dob ? 'border-destructive' : ''}
-                />
-                {createFieldErrors.dob && (
-                  <p className="text-xs text-destructive">{createFieldErrors.dob}</p>
-                )}
-              </div>
-              <div className="space-y-2">
-                <Label>Giới tính</Label>
-                <Select value={createForm.gender} onValueChange={(value) => handleCreateChange('gender', value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Chọn" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1">Nam</SelectItem>
-                    <SelectItem value="0">Nữ</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
                 <Label>Vai trò</Label>
                 <Select value={createForm.role_id} onValueChange={(value) => handleCreateChange('role_id', value)}>
                   <SelectTrigger className={createFieldErrors.role_id ? 'border-destructive' : ''}>
@@ -608,7 +569,7 @@ export default function AdminUsers() {
               <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)} disabled={isCreating}>
                 Hủy
               </Button>
-              <Button type="submit" disabled={isCreating}>
+              <Button type="submit" disabled={isCreating} className="hover:bg-amber-600 text-white">
                 {isCreating ? 'Đang tạo...' : 'Tạo nhân viên'}
               </Button>
             </DialogFooter>
@@ -666,7 +627,6 @@ export default function AdminUsers() {
           <DialogFooter>
             <Button 
               type="button" 
-              variant="outline" 
               onClick={() => setIsPasswordOpen(false)} 
               disabled={isTogglingStatus}
             >
@@ -674,6 +634,7 @@ export default function AdminUsers() {
             </Button>
             <Button 
               type="button" 
+              variant="outline"
               onClick={handleConfirmStatusChange} 
               disabled={isTogglingStatus}
             >
