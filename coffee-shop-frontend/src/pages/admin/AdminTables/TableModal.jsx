@@ -94,8 +94,8 @@ export default function TableModal({ isOpen, onClose, table, areas, initialAreaI
               </SelectContent>
             </Select>
           </div>
-
-          {/* <div className="grid gap-2">
+          {/* 
+          <div className="grid gap-2">
             <Label htmlFor="seatNumber">Số chỗ ngồi</Label>
             <Input
               id="seatNumber"
@@ -105,8 +105,8 @@ export default function TableModal({ isOpen, onClose, table, areas, initialAreaI
               value={formData.seatNumber}
               onChange={(e) => setFormData({ ...formData, seatNumber: parseInt(e.target.value) || "" })}
               required
-            /> */}
-          {/* </div> */}
+            />
+          </div> */}
 
 
 
@@ -120,6 +120,6 @@ export default function TableModal({ isOpen, onClose, table, areas, initialAreaI
           </DialogFooter>
         </form>
       </DialogContent>
-    </Dialog >
+    </Dialog>
   );
 }
