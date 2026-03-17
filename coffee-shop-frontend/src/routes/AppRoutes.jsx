@@ -9,11 +9,11 @@ import authenticationService from "../services/authenticationService";
 import HomePage from "@/pages/homePage/HomePage";
 import ChangePasswordPage from "../pages/authentication/ChangePasswordPage";
 import ForgotPasswordPage from "../pages/authentication/ForgotPasswordPage";
-import AdminStaffSchedule from "@/pages/admin/AdminStaffSchedule";
-import AdminInventory from "@/pages/admin/AdminInventory";
-import { UserProfile } from "@/pages/common/UserProfile";
-import AdminNewsCreatePage from "@/pages/admin/AdminNew/AdminNewsCreatePage";
-import AdminNewsList from "@/pages/admin/AdminNew/AdminNewsList";
+import AdminStaffSchedule from "../pages/admin/AdminStaffSchedule";
+import AdminInventory from "../pages/admin/AdminInventory";
+import { UserProfile } from "../pages/common/UserProfile";
+import AdminNewsCreatePage from "../pages/admin/AdminNew/AdminNewsCreatePage";
+import AdminNewsList from "../pages/admin/AdminNew/AdminNewsList";
 import AdminProducts from "@/pages/admin/AdminProduct/AdminProducts";
 import AdminCategories from "@/pages/admin/AdminCategory/AdminCategories";
 import NewsDetailPage from "@/pages/homePage/news/NewsDetailPage";
@@ -51,9 +51,10 @@ import CheckoutPage from "@/pages/homePage/order/CheckoutPage";
 import PayOSReturnSuccess from "@/pages/common/PayOSReturnSuccess";
 import AdminDB from "@/pages/admin/AdminDB/AdminDB";
 import AdminSubscriber from "@/pages/admin/AdminSubscriber/AdminSubscriber";
-import { BaristaDashboard } from "@/pages/barista/BaristaDashboard";
 import FavoritePage from "@/pages/homePage/favorite/FavoritePage";
 import AdminReviews from "@/pages/admin/AdminReview/AdminReview";
+import MyOrdersPage from "../pages/homePage/order/MyOrdersPage";
+import MyOrderDetailPage from "../pages/homePage/order/MyOrderDetailPage";
 
 const getStoredValue = (key) =>
   localStorage.getItem(key) || sessionStorage.getItem(key);
@@ -156,8 +157,8 @@ const AppRoutes = () => {
           </RoleGuard>
         }
       >
-        <Route index element={<Navigate to="dashboardB" replace />} />
-        <Route path="dashboardB" element={<BaristaDB />} />
+        <Route index element={<Navigate to="dashboard" replace />} />
+        <Route path="dashboard" element={<BaristaDB />} />
         <Route path="orders" element={<BaristaOrders />} />
         <Route path="attendance" element={<BaristaAttendance />} />
         <Route path="schedule" element={<BaristaSchedule />} />
@@ -198,6 +199,8 @@ const AppRoutes = () => {
       <Route path="/news/:slug" element={<NewsDetailPage />} />
       <Route path="/news" element={<NewsListPage />} />
       <Route path="/customer/profile" element={<UserProfile />} />
+
+      {/* Only allow customers to access favorites */}
       <Route
         path="/favorites"
         element={
@@ -213,6 +216,22 @@ const AppRoutes = () => {
       <Route path="/cart" element={<CartPage />} />
       <Route path="/checkout" element={<CheckoutPage />} />
       <Route path="/payment-result" element={<PayOSReturnSuccess />} />
+      <Route
+        path="/my-orders"
+        element={
+          <RoleGuard allowedRoles={[4]}>
+            <MyOrdersPage />
+          </RoleGuard>
+        }
+      />
+      <Route
+        path="/my-orders/:id"
+        element={
+          <RoleGuard allowedRoles={[4]}>
+            <MyOrderDetailPage />
+          </RoleGuard>
+        }
+      />
 
       {/* 404 */}
       <Route
