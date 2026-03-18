@@ -265,7 +265,7 @@ export function StaffTables() {
                         Bàn {table.code}
                       </h3>
                       <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-widest text-center">
-                        {table.area_name} • {table.seatNumber} Chỗ
+                        {table.area_name}
                       </p>
                     </div>
 
