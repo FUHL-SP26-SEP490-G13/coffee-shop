@@ -1,5 +1,6 @@
 const nodemailer = require('nodemailer');
 const env = require('../config/env');
+const ErrorResponse = require('../utils/ErrorResponse');
 
 class EmailService {
   constructor() {
@@ -31,7 +32,7 @@ class EmailService {
       return { success: true, messageId: info.messageId };
     } catch (error) {
       console.error('Error sending email:', error);
-      throw new Error('Không thể gửi email');
+      throw new ErrorResponse(500, 'Không thể gửi email');
     }
   }
 
@@ -264,7 +265,7 @@ class EmailService {
       return { success: true, messageId: info.messageId };
     } catch (error) {
       console.error('Error sending staff account email:', error);
-      throw new Error('Không thể gửi email');
+      throw new ErrorResponse(500, 'Không thể gửi email');
     }
   }
 
@@ -574,7 +575,7 @@ class EmailService {
       return { success: true, messageId: info.messageId };
     } catch (error) {
       console.error('Error sending password reset OTP email:', error);
-      throw new Error('Không thể gửi email');
+      throw new ErrorResponse(500, 'Không thể gửi email');
     }
   }
 

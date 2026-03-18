@@ -16,8 +16,32 @@ class OrderController {
     }
   }
 
+  async validateDiscount(req, res, next) {
+    try {
+      const { code, order_amount } = req.body;
+
+      const result = await OrderService.validateDiscount(code, order_amount);
+
+      return res.json({
+        success: true,
+        data: result,
+        message: "Áp dụng mã giảm giá thành công",
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async getMyOrders(req, res) {
-    const userId = req.user.id;
+    const userId = req.user.id || null;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Bạn cần đăng nhập để xem đơn hàng",
+      });
+    }
+    
     const result = await OrderService.getOrdersByUser(userId);
 
     return res.json({
@@ -38,6 +62,29 @@ class OrderController {
       data: result,
       message: "Lấy chi tiết đơn hàng thành công",
     });
+  }
+
+  async cancel(req, res) {
+    const userId = req.user.id;
+    const orderId = Number(req.params.id);
+
+    const result = await OrderService.cancelOrderByUser(orderId, userId);
+
+    return res.json({
+      success: true,
+      data: result,
+      message: "Hủy đơn hàng thành công",
+    });
+  }
+
+  async payosReturn(req, res, next) {
+    try {
+      const { orderCode, payosId, status } = req.body;
+      const result = await OrderService.savePayosReturn({ orderCode, payosId, status });
+      return res.json({ success: true, data: result });
+    } catch (error) {
+      next(error);
+    }
   }
 }
 

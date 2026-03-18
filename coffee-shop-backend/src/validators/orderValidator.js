@@ -10,7 +10,7 @@ const checkoutOrderSchema = Joi.object({
   }),
 
   payment_method: Joi.string()
-    .valid("cash", "card", "momo", "banking")   //sửa cái thanh toán ở đây nhé văn dz
+    .valid("cash","payos")
     .required()
     .messages({
       "any.only": "Phương thức thanh toán không hợp lệ",
@@ -47,6 +47,10 @@ const checkoutOrderSchema = Joi.object({
     "string.max": "Ghi chú không được vượt quá 500 ký tự",
   }),
 
+  discount_code: Joi.string().trim().allow("").max(50).messages({
+    "string.max": "Mã giảm giá không được vượt quá 50 ký tự",
+  }),
+
   items: Joi.array()
     .items(
       Joi.object({
@@ -56,12 +60,36 @@ const checkoutOrderSchema = Joi.object({
           "number.positive": "product_size_id không hợp lệ",
           "any.required": "Thiếu product_size_id",
         }),
+
         quantity: Joi.number().integer().min(1).required().messages({
           "number.base": "Số lượng không hợp lệ",
           "number.integer": "Số lượng không hợp lệ",
           "number.min": "Số lượng phải lớn hơn 0",
           "any.required": "Thiếu số lượng sản phẩm",
         }),
+
+        toppings: Joi.array()
+          .items(
+            Joi.object({
+              topping_id: Joi.number()
+                .integer()
+                .positive()
+                .required()
+                .messages({
+                  "number.base": "topping_id không hợp lệ",
+                  "number.integer": "topping_id không hợp lệ",
+                  "number.positive": "topping_id không hợp lệ",
+                  "any.required": "Thiếu topping_id",
+                }),
+              quantity: Joi.number().integer().min(1).required().messages({
+                "number.base": "Số lượng topping không hợp lệ",
+                "number.integer": "Số lượng topping không hợp lệ",
+                "number.min": "Số lượng topping phải lớn hơn 0",
+                "any.required": "Thiếu số lượng topping",
+              }),
+            })
+          )
+          .default([]),
       })
     )
     .min(1)
@@ -73,6 +101,19 @@ const checkoutOrderSchema = Joi.object({
     }),
 });
 
+const validateDiscountSchema = Joi.object({
+  code: Joi.string().trim().required().messages({
+    "string.empty": "Mã giảm giá không được để trống",
+    "any.required": "Mã giảm giá là bắt buộc",
+  }),
+  order_amount: Joi.number().min(0).required().messages({
+    "number.base": "Giá trị đơn hàng không hợp lệ",
+    "number.min": "Giá trị đơn hàng phải lớn hơn hoặc bằng 0",
+    "any.required": "Giá trị đơn hàng là bắt buộc",
+  }),
+});
+
 module.exports = {
   checkoutOrderSchema,
+  validateDiscountSchema,
 };

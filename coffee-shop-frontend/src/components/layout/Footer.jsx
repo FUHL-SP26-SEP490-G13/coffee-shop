@@ -35,7 +35,7 @@ function Footer() {
     try {
       setLoading(true);
 
-      await axios.post("/news-letter", { email });
+      await axios.post("/subscriber", { email });
 
       setMessage("Đăng ký thành công! Cảm ơn bạn.");
       setEmail("");
@@ -128,7 +128,7 @@ function Footer() {
           </ul>
         </div>
 
-        {/* Newsletter */}
+        {/* Emai subscriber */}
         <div>
           <h4 className="font-semibold mb-4">Đăng ký nhận tin</h4>
 

@@ -2,7 +2,7 @@ import axiosClient from "./axiosClient";
 import { API_ENDPOINTS } from "../constants";
 
 const toppingService = {
-  getAll(params) {
+  getAll(params = {}) {
     return axiosClient.get(API_ENDPOINTS.TOPPINGS, { params });
   },
 
@@ -21,7 +21,11 @@ const toppingService = {
   delete(id) {
     const url = `${API_ENDPOINTS.TOPPINGS_ADMIN}/${id}`;
     return axiosClient.delete(url);
-  }
+  },
+
+  getById(id) {
+  return axiosClient.get(`${API_ENDPOINTS.TOPPINGS}/${id}`);
+},
 };
 
 export default toppingService;

@@ -1,6 +1,7 @@
 const NewsRepository = require("../repositories/NewsRepository");
 const cloudinary = require("../config/cloudinary");
 const slugify = require("slugify");
+const ErrorResponse = require("../utils/ErrorResponse");
 
 class NewsService {
   async generateUniqueSlug(title) {
@@ -32,7 +33,7 @@ class NewsService {
 
   async getDetailBySlug(slug) {
     const news = await NewsRepository.findBySlug(slug);
-    if (!news) throw new Error("Tin không tồn tại");
+    if (!news) throw new ErrorResponse(404, "Tin không tồn tại");
 
     await NewsRepository.increaseView(news.id);
 
@@ -46,7 +47,7 @@ class NewsService {
   async createNews(data, userId) {
     const existedTitle = await NewsRepository.findByTitle(data.title);
     if (existedTitle) {
-      throw new Error("Tiêu đề bài viết đã tồn tại");
+      throw new ErrorResponse(400, "Tiêu đề bài viết đã tồn tại");
     }
 
     const slug = await this.generateUniqueSlug(data.title);
@@ -60,7 +61,7 @@ class NewsService {
     return news;
   }
 
-  async getAllAdmin({ page = 1, limit = 10, keyword = "" }) {
+  async getAllAdmin({ page = 1, limit = 7, keyword = "" }) {
     const offset = (page - 1) * limit;
 
     const items = await NewsRepository.findAllAdminPaginated(
@@ -86,7 +87,7 @@ class NewsService {
   async updateNews(id, { title, summary, content, tag, thumbnail }) {
     const existedTitle = await NewsRepository.findByTitleExcludeId(title, id);
     if (existedTitle) {
-      throw new Error("Tiêu đề bài viết đã tồn tại");
+      throw new ErrorResponse(400, "Tiêu đề bài viết đã tồn tại");
     }
 
     await NewsRepository.updateById(id, {
@@ -102,7 +103,7 @@ class NewsService {
 
   async getById(id) {
     const news = await NewsRepository.findOne({ id });
-    if (!news) throw new Error("Không tìm thấy bài viết");
+    if (!news) throw new ErrorResponse(404, "Không tìm thấy bài viết");
 
     return news;
   }

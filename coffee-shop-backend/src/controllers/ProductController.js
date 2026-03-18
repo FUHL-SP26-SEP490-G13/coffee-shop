@@ -299,21 +299,6 @@ class ProductController {
     }
   }
 
-  async getBestSellers1(req, res, next) {
-    try {
-      const limit = parseInt(req.query.limit) || 8;
-
-      const products = await ProductService.getBestSellerProducts(limit);
-
-      return response.success(
-        res,
-        products,
-        "Lấy danh sách sản phẩm bán chạy thành công"
-      );
-    } catch (error) {
-      next(error);
-    }
-  }
   async getBestSellers(req, res, next) {
     try {
       const limit = parseInt(req.query.limit) || 8;

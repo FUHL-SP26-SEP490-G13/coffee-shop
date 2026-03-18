@@ -20,7 +20,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import tableService from "@/services/tableService";
 import areaService from "@/services/areaService";
-import ReservationModal from "../admin/AdminTables/ReservationModal";
+// import ReservationModal from "../admin/AdminTables/ReservationModal";
 
 export function StaffTables() {
   const [tables, setTables] = useState([]);
@@ -31,8 +31,8 @@ export function StaffTables() {
   const [selectedStatus, setSelectedStatus] = useState("all");
 
   // Reservation Modal States
-  const [isReservationModalOpen, setIsReservationModalOpen] = useState(false);
-  const [tableToReserve, setTableToReserve] = useState(null);
+  // const [isReservationModalOpen, setIsReservationModalOpen] = useState(false);
+  // const [tableToReserve, setTableToReserve] = useState(null);
 
   // Pagination states
   const [page, setPage] = useState(1);
@@ -69,10 +69,10 @@ export function StaffTables() {
     }
   };
 
-  const handleReserveTable = (table) => {
-    setTableToReserve(table);
-    setIsReservationModalOpen(true);
-  };
+  // const handleReserveTable = (table) => {
+  //   setTableToReserve(table);
+  //   setIsReservationModalOpen(true);
+  // };
 
   const filteredTables = tables.filter((table) => {
     const matchesSearch = table.code
@@ -137,7 +137,7 @@ export function StaffTables() {
               <SelectItem value="all">Tất cả trạng thái</SelectItem>
               <SelectItem value="available">Trống</SelectItem>
               <SelectItem value="occupied">Có khách</SelectItem>
-              <SelectItem value="reserved">Đã đặt</SelectItem>
+              {/* <SelectItem value="reserved">Đã đặt</SelectItem> */}
             </SelectContent>
           </Select>
         </Card>
@@ -228,33 +228,30 @@ export function StaffTables() {
                   >
                     {/* Status Indicator Bar */}
                     <div
-                      className={`absolute top-0 left-0 w-full h-1 ${
-                        table.status === "available"
+                      className={`absolute top-0 left-0 w-full h-1 ${table.status === "available"
                           ? "bg-green-500"
                           : table.status === "occupied"
                             ? "bg-blue-500"
                             : "bg-amber-500"
-                      }`}
+                        }`}
                     />
 
                     {/* Table Identity */}
                     <div
-                      className={`min-w-[4rem] h-16 px-4 rounded-2xl flex flex-col items-center justify-center transition-colors duration-300 ${
-                        table.status === "available"
+                      className={`min-w-[4rem] h-16 px-4 rounded-2xl flex flex-col items-center justify-center transition-colors duration-300 ${table.status === "available"
                           ? "bg-green-50"
                           : table.status === "occupied"
                             ? "bg-blue-50"
                             : "bg-amber-50"
-                      }`}
+                        }`}
                     >
                       <span
-                        className={`text-xl font-black tracking-tighter whitespace-nowrap ${
-                          table.status === "available"
+                        className={`text-xl font-black tracking-tighter whitespace-nowrap ${table.status === "available"
                             ? "text-green-700"
-                          : table.status === "occupied"
-                            ? "text-blue-700"
-                          : "text-amber-700"
-                        }`}
+                            : table.status === "occupied"
+                              ? "text-blue-700"
+                              : "text-amber-700"
+                          }`}
                       >
                         {table.code?.replace("TB-", "")}
                       </span>
@@ -265,28 +262,26 @@ export function StaffTables() {
                         Bàn {table.code}
                       </h3>
                       <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-widest text-center">
-                        {table.area_name} • {table.seatNumber} Chỗ
+                        {table.area_name}
                       </p>
                     </div>
 
                     {/* Status Badge */}
                     <div
-                      className={`flex items-center gap-1.5 px-3 py-1 rounded-full border text-[10px] font-bold uppercase tracking-wider ${
-                        table.status === "available"
+                      className={`flex items-center gap-1.5 px-3 py-1 rounded-full border text-[10px] font-bold uppercase tracking-wider ${table.status === "available"
                           ? "bg-green-50 text-green-700 border-green-200"
                           : table.status === "occupied"
                             ? "bg-blue-50 text-blue-700 border-blue-200"
                             : "bg-amber-50 text-amber-700 border-amber-200"
-                      }`}
+                        }`}
                     >
                       <span
-                        className={`w-1.5 h-1.5 rounded-full animate-pulse ${
-                          table.status === "available"
+                        className={`w-1.5 h-1.5 rounded-full animate-pulse ${table.status === "available"
                             ? "bg-green-500"
                             : table.status === "occupied"
                               ? "bg-blue-500"
                               : "bg-amber-500"
-                        }`}
+                          }`}
                       />
                       {table.status === "available"
                         ? "Trống"
@@ -300,7 +295,7 @@ export function StaffTables() {
                       {table.status === "available" && (
                         <>
                           <Button size="sm" onClick={(e) => { e.stopPropagation(); handleStatusChange(table, "occupied"); }}>Có khách</Button>
-                          <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); handleReserveTable(table); }}>Đã đặt</Button>
+                          {/* <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); handleReserveTable(table); }}>Đã đặt</Button> */}
                         </>
                       )}
                       {table.status === "reserved" && (
@@ -362,12 +357,12 @@ export function StaffTables() {
         </TabsContent>
       </Tabs>
 
-      <ReservationModal
+      {/* <ReservationModal
         isOpen={isReservationModalOpen}
         onClose={() => setIsReservationModalOpen(false)}
         table={tableToReserve}
         onSuccess={fetchData}
-      />
+      /> */}
     </div>
   );
 }

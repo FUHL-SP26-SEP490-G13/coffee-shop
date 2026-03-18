@@ -17,6 +17,7 @@ import {
   validateDiscountForm,
   validateDiscountField,
 } from "@/utils/discountValidation";
+import { toast } from "sonner";
 
 export default function AdminDiscountEdit() {
   const { id } = useParams();
@@ -35,7 +36,7 @@ export default function AdminDiscountEdit() {
   });
 
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
 
   const isLockedByUsedCount = Number(form.used_count ?? 0) > 0;
@@ -123,11 +124,13 @@ export default function AdminDiscountEdit() {
     const nextErrors = getSubmitErrors();
     setErrors(nextErrors);
 
-    if (Object.keys(nextErrors).length > 0) return;
+    if (Object.keys(nextErrors).length > 0) {
+      return;
+    }
+
+    setSubmitting(true);
 
     try {
-      setSaving(true);
-
       const payload = isLockedByUsedCount
         ? {
             description: form.description.trim(),
@@ -138,15 +141,20 @@ export default function AdminDiscountEdit() {
             description: form.description.trim(),
             percentage: Number(form.percentage),
             min_order_amount: Number(form.min_order_amount),
-            max_discount_amount: Number(form.max_discount_amount),
-            usage_limit: Number(form.usage_limit),
+            max_discount_amount:
+              form.max_discount_amount === ""
+                ? null
+                : Number(form.max_discount_amount),
+            usage_limit:
+              form.usage_limit === "" ? null : Number(form.usage_limit),
             valid_from: form.valid_from,
             valid_until: form.valid_until,
           };
 
+      await new Promise((resolve) => setTimeout(resolve, 1000));
       await discountService.update(id, payload);
 
-      alert("Cập nhật thành công");
+      toast.success("Cập nhật mã giảm giá thành công");
       navigate("/admin/discounts");
     } catch (err) {
       const response = err?.response?.data;
@@ -158,7 +166,18 @@ export default function AdminDiscountEdit() {
             beErrors[item.field] = item.message;
           }
         });
+
         setErrors(beErrors);
+
+        const duplicatedCodeError = response.errors.find(
+          (item) =>
+            item.field === "code" && item.message === "Mã giảm giá đã tồn tại"
+        );
+
+        if (duplicatedCodeError) {
+          toast.error("Mã giảm giá đã tồn tại");
+        }
+
         return;
       }
 
@@ -167,7 +186,7 @@ export default function AdminDiscountEdit() {
         server: response?.message || "Cập nhật thất bại",
       }));
     } finally {
-      setSaving(false);
+      setSubmitting(false);
     }
   };
 
@@ -472,9 +491,22 @@ export default function AdminDiscountEdit() {
             <p className="text-sm text-destructive">{errors.server}</p>
           )}
 
+          {submitting && (
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm text-muted-foreground">
+                <span>Đang lưu dữ liệu...</span>
+                <span>Vui lòng chờ</span>
+              </div>
+
+              <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+                <div className="h-full w-1/2 bg-primary animate-pulse" />
+              </div>
+            </div>
+          )}
+
           <div className="flex flex-col sm:flex-row gap-3 pt-4">
-            <Button type="submit" disabled={saving} className="sm:flex-1">
-              {saving ? (
+            <Button type="submit" disabled={submitting} className="sm:flex-1">
+              {submitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Đang lưu...
@@ -491,7 +523,7 @@ export default function AdminDiscountEdit() {
               type="button"
               variant="outline"
               onClick={() => navigate("/admin/discounts")}
-              disabled={saving}
+              disabled={submitting}
               className="sm:flex-1"
             >
               Hủy

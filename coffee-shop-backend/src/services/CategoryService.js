@@ -1,5 +1,5 @@
-const CategoryRepository = require('../repositories/CategoryRepository');
-const ErrorResponse = require('../utils/ErrorResponse');
+const CategoryRepository = require("../repositories/CategoryRepository");
+const ErrorResponse = require("../utils/ErrorResponse");
 
 class CategoryService {
   /**
@@ -23,11 +23,11 @@ class CategoryService {
     const category = await CategoryRepository.findById(id);
 
     if (!category) {
-      throw new ErrorResponse(404, 'Category không tồn tại');
+      throw new ErrorResponse(404, "Category không tồn tại");
     }
 
     if (category.is_deleted === 1) {
-      throw new ErrorResponse(404, 'Category đã bị xóa');
+      throw new ErrorResponse(404, "Category đã bị xóa");
     }
 
     return category;
@@ -40,11 +40,11 @@ class CategoryService {
     const category = await CategoryRepository.findByIdWithProductCount(id);
 
     if (!category) {
-      throw new ErrorResponse(404, 'Category không tồn tại');
+      throw new ErrorResponse(404, "Category không tồn tại");
     }
 
     if (category.is_deleted === 1) {
-      throw new ErrorResponse(404, 'Category đã bị xóa');
+      throw new ErrorResponse(404, "Category đã bị xóa");
     }
 
     return category;
@@ -136,7 +136,7 @@ class CategoryService {
     const deleted = await CategoryRepository.softDelete(id);
 
     if (!deleted) {
-      throw new ErrorResponse(500, 'Xóa category thất bại');
+      throw new ErrorResponse(500, "Xóa category thất bại");
     }
 
     return true;
@@ -146,7 +146,7 @@ class CategoryService {
    * Search categories
    */
   async searchCategories(keyword, options = {}) {
-    if (!keyword || keyword.trim() === '') {
+    if (!keyword || keyword.trim() === "") {
       return this.getAllCategories(options);
     }
 
@@ -164,7 +164,7 @@ class CategoryService {
    * Count search results
    */
   async countSearchResults(keyword) {
-    if (!keyword || keyword.trim() === '') {
+    if (!keyword || keyword.trim() === "") {
       return this.countCategories();
     }
     return CategoryRepository.countSearch(keyword.trim());
@@ -177,11 +177,11 @@ class CategoryService {
     const category = await CategoryRepository.findById(id);
 
     if (!category) {
-      throw new ErrorResponse(404, 'Category không tồn tại');
+      throw new ErrorResponse(404, "Category không tồn tại");
     }
 
     if (category.is_deleted === 0) {
-      throw new ErrorResponse(400, 'Category chưa bị xóa');
+      throw new ErrorResponse(400, "Category chưa bị xóa");
     }
 
     // Check if restoring would create duplicate name

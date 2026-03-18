@@ -1,41 +1,53 @@
 import axiosClient from "@/services/axiosClient";
+import { API_ENDPOINTS } from "@/constants";
 
 const newsService = {
-  getFeatured: () => axiosClient.get("/news/featured"),
+  getFeatured: () => axiosClient.get(API_ENDPOINTS.NEWS.FEATURED),
 
   getAll: (params) => {
-    return axiosClient.get("/news", { params });
+    return axiosClient.get(API_ENDPOINTS.NEWS.BASE, { params });
   },
 
-  getDetail: (slug) => axiosClient.get(`/news/${slug}`),
-  delete: (id) => axiosClient.delete(`/news/${id}`),
+  getDetail: (slug) => axiosClient.get(`${API_ENDPOINTS.NEWS.BASE}/${slug}`),
+
+  delete: (id) => axiosClient.delete(`${API_ENDPOINTS.NEWS.BASE}/${id}`),
+
   getAllAdmin(page = 1, keyword = "") {
-    return axiosClient.get("/news/admin", {
-      params: { page, limit: 10, keyword },
+    return axiosClient.get(API_ENDPOINTS.NEWS.ADMIN, {
+      params: { page, limit: 7, keyword },
     });
   },
-  update: (id, data) =>
-    axiosClient.put(`/news/${id}`, data, {
+
+  update: (id, data, config = {}) =>
+    axiosClient.put(`${API_ENDPOINTS.NEWS.BASE}/${id}`, data, {
+      ...config,
       headers: {
         "Content-Type": "multipart/form-data",
+        ...(config.headers || {}),
       },
     }),
-  getById: (id) => axiosClient.get(`/news/admin/${id}`),
-  create: (data) =>
-    axiosClient.post("/news", data, {
+
+  getById: (id) => axiosClient.get(`${API_ENDPOINTS.NEWS.ADMIN}/${id}`),
+
+  create: (data, config = {}) =>
+    axiosClient.post(API_ENDPOINTS.NEWS.BASE, data, {
+      ...config,
       headers: {
         "Content-Type": "multipart/form-data",
+        ...(config.headers || {}),
       },
     }),
+
   getRelated(params) {
-    return axiosClient.get("/news/related", { params });
+    return axiosClient.get(API_ENDPOINTS.NEWS.RELATED, { params });
   },
+
   suggestByTitle(data) {
-    return axiosClient.post("/news/ai/suggest-by-title", data);
+    return axiosClient.post(API_ENDPOINTS.NEWS.AI_SUGGEST_BY_TITLE, data);
   },
 
   suggestBySummary(data) {
-    return axiosClient.post("/news/ai/suggest-by-summary", data);
+    return axiosClient.post(API_ENDPOINTS.NEWS.AI_SUGGEST_BY_SUMMARY, data);
   },
 };
 
