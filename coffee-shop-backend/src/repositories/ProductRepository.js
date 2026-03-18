@@ -20,6 +20,7 @@ class ProductRepository extends BaseRepository {
       SELECT 
         p.id,
         p.name,
+        p.code,
         p.description,
         p.status,
         p.category_id,

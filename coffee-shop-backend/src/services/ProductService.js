@@ -74,8 +74,8 @@ class ProductService {
     }
 
     // Validate images
-    if (data.images && data.images.length > 5) {
-      throw new ErrorResponse(400, "Tối đa chỉ được upload 5 ảnh");
+    if (data.images && data.images.length > 3) {
+      throw new ErrorResponse(400, "Tối đa chỉ được upload 3 ảnh");
     }
 
     // Create product (KHÔNG có sizes)
