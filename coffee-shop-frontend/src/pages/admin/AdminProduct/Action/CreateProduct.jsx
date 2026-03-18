@@ -130,8 +130,8 @@ export default function CreateProduct({ open, onClose, onSuccess }) {
       return;
     }
 
-    if (!/^[A-Z0-9-]+$/.test(trimmedCode)) {
-      toast.error('Code chỉ gồm chữ in hoa, số và dấu "-"');
+    if (!/^[A-Z]{1,5}-[0-9]{1,5}$/.test(trimmedCode)) {
+      toast.error('Code phải có định dạng: CHỮ HOA - SỐ (VD: CF-001)');
       return;
     }
 
@@ -267,7 +267,7 @@ export default function CreateProduct({ open, onClose, onSuccess }) {
               multiple
               accept='image/*'
               onChange={handleImageChange}
-              disabled={images.length >= 5}
+              disabled={images.length >= 3}
             />
 
             {images.length >= 3 && (

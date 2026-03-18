@@ -1,9 +1,9 @@
-const ProductRepository = require("../repositories/ProductRepository");
-const ProductSizeRepository = require("../repositories/ProductSizeRepository");
-const ProductImageRepository = require("../repositories/ProductImageRepository");
-const CategoryRepository = require("../repositories/CategoryRepository");
-const cloudinary = require("../config/cloudinary");
-const ErrorResponse = require("../utils/ErrorResponse");
+const ProductRepository = require('../repositories/ProductRepository');
+const ProductSizeRepository = require('../repositories/ProductSizeRepository');
+const ProductImageRepository = require('../repositories/ProductImageRepository');
+const CategoryRepository = require('../repositories/CategoryRepository');
+const cloudinary = require('../config/cloudinary');
+const ErrorResponse = require('../utils/ErrorResponse');
 
 class ProductService {
   extractPublicId(url) {
@@ -36,7 +36,7 @@ class ProductService {
   async getProductById(id) {
     const product = await ProductRepository.findByIdWithDetails(id);
     if (!product) {
-      throw new ErrorResponse(404, "Product không tồn tại");
+      throw new ErrorResponse(404, 'Product không tồn tại');
     }
     return product;
   }
@@ -44,7 +44,7 @@ class ProductService {
   async getProductsByCategory(categoryId, options = {}) {
     const category = await CategoryRepository.findById(categoryId);
     if (!category || category.is_deleted === 1) {
-      throw new ErrorResponse(404, "Category không tồn tại");
+      throw new ErrorResponse(404, 'Category không tồn tại');
     }
 
     return ProductRepository.findByCategory(categoryId, options);
@@ -58,7 +58,7 @@ class ProductService {
     // Validate category exists
     const category = await CategoryRepository.findById(data.category_id);
     if (!category || category.is_deleted === 1) {
-      throw new ErrorResponse(404, "Category không tồn tại");
+      throw new ErrorResponse(404, 'Category không tồn tại');
     }
 
     // Check if product name already exists
@@ -75,7 +75,7 @@ class ProductService {
 
     // Validate images
     if (data.images && data.images.length > 3) {
-      throw new ErrorResponse(400, "Tối đa chỉ được upload 3 ảnh");
+      throw new ErrorResponse(400, 'Tối đa chỉ được upload 3 ảnh');
     }
 
     // Create product (KHÔNG có sizes)
@@ -83,7 +83,7 @@ class ProductService {
       name: data.name.trim(),
       code: data.code.trim().toUpperCase(),
       category_id: data.category_id,
-      status: data.status || "available",
+      status: data.status || 'available',
       description: data.description || null,
     });
 
@@ -110,7 +110,7 @@ class ProductService {
     // Check if product exists
     const existingProduct = await ProductRepository.findById(id);
     if (!existingProduct) {
-      throw new ErrorResponse(404, "Product không tồn tại");
+      throw new ErrorResponse(404, 'Product không tồn tại');
     }
 
     // Prepare update data for product table
@@ -118,7 +118,7 @@ class ProductService {
 
     if (data.name !== undefined) {
       const duplicateProduct = await ProductRepository.findByName(
-        data.name.trim()
+        data.name.trim(),
       );
       if (duplicateProduct && duplicateProduct.id !== parseInt(id)) {
         throw new ErrorResponse(409, 'Tên sản phẩm đã tồn tại');
@@ -140,7 +140,7 @@ class ProductService {
     if (data.category_id !== undefined) {
       const category = await CategoryRepository.findById(data.category_id);
       if (!category || category.is_deleted === 1) {
-        throw new ErrorResponse(404, "Category không tồn tại");
+        throw new ErrorResponse(404, 'Category không tồn tại');
       }
       updateData.category_id = data.category_id;
     }
@@ -158,18 +158,18 @@ class ProductService {
     }
 
     if (data.sizes && Array.isArray(data.sizes)) {
-      const validSizes = ["S", "M", "L"];
+      const validSizes = ['S', 'M', 'L'];
 
       for (const sizeItem of data.sizes) {
         if (!validSizes.includes(sizeItem.size.toUpperCase())) {
           throw new ErrorResponse(400, `Size "${sizeItem.size}" không hợp lệ`);
         }
 
-        // có thể thêm điều kiện price ở đây nữa nếu muốn
+        // price
         if (!sizeItem.price || sizeItem.price <= 0) {
           throw new ErrorResponse(
             400,
-            `Giá cho size ${sizeItem.size} phải là số dương`
+            `Giá cho size ${sizeItem.size} phải là số dương`,
           );
         }
       }
@@ -182,6 +182,26 @@ class ProductService {
 
       if (data.sizes.length > 3) {
         throw new ErrorResponse(400, 'Tối đa chỉ có 3 loại size (S, M, L)');
+      }
+
+      // check price
+      const getPrice = (sizeName) => {
+        const found = data.sizes.find((s) => s.size.toUpperCase() === sizeName);
+        return found ? Number(found.price) : null;
+      };
+
+      const priceS = getPrice('S');
+      const priceM = getPrice('M');
+      const priceL = getPrice('L');
+
+      if (priceS !== null && priceM !== null && priceS >= priceM) {
+        throw new ErrorResponse(400, 'Giá size S phải nhỏ hơn size M');
+      }
+      if (priceM !== null && priceL !== null && priceM >= priceL) {
+        throw new ErrorResponse(400, 'Giá size M phải nhỏ hơn size L');
+      }
+      if (priceS !== null && priceL !== null && priceS >= priceL) {
+        throw new ErrorResponse(400, 'Giá size S phải nhỏ hơn size L');
       }
 
       const incomingSizes = data.sizes.map((s) => s.size);
@@ -217,7 +237,7 @@ class ProductService {
           try {
             await cloudinary.uploader.destroy(publicId);
           } catch (err) {
-            console.error("Failed to delete from Cloudinary:", err);
+            console.error('Failed to delete from Cloudinary:', err);
           }
         }
       }
@@ -239,7 +259,7 @@ class ProductService {
 
     if (thumbnailDeleted && remainingImages.length > 0) {
       const firstRemainingImage = remainingImages.sort(
-        (a, b) => a.id - b.id
+        (a, b) => a.id - b.id,
       )[0];
       await ProductImageRepository.setThumbnail(id, firstRemainingImage.id);
     }
@@ -253,14 +273,14 @@ class ProductService {
     const deleted = await ProductRepository.softDelete(id);
 
     if (!deleted) {
-      throw new ErrorResponse(500, "Xóa product thất bại");
+      throw new ErrorResponse(500, 'Xóa product thất bại');
     }
 
     return true;
   }
 
   async searchProducts(keyword, options = {}) {
-    if (!keyword || keyword.trim() === "") {
+    if (!keyword || keyword.trim() === '') {
       return this.getAllProducts(options);
     }
 
@@ -279,12 +299,12 @@ class ProductService {
   async countProductsByCategory(categoryId, options = {}) {
     return ProductRepository.countByCategory(
       categoryId,
-      options.status || "available"
+      options.status || 'available',
     );
   }
 
   async countSearchResults(keyword, options = {}) {
-    if (!keyword || keyword.trim() === "") {
+    if (!keyword || keyword.trim() === '') {
       return this.countProducts({
         status: options.status,
         category_id: options.category_id,
@@ -301,12 +321,12 @@ class ProductService {
       throw new ErrorResponse(404, 'Product không tồn tại');
     }
 
-    if (product.status === "available") {
-      throw new ErrorResponse(400, "Product chưa bị xóa");
+    if (product.status === 'available') {
+      throw new ErrorResponse(400, 'Product chưa bị xóa');
     }
 
     if (Number(product.is_deleted) === 0) {
-      throw new ErrorResponse(400, "Product chưa bị xóa");
+      throw new ErrorResponse(400, 'Product chưa bị xóa');
     }
 
     await ProductRepository.update(id, { is_deleted: 0 });

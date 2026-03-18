@@ -13,15 +13,12 @@ const createProductSchema = Joi.object({
   }),
   code: Joi.string()
     .trim()
-    .pattern(/^[A-Z0-9-]+$/)
-    .min(2)
-    .max(50)
+    .pattern(/^[A-Z]{1,5}-[0-9]{1,5}$/)
     .required()
     .messages({
       'string.empty': 'Code product không được để trống',
-      'string.min': 'Code product phải có ít nhất 2 ký tự',
-      'string.max': 'Code product không được vượt quá 50 ký tự',
-      'string.pattern.base': 'Code chỉ được chứa chữ in hoa, số và dấu "-"',
+      'string.pattern.base':
+        'Code phải có định dạng: CHỮ HOA - SỐ (VD: CF-001)',
       'any.required': 'Code product là bắt buộc',
     }),
   category_id: Joi.number().integer().positive().required().messages({
@@ -49,15 +46,12 @@ const updateProductSchema = Joi.object({
   }),
   code: Joi.string()
     .trim()
-    .pattern(/^[A-Z0-9-]+$/)
-    .min(2)
-    .max(50)
+    .pattern(/^[A-Z]{1,5}-[0-9]{1,5}$/)
     .optional()
     .messages({
       'string.empty': 'Code product không được để trống',
-      'string.min': 'Code product phải có ít nhất 2 ký tự',
-      'string.max': 'Code product không được vượt quá 50 ký tự',
-      'string.pattern.base': 'Code chỉ được chứa chữ in hoa, số và dấu "-"',
+      'string.pattern.base':
+        'Code phải có định dạng: CHỮ HOA - SỐ (VD: CF-001)',
       'any.required': 'Code product là bắt buộc',
     }),
   category_id: Joi.number().integer().positive().optional().messages({
@@ -68,8 +62,7 @@ const updateProductSchema = Joi.object({
   status: Joi.string().valid('available', 'unavailable').optional().messages({
     'any.only': 'Status chỉ chấp nhận "available" hoặc "unavailable"',
   }),
-  description: Joi.string().allow(null, '').optional().messages({
-  }),
+  description: Joi.string().allow(null, '').optional().messages({}),
   sizes: Joi.array()
     .items(
       Joi.object({

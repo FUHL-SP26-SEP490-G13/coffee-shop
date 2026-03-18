@@ -180,11 +180,11 @@ class ProductController {
       const totalImagesAfterUpdate =
         currentImageCount - deleteImageCount + newImageCount;
 
-      if (totalImagesAfterUpdate > 5) {
+      if (totalImagesAfterUpdate > 3) {
         return next(
           new ErrorResponse(
             400,
-            `Tổng số ảnh không được vượt quá 5. Hiện tại: ${currentImageCount}, Xóa: ${deleteImageCount}, Thêm mới: ${newImageCount}`
+            `Tổng số ảnh không được vượt quá 3. Hiện tại: ${currentImageCount}, Xóa: ${deleteImageCount}, Thêm mới: ${newImageCount}`
           )
         );
       }
