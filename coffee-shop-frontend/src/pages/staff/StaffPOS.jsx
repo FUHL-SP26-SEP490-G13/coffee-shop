@@ -1,48 +1,81 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Search, Plus, Minus } from 'lucide-react';
-import { products, tables } from '../../lib/mockData';
+import productService from '../../services/productService';
+import tableService from '../../services/tableService';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Badge } from '../../components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { toast } from 'sonner';
 
+const getProductPrice = (product, size = 'M') => {
+  const sizeItem = product.sizes?.find((s) => s.size === size);
+  return sizeItem ? Number(sizeItem.price) : 0;
+};
+
+const getProductImage = (product) => {
+  const thumbnail = product.images?.find((img) => img.isThumbnail === 1) || product.images?.[0];
+  return thumbnail ? thumbnail.image_url : 'https://via.placeholder.com/150';
+};
+
 export function StaffPOS() {
   const [selectedTable, setSelectedTable] = useState('');
   const [cart, setCart] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [products, setProducts] = useState([]);
+  const [tables, setTables] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const addToCart = (product) => {
-    const existingItem = cart.find((item) => item.productId === product.id && item.size === 'M');
-    if (existingItem) {
-      setCart(
-        cart.map((item) =>
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [productsRes, tablesRes] = await Promise.all([
+          productService.getAll({ limit: 100 }),
+          tableService.getAll()
+        ]);
+        setProducts(productsRes.data || []);
+        setTables(tablesRes.data || []);
+      } catch (error) {
+        console.error("Error fetching POS data:", error);
+        toast.error("Failed to load products or tables");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  const addToCart = useCallback((product) => {
+    setCart((prevCart) => {
+      const existingItem = prevCart.find((item) => item.productId === product.id && item.size === 'M');
+      if (existingItem) {
+        return prevCart.map((item) =>
           item.id === existingItem.id ? { ...item, quantity: item.quantity + 1 } : item
-        )
-      );
-    } else {
-      const newItem = {
-        id: `${product.id}-${Date.now()}`,
-        productId: product.id,
-        product,
-        size: 'M',
-        quantity: 1,
-        toppings: [],
-      };
-      setCart([...cart, newItem]);
-    }
-  };
+        );
+      } else {
+        const newItem = {
+          id: `${product.id}-${Date.now()}`,
+          productId: product.id,
+          product,
+          size: 'M',
+          quantity: 1,
+          toppings: [],
+        };
+        return [...prevCart, newItem];
+      }
+    });
+  }, []);
 
-  const updateQuantity = (id, delta) => {
-    setCart(
-      cart
+  const updateQuantity = useCallback((id, delta) => {
+    setCart((prevCart) =>
+      prevCart
         .map((item) => (item.id === id ? { ...item, quantity: item.quantity + delta } : item))
         .filter((item) => item.quantity > 0)
     );
-  };
+  }, []);
 
   const total = cart.reduce((acc, item) => {
-    const price = item.product.prices[item.size];
+    const price = getProductPrice(item.product, item.size);
     return acc + price * item.quantity;
   }, 0);
 
@@ -56,9 +89,31 @@ export function StaffPOS() {
     setSelectedTable('');
   };
 
-  const filteredProducts = products.filter((p) =>
-    p.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredProducts = useMemo(() => {
+    return products.filter((p) =>
+      p.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [products, searchQuery]);
+
+  const productGrid = useMemo(() => {
+    return filteredProducts.map((product) => (
+      <button
+        key={product.id}
+        onClick={() => addToCart(product)}
+        className="bg-card rounded-xl p-3 border border-border hover:shadow-md transition-all text-left"
+      >
+        <div className="aspect-square bg-secondary rounded-lg mb-2 overflow-hidden">
+          <img
+            src={getProductImage(product)}
+            alt={product.name}
+            className="w-full h-full object-cover"
+          />
+        </div>
+        <h3 className="text-sm mb-1 line-clamp-1">{product.name}</h3>
+        <p className="text-primary">${getProductPrice(product, 'M').toFixed(2)}</p>
+      </button>
+    ));
+  }, [filteredProducts, addToCart]);
 
   return (
     <div className="p-4 grid grid-cols-3 gap-4 h-screen">
@@ -74,23 +129,7 @@ export function StaffPOS() {
         />
 
         <div className="grid grid-cols-3 gap-3">
-          {filteredProducts.map((product) => (
-            <button
-              key={product.id}
-              onClick={() => addToCart(product)}
-              className="bg-card rounded-xl p-3 border border-border hover:shadow-md transition-all text-left"
-            >
-              <div className="aspect-square bg-secondary rounded-lg mb-2 overflow-hidden">
-                <img
-                  src={product.image}
-                  alt={product.name}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <h3 className="text-sm mb-1 line-clamp-1">{product.name}</h3>
-              <p className="text-primary">${product.prices.M.toFixed(2)}</p>
-            </button>
-          ))}
+          {productGrid}
         </div>
       </div>
 
@@ -104,10 +143,10 @@ export function StaffPOS() {
             </SelectTrigger>
             <SelectContent>
               {tables
-                .filter((t) => t.status === 'available')
+                .filter((t) => t.code && (t.status === 'available' || t.status === 'occupied'))
                 .map((table) => (
-                  <SelectItem key={table.id} value={table.id}>
-                    Table {table.number} ({table.capacity} seats)
+                  <SelectItem key={table.id} value={String(table.id)}>
+                    {table.code}
                   </SelectItem>
                 ))}
             </SelectContent>
@@ -141,7 +180,7 @@ export function StaffPOS() {
                       </button>
                     </div>
                     <span className="text-sm text-primary">
-                      ${(item.product.prices[item.size] * item.quantity).toFixed(2)}
+                      ${(getProductPrice(item.product, item.size) * item.quantity).toFixed(2)}
                     </span>
                   </div>
                 </div>
