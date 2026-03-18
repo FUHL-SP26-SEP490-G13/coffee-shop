@@ -36,9 +36,9 @@ io.on("connection", (socket) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`🚀 Server is running on port ${PORT}`);
-  console.log(`📝 Environment: ${env.NODE_ENV}`);
-  console.log(`🔗 API Documentation: http://localhost:${PORT}/api`);
+  console.log(`Server is running on port ${PORT}`);
+  console.log(`Environment: ${env.NODE_ENV}`);
+  console.log(`API Documentation: http://localhost:${PORT}/api`);
 });
 
 const gracefulShutdown = (signal) => {
