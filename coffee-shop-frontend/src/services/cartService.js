@@ -105,6 +105,13 @@ export const cartService = {
     if (index >= 0) {
       cart[index].quantity =
         Number(cart[index].quantity || 0) + normalizedItem.quantity;
+      cart[index] = {
+        ...cart[index],
+        name: normalizedItem.name || cart[index].name,
+        image: normalizedItem.image || cart[index].image,
+        basePrice: getBasePrice(normalizedItem),
+        price: getBasePrice(normalizedItem),
+      };
     } else {
       cart.push(normalizedItem);
     }

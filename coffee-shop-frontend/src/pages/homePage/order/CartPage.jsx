@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { ShoppingBag } from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
@@ -8,7 +9,7 @@ import toppingService from "@/services/toppingService";
 
 export default function CartPage() {
   const navigate = useNavigate();
-  const [cart, setCart] = useState([]);
+  const [cart, setCart] = useState(() => cartService.getCart());
   const [allToppings, setAllToppings] = useState([]);
   const [editingIndex, setEditingIndex] = useState(null);
 
@@ -17,8 +18,6 @@ export default function CartPage() {
   };
 
   useEffect(() => {
-    refreshCart();
-
     window.addEventListener("cartUpdated", refreshCart);
     window.addEventListener("storage", refreshCart);
 
@@ -111,17 +110,18 @@ export default function CartPage() {
       <Header />
 
       <section className="flex-1 w-full px-4 sm:px-6 lg:px-8 py-10">
-        <div className="max-w-5xl mx-auto">
-          <div className="flex items-center justify-between mb-8 gap-4 flex-wrap">
-            <Button variant="outline" onClick={() => navigate("/products")}>
-              ← Tiếp tục mua hàng
-            </Button>
-
+        <div className="max-w-6xl mx-auto">
+          <div className="flex items-center justify-between gap-4 mb-8 flex-wrap">
             <h1 className="text-3xl font-bold text-gray-900">Giỏ hàng</h1>
+
+            <Button variant="outline" onClick={() => navigate("/products")}>
+              Tiếp tục mua hàng
+            </Button>
           </div>
 
           {cart.length === 0 ? (
-            <div className="text-center py-16 bg-gray-50 rounded-2xl border">
+            <div className="text-center py-16 border rounded-2xl bg-gray-50">
+              <ShoppingBag className="w-10 h-10 mx-auto text-gray-400 mb-3" />
               <p className="text-gray-500 mb-4">Giỏ hàng của bạn đang trống</p>
               <Button onClick={() => navigate("/products")}>
                 Tiếp tục mua hàng
@@ -139,7 +139,7 @@ export default function CartPage() {
                   return (
                     <div
                       key={cartKey}
-                      className="p-4 border rounded-2xl bg-white"
+                      className="border border-gray-200 rounded-2xl p-5 bg-white"
                     >
                       <div className="flex gap-4">
                         <img
@@ -151,7 +151,7 @@ export default function CartPage() {
                         <div className="flex-1">
                           <div className="flex items-start justify-between gap-4 flex-wrap">
                             <div>
-                              <h3 className="font-semibold text-gray-900">
+                              <h3 className="text-lg font-semibold text-gray-900">
                                 {item.name}
                               </h3>
 
@@ -186,7 +186,7 @@ export default function CartPage() {
                                       key={topping.topping_id}
                                       className="flex items-center justify-between gap-3 text-sm text-gray-500"
                                     >
-                                      <span>
+                                      <span className="break-words">
                                         - {topping.name} x {topping.quantity} (
                                         {Number(topping.price).toLocaleString(
                                           "vi-VN"
@@ -266,7 +266,7 @@ export default function CartPage() {
                               onClick={() =>
                                 setEditingIndex(isEditing ? null : index)
                               }
-                              className="text-amber-600 text-sm hover:underline"
+                              className="text-amber-600 text-sm font-medium hover:underline"
                             >
                               {isEditing ? "Đóng thêm topping" : "Thêm topping"}
                             </button>
@@ -280,7 +280,7 @@ export default function CartPage() {
                                 }
                                 refreshCart();
                               }}
-                              className="text-red-600 text-sm hover:underline"
+                              className="text-red-600 text-sm font-medium hover:underline"
                             >
                               Xóa
                             </button>
@@ -386,7 +386,7 @@ export default function CartPage() {
                 })}
               </div>
 
-              <div className="border rounded-2xl p-5 h-fit bg-gray-50">
+              <div className="border rounded-2xl p-5 h-fit bg-gray-50 lg:sticky lg:top-24">
                 <h2 className="text-xl font-bold text-gray-900 mb-4">
                   Tóm tắt đơn hàng
                 </h2>

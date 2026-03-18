@@ -342,6 +342,28 @@ class OrderService {
     };
   }
 
+  async cancelOrderByUser(orderId, userId) {
+    const order = await OrderRepository.findOrderByIdAndUser(orderId, userId);
+
+    if (!order) {
+      throw new ErrorResponse(404, "Đơn hàng không tồn tại");
+    }
+
+    if (!["pending", "preparing"].includes(order.status)) {
+      throw new ErrorResponse(
+        400,
+        "Chỉ có thể hủy đơn ở trạng thái chờ xác nhận hoặc đang chuẩn bị"
+      );
+    }
+
+    await OrderRepository.cancelOrderByUser(orderId, userId);
+
+    return {
+      order_id: orderId,
+      status: "cancelled",
+    };
+  }
+
   async savePayosReturn({ orderCode, payosId, status }) {
     if (!orderCode) throw new ErrorResponse(400, "Thiếu orderCode");
 

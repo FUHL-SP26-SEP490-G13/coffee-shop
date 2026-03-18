@@ -64,6 +64,19 @@ class OrderController {
     });
   }
 
+  async cancel(req, res) {
+    const userId = req.user.id;
+    const orderId = Number(req.params.id);
+
+    const result = await OrderService.cancelOrderByUser(orderId, userId);
+
+    return res.json({
+      success: true,
+      data: result,
+      message: "Hủy đơn hàng thành công",
+    });
+  }
+
   async payosReturn(req, res, next) {
     try {
       const { orderCode, payosId, status } = req.body;

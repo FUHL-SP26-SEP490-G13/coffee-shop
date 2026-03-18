@@ -215,6 +215,32 @@ class OrderRepository {
     );
   }
 
+  async updateOrderStatus(orderId, status) {
+    await db.query(
+      `
+      UPDATE orders
+      SET status = ?
+      WHERE id = ?
+      `,
+      [status, orderId]
+    );
+  }
+
+  async cancelOrderByUser(orderId, userId) {
+    const [result] = await db.query(
+      `
+      UPDATE orders
+      SET status = 'cancelled'
+      WHERE id = ?
+        AND user_id = ?
+        AND status IN ('pending', 'preparing')
+      `,
+      [orderId, userId]
+    );
+
+    return result;
+  }
+
   async findOrdersByUser(userId) {
     const [rows] = await db.query(
       `
@@ -275,13 +301,28 @@ class OrderRepository {
       SELECT 
         od.id,
         od.product_size_id,
+        p.id AS product_id,
         od.quantity,
         od.price,
         ps.size,
-        p.name
+        p.name,
+        COALESCE(pi_thumb.image_url, pi_first.image_url) AS image_url
       FROM order_details od
       JOIN product_sizes ps ON ps.id = od.product_size_id
       JOIN products p ON p.id = ps.product_id
+      LEFT JOIN product_images pi_thumb
+        ON pi_thumb.product_id = p.id
+        AND pi_thumb.isThumbnail = 1
+        AND pi_thumb.is_deleted = 0
+      LEFT JOIN product_images pi_first
+        ON pi_first.id = (
+          SELECT pi2.id
+          FROM product_images pi2
+          WHERE pi2.product_id = p.id
+            AND pi2.is_deleted = 0
+          ORDER BY pi2.isThumbnail DESC, pi2.id ASC
+          LIMIT 1
+        )
       WHERE od.order_id = ?
       `,
       [orderId]
