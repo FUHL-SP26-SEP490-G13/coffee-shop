@@ -340,7 +340,7 @@ export function StaffApp() {
         </nav>
       </div>
 
-      <div className="flex-1 w-full md:w-auto overflow-auto">
+      <div className={`flex-1 w-full md:w-auto ${currentPage === 'pos' ? 'overflow-hidden flex flex-col h-screen' : 'overflow-auto'}`}>
         <div
           ref={notificationRef}
           className="flex justify-end px-4 md:px-8 pt-4 md:pt-4 pb-0 relative"
@@ -418,7 +418,7 @@ export function StaffApp() {
           )}
         </div>
 
-        <div className="p-4 md:p-8 pt-2 md:pt-2">
+        <div className={`p-4 md:p-8 pt-2 md:pt-2 ${currentPage === 'pos' ? 'flex-1 overflow-hidden flex flex-col' : ''}`}>
           <Outlet />
         </div>
       </div>

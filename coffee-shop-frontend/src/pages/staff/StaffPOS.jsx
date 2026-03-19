@@ -125,7 +125,7 @@ export function StaffPOS() {
 
 
   return (
-    <div className="p-4 grid grid-cols-3 gap-4 h-screen">
+    <div className="p-4 grid grid-cols-3 gap-4 h-full w-full">
       {/* Products */}
       <div className="col-span-2 overflow-y-auto">
         <h2 className="text-xl mb-4">Bán hàng</h2>
