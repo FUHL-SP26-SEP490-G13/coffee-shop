@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Search, Plus, Minus } from 'lucide-react';
+import { Search, Plus, Minus, Trash2 } from 'lucide-react';
 import productService from '../../services/productService';
 import tableService from '../../services/tableService';
 import { Button } from '../../components/ui/button';
@@ -7,6 +7,7 @@ import { Input } from '../../components/ui/input';
 import { Badge } from '../../components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { toast } from 'sonner';
+
 
 const getProductPrice = (product, size = 'M') => {
   const sizeItem = product.sizes?.find((s) => s.size === size);
@@ -78,6 +79,9 @@ export function StaffPOS() {
         .map((item) => (item.id === id ? { ...item, quantity: item.quantity + delta } : item))
         .filter((item) => item.quantity > 0)
     );
+  }, []);
+  const removeItem = useCallback((id) => {
+    setCart((prevCart) => prevCart.filter((item) => item.id !== id));
   }, []);
 
   const total = cart.reduce((acc, item) => {
@@ -171,7 +175,26 @@ export function StaffPOS() {
             <div className="space-y-2">
               {cart.map((item) => (
                 <div key={item.id} className="bg-secondary rounded-lg p-2">
-                  <div className="text-sm mb-1 line-clamp-1">{item.product.name}</div>
+
+                  {/* Hàng trên: tên + nút xóa */}
+                  <div className="flex justify-between items-center mb-1">
+                    <div className="text-sm line-clamp-1">
+                      {item.product.name}
+                    </div>
+
+                    <button
+                      onClick={() => {
+                        if (confirm("Bạn có chắc muốn xóa món này?")) {
+                          removeItem(item.id);
+                        }
+                      }}
+                      className="p-1 text-gray-400 hover:text-red-500 transition"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  {/* Hàng dưới: số lượng + giá */}
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1">
                       <button
@@ -180,7 +203,11 @@ export function StaffPOS() {
                       >
                         <Minus className="w-3 h-3" />
                       </button>
-                      <span className="text-sm w-6 text-center">{item.quantity}</span>
+
+                      <span className="text-sm w-6 text-center">
+                        {item.quantity}
+                      </span>
+
                       <button
                         onClick={() => updateQuantity(item.id, 1)}
                         className="w-6 h-6 rounded bg-card flex items-center justify-center"
@@ -188,6 +215,7 @@ export function StaffPOS() {
                         <Plus className="w-3 h-3" />
                       </button>
                     </div>
+
                     <span className="text-sm text-primary">
                       {formatVND(getProductPrice(item.product, item.size) * item.quantity)}
                     </span>
