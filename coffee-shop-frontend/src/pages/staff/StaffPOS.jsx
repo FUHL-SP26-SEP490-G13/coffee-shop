@@ -17,6 +17,12 @@ const getProductImage = (product) => {
   const thumbnail = product.images?.find((img) => img.isThumbnail === 1) || product.images?.[0];
   return thumbnail ? thumbnail.image_url : 'https://via.placeholder.com/150';
 };
+const formatVND = (amount) => {
+  return new Intl.NumberFormat('vi-VN', {
+    style: 'currency',
+    currency: 'VND',
+  }).format(amount);
+};
 
 export function StaffPOS() {
   const [selectedTable, setSelectedTable] = useState('');
@@ -36,8 +42,8 @@ export function StaffPOS() {
         setProducts(productsRes.data || []);
         setTables(tablesRes.data || []);
       } catch (error) {
-        console.error("Error fetching POS data:", error);
-        toast.error("Failed to load products or tables");
+        console.error("Lỗi khi truy xuất dữ liệu POS:", error);
+        toast.error("Không tải được sản phẩm hoặc bàn");
       } finally {
         setLoading(false);
       }
@@ -81,10 +87,10 @@ export function StaffPOS() {
 
   const handlePlaceOrder = () => {
     if (!selectedTable) {
-      toast.error('Please select a table');
+      toast.error('Vui lòng chọn bàn');
       return;
     }
-    toast.success('Order placed successfully!');
+    toast.success('Đơn hàng đã được đặt thành công.!');
     setCart([]);
     setSelectedTable('');
   };
@@ -110,19 +116,22 @@ export function StaffPOS() {
           />
         </div>
         <h3 className="text-sm mb-1 line-clamp-1">{product.name}</h3>
-        <p className="text-primary">${getProductPrice(product, 'M').toFixed(2)}</p>
+        <p className="text-primary">
+          {formatVND(getProductPrice(product, 'M'))}
+        </p>
       </button>
     ));
   }, [filteredProducts, addToCart]);
+
 
   return (
     <div className="p-4 grid grid-cols-3 gap-4 h-screen">
       {/* Products */}
       <div className="col-span-2 overflow-y-auto">
-        <h2 className="text-xl mb-4">Point of Sale</h2>
-        
+        <h2 className="text-xl mb-4">Bán hàng</h2>
+
         <Input
-          placeholder="Search products..."
+          placeholder="Tìm kiếm sản phẩm..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="mb-4"
@@ -136,10 +145,10 @@ export function StaffPOS() {
       {/* Cart */}
       <div className="bg-card rounded-xl p-4 border border-border flex flex-col">
         <div className="mb-4">
-          <label className="text-sm mb-2 block">Table</label>
+          <label className="text-sm mb-2 block">Bàn</label>
           <Select value={selectedTable} onValueChange={setSelectedTable}>
             <SelectTrigger>
-              <SelectValue placeholder="Select table" />
+              <SelectValue placeholder="Chọn bàn" />
             </SelectTrigger>
             <SelectContent>
               {tables
@@ -156,7 +165,7 @@ export function StaffPOS() {
         <div className="flex-1 overflow-y-auto mb-4">
           {cart.length === 0 ? (
             <div className="text-center text-muted-foreground py-8 text-sm">
-              Add items to start order
+              Thêm sản phẩm
             </div>
           ) : (
             <div className="space-y-2">
@@ -180,7 +189,7 @@ export function StaffPOS() {
                       </button>
                     </div>
                     <span className="text-sm text-primary">
-                      ${(getProductPrice(item.product, item.size) * item.quantity).toFixed(2)}
+                      {formatVND(getProductPrice(item.product, item.size) * item.quantity)}
                     </span>
                   </div>
                 </div>
@@ -191,11 +200,13 @@ export function StaffPOS() {
 
         <div className="border-t border-border pt-4 space-y-3">
           <div className="flex justify-between">
-            <span>Subtotal</span>
-            <span className="text-primary text-lg">${total.toFixed(2)}</span>
+            <span>Tổng tiền</span>
+            <span className="text-primary text-lg">
+              {formatVND(total)}
+            </span>
           </div>
           <Button onClick={handlePlaceOrder} className="w-full" disabled={cart.length === 0}>
-            Place Order
+            Thanh toán
           </Button>
         </div>
       </div>
