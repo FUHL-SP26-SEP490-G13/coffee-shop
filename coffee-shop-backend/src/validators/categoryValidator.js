@@ -12,17 +12,13 @@ const createCategorySchema = Joi.object({
   }),
   code: Joi.string()
     .trim()
-    .pattern(/^[A-Z0-9-]+$/)
-    .min(2)
-    .max(50)
+    .pattern(/^[A-Z]{1,5}-[0-9]{1,5}$/)
     .required()
     .messages({
-      'string.empty': 'Code category không được để trống',
-      'string.min': 'Code category phải có ít nhất 2 ký tự',
-      'string.max': 'Code category không được vượt quá 50 ký tự',
+      'string.empty': 'Code danh mục không được để trống',
       'string.pattern.base':
-        'Code chỉ được chứa chữ in hoa, số và dấu "-"',
-      'any.required': 'Code category là bắt buộc',
+        'Code phải có định dạng: CHỮ HOA - SỐ (VD: CF-001)',
+      'any.required': 'Code danh mục là bắt buộc',
     }),
 });
 
@@ -37,17 +33,13 @@ const updateCategorySchema = Joi.object({
   }),
   code: Joi.string()
     .trim()
-    .pattern(/^[A-Z0-9-]+$/)
-    .min(2)
-    .max(50)
+    .pattern(/^[A-Z]{1,5}-[0-9]{1,5}$/)
     .optional()
     .messages({
-      'string.empty': 'Code category không được để trống',
-      'string.min': 'Code category phải có ít nhất 2 ký tự',
-      'string.max': 'Code category không được vượt quá 50 ký tự',
+      'string.empty': 'Code danh mục không được để trống',
       'string.pattern.base':
-        'Code chỉ được chứa chữ in hoa, số và dấu "-"',
-      'any.required': 'Code category là bắt buộc',
+        'Code phải có định dạng: CHỮ HOA - SỐ (VD: CF-001)',
+      'any.required': 'Code danh mục là bắt buộc',
     }),
   remove_image: Joi.alternatives()
     .try(Joi.boolean(), Joi.string().valid('true', 'false'))

@@ -74,14 +74,12 @@ export default function CreateCategory({ open, onClose, onSuccess }) {
       errors.name = 'Tên danh mục không được vượt quá 100 ký tự';
     }
 
-    const codePattern = /^[A-Z0-9-]+$/;
+    const codePattern = /^[A-Z]{1,5}-[0-9]{1,5}$/;
 
     if (!code.trim()) {
       errors.code = 'Vui lòng nhập mã code';
-    } else if (code.trim().length < 2) {
-      errors.code = 'Mã code phải có ít nhất 2 ký tự';
     } else if (!codePattern.test(code.trim().toUpperCase())) {
-      errors.code = 'Code chỉ được chứa chữ in hoa, số và dấu "-"';
+      errors.code = 'Code phải có định dạng: CHỮ HOA - SỐ (VD: CF-001)';
     }
 
     // Nếu có lỗi client-side, hiển thị ngay
@@ -127,7 +125,6 @@ export default function CreateCategory({ open, onClose, onSuccess }) {
         });
         setFieldErrors(errors);
         return;
-
       } else {
         // Lỗi thông thường (500, network, etc.)
         const errorMessage =
@@ -200,10 +197,10 @@ export default function CreateCategory({ open, onClose, onSuccess }) {
 
             <Input
               id='code'
-              placeholder='VD: CF, TEA-02,...'
+              placeholder='VD:TEA-02,...'
               value={code}
               onChange={(e) => {
-                setCode(e.target.value);
+                setCode(e.target.value.toUpperCase());
 
                 if (fieldErrors.code) {
                   setFieldErrors((prev) => ({ ...prev, code: null }));
