@@ -4,9 +4,11 @@ const helmet = require('helmet');
 const compression = require('compression');
 const morgan = require('morgan')
 const rateLimit = require('express-rate-limit');
+const swaggerUi = require('swagger-ui-express');
 
 const env = require('./config/env');
 const { createPaymentLink } = require('./config/payos');
+const swaggerSpec = require('./config/swagger');
 const routes = require('./routes');
 const { errorHandler, notFoundHandler } = require('./middlewares/errorHandler');
 
@@ -61,6 +63,27 @@ const authLimiter = rateLimit({
 app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/register', authLimiter);
 
+// Swagger documentation
+app.use('/api/docs', swaggerUi.serve);
+app.get('/api/docs', swaggerUi.setup(swaggerSpec, {
+  swaggerOptions: {
+    persistAuthorization: true,
+    displayOperationId: true,
+    defaultModelsExpandDepth: 1,
+    filter: true,
+    showRequestHeaders: true,
+    docExpansion: 'list',
+  },
+  customCss: '.swagger-ui .topbar { display: none }',
+  customSiteTitle: 'Coffee Shop API Documentation',
+}));
+
+// Swagger JSON endpoint
+app.get('/api/swagger.json', (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.send(swaggerSpec);
+});
+
 // Mount routes
 app.use('/api', routes);
 
@@ -73,7 +96,8 @@ app.get('/', (req, res) => {
     success: true,
     message: 'Coffee Shop Management API',
     version: '1.0.0',
-    documentation: '/api',
+    documentation: 'http://localhost:5000/api/docs',
+    swaggerJson: 'http://localhost:5000/api/swagger.json',
   });
 });
 

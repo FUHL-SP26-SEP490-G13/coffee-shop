@@ -16,6 +16,266 @@ const {
 } = require('../validators/productValidator');
 
 /**
+ * @swagger
+ * tags:
+ *   - name: Products
+ *     description: Product management endpoints
+ */
+
+/**
+ * @swagger
+ * /products:
+ *   get:
+ *     tags:
+ *       - Products
+ *     summary: Get all products
+ *     description: Retrieve paginated list of all products
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         description: Page number (default 1)
+ *       - in: query
+ *         name: pageSize
+ *         schema:
+ *           type: integer
+ *         description: Items per page (default 10)
+ *       - in: query
+ *         name: isActive
+ *         schema:
+ *           type: boolean
+ *         description: Filter by active status
+ *     responses:
+ *       200:
+ *         description: Products retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/PaginatedResponse'
+ *   post:
+ *     tags:
+ *       - Products
+ *     summary: Create new product
+ *     description: Create a new product with images (multipart/form-data)
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - price
+ *               - categoryId
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 example: Espresso
+ *               description:
+ *                 type: string
+ *               price:
+ *                 type: number
+ *                 format: float
+ *                 example: 25000
+ *               categoryId:
+ *                 type: integer
+ *               sizes:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *               images:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: binary
+ *     responses:
+ *       201:
+ *         description: Product created successfully
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ */
+
+/**
+ * @swagger
+ * /products/search:
+ *   get:
+ *     tags:
+ *       - Products
+ *     summary: Search products
+ *     description: Search products by name or keyword
+ *     parameters:
+ *       - in: query
+ *         name: q
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Search keyword
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: pageSize
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Search results
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/PaginatedResponse'
+ */
+
+/**
+ * @swagger
+ * /products/category/{categoryId}:
+ *   get:
+ *     tags:
+ *       - Products
+ *     summary: Get products by category
+ *     description: Retrieve all products in a specific category
+ *     parameters:
+ *       - in: path
+ *         name: categoryId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Products retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/PaginatedResponse'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ */
+
+/**
+ * @swagger
+ * /products/best-sellers:
+ *   get:
+ *     tags:
+ *       - Products
+ *     summary: Get best seller products
+ *     description: Retrieve top selling products
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *     responses:
+ *       200:
+ *         description: Best sellers retrieved successfully
+ */
+
+/**
+ * @swagger
+ * /products/{id}:
+ *   get:
+ *     tags:
+ *       - Products
+ *     summary: Get product by ID
+ *     description: Retrieve detailed information of a specific product
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Product found
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *   put:
+ *     tags:
+ *       - Products
+ *     summary: Update product
+ *     description: Update product information and images
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               price:
+ *                 type: number
+ *                 format: float
+ *               categoryId:
+ *                 type: integer
+ *               sizes:
+ *                 type: array
+ *               deleteSizeIds:
+ *                 type: array
+ *               deleteImageIds:
+ *                 type: array
+ *               images:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: binary
+ *     responses:
+ *       200:
+ *         description: Product updated successfully
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *   delete:
+ *     tags:
+ *       - Products
+ *     summary: Delete product
+ *     description: Soft delete a product
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Product deleted successfully
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ */
+
+/**
+ * @swagger
+ * /products/{id}/sizes:
+ *   get:
+ *     tags:
+ *       - Products
+ *     summary: Get product sizes
+ *     description: Retrieve available sizes for a specific product
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Product sizes retrieved successfully
+ */
+
+/**
  * Public routes
  */
 

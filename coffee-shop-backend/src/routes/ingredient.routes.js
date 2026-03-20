@@ -13,6 +13,147 @@ const {
 } = require('../validators/recipeValidator');
 
 /**
+ * @swagger
+ * tags:
+ *   - name: Ingredients
+ *     description: Product ingredient management endpoints
+ */
+
+/**
+ * @swagger
+ * /ingredients:
+ *   get:
+ *     tags:
+ *       - Ingredients
+ *     summary: Get all ingredients
+ *     description: Retrieve list of all available ingredients
+ *     responses:
+ *       200:
+ *         description: Ingredients retrieved successfully
+ *   post:
+ *     tags:
+ *       - Ingredients
+ *     summary: Create ingredient
+ *     description: Create a new ingredient
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - unit
+ *             properties:
+ *               name:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               unit:
+ *                 type: string
+ *                 example: "g"
+ *               costPerUnit:
+ *                 type: number
+ *                 format: float
+ *               supplier:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Ingredient created successfully
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ */
+
+/**
+ * @swagger
+ * /ingredients/search:
+ *   get:
+ *     tags:
+ *       - Ingredients
+ *     summary: Search ingredients
+ *     description: Search ingredients by name or keyword
+ *     parameters:
+ *       - in: query
+ *         name: q
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Search results
+ */
+
+/**
+ * @swagger
+ * /ingredients/{id}:
+ *   get:
+ *     tags:
+ *       - Ingredients
+ *     summary: Get ingredient by ID
+ *     description: Retrieve detailed information of a specific ingredient
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Ingredient found
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *   put:
+ *     tags:
+ *       - Ingredients
+ *     summary: Update ingredient
+ *     description: Update an ingredient
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               unit:
+ *                 type: string
+ *               costPerUnit:
+ *                 type: number
+ *               supplier:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Ingredient updated successfully
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *   delete:
+ *     tags:
+ *       - Ingredients
+ *     summary: Delete ingredient
+ *     description: Delete an ingredient
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Ingredient deleted successfully
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ */
+
+/**
  * ADMIN ROUTES - Manage ingredients
  */
 
