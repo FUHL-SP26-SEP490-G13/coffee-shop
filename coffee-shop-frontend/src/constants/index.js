@@ -62,6 +62,8 @@ export const API_ENDPOINTS = {
     MY_ORDER_DETAIL: (id) => `/orders/my-orders/${id}`,
     CANCEL: (id) => `/orders/${id}/cancel`,
     PAYOS_RETURN: "/orders/payos-return",
+    VALIDATE_DISCOUNT: "/orders/validate-discount",
+    PAYMENT_LINK: "/create-payment-link",
   },
   PRODUCTSLIST: {
     BASE: "/products",

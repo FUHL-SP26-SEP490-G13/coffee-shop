@@ -3,7 +3,6 @@ import { Plus, Search, Edit, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import categoryService from '../../../services/categoryService';
 import useFetch from '../../../hooks/useFetch';
-
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
 import { Badge } from '../../../components/ui/badge';
@@ -17,7 +16,9 @@ import {
 } from '../../../components/ui/table';
 
 import CreateCategory from './Action/CreateCategory';
+
 import UpdateCategory from './Action/UpdateCategory';
+
 import DeleteCategory from './Action/DeleteCategory';
 
 export default function AdminCategories() {
@@ -25,6 +26,7 @@ export default function AdminCategories() {
 
   const [modal, setModal] = useState({
     type: null,
+
     data: null,
   });
 
@@ -42,9 +44,13 @@ export default function AdminCategories() {
 
   const {
     data: response,
+
     loading,
+
     error,
+
     execute: refetch,
+
     setData,
   } = useFetch(fetchCategories);
 
@@ -58,19 +64,23 @@ export default function AdminCategories() {
     );
   }, [categories, searchQuery]);
 
-  // ✅ Handle create success - thêm vào đầu danh sách
+  // Handle create success - thêm vào đầu danh sách
+
   const handleCreateSuccess = (newCategory) => {
     setData((prev) => {
       if (!prev?.data) {
-        return { 
+        return {
           success: true,
-          data: [newCategory] 
+
+          data: [newCategory],
         };
       }
 
       // Thêm vào đầu danh sách
+
       return {
         ...prev,
+
         data: [newCategory, ...prev.data],
       };
     });
@@ -79,24 +89,31 @@ export default function AdminCategories() {
   return (
     <div className='p-6'>
       {/* ===== HEADER ===== */}
+
       <div className='flex items-center justify-between mb-6'>
         <div>
           <h2 className='text-2xl font-semibold mb-1'>Danh mục</h2>
+
           <p className='text-sm text-muted-foreground'>
             Quản lý danh mục sản phẩm
           </p>
         </div>
 
-        <Button onClick={() => openModal('create')} className={'cursor-pointer'}> 
+        <Button
+          onClick={() => openModal('create')}
+          className={'cursor-pointer'}
+        >
           <Plus className='w-4 h-4 mr-2' />
           Thêm danh mục
         </Button>
       </div>
 
       {/* ===== SEARCH ===== */}
+
       <div className='mb-4'>
         <div className='relative max-w-sm'>
           <Search className='absolute left-3 top-2.5 w-4 h-4 text-muted-foreground' />
+
           <Input
             placeholder='Tìm kiếm danh mục...'
             value={searchQuery}
@@ -107,6 +124,7 @@ export default function AdminCategories() {
       </div>
 
       {/* ===== ERROR ===== */}
+
       {error && (
         <div className='bg-red-50 text-red-600 px-4 py-3 rounded-md mb-4'>
           Có lỗi xảy ra khi tải dữ liệu
@@ -114,13 +132,17 @@ export default function AdminCategories() {
       )}
 
       {/* ===== TABLE ===== */}
+
       <div className='bg-card rounded-xl border border-border'>
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Tên danh mục</TableHead>
+
+              <TableHead>Mã Code</TableHead>
+
               <TableHead>Hình ảnh</TableHead>
-              <TableHead>Trạng thái</TableHead>
+
               <TableHead className='text-right'>Hành động</TableHead>
             </TableRow>
           </TableHeader>
@@ -142,62 +164,54 @@ export default function AdminCategories() {
               </TableRow>
             )}
 
-            {!loading && filteredCategories.map((category) => (
-              <TableRow key={category.id}>
-                <TableCell>
-                  <div className='font-medium'>{category.name}</div>
-                </TableCell>
+            {!loading &&
+              filteredCategories.map((category) => (
+                <TableRow key={category.id}>
+                  <TableCell>
+                    <div className='font-medium'>{category.name}</div>
+                  </TableCell>
 
-                <TableCell>
-                  {category.image_url ? (
-                    <img
-                      src={category.image_url}
-                      alt={category.name}
-                      className='w-12 h-12 object-cover rounded-md'
-                    />
-                  ) : (
-                    <span className='text-muted-foreground text-sm'>
-                      Không có ảnh
-                    </span>
-                  )}
-                </TableCell>
+                  <TableCell>
+                    <div className='font-medium'>{category.code}</div>
+                  </TableCell>
 
-                <TableCell>
-                  <Badge
-                    variant="outline"
-                    className={
-                      category.is_deleted === 0
-                        ? 'bg-green-500/10 text-green-700 border-green-500/20'
-                        : 'bg-red-500/10 text-red-700 border-red-500/20'
-                    }
-                  >
-                    {category.is_deleted === 0 ? 'Hoạt động' : 'Đã xóa'}
-                  </Badge>
-                </TableCell>
+                  <TableCell>
+                    {category.image_url ? (
+                      <img
+                        src={category.image_url}
+                        alt={category.name}
+                        className='w-12 h-12 object-cover rounded-md'
+                      />
+                    ) : (
+                      <span className='text-muted-foreground text-sm'>
+                        Không có ảnh
+                      </span>
+                    )}
+                  </TableCell>
 
-                <TableCell className='text-right'>
-                  <div className='flex items-center justify-end gap-2'>
-                    <Button
-                      variant='ghost'
-                      className={'cursor-pointer'}
-                      size='sm'
-                      onClick={() => openModal('update', category) }
-                    >
-                      <Edit className='w-4 h-4' />
-                    </Button>
+                  <TableCell className='text-right'>
+                    <div className='flex items-center justify-end gap-2'>
+                      <Button
+                        variant='ghost'
+                        className={'cursor-pointer'}
+                        size='sm'
+                        onClick={() => openModal('update', category)}
+                      >
+                        <Edit className='w-4 h-4' />
+                      </Button>
 
-                    <Button
-                      variant='ghost'
-                      size='sm'
-                      className='text-destructive hover:text-destructive cursor-pointer'
-                      onClick={() => openModal('delete', category)}
-                    >
-                      <Trash2 className='w-4 h-4' />
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
+                      <Button
+                        variant='ghost'
+                        size='sm'
+                        className='text-destructive hover:text-destructive cursor-pointer'
+                        onClick={() => openModal('delete', category)}
+                      >
+                        <Trash2 className='w-4 h-4' />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
           </TableBody>
         </Table>
       </div>

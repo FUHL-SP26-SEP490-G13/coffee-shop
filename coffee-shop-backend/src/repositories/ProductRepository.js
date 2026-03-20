@@ -10,12 +10,17 @@ class ProductRepository extends BaseRepository {
     return this.findOne({ name, is_deleted: 0 });
   }
 
+  async findByCode(code) {
+    return this.findOne({ code, is_deleted: 0 });
+  }
+
   async findByIdWithDetails(id) {
     const [products] = await db.query(
       `
       SELECT 
         p.id,
         p.name,
+        p.code,
         p.description,
         p.status,
         p.category_id,

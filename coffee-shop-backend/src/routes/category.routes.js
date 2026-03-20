@@ -18,28 +18,21 @@ const {
  */
 
 // Get all categories
-router.get(
-  '/',
-  CategoryController.getAll
-);
+router.get('/', CategoryController.getAll);
 
 // Search categories
-router.get(
-  '/search',
-  validate(searchCategorySchema, 'query'),
-  CategoryController.search
-);
+// router.get(
+//   '/search',
+//   validate(searchCategorySchema, 'query'),
+//   CategoryController.search,
+// );
 
 // Get category by ID
 router.get(
   '/:id',
   validate(categoryIdSchema, 'params'),
-  CategoryController.getById
+  CategoryController.getById,
 );
-
-/**
- * Protected routes - Admin only
- */
 
 // Create new category
 router.post(
@@ -48,7 +41,7 @@ router.post(
   // authorize(['manager']),
   upload.single('image'),
   validate(createCategorySchema),
-  CategoryController.create
+  CategoryController.create,
 );
 
 // Update category
@@ -59,7 +52,7 @@ router.put(
   validate(categoryIdSchema, 'params'),
   upload.single('image'),
   validate(updateCategorySchema),
-  CategoryController.update
+  CategoryController.update,
 );
 
 // Delete category
@@ -68,7 +61,7 @@ router.delete(
   // authenticate,
   // authorize(['manager']),
   validate(categoryIdSchema, 'params'),
-  CategoryController.delete
+  CategoryController.delete,
 );
 
 // Restore deleted category
@@ -77,9 +70,7 @@ router.post(
   // authenticate,
   // authorize(['manager']),
   validate(categoryIdSchema, 'params'),
-  CategoryController.restore
+  CategoryController.restore,
 );
-
-
 
 module.exports = router;

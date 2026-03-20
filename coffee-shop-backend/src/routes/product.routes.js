@@ -6,6 +6,7 @@ const { authorize } = require('../middlewares/authorize');
 const validate = require('../middlewares/validate');
 const upload = require('../middlewares/upload');
 const parseJsonFields = require('../middlewares/parseJsonFields');
+const asyncMiddleware = require('../middlewares/async.middleware')
 
 const {
   createProductSchema,

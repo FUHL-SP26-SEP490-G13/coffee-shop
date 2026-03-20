@@ -63,6 +63,8 @@ export default function ProductDetailPage() {
   const product = data?.data || null;
   const sizes = Array.isArray(product?.sizes) ? product.sizes : [];
   const images = Array.isArray(product?.images) ? product.images : [];
+  const description = (product?.description || "").trim();
+  const hasRichDescription = /<[^>]+>/.test(description);
 
   const defaultImage =
     "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085";
@@ -434,10 +436,22 @@ export default function ProductDetailPage() {
                 Mô tả sản phẩm
               </h3>
 
-              <p className="text-gray-600 leading-8">
-                {product.description ||
-                  "Thưởng thức hương vị đặc biệt của chúng tôi"}
-              </p>
+              {description ? (
+                hasRichDescription ? (
+                  <div
+                    className="product-rich-content text-gray-700"
+                    dangerouslySetInnerHTML={{ __html: description }}
+                  />
+                ) : (
+                  <p className="text-gray-600 leading-8 whitespace-pre-line">
+                    {description}
+                  </p>
+                )
+              ) : (
+                <p className="text-gray-600 leading-8">
+                  Thưởng thức hương vị đặc biệt của chúng tôi
+                </p>
+              )}
             </div>
             <div className="mt-6 bg-gray-50 border border-gray-200 rounded-2xl p-4">
               <div className="flex items-center justify-between mb-3">

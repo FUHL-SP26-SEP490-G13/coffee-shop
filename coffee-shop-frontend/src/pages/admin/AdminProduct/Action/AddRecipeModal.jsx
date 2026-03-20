@@ -93,7 +93,7 @@ const AddRecipeModal = ({ product, open, onClose, onSuccess }) => {
 
   return (
     <Dialog open={open} onOpenChange={v => { if (!v) onClose(); }}>
-      <DialogContent>
+      <DialogContent className="w-[95vw] max-w-4xl max-h-[92vh] overflow-y-auto">
         <DialogTitle>Thêm/Sửa công thức cho: {product?.name}</DialogTitle>
         <div className="mb-4 space-y-4">
           <div>

@@ -36,6 +36,12 @@ router.get(
   AsyncMiddleware(OrderController.getMyOrderDetail)
 );
 
+router.put(
+  "/:id/cancel",
+  authenticate,
+  AsyncMiddleware(OrderController.cancel)
+);
+
 // Nhận callback từ frontend sau khi PayOS redirect, lưu mã giao dịch vào DB
 router.post(
   "/payos-return",
