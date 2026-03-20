@@ -2,7 +2,7 @@ const TakeawayRepository = require('../repositories/TakeawayRepository');
 const ErrorResponse = require('../utils/ErrorResponse');
 
 class TakeawayService {
-  //HELPER: build + validate items 
+  //HELPER: build + validate items
   async _buildItems(connection, items) {
     const normalized = [];
     let subtotal = 0;
@@ -15,14 +15,21 @@ class TakeawayService {
         throw new ErrorResponse(400, 'Thiếu product_size_id');
 
       const productSize = await TakeawayRepository.findProductSizeById(
-        connection, item.product_size_id,
+        connection,
+        item.product_size_id,
       );
 
       if (!productSize) throw new ErrorResponse(400, 'Sản phẩm không tồn tại');
       if (productSize.is_deleted || productSize.product_deleted)
-        throw new ErrorResponse(400, `Sản phẩm "${productSize.name}" đã bị xóa`);
+        throw new ErrorResponse(
+          400,
+          `Sản phẩm "${productSize.name}" đã bị xóa`,
+        );
       if (productSize.status !== 'available')
-        throw new ErrorResponse(400, `Sản phẩm "${productSize.name}" hiện không khả dụng`);
+        throw new ErrorResponse(
+          400,
+          `Sản phẩm "${productSize.name}" hiện không khả dụng`,
+        );
 
       const basePrice = Number(productSize.price);
       let toppingsTotal = 0;
@@ -34,7 +41,10 @@ class TakeawayService {
 
         if (!toppingId) throw new ErrorResponse(400, 'Topping không hợp lệ');
 
-        const topping = await TakeawayRepository.findToppingById(connection, toppingId);
+        const topping = await TakeawayRepository.findToppingById(
+          connection,
+          toppingId,
+        );
         if (!topping)
           throw new ErrorResponse(400, `Topping id=${toppingId} không tồn tại`);
 
@@ -62,13 +72,14 @@ class TakeawayService {
     return { normalizedItems: normalized, subtotal };
   }
 
-  // HELPER: validate + tính discount 
+  // HELPER: validate + tính discount
   async _applyDiscount(connection, discountCode, subtotal) {
     if (!discountCode)
       return { discountAmount: 0, discountId: null, discountCode: null };
 
     const discount = await TakeawayRepository.findDiscountByCode(
-      connection, String(discountCode).trim(),
+      connection,
+      String(discountCode).trim(),
     );
 
     if (!discount) throw new ErrorResponse(400, 'Mã giảm giá không tồn tại');
@@ -79,7 +90,8 @@ class TakeawayService {
     if (discount.valid_until && now > new Date(discount.valid_until))
       throw new ErrorResponse(400, 'Mã giảm giá đã hết hạn');
 
-    const usageLimit = discount.usage_limit == null ? null : Number(discount.usage_limit);
+    const usageLimit =
+      discount.usage_limit == null ? null : Number(discount.usage_limit);
     const usedCount = Number(discount.used_count || 0);
     if (usageLimit !== null && usedCount >= usageLimit)
       throw new ErrorResponse(400, 'Mã giảm giá đã hết lượt sử dụng');
@@ -94,11 +106,18 @@ class TakeawayService {
     const percentage = Number(discount.percentage || 0);
     let discountAmount = Math.round((subtotal * percentage) / 100);
     const maxDiscount =
-      discount.max_discount_amount == null ? null : Number(discount.max_discount_amount);
-    if (maxDiscount !== null) discountAmount = Math.min(discountAmount, maxDiscount);
+      discount.max_discount_amount == null
+        ? null
+        : Number(discount.max_discount_amount);
+    if (maxDiscount !== null)
+      discountAmount = Math.min(discountAmount, maxDiscount);
     discountAmount = Math.min(subtotal, Math.max(0, discountAmount));
 
-    return { discountAmount, discountId: discount.id, discountCode: discount.code };
+    return {
+      discountAmount,
+      discountId: discount.id,
+      discountCode: discount.code,
+    };
   }
 
   // TẠO ĐƠN — gộp thanh toán luôn
@@ -116,7 +135,10 @@ class TakeawayService {
     try {
       await connection.beginTransaction();
 
-      const { normalizedItems, subtotal } = await this._buildItems(connection, items);
+      const { normalizedItems, subtotal } = await this._buildItems(
+        connection,
+        items,
+      );
       const { discountAmount, discountId, discountCode } =
         await this._applyDiscount(connection, discount_code, subtotal);
       const finalAmount = Math.max(0, subtotal - discountAmount);
@@ -133,14 +155,17 @@ class TakeawayService {
       });
 
       for (const item of normalizedItems) {
-      // create order detail
-        const detailId = await TakeawayRepository.createOrderDetail(connection, {
-          order_id: orderId,
-          product_size_id: item.product_size_id,
-          quantity: item.quantity,
-          price: item.price,
-          note: item.note,
-        });
+        // create order detail
+        const detailId = await TakeawayRepository.createOrderDetail(
+          connection,
+          {
+            order_id: orderId,
+            product_size_id: item.product_size_id,
+            quantity: item.quantity,
+            price: item.price,
+            note: item.note,
+          },
+        );
         // create topping
         for (const t of item.toppings) {
           await TakeawayRepository.createOrderDetailTopping(connection, {
@@ -170,7 +195,10 @@ class TakeawayService {
       }
 
       if (discountId) {
-        await TakeawayRepository.incrementDiscountUsedCount(connection, discountId);
+        await TakeawayRepository.incrementDiscountUsedCount(
+          connection,
+          discountId,
+        );
       }
 
       await connection.commit();
@@ -188,7 +216,11 @@ class TakeawayService {
 
       // if payment by payOS
       if (!isCash) {
-        const payosData = await this._createPayosLink(orderId, finalAmount, normalizedItems);
+        const payosData = await this._createPayosLink(
+          orderId,
+          finalAmount,
+          normalizedItems,
+        );
         response.checkout_url = payosData.checkout_url;
         response.qr_code = payosData.qr_code;
       }
@@ -232,6 +264,327 @@ class TakeawayService {
     };
   }
 
+  // SỬA ĐƠN — cho phép cả khi đã paid, chỉ chặn khi barista đang làm
+  //
+  // Logic tiền:
+  //   - Nếu chưa paid: cập nhật bình thường
+  //   - Nếu đã paid:
+  //       newAmount > paid_amount → thu thêm (extra_charge)
+  //       newAmount < paid_amount → hoàn tiền (refund_amount)
+  //       newAmount = paid_amount → không đổi tiền
+  async updateTakeawayOrder(orderId, payload, staffUser) {
+    const order = await TakeawayRepository.findOrderById(orderId);
+
+    if (!order) throw new ErrorResponse(404, 'Đơn hàng không tồn tại');
+    if (order.order_type !== 'takeaway')
+      throw new ErrorResponse(400, 'Chỉ có thể sửa đơn takeaway');
+    if (order.status === 'preparing')
+      throw new ErrorResponse(
+        400,
+        'Barista đang chuẩn bị đơn này, không thể sửa',
+      );
+    if (!['pending'].includes(order.status))
+      throw new ErrorResponse(
+        400,
+        `Đơn đang ở trạng thái "${order.status}", không thể sửa`,
+      );
+
+    const { items, discount_code } = payload;
+    if (!Array.isArray(items) || items.length === 0)
+      throw new ErrorResponse(400, 'Giỏ hàng trống');
+
+    const payment = await TakeawayRepository.findOrderPayment(orderId);
+    const alreadyPaid = order.is_paid && payment?.payment_status === 'paid';
+    const oldPaidAmount = alreadyPaid ? Number(payment.paid_amount || 0) : 0;
+
+    const connection = await TakeawayRepository.getConnection();
+    try {
+      await connection.beginTransaction();
+
+      // Hoàn lại used_count của discount cũ
+      if (order.discount_id) {
+        await connection.query(
+          `UPDATE discount SET used_count = GREATEST(0, used_count - 1) WHERE id = ?`,
+          [order.discount_id],
+        );
+      }
+
+      // Xoá items cũ (cascade xoá toppings)
+      await TakeawayRepository.deleteOrderDetails(connection, orderId);
+
+      // Build lại items + discount mới
+      const { normalizedItems, subtotal } = await this._buildItems(
+        connection,
+        items,
+      );
+      const { discountAmount, discountId, discountCode } =
+        await this._applyDiscount(connection, discount_code, subtotal);
+      const newAmount = Math.max(0, subtotal - discountAmount);
+
+      // Cập nhật order
+      await TakeawayRepository.updateOrderAmounts(connection, {
+        orderId,
+        total_amount: newAmount,
+        discount_id: discountId,
+      });
+
+      // Cập nhật payment
+      if (alreadyPaid) {
+        // paid_amount giữ nguyên (đã thu thực tế), chỉ update amount + adjustment
+        await TakeawayRepository.updatePaymentAfterEdit(connection, {
+          orderId,
+          newAmount,
+          oldPaidAmount,
+        });
+      } else {
+        // Chưa paid → cập nhật amount bình thường
+        await connection.query(
+          `UPDATE order_payments SET amount = ? WHERE order_id = ?`,
+          [newAmount, orderId],
+        );
+      }
+
+      // Insert items mới
+      for (const item of normalizedItems) {
+        const detailId = await TakeawayRepository.createOrderDetail(
+          connection,
+          {
+            order_id: orderId,
+            product_size_id: item.product_size_id,
+            quantity: item.quantity,
+            price: item.price,
+            note: item.note,
+          },
+        );
+        for (const t of item.toppings) {
+          await TakeawayRepository.createOrderDetailTopping(connection, {
+            order_detail_id: detailId,
+            topping_id: t.topping_id,
+            quantity: t.quantity,
+            price: t.price,
+          });
+        }
+      }
+
+      if (discountId) {
+        await TakeawayRepository.incrementDiscountUsedCount(
+          connection,
+          discountId,
+        );
+      }
+
+      await connection.commit();
+
+      // Tính toán tiền điều chỉnh để thông báo cho staff
+      const adjustment = newAmount - oldPaidAmount;
+      const response = {
+        order_id: orderId,
+        subtotal_amount: subtotal,
+        discount_amount: discountAmount,
+        discount_code: discountCode,
+        total_amount: newAmount,
+        status: 'pending',
+        payment_adjustment: null,
+      };
+
+      if (alreadyPaid) {
+        if (adjustment > 0) {
+          response.payment_adjustment = {
+            type: 'extra_charge',
+            amount: adjustment,
+            message: `Thu thêm khách ${adjustment.toLocaleString('vi-VN')}đ`,
+          };
+        } else if (adjustment < 0) {
+          response.payment_adjustment = {
+            type: 'refund',
+            amount: Math.abs(adjustment),
+            message: `Hoàn lại khách ${Math.abs(adjustment).toLocaleString('vi-VN')}đ`,
+          };
+        } else {
+          response.payment_adjustment = {
+            type: 'no_change',
+            amount: 0,
+            message: 'Số tiền không thay đổi',
+          };
+        }
+      }
+
+      return response;
+    } catch (err) {
+      await connection.rollback();
+      throw err;
+    } finally {
+      connection.release();
+    }
+  }
+
+  // HỦY ĐƠN — cho phép hủy kể cả đã paid, chỉ chặn khi barista đang làm
+  async cancelTakeawayOrder(orderId, staffUser) {
+    const order = await TakeawayRepository.findOrderById(orderId);
+    if (!order) throw new ErrorResponse(404, 'Đơn hàng không tồn tại');
+    if (order.order_type !== 'takeaway')
+      throw new ErrorResponse(400, 'Không phải đơn takeaway');
+    if (order.status === 'preparing')
+      throw new ErrorResponse(
+        400,
+        'Barista đang chuẩn bị, liên hệ barista trước khi hủy',
+      );
+    if (!['pending'].includes(order.status))
+      throw new ErrorResponse(400, 'Không thể hủy đơn ở trạng thái này');
+
+    const payment = await TakeawayRepository.findOrderPayment(orderId);
+    const alreadyPaid = order.is_paid && payment?.payment_status === 'paid';
+    const refundAmount = alreadyPaid ? Number(payment.paid_amount || 0) : 0;
+
+    const connection = await TakeawayRepository.getConnection();
+    try {
+      await connection.beginTransaction();
+
+      await TakeawayRepository.cancelOrder(connection, orderId);
+
+      if (alreadyPaid) {
+        await TakeawayRepository.refundPayment(connection, orderId);
+      }
+
+      // Trả lại used_count discount
+      if (order.discount_id) {
+        await connection.query(
+          `UPDATE discount SET used_count = GREATEST(0, used_count - 1) WHERE id = ?`,
+          [order.discount_id],
+        );
+      }
+
+      await connection.commit();
+
+      return {
+        order_id: orderId,
+        status: 'cancelled',
+        refund: alreadyPaid
+          ? {
+              amount: refundAmount,
+              message: `Hoàn lại khách ${refundAmount.toLocaleString('vi-VN')}đ`,
+            }
+          : null,
+      };
+    } catch (err) {
+      await connection.rollback();
+      throw err;
+    } finally {
+      connection.release();
+    }
+  }
+
+  // BARISTA NHẬN ĐƠN (optimistic lock)
+  async assignToBarista(orderId, baristaUser) {
+    const order = await TakeawayRepository.findOrderById(orderId);
+    if (!order) throw new ErrorResponse(404, 'Đơn hàng không tồn tại');
+    if (order.status !== 'pending')
+      throw new ErrorResponse(400, 'Đơn không ở trạng thái chờ');
+
+    const payment = await TakeawayRepository.findOrderPayment(orderId);
+    if (!payment || payment.payment_status !== 'paid')
+      throw new ErrorResponse(400, 'Đơn chưa được thanh toán, chưa thể nhận');
+
+    const success = await TakeawayRepository.assignBarista(
+      orderId,
+      baristaUser.id,
+    );
+    if (!success)
+      throw new ErrorResponse(409, 'Đơn đã được barista khác nhận rồi');
+
+    return {
+      order_id: orderId,
+      assigned_barista_id: baristaUser.id,
+      status: 'preparing',
+    };
+  }
+
+  // BARISTA HOÀN THÀNH
+  async markServedByBarista(orderId, baristaUser) {
+    const order = await TakeawayRepository.findOrderById(orderId);
+    if (!order) throw new ErrorResponse(404, 'Đơn hàng không tồn tại');
+    if (Number(order.assigned_barista_id) !== Number(baristaUser.id))
+      throw new ErrorResponse(403, 'Bạn không phải barista được giao đơn này');
+
+    const success = await TakeawayRepository.completeByBarista(
+      orderId,
+      baristaUser.id,
+    );
+    if (!success) throw new ErrorResponse(400, 'Không thể cập nhật trạng thái');
+
+    return { order_id: orderId, status: 'served' };
+  }
+
+  // STAFF XÁC NHẬN GIAO KHÁCH
+  async markCompleted(orderId, staffUser) {
+    const order = await TakeawayRepository.findOrderById(orderId);
+    if (!order) throw new ErrorResponse(404, 'Đơn hàng không tồn tại');
+    if (order.status !== 'served')
+      throw new ErrorResponse(400, 'Đơn chưa sẵn sàng để giao cho khách');
+
+    const success = await TakeawayRepository.markCompleted(orderId);
+    if (!success) throw new ErrorResponse(400, 'Không thể cập nhật trạng thái');
+
+    return { order_id: orderId, status: 'completed' };
+  }
+
+  // HÓA ĐƠN
+  async getReceipt(orderId) {
+    const order = await TakeawayRepository.findOrderById(orderId);
+    if (!order) throw new ErrorResponse(404, 'Đơn hàng không tồn tại');
+
+    const items = await TakeawayRepository.findOrderItems(orderId);
+    const payment = await TakeawayRepository.findOrderPayment(orderId);
+
+    const subtotal = items.reduce(
+      (sum, item) => sum + Number(item.price) * Number(item.quantity),
+      0,
+    );
+
+    const paidAmount = payment ? Number(payment.paid_amount || 0) : 0;
+    const adjustment = payment ? Number(payment.adjustment_amount || 0) : 0;
+
+    return {
+      receipt: {
+        order_id: order.id,
+        order_code: `TW-${String(order.id).padStart(6, '0')}`,
+        created_at: order.created_at,
+        paid_at: order.paid_at,
+        staff:
+          `${order.staff_first_name || ''} ${order.staff_last_name || ''}`.trim(),
+        barista: order.barista_first_name
+          ? `${order.barista_first_name} ${order.barista_last_name}`.trim()
+          : null,
+        order_type: order.order_type,
+        status: order.status,
+        items: items.map((item) => ({
+          product_name: item.product_name,
+          size: item.size,
+          quantity: item.quantity,
+          unit_price: Number(item.price),
+          line_total: Number(item.price) * Number(item.quantity),
+          note: item.note,
+          toppings: item.toppings,
+        })),
+        subtotal_amount: subtotal,
+        discount_code: order.discount_code || null,
+        discount_percentage: order.discount_percentage
+          ? Number(order.discount_percentage)
+          : null,
+        discount_amount: subtotal - Number(order.total_amount),
+        total_amount: Number(order.total_amount),
+        payment: {
+          method: payment?.payment_method || null,
+          status: payment?.payment_status || null,
+          paid_amount: paidAmount, // số tiền đã thực thu
+          current_amount: payment ? Number(payment.amount) : null, // tổng đơn hiện tại
+          adjustment_amount: adjustment, // âm = hoàn, dương = thu thêm
+          transaction_id: payment?.transaction_id || null,
+          paid_at: payment?.paid_at || null,
+        },
+      },
+    };
+  }
 }
 
 module.exports = new TakeawayService();
