@@ -1,3 +1,4 @@
+import OrderMenu from "@/pages/OrderMenu/OrderMenu";
 import React, { useEffect, useState } from "react";
 import { Navigate, Routes, Route } from "react-router-dom";
 import { APP_ROUTES, STORAGE_KEYS } from "../constants";
@@ -196,6 +197,8 @@ const AppRoutes = () => {
 
       <Route path="/cart" element={<CartPage />} />
       <Route path="/checkout" element={<CheckoutPage />} />
+
+      <Route path="/order" element={<OrderMenu />} />
 
       {/* 404 */}
       <Route
