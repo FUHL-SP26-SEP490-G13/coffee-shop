@@ -4,17 +4,13 @@ const swaggerOptions = {
   definition: {
     openapi: '3.0.0',
     info: {
-      title: 'Coffee Shop Management System API',
+      title: 'Coffee Shop Management System - SEP490_G13',
       version: '1.0.0',
       description: 'API documentation for Coffee Shop Management System',
-      contact: {
-        name: 'Coffee Shop Support',
-        email: 'support@coffeeshop.local',
-      },
     },
     servers: [
       {
-        url: 'http://localhost:5000',
+        url: 'http://localhost:5000/api',
         description: 'Development Server',
       },
       {
