@@ -57,8 +57,8 @@ export default function TableModal({ isOpen, onClose, table, areas, initialAreaI
         await tableService.update(table.id, formData);
         toast.success("Cập nhật bàn thành công");
       } else {
-        await tableService.create(formData);
-        toast.success("Thêm bàn mới thành công");
+        await tableService.createWithQr(formData);
+        toast.success("Thêm bàn mới kèm QR thành công");
       }
       onSuccess();
       onClose();

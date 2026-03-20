@@ -1,5 +1,12 @@
 import React, { useState, useEffect } from "react";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
   Plus,
   Search,
   Trash2,
@@ -8,6 +15,7 @@ import {
   LayoutGrid,
   MapPin,
   Edit,
+  QrCode,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,7 +48,9 @@ import { STORAGE_KEYS } from "@/constants";
 import { jwtDecode } from "jwt-decode";
 
 export default function AdminTables() {
-  const token = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN) || sessionStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
+  const token =
+    localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN) ||
+    sessionStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
   const user = token ? jwtDecode(token) : null;
   const isStaff = user?.role_id === 2;
 
@@ -107,6 +117,26 @@ export default function AdminTables() {
     setDeleteTableConfirmOpen(true);
   };
 
+  // QR Modal state
+  const [qrModalTable, setQrModalTable] = useState(null);
+
+  // Hàm xem QR
+  const handleViewQR = (table) => {
+    setQrModalTable(table);
+  };
+
+  // Hàm in QR
+  const handlePrintQr = () => {
+    if (!qrModalTable?.qrUrl) return;
+    const printWindow = window.open("", "_blank");
+    printWindow.document.write(
+      `<img src='${qrModalTable.qrUrl}' style='width:300px;height:300px;display:block;margin:auto'/>`,
+    );
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+    printWindow.close();
+  };
   const handleDeleteTableConfirm = async () => {
     try {
       await tableService.delete(tableToDelete.id);
@@ -366,6 +396,14 @@ export default function AdminTables() {
                         size="icon"
                         variant="secondary"
                         className="h-8 w-8 shadow-sm"
+                        onClick={() => handleViewQR(table)}
+                      >
+                        <QrCode  className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="secondary"
+                        className="h-8 w-8 shadow-sm"
                         onClick={() => handleEditTable(table)}
                       >
                         <TableIcon className="w-4 h-4" />
@@ -443,15 +481,40 @@ export default function AdminTables() {
                       <div className="flex gap-2 w-full justify-center mt-2 z-10 transition-all duration-300">
                         {table.status === "available" && (
                           <>
-                            <Button size="sm" onClick={(e) => { e.stopPropagation(); handleStatusChange(table, "occupied"); }}>Có khách</Button>
+                            <Button
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleStatusChange(table, "occupied");
+                              }}
+                            >
+                              Có khách
+                            </Button>
                             {/* <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); handleReserveTable(table); }}>Đã đặt</Button> */}
                           </>
                         )}
                         {table.status === "reserved" && (
-                          <Button size="sm" onClick={(e) => { e.stopPropagation(); handleStatusChange(table, "occupied"); }}>Có khách</Button>
+                          <Button
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleStatusChange(table, "occupied");
+                            }}
+                          >
+                            Có khách
+                          </Button>
                         )}
                         {table.status === "occupied" && (
-                          <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); handleStatusChange(table, "available"); }}>Trống</Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleStatusChange(table, "available");
+                            }}
+                          >
+                            Trống
+                          </Button>
                         )}
                       </div>
                     )}
@@ -540,8 +603,8 @@ export default function AdminTables() {
             <AlertDialogTitle>Xác nhận xóa bàn</AlertDialogTitle>
             <AlertDialogDescription>
               Bạn có chắc chắn muốn xóa bàn{" "}
-              <strong>{tableToDelete?.code}</strong> (
-              {tableToDelete?.area_name})? Hành động này không thể hoàn tác.
+              <strong>{tableToDelete?.code}</strong> ({tableToDelete?.area_name}
+              )? Hành động này không thể hoàn tác.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -581,6 +644,31 @@ export default function AdminTables() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* QR Modal */}
+      <Dialog open={!!qrModalTable} onOpenChange={() => setQrModalTable(null)}>
+        <DialogContent className="max-w-xs">
+          <DialogHeader>
+            <DialogTitle>QR Code bàn {qrModalTable?.code}</DialogTitle>
+          </DialogHeader>
+          {qrModalTable?.qrUrl ? (
+            <div className="flex flex-col items-center gap-4">
+              <img
+                src={qrModalTable.qrUrl}
+                alt="QR Code"
+                className="w-60 h-60 border rounded-lg bg-white"
+              />
+              <Button onClick={handlePrintQr} className="w-full">
+                In QR
+              </Button>
+            </div>
+          ) : (
+            <div className="text-center text-muted-foreground">
+              Không có QR code
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

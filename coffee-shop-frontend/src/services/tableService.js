@@ -1,6 +1,6 @@
-import axios from 'axios';
+import axios from "axios";
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 const tableService = {
   getAll: async (params = {}) => {
@@ -18,6 +18,11 @@ const tableService = {
     return response.data;
   },
 
+  createWithQr: async (data) => {
+    const response = await axios.post(`${API_URL}/tables/with-qr`, data);
+    return response.data;
+  },
+
   update: async (id, data) => {
     const response = await axios.put(`${API_URL}/tables/${id}`, data);
     return response.data;
@@ -31,7 +36,7 @@ const tableService = {
   delete: async (id) => {
     const response = await axios.delete(`${API_URL}/tables/${id}`);
     return response.data;
-  }
+  },
 };
 
 export default tableService;
