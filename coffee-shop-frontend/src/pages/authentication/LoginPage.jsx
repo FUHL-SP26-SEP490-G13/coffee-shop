@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Coffee, Lock, Mail, Eye, EyeOff } from "lucide-react";
 import GoogleButton from "@/components/ui/GoogleButton";
@@ -9,14 +9,31 @@ import { Label } from "@/components/ui/label";
 import { APP_ROUTES, STORAGE_KEYS } from "@/constants";
 import authenticationService from "@/services/authenticationService";
 
+const REMEMBER_ME_KEYS = {
+	IDENTIFIER: "coffee_shop_remember_identifier",
+	PASSWORD: "coffee_shop_remember_password",
+};
+
 export default function LoginPage() {
 	const navigate = useNavigate();
 	const [identifier, setIdentifier] = useState("");
 	const [password, setPassword] = useState("");
-	const [remember, setRemember] = useState(true);
+	const [remember, setRemember] = useState(false);
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [errorMessage, setErrorMessage] = useState("");
 	const [showPassword, setShowPassword] = useState(false);
+
+	// Load saved credentials on component mount
+	useEffect(() => {
+		const savedIdentifier = localStorage.getItem(REMEMBER_ME_KEYS.IDENTIFIER);
+		const savedPassword = localStorage.getItem(REMEMBER_ME_KEYS.PASSWORD);
+
+		if (savedIdentifier && savedPassword) {
+			setIdentifier(savedIdentifier);
+			setPassword(savedPassword);
+			setRemember(true);
+		}
+	}, []);
 
 	const handleSubmit = async (event) => {
 		event.preventDefault();
@@ -43,6 +60,16 @@ export default function LoginPage() {
 			}
 			if (refreshToken) {
 				storage.setItem(STORAGE_KEYS.REFRESH_TOKEN, refreshToken);
+			}
+
+			// Save credentials if remember is checked
+			if (remember) {
+				localStorage.setItem(REMEMBER_ME_KEYS.IDENTIFIER, identifier);
+				localStorage.setItem(REMEMBER_ME_KEYS.PASSWORD, password);
+			} else {
+				// Clear saved credentials if remember is unchecked
+				localStorage.removeItem(REMEMBER_ME_KEYS.IDENTIFIER);
+				localStorage.removeItem(REMEMBER_ME_KEYS.PASSWORD);
 			}
 
             // Điều hướng dựa trên vai trò người dùng
