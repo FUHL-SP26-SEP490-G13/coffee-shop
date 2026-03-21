@@ -239,15 +239,29 @@ class OrderService {
         }
       }
 
-      if (order_type !== "dine-in") {
-        await OrderRepository.createOrderDeliveryInfo(connection, {
-          order_id: orderId,
-          receiver_name: receiver_name ? receiver_name.trim() : "",
-          receiver_phone: receiver_phone ? receiver_phone.trim() : "",
-          receiver_email: receiver_email?.trim() || null,
-          address: address?.trim() || null,
-          note: note?.trim() || null,
-        });
+      if (order_type !== "dine-in" || (note && note.trim())) {
+        const [existingInfo] = await connection.query(
+          "SELECT id FROM order_delivery_info WHERE order_id = ?",
+          [orderId]
+        );
+
+        if (existingInfo.length > 0) {
+          if (note && note.trim()) {
+            await connection.query(
+              "UPDATE order_delivery_info SET note = ? WHERE order_id = ?",
+              [note.trim(), orderId]
+            );
+          }
+        } else {
+          await OrderRepository.createOrderDeliveryInfo(connection, {
+            order_id: orderId,
+            receiver_name: receiver_name ? receiver_name.trim() : "",
+            receiver_phone: receiver_phone ? receiver_phone.trim() : "",
+            receiver_email: receiver_email?.trim() || null,
+            address: address?.trim() || null,
+            note: note?.trim() || null,
+          });
+        }
       }
 
       await OrderRepository.createOrderPayment(connection, {

@@ -7,6 +7,7 @@ import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Badge } from '../../components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
+import { Textarea } from '../../components/ui/textarea';
 import { toast } from 'sonner';
 
 const getProductPrice = (product, size = 'M') => {
@@ -32,6 +33,7 @@ export function StaffPOS() {
   const [products, setProducts] = useState([]);
   const [tables, setTables] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [note, setNote] = useState('');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -114,11 +116,13 @@ export function StaffPOS() {
         receiver_name: `Khách Bàn ${tables.find((t) => String(t.id) === selectedTable)?.code || ''}`,
         receiver_phone: '0000000000',
         items,
+        note: note.trim() || undefined,
       });
 
       toast.success('Đơn hàng đã được đặt thành công.!');
       setCart([]);
       setSelectedTable('');
+      setNote('');
     } catch (error) {
       console.error('Lỗi đặt hàng POS:', error);
       toast.error(error.response?.data?.message || 'Không đặt được hàng');
@@ -226,6 +230,16 @@ export function StaffPOS() {
               ))}
             </div>
           )}
+        </div>
+        <div className="mt-2 mb-4">
+          <label className="text-sm mb-1 block text-muted-foreground">Ghi chú</label>
+          <Textarea 
+            placeholder="Ví dụ: Ít đá, không đường..." 
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            className="text-sm resize-none"
+            rows={2}
+          />
         </div>
 
         <div className="border-t border-border pt-4 space-y-3">
