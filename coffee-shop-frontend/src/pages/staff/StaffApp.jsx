@@ -64,7 +64,7 @@ export function StaffApp() {
   const currentPage = getCurrentPage();
 
   const menuItems = [
-    { id: "pos", icon: LayoutGrid, label: "POS", path: "/staff" },
+    { id: "pos", icon: LayoutGrid, label: "Bán hàng", path: "/staff" },
     { id: "kitchen", icon: ChefHat, label: "Bếp", path: "/staff/kitchen" },
     {
       id: "tables",
@@ -276,10 +276,9 @@ export function StaffApp() {
           fixed md:static inset-y-0 left-0 z-40
           w-64 bg-card border-r border-border flex flex-col
           transform transition-transform duration-300 ease-in-out
-          ${
-            mobileMenuOpen
-              ? "translate-x-0"
-              : "-translate-x-full md:translate-x-0"
+          ${mobileMenuOpen
+            ? "translate-x-0"
+            : "-translate-x-full md:translate-x-0"
           }
         `}
       >
@@ -305,11 +304,10 @@ export function StaffApp() {
                   navigate(item.path);
                   setMobileMenuOpen(false);
                 }}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all mb-2 ${
-                  currentPage === item.id
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                }`}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all mb-2 ${currentPage === item.id
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                  }`}
               >
                 <Icon className="w-5 h-5 flex-shrink-0" />
                 <span className="text-sm">{item.label}</span>
@@ -342,7 +340,7 @@ export function StaffApp() {
         </nav>
       </div>
 
-      <div className="flex-1 w-full md:w-auto overflow-auto">
+      <div className={`flex-1 w-full md:w-auto ${currentPage === 'pos' ? 'overflow-hidden flex flex-col h-screen' : 'overflow-auto'}`}>
         <div
           ref={notificationRef}
           className="flex justify-end px-4 md:px-8 pt-4 md:pt-4 pb-0 relative"
@@ -385,9 +383,8 @@ export function StaffApp() {
                     <button
                       key={item.recipient_id || `${item.id}-${item.created_at}`}
                       onClick={() => handleReadNotification(item)}
-                      className={`w-full text-left px-4 py-3 border-b hover:bg-gray-50 ${
-                        Number(item.is_read) === 0 ? "bg-orange-50" : "bg-white"
-                      }`}
+                      className={`w-full text-left px-4 py-3 border-b hover:bg-gray-50 ${Number(item.is_read) === 0 ? "bg-orange-50" : "bg-white"
+                        }`}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex-1">
@@ -421,7 +418,7 @@ export function StaffApp() {
           )}
         </div>
 
-        <div className="p-4 md:p-8 pt-2 md:pt-2">
+        <div className={`p-4 md:p-8 pt-2 md:pt-2 ${currentPage === 'pos' ? 'flex-1 overflow-hidden flex flex-col' : ''}`}>
           <Outlet />
         </div>
       </div>
