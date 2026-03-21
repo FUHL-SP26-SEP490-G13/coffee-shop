@@ -3,7 +3,7 @@ const Joi = require("joi");
 const phoneRegex = /^[0-9]{10}$/;
 
 const checkoutOrderSchema = Joi.object({
-  order_type: Joi.string().valid("delivery", "takeaway").required().messages({
+  order_type: Joi.string().valid("delivery", "takeaway", "dine-in").required().messages({
     "any.only": "Hình thức nhận hàng không hợp lệ",
     "any.required": "Hình thức nhận hàng là bắt buộc",
     "string.empty": "Hình thức nhận hàng không được để trống",
@@ -49,6 +49,10 @@ const checkoutOrderSchema = Joi.object({
 
   discount_code: Joi.string().trim().allow("").max(50).messages({
     "string.max": "Mã giảm giá không được vượt quá 50 ký tự",
+  }),
+
+  table_id: Joi.number().integer().positive().allow(null).optional().messages({
+    "number.base": "Bàn không hợp lệ",
   }),
 
   items: Joi.array()

@@ -72,17 +72,19 @@ class OrderRepository {
         created_by,
         customer_type,
         order_type,
+        table_id,
         status,
         is_paid,
         total_amount
       )
-      VALUES (?, ?, ?, ?, 'pending', 0, ?)
+      VALUES (?, ?, ?, ?, ?, 'pending', 0, ?)
       `,
       [
         data.user_id,
         data.created_by,
         data.customer_type,
         data.order_type,
+        data.table_id || null,
         data.total_amount,
       ]
     );
@@ -306,6 +308,51 @@ class OrderRepository {
       item.toppings = toppings;
     }
 
+    return rows;
+  }
+
+  async findActiveOrderByTableId(connection, tableId) {
+    const [rows] = await connection.query(
+      `
+      SELECT id, total_amount
+      FROM orders
+      WHERE table_id = ? AND status IN ('pending', 'processing')
+      ORDER BY created_at DESC
+      LIMIT 1
+      `,
+      [tableId]
+    );
+
+    return rows[0] || null;
+  }
+
+  async updateOrderTotalAmount(connection, orderId, finalAmount) {
+    await connection.query(
+      `
+      UPDATE orders
+      SET total_amount = ?
+      WHERE id = ?
+      `,
+      [finalAmount, orderId]
+    );
+  async findAllOrders() {
+    const [rows] = await db.query(
+      `
+      SELECT 
+        o.id,
+        o.customer_type,
+        o.order_type,
+        o.status,
+        o.is_paid,
+        o.total_amount,
+        o.created_at,
+        o.paid_at,
+        t.code as table_code
+      FROM orders o
+      LEFT JOIN tables t ON t.id = o.table_id
+      ORDER BY o.created_at DESC
+      `
+    );
     return rows;
   }
 }

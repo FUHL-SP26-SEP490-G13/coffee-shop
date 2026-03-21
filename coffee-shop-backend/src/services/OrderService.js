@@ -26,15 +26,19 @@ class OrderService {
       throw new ErrorResponse(400, "Giỏ hàng trống");
     }
 
-    if (!["delivery", "takeaway"].includes(order_type)) {
+    if (!["delivery", "takeaway", "dine-in"].includes(order_type)) {
       throw new ErrorResponse(400, "Loại đơn hàng không hợp lệ");
+    }
+
+    if (order_type === "dine-in" && !payload.table_id) {
+      throw new ErrorResponse(400, "Vui lòng chọn bàn cho đơn hàng tại quán");
     }
 
     if (!["cash", "payos"].includes(payment_method)) {
       throw new ErrorResponse(400, "Phương thức thanh toán không hợp lệ");
     }
 
-    if (!receiver_name || !receiver_phone) {
+    if (order_type !== "dine-in" && (!receiver_name || !receiver_phone)) {
       throw new ErrorResponse(400, "Vui lòng nhập tên và số điện thoại người nhận");
     }
 
@@ -42,6 +46,20 @@ class OrderService {
 
     try {
       await connection.beginTransaction();
+
+      let activeOrderId = null;
+      let existingOrderAmount = 0;
+
+      if (order_type === "dine-in") {
+        const activeOrder = await OrderRepository.findActiveOrderByTableId(
+          connection,
+          payload.table_id
+        );
+        if (activeOrder) {
+          activeOrderId = activeOrder.id;
+          existingOrderAmount = Number(activeOrder.total_amount);
+        }
+      }
 
       let totalAmount = 0;
       const normalizedItems = [];
@@ -177,13 +195,27 @@ class OrderService {
 
       const userId = user?.id || null;
 
-      const orderId = await OrderRepository.createOrder(connection, {
-        user_id: userId,
-        created_by: userId,
-        customer_type: user ? "registered" : "guest",
-        order_type,
-        total_amount: finalAmount,
-      });
+      let orderId = activeOrderId;
+      if (!orderId) {
+        orderId = await OrderRepository.createOrder(connection, {
+          user_id: userId,
+          created_by: userId,
+          customer_type: user ? "registered" : "guest",
+          order_type,
+          table_id: order_type === "dine-in" ? payload.table_id : null,
+          total_amount: finalAmount,
+        });
+
+        if (order_type === "dine-in") {
+          await connection.query(
+            "UPDATE tables SET status = 'occupied' WHERE id = ?",
+            [payload.table_id]
+          );
+        }
+      } else {
+        const newTotal = existingOrderAmount + finalAmount;
+        await OrderRepository.updateOrderTotalAmount(connection, orderId, newTotal);
+      }
 
       for (const item of normalizedItems) {
         const orderDetailId = await OrderRepository.createOrderDetail(
@@ -207,14 +239,16 @@ class OrderService {
         }
       }
 
-      await OrderRepository.createOrderDeliveryInfo(connection, {
-        order_id: orderId,
-        receiver_name: receiver_name.trim(),
-        receiver_phone: receiver_phone.trim(),
-        receiver_email: receiver_email?.trim() || null,
-        address: address?.trim() || null,
-        note: note?.trim() || null,
-      });
+      if (order_type !== "dine-in") {
+        await OrderRepository.createOrderDeliveryInfo(connection, {
+          order_id: orderId,
+          receiver_name: receiver_name ? receiver_name.trim() : "",
+          receiver_phone: receiver_phone ? receiver_phone.trim() : "",
+          receiver_email: receiver_email?.trim() || null,
+          address: address?.trim() || null,
+          note: note?.trim() || null,
+        });
+      }
 
       await OrderRepository.createOrderPayment(connection, {
         order_id: orderId,
@@ -362,6 +396,18 @@ class OrderService {
     }
 
     return { saved: true };
+  }
+
+  async getAllOrders() {
+    const orders = await OrderRepository.findAllOrders();
+    for (const order of orders) {
+      const items = await OrderRepository.findOrderItems(order.id);
+      order.items = items.map(item => ({
+        ...item,
+        product: { name: item.name }
+      }));
+    }
+    return orders;
   }
 }
 

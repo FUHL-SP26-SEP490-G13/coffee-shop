@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Search, Plus, Minus } from 'lucide-react';
 import productService from '../../services/productService';
 import tableService from '../../services/tableService';
+import orderService from '../../services/orderService';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Badge } from '../../components/ui/badge';
@@ -85,14 +86,43 @@ export function StaffPOS() {
     return acc + price * item.quantity;
   }, 0);
 
-  const handlePlaceOrder = () => {
+  const handlePlaceOrder = async () => {
     if (!selectedTable) {
       toast.error('Vui lòng chọn bàn');
       return;
     }
-    toast.success('Đơn hàng đã được đặt thành công.!');
-    setCart([]);
-    setSelectedTable('');
+
+    try {
+      const items = cart.map((item) => {
+        const sizeItem = item.product.sizes?.find((s) => s.size === item.size);
+        return {
+          product_size_id: sizeItem ? sizeItem.id : null,
+          quantity: item.quantity,
+          toppings: item.toppings || [],
+        };
+      });
+
+      if (items.some((i) => !i.product_size_id)) {
+        toast.error('Có lỗi xảy ra với thông tin sản phẩm');
+        return;
+      }
+
+      await orderService.checkout({
+        order_type: 'dine-in',
+        table_id: Number(selectedTable),
+        payment_method: 'cash',
+        receiver_name: `Khách Bàn ${tables.find((t) => String(t.id) === selectedTable)?.code || ''}`,
+        receiver_phone: '0000000000',
+        items,
+      });
+
+      toast.success('Đơn hàng đã được đặt thành công.!');
+      setCart([]);
+      setSelectedTable('');
+    } catch (error) {
+      console.error('Lỗi đặt hàng POS:', error);
+      toast.error(error.response?.data?.message || 'Không đặt được hàng');
+    }
   };
 
   const filteredProducts = useMemo(() => {
