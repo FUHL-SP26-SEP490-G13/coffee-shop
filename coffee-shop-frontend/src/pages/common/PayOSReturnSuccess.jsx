@@ -137,7 +137,7 @@ export default function PayOSReturnSuccess() {
 
             {isSuccess ? (
               <Button asChild variant="outline" className="flex-1 gap-2">
-                <Link to="/orders/my-orders">
+                <Link to="/my-orders">
                   <ReceiptText className="w-4 h-4" />
                   Xem đơn hàng
                 </Link>
