@@ -76,11 +76,18 @@ class OrderController {
 
   async getAllOrders(req, res, next) {
     try {
-      const result = await OrderService.getAllOrders();
+      const { page = 1, limit = 20, status = "all" } = req.query;
+
+      const result = await OrderService.getAllOrders({ 
+        page: parseInt(page), 
+        limit: parseInt(limit), 
+        status 
+      });
 
       return res.json({
         success: true,
-        data: result,
+        data: result.orders,
+        pagination: result.pagination,
         message: "Lấy danh sách đơn hàng toàn hệ thống thành công",
       });
     } catch (error) {

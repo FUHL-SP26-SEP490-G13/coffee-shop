@@ -412,8 +412,14 @@ class OrderService {
     return { saved: true };
   }
 
-  async getAllOrders() {
-    const orders = await OrderRepository.findAllOrders();
+  async getAllOrders({ page = 1, limit = 20, status = "all" } = {}) {
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+
+    const [orders, totalCount] = await Promise.all([
+      OrderRepository.findAllOrders({ limit, offset, status }),
+      OrderRepository.countAllOrders({ status })
+    ]);
+
     for (const order of orders) {
       const items = await OrderRepository.findOrderItems(order.id);
       order.items = items.map(item => ({
@@ -421,7 +427,18 @@ class OrderService {
         product: { name: item.name }
       }));
     }
-    return orders;
+
+    const totalPages = Math.ceil(totalCount / parseInt(limit));
+
+    return {
+      orders,
+      pagination: {
+        totalCount,
+        totalPages,
+        currentPage: parseInt(page),
+        limit: parseInt(limit)
+      }
+    };
   }
 }
 

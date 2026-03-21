@@ -5,18 +5,28 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { ShoppingBag, Loader2 } from 'lucide-react';
 import orderService from '../../services/orderService';
 import { toast } from 'sonner';
+import { Button } from '../../components/ui/button';
 
 export default function AdminOrders() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   useEffect(() => {
     const fetchOrders = async () => {
       try {
         setLoading(true);
-        const res = await orderService.getAllOrders();
+        const res = await orderService.getAllOrders({
+          page: currentPage,
+          limit: 20,
+          status: statusFilter
+        });
         setOrders(res.data || []);
+        if (res.pagination) {
+          setTotalPages(res.pagination.totalPages);
+        }
       } catch (error) {
         console.error('Lỗi tải đơn hàng:', error);
         toast.error('Không thể lấy danh sách đơn hàng');
@@ -25,11 +35,12 @@ export default function AdminOrders() {
       }
     };
     fetchOrders();
-  }, []);
+  }, [currentPage, statusFilter]);
 
-  const filteredOrders = statusFilter === 'all'
-    ? orders
-    : orders.filter((o) => o.status === statusFilter);
+  const handleStatusChange = (val) => {
+    setStatusFilter(val);
+    setCurrentPage(1); // reset to page 1 always on filter change
+  };
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -53,7 +64,7 @@ export default function AdminOrders() {
           <ShoppingBag className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
           <h1 className="text-xl sm:text-2xl font-semibold">Quản lý đơn hàng</h1>
         </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
+        <Select value={statusFilter} onValueChange={handleStatusChange}>
           <SelectTrigger className="w-full sm:w-48">
             <SelectValue />
           </SelectTrigger>
@@ -90,14 +101,14 @@ export default function AdminOrders() {
                   </div>
                 </TableCell>
               </TableRow>
-            ) : filteredOrders.length === 0 ? (
+            ) : orders.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="text-center py-10 text-muted-foreground">
                   Chưa có đơn hàng nào
                 </TableCell>
               </TableRow>
             ) : (
-              filteredOrders.map((order) => (
+              orders.map((order) => (
                 <TableRow key={order.id}>
                   <TableCell>#{order.id}</TableCell>
                   <TableCell>
@@ -133,6 +144,32 @@ export default function AdminOrders() {
           </TableBody>
         </Table>
         </div>
+
+        {totalPages > 1 && (
+          <div className="border-t border-border p-4 flex items-center justify-between bg-card">
+            <div className="text-sm text-muted-foreground">
+              Trang {currentPage} / {totalPages}
+            </div>
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                size="sm"
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              >
+                Trước
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+              >
+                Sau
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

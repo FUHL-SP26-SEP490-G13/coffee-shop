@@ -337,9 +337,8 @@ class OrderRepository {
     );
   }
 
-  async findAllOrders() {
-    const [rows] = await db.query(
-      `
+  async findAllOrders({ limit = 20, offset = 0, status = "all" } = {}) {
+    let query = `
       SELECT 
         o.id,
         o.customer_type,
@@ -352,10 +351,32 @@ class OrderRepository {
         t.code as table_code
       FROM orders o
       LEFT JOIN tables t ON t.id = o.table_id
-      ORDER BY o.created_at DESC
-      `
-    );
+    `;
+    const params = [];
+
+    if (status && status !== "all") {
+      query += " WHERE o.status = ?";
+      params.push(status);
+    }
+
+    query += " ORDER BY o.created_at DESC LIMIT ? OFFSET ?";
+    params.push(parseInt(limit), parseInt(offset));
+
+    const [rows] = await db.query(query, params);
     return rows;
+  }
+
+  async countAllOrders({ status = "all" } = {}) {
+    let query = "SELECT COUNT(*) as count FROM orders o";
+    const params = [];
+
+    if (status && status !== "all") {
+      query += " WHERE o.status = ?";
+      params.push(status);
+    }
+
+    const [rows] = await db.query(query, params);
+    return rows[0].count;
   }
 }
 
