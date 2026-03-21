@@ -1,12 +1,31 @@
-import { useState } from 'react';
-import { orders } from '../../lib/mockData';
+import { useState, useEffect } from 'react';
 import { Badge } from '../../components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
-import { ShoppingBag } from 'lucide-react';
+import { ShoppingBag, Loader2 } from 'lucide-react';
+import orderService from '../../services/orderService';
+import { toast } from 'sonner';
 
 export default function AdminOrders() {
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('all');
+
+  useEffect(() => {
+    const fetchOrders = async () => {
+      try {
+        setLoading(true);
+        const res = await orderService.getAllOrders();
+        setOrders(res.data || []);
+      } catch (error) {
+        console.error('Lỗi tải đơn hàng:', error);
+        toast.error('Không thể lấy danh sách đơn hàng');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchOrders();
+  }, []);
 
   const filteredOrders = statusFilter === 'all'
     ? orders
@@ -62,38 +81,55 @@ export default function AdminOrders() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredOrders.map((order) => (
-              <TableRow key={order.id}>
-                <TableCell>#{order.id}</TableCell>
-                <TableCell>
-                  <div className="text-sm">
-                    {order.items.map((item, i) => (
-                      <div key={i} className="text-muted-foreground">
-                        {item.quantity}x {item.product.name}
-                      </div>
-                    ))}
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center py-10">
+                  <div className="flex items-center justify-center gap-2 text-muted-foreground">
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <span>Đang tải đơn hàng...</span>
                   </div>
-                </TableCell>
-                <TableCell>
-                  <Badge variant="outline" className="capitalize">
-                    {order.type}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <Badge className={getStatusColor(order.status)}>
-                    {order.status}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <div className="text-sm text-muted-foreground">
-                    {new Date(order.createdAt).toLocaleDateString()}
-                  </div>
-                </TableCell>
-                <TableCell className="text-right text-primary">
-                  ${order.total.toFixed(2)}
                 </TableCell>
               </TableRow>
-            ))}
+            ) : filteredOrders.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center py-10 text-muted-foreground">
+                  Chưa có đơn hàng nào
+                </TableCell>
+              </TableRow>
+            ) : (
+              filteredOrders.map((order) => (
+                <TableRow key={order.id}>
+                  <TableCell>#{order.id}</TableCell>
+                  <TableCell>
+                    <div className="text-sm">
+                      {order.items && order.items.map((item, i) => (
+                        <div key={i} className="text-muted-foreground">
+                          {item.quantity}x {item.product?.name || 'Sản phẩm'}
+                        </div>
+                      ))}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="capitalize">
+                      {order.order_type === 'dine-in' ? 'Tại quán' : order.order_type === 'takeaway' ? 'Mang về' : 'Giao hàng'}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge className={getStatusColor(order.status)}>
+                      {order.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <div className="text-sm text-muted-foreground">
+                      {new Date(order.created_at).toLocaleDateString()}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-right text-primary font-medium">
+                    {Number(order.total_amount).toLocaleString('vi-VN')}đ
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
         </div>

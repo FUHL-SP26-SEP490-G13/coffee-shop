@@ -73,6 +73,20 @@ class OrderController {
       next(error);
     }
   }
+
+  async getAllOrders(req, res, next) {
+    try {
+      const result = await OrderService.getAllOrders();
+
+      return res.json({
+        success: true,
+        data: result,
+        message: "Lấy danh sách đơn hàng toàn hệ thống thành công",
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 module.exports = new OrderController();

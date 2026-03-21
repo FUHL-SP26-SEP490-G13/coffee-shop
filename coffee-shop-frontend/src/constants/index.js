@@ -64,6 +64,7 @@ export const API_ENDPOINTS = {
     PAYOS_RETURN: "/orders/payos-return",
     VALIDATE_DISCOUNT: "/orders/validate-discount",
     PAYMENT_LINK: "/create-payment-link",
+    ADMIN_LIST: "/orders/admin/list",
   },
   PRODUCTSLIST: {
     BASE: "/products",

@@ -335,6 +335,8 @@ class OrderRepository {
       `,
       [finalAmount, orderId]
     );
+  }
+
   async findAllOrders() {
     const [rows] = await db.query(
       `

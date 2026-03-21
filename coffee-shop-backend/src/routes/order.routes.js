@@ -9,6 +9,8 @@ const {
   validateDiscountSchema,
 } = require("../validators/orderValidator");
 const { optionalAuth, authenticate } = require("../middlewares/auth");
+const { authorize } = require("../middlewares/authorize");
+const { ROLES_STRING } = require("../config/constants");
 
 router.post(
   "/validate-discount",
@@ -34,6 +36,13 @@ router.get(
   "/my-orders/:id",
   authenticate,
   AsyncMiddleware(OrderController.getMyOrderDetail)
+);
+
+router.get(
+  "/admin/list",
+  authenticate,
+  authorize([ROLES_STRING.MANAGER]),
+  AsyncMiddleware(OrderController.getAllOrders)
 );
 
 // Nhận callback từ frontend sau khi PayOS redirect, lưu mã giao dịch vào DB
