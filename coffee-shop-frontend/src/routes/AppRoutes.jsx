@@ -55,6 +55,7 @@ import FavoritePage from "@/pages/homePage/favorite/FavoritePage";
 import AdminReviews from "@/pages/admin/AdminReview/AdminReview";
 import MyOrdersPage from "../pages/homePage/order/MyOrdersPage";
 import MyOrderDetailPage from "../pages/homePage/order/MyOrderDetailPage";
+import AdminReceiptSettings from "@/pages/admin/AdminReceiptSettings/AdminReceiptSettings";
 
 const getStoredValue = (key) =>
   localStorage.getItem(key) || sessionStorage.getItem(key);
@@ -195,6 +196,7 @@ const AppRoutes = () => {
         <Route path="tables" element={<AdminTables />} />
         <Route path="toppings" element={<AdminToppings />} />
         <Route path="reviews" element={<AdminReviews />} />
+        <Route path="receipt-settings" element={<AdminReceiptSettings />} />
       </Route>
       <Route path="/news/:slug" element={<NewsDetailPage />} />
       <Route path="/news" element={<NewsListPage />} />

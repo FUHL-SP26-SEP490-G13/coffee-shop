@@ -22,6 +22,7 @@ const productSizeRoutes = require("./productSize.routes");
 const orderRoutes = require("./order.routes");
 const favoriteRoutes = require("./favorite.routes");
 const reviewRoutes = require("./review.routes");
+const receiptSettingRoutes = require("./receiptSetting.routes");
 
 // Mount routes
 router.use("/auth", authRoutes);
@@ -47,6 +48,7 @@ router.use("/discounts", discountRoutes);
 router.use("/orders", orderRoutes);
 router.use("/favorites", favoriteRoutes);
 router.use("/reviews", reviewRoutes);
+router.use("/receipt-settings", receiptSettingRoutes);
 
 // Health check endpoint
 router.get("/health", (req, res) => {

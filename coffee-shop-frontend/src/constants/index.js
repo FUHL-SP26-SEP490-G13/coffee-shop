@@ -86,6 +86,10 @@ export const API_ENDPOINTS = {
     BY_PRODUCT: (productId) => `/reviews/product/${productId}`,
     MY_REVIEW: (productId) => `/reviews/me/${productId}`,
   },
+  RECEIPT_SETTINGS: {
+    BASE: "/receipt-settings",
+    ADMIN: "/receipt-settings/admin",
+  },
 };
 
 // Các hằng số khác
