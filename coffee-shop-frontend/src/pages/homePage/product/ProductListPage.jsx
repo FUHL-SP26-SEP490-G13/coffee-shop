@@ -230,10 +230,16 @@ export default function ProductListPage() {
                   const itemSizes = Array.isArray(item.sizes) ? item.sizes : [];
                   const itemImage = itemImages[0]?.image_url || defaultImage;
 
+                  const validPrices = itemSizes
+                    .map((size) => Number(size.price))
+                    .filter((price) => Number.isFinite(price));
+
                   const minPrice =
-                    itemSizes.length > 0
-                      ? Math.min(...itemSizes.map((s) => Number(s.price)))
-                      : null;
+                    validPrices.length > 0 ? Math.min(...validPrices) : null;
+                  const maxPrice =
+                    validPrices.length > 0 ? Math.max(...validPrices) : null;
+                  const hasMultiplePrices =
+                    minPrice !== null && maxPrice !== null && maxPrice > minPrice;
 
                   const isFavorite = Boolean(favoriteMap[item.id]);
                   const isFavoriteLoading = Boolean(
@@ -290,11 +296,15 @@ export default function ProductListPage() {
                         </h3>
 
                         <div className="flex items-center justify-between mt-4 gap-3">
-                          <p className="text-amber-600 font-bold text-lg">
-                            {minPrice !== null
-                              ? `${minPrice.toLocaleString("vi-VN")}đ`
-                              : "Liên hệ"}
-                          </p>
+                          <div>
+                            <p className="text-amber-600 font-bold text-lg">
+                              {minPrice !== null
+                                ? hasMultiplePrices
+                                  ? `${minPrice.toLocaleString("vi-VN")}đ - ${maxPrice.toLocaleString("vi-VN")}đ`
+                                  : `${minPrice.toLocaleString("vi-VN")}đ`
+                                : "Liên hệ"}
+                            </p>
+                          </div>
 
                           <Button
                             size="sm"

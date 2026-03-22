@@ -12,7 +12,6 @@ import {
 
 import { Button } from '../../../../components/ui/button';
 import { Input } from '../../../../components/ui/input';
-import { Textarea } from '../../../../components/ui/textarea';
 import {
   Select,
   SelectContent,
@@ -20,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../../../../components/ui/select';
+import RichTextEditor from "../../../../components/RichTextEditor/RichTextEditor";
 
 // ===== CONSTANTS =====
 const SIZE_ORDER = ['S', 'M', 'L'];
@@ -308,7 +308,7 @@ export default function UpdateProduct({ open, onClose, onSuccess, product }) {
         if (!isOpen) onClose();
       }}
     >
-      <DialogContent className='max-w-4xl max-h-[90vh] overflow-y-auto'>
+      <DialogContent className='sm:max-w-2xl w-[99vw] max-w-[99vw] max-h-[96vh] overflow-y-auto'>
         <DialogHeader>
           <DialogTitle>Chỉnh sửa sản phẩm</DialogTitle>
         </DialogHeader>
@@ -382,12 +382,7 @@ export default function UpdateProduct({ open, onClose, onSuccess, product }) {
           {/* DESCRIPTION */}
           <div className='space-y-2'>
             <label className='text-sm font-medium'>Mô tả</label>
-            <Textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder='Mô tả ngắn về sản phẩm...'
-              rows={3}
-            />
+            <RichTextEditor value={description} onChange={setDescription} />
           </div>
 
           {/* IMAGES */}
