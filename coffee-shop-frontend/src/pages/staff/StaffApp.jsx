@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
-import { useLocation, useNavigate, Outlet } from "react-router-dom";
+import { useEffect, useRef, useState } from 'react';
+import { useLocation, useNavigate, Outlet } from 'react-router-dom';
 import {
   LayoutGrid,
   ChefHat,
@@ -13,7 +13,8 @@ import {
   Menu,
   X,
   Bell,
-} from "lucide-react";
+  ShoppingBag,
+} from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,12 +25,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "../../components/ui/alert-dialog";
-import authenticationService from "../../services/authenticationService";
-import notificationService from "@/services/notificationService";
-import socket from "@/lib/socket";
-import { getNotificationLink } from "@/utils/getNotificationLink";
-import Logo from "/logo/Logo.png";
+} from '../../components/ui/alert-dialog';
+import authenticationService from '../../services/authenticationService';
+import notificationService from '@/services/notificationService';
+import socket from '@/lib/socket';
+import { getNotificationLink } from '@/utils/getNotificationLink';
+import Logo from '/logo/Logo.png';
 
 export function StaffApp() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -41,66 +42,73 @@ export function StaffApp() {
   const notificationRef = useRef(null);
 
   const unreadCount = notifications.filter(
-    (item) => Number(item.is_read) === 0
+    (item) => Number(item.is_read) === 0,
   ).length;
 
   const handleLogout = async () => {
     await authenticationService.logout();
-    window.location.href = "/";
+    window.location.href = '/';
   };
 
   const getCurrentPage = () => {
     const path = location.pathname;
-    if (path.includes("kitchen")) return "kitchen";
-    if (path.includes("tables")) return "tables";
-    if (path.includes("attendance")) return "attendance";
-    if (path.includes("schedule")) return "schedule";
-    if (path.includes("inventory")) return "inventory";
-    if (path.includes("requests")) return "requests";
-    if (path.includes("profile")) return "profile";
-    return "pos";
+    if (path.includes('takeaway')) return 'takeaway'; 
+    if (path.includes('kitchen')) return 'kitchen';
+    if (path.includes('tables')) return 'tables';
+    if (path.includes('attendance')) return 'attendance';
+    if (path.includes('schedule')) return 'schedule';
+    if (path.includes('inventory')) return 'inventory';
+    if (path.includes('requests')) return 'requests';
+    if (path.includes('profile')) return 'profile';
+    return 'pos';
   };
 
   const currentPage = getCurrentPage();
 
   const menuItems = [
-    { id: "pos", icon: LayoutGrid, label: "POS", path: "/staff" },
-    { id: "kitchen", icon: ChefHat, label: "Bếp", path: "/staff/kitchen" },
+    { id: 'pos', icon: LayoutGrid, label: 'POS', path: '/staff' },
     {
-      id: "tables",
+      id: 'takeaway',
+      icon: ShoppingBag,
+      label: 'Đặt mang đi',
+      path: '/staff/takeaway',
+    },
+    { id: 'kitchen', icon: ChefHat, label: 'Bếp', path: '/staff/kitchen' },
+    {
+      id: 'tables',
       icon: Users,
-      label: "Danh sách bàn",
-      path: "/staff/tables",
+      label: 'Danh sách bàn',
+      path: '/staff/tables',
     },
     {
-      id: "attendance",
+      id: 'attendance',
       icon: Clock,
-      label: "Điểm danh ca làm",
-      path: "/staff/attendance",
+      label: 'Điểm danh ca làm',
+      path: '/staff/attendance',
     },
     {
-      id: "schedule",
+      id: 'schedule',
       icon: Calendar,
-      label: "Lịch làm việc",
-      path: "/staff/schedule",
+      label: 'Lịch làm việc',
+      path: '/staff/schedule',
     },
     {
-      id: "inventory",
+      id: 'inventory',
       icon: ClipboardList,
-      label: "Kho hàng",
-      path: "/staff/inventory",
+      label: 'Kho hàng',
+      path: '/staff/inventory',
     },
     {
-      id: "requests",
+      id: 'requests',
       icon: FileText,
-      label: "Yêu cầu",
-      path: "/staff/requests",
+      label: 'Yêu cầu',
+      path: '/staff/requests',
     },
     {
-      id: "profile",
+      id: 'profile',
       icon: User,
-      label: "Thông tin cá nhân",
-      path: "/staff/profile",
+      label: 'Thông tin cá nhân',
+      path: '/staff/profile',
     },
   ];
 
@@ -115,30 +123,30 @@ export function StaffApp() {
             socket.connect();
           }
 
-          socket.emit("join-user-room", user.id);
-          console.log("Staff joined room:", `user-${user.id}`);
+          socket.emit('join-user-room', user.id);
+          console.log('Staff joined room:', `user-${user.id}`);
         } else {
-          console.log("Không tìm thấy user.id");
+          console.log('Không tìm thấy user.id');
         }
 
         const notificationRes = await notificationService.getMine();
         setNotifications(
-          notificationRes?.data?.data || notificationRes?.data || []
+          notificationRes?.data?.data || notificationRes?.data || [],
         );
       } catch (error) {
-        console.error("Init staff notifications error:", error);
+        console.error('Init staff notifications error:', error);
       }
     };
 
     initNotifications();
 
     const handleNewNotification = (data) => {
-      console.log("received staff notification:", data);
+      console.log('received staff notification:', data);
 
       setNotifications((prev) => {
         const list = Array.isArray(prev) ? prev : [];
         const existed = list.some(
-          (item) => item.recipient_id === data.recipient_id
+          (item) => item.recipient_id === data.recipient_id,
         );
 
         if (existed) return list;
@@ -147,10 +155,10 @@ export function StaffApp() {
       });
     };
 
-    socket.on("staff:notification", handleNewNotification);
+    socket.on('staff:notification', handleNewNotification);
 
     return () => {
-      socket.off("staff:notification", handleNewNotification);
+      socket.off('staff:notification', handleNewNotification);
     };
   }, []);
 
@@ -164,9 +172,9 @@ export function StaffApp() {
       }
     };
 
-    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener('mousedown', handleClickOutside);
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
 
@@ -178,8 +186,8 @@ export function StaffApp() {
 
       setNotifications((prev) =>
         prev.map((n) =>
-          n.recipient_id === item.recipient_id ? { ...n, is_read: 1 } : n
-        )
+          n.recipient_id === item.recipient_id ? { ...n, is_read: 1 } : n,
+        ),
       );
 
       setShowNotifications(false);
@@ -187,7 +195,7 @@ export function StaffApp() {
       const targetLink = getNotificationLink(item);
       navigate(targetLink);
     } catch (error) {
-      console.error("Read staff notification error:", error);
+      console.error('Read staff notification error:', error);
     }
   };
 
@@ -202,8 +210,8 @@ export function StaffApp() {
           prev.map((n) =>
             n.recipient_id === item.recipient_id
               ? { ...n, is_read: 1, read_at: new Date().toISOString() }
-              : n
-          )
+              : n,
+          ),
         );
       } else {
         await notificationService.markAsUnread(item.recipient_id);
@@ -212,19 +220,19 @@ export function StaffApp() {
           prev.map((n) =>
             n.recipient_id === item.recipient_id
               ? { ...n, is_read: 0, read_at: null }
-              : n
-          )
+              : n,
+          ),
         );
       }
     } catch (error) {
-      console.error("Toggle staff notification error:", error);
+      console.error('Toggle staff notification error:', error);
     }
   };
 
   const toggleAllReadStatus = async () => {
     try {
       const hasUnread = notifications.some(
-        (item) => Number(item.is_read) === 0
+        (item) => Number(item.is_read) === 0,
       );
 
       if (hasUnread) {
@@ -234,7 +242,7 @@ export function StaffApp() {
             ...item,
             is_read: 1,
             read_at: new Date().toISOString(),
-          }))
+          })),
         );
       } else {
         await notificationService.markAllAsUnread();
@@ -243,30 +251,30 @@ export function StaffApp() {
             ...item,
             is_read: 0,
             read_at: null,
-          }))
+          })),
         );
       }
     } catch (error) {
-      console.error("Toggle all staff notifications error:", error);
+      console.error('Toggle all staff notifications error:', error);
     }
   };
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className='flex min-h-screen bg-background'>
       <button
         onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-        className="md:hidden fixed top-4 left-4 z-50 p-2 bg-card border border-border rounded-lg shadow-lg"
+        className='md:hidden fixed top-4 left-4 z-50 p-2 bg-card border border-border rounded-lg shadow-lg'
       >
         {mobileMenuOpen ? (
-          <X className="w-5 h-5" />
+          <X className='w-5 h-5' />
         ) : (
-          <Menu className="w-5 h-5" />
+          <Menu className='w-5 h-5' />
         )}
       </button>
 
       {mobileMenuOpen && (
         <div
-          className="md:hidden fixed inset-0 bg-black/50 z-30"
+          className='md:hidden fixed inset-0 bg-black/50 z-30'
           onClick={() => setMobileMenuOpen(false)}
         />
       )}
@@ -278,24 +286,24 @@ export function StaffApp() {
           transform transition-transform duration-300 ease-in-out
           ${
             mobileMenuOpen
-              ? "translate-x-0"
-              : "-translate-x-full md:translate-x-0"
+              ? 'translate-x-0'
+              : '-translate-x-full md:translate-x-0'
           }
         `}
       >
         <div
-          className="p-6 border-b border-border"
+          className='p-6 border-b border-border'
           style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
           }}
         >
-          <img src={Logo} alt="Coffee Shop Logo" className="h-20 w-auto" />
-          <p className="text-sm text-muted-foreground mt-1">Cổng Nhân viên</p>
+          <img src={Logo} alt='Coffee Shop Logo' className='h-20 w-auto' />
+          <p className='text-sm text-muted-foreground mt-1'>Cổng Nhân viên</p>
         </div>
 
-        <nav className="flex-1 p-4 overflow-auto">
+        <nav className='flex-1 p-4 overflow-auto'>
           {menuItems.map((item) => {
             const Icon = item.icon;
             return (
@@ -307,21 +315,21 @@ export function StaffApp() {
                 }}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all mb-2 ${
                   currentPage === item.id
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
                 }`}
               >
-                <Icon className="w-5 h-5 flex-shrink-0" />
-                <span className="text-sm">{item.label}</span>
+                <Icon className='w-5 h-5 flex-shrink-0' />
+                <span className='text-sm'>{item.label}</span>
               </button>
             );
           })}
 
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all mb-2 text-muted-foreground hover:bg-accent hover:text-accent-foreground">
-                <LogOut className="w-5 h-5 flex-shrink-0" />
-                <span className="text-sm">Đăng xuất</span>
+              <button className='w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all mb-2 text-muted-foreground hover:bg-accent hover:text-accent-foreground'>
+                <LogOut className='w-5 h-5 flex-shrink-0' />
+                <span className='text-sm'>Đăng xuất</span>
               </button>
             </AlertDialogTrigger>
             <AlertDialogContent>
@@ -342,42 +350,42 @@ export function StaffApp() {
         </nav>
       </div>
 
-      <div className="flex-1 w-full md:w-auto overflow-auto">
+      <div className='flex-1 w-full md:w-auto overflow-auto'>
         <div
           ref={notificationRef}
-          className="flex justify-end px-4 md:px-8 pt-4 md:pt-4 pb-0 relative"
+          className='flex justify-end px-4 md:px-8 pt-4 md:pt-4 pb-0 relative'
         >
           <button
             onClick={() => setShowNotifications((prev) => !prev)}
-            className="relative p-2 rounded-full border bg-white hover:bg-gray-50 shadow-sm"
+            className='relative p-2 rounded-full border bg-white hover:bg-gray-50 shadow-sm'
           >
-            <Bell className="w-5 h-5" />
+            <Bell className='w-5 h-5' />
             {unreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-red-500 text-white text-xs flex items-center justify-center">
+              <span className='absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-red-500 text-white text-xs flex items-center justify-center'>
                 {unreadCount}
               </span>
             )}
           </button>
 
           {showNotifications && (
-            <div className="absolute top-14 right-4 md:right-8 w-[360px] bg-white border rounded-xl shadow-xl z-50 overflow-hidden">
-              <div className="flex items-center justify-between px-4 py-3 border-b">
-                <h3 className="font-semibold">Thông báo</h3>
+            <div className='absolute top-14 right-4 md:right-8 w-[360px] bg-white border rounded-xl shadow-xl z-50 overflow-hidden'>
+              <div className='flex items-center justify-between px-4 py-3 border-b'>
+                <h3 className='font-semibold'>Thông báo</h3>
                 {notifications.length > 0 && (
                   <button
                     onClick={toggleAllReadStatus}
-                    className="text-sm text-primary hover:underline"
+                    className='text-sm text-primary hover:underline'
                   >
                     {notifications.some((item) => Number(item.is_read) === 0)
-                      ? "Đánh dấu tất cả đã đọc"
-                      : "Đánh dấu tất cả chưa đọc"}
+                      ? 'Đánh dấu tất cả đã đọc'
+                      : 'Đánh dấu tất cả chưa đọc'}
                   </button>
                 )}
               </div>
 
-              <div className="max-h-96 overflow-y-auto">
+              <div className='max-h-96 overflow-y-auto'>
                 {notifications.length === 0 ? (
-                  <div className="p-4 text-sm text-muted-foreground">
+                  <div className='p-4 text-sm text-muted-foreground'>
                     Chưa có thông báo nào
                   </div>
                 ) : (
@@ -386,30 +394,30 @@ export function StaffApp() {
                       key={item.recipient_id || `${item.id}-${item.created_at}`}
                       onClick={() => handleReadNotification(item)}
                       className={`w-full text-left px-4 py-3 border-b hover:bg-gray-50 ${
-                        Number(item.is_read) === 0 ? "bg-orange-50" : "bg-white"
+                        Number(item.is_read) === 0 ? 'bg-orange-50' : 'bg-white'
                       }`}
                     >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex-1">
-                          <p className="font-medium text-sm">{item.title}</p>
-                          <p className="text-sm text-muted-foreground">
+                      <div className='flex items-start justify-between gap-3'>
+                        <div className='flex-1'>
+                          <p className='font-medium text-sm'>{item.title}</p>
+                          <p className='text-sm text-muted-foreground'>
                             {item.message}
                           </p>
-                          <p className="text-xs text-gray-400 mt-1">
-                            {new Date(item.created_at).toLocaleString("vi-VN")}
+                          <p className='text-xs text-gray-400 mt-1'>
+                            {new Date(item.created_at).toLocaleString('vi-VN')}
                           </p>
                         </div>
 
-                        <div className="flex flex-col items-end gap-2 shrink-0">
+                        <div className='flex flex-col items-end gap-2 shrink-0'>
                           {Number(item.is_read) === 0 && (
-                            <span className="w-2 h-2 rounded-full bg-red-500 mt-1" />
+                            <span className='w-2 h-2 rounded-full bg-red-500 mt-1' />
                           )}
 
                           <button
                             onClick={(e) => handleToggleRead(item, e)}
-                            className="text-xs text-primary hover:underline"
+                            className='text-xs text-primary hover:underline'
                           >
-                            {Number(item.is_read) === 0 ? "Đã đọc" : "Chưa đọc"}
+                            {Number(item.is_read) === 0 ? 'Đã đọc' : 'Chưa đọc'}
                           </button>
                         </div>
                       </div>
@@ -421,7 +429,7 @@ export function StaffApp() {
           )}
         </div>
 
-        <div className="p-4 md:p-8 pt-2 md:pt-2">
+        <div className='p-4 md:p-8 pt-2 md:pt-2'>
           <Outlet />
         </div>
       </div>
