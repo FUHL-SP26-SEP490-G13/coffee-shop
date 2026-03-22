@@ -46,7 +46,11 @@ export function CancelModal({ order, onClose, onConfirm, loading }) {
             disabled={loading}
             className="flex-1 py-2.5 rounded-xl bg-red-500 text-white font-semibold text-sm hover:bg-red-600 disabled:opacity-50 flex items-center justify-center gap-2"
           >
-            {loading ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+            {loading ? (
+              <Loader2 size={14} className="animate-spin" />
+            ) : (
+              <Trash2 size={14} />
+            )}
             Hủy đơn
           </button>
         </div>

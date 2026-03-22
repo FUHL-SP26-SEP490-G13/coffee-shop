@@ -1,6 +1,8 @@
 const TakeawayRepository = require('../repositories/TakeawayRepository');
 const ErrorResponse = require('../utils/ErrorResponse');
 
+const { payOS } = require('../config/payos');
+
 class TakeawayService {
   //HELPER: build + validate items
   async _buildItems(connection, items) {
@@ -62,6 +64,8 @@ class TakeawayService {
       subtotal += unitPrice * quantity;
       normalized.push({
         product_size_id: productSize.id,
+        name: productSize.name,
+        size: productSize.size,
         quantity,
         price: unitPrice,
         note: item.note?.trim() || null,
@@ -117,6 +121,38 @@ class TakeawayService {
       discountAmount,
       discountId: discount.id,
       discountCode: discount.code,
+    };
+  }
+
+  // Trong class:
+  async _createPayosLink(orderId, amount, items) {
+    if (!payOS) {
+      throw new ErrorResponse(500, 'PayOS chưa được cấu hình');
+    }
+
+    const body = {
+      orderCode: orderId,
+      amount: amount,
+      description: `TW${String(orderId).padStart(6, '0')}`.slice(0, 25),
+      items: items.map((i) => ({
+        name: i.name
+          ? `${i.name} (${i.size})`.slice(0, 50) 
+          : `SP-${i.product_size_id}`,
+        quantity: Number(i.quantity),
+        price: Number(i.price),
+      })),
+      returnUrl: process.env.PAYOS_RETURN_TAKEAWAY_ORDER_URL,
+      cancelUrl: process.env.PAYOS_CANCEL_TAKEAWAY_ORDER_URL,
+    };
+
+    const paymentLinkResponse = await payOS.paymentRequests.create(body);
+
+    // console.log(paymentLinkResponse)
+
+    return {
+      checkout_url: paymentLinkResponse.checkoutUrl,
+      qr_code: paymentLinkResponse.qrCode, // base64 PNG
+      // payment_link_id: paymentLinkResponse.paymentLinkId,
     };
   }
 
@@ -232,36 +268,6 @@ class TakeawayService {
     } finally {
       connection.release();
     }
-  }
-
-  // ─── Internal: tạo PayOS link (dùng chung) ─────────────────────────────────
-  async _createPayosLink(orderId, amount, items) {
-    // Nếu chưa cài @payos/node thì bỏ comment require ở đầu file
-    // const PayOS = require('@payos/node');
-    // const payos = new PayOS(
-    //   process.env.PAYOS_CLIENT_ID,
-    //   process.env.PAYOS_API_KEY,
-    //   process.env.PAYOS_CHECKSUM_KEY,
-    // );
-    // const payosRes = await payos.createPaymentLink({
-    //   orderCode: orderId,
-    //   amount,
-    //   description: `TW-${String(orderId).padStart(6, '0')}`,
-    //   items: items.map((i) => ({
-    //     name: `${i.product_name || i.product_size_id} (${i.size || ''})`,
-    //     quantity: Number(i.quantity),
-    //     price: Number(i.price),
-    //   })),
-    //   returnUrl: process.env.PAYOS_RETURN_URL,
-    //   cancelUrl: process.env.PAYOS_CANCEL_URL,
-    // });
-    // return { checkout_url: payosRes.checkoutUrl, qr_code: payosRes.qrCode };
-
-    // Placeholder khi chưa tích hợp PayOS thật
-    return {
-      checkout_url: `https://pay.payos.vn/web/${orderId}`,
-      qr_code: null,
-    };
   }
 
   // SỬA ĐƠN — cho phép cả khi đã paid, chỉ chặn khi barista đang làm
