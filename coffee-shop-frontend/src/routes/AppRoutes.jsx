@@ -55,6 +55,7 @@ import FavoritePage from "@/pages/homePage/favorite/FavoritePage";
 import AdminReviews from "@/pages/admin/AdminReview/AdminReview";
 import MyOrdersPage from "../pages/homePage/order/MyOrdersPage";
 import MyOrderDetailPage from "../pages/homePage/order/MyOrderDetailPage";
+import TakeawayPOS from '../pages/staff/TakeawayPOS'
 
 const getStoredValue = (key) =>
   localStorage.getItem(key) || sessionStorage.getItem(key);
@@ -140,6 +141,7 @@ const AppRoutes = () => {
       >
         <Route index element={<Navigate to="pos" replace />} />
         <Route path="pos" element={<StaffPOS />} />
+        <Route path="takeaway" element={<TakeawayPOS />} />
         <Route path="attendance" element={<StaffAttendance />} />
         <Route path="inventory" element={<StaffInventory />} />
         <Route path="kitchen" element={<StaffKitchen />} />

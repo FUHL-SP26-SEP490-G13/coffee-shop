@@ -4,6 +4,7 @@ const cloudinary = require("../config/cloudinary");
 const ErrorResponse = require("../utils/ErrorResponse");
 
 class ProductController {
+  
   async getSizesByProductId(req, res, next) {
     try {
       const { id } = req.params;
