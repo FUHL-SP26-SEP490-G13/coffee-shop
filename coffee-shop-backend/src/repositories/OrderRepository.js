@@ -226,6 +226,17 @@ class OrderRepository {
     );
   }
 
+  async updatePaymentStatusByOrderId(orderId, paymentStatus) {
+    await db.query(
+      `
+      UPDATE order_payments
+      SET payment_status = ?
+      WHERE order_id = ?
+      `,
+      [paymentStatus, orderId]
+    );
+  }
+
   async cancelOrderByUser(orderId, userId) {
     const [result] = await db.query(
       `
@@ -293,6 +304,59 @@ class OrderRepository {
     );
 
     return rows[0];
+  }
+
+  async findOrderById(orderId) {
+    const [rows] = await db.query(
+      `
+      SELECT
+        o.id,
+        o.order_type,
+        o.status,
+        o.is_paid,
+        o.created_at,
+        op.payment_status
+      FROM orders o
+      LEFT JOIN order_payments op ON op.order_id = o.id
+      WHERE o.id = ?
+      LIMIT 1
+      `,
+      [orderId]
+    );
+
+    return rows[0] || null;
+  }
+
+  async findOrderDetailForStaff(orderId) {
+    const [rows] = await db.query(
+      `
+      SELECT
+        o.id,
+        o.customer_type,
+        o.order_type,
+        o.status,
+        o.is_paid,
+        o.total_amount,
+        o.created_at,
+        o.paid_at,
+        odi.receiver_name,
+        odi.receiver_phone,
+        odi.receiver_email,
+        odi.address,
+        odi.note,
+        op.payment_method,
+        op.payment_status,
+        op.amount
+      FROM orders o
+      LEFT JOIN order_delivery_info odi ON odi.order_id = o.id
+      LEFT JOIN order_payments op ON op.order_id = o.id
+      WHERE o.id = ?
+      LIMIT 1
+      `,
+      [orderId]
+    );
+
+    return rows[0] || null;
   }
 
   async findOrderItems(orderId) {

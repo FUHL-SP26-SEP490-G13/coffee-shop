@@ -5,10 +5,13 @@ const baristaDBService = {
     return await axiosClient.get("/barista/dashboard");
   },
 
-  getOrders: async (status = null) => {
-    const url = status ? `/orders?status=${status}` : "/orders";
-    return await axiosClient.get(url);
-  },
+  // COMMENT TẠM: Lấy danh sách các Orders (tất cả các phương thức đặt hàng) 
+  // đang ở trạng thái "preparing"
+
+  // getOrders: async (status = null) => {
+  //   const url = status ? `/orders?status=${status}` : "/orders";
+  //   return await axiosClient.get(url);
+  // },
 
   getOrderTrends: async (hours = 6) => {
     return await axiosClient.get(`/barista/dashboard/trends?hours=${hours}`);
@@ -30,9 +33,13 @@ const baristaDBService = {
     );
   },
 
-  updateOrderStatus: async (orderId, status) => {
-    return await axiosClient.put(`/orders/${orderId}/status`, { status });
-  },
+  // COMMENT TẠM: Cập nhật trạng thái Order sau khi làm xong 
+  // (ví dụ: từ "preparing" sang "served" hoặc "delivered" (trường hợp đặt hàng 
+  // theo giao hàng online))
+
+  // updateOrderStatus: async (orderId, status) => {
+  //   return await axiosClient.put(`/orders/${orderId}/status`, { status });
+  // },
 };
 
 export default baristaDBService;
