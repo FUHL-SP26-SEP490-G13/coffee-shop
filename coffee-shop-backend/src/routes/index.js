@@ -19,7 +19,7 @@ const tableRoutes = require("./table.routes");
 const notificationRoutes = require("./notification.routes");
 const ingredientRoutes = require("./ingredient.routes");
 const productSizeRoutes = require("./productSize.routes");
-const orderRoutes = require("./order.routes");
+const orderOnlineRoutes = require("./orderOnline.routes");
 const favoriteRoutes = require("./favorite.routes");
 const reviewRoutes = require("./review.routes");
 const takeawayRoutes = require("./takeaway.routes");
@@ -46,7 +46,7 @@ router.use("/barista", baristaDBRoutes);
 router.use("/banners", bannerRoutes);
 router.use("/notifications", notificationRoutes);
 router.use("/discounts", discountRoutes);
-router.use("/orders", orderRoutes);
+router.use("/order-online", orderOnlineRoutes);
 router.use("/favorites", favoriteRoutes);
 router.use("/reviews", reviewRoutes);
 router.use("/takeaway", takeawayRoutes);
@@ -303,10 +303,10 @@ router.get("/", (req, res) => {
         http://localhost:5000/api/banners/admin/59
         */
       },
-      orders: {
-        checkout: "POST /api/orders/checkout",
+      "order-online": {
+        checkout: "POST /api/order-online/checkout",
         /*
-        http://localhost:5000/api/orders/checkout
+        http://localhost:5000/api/order-online/checkout
         takeaway
         {
         "order_type": "takeaway",
@@ -330,9 +330,9 @@ router.get("/", (req, res) => {
           ]
         }
         */
-        getMyOrders: "GET /api/orders/my-orders (Authenticated)",
+        getMyOrders: "GET /api/order-online/my-orders (Authenticated)",
         /*
-        http://localhost:5000/api/orders/my-orders
+        http://localhost:5000/api/order-online/my-orders
         LẤY TOKEN: http://localhost:5000/api/auth/login
           {
             "identifier": "admin@gmail.com",
@@ -340,18 +340,18 @@ router.get("/", (req, res) => {
           }
             -> sẽ lấy đơn hàng thành công
         */
-        getMyOrderDetail: "GET /api/orders/my-orders/:id (Authenticated)",
+        getMyOrderDetail: "GET /api/order-online/my-orders/:id (Authenticated)",
         /*
-        http://localhost:5000/api/orders/my-orders/35
+        http://localhost:5000/api/order-online/my-orders/35
         login cus: {
           "identifier": "cus1@gmail.com",
           "password": "admin123"
           }
 
         */
-        payosReturn: "POST /api/orders/payos-return",
+        payosReturn: "POST /api/order-online/payos-return",
         /*
-        http://localhost:5000/api/orders/payos-return
+        http://localhost:5000/api/order-online/payos-return
         {
         "orderCode": "123456",
         "payosId": "PAYOS_ABC_999",

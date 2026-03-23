@@ -53,9 +53,10 @@ import AdminDB from "@/pages/admin/AdminDB/AdminDB";
 import AdminSubscriber from "@/pages/admin/AdminSubscriber/AdminSubscriber";
 import FavoritePage from "@/pages/homePage/favorite/FavoritePage";
 import AdminReviews from "@/pages/admin/AdminReview/AdminReview";
-import MyOrdersPage from "../pages/homePage/order/MyOrdersPage";
+import MyOrderOnlinePage from "../pages/homePage/order/MyOrderOnlinePage";
 import MyOrderDetailPage from "../pages/homePage/order/MyOrderDetailPage";
 import TakeawayPOS from '../pages/staff/TakeawayPOS'
+import { OrderDelivery } from '@/pages/staff/OrderDelivery';
 
 const getStoredValue = (key) =>
   localStorage.getItem(key) || sessionStorage.getItem(key);
@@ -142,6 +143,7 @@ const AppRoutes = () => {
         <Route index element={<Navigate to="pos" replace />} />
         <Route path="pos" element={<StaffPOS />} />
         <Route path="takeaway" element={<TakeawayPOS />} />
+        <Route path="delivery" element={<OrderDelivery />} />
         <Route path="attendance" element={<StaffAttendance />} />
         <Route path="inventory" element={<StaffInventory />} />
         <Route path="kitchen" element={<StaffKitchen />} />
@@ -222,7 +224,7 @@ const AppRoutes = () => {
         path="/my-orders"
         element={
           <RoleGuard allowedRoles={[4]}>
-            <MyOrdersPage />
+            <MyOrderOnlinePage />
           </RoleGuard>
         }
       />

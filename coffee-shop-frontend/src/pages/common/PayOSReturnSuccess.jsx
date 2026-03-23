@@ -6,7 +6,7 @@ import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import orderService from "@/services/orderService";
+import orderService from "@/services/orderOnlineService";
 
 // PayOS trả về query params:
 // code=00 (thành công) / code khác (thất bại)

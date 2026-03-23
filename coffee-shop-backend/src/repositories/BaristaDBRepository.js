@@ -60,13 +60,14 @@ class BaristaDBRepository {
         o.id,
         o.order_type,
         o.status,
+        o.is_paid,
         o.created_at,
         o.total_amount,
         COUNT(od.id) AS itemCount
       FROM orders o
       LEFT JOIN order_details od ON od.order_id = o.id
       WHERE o.status IN ('pending', 'preparing', 'served')
-      GROUP BY o.id, o.order_type, o.status, o.created_at, o.total_amount
+      GROUP BY o.id, o.order_type, o.status, o.is_paid, o.created_at, o.total_amount
       ORDER BY 
         FIELD(o.status, 'pending', 'preparing', 'served'),
         o.created_at ASC

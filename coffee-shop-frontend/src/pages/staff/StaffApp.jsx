@@ -53,6 +53,7 @@ export function StaffApp() {
   const getCurrentPage = () => {
     const path = location.pathname;
     if (path.includes('takeaway')) return 'takeaway'; 
+    if(path.includes('delivery')) return 'delivery';
     if (path.includes('kitchen')) return 'kitchen';
     if (path.includes('tables')) return 'tables';
     if (path.includes('attendance')) return 'attendance';
@@ -72,6 +73,12 @@ export function StaffApp() {
       icon: ShoppingBag,
       label: 'Đặt mang đi',
       path: '/staff/takeaway',
+    },
+    {
+      id: 'delivery',
+      icon: ShoppingBag,
+      label: 'Đặt giao hàng',
+      path: '/staff/delivery',
     },
     { id: 'kitchen', icon: ChefHat, label: 'Bếp', path: '/staff/kitchen' },
     {
@@ -116,7 +123,9 @@ export function StaffApp() {
     const initNotifications = async () => {
       try {
         const profileRes = await authenticationService.getProfile();
-        const user = profileRes?.data || profileRes?.data?.data;
+        const user = profileRes?.data?.id
+          ? profileRes.data
+          : profileRes?.data?.data || profileRes?.data || null;
 
         if (user?.id) {
           if (!socket.connected) {
@@ -130,9 +139,14 @@ export function StaffApp() {
         }
 
         const notificationRes = await notificationService.getMine();
-        setNotifications(
-          notificationRes?.data?.data || notificationRes?.data || [],
-        );
+        const notificationList = Array.isArray(notificationRes?.data)
+          ? notificationRes.data
+          : Array.isArray(notificationRes?.data?.data)
+          ? notificationRes.data.data
+          : Array.isArray(notificationRes)
+          ? notificationRes
+          : [];
+        setNotifications(notificationList);
       } catch (error) {
         console.error('Init staff notifications error:', error);
       }
@@ -145,8 +159,9 @@ export function StaffApp() {
 
       setNotifications((prev) => {
         const list = Array.isArray(prev) ? prev : [];
+        const uniqueKey = data.recipient_id || `${data.id}-${data.user_id}`;
         const existed = list.some(
-          (item) => item.recipient_id === data.recipient_id,
+          (item) => (item.recipient_id || `${item.id}-${item.user_id}`) === uniqueKey,
         );
 
         if (existed) return list;
