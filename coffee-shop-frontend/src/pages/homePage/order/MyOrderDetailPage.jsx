@@ -1,11 +1,14 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Loader2, ArrowLeft, RotateCcw } from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
-import orderService from "@/services/orderService";
+import orderService from "@/services/orderOnlineService";
 import { handleBuyAgain } from "@/utils/handleBuyAgain";
+
+const defaultProductImage =
+  "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085";
 
 export default function MyOrderDetailPage() {
   const navigate = useNavigate();
@@ -14,25 +17,26 @@ export default function MyOrderDetailPage() {
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [buyAgainLoading, setBuyAgainLoading] = useState(false);
+  const [cancelLoading, setCancelLoading] = useState(false);
+
+  const fetchOrderDetail = useCallback(async () => {
+    try {
+      const res = await orderService.getMyOrderDetail(id);
+      const data = res?.data?.data || res?.data || null;
+      setOrder(data);
+    } catch (error) {
+      console.error("Lỗi lấy chi tiết đơn hàng:", error);
+      setOrder(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [id]);
 
   useEffect(() => {
-    const fetchOrderDetail = async () => {
-      try {
-        const res = await orderService.getMyOrderDetail(id);
-        const data = res?.data?.data || res?.data || null;
-        setOrder(data);
-      } catch (error) {
-        console.error("Lỗi lấy chi tiết đơn hàng:", error);
-        setOrder(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     if (id) {
       fetchOrderDetail();
     }
-  }, [id]);
+  }, [id, fetchOrderDetail]);
 
   const getOrderTypeLabel = (type) => {
     switch (type) {
@@ -91,6 +95,28 @@ export default function MyOrderDetailPage() {
       await handleBuyAgain(id, navigate);
     } finally {
       setBuyAgainLoading(false);
+    }
+  };
+
+  const canCancelOrder = ["pending", "preparing"].includes(order?.status);
+
+  const onCancelOrder = async () => {
+    if (!id || !canCancelOrder) return;
+
+    const confirmed = window.confirm(
+      "Bạn có chắc muốn hủy đơn hàng này không?"
+    );
+    if (!confirmed) return;
+
+    try {
+      setCancelLoading(true);
+      await orderService.cancel(id);
+      await fetchOrderDetail();
+      alert("Đã hủy đơn hàng thành công");
+    } catch (error) {
+      alert(error?.response?.data?.message || "Không thể hủy đơn hàng");
+    } finally {
+      setCancelLoading(false);
     }
   };
 
@@ -183,7 +209,7 @@ export default function MyOrderDetailPage() {
                     <p>
                       Phương thức thanh toán:{" "}
                       <span className="font-medium text-gray-900">
-                        {order.payment_method}
+                        {order.payment_method === "cash" ? "Tiền mặt" : order.payment_method === "payos" ? "Chuyển khoản bằng mã QR với dịch vụ PayOS" : order.payment_method}
                       </span>
                     </p>
                   )}
@@ -267,7 +293,14 @@ export default function MyOrderDetailPage() {
                       className="border rounded-xl p-4 bg-gray-50"
                     >
                       <div className="flex items-start justify-between gap-4 flex-wrap">
-                        <div>
+                        <div className="flex items-start gap-4">
+                          <img
+                            src={item.image_url || defaultProductImage}
+                            alt={item.name}
+                            className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl object-cover border border-gray-200 bg-white"
+                          />
+
+                          <div>
                           <p className="text-lg font-semibold text-gray-900">
                             {item.name}
                           </p>
@@ -304,6 +337,7 @@ export default function MyOrderDetailPage() {
                                 </div>
                               </div>
                             )}
+                          </div>
                         </div>
 
                         <div className="text-right">
@@ -324,6 +358,24 @@ export default function MyOrderDetailPage() {
             </div>
 
             <div className="mt-8 flex gap-3 flex-wrap">
+              {canCancelOrder && (
+                <Button
+                  variant="outline"
+                  onClick={onCancelOrder}
+                  disabled={cancelLoading}
+                  className="text-red-600 border-red-300 hover:bg-red-50 hover:text-red-700"
+                >
+                  {cancelLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Đang hủy...
+                    </>
+                  ) : (
+                    "Hủy đơn hàng"
+                  )}
+                </Button>
+              )}
+
               <Button
                 onClick={onBuyAgain}
                 disabled={buyAgainLoading}

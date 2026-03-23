@@ -207,3 +207,61 @@
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   }
 }
+
+.product-rich-content {
+  line-height: 1.8;
+}
+
+.product-rich-content h1,
+.product-rich-content h2,
+.product-rich-content h3,
+.product-rich-content h4,
+.product-rich-content h5,
+.product-rich-content h6 {
+  color: #1f2937;
+  font-weight: 700;
+  line-height: 1.4;
+  margin-top: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.product-rich-content p {
+  margin-bottom: 0.75rem;
+}
+
+.product-rich-content ul,
+.product-rich-content ol {
+  margin: 0.5rem 0 0.75rem 1.25rem;
+  padding-left: 0.5rem;
+}
+
+.product-rich-content ul {
+  list-style: disc;
+}
+
+.product-rich-content ol {
+  list-style: decimal;
+}
+
+.product-rich-content li {
+  margin: 0.25rem 0;
+}
+
+.product-rich-content blockquote {
+  border-left: 3px solid #d1d5db;
+  color: #4b5563;
+  font-style: italic;
+  margin: 0.75rem 0;
+  padding-left: 0.75rem;
+}
+
+.product-rich-content a {
+  color: #c25e28;
+  text-decoration: underline;
+}
+
+.product-rich-content img {
+  border-radius: 0.75rem;
+  margin: 0.75rem 0;
+  max-width: 100%;
+}

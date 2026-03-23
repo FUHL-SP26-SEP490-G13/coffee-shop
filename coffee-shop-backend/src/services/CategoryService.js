@@ -54,16 +54,23 @@ class CategoryService {
    * Create new category
    */
   async createCategory(data) {
-    // Validate: Check if category name already exists
-    const existingCategory = await CategoryRepository.findByName(data.name);
+    // Check if category name already exists
+    const existingName = await CategoryRepository.findByName(data.name);
 
-    if (existingCategory) {
-      throw new ErrorResponse(409, "Tên category đã tồn tại");
+    if (existingName) {
+      throw new ErrorResponse(409, 'Tên category đã tồn tại');
+    }
+
+    // Check if category code already exists
+    const existingCode = await CategoryRepository.findByCode(data.code);
+    if (existingCode) {
+      throw new ErrorResponse(409, 'Mã code category đã tồn tại');
     }
 
     // Create category
     const category = await CategoryRepository.create({
       name: data.name.trim(),
+      code: data.code.trim().toUpperCase(),
       image_url: data.image_url || null,
     });
 
@@ -74,23 +81,30 @@ class CategoryService {
    * Update category
    */
   async updateCategory(id, data) {
-    // Check if category exists
     const category = await this.getCategoryById(id);
+
+    const updateData = {};
 
     // If updating name, check if new name already exists
     if (data.name && data.name !== category.name) {
       const existingCategory = await CategoryRepository.findByName(data.name);
 
       if (existingCategory && existingCategory.id !== parseInt(id)) {
-        throw new ErrorResponse(409, "Tên category đã tồn tại");
+        throw new ErrorResponse(409, 'Tên danh mục đã tồn tại');
       }
-    }
-
-    // Prepare update data
-    const updateData = {};
-    if (data.name) {
       updateData.name = data.name.trim();
     }
+
+    // check category code if exist
+    if (data.code && data.code !== category.code) {
+      const existingCode = await CategoryRepository.findByCode(data.code);
+
+      if (existingCode && existingCode.id !== parseInt(id)) {
+        throw new ErrorResponse(409, 'Mã Code danh mục đã tồn tại');
+      }
+      updateData.code = data.code.trim().toUpperCase();
+    }
+
     if (data.image_url !== undefined) {
       updateData.image_url = data.image_url;
     }
@@ -114,7 +128,7 @@ class CategoryService {
     if (hasProducts) {
       throw new ErrorResponse(
         400,
-        "Không thể xóa category vì có sản phẩm đang sử dụng"
+        'Không thể xóa category vì có sản phẩm đang sử dụng',
       );
     }
 
@@ -175,7 +189,7 @@ class CategoryService {
     if (existingCategory && existingCategory.id !== category.id) {
       throw new ErrorResponse(
         409,
-        "Không thể khôi phục vì tên category đã tồn tại"
+        'Không thể khôi phục vì tên category đã tồn tại',
       );
     }
 

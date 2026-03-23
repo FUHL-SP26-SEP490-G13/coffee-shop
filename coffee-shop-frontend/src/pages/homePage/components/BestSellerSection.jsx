@@ -220,11 +220,6 @@ export default function BestSellerSection({
                           </h3>
                         </Link>
 
-                        <p className="text-sm text-gray-600 mb-4 line-clamp-2 flex-grow">
-                          {product.description ||
-                            "Thưởng thức hương vị đặc biệt của chúng tôi"}
-                        </p>
-
                         <div className="pt-4 border-t border-gray-200 flex items-end justify-between gap-3">
                           <div className="min-w-0 flex-1">
                             <p className="text-xl font-bold text-amber-600 leading-tight break-words">

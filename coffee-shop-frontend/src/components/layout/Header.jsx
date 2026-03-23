@@ -899,7 +899,9 @@ function Header() {
               </div>
             )}
 
-            {!user && (
+            
+          </div>
+{!user && (
               <Button
                 onClick={() => navigate("/login")}
                 size="sm"
@@ -989,8 +991,6 @@ function Header() {
                 </div>
               </div>
             )}
-          </div>
-
           <Button
             variant="ghost"
             size="icon"
@@ -1189,101 +1189,7 @@ function Header() {
               </div>
             )}
 
-            {!user && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  navigate("/login");
-                  setMobileMenuOpen(false);
-                }}
-                className="w-full justify-start text-gray-700 text-xs"
-              >
-                <LogIn className="w-4 h-4 mr-2" />
-                Đăng nhập
-              </Button>
-            )}
-
-            {user && (
-              <>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() =>
-                    setMobileUserDropdownOpen(!mobileUserDropdownOpen)
-                  }
-                  className="w-full justify-start text-gray-700 text-xs gap-2"
-                >
-                  <div className="w-6 h-6 rounded-full bg-amber-500 flex items-center justify-center text-white text-xs font-bold">
-                    {user.first_name?.charAt(0).toUpperCase()}
-                  </div>
-                  <span>{user.last_name}</span>
-                </Button>
-
-                {mobileUserDropdownOpen && (
-                  <div className="bg-white border border-gray-200 rounded-lg p-2 space-y-1 ml-2 mb-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        navigate("/my-orders");
-                        setMobileUserDropdownOpen(false);
-                        setMobileMenuOpen(false);
-                      }}
-                      className="w-full justify-start text-gray-700 text-xs"
-                    >
-                      <Package className="w-4 h-4 mr-2" />
-                      Đơn hàng
-                    </Button>
-
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        navigate("/wishlists");
-                        setMobileUserDropdownOpen(false);
-                        setMobileMenuOpen(false);
-                      }}
-                      className="w-full justify-start text-gray-700 text-xs"
-                    >
-                      <Heart className="w-4 h-4 mr-2" />
-                      <span className="flex-1 text-left">Yêu thích</span>
-                      <span className="text-xs font-semibold text-red-500">
-                        {favoriteLoading ? "..." : favoriteCount}
-                      </span>
-                    </Button>
-
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        navigate("/customer/profile");
-                        setMobileUserDropdownOpen(false);
-                        setMobileMenuOpen(false);
-                      }}
-                      className="w-full justify-start text-gray-700 text-xs"
-                    >
-                      <User className="w-4 h-4 mr-2" />
-                      Hồ sơ cá nhân
-                    </Button>
-
-                    <div className="border-t border-gray-200 my-1" />
-
-                    <button
-                      onClick={() => {
-                        setMobileUserDropdownOpen(false);
-                        setMobileMenuOpen(false);
-                        setLogoutDialogOpen(true);
-                      }}
-                      className="w-full text-left px-3 py-2 text-red-600 hover:bg-red-50 rounded transition flex items-center gap-2 text-xs"
-                    >
-                      <LogOut className="w-4 h-4" />
-                      Đăng xuất
-                    </button>
-                  </div>
-                )}
-              </>
-            )}
+            
 
             <Button
               variant="ghost"

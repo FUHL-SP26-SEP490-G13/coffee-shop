@@ -16,7 +16,7 @@ import {
 import { cartService } from "@/services/cartService";
 import authenticationService from "@/services/authenticationService";
 import PlaceOrderButton from "@/components/order/PlaceOrderButton";
-import orderService from "@/services/orderService";
+import orderService from "@/services/orderOnlineService";
 import { STORAGE_KEYS } from "@/constants";
 import { validateOrderField } from "@/utils/orderValidation";
 import PayOSLogo from "/logo/payOS.svg";

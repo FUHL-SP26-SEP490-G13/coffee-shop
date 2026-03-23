@@ -217,6 +217,43 @@ class OrderRepository {
     );
   }
 
+  async updateOrderStatus(orderId, status) {
+    await db.query(
+      `
+      UPDATE orders
+      SET status = ?
+      WHERE id = ?
+      `,
+      [status, orderId]
+    );
+  }
+
+  async updatePaymentStatusByOrderId(orderId, paymentStatus) {
+    await db.query(
+      `
+      UPDATE order_payments
+      SET payment_status = ?
+      WHERE order_id = ?
+      `,
+      [paymentStatus, orderId]
+    );
+  }
+
+  async cancelOrderByUser(orderId, userId) {
+    const [result] = await db.query(
+      `
+      UPDATE orders
+      SET status = 'cancelled'
+      WHERE id = ?
+        AND user_id = ?
+        AND status IN ('pending', 'preparing')
+      `,
+      [orderId, userId]
+    );
+
+    return result;
+  }
+
   async findOrdersByUser(userId) {
     const [rows] = await db.query(
       `
@@ -271,19 +308,87 @@ class OrderRepository {
     return rows[0];
   }
 
+  async findOrderById(orderId) {
+    const [rows] = await db.query(
+      `
+      SELECT
+        o.id,
+        o.order_type,
+        o.status,
+        o.is_paid,
+        o.created_at,
+        op.payment_status
+      FROM orders o
+      LEFT JOIN order_payments op ON op.order_id = o.id
+      WHERE o.id = ?
+      LIMIT 1
+      `,
+      [orderId]
+    );
+
+    return rows[0] || null;
+  }
+
+  async findOrderDetailForStaff(orderId) {
+    const [rows] = await db.query(
+      `
+      SELECT
+        o.id,
+        o.customer_type,
+        o.order_type,
+        o.status,
+        o.is_paid,
+        o.total_amount,
+        o.created_at,
+        o.paid_at,
+        odi.receiver_name,
+        odi.receiver_phone,
+        odi.receiver_email,
+        odi.address,
+        odi.note,
+        op.payment_method,
+        op.payment_status,
+        op.amount
+      FROM orders o
+      LEFT JOIN order_delivery_info odi ON odi.order_id = o.id
+      LEFT JOIN order_payments op ON op.order_id = o.id
+      WHERE o.id = ?
+      LIMIT 1
+      `,
+      [orderId]
+    );
+
+    return rows[0] || null;
+  }
+
   async findOrderItems(orderId) {
     const [rows] = await db.query(
       `
       SELECT 
         od.id,
         od.product_size_id,
+        p.id AS product_id,
         od.quantity,
         od.price,
         ps.size,
-        p.name
+        p.name,
+        COALESCE(pi_thumb.image_url, pi_first.image_url) AS image_url
       FROM order_details od
       JOIN product_sizes ps ON ps.id = od.product_size_id
       JOIN products p ON p.id = ps.product_id
+      LEFT JOIN product_images pi_thumb
+        ON pi_thumb.product_id = p.id
+        AND pi_thumb.isThumbnail = 1
+        AND pi_thumb.is_deleted = 0
+      LEFT JOIN product_images pi_first
+        ON pi_first.id = (
+          SELECT pi2.id
+          FROM product_images pi2
+          WHERE pi2.product_id = p.id
+            AND pi2.is_deleted = 0
+          ORDER BY pi2.isThumbnail DESC, pi2.id ASC
+          LIMIT 1
+        )
       WHERE od.order_id = ?
       `,
       [orderId]

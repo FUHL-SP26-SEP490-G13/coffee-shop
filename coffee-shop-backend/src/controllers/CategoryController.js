@@ -120,6 +120,7 @@ class CategoryController {
 
       const categoryData = {
         name: req.body.name,
+        code: req.body.code,
         image_url: imageUrl,
       };
 
@@ -154,14 +155,14 @@ class CategoryController {
 
       const categoryData = {};
 
-      // 1️⃣ Update name nếu có
       if (req.body.name) {
         categoryData.name = req.body.name;
       }
 
-      /**
-       * 2️⃣ Upload ảnh mới
-       */
+      if (req.body.code) {
+        categoryData.code = req.body.code;
+      }
+
       if (req.file) {
         const result = await cloudinary.uploader.upload(req.file.path, {
           folder: 'categories',
@@ -175,9 +176,7 @@ class CategoryController {
         newUploadedPublicId = result.public_id;
       }
 
-      /**
-       * 3️⃣ Remove image nếu được yêu cầu
-       */
+      // xóa ảnh nếu có
       if (req.body.remove_image?.toString() === 'true') {
         categoryData.image_url = null;
       }
@@ -187,7 +186,7 @@ class CategoryController {
         return response.error(res, 'Không có dữ liệu để cập nhật', 400);
       }
 
-      // 🔥 Update DB trước
+      // Update DB trước
       const updatedCategory = await CategoryService.updateCategory(
         id,
         categoryData,
@@ -204,7 +203,10 @@ class CategoryController {
           try {
             await cloudinary.uploader.destroy(publicId);
           } catch (cloudinaryError) {
-            console.error('Failed to delete old Cloudinary image:', cloudinaryError);
+            console.error(
+              'Failed to delete old Cloudinary image:',
+              cloudinaryError,
+            );
           }
         }
       }

@@ -228,33 +228,30 @@ export function StaffTables() {
                   >
                     {/* Status Indicator Bar */}
                     <div
-                      className={`absolute top-0 left-0 w-full h-1 ${
-                        table.status === "available"
+                      className={`absolute top-0 left-0 w-full h-1 ${table.status === "available"
                           ? "bg-green-500"
                           : table.status === "occupied"
                             ? "bg-blue-500"
                             : "bg-amber-500"
-                      }`}
+                        }`}
                     />
 
                     {/* Table Identity */}
                     <div
-                      className={`min-w-[4rem] h-16 px-4 rounded-2xl flex flex-col items-center justify-center transition-colors duration-300 ${
-                        table.status === "available"
+                      className={`min-w-[4rem] h-16 px-4 rounded-2xl flex flex-col items-center justify-center transition-colors duration-300 ${table.status === "available"
                           ? "bg-green-50"
                           : table.status === "occupied"
                             ? "bg-blue-50"
                             : "bg-amber-50"
-                      }`}
+                        }`}
                     >
                       <span
-                        className={`text-xl font-black tracking-tighter whitespace-nowrap ${
-                          table.status === "available"
+                        className={`text-xl font-black tracking-tighter whitespace-nowrap ${table.status === "available"
                             ? "text-green-700"
-                          : table.status === "occupied"
-                            ? "text-blue-700"
-                          : "text-amber-700"
-                        }`}
+                            : table.status === "occupied"
+                              ? "text-blue-700"
+                              : "text-amber-700"
+                          }`}
                       >
                         {table.code?.replace("TB-", "")}
                       </span>
@@ -271,22 +268,20 @@ export function StaffTables() {
 
                     {/* Status Badge */}
                     <div
-                      className={`flex items-center gap-1.5 px-3 py-1 rounded-full border text-[10px] font-bold uppercase tracking-wider ${
-                        table.status === "available"
+                      className={`flex items-center gap-1.5 px-3 py-1 rounded-full border text-[10px] font-bold uppercase tracking-wider ${table.status === "available"
                           ? "bg-green-50 text-green-700 border-green-200"
                           : table.status === "occupied"
                             ? "bg-blue-50 text-blue-700 border-blue-200"
                             : "bg-amber-50 text-amber-700 border-amber-200"
-                      }`}
+                        }`}
                     >
                       <span
-                        className={`w-1.5 h-1.5 rounded-full animate-pulse ${
-                          table.status === "available"
+                        className={`w-1.5 h-1.5 rounded-full animate-pulse ${table.status === "available"
                             ? "bg-green-500"
                             : table.status === "occupied"
                               ? "bg-blue-500"
                               : "bg-amber-500"
-                        }`}
+                          }`}
                       />
                       {table.status === "available"
                         ? "Trống"

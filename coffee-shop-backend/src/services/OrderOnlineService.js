@@ -1,7 +1,7 @@
 const OrderRepository = require("../repositories/OrderRepository");
 const ErrorResponse = require("../utils/ErrorResponse");
 
-class OrderService {
+class OrderOnlineService {
   createBadRequestError(message) {
     const error = new Error(message);
     error.statusCode = 400;
@@ -390,9 +390,108 @@ class OrderService {
     };
   }
 
+  async cancelOrderByUser(orderId, userId) {
+    const order = await OrderRepository.findOrderByIdAndUser(orderId, userId);
+
+    if (!order) {
+      throw new ErrorResponse(404, "Đơn hàng không tồn tại");
+    }
+
+    if (!["pending", "preparing"].includes(order.status)) {
+      throw new ErrorResponse(
+        400,
+        "Chỉ có thể hủy đơn ở trạng thái chờ xác nhận hoặc đang chuẩn bị"
+      );
+    }
+
+    await OrderRepository.cancelOrderByUser(orderId, userId);
+
+    return {
+      order_id: orderId,
+      status: "cancelled",
+    };
+  }
+
+  async confirmDeliveryPreparing(orderId) {
+    const order = await OrderRepository.findOrderById(orderId);
+
+    if (!order) {
+      throw new ErrorResponse(404, "Đơn hàng không tồn tại");
+    }
+
+    if (order.order_type !== "delivery") {
+      throw new ErrorResponse(400, "Chỉ áp dụng cho đơn giao hàng");
+    }
+
+    if (order.status !== "pending") {
+      throw new ErrorResponse(400, "Chỉ xác nhận đơn đang chờ xử lý");
+    }
+
+    if (Number(order.is_paid) === 1 && order.payment_status !== "paid") {
+      throw new ErrorResponse(400, "Trạng thái thanh toán của đơn không hợp lệ");
+    }
+
+    await OrderRepository.updateOrderStatus(orderId, "preparing");
+
+    return {
+      order_id: orderId,
+      user_id: order.user_id,
+      status: "preparing",
+    };
+  }
+
+  async cancelDeliveryOrderByStaff(orderId) {
+    const order = await OrderRepository.findOrderById(orderId);
+
+    if (!order) {
+      throw new ErrorResponse(404, "Đơn hàng không tồn tại");
+    }
+
+    if (order.order_type !== "delivery") {
+      throw new ErrorResponse(400, "Chỉ áp dụng cho đơn giao hàng");
+    }
+
+    if (order.status !== "pending") {
+      throw new ErrorResponse(400, "Chỉ hủy đơn đang chờ xử lý");
+    }
+
+    if (Number(order.is_paid) !== 0) {
+      throw new ErrorResponse(400, "Chỉ hủy đơn chưa thanh toán");
+    }
+
+    await OrderRepository.updateOrderStatus(orderId, "cancelled");
+    await OrderRepository.updatePaymentStatusByOrderId(orderId, "cancelled");
+
+    return {
+      order_id: orderId,
+      status: "cancelled",
+    };
+  }
+
+  async getDeliveryOrderDetailForStaff(orderId) {
+    const order = await OrderRepository.findOrderDetailForStaff(orderId);
+
+    if (!order) {
+      throw new ErrorResponse(404, "Đơn hàng không tồn tại");
+    }
+
+    if (order.order_type !== "delivery") {
+      throw new ErrorResponse(400, "Đây không phải đơn giao hàng");
+    }
+
+    const items = await OrderRepository.findOrderItems(orderId);
+
+    return {
+      ...order,
+      items,
+    };
+  }
+
   async savePayosReturn({ orderCode, payosId, status }) {
     if (!orderCode) throw new ErrorResponse(400, "Thiếu orderCode");
 
+    const order = await OrderRepository.findOrderById(orderCode);
+    
     const isPaid = status === "PAID";
     const paymentStatus = isPaid
       ? "paid"
@@ -409,7 +508,13 @@ class OrderService {
       await OrderRepository.updateOrderPaidStatus(orderCode, true);
     }
 
-    return { saved: true };
+    return { 
+      saved: true,
+      order_id: orderCode,
+      user_id: order?.user_id,
+      payment_status: paymentStatus,
+      is_paid: isPaid ? 1 : 0,
+    };
   }
 
   async getAllOrders({ page = 1, limit = 20, status = "all" } = {}) {
@@ -442,4 +547,4 @@ class OrderService {
   }
 }
 
-module.exports = new OrderService();
+module.exports = new OrderOnlineService();

@@ -11,17 +11,28 @@ import {
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
-import orderService from "@/services/orderService";
+import { toast } from "sonner";
+import socket from "@/lib/socket";
+import orderService from "@/services/orderOnlineService";
 import { handleBuyAgain } from "@/utils/handleBuyAgain";
 
 const PAGE_SIZE = 5;
+const STATUS_TABS = [
+  "pending",
+  "preparing",
+  "served",
+  "delivering",
+  "completed",
+  "cancelled",
+];
 
-export default function MyOrdersPage() {
+export default function MyOrderOnlinePage() {
   const navigate = useNavigate();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [buyAgainLoadingId, setBuyAgainLoadingId] = useState(null);
   const [page, setPage] = useState(1);
+  const [activeStatus, setActiveStatus] = useState(STATUS_TABS[0]);
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -38,23 +49,63 @@ export default function MyOrdersPage() {
     };
 
     fetchOrders();
+
+    // Socket listeners for real-time order updates
+    const handlePaymentCompleted = (data) => {
+      toast.success(`✅ Thanh toán thành công cho đơn #${data.order_id}`);
+      // Reload orders to reflect changes
+      fetchOrders();
+    };
+
+    const handleStatusChanged = (data) => {
+      toast.info(`📋 Đơn #${data.order_id} - ${data.message}`);
+      // Reload orders to reflect changes
+      fetchOrders();
+    };
+
+    if (!socket.connected) {
+      socket.connect();
+    }
+
+    socket.on("order:payment-completed", handlePaymentCompleted);
+    socket.on("order:status-changed", handleStatusChanged);
+
+    return () => {
+      socket.off("order:payment-completed", handlePaymentCompleted);
+      socket.off("order:status-changed", handleStatusChanged);
+    };
   }, []);
 
-  const totalPages = useMemo(() => {
-    return Math.max(1, Math.ceil(orders.length / PAGE_SIZE));
+  const filteredOrders = useMemo(() => {
+    return orders.filter((order) => order.status === activeStatus);
+  }, [orders, activeStatus]);
+
+  const statusCountMap = useMemo(() => {
+    return STATUS_TABS.reduce((acc, status) => {
+      acc[status] = orders.filter((order) => order.status === status).length;
+      return acc;
+    }, {});
   }, [orders]);
+
+  const totalPages = useMemo(() => {
+    return Math.max(1, Math.ceil(filteredOrders.length / PAGE_SIZE));
+  }, [filteredOrders]);
 
   const paginatedOrders = useMemo(() => {
     const start = (page - 1) * PAGE_SIZE;
     const end = start + PAGE_SIZE;
-    return orders.slice(start, end);
-  }, [orders, page]);
+    return filteredOrders.slice(start, end);
+  }, [filteredOrders, page]);
 
   useEffect(() => {
     if (page > totalPages) {
       setPage(totalPages);
     }
   }, [page, totalPages]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [activeStatus]);
 
   const getStatusLabel = (status) => {
     switch (status) {
@@ -104,7 +155,7 @@ export default function MyOrdersPage() {
   };
 
   const renderPagination = () => {
-    if (orders.length <= PAGE_SIZE) return null;
+    if (filteredOrders.length <= PAGE_SIZE) return null;
 
     const pages = [];
     for (let i = 1; i <= totalPages; i += 1) {
@@ -177,6 +228,36 @@ export default function MyOrdersPage() {
             </div>
           ) : (
             <>
+              <div className="mb-6 overflow-x-auto">
+                <div className="inline-flex items-center gap-2 min-w-max">
+                  {STATUS_TABS.map((status) => {
+                    const isActive = activeStatus === status;
+
+                    return (
+                      <button
+                        key={status}
+                        type="button"
+                        onClick={() => setActiveStatus(status)}
+                        className={`px-4 py-2 rounded-full border text-sm font-medium transition whitespace-nowrap ${
+                          isActive
+                            ? "bg-amber-600 text-white border-amber-600"
+                            : "bg-white text-gray-700 border-gray-300 hover:border-amber-500"
+                        }`}
+                      >
+                        {getStatusLabel(status)} ({statusCountMap[status] || 0})
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {filteredOrders.length === 0 ? (
+                <div className="text-center py-14 border rounded-2xl bg-gray-50">
+                  <p className="text-gray-500">
+                    Không có đơn hàng ở trạng thái {getStatusLabel(activeStatus)}
+                  </p>
+                </div>
+              ) : (
               <div className="space-y-4">
                 {paginatedOrders.map((order) => (
                   <div
@@ -271,6 +352,7 @@ export default function MyOrdersPage() {
                   </div>
                 ))}
               </div>
+              )}
 
               {renderPagination()}
             </>

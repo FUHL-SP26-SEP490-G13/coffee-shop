@@ -4,6 +4,7 @@ const cloudinary = require("../config/cloudinary");
 const ErrorResponse = require("../utils/ErrorResponse");
 
 class ProductController {
+  
   async getSizesByProductId(req, res, next) {
     try {
       const { id } = req.params;
@@ -20,7 +21,7 @@ class ProductController {
   async getAll(req, res, next) {
     try {
       const page = parseInt(req.query.page) || 1;
-      const limit = parseInt(req.query.limit) || 8;
+      const limit = parseInt(req.query.limit) || 12;
       const { status, sort, category_id } = req.query;
 
       if (page <= 0 || limit <= 0) {
@@ -180,11 +181,11 @@ class ProductController {
       const totalImagesAfterUpdate =
         currentImageCount - deleteImageCount + newImageCount;
 
-      if (totalImagesAfterUpdate > 5) {
+      if (totalImagesAfterUpdate > 3) {
         return next(
           new ErrorResponse(
             400,
-            `Tổng số ảnh không được vượt quá 5. Hiện tại: ${currentImageCount}, Xóa: ${deleteImageCount}, Thêm mới: ${newImageCount}`
+            `Tổng số ảnh không được vượt quá 3. Hiện tại: ${currentImageCount}, Xóa: ${deleteImageCount}, Thêm mới: ${newImageCount}`
           )
         );
       }
