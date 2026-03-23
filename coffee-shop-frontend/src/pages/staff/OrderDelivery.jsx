@@ -1,5 +1,5 @@
 ﻿import { useCallback, useEffect, useMemo, useState } from 'react';
-import { RefreshCw, ShoppingBag, Truck, Bell } from 'lucide-react';
+import { RefreshCw, ShoppingBag, Truck, Bell, Printer } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,8 @@ import { toast } from 'sonner';
 import socket from '@/lib/socket';
 import baristaDBService from '@/services/baristaDBService';
 import orderOnlineService from '@/services/orderOnlineService';
+import authenticationService from '@/services/authenticationService';
+import { ReceiptModal } from './TakeAwayOrder/ReceiptModal';
 
 const ACTIVE_STATUSES = ['pending', 'preparing', 'served'];
 
@@ -30,6 +32,26 @@ const statusClassMap = {
 };
 
 const money = (value) => Number(value || 0).toLocaleString('vi-VN') + ' đ';
+
+const getDisplayName = (user) => {
+  const firstName = String(user?.first_name || '').trim();
+  const lastName = String(user?.last_name || '').trim();
+  const fullName = `${firstName} ${lastName}`.trim();
+  return fullName || user?.username || user?.email || 'Nhân viên';
+};
+
+const isOrderPaid = (order) => {
+  const paymentStatus = String(
+    order?.payment_status || order?.payment?.status || ''
+  ).toLowerCase();
+  if (paymentStatus === 'paid') return true;
+
+  return (
+    order?.is_paid === true ||
+    order?.is_paid === 1 ||
+    order?.is_paid === '1'
+  );
+};
 
 const dateTime = (value) => {
   if (!value) return '--';
@@ -55,6 +77,8 @@ export function OrderDelivery() {
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
   const [newOrderCount, setNewOrderCount] = useState(0);
+  const [viewingReceipt, setViewingReceipt] = useState(null);
+  const [printerName, setPrinterName] = useState('Nhân viên');
 
   const loadDeliveryOrders = useCallback(async () => {
     setLoading(true);
@@ -86,6 +110,20 @@ export function OrderDelivery() {
   useEffect(() => {
     loadDeliveryOrders();
   }, [loadDeliveryOrders]);
+
+  useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        const res = await authenticationService.getProfile();
+        const user = res?.data?.id ? res.data : res?.data?.data || res?.data;
+        setPrinterName(getDisplayName(user));
+      } catch {
+        setPrinterName('Nhân viên');
+      }
+    };
+
+    loadProfile();
+  }, []);
 
   // Socket listener for new delivery orders
   useEffect(() => {
@@ -174,6 +212,28 @@ export function OrderDelivery() {
     }
   };
 
+  const handlePrintReceipt = async (orderId) => {
+    try {
+      const res = await orderOnlineService.getStaffOrderDetail(orderId);
+      const orderData = res?.data?.data || res?.data;
+      if (orderData) {
+        setViewingReceipt({
+          ...orderData,
+          order_id: orderData.id,
+          order_code: `DL-${String(orderData.id).padStart(6, '0')}`,
+          total_amount: orderData.total_amount,
+          receiver_name: orderData.receiver_name,
+          receiver_phone: orderData.receiver_phone,
+          printed_by: printerName,
+        });
+      } else {
+        toast.error('Không tải được chi tiết hóa đơn');
+      }
+    } catch (error) {
+      toast.error(error?.response?.data?.message || 'Lỗi tải hóa đơn');
+    }
+  };
+
   return (
     <div className="space-y-4 p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -245,8 +305,8 @@ export function OrderDelivery() {
 
         <TabsContent value={activeTab} className="mt-4 space-y-3">
           {filteredOrders.map((order) => {
-            const isUnpaidPending =
-              order.status === 'pending' && Number(order.is_paid) === 0;
+            const paid = isOrderPaid(order);
+            const isUnpaidPending = order.status === 'pending' && !paid;
             const isPending = order.status === 'pending';
 
             return (
@@ -259,8 +319,8 @@ export function OrderDelivery() {
                       <Badge className={statusClassMap[order.status] || ''}>
                         {statusLabelMap[order.status] || order.status}
                       </Badge>
-                      <Badge variant={Number(order.is_paid) === 1 ? 'default' : 'outline'}>
-                        {Number(order.is_paid) === 1 ? 'Đã thanh toán' : 'Chưa thanh toán'}
+                      <Badge variant={paid ? 'default' : 'outline'}>
+                        {paid ? 'Đã thanh toán' : 'Chưa thanh toán'}
                       </Badge>
                     </div>
 
@@ -333,6 +393,14 @@ export function OrderDelivery() {
                       >
                         {confirmingId === order.id ? 'Đang xác nhận...' : 'Xác nhận chuẩn bị'}
                       </Button>
+                    ) : order.status === 'served' ? (
+                      <Button
+                        onClick={() => handlePrintReceipt(order.id)}
+                        className="gap-2"
+                      >
+                        <Printer size={16} />
+                        In hóa đơn
+                      </Button>
                     ) : null}
                   </div>
                 </CardContent>
@@ -389,7 +457,7 @@ export function OrderDelivery() {
                 <p>
                   Trạng thái thanh toán:{' '}
                   <span className="font-medium">
-                    {selectedOrder.payment_status === 'paid' ? 'Đã thanh toán' : 'Chưa thanh toán'}
+                    {isOrderPaid(selectedOrder) ? 'Đã thanh toán' : 'Chưa thanh toán'}
                   </span>
                 </p>
                 {selectedOrder.note ? (
@@ -397,6 +465,27 @@ export function OrderDelivery() {
                     Ghi chú giao hàng: <span className="font-medium">{selectedOrder.note}</span>
                   </p>
                 ) : null}
+                {selectedOrder.receiver_name && (
+                  <div className="sm:col-span-2 border-t pt-3 mt-3">
+                    <button
+                      onClick={() => {
+                        setViewingReceipt({
+                          ...selectedOrder,
+                          order_id: selectedOrder.id,
+                          order_code: `DL-${String(selectedOrder.id).padStart(6, '0')}`,
+                          total_amount: selectedOrder.total_amount,
+                          receiver_name: selectedOrder.receiver_name,
+                          receiver_phone: selectedOrder.receiver_phone,
+                          printed_by: printerName,
+                        });
+                      }}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm font-medium"
+                    >
+                      <Printer size={16} />
+                      In hóa đơn
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2 rounded-md border p-3">
@@ -441,6 +530,13 @@ export function OrderDelivery() {
           )}
         </DialogContent>
       </Dialog>
+
+      {viewingReceipt && (
+        <ReceiptModal
+          order={viewingReceipt}
+          onClose={() => setViewingReceipt(null)}
+        />
+      )}
     </div>
   );
 }

@@ -1,0 +1,452 @@
+import { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
+import receiptSettingService from '@/services/receiptSettingService';
+
+const fmt = (n) => Number(n).toLocaleString('vi-VN') + ' đ';
+
+const isOrderPaid = (order) => {
+  const paymentStatus = String(
+    order?.payment_status || order?.payment?.status || ''
+  ).toLowerCase();
+  if (paymentStatus === 'paid') return true;
+
+  return (
+    order?.is_paid === true ||
+    order?.is_paid === 1 ||
+    order?.is_paid === '1'
+  );
+};
+
+const toLines = (textOrLines) => {
+  if (Array.isArray(textOrLines)) {
+    return textOrLines.map((line) => String(line).trim()).filter(Boolean);
+  }
+  return String(textOrLines || '')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+};
+
+const calcSubtotal = (order) =>
+  (order.items || []).reduce((sum, item) => {
+    const base = Number(item.unit_price || item.price || 0) * Number(item.quantity || 0);
+    const topping = (item.toppings || []).reduce(
+      (s, t) => s + Number(t.price || 0) * Number(t.quantity || 0),
+      0
+    );
+    return sum + base + topping;
+  }, 0);
+
+/**
+ * @param {{ order: Object, onDone?: Function }} props
+ */
+export function PrintableReceipt({ order, onDone }) {
+  const [setting, setSetting] = useState(null);
+  const [printedAt] = useState(() => Date.now());
+
+  useEffect(() => {
+    let mounted = true;
+    const fetchSetting = async () => {
+      try {
+        const res = await receiptSettingService.getActive();
+        if (mounted) {
+          setSetting(res?.data || null);
+        }
+      } catch {
+        if (mounted) {
+          setSetting(null);
+        }
+      }
+    };
+
+    fetchSetting();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const headerLines = useMemo(
+    () => toLines(setting?.header_lines || setting?.header_text),
+    [setting]
+  );
+  const footerLines = useMemo(
+    () => toLines(setting?.footer_lines || setting?.footer_text),
+    [setting]
+  );
+
+  const displayLogo = setting?.logo_url || '';
+  const storeName = setting?.store_name || 'Coffee Shop';
+  const storeAddress = setting?.address || '';
+  const storePhone = setting?.phone || '';
+
+  const orderCode =
+    order.order_code ||
+    `HD${String(order.order_id || order.id || '').padStart(4, '0')}`;
+  const subtotal = calcSubtotal(order);
+  const totalAmount = Number(order.total_amount || 0);
+  const computedDiscount = Math.max(0, subtotal - totalAmount);
+  const orderDate = new Date(order.created_at || printedAt).toLocaleString(
+    'vi-VN',
+    {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    }
+  );
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      window.print();
+    }, 400);
+    const handleAfterPrint = () => {
+      if (typeof onDone === 'function') {
+        onDone();
+      }
+    };
+    window.addEventListener('afterprint', handleAfterPrint);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('afterprint', handleAfterPrint);
+    };
+  }, [onDone]);
+
+  return createPortal(
+    <div className="printable-receipt-portal">
+      <div className="printable-receipt" style={{ padding: '20px', fontFamily: 'Arial, sans-serif' }}>
+      <style>{`
+        @page {
+          size: 80mm auto;
+          margin: 0;
+        }
+        @media print {
+          html,
+          body {
+            margin: 0;
+            padding: 0;
+            background: #fff;
+            width: auto;
+            height: auto;
+            overflow: visible !important;
+          }
+
+          body > *:not(.printable-receipt-portal) {
+            display: none !important;
+          }
+
+          .printable-receipt-portal {
+            display: block !important;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+
+          .printable-receipt {
+            position: relative !important;
+            width: 80mm !important;
+            margin: 0 auto !important;
+            padding: 0 !important;
+            display: block !important;
+            background: #fff;
+            z-index: auto;
+          }
+
+          .receipt-container {
+            width: 74mm !important;
+            max-width: 74mm !important;
+            box-sizing: border-box !important;
+            padding: 2.5mm !important;
+            border: none !important;
+            border-radius: 0 !important;
+            box-shadow: none !important;
+            margin: 0 !important;
+          }
+        }
+
+        .receipt-container {
+          box-sizing: border-box;
+          width: 360px;
+          max-width: 100%;
+          margin: 0 auto;
+          border: 1px solid #e2e8f0;
+          border-radius: 12px;
+          padding: 16px;
+          font-family: Arial, sans-serif;
+          font-size: 12px;
+          line-height: 1.5;
+          background: white;
+          color: #0f172a;
+        }
+
+        .receipt-header {
+          text-align: center;
+          padding-bottom: 12px;
+          margin-bottom: 12px;
+          border-bottom: 1px solid #e2e8f0;
+        }
+
+        .receipt-logo {
+          display: flex;
+          justify-content: center;
+          margin-bottom: 8px;
+        }
+
+        .receipt-logo img {
+          width: 72px;
+          height: 72px;
+          object-fit: contain;
+          border-radius: 12px;
+        }
+
+        .store-name {
+          text-transform: uppercase;
+          font-size: 16px;
+          line-height: 1.25;
+          font-weight: 700;
+          letter-spacing: 0.06em;
+          margin-bottom: 2px;
+          overflow-wrap: anywhere;
+        }
+
+        .center-line {
+          text-align: center;
+          font-size: 12px;
+          overflow-wrap: anywhere;
+        }
+
+        .receipt-code {
+          color: #0f294d;
+          text-decoration: underline;
+        }
+
+        .title-section {
+          margin-top: 10px;
+          border-top: 1px dashed #cbd5e1;
+          padding-top: 12px;
+          text-align: center;
+          font-size: 12px;
+          font-weight: 700;
+          letter-spacing: 0.12em;
+          overflow-wrap: anywhere;
+        }
+
+        .receipt-section {
+          border-top: 1px dashed #cbd5e1;
+          padding-top: 10px;
+          margin-top: 10px;
+        }
+
+        .receipt-item {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          gap: 8px;
+          font-size: 12px;
+          margin-bottom: 4px;
+        }
+
+        .receipt-item-name {
+          flex: 1;
+          min-width: 0;
+          overflow-wrap: anywhere;
+          word-break: break-word;
+        }
+
+        .receipt-item-price {
+          text-align: right;
+          flex-shrink: 0;
+          margin-left: 12px;
+          white-space: nowrap;
+        }
+
+        .receipt-total {
+          display: flex;
+          justify-content: space-between;
+          font-weight: bold;
+          font-size: 13px;
+          border-top: 1px dashed #cbd5e1;
+          padding-top: 10px;
+          margin-top: 10px;
+        }
+
+        .receipt-payment-method {
+          display: flex;
+          justify-content: space-between;
+          font-size: 11px;
+          margin-top: 10px;
+        }
+
+        .receipt-payment-status {
+          display: flex;
+          justify-content: space-between;
+          font-size: 11px;
+          margin-top: 10px;
+        }
+
+        .receipt-footer {
+          text-align: center;
+          font-size: 11px;
+          margin-top: 12px;
+          color: #666;
+        }
+      `}</style>
+
+      <div className="receipt-container">
+        {/* Header */}
+        <div className="receipt-header">
+          {displayLogo ? (
+            <div className="receipt-logo">
+              <img src={displayLogo} alt="Receipt Logo" />
+            </div>
+          ) : null}
+
+          <div className="store-name">{storeName}</div>
+          {storeAddress ? <div className="center-line">{storeAddress}</div> : null}
+          {storePhone ? <div className="center-line">ĐT: {storePhone}</div> : null}
+
+          {headerLines.length > 0 ? (
+            <div className="receipt-section" style={{ borderTopStyle: 'solid' }}>
+              {headerLines.map((line, index) => (
+                <div key={`header-${index}`} className="center-line">
+                  {line}
+                </div>
+              ))}
+            </div>
+          ) : null}
+
+          <div className="title-section">HÓA ĐƠN THANH TOÁN</div>
+        </div>
+
+        <div className="receipt-section">
+          <div className="receipt-item">
+            <span>Mã đơn:</span>
+            <span className="receipt-code">#{orderCode}</span>
+          </div>
+          <div className="receipt-item">
+            <span>Ngày:</span>
+            <span>{orderDate}</span>
+          </div>
+          {order.receiver_name ? (
+            <div className="receipt-item">
+              <span>Người đặt:</span>
+              <span>{order.receiver_name}</span>
+            </div>
+          ) : null}
+          {order.receiver_phone ? (
+            <div className="receipt-item">
+              <span>SĐT:</span>
+              <span>{order.receiver_phone}</span>
+            </div>
+          ) : null}
+          {order.address ? (
+            <div className="receipt-item">
+              <span>Địa chỉ:</span>
+              <span>{order.address}</span>
+            </div>
+          ) : null}
+          {order.printed_by ? (
+            <div className="receipt-item">
+              <span>Người in:</span>
+              <span>{order.printed_by}</span>
+            </div>
+          ) : null}
+        </div>
+
+        {/* Items */}
+        <div className="receipt-section">
+          {(order.items || []).map((item, i) => (
+            <div key={i}>
+              <div className="receipt-item">
+                <div className="receipt-item-name">
+                  {item.product_name || item.name} ({item.size}) x{item.quantity}
+                </div>
+                <div className="receipt-item-price">
+                  {fmt((item.unit_price || item.price) * item.quantity)}
+                </div>
+              </div>
+
+              {/* Toppings */}
+              {item.toppings && item.toppings.length > 0 && (
+                <div style={{ marginLeft: '10px', marginBottom: '4px' }}>
+                  {item.toppings.map((t, j) => (
+                    <div key={j} className="receipt-item">
+                      <span style={{ fontSize: '10px' }}>
+                        + {t.name} ×{t.quantity}
+                      </span>
+                      <span style={{ fontSize: '10px' }}>
+                        +{fmt(t.price * t.quantity)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Note */}
+              {item.note && (
+                <div style={{ fontSize: '10px', marginLeft: '10px', marginBottom: '4px', fontStyle: 'italic', color: '#666' }}>
+                  Ghi chú: {item.note}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* Discount */}
+        {computedDiscount > 0 && (
+          <div className="receipt-section">
+            <div className="receipt-item">
+              <span>Giảm giá{order.discount_code ? ` (${order.discount_code})` : ''}</span>
+              <span>-{fmt(computedDiscount)}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Total */}
+        <div className="receipt-total">
+          <span>Tổng cộng</span>
+          <span>{fmt(order.total_amount)}</span>
+        </div>
+
+        {/* Payment Status */}
+        <div className="receipt-payment-method">
+          <span>Phương thức thanh toán: </span>
+          <span>{(order.payment_method || order.payment?.method) === 'cash'
+            ? 'Tiền mặt'
+            : 'QR PayOS'}</span>
+        </div>
+
+        {/* Payment Status */}
+        <div className="receipt-payment-status">
+          <span>Trạng thái thanh toán: </span>
+            <span>
+          {isOrderPaid(order) ? 'Đã thanh toán' : 'Chờ thanh toán'}
+          </span>
+        </div>
+
+
+        {/* Adjustment */}
+        {order.payment?.adjustment_amount != null && order.payment.adjustment_amount !== 0 && (
+          <div className="receipt-section" style={{ textAlign: 'center' }}>
+            {order.payment.adjustment_amount < 0
+              ? `Hoàn khách: ${fmt(Math.abs(order.payment.adjustment_amount))}`
+              : `Thu thêm: ${fmt(order.payment.adjustment_amount)}`}
+          </div>
+        )}
+
+        {/* Footer */}
+        {footerLines.length > 0 ? (
+          <div className="receipt-section">
+            <div className="receipt-footer">
+              {footerLines.map((line, index) => (
+                <div key={`footer-${index}`}>{line}</div>
+              ))}
+            </div>
+          </div>
+        ) : null}
+      </div>
+    </div>
+    </div>,
+    document.body
+  );
+}
