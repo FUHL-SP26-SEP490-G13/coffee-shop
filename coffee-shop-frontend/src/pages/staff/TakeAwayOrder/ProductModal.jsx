@@ -74,7 +74,7 @@ function ProductModalInner({ product, toppings, onClose, onAdd }) {
     (s, t) => s + t.price * t.quantity,
     0,
   );
-  const total = selectedSize.price + toppingTotal;
+  const total = Number(selectedSize.price) + toppingTotal;
 
   const handleAdd = () => {
     onAdd({

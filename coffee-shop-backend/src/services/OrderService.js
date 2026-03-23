@@ -264,12 +264,43 @@ class OrderService {
         }
       }
 
-      await OrderRepository.createOrderPayment(connection, {
-        order_id: orderId,
-        payment_method,
-        payment_status: "pending",
-        amount: finalAmount,
-      });
+      const [existingPayment] = await connection.query(
+        "SELECT id FROM order_payments WHERE order_id = ?",
+        [orderId]
+      );
+
+      if (existingPayment.length > 0) {
+        await connection.query(
+          "UPDATE order_payments SET payment_method = ?, amount = ?, payment_status = ? WHERE order_id = ?",
+          [payment_method, finalAmount, "pending", orderId]
+        );
+      } else {
+        await OrderRepository.createOrderPayment(connection, {
+          order_id: orderId,
+          payment_method,
+          payment_status: "pending",
+          amount: finalAmount,
+        });
+      }
+
+      if (payment_method === "cash") {
+        await connection.query(
+          "UPDATE orders SET status = 'completed', is_paid = 1, paid_at = NOW() WHERE id = ?",
+          [orderId]
+        );
+        
+        if (order_type === "dine-in") {
+          await connection.query(
+            "UPDATE tables SET status = 'available' WHERE id = ?",
+            [payload.table_id]
+          );
+        }
+
+        await connection.query(
+          "UPDATE order_payments SET payment_status = 'paid', paid_at = NOW() WHERE order_id = ?",
+          [orderId]
+        );
+      }
 
       if (discountIdApplied) {
         await OrderRepository.incrementDiscountUsedCount(connection, discountIdApplied);

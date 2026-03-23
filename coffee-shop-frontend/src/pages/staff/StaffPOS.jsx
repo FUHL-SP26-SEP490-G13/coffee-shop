@@ -10,6 +10,8 @@ import { Badge } from '../../components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Textarea } from '../../components/ui/textarea';
 import { toast } from 'sonner';
+import { ProductModal } from './TakeAwayOrder/ProductModal';
+import toppingService from '../../services/toppingService';
 import {
   Dialog,
   DialogContent,
@@ -42,8 +44,10 @@ export function StaffPOS() {
   const [products, setProducts] = useState([]);
   const [tables, setTables] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [toppings, setToppings] = useState([]);
   const [activeCategory, setActiveCategory] = useState('all');
   const [loading, setLoading] = useState(true);
+  const [selectedProduct, setSelectedProduct] = useState(null);
   const [note, setNote] = useState('');
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('cash'); // 'cash' | 'payos'
@@ -55,15 +59,18 @@ export function StaffPOS() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [productsRes, tablesRes, categoriesRes] = await Promise.all([
+        const [productsRes, tablesRes, categoriesRes, toppingsRes] = await Promise.all([
           productService.getAll({ limit: 100 }),
           tableService.getAll(),
-          categoryService.getAll({ is_deleted: 0 })
+          categoryService.getAll({ is_deleted: 0 }),
+          toppingService.getAll({ is_deleted: 0 })
         ]);
         setProducts(productsRes.data || []);
         setTables(tablesRes.data || []);
         const cats = categoriesRes.data?.data || categoriesRes.data || [];
         setCategories(cats.filter(c => !c.is_deleted));
+        const rawToppings = toppingsRes.data?.data || toppingsRes.data || [];
+        setToppings(rawToppings.filter((t) => !t.is_deleted).map((t) => ({ id: t.id, name: t.name, price: Number(t.price) })));
       } catch (error) {
         console.error("Lỗi khi truy xuất dữ liệu POS:", error);
         toast.error("Không tải được sản phẩm hoặc bàn");
@@ -95,6 +102,21 @@ export function StaffPOS() {
     });
   }, []);
 
+  const handleAddFromModal = (modalItem) => {
+    setCart((prevCart) => {
+      return [...prevCart, {
+        id: modalItem._uid,
+        productId: modalItem.product_size_id,
+        product: { name: modalItem.productName },
+        size: modalItem.size,
+        price: Number(modalItem.price),
+        toppings: (modalItem.toppings || []).map(t => ({ ...t, price: Number(t.price) })),
+        note: modalItem.note,
+        quantity: 1
+      }];
+    });
+  };
+
   const updateQuantity = useCallback((id, delta) => {
     setCart((prevCart) =>
       prevCart
@@ -104,8 +126,12 @@ export function StaffPOS() {
   }, []);
 
   const total = cart.reduce((acc, item) => {
-    const price = getProductPrice(item.product, item.size);
-    return acc + price * item.quantity;
+    const basePrice = Number(item.price || getProductPrice(item.product, item.size) || 0);
+    const toppingTotal = (item.toppings || []).reduce(
+      (s, t) => s + Number(t.price || 0) * (t.quantity || 1),
+      0
+    );
+    return acc + (basePrice + toppingTotal) * item.quantity;
   }, 0);
 
   const handleOpenPaymentModal = () => {
@@ -151,11 +177,14 @@ export function StaffPOS() {
 
     try {
       const items = cart.map((item) => {
-        const sizeItem = item.product.sizes?.find((s) => s.size === item.size);
+        const productSizeId = item.price 
+          ? item.productId 
+          : item.product.sizes?.find((s) => s.size === item.size)?.id;
+          
         return {
-          product_size_id: sizeItem ? sizeItem.id : null,
+          product_size_id: productSizeId,
           quantity: item.quantity,
-          toppings: item.toppings || [],
+          toppings: (item.toppings || []).map(t => ({ topping_id: t.topping_id || t.id, quantity: t.quantity || 1 })),
         };
       });
 
@@ -217,7 +246,7 @@ export function StaffPOS() {
     return filteredProducts.map((product) => (
       <button
         key={product.id}
-        onClick={() => addToCart(product)}
+        onClick={() => setSelectedProduct(product)}
         className="bg-card rounded-xl p-3 border border-border hover:shadow-md transition-all text-left"
       >
         <div className="aspect-square bg-secondary rounded-lg mb-2 overflow-hidden">
@@ -319,9 +348,20 @@ export function StaffPOS() {
           ) : (
             <div className="space-y-2">
               {cart.map((item) => (
-                <div key={item.id} className="bg-secondary rounded-lg p-2">
-                  <div className="text-sm mb-1 line-clamp-1">{item.product.name}</div>
-                  <div className="flex items-center justify-between">
+                <div key={item.id} className="bg-secondary rounded-lg p-2 flex flex-col gap-1">
+                  <div className="text-sm line-clamp-1 font-semibold">{item.productName || item.product?.name}</div>
+                  <div className="text-xs text-muted-foreground">Size: {item.size}</div>
+                  {item.toppings?.length > 0 && (
+                    <div className="text-xs text-orange-500 line-clamp-1">
+                      + {item.toppings.map((t) => `${t.name}×${t.quantity}`).join(', ')}
+                    </div>
+                  )}
+                  {item.note && (
+                    <div className="text-xs text-muted-foreground italic line-clamp-1">
+                      "{item.note}"
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between mt-1">
                     <div className="flex items-center gap-1">
                       <button
                         onClick={() => updateQuantity(item.id, -1)}
@@ -338,7 +378,10 @@ export function StaffPOS() {
                       </button>
                     </div>
                     <span className="text-sm text-primary">
-                      {formatVND(getProductPrice(item.product, item.size) * item.quantity)}
+                      {formatVND(
+                        (Number(item.price || getProductPrice(item.product, item.size) || 0) + 
+                        (item.toppings || []).reduce((s, t) => s + Number(t.price || 0) * (t.quantity || 1), 0)) * item.quantity
+                      )}
                     </span>
                   </div>
                 </div>
@@ -369,6 +412,16 @@ export function StaffPOS() {
           </Button>
         </div>
       </div>
+
+      {/* Product Modal */}
+      {selectedProduct && (
+        <ProductModal
+          product={selectedProduct}
+          toppings={toppings}
+          onClose={() => setSelectedProduct(null)}
+          onAdd={handleAddFromModal}
+        />
+      )}
 
       {/* Payment Modal */}
       <Dialog open={isPaymentModalOpen} onOpenChange={setIsPaymentModalOpen}>
