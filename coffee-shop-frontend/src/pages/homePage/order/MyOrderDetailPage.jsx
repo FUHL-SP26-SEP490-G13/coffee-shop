@@ -4,7 +4,7 @@ import { Loader2, ArrowLeft, RotateCcw } from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
-import orderService from "@/services/orderService";
+import orderService from "@/services/orderOnlineService";
 import { handleBuyAgain } from "@/utils/handleBuyAgain";
 
 const defaultProductImage =

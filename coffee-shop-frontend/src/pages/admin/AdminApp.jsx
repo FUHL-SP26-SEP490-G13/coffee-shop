@@ -161,6 +161,11 @@ export default function AdminApp() {
     { path: "/admin/banners", icon: ImagePlus, label: "Quản lý quảng cáo" },
     { path: "/admin/tables", icon: LayoutGrid, label: "Quản lý bàn" },
     { path: "/admin/reviews", icon: MessageSquare, label: "Quản lý đánh giá" },
+    {
+      path: "/admin/receipt-settings",
+      icon: ClipboardList,
+      label: "Cấu hình hóa đơn",
+    },
     { path: "/admin/profile", icon: User, label: "Thông tin cá nhân" },
   ];
 

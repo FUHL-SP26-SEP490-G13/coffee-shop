@@ -54,13 +54,16 @@ export const API_ENDPOINTS = {
     MARK_AS_UNREAD: (recipientId) => `/notifications/me/${recipientId}/unread`,
     MARK_ALL_AS_UNREAD: '/notifications/me/unread-all',
   },
-  ORDERSLIST: {
-    CHECKOUT: '/orders/checkout',
-    MY_ORDERS: '/orders/my-orders',
-    MY_ORDER_DETAIL: (id) => `/orders/my-orders/${id}`,
-    CANCEL: (id) => `/orders/${id}/cancel`,
-    PAYOS_RETURN: '/orders/payos-return',
-    VALIDATE_DISCOUNT: '/orders/validate-discount',
+  ORDER_ONLINE: {
+    CHECKOUT: '/order-online/checkout',
+    MY_ORDERS: '/order-online/my-orders',
+    MY_ORDER_DETAIL: (id) => `/order-online/my-orders/${id}`,
+    STAFF_ORDER_DETAIL: (id) => `/order-online/${id}/staff-detail`,
+    CANCEL: (id) => `/order-online/${id}/cancel`,
+    STAFF_CANCEL: (id) => `/order-online/${id}/staff-cancel`,
+    CONFIRM_PREPARING: (id) => `/order-online/${id}/confirm-preparing`,
+    PAYOS_RETURN: '/order-online/payos-return',
+    VALIDATE_DISCOUNT: '/order-online/validate-discount',
     PAYMENT_LINK: '/create-payment-link',
   },
   PRODUCTSLIST: {
@@ -75,7 +78,7 @@ export const API_ENDPOINTS = {
     CHECK: (productId) => `/favorites/check/${productId}`,
     REMOVE: (productId) => `/favorites/${productId}`,
   },
-  ORDERS: '/orders',
+  ORDER_ONLINES: '/order-online',
   TOPPINGS: '/toppings',
   TOPPINGS_ADMIN: '/admin/toppings',
   AREAS: '/area',
@@ -84,7 +87,10 @@ export const API_ENDPOINTS = {
     BY_PRODUCT: (productId) => `/reviews/product/${productId}`,
     MY_REVIEW: (productId) => `/reviews/me/${productId}`,
   },
-
+  RECEIPT_SETTINGS: {
+    BASE: "/receipt-settings",
+    ADMIN: "/receipt-settings/admin",
+  },
   TAKEAWAY: {
     ORDERS: '/takeaway/orders',
     ORDER_BY_ID: (id) => `/takeaway/orders/${id}`,

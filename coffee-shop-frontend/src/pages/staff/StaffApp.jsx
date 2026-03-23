@@ -53,6 +53,7 @@ export function StaffApp() {
   const getCurrentPage = () => {
     const path = location.pathname;
     if (path.includes('takeaway')) return 'takeaway'; 
+    if(path.includes('delivery')) return 'delivery';
     if (path.includes('kitchen')) return 'kitchen';
     if (path.includes('tables')) return 'tables';
     if (path.includes('attendance')) return 'attendance';
@@ -72,6 +73,12 @@ export function StaffApp() {
       icon: ShoppingBag,
       label: 'Đặt mang đi',
       path: '/staff/takeaway',
+    },
+    {
+      id: 'delivery',
+      icon: ShoppingBag,
+      label: 'Đặt giao hàng',
+      path: '/staff/delivery',
     },
     { id: 'kitchen', icon: ChefHat, label: 'Bếp', path: '/staff/kitchen' },
     {
@@ -116,7 +123,9 @@ export function StaffApp() {
     const initNotifications = async () => {
       try {
         const profileRes = await authenticationService.getProfile();
-        const user = profileRes?.data || profileRes?.data?.data;
+        const user = profileRes?.data?.id
+          ? profileRes.data
+          : profileRes?.data?.data || profileRes?.data || null;
 
         if (user?.id) {
           if (!socket.connected) {
@@ -130,9 +139,14 @@ export function StaffApp() {
         }
 
         const notificationRes = await notificationService.getMine();
-        setNotifications(
-          notificationRes?.data?.data || notificationRes?.data || [],
-        );
+        const notificationList = Array.isArray(notificationRes?.data)
+          ? notificationRes.data
+          : Array.isArray(notificationRes?.data?.data)
+          ? notificationRes.data.data
+          : Array.isArray(notificationRes)
+          ? notificationRes
+          : [];
+        setNotifications(notificationList);
       } catch (error) {
         console.error('Init staff notifications error:', error);
       }
@@ -145,8 +159,9 @@ export function StaffApp() {
 
       setNotifications((prev) => {
         const list = Array.isArray(prev) ? prev : [];
+        const uniqueKey = data.recipient_id || `${data.id}-${data.user_id}`;
         const existed = list.some(
-          (item) => item.recipient_id === data.recipient_id,
+          (item) => (item.recipient_id || `${item.id}-${item.user_id}`) === uniqueKey,
         );
 
         if (existed) return list;
@@ -284,10 +299,9 @@ export function StaffApp() {
           fixed md:static inset-y-0 left-0 z-40
           w-64 bg-card border-r border-border flex flex-col
           transform transition-transform duration-300 ease-in-out
-          ${
-            mobileMenuOpen
-              ? 'translate-x-0'
-              : '-translate-x-full md:translate-x-0'
+          ${mobileMenuOpen
+            ? "translate-x-0"
+            : "-translate-x-full md:translate-x-0"
           }
         `}
       >
@@ -350,7 +364,7 @@ export function StaffApp() {
         </nav>
       </div>
 
-      <div className='flex-1 w-full md:w-auto overflow-auto'>
+      <div className={`flex-1 w-full md:w-auto ${currentPage === 'pos' ? 'overflow-hidden flex flex-col h-screen' : 'overflow-auto'}`}>
         <div
           ref={notificationRef}
           className='flex justify-end px-4 md:px-8 pt-4 md:pt-4 pb-0 relative'
@@ -429,7 +443,7 @@ export function StaffApp() {
           )}
         </div>
 
-        <div className='p-4 md:p-8 pt-2 md:pt-2'>
+        <div className={`p-4 md:p-8 pt-2 md:pt-2 ${currentPage === 'pos' ? 'flex-1 overflow-hidden flex flex-col' : ''}`}>
           <Outlet />
         </div>
       </div>

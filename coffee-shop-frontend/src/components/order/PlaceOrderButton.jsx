@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { cartService } from "@/services/cartService";
-import orderService from "@/services/orderService";
+import orderService from "@/services/orderOnlineService";
 import { validateOrderForm } from "@/utils/orderValidation";
 
 /**
