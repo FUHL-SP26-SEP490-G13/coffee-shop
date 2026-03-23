@@ -9,6 +9,12 @@ import { Badge } from '../../components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Textarea } from '../../components/ui/textarea';
 import { toast } from 'sonner';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "../../components/ui/dialog";
 
 const getProductPrice = (product, size = 'M') => {
   const sizeItem = product.sizes?.find((s) => s.size === size);
@@ -34,6 +40,12 @@ export function StaffPOS() {
   const [tables, setTables] = useState([]);
   const [loading, setLoading] = useState(true);
   const [note, setNote] = useState('');
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState('cash'); // 'cash' | 'payos'
+  const [discountCode, setDiscountCode] = useState('');
+  const [discountAmount, setDiscountAmount] = useState(0);
+  const [customerCash, setCustomerCash] = useState(0);
+  const [discountError, setDiscountError] = useState('');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -88,9 +100,44 @@ export function StaffPOS() {
     return acc + price * item.quantity;
   }, 0);
 
-  const handlePlaceOrder = async () => {
+  const handleOpenPaymentModal = () => {
     if (!selectedTable) {
       toast.error('Vui lòng chọn bàn');
+      return;
+    }
+    setDiscountAmount(0);
+    setDiscountCode('');
+    setDiscountError('');
+    setCustomerCash(total); // Reset to current total
+    setPaymentMethod('cash');
+    setIsPaymentModalOpen(true);
+  };
+
+  const handleApplyDiscount = async () => {
+    if (!discountCode.trim()) {
+      toast.error('Vui lòng nhập mã giảm giá');
+      return;
+    }
+    try {
+      const res = await orderService.validateDiscount({
+        code: discountCode.trim(),
+        order_amount: total,
+      });
+      setDiscountAmount(res.data.discount_amount);
+      setCustomerCash(total - res.data.discount_amount); // Update cash to new total
+      setDiscountError('');
+      toast.success('Áp dụng mã giảm giá thành công');
+    } catch (error) {
+      setDiscountError(error.response?.data?.message || 'Không áp dụng được mã');
+      setDiscountAmount(0);
+      setCustomerCash(total); // Reset to base total
+    }
+  };
+
+  const handleConfirmPayment = async () => {
+    const finalTotal = Math.max(0, total - discountAmount);
+    if (paymentMethod === 'cash' && customerCash < finalTotal) {
+      toast.error('Tiền khách đưa không đủ');
       return;
     }
 
@@ -109,20 +156,41 @@ export function StaffPOS() {
         return;
       }
 
-      await orderService.checkout({
+      const payload = {
         order_type: 'dine-in',
         table_id: Number(selectedTable),
-        payment_method: 'cash',
+        payment_method: paymentMethod,
         receiver_name: `Khách Bàn ${tables.find((t) => String(t.id) === selectedTable)?.code || ''}`,
         receiver_phone: '0000000000',
         items,
         note: note.trim() || undefined,
-      });
+        discount_code: discountAmount > 0 ? discountCode : undefined,
+      };
+
+      const res = await orderService.checkout(payload);
+
+      if (paymentMethod === 'payos') {
+        const orderId = res.data?.order_id || res.data?.id; 
+        if (orderId) {
+          const createRes = await orderService.createPaymentLink({
+            orderCode: orderId,
+            amount: finalTotal,
+            description: `Thanh toán ĐH #${orderId}`,
+          });
+          
+          if (createRes.data?.checkoutUrl) {
+            window.open(createRes.data.checkoutUrl, '_blank');
+          } else {
+            toast.error("Không tạo được link thanh toán QR");
+          }
+        }
+      }
 
       toast.success('Đơn hàng đã được đặt thành công.!');
       setCart([]);
       setSelectedTable('');
       setNote('');
+      setIsPaymentModalOpen(false);
     } catch (error) {
       console.error('Lỗi đặt hàng POS:', error);
       toast.error(error.response?.data?.message || 'Không đặt được hàng');
@@ -249,11 +317,144 @@ export function StaffPOS() {
               {formatVND(total)}
             </span>
           </div>
-          <Button onClick={handlePlaceOrder} className="w-full" disabled={cart.length === 0}>
+          <Button onClick={handleOpenPaymentModal} className="w-full" disabled={cart.length === 0}>
             Thanh toán
           </Button>
         </div>
       </div>
+
+      {/* Payment Modal */}
+      <Dialog open={isPaymentModalOpen} onOpenChange={setIsPaymentModalOpen}>
+        <DialogContent className="sm:max-w-md p-6">
+          <DialogHeader>
+            <DialogTitle className="text-gray-800 text-lg font-bold">Thanh toán</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-5">
+            {/* Order Summary */}
+            <div className="bg-gray-50 rounded-xl p-4 space-y-2">
+              <div className="flex justify-between text-gray-500 text-sm">
+                <span>Tổng tiền hàng</span>
+                <span>{formatVND(total)}</span>
+              </div>
+              {discountAmount > 0 && (
+                <div className="flex justify-between text-red-500 text-sm">
+                  <span>Mã giảm giá</span>
+                  <span>-{formatVND(discountAmount)}</span>
+                </div>
+              )}
+              <div className="flex justify-between font-bold text-base pt-2 border-t border-dashed">
+                <span>Khách cần trả</span>
+                <span className="text-orange-500">{formatVND(Math.max(0, total - discountAmount))}</span>
+              </div>
+            </div>
+
+            {/* Discount Code */}
+            <div>
+              <label className="text-xs font-semibold text-gray-400 block mb-1">MÃ GIẢM GIÁ</label>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Nhập mã giảm giá"
+                  value={discountCode}
+                  onChange={(e) => setDiscountCode(e.target.value)}
+                  className="bg-gray-50 border-gray-200"
+                />
+                <Button 
+                  onClick={handleApplyDiscount} 
+                  className="bg-orange-100 text-orange-400 hover:bg-orange-200 border-none px-4"
+                >
+                  Áp dụng
+                </Button>
+              </div>
+              {discountError && <p className="text-red-500 text-xs mt-1">{discountError}</p>}
+            </div>
+
+            {/* Payment Method */}
+            <div>
+              <label className="text-xs font-semibold text-gray-400 block mb-2">PHƯƠNG THỨC THANH TOÁN</label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => setPaymentMethod('cash')}
+                  className={`flex items-center justify-center gap-2 p-3 rounded-xl border-2 font-medium transition-all ${
+                    paymentMethod === 'cash'
+                      ? 'border-green-500 text-green-600 bg-green-50/50'
+                      : 'border-gray-200 text-gray-600'
+                  }`}
+                >
+                  <span className="text-lg">💵</span> Tiền mặt
+                </button>
+                <button
+                  onClick={() => setPaymentMethod('payos')}
+                  className={`flex items-center justify-center gap-2 p-3 rounded-xl border-2 font-medium transition-all ${
+                    paymentMethod === 'payos'
+                      ? 'border-green-500 text-green-600 bg-green-50/50'
+                      : 'border-gray-200 text-gray-600'
+                  }`}
+                >
+                  <span className="text-lg">💳</span> QR PayOS
+                </button>
+              </div>
+            </div>
+
+            {/* Cash Input & Presets (Only Cash) */}
+            {paymentMethod === 'cash' && (
+              <div className="space-y-4">
+                <div>
+                  <label className="text-xs font-semibold text-gray-400 block mb-1">TIỀN KHÁCH ĐƯA</label>
+                  <Input
+                    type="number"
+                    value={customerCash || ''}
+                    onChange={(e) => setCustomerCash(Number(e.target.value))}
+                    className="bg-gray-50 border-gray-200 text-lg font-bold"
+                  />
+                </div>
+
+                <div className="flex gap-2">
+                  {[Math.max(0, total - discountAmount), 200000, 500000]
+                    .filter((p) => p >= Math.max(0, total - discountAmount))
+                    .map((val) => (
+                      <button
+                        key={val}
+                        onClick={() => setCustomerCash(val)}
+                        className={`flex-1 p-2 rounded-full border text-sm font-medium transition-all ${
+                          customerCash === val
+                            ? 'border-green-500 text-green-600 bg-green-50'
+                            : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                        }`}
+                      >
+                        {formatVND(val).replace(' ₫', '').trim()}
+                      </button>
+                    ))}
+                </div>
+
+                <div className="bg-blue-50/50 rounded-xl p-3 flex justify-between items-center">
+                  <span className="text-gray-500 text-sm">Tiền thừa trả khách</span>
+                  <span className="text-blue-600 font-bold text-lg">
+                    {formatVND(Math.max(0, customerCash - Math.max(0, total - discountAmount)))}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Footer Buttons */}
+            <div className="flex gap-3 pt-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setIsPaymentModalOpen(false)} 
+                className="flex-1 rounded-xl border-gray-200"
+              >
+                Huỷ
+              </Button>
+              <Button 
+                onClick={handleConfirmPayment} 
+                className="flex-1 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold"
+              >
+                Thanh toán
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
