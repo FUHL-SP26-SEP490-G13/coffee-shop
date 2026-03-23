@@ -1,10 +1,10 @@
-const pool = require("../config/database");
+const pool = require('../config/database');
 
 class DiscountRepository {
-  async findAll({ page = 1, limit = 7, code = "", status = "" }) {
+  async findAll({ page = 1, limit = 7, code = '', status = '' }) {
     const offset = (page - 1) * limit;
 
-    const conditions = ["deleted_at IS NULL"];
+    const conditions = ['deleted_at IS NULL'];
     const params = [];
 
     if (code) {
@@ -21,20 +21,20 @@ class DiscountRepository {
       params.push(`%${cleanValue}%`, `%${cleanValue}%`, `%${cleanValue}%`);
     }
 
-    if (status === "active") {
-      conditions.push("valid_from <= NOW()");
-      conditions.push("(valid_until IS NULL OR valid_until > NOW())");
+    if (status === 'active') {
+      conditions.push('valid_from <= NOW()');
+      conditions.push('(valid_until IS NULL OR valid_until > NOW())');
     }
 
-    if (status === "expired") {
-      conditions.push("valid_until IS NOT NULL AND valid_until <= NOW()");
+    if (status === 'expired') {
+      conditions.push('valid_until IS NOT NULL AND valid_until <= NOW()');
     }
 
-    if (status === "upcoming") {
-      conditions.push("valid_from > NOW()");
+    if (status === 'upcoming') {
+      conditions.push('valid_from > NOW()');
     }
 
-    const whereClause = `WHERE ${conditions.join(" AND ")}`;
+    const whereClause = `WHERE ${conditions.join(' AND ')}`;
 
     const sql = `
       SELECT *
@@ -65,17 +65,32 @@ class DiscountRepository {
 
   async findById(id) {
     const [rows] = await pool.query(
-      "SELECT * FROM discount WHERE id = ? AND deleted_at IS NULL",
-      [id]
+      'SELECT * FROM discount WHERE id = ? AND deleted_at IS NULL',
+      [id],
     );
     return rows[0];
   }
 
   async findByCode(code) {
     const [rows] = await pool.query(
-      "SELECT id FROM discount WHERE LOWER(code) = LOWER(?) AND deleted_at IS NULL LIMIT 1",
-      [code]
+      'SELECT id FROM discount WHERE LOWER(code) = LOWER(?) AND deleted_at IS NULL LIMIT 1',
+      [code],
     );
+    return rows[0];
+  }
+
+  async findByCodeFull(code) {
+    const [rows] = await pool.query(
+      `
+    SELECT *
+    FROM discount
+    WHERE LOWER(code) = LOWER(?)
+      AND deleted_at IS NULL
+    LIMIT 1
+    `,
+      [code.trim()],
+    );
+
     return rows[0];
   }
 
@@ -114,52 +129,52 @@ class DiscountRepository {
     const values = [];
 
     if (data.code !== undefined) {
-      fields.push("code = ?");
+      fields.push('code = ?');
       values.push(data.code);
     }
 
     if (data.description !== undefined) {
-      fields.push("description = ?");
+      fields.push('description = ?');
       values.push(data.description ?? null);
     }
 
     if (data.percentage !== undefined) {
-      fields.push("percentage = ?");
+      fields.push('percentage = ?');
       values.push(data.percentage);
     }
 
     if (data.min_order_amount !== undefined) {
-      fields.push("min_order_amount = ?");
+      fields.push('min_order_amount = ?');
       values.push(data.min_order_amount);
     }
 
     if (data.max_discount_amount !== undefined) {
-      fields.push("max_discount_amount = ?");
+      fields.push('max_discount_amount = ?');
       values.push(data.max_discount_amount ?? null);
     }
 
     if (data.usage_limit !== undefined) {
-      fields.push("usage_limit = ?");
+      fields.push('usage_limit = ?');
       values.push(data.usage_limit ?? null);
     }
 
     if (data.valid_from !== undefined) {
-      fields.push("valid_from = ?");
+      fields.push('valid_from = ?');
       values.push(data.valid_from);
     }
 
     if (data.valid_until !== undefined) {
-      fields.push("valid_until = ?");
+      fields.push('valid_until = ?');
       values.push(data.valid_until ?? null);
     }
 
     if (fields.length === 0) {
-      throw new Error("Không có dữ liệu để cập nhật");
+      throw new Error('Không có dữ liệu để cập nhật');
     }
 
     const sql = `
       UPDATE discount
-      SET ${fields.join(", ")}
+      SET ${fields.join(', ')}
       WHERE id = ? AND deleted_at IS NULL
     `;
 

@@ -4,38 +4,76 @@ import { ToppingPicker } from './ToppingPicker';
 
 const fmt = (n) => Number(n).toLocaleString('vi-VN') + 'đ';
 const uid = () => Math.random().toString(36).slice(2, 9);
-
 const SIZE_ORDER = { S: 1, M: 2, L: 3 };
 
+// Vì tất cả sản phẩm được filter có size trước khi render,
+// trường hợp sizes rỗng gần như không xảy ra — nhưng giữ guard để an toàn.
 export function ProductModal({ product, toppings = [], onClose, onAdd }) {
-  // console.log(toppings)
+  if (!product.sizes || product.sizes.length === 0) {
+    return (
+      <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4'>
+        <div className='bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden'>
+          <div className='bg-gradient-to-r from-amber-500 to-orange-500 p-5 text-white flex justify-between items-start'>
+            <div>
+              <h3 className='font-bold text-lg'>{product.name}</h3>
+              <p className='text-amber-100 text-sm'>{product.category}</p>
+            </div>
+            <button
+              onClick={onClose}
+              className='w-8 h-8 rounded-full bg-white/20 flex items-center justify-center hover:bg-white/30'
+            >
+              <X size={16} />
+            </button>
+          </div>
+          <div className='p-6 text-center'>
+            <p className='text-gray-500 text-sm'>
+              Sản phẩm này chưa có size, không thể đặt.
+            </p>
+          </div>
+          <div className='px-5 pb-5'>
+            <button
+              onClick={onClose}
+              className='w-full py-2.5 rounded-xl bg-gray-100 text-gray-700 text-sm font-semibold hover:bg-gray-200'
+            >
+              Đóng
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
-  //sort sizes
+  return (
+    <ProductModalInner
+      product={product}
+      toppings={toppings}
+      onClose={onClose}
+      onAdd={onAdd}
+    />
+  );
+}
+
+// Inner — chứa toàn bộ hooks
+function ProductModalInner({ product, toppings, onClose, onAdd }) {
   const sortedSizes = useMemo(() => {
     return [...product.sizes].sort((a, b) => {
-      // Ưu tiên sort theo S M L
       if (SIZE_ORDER[a.size] && SIZE_ORDER[b.size]) {
         return SIZE_ORDER[a.size] - SIZE_ORDER[b.size];
       }
-      // sort theo giá
       return a.price - b.price;
     });
   }, [product.sizes]);
 
-  // Default chọn size
-  const [selectedSize, setSelectedSize] = useState(() => {
-    return sortedSizes.find((s) => s.size === 'M') || sortedSizes[0];
-  });
-
+  const [selectedSize, setSelectedSize] = useState(
+    () => sortedSizes.find((s) => s.size === 'M') || sortedSizes[0],
+  );
   const [selectedToppings, setSelectedToppings] = useState([]);
   const [note, setNote] = useState('');
 
-  // Tính tiền
   const toppingTotal = selectedToppings.reduce(
     (s, t) => s + t.price * t.quantity,
     0,
   );
-
   const total = selectedSize.price + toppingTotal;
 
   const handleAdd = () => {
@@ -78,7 +116,6 @@ export function ProductModal({ product, toppings = [], onClose, onAdd }) {
             <p className='text-xs font-semibold text-gray-500 uppercase mb-2'>
               Chọn size
             </p>
-
             <div className='flex gap-2'>
               {sortedSizes.map((s) => (
                 <button
@@ -131,7 +168,6 @@ export function ProductModal({ product, toppings = [], onClose, onAdd }) {
           >
             Huỷ
           </button>
-
           <button
             onClick={handleAdd}
             className='flex-[2] py-3 rounded-xl bg-amber-500 text-white font-semibold text-sm hover:bg-amber-600 flex items-center justify-center gap-2'

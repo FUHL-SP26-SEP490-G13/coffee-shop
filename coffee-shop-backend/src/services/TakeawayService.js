@@ -124,7 +124,7 @@ class TakeawayService {
     };
   }
 
-  // Trong class:
+  // payOS
   async _createPayosLink(orderId, amount, items) {
     if (!payOS) {
       throw new ErrorResponse(500, 'PayOS chưa được cấu hình');

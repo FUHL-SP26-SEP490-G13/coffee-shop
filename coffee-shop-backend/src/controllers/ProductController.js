@@ -21,7 +21,7 @@ class ProductController {
   async getAll(req, res, next) {
     try {
       const page = parseInt(req.query.page) || 1;
-      const limit = parseInt(req.query.limit) || 8;
+      const limit = parseInt(req.query.limit) || 12;
       const { status, sort, category_id } = req.query;
 
       if (page <= 0 || limit <= 0) {
