@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
-  Search,
   Plus,
   Minus,
   X,
@@ -12,6 +11,7 @@ import {
   Banknote,
   CreditCard,
 } from 'lucide-react';
+import { ProductGrid } from './TakeAwayOrder/ProductGrid';
 import { ProductModal } from './TakeAwayOrder/ProductModal';
 import { EditOrderModal } from './TakeAwayOrder/EditOrderModal';
 import { OrderCard } from './TakeAwayOrder/OrderCard';
@@ -19,31 +19,26 @@ import { CancelModal } from './TakeAwayOrder/CancelModal';
 import { ReceiptModal } from './TakeAwayOrder/ReceiptModal';
 import { CheckoutModal } from './TakeAwayOrder/CheckoutModal';
 import takeawayService from '@/services/takeAwayService';
-import productService from '@/services/productService';
 import categoryService from '@/services/categoryService';
 import toppingService from '@/services/toppingService';
-import productSizeService from '@/services/productSizeService';
 import { toast } from 'sonner';
 import QRDisplay from '../common/QRDisplay';
 
 const fmt = (n) => Number(n).toLocaleString('vi-VN') + ' đ';
-const uid = () => Math.random().toString(36).slice(2, 9);
 
 function TakeawayPOS() {
-  // ─── Menu state ──────────────────────────────────────────────────────────
-  const [products, setProducts] = useState([]);
+  // ─── Menu state ───────────────────────────────────────────────────────────
   const [categories, setCategories] = useState([]);
   const [toppings, setToppings] = useState([]);
-  const [menuLoading, setMenuLoading] = useState(true);
-  const [search, setSearch] = useState('');
+  const [metaLoading, setMetaLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState('all');
 
-  // ─── Cart state ──────────────────────────────────────────────────────────
+  // ─── Cart state ───────────────────────────────────────────────────────────
   const [cart, setCart] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState(null);
-  const [showCheckout, setShowCheckout] = useState(false); // modal thanh toán
+  const [showCheckout, setShowCheckout] = useState(false);
 
-  // ─── Orders state ────────────────────────────────────────────────────────
+  // ─── Orders state ─────────────────────────────────────────────────────────
   const [orders, setOrders] = useState([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [orderFilter, setOrderFilter] = useState('active');
@@ -52,59 +47,22 @@ function TakeawayPOS() {
   const [cancelLoading, setCancelLoading] = useState(false);
   const [viewingReceipt, setViewingReceipt] = useState(null);
 
-  // ─── Checkout state ──────────────────────────────────────────────────────
+  // ─── Checkout state ───────────────────────────────────────────────────────
   const [checkoutLoading, setCheckoutLoading] = useState(false);
-  const [checkoutResult, setCheckoutResult] = useState(null); // payos QR
+  const [checkoutResult, setCheckoutResult] = useState(null);
 
-  // ─── Load menu ────────────────────────────────────────────────────────────
+  // ─── Load categories + toppings ───────────────────────────────────────────
   useEffect(() => {
-    const loadMenu = async () => {
-      setMenuLoading(true);
+    const loadMeta = async () => {
+      setMetaLoading(true);
       try {
-        const [productsRes, categoriesRes, toppingsRes] = await Promise.all([
-          productService.getAll({ status: 'available', is_deleted: 0 }),
+        const [categoriesRes, toppingsRes] = await Promise.all([
           categoryService.getAll({ is_deleted: 0 }),
           toppingService.getAll({ is_deleted: 0 }),
         ]);
-
-        const rawProducts = productsRes.data?.data || productsRes.data || [];
         const rawCategories =
           categoriesRes.data?.data || categoriesRes.data || [];
         const rawToppings = toppingsRes.data?.data || toppingsRes.data || [];
-
-        const productsWithSizes = await Promise.all(
-          rawProducts.map(async (p) => {
-            try {
-              const sizesRes = await productSizeService.getByProduct(p.id);
-              const sizes = (sizesRes.data?.data || sizesRes.data || [])
-                .filter((s) => !s.is_deleted)
-                .map((s) => ({
-                  id: s.id,
-                  size: s.size,
-                  price: Number(s.price),
-                }));
-              const cat = rawCategories.find((c) => c.id === p.category_id);
-              const thumbnail = p.images?.find((img) => img.isThumbnail === 1);
-              return {
-                id: p.id,
-                name: p.name,
-                status: p.status,
-                image_url: thumbnail?.image_url || null,
-                category: cat?.name || '',
-                category_id: p.category_id,
-                sizes,
-              };
-            } catch {
-              return null;
-            }
-          }),
-        );
-
-        setProducts(
-          productsWithSizes.filter(
-            (p) => p && p.sizes.length > 0 && p.status === 'available',
-          ),
-        );
         setCategories(rawCategories.filter((c) => !c.is_deleted));
         setToppings(
           rawToppings
@@ -112,16 +70,16 @@ function TakeawayPOS() {
             .map((t) => ({ id: t.id, name: t.name, price: Number(t.price) })),
         );
       } catch (e) {
-        toast.error('Không tải được menu');
+        toast.error('Không tải được danh mục');
         console.error(e);
       } finally {
-        setMenuLoading(false);
+        setMetaLoading(false);
       }
     };
-    loadMenu();
+    loadMeta();
   }, []);
 
-  // ─── Load orders ─────────────────────────────────────────────────────────
+  // ─── Load orders ──────────────────────────────────────────────────────────
   const loadOrders = useCallback(async () => {
     setOrdersLoading(true);
     try {
@@ -159,13 +117,6 @@ function TakeawayPOS() {
         )
       : orders;
 
-  const filteredProducts = products.filter((p) => {
-    const matchCat =
-      activeCategory === 'all' || p.category_id === activeCategory;
-    const matchSearch = p.name.toLowerCase().includes(search.toLowerCase());
-    return matchCat && matchSearch;
-  });
-
   // ─── Cart helpers ─────────────────────────────────────────────────────────
   const addToCart = (item) => setCart((prev) => [...prev, item]);
   const removeFromCart = (id) =>
@@ -177,7 +128,7 @@ function TakeawayPOS() {
       ),
     );
 
-  // ─── Checkout (gọi từ CheckoutModal) ─────────────────────────────────────
+  // ─── Checkout ─────────────────────────────────────────────────────────────
   const handleCheckoutConfirm = async ({
     paymentMethod,
     discountCode,
@@ -292,110 +243,73 @@ function TakeawayPOS() {
     setEditingOrder(null);
   };
 
-  // ─── Keyboard: Enter để mở modal thanh toán ──────────────────────────────
+  // ─── Enter mở modal thanh toán ────────────────────────────────────────────
   useEffect(() => {
     const onKey = (e) => {
-      if (e.key === 'Enter' && !showCheckout && cart.length > 0) {
+      if (e.key === 'Enter' && !showCheckout && cart.length > 0)
         setShowCheckout(true);
-      }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [showCheckout, cart.length]);
 
-  // ─── Render ───────────────────────────────────────────────────────────────
   return (
-    <div className='flex h-full gap-0 -m-4 md:-m-8 -mt-2'>
-      {/* ════ CỘT TRÁI — Menu ════ */}
+    <div className='flex h-screen gap-0 -m-4 md:-m-8 -mt-2'>
+      {/*  CỘT TRÁI — Menu */}
       <div className='flex flex-col w-0 flex-[5] min-w-0 border-r border-gray-100'>
+        {/* Header */}
         <div className='px-5 pt-5 pb-3 border-b border-gray-100 shrink-0'>
-          <div className='flex items-center gap-2 mb-3'>
+          <div className='flex items-center gap-2'>
             <ShoppingBag size={20} className='text-amber-500' />
             <h2 className='font-bold text-gray-800 text-lg'>Đặt đồ mang đi</h2>
-          </div>
-          <div className='relative'>
-            <Search
-              size={15}
-              className='absolute left-3 top-2.5 text-gray-400'
-            />
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder='Tìm tên sản phẩm...'
-              className='w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 bg-gray-50'
-            />
           </div>
         </div>
 
         {/* Category tabs */}
-        <div className='flex gap-2 px-5 py-3 overflow-x-auto shrink-0 scrollbar-none'>
+        <div className='flex gap-2 px-5 py-3 overflow-x-auto shrink-0 scrollbar-none border-b border-gray-100'>
           <button
             onClick={() => setActiveCategory('all')}
-            className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${activeCategory === 'all' ? 'bg-amber-500 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+            className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
+              activeCategory === 'all'
+                ? 'bg-amber-500 text-white shadow-sm'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
           >
             Tất cả
           </button>
-          {categories.map((cat) => (
-            <button
-              key={cat.id}
-              onClick={() => setActiveCategory(cat.id)}
-              className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${activeCategory === cat.id ? 'bg-amber-500 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
-            >
-              {cat.name}
-            </button>
-          ))}
-        </div>
-
-        {/* Product grid */}
-        <div className='flex-1 overflow-y-auto px-5 pb-5'>
-          {menuLoading ? (
-            <div className='flex items-center justify-center h-full'>
-              <Loader2 size={28} className='animate-spin text-amber-400' />
-            </div>
-          ) : filteredProducts.length === 0 ? (
-            <div className='flex flex-col items-center justify-center h-full text-gray-300 gap-2'>
-              <Coffee size={40} />
-              <p className='text-sm'>Không tìm thấy sản phẩm</p>
-            </div>
-          ) : (
-            <div className='grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3'>
-              {filteredProducts.map((p) => (
+          {metaLoading
+            ? [1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className='h-7 w-16 rounded-full bg-gray-100 animate-pulse shrink-0'
+                />
+              ))
+            : categories.map((cat) => (
                 <button
-                  key={p.id}
-                  onClick={() => setSelectedProduct(p)}
-                  className='group bg-white rounded-2xl border-2 border-gray-100 p-3.5 text-left hover:border-amber-300 hover:shadow-md transition-all active:scale-95'
+                  key={cat.id}
+                  onClick={() => setActiveCategory(cat.id)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
+                    activeCategory === cat.id
+                      ? 'bg-amber-500 text-white shadow-sm'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
                 >
-                  <div className='w-full aspect-square rounded-xl overflow-hidden bg-gray-100 mb-3'>
-                    {p.image_url ? (
-                      <img
-                        src={p.image_url}
-                        alt={p.name}
-                        className='w-full h-full object-cover group-hover:scale-105 transition-transform duration-200'
-                      />
-                    ) : (
-                      <div className='w-full h-full flex items-center justify-center bg-gradient-to-br from-amber-50 to-orange-50 group-hover:from-amber-100 group-hover:to-orange-100 transition-all'>
-                        <Coffee size={28} className='text-amber-400' />
-                      </div>
-                    )}
-                  </div>
-                  <p className='text-sm font-semibold text-gray-800 line-clamp-2 leading-tight'>
-                    {p.name}
-                  </p>
-                  <p className='text-xs text-amber-600 font-medium mt-1'>
-                    {fmt(p.sizes[0].price)}
-                  </p>
-                  <div className='mt-2 w-full py-1.5 rounded-lg bg-amber-500 text-white text-xs font-semibold text-center opacity-0 group-hover:opacity-100 transition-all'>
-                    Chọn
-                  </div>
+                  {cat.name}
                 </button>
               ))}
-            </div>
-          )}
+        </div>
+
+        {/* ProductGrid — tự quản lý fetch + phân trang */}
+        <div className='flex-1 min-h-0'>
+          <ProductGrid
+            activeCategory={activeCategory}
+            onSelectProduct={setSelectedProduct}
+          />
         </div>
       </div>
 
-      {/* ════ CỘT GIỮA — Giỏ hàng ════ */}
-      <div className='flex flex-col w-0 flex-[3] min-w-0 border-r border-gray-100 bg-gray-50'>
+      {/*  CỘT GIỮA — Giỏ hàng */}
+      <div className='flex flex-col w-0 flex-[3] min-w-0 min-h-0 border-r border-gray-100 bg-gray-50'>
         <div className='px-4 pt-5 pb-3 border-b border-gray-100 bg-white shrink-0'>
           <h3 className='font-bold text-gray-800 flex items-center gap-2'>
             <ShoppingBag size={16} className='text-amber-500' />
@@ -408,7 +322,6 @@ function TakeawayPOS() {
           </h3>
         </div>
 
-        {/* Items */}
         <div className='flex-1 overflow-y-auto p-4 space-y-2 min-h-0'>
           {cart.length === 0 ? (
             <div className='flex flex-col items-center justify-center h-full text-gray-300 gap-3'>
@@ -487,7 +400,6 @@ function TakeawayPOS() {
           )}
         </div>
 
-        {/* ── Tổng + nút Thanh toán ── */}
         <div className='p-4 border-t border-gray-200 bg-white shrink-0 space-y-3'>
           <div className='flex justify-between items-center'>
             <span className='text-sm text-gray-500'>Tạm tính</span>
@@ -505,7 +417,7 @@ function TakeawayPOS() {
         </div>
       </div>
 
-      {/* ════ CỘT PHẢI — Đơn mang đi ════ */}
+      {/*  CỘT PHẢI — Đơn mang đi */}
       <div className='flex flex-col w-0 flex-[3] min-w-0'>
         <div className='px-4 pt-5 pb-3 border-b border-gray-100 shrink-0'>
           <div className='flex items-center justify-between mb-3'>
@@ -569,7 +481,7 @@ function TakeawayPOS() {
         </div>
       </div>
 
-      {/* ════ MODALS ════ */}
+      {/*  MODALS  */}
       {selectedProduct && (
         <ProductModal
           product={selectedProduct}
@@ -591,7 +503,6 @@ function TakeawayPOS() {
       {editingOrder && (
         <EditOrderModal
           order={editingOrder}
-          products={products}
           toppings={toppings}
           onClose={() => setEditingOrder(null)}
           onSave={handleEditSave}
@@ -621,7 +532,6 @@ function TakeawayPOS() {
             <div className='w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center mx-auto mb-4'>
               <CreditCard size={28} className='text-blue-600' />
             </div>
-
             <h3 className='font-bold text-lg text-gray-800'>
               Quét QR để thanh toán
             </h3>
@@ -629,19 +539,15 @@ function TakeawayPOS() {
               Đơn #{checkoutResult.order_id} ·{' '}
               {fmt(checkoutResult.total_amount)}
             </p>
-
-            {/* ── QR generate từ checkoutUrl ── */}
             <div className='mt-4 flex flex-col items-center gap-2'>
               <QRDisplay
                 url={checkoutResult.checkout_url}
-                qrString={checkoutResult.qr_code} 
+                qrString={checkoutResult.qr_code}
               />
               <p className='text-xs text-gray-400'>
                 Quét bằng app ngân hàng bất kỳ
               </p>
             </div>
-
-            {/* Link fallback nếu không quét được */}
             <a
               href={checkoutResult.checkout_url}
               target='_blank'
@@ -650,7 +556,6 @@ function TakeawayPOS() {
             >
               Hoặc mở link thanh toán →
             </a>
-
             <p className='text-xs text-gray-400 mt-3'>
               Sau khi khách thanh toán, đơn sẽ tự động cập nhật
             </p>
