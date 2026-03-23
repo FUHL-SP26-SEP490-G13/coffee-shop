@@ -20,6 +20,7 @@ const notificationRoutes = require("./notification.routes");
 const ingredientRoutes = require("./ingredient.routes");
 const productSizeRoutes = require("./productSize.routes");
 const orderOnlineRoutes = require("./orderOnline.routes");
+const orderRoutes = require("./order.routes");
 const favoriteRoutes = require("./favorite.routes");
 const reviewRoutes = require("./review.routes");
 const receiptSettingRoutes = require("./receiptSetting.routes");
@@ -52,6 +53,7 @@ router.use("/favorites", favoriteRoutes);
 router.use("/reviews", reviewRoutes);
 router.use("/receipt-settings", receiptSettingRoutes);
 router.use("/takeaway", takeawayRoutes);
+router.use("/orders", orderRoutes);
 
 
 // Health check endpoint

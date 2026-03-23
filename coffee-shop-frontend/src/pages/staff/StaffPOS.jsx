@@ -25,6 +25,8 @@ const getProductImage = (product) => {
   const thumbnail = product.images?.find((img) => img.isThumbnail === 1) || product.images?.[0];
   return thumbnail ? thumbnail.image_url : 'https://via.placeholder.com/150';
 };
+const CASH_SUGGESTIONS = [10000, 20000, 50000, 100000, 200000, 500000];
+
 const formatVND = (amount) => {
   return new Intl.NumberFormat('vi-VN', {
     style: 'currency',
@@ -226,6 +228,17 @@ export function StaffPOS() {
   }, [filteredProducts, addToCart]);
 
 
+  const suggestions = useMemo(() => {
+    const finalAmount = Math.max(0, total - discountAmount);
+    const base = [
+      finalAmount,
+      ...CASH_SUGGESTIONS.filter((v) => v > finalAmount),
+    ];
+    const roundUp = Math.ceil(finalAmount / 10000) * 10000;
+    if (!base.includes(roundUp)) base.splice(1, 0, roundUp);
+    return [...new Set(base)].slice(0, 4);
+  }, [total, discountAmount]);
+
   return (
     <div className="p-4 grid grid-cols-3 gap-4 h-full w-full">
       {/* Products */}
@@ -410,9 +423,7 @@ export function StaffPOS() {
                 </div>
 
                 <div className="flex gap-2">
-                  {[Math.max(0, total - discountAmount), 200000, 500000]
-                    .filter((p) => p >= Math.max(0, total - discountAmount))
-                    .map((val) => (
+                  {suggestions.map((val) => (
                       <button
                         key={val}
                         onClick={() => setCustomerCash(val)}
