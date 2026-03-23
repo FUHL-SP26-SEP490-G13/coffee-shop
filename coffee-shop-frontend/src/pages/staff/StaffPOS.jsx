@@ -3,6 +3,7 @@ import { Search, Plus, Minus } from 'lucide-react';
 import productService from '../../services/productService';
 import tableService from '../../services/tableService';
 import orderService from '../../services/orderService';
+import categoryService from '../../services/categoryService';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Badge } from '../../components/ui/badge';
@@ -40,6 +41,8 @@ export function StaffPOS() {
   const [searchQuery, setSearchQuery] = useState('');
   const [products, setProducts] = useState([]);
   const [tables, setTables] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [activeCategory, setActiveCategory] = useState('all');
   const [loading, setLoading] = useState(true);
   const [note, setNote] = useState('');
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
@@ -52,12 +55,15 @@ export function StaffPOS() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [productsRes, tablesRes] = await Promise.all([
+        const [productsRes, tablesRes, categoriesRes] = await Promise.all([
           productService.getAll({ limit: 100 }),
-          tableService.getAll()
+          tableService.getAll(),
+          categoryService.getAll({ is_deleted: 0 })
         ]);
         setProducts(productsRes.data || []);
         setTables(tablesRes.data || []);
+        const cats = categoriesRes.data?.data || categoriesRes.data || [];
+        setCategories(cats.filter(c => !c.is_deleted));
       } catch (error) {
         console.error("Lỗi khi truy xuất dữ liệu POS:", error);
         toast.error("Không tải được sản phẩm hoặc bàn");
@@ -200,10 +206,12 @@ export function StaffPOS() {
   };
 
   const filteredProducts = useMemo(() => {
-    return products.filter((p) =>
-      p.name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  }, [products, searchQuery]);
+    return products.filter((p) => {
+      const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesCategory = activeCategory === 'all' || p.category_id === activeCategory;
+      return matchesSearch && matchesCategory;
+    });
+  }, [products, searchQuery, activeCategory]);
 
   const productGrid = useMemo(() => {
     return filteredProducts.map((product) => (
@@ -249,8 +257,34 @@ export function StaffPOS() {
           placeholder="Tìm kiếm sản phẩm..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="mb-4"
+          className="mb-3"
         />
+
+        <div className="flex gap-2 overflow-x-auto pb-3 mb-3 scrollbar-none">
+          <button
+            onClick={() => setActiveCategory('all')}
+            className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
+              activeCategory === 'all'
+                ? 'bg-amber-500 text-white shadow-sm'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            Tất cả
+          </button>
+          {categories.map((cat) => (
+            <button
+              key={cat.id}
+              onClick={() => setActiveCategory(cat.id)}
+              className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
+                activeCategory === cat.id
+                  ? 'bg-amber-500 text-white shadow-sm'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              {cat.name}
+            </button>
+          ))}
+        </div>
 
         <div className="grid grid-cols-3 gap-3">
           {productGrid}
