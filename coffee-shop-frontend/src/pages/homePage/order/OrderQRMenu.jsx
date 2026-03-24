@@ -1,22 +1,21 @@
-
 import React, { useEffect, useState } from "react";
+import categoryService from "@/services/categoryService";
+import toppingService from "@/services/toppingService";
 import productService from "@/services/productService";
-import { data, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
 function CartBar({ count, onClick }) {
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-20 bg-white/95 border-t border-border shadow-lg px-4 py-3 flex items-center justify-between max-w-lg mx-auto w-full">
+    <div className="fixed bottom-0 left-0 right-0 z-20 bg-white/95 border-t shadow-lg px-4 py-3 flex items-center justify-between max-w-lg mx-auto w-full">
       <div className="flex items-center gap-2">
         <span className="inline-flex items-center justify-center rounded-full bg-primary text-white w-8 h-8 text-lg font-bold">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437m0 0A48.108 48.108 0 0116.5 6.75c2.185 0 4.313.144 6.428.427a1.125 1.125 0 01.972 1.12v9.383a2.25 2.25 0 01-2.25 2.25H6.75a2.25 2.25 0 01-2.25-2.25V5.272z" />
-          </svg>
+          🛒
         </span>
         <span className="font-semibold text-base">{count} món đã chọn</span>
       </div>
-      <Button size="lg" className="rounded-full px-6 font-bold shadow-md" onClick={onClick}>
+      <Button size="lg" className="rounded-full px-6 font-bold" onClick={onClick}>
         Xem giỏ hàng
       </Button>
     </div>
@@ -26,31 +25,61 @@ function CartBar({ count, onClick }) {
 export default function OrderQRMenu() {
   const [searchParams] = useSearchParams();
   const tableId = searchParams.get("table");
+
   const [menu, setMenu] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState([]);
   const [showCart, setShowCart] = useState(false);
+  const [toppingsList, setToppingsList] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState('all');
 
-
+  // Lấy danh sách category
   useEffect(() => {
-    setLoading(true);
-    productService.getAll()
-      .then(res => {
-        console.log("Fetched menu:", res);
-        
-        setMenu(res.data || []);
-      })
-      .catch(() => {
-        setMenu([]);
-      })
-      .finally(() => setLoading(false));
+    categoryService.getAll().then(res => {
+      setCategories(res?.data || res || []);
+    }).catch(() => setCategories([]));
   }, []);
 
+  // Lấy menu theo category, chỉ lấy sản phẩm available
+  useEffect(() => {
+    setLoading(true);
+    const params = { status: 'available' };
+    const fetchMenu = selectedCategory === 'all'
+      ? productService.getAll(params)
+      : productService.getByCategory(selectedCategory, params);
+    fetchMenu
+      .then((res) => {
+        setMenu(res?.data || res || []);
+      })
+      .catch(() => setMenu([]))
+      .finally(() => setLoading(false));
+  }, [selectedCategory]);
 
+  // Lấy danh sách topping khi mở modal giỏ hàng
+  useEffect(() => {
+    if (showCart) {
+      toppingService.getAll().then(res => {
+        setToppingsList(res?.data || res || []);
+      }).catch(() => setToppingsList([]));
+    }
+  }, [showCart]);
+
+  // ✅ CHỌN MÓN (safe data)
   const handleSelect = (item) => {
     setSelected((prev) => {
-      if (prev.find((i) => i.id === item.id)) return prev;
-      return [...prev, { ...item, qty: 1 }];
+      const id = item.id ?? item._id;
+      if (prev.find((i) => i.id === id)) return prev;
+
+      return [
+        ...prev,
+        {
+          id,
+          name: item.name || "Không tên",
+          // Không set size mặc định, user sẽ chọn trong select
+          qty: 1,
+        },
+      ];
     });
   };
 
@@ -58,97 +87,213 @@ export default function OrderQRMenu() {
     setSelected((prev) => prev.filter((i) => i.id !== item.id));
   };
 
-  const handleCartClick = () => setShowCart(true);
-  const handleCloseCart = () => setShowCart(false);
-
   return (
     <div className="max-w-lg mx-auto min-h-screen bg-white flex flex-col pb-24">
-      {/* Header nổi */}
-      <header className="sticky top-0 z-10 bg-white/95 border-b border-border py-4 px-4 flex flex-col items-center shadow-sm">
-        <h1 className="text-2xl font-bold tracking-tight mb-1">Menu bàn {tableId}</h1>
-        <div className="text-sm text-muted-foreground">Chạm để chọn món yêu thích!</div>
+      {/* HEADER + CATEGORY */}
+      <header className="sticky top-0 z-10 bg-white border-b py-4 px-4 shadow-sm">
+        <h1 className="text-xl font-bold text-center mb-2">Menu bàn {tableId}</h1>
+        {/* CATEGORY SCROLL */}
+        <div className="overflow-x-auto hide-scrollbar -mx-4 px-4 pb-1">
+          <div className="flex gap-2 w-max">
+            <button
+              className={`px-4 py-2 rounded-full border font-semibold whitespace-nowrap transition ${selectedCategory === 'all' ? 'bg-primary text-white border-primary' : 'bg-gray-100 text-gray-700 border-gray-200 hover:bg-primary/10'}`}
+              onClick={() => setSelectedCategory('all')}
+            >
+              Tất cả
+            </button>
+            {categories.map(cat => (
+              <button
+                key={cat.id || cat._id}
+                className={`px-4 py-2 rounded-full border font-semibold whitespace-nowrap transition ${selectedCategory === (cat.id || cat._id) ? 'bg-primary text-white border-primary' : 'bg-gray-100 text-gray-700 border-gray-200 hover:bg-primary/10'}`}
+                onClick={() => setSelectedCategory(cat.id || cat._id)}
+              >
+                {cat.name}
+              </button>
+            ))}
+          </div>
+        </div>
       </header>
 
-      <main className="flex-1 w-full px-2 pt-2 pb-4">
+      {/* MENU */}
+      <main className="flex-1 px-2 py-4">
         {loading ? (
-          <div className="text-center py-10 text-lg animate-pulse">Đang tải menu...</div>
+          <div className="text-center py-10">Đang tải...</div>
         ) : (
           <div className="grid grid-cols-2 gap-4">
-            {menu?.map((item) => {
-              const isSelected = selected.some((i) => i.id === item.id);
-              return (
-                <Card
-                  key={item.id || Math.random()}
-                  className={`relative flex flex-col items-center p-4 rounded-2xl border-2 transition-all duration-200 ${isSelected ? "border-primary bg-primary/5 shadow-lg scale-105" : "hover:border-primary/60"}`}
-                  onClick={() => handleSelect(item)}
-                >
-                  <img
-                    src={item.img || item.images?.[0]?.url || "/assets/menu/default.jpg"}
-                    alt={item.name || "Sản phẩm"}
-                    className="w-20 h-20 object-cover rounded-xl mb-2 shadow-sm border"
-                    loading="lazy"
-                  />
-                  <div className="font-semibold text-lg text-center mb-1">{item.name || "Không tên"}</div>
-                  <div className="text-base text-primary font-bold mb-2">{(item.price || 0).toLocaleString()}đ</div>
-                  {isSelected ? (
+            {Array.isArray(menu) &&
+              menu.map((item, index) => {
+                const id = item.id ?? item._id ?? index;
+                const isSelected = selected.some((i) => i.id === id);
+
+                const img =
+                  item?.images?.[0]?.image_url ||
+                  item.img ||
+                  "/assets/menu/default.jpg";
+
+                return (
+                  <Card
+                    key={id}
+                    className={`p-4 text-center border-2 rounded-xl ${
+                      isSelected ? "border-primary bg-primary/10" : ""
+                    }`}
+                    onClick={() => handleSelect(item)}
+                  >
+                    <img
+                      src={img}
+                      alt={item.name}
+                      className="w-20 h-20 mx-auto mb-2 rounded object-cover"
+                    />
+                    <div className="font-semibold">
+                      {item.name || "Không tên"}
+                    </div>
+
                     <Button
-                      size="sm"
-                      className="rounded-full px-6 font-bold w-full bg-destructive text-white"
-                      onClick={e => { e.stopPropagation(); handleUnselect(item); }}
+                      className="mt-2 w-full"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        isSelected
+                          ? handleUnselect({ id })
+                          : handleSelect(item);
+                      }}
                     >
-                      Huỷ
+                      {isSelected ? "Huỷ" : "Chọn"}
                     </Button>
-                  ) : (
-                    <Button
-                      size="sm"
-                      className="rounded-full px-6 font-bold w-full bg-secondary text-primary"
-                      onClick={e => { e.stopPropagation(); handleSelect(item); }}
-                    >
-                      Chọn
-                    </Button>
-                  )}
-                </Card>
-              );
-            })}
-            {(!menu || menu.length === 0) && (
-              <div className="col-span-2 text-center text-muted-foreground">Không có sản phẩm nào</div>
+                  </Card>
+                );
+              })}
+
+            {menu.length === 0 && (
+              <div className="col-span-2 text-center">
+                Không có sản phẩm
+              </div>
             )}
           </div>
         )}
       </main>
 
-      {/* Bottom cart bar */}
+      {/* CART BAR */}
       {selected.length > 0 && (
-        <CartBar count={selected.length} onClick={handleCartClick} />
+        <CartBar count={selected.length} onClick={() => setShowCart(true)} />
       )}
 
-      {/* Cart modal (simple) */}
+      {/* CART MODAL */}
       {showCart && (
-        <div className="fixed inset-0 z-30 flex items-end justify-center bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-t-2xl shadow-xl w-full max-w-lg p-6 animate-in slide-in-from-bottom-10 fade-in">
-            <div className="flex items-center justify-between mb-4">
-              <div className="font-bold text-lg">Giỏ hàng ({selected.length})</div>
-              <button className="text-2xl px-2" onClick={handleCloseCart}>&times;</button>
-            </div>
-            <div className="divide-y">
-              {selected.map((item) => (
-                <div key={item.id} className="flex items-center justify-between py-3">
-                  <div>
-                    <div className="font-semibold">{item.name}</div>
-                    <div className="text-sm text-muted-foreground">{item.price.toLocaleString()}đ</div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white w-full max-w-lg mx-auto rounded-2xl shadow-2xl border border-gray-200 p-6 animate-in slide-in-from-bottom-10 fade-in relative">
+            <button onClick={() => setShowCart(false)} className="absolute top-3 right-3 text-2xl text-gray-400 hover:text-red-500 transition">&times;</button>
+            <h2 className="font-bold text-xl mb-4 text-center tracking-tight">🛒 Giỏ hàng</h2>
+            <div className="divide-y divide-gray-200 max-h-[60vh] overflow-y-auto mb-4">
+              {selected.map((item, idx) => {
+                const menuItem = menu.find(m => m.id === item.id || m._id === item.id);
+                const sizes = menuItem?.sizes || [];
+                const toppings = Array.isArray(menuItem?.toppings) && menuItem.toppings.length > 0 ? menuItem.toppings : toppingsList;
+                return (
+                  <div key={item.id} className="py-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="font-semibold text-base">{item.name}</div>
+                      <button onClick={() => handleUnselect(item)} className="text-red-500 text-sm px-2 py-1 rounded hover:bg-red-50 transition">Xoá</button>
+                    </div>
+                    {/* Chọn size */}
+                    {sizes.length > 0 && (
+                      <select
+                        value={item.size || ''}
+                        onChange={e => {
+                          const size = e.target.value;
+                          setSelected(sel =>
+                            sel.map((s, i) => i === idx ? { ...s, size } : s)
+                          );
+                        }}
+                        className="block w-full border border-gray-300 rounded-lg px-3 py-2 my-2 focus:outline-none focus:ring-2 focus:ring-primary"
+                      >
+                        <option value="" disabled>Chọn size</option>
+                        {sizes.map(sz => (
+                          <option key={sz.size} value={sz.size}>
+                            {sz.size} ({Number(sz.price).toLocaleString()}đ)
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                    {/* Chọn topping */}
+                    {toppings.length > 0 && (
+                      <div className="grid grid-cols-2 gap-2 my-2 w-full">
+                        {toppings.map(tp => {
+                          const toppingObj = (item.toppings || []).find(t => t.topping_id === tp.id);
+                          return (
+                            <label
+                              key={tp.id}
+                              className="flex items-center gap-2 text-sm border rounded-lg px-2 py-1 cursor-pointer hover:bg-gray-50 box-border w-full"
+                              style={{ minWidth: 0 }}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={!!toppingObj}
+                                onChange={e => {
+                                  setSelected(sel =>
+                                    sel.map((s, i) => {
+                                      if (i !== idx) return s;
+                                      let nextToppings = Array.isArray(s.toppings) ? [...s.toppings] : [];
+                                      if (e.target.checked) {
+                                        nextToppings.push({ topping_id: tp.id, quantity: 1, price: tp.price });
+                                      } else {
+                                        nextToppings = nextToppings.filter(t => t.topping_id !== tp.id);
+                                      }
+                                      return { ...s, toppings: nextToppings };
+                                    })
+                                  );
+                                }}
+                              />
+                              <span className="truncate">{tp.name}</span>
+                              <span className="ml-auto text-primary font-semibold whitespace-nowrap">+{Number(tp.price).toLocaleString()}đ</span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    )}
+                    {/* Ghi chú */}
+                    <input
+                      type="text"
+                      placeholder="Ghi chú cho món này"
+                      value={item.note || ""}
+                      onChange={e => {
+                        setSelected(sel =>
+                          sel.map((s, i) => i === idx ? { ...s, note: e.target.value } : s)
+                        );
+                      }}
+                      className="block w-full border border-gray-300 rounded-lg px-3 py-2 my-2 focus:outline-none focus:ring-2 focus:ring-primary"
+                    />
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold">x{item.qty}</span>
-                    <Button size="icon-xs" variant="destructive" className="ml-2" onClick={() => handleUnselect(item)}>
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.53-10.47a.75.75 0 00-1.06-1.06L10 8.94 7.53 6.47a.75.75 0 10-1.06 1.06L8.94 10l-2.47 2.47a.75.75 0 101.06 1.06L10 11.06l2.47 2.47a.75.75 0 101.06-1.06L11.06 10l2.47-2.47z" clipRule="evenodd" />
-                      </svg>
-                    </Button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
-            <Button className="w-full mt-6 rounded-full py-3 text-lg font-bold" size="lg" onClick={() => alert("Chức năng đặt món sẽ sớm có!")}>Đặt món</Button>
+            {/* Tổng tiền */}
+            <div className="flex items-center justify-between mt-4 mb-2 text-lg font-semibold">
+              <span>Tổng tiền:</span>
+              <span className="text-primary">
+                {(() => {
+                  // Tính tổng tiền: chỉ lấy giá theo size (product_size) và topping
+                  let total = 0;
+                  selected.forEach(item => {
+                    const menuItem = menu.find(m => m.id === item.id || m._id === item.id);
+                    let price = 0;
+                    if (item.size && Array.isArray(menuItem?.sizes)) {
+                      const sizeObj = menuItem.sizes.find(sz => sz.size === item.size);
+                      if (sizeObj) price = Number(sizeObj.price);
+                    }
+                    let itemTotal = price * (item.qty || 1);
+                    if (Array.isArray(item.toppings)) {
+                      item.toppings.forEach(tp => {
+                        itemTotal += (tp.price || 0) * (tp.quantity || 1);
+                      });
+                    }
+                    total += itemTotal;
+                  });
+                  return total.toLocaleString() + 'đ';
+                })()}
+              </span>
+            </div>
+            <Button className="w-full mt-2 py-3 rounded-full text-lg font-bold bg-primary text-white hover:bg-primary/90 transition">
+              Đặt món
+            </Button>
           </div>
         </div>
       )}
