@@ -1,35 +1,66 @@
 @import url('https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,400;0,700;1,400;1,700&display=swap');
 
-@media print {
-	body {
-		margin: 0 !important;
-	}
+.tiptap-editor-container {
+    font-family: 'Lato', sans-serif;
 }
 
-:root {
-	--ck-content-font-family: 'Lato';
+.tiptap {
+    outline: none !important;
+    min-height: 400px;
 }
 
-.main-container {
-	font-family: var(--ck-content-font-family);
-	width: fit-content;
-	margin-left: auto;
-	margin-right: auto;
+/* Restore basic styling inside the editor */
+.tiptap h1 {
+    font-size: 2em !important;
+    font-weight: bold !important;
+    margin-bottom: 0.5em !important;
+    margin-top: 1em !important;
 }
-
-.editor-container_classic-editor .editor-container__editor {
-	min-width: 795px;
-	max-width: 795px;
+.tiptap h2 {
+    font-size: 1.5em !important;
+    font-weight: bold !important;
+    margin-top: 1em !important;
+    margin-bottom: 0.5em !important;
 }
-
-.editor-container {
-	width: 100%;
+.tiptap h3 {
+    font-size: 1.17em !important;
+    font-weight: bold !important;
+    margin-top: 1em !important;
+    margin-bottom: 0.5em !important;
 }
-
-.editor-container .ck-editor {
-	width: 100%;
+.tiptap h4 {
+    font-size: 1em !important;
+    font-weight: bold !important;
+    margin-top: 1em !important;
+    margin-bottom: 0.5em !important;
 }
-
-.editor-container .ck-editor__editable_inline {
-	min-height: 260px;
+.tiptap p {
+    margin-bottom: 1em !important;
+    line-height: y;
+}
+.tiptap ul {
+    list-style-type: disc !important;
+    margin-bottom: 1em !important;
+    padding-left: 2em !important;
+}
+.tiptap ol {
+    list-style-type: decimal !important;
+    margin-bottom: 1em !important;
+    padding-left: 2em !important;
+}
+.tiptap li {
+    margin-bottom: 0.2em !important;
+    display: list-item !important;
+}
+.tiptap strong {
+    font-weight: bold !important;
+}
+.tiptap em {
+    font-style: italic !important;
+}
+.tiptap blockquote {
+    border-left: 4px solid #ccc !important;
+    padding-left: 1em !important;
+    color: #666 !important;
+    margin-bottom: 1em !important;
 }

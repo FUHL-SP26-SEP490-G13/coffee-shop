@@ -1,0 +1,10 @@
+{
+  "result1": {
+    "type": "message",
+    "text": "Chào bạn, rất vui được phục vụ. Bạn muốn gọi món hay xem menu ạ?"
+  },
+  "result2": {
+    "type": "message",
+    "text": "Đây là một số món phù hợp nhé:\n1. Con Cá - 12.000đ\n2. Matcha Latte - 35.000đ\n3. Cà phê đen - 30.000đ\n4. Nước cam - 42.000đ\n5. Trà sữa trân châu - 45.000đ\n6. Con Mèo - 12.000đ\n7. Cappuccino - 40.000đ\n8. Coffe Mực - 1.000đ"
+  }
+}

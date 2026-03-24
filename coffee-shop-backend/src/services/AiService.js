@@ -8,7 +8,7 @@ class AiService {
       apiKey: process.env.GEMINI_API_KEY,
     });
 
-    this.model = process.env.GEMINI_MODEL || "gemini-2.0-flash";
+    this.model = process.env.GEMINI_MODEL_PRIMARY || process.env.GEMINI_MODEL || "gemini-2.5-flash";
 
     this.lastCallMap = new Map();
     this.responseCache = new Map();
