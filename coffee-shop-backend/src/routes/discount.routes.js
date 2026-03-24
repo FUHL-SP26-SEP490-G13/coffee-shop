@@ -11,6 +11,8 @@ const {
 } = require('../validators/discountValidator');
 const { ROLES_STRING } = require('../config/constants');
 
+router.get('/public', DiscountController.getPublic);
+
 router.get(
   '/',
   authenticate,

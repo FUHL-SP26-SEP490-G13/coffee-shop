@@ -8,6 +8,97 @@ class OrderOnlineService {
     return error;
   }
 
+  async calculateCartAmounts(connection, items) {
+    const FlashSaleService = require("../services/FlashSaleService");
+    const activeFlashSale = await FlashSaleService.getCurrentActive();
+
+    let totalAmount = 0;
+    let regularAmount = 0;
+    let flashSaleAmount = 0;
+    const normalizedItems = [];
+
+    for (const item of items) {
+      const quantity = Number(item.quantity);
+      const toppings = Array.isArray(item.toppings) ? item.toppings : [];
+
+      if (!item.product_size_id || quantity <= 0) {
+        throw new ErrorResponse(400, "Dữ liệu sản phẩm trong giỏ hàng không hợp lệ");
+      }
+
+      const productSize = await OrderRepository.findProductSizeById(
+        connection,
+        item.product_size_id
+      );
+
+      if (!productSize) {
+        throw new ErrorResponse(400, "Sản phẩm không tồn tại");
+      }
+
+      if (productSize.status !== "available") {
+        throw new ErrorResponse(400, `Sản phẩm "${productSize.name}" hiện không khả dụng`);
+      }
+
+      let basePrice = Number(productSize.price);
+      let isFlashSaleApplied = false;
+      
+      // APPLY FLASH SALE FOR SPECIFIC ITEMS
+      if (activeFlashSale && activeFlashSale.product_ids && activeFlashSale.product_ids.includes(productSize.product_id)) {
+         const discountRate = Number(activeFlashSale.discount_percent) / 100;
+         basePrice = Math.round(basePrice * (1 - discountRate));
+         isFlashSaleApplied = true;
+      }
+      let toppingsTotal = 0;
+      const normalizedToppings = [];
+
+      for (const toppingItem of toppings) {
+        const toppingId = Number(toppingItem.topping_id);
+        const toppingQty = Math.max(1, Number(toppingItem.quantity) || 1);
+
+        if (!toppingId) {
+          throw new ErrorResponse(400, "Topping không hợp lệ");
+        }
+
+        const topping = await OrderRepository.findToppingById(
+          connection,
+          toppingId
+        );
+
+        if (!topping) {
+          throw new ErrorResponse(400, "Topping không tồn tại");
+        }
+
+        const toppingPrice = Number(topping.price || 0);
+        toppingsTotal += toppingPrice * toppingQty;
+
+        normalizedToppings.push({
+          topping_id: topping.id,
+          quantity: toppingQty,
+          price: toppingPrice,
+          name: topping.name,
+        });
+      }
+
+      const unitPrice = basePrice + toppingsTotal;
+      const itemTotal = unitPrice * quantity;
+      totalAmount += itemTotal;
+      
+      if (isFlashSaleApplied) {
+         flashSaleAmount += itemTotal;
+      } else {
+         regularAmount += itemTotal;
+      }
+
+      normalizedItems.push({
+        product_size_id: productSize.id,
+        quantity,
+        price: unitPrice,
+        toppings: normalizedToppings,
+      });
+    }
+
+    return { totalAmount, regularAmount, flashSaleAmount, normalizedItems };
+  }
+
   async checkout(payload, user) {
     console.log("CHECKOUT BODY:", JSON.stringify(payload, null, 2));
     const {
@@ -47,88 +138,10 @@ class OrderOnlineService {
     try {
       await connection.beginTransaction();
 
-      let activeOrderId = null;
-      let existingOrderAmount = 0;
-
-      if (order_type === "dine-in") {
-        const activeOrder = await OrderRepository.findActiveOrderByTableId(
-          connection,
-          payload.table_id
-        );
-        if (activeOrder) {
-          activeOrderId = activeOrder.id;
-          existingOrderAmount = Number(activeOrder.total_amount);
-        }
-      }
-
-      let totalAmount = 0;
-      const normalizedItems = [];
-
-      for (const item of items) {
-        console.log("ITEM RECEIVED:", item);
-        console.log("ITEM TOPPINGS:", item.toppings);
-        const quantity = Number(item.quantity);
-        const toppings = Array.isArray(item.toppings) ? item.toppings : [];
-
-        if (!item.product_size_id || quantity <= 0) {
-          throw new ErrorResponse(400, "Dữ liệu sản phẩm trong giỏ hàng không hợp lệ");
-        }
-
-        const productSize = await OrderRepository.findProductSizeById(
-          connection,
-          item.product_size_id
-        );
-
-        if (!productSize) {
-          throw new ErrorResponse(400, "Sản phẩm không tồn tại");
-        }
-
-        if (productSize.status !== "available") {
-          throw new ErrorResponse(400, `Sản phẩm "${productSize.name}" hiện không khả dụng`);
-        }
-
-        const basePrice = Number(productSize.price);
-        let toppingsTotal = 0;
-        const normalizedToppings = [];
-
-        for (const toppingItem of toppings) {
-          const toppingId = Number(toppingItem.topping_id);
-          const toppingQty = Math.max(1, Number(toppingItem.quantity) || 1);
-
-          if (!toppingId) {
-            throw new ErrorResponse(400, "Topping không hợp lệ");
-          }
-
-          const topping = await OrderRepository.findToppingById(
-            connection,
-            toppingId
-          );
-
-          if (!topping) {
-            throw new ErrorResponse(400, "Topping không tồn tại");
-          }
-
-          const toppingPrice = Number(topping.price || 0);
-          toppingsTotal += toppingPrice * toppingQty;
-
-          normalizedToppings.push({
-            topping_id: topping.id,
-            quantity: toppingQty,
-            price: toppingPrice,
-            name: topping.name,
-          });
-        }
-
-        const unitPrice = basePrice + toppingsTotal;
-        totalAmount += unitPrice * quantity;
-
-        normalizedItems.push({
-          product_size_id: productSize.id,
-          quantity,
-          price: unitPrice,
-          toppings: normalizedToppings,
-        });
-      }
+      const cartTotals = await this.calculateCartAmounts(connection, items);
+      let totalAmount = cartTotals.totalAmount;
+      let regularAmount = cartTotals.regularAmount;
+      const normalizedItems = cartTotals.normalizedItems;
 
       let discountAmount = 0;
       let discountCodeApplied = null;
@@ -168,14 +181,19 @@ class OrderOnlineService {
         }
 
         const minOrderAmount = Number(discount.min_order_amount || 0);
-        if (totalAmount < minOrderAmount) {
+        
+        if (regularAmount === 0) {
+           throw this.createBadRequestError("Không thể áp dụng mã giảm giá vì giỏ hàng của bạn chỉ toàn sản phẩm Flash Sale!");
+        }
+
+        if (regularAmount < minOrderAmount) {
           throw this.createBadRequestError(
-            `Đơn tối thiểu ${minOrderAmount.toLocaleString("vi-VN")}đ để áp dụng mã này`
+             `Voucher chỉ áp dụng cho sản phẩm Thường. Mua thêm ${((minOrderAmount - regularAmount)).toLocaleString("vi-VN")}đ sản phẩm nguyên giá để áp dụng!`
           );
         }
 
         const percentage = Number(discount.percentage || 0);
-        let calculatedDiscount = Math.round((totalAmount * percentage) / 100);
+        let calculatedDiscount = Math.round((regularAmount * percentage) / 100);
         const maxDiscount =
           discount.max_discount_amount === null ||
           discount.max_discount_amount === undefined
@@ -186,7 +204,7 @@ class OrderOnlineService {
           calculatedDiscount = Math.min(calculatedDiscount, maxDiscount);
         }
 
-        discountAmount = Math.min(totalAmount, Math.max(0, calculatedDiscount));
+        discountAmount = Math.min(regularAmount, Math.max(0, calculatedDiscount));
         discountCodeApplied = discount.code;
         discountIdApplied = discount.id;
       }
@@ -292,20 +310,22 @@ class OrderOnlineService {
     }
   }
 
-  async validateDiscount(code, orderAmount) {
+  async validateDiscount(code, items) {
     const normalizedCode = String(code || "").trim();
 
     if (!normalizedCode) {
       throw this.createBadRequestError("Vui lòng nhập mã giảm giá");
     }
 
-    const subtotal = Number(orderAmount || 0);
-    if (Number.isNaN(subtotal) || subtotal < 0) {
-      throw this.createBadRequestError("Giá trị đơn hàng không hợp lệ");
+    if (!Array.isArray(items) || items.length === 0) {
+      throw this.createBadRequestError("Giỏ hàng trống");
     }
 
     const connection = await OrderRepository.getConnection();
     try {
+      const cartTotals = await this.calculateCartAmounts(connection, items);
+      const subtotal = cartTotals.totalAmount;
+      const regularAmount = cartTotals.regularAmount;
       const discount = await OrderRepository.findDiscountByCodeForCheckout(
         connection,
         normalizedCode
@@ -338,14 +358,19 @@ class OrderOnlineService {
       }
 
       const minOrderAmount = Number(discount.min_order_amount || 0);
-      if (subtotal < minOrderAmount) {
+      
+      if (regularAmount === 0) {
+         throw this.createBadRequestError("Không thể áp dụng mã giảm giá vì giỏ hàng của bạn chỉ toàn sản phẩm Flash Sale!");
+      }
+
+      if (regularAmount < minOrderAmount) {
         throw this.createBadRequestError(
-          `Đơn tối thiểu ${minOrderAmount.toLocaleString("vi-VN")}đ để áp dụng mã này`
+          `Voucher chỉ áp dụng cho sản phẩm Thường. Mua thêm ${(minOrderAmount - regularAmount).toLocaleString("vi-VN")}đ sản phẩm nguyên giá để áp dụng!`
         );
       }
 
       const percentage = Number(discount.percentage || 0);
-      let discountAmount = Math.round((subtotal * percentage) / 100);
+      let calculatedDiscount = Math.round((regularAmount * percentage) / 100);
       const maxDiscount =
         discount.max_discount_amount === null ||
         discount.max_discount_amount === undefined
@@ -353,10 +378,10 @@ class OrderOnlineService {
           : Number(discount.max_discount_amount);
 
       if (maxDiscount !== null) {
-        discountAmount = Math.min(discountAmount, maxDiscount);
+        calculatedDiscount = Math.min(calculatedDiscount, maxDiscount);
       }
 
-      discountAmount = Math.min(subtotal, Math.max(0, discountAmount));
+      const discountAmount = Math.min(regularAmount, Math.max(0, calculatedDiscount));
 
       return {
         code: discount.code,

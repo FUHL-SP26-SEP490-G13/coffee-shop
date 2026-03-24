@@ -40,7 +40,7 @@ class CategoryRepository extends BaseRepository {
         c.*,
         COUNT(p.id) as product_count
       FROM category c
-      LEFT JOIN products p ON c.id = p.category_id AND p.status = 'available'
+      LEFT JOIN products p ON c.id = p.category_id AND p.status = 'available' AND p.is_deleted = 0
       WHERE c.id = ? AND c.is_deleted = 0
       GROUP BY c.id
     `;
@@ -58,7 +58,7 @@ class CategoryRepository extends BaseRepository {
         c.*,
         COUNT(p.id) as product_count
       FROM category c
-      LEFT JOIN products p ON c.id = p.category_id AND p.status = 'available'
+      LEFT JOIN products p ON c.id = p.category_id AND p.status = 'available' AND p.is_deleted = 0
       WHERE c.is_deleted = 0
       GROUP BY c.id
       ORDER BY c.name ASC

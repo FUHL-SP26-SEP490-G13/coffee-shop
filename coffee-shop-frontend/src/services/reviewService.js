@@ -15,6 +15,8 @@ const reviewService = {
       params,
       signal,
     }),
+
+  getPublic: () => axiosClient.get(`${API_ENDPOINTS.REVIEWS.BASE}/public`),
 };
 
 export default reviewService;

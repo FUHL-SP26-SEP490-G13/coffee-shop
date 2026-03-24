@@ -19,6 +19,15 @@ class DiscountController {
     }
   }
 
+  async getPublic(req, res, next) {
+    try {
+      const discounts = await DiscountService.getPublic();
+      return response.success(res, discounts);
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async getById(req, res, next) {
     try {
       const discount = await DiscountService.getById(req.params.id);
