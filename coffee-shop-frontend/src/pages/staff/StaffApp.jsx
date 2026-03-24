@@ -14,6 +14,7 @@ import {
   X,
   Bell,
   ShoppingBag,
+  LayoutDashboard,
 } from 'lucide-react';
 import {
   AlertDialog,
@@ -61,7 +62,8 @@ export function StaffApp() {
     if (path.includes('inventory')) return 'inventory';
     if (path.includes('requests')) return 'requests';
     if (path.includes('profile')) return 'profile';
-    return 'pos';
+    if (path.includes('pos')) return 'pos';
+    return 'dashboard';
   };
 
   const currentPage = getCurrentPage();
@@ -70,7 +72,8 @@ export function StaffApp() {
     {
       title: 'Bán Hàng & Phục Vụ',
       items: [
-        { id: 'pos', icon: LayoutGrid, label: 'POS', path: '/staff' },
+        { id: 'dashboard', icon: LayoutDashboard, label: 'Tổng quan', path: '/staff/dashboard' },
+        { id: 'pos', icon: LayoutGrid, label: 'Bán hàng (POS)', path: '/staff/pos' },
         { id: 'takeaway', icon: ShoppingBag, label: 'Đặt mang đi', path: '/staff/takeaway' },
         { id: 'delivery', icon: ShoppingBag, label: 'Đặt giao hàng', path: '/staff/delivery' },
         { id: 'kitchen', icon: ChefHat, label: 'Bếp', path: '/staff/kitchen' },
