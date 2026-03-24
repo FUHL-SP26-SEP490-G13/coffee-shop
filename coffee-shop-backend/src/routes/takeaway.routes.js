@@ -26,21 +26,19 @@ router.post(
   AsyncMiddleware(takeAwayController.createOrder),
 );
 
-// Sửa đơn (pending only, kể cả đã paid)
-router.put(
-  '/orders/:id',
-  authenticate,
-  authorize(STAFF_ROLES),
-  AsyncMiddleware(takeAwayController.updateOrder),
-);
+// router.put(
+//   '/orders/:id',
+//   authenticate,
+//   authorize(STAFF_ROLES),
+//   AsyncMiddleware(takeAwayController.updateOrder),
+// );
 
-// Hủy đơn (pending only, kể cả đã paid)
-router.delete(
-  '/orders/:id/cancel',
-  authenticate,
-  authorize(STAFF_ROLES),
-  AsyncMiddleware(takeAwayController.cancelOrder),
-);
+// router.delete(
+//   '/orders/:id/cancel',
+//   authenticate,
+//   authorize(STAFF_ROLES),
+//   AsyncMiddleware(takeAwayController.cancelOrder),
+// );
 
 // Lấy hóa đơn
 router.get(

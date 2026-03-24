@@ -133,12 +133,14 @@ function TakeawayPOS() {
     paymentMethod,
     discountCode,
     discountAmount,
+    receivedAmount,
   }) => {
     setCheckoutLoading(true);
     try {
       const payload = {
         payment_method: paymentMethod,
         discount_code: discountCode || '',
+        cash_received: paymentMethod === 'cash' ? receivedAmount || 0 : 0, 
         items: cart.map((item) => ({
           product_size_id: item.product_size_id,
           quantity: item.quantity,

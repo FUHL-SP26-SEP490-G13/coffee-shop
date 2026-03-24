@@ -233,17 +233,17 @@ class AdminDBRepository {
     WHERE status = 'pending'
   `);
 
-    const [[overtimeHours]] = await pool.query(`
-    SELECT IFNULL(SUM(hours),0) as total
-    FROM overtime_requests
-    WHERE status = 'approved'
-      AND overtimeDate >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
-  `);
+  //   const [[overtimeHours]] = await pool.query(`
+  //   SELECT IFNULL(SUM(hours),0) as total
+  //   FROM overtime_requests
+  //   WHERE status = 'approved'
+  //     AND overtimeDate >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+  // `);
 
     return {
       activeShifts: Number(activeShifts.total),
       pendingLeave: Number(pendingLeave.total),
-      overtimeHours: Number(overtimeHours.total),
+      // overtimeHours: Number(overtimeHours.total),
     };
   }
 

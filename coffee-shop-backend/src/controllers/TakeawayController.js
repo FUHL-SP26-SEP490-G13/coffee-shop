@@ -16,42 +16,43 @@ class TakeawayController {
     }
   }
 
-  // PUT /takeaway/orders/:id
-  async updateOrder(req, res, next) {
-    try {
-      const orderId = Number(req.params.id);
-      const result = await TakeawayService.updateTakeawayOrder(
-        orderId,
-        req.body,
-        req.user,
-      );
-      return res.json({
-        success: true,
-        data: result,
-        message: 'Cập nhật đơn thành công',
-      });
-    } catch (err) {
-      next(err);
-    }
-  }
+
+  // update 
+  // async updateOrder(req, res, next) {
+  //   try {
+  //     const orderId = Number(req.params.id);
+  //     const result = await TakeawayService.updateTakeawayOrder(
+  //       orderId,
+  //       req.body,
+  //       req.user,
+  //     );
+  //     return res.json({
+  //       success: true,
+  //       data: result,
+  //       message: 'Cập nhật đơn thành công',
+  //     });
+  //   } catch (err) {
+  //     next(err);
+  //   }
+  // }
 
   // DELETE /takeaway/orders/:id/cancel
-  async cancelOrder(req, res, next) {
-    try {
-      const orderId = Number(req.params.id);
-      const result = await TakeawayService.cancelTakeawayOrder(
-        orderId,
-        req.user,
-      );
-      return res.json({
-        success: true,
-        data: result,
-        message: 'Hủy đơn thành công',
-      });
-    } catch (err) {
-      next(err);
-    }
-  }
+  // async cancelOrder(req, res, next) {
+  //   try {
+  //     const orderId = Number(req.params.id);
+  //     const result = await TakeawayService.cancelTakeawayOrder(
+  //       orderId,
+  //       req.user,
+  //     );
+  //     return res.json({
+  //       success: true,
+  //       data: result,
+  //       message: 'Hủy đơn thành công',
+  //     });
+  //   } catch (err) {
+  //     next(err);
+  //   }
+  // }
 
   // POST /takeaway/orders/:id/payos-link
   async createPayosLink(req, res, next) {
