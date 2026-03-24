@@ -223,7 +223,21 @@ export default function BestSellerSection({
                           <p className="break-words text-xl font-bold leading-tight text-primary">
                             {getDisplayPrice(product)}
                           </p>
-                          <p className="text-xs text-muted-foreground">VNĐ</p>
+                        </div>
+
+                        <Link to={`/products/${product.id}`}>
+                          <h3 className="font-bold text-lg text-gray-900 mb-2 hover:text-amber-600 transition line-clamp-2">
+                            {product.name}
+                          </h3>
+                        </Link>
+
+                        <div className="pt-4 border-t border-gray-200 flex items-end justify-between gap-3">
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xl font-bold text-amber-600 leading-tight break-words">
+                              {getDisplayPrice(product)}
+                            </p>
+                            <p className="text-xs text-gray-500">VNĐ</p>
+                          </div>
                         </div>
                       </div>
                     </div>

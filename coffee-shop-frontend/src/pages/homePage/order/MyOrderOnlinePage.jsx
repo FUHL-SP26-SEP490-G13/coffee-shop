@@ -11,7 +11,9 @@ import {
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
-import orderService from "@/services/orderService";
+import { toast } from "sonner";
+import socket from "@/lib/socket";
+import orderService from "@/services/orderOnlineService";
 import { handleBuyAgain } from "@/utils/handleBuyAgain";
 
 const PAGE_SIZE = 5;
@@ -24,7 +26,7 @@ const STATUS_TABS = [
   "cancelled",
 ];
 
-export default function MyOrdersPage() {
+export default function MyOrderOnlinePage() {
   const navigate = useNavigate();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -47,6 +49,31 @@ export default function MyOrdersPage() {
     };
 
     fetchOrders();
+
+    // Socket listeners for real-time order updates
+    const handlePaymentCompleted = (data) => {
+      toast.success(`✅ Thanh toán thành công cho đơn #${data.order_id}`);
+      // Reload orders to reflect changes
+      fetchOrders();
+    };
+
+    const handleStatusChanged = (data) => {
+      toast.info(`📋 Đơn #${data.order_id} - ${data.message}`);
+      // Reload orders to reflect changes
+      fetchOrders();
+    };
+
+    if (!socket.connected) {
+      socket.connect();
+    }
+
+    socket.on("order:payment-completed", handlePaymentCompleted);
+    socket.on("order:status-changed", handleStatusChanged);
+
+    return () => {
+      socket.off("order:payment-completed", handlePaymentCompleted);
+      socket.off("order:status-changed", handleStatusChanged);
+    };
   }, []);
 
   const filteredOrders = useMemo(() => {

@@ -6,7 +6,7 @@ import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import orderService from "@/services/orderService";
+import orderService from "@/services/orderOnlineService";
 
 // PayOS trả về query params:
 // code=00 (thành công) / code khác (thất bại)
@@ -137,7 +137,7 @@ export default function PayOSReturnSuccess() {
 
             {isSuccess ? (
               <Button asChild variant="outline" className="flex-1 gap-2">
-                <Link to="/orders/my-orders">
+                <Link to="/my-orders">
                   <ReceiptText className="w-4 h-4" />
                   Xem đơn hàng
                 </Link>

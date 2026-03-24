@@ -272,8 +272,14 @@ export default function AdminDB() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {paymentMethod.map((x) => (
               <div key={x.method} className="border rounded-lg p-4">
-                <div className="text-sm text-muted-foreground">{x.method}</div>
-                <div className="text-xl font-semibold">
+                <div className="text-sm text-muted-foreground">
+                  {x.method === "cash"
+                    ? "Tiền mặt"
+                    : x.method === "payos"
+                    ? "Chuyển khoản bằng mã QR với dịch vụ PayOS"
+                    : x.method}
+                </div>
+                <div className="text-xl font-semibold text-green-600">
                   {formatMoney(x.revenue)}
                 </div>
               </div>

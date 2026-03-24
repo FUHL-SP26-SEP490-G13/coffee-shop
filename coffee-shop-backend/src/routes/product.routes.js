@@ -29,7 +29,7 @@ router.get('/search', validate(searchProductSchema, 'query'), ProductController.
 router.get('/category/:categoryId', ProductController.getByCategory);
 
 // Get sizes by product ID
-router.get('/:id/sizes', validate(productIdSchema, 'params'), ProductController.getSizesByProductId);
+// router.get('/:id/sizes', validate(productIdSchema, 'params'), ProductController.getSizesByProductId);
 
 router.get("/best-sellers", ProductController.getBestSellers);
 

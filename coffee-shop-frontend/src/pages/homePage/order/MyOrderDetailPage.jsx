@@ -4,7 +4,7 @@ import { Loader2, ArrowLeft, RotateCcw } from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
-import orderService from "@/services/orderService";
+import orderService from "@/services/orderOnlineService";
 import { handleBuyAgain } from "@/utils/handleBuyAgain";
 
 const defaultProductImage =
@@ -209,7 +209,7 @@ export default function MyOrderDetailPage() {
                     <p>
                       Phương thức thanh toán:{" "}
                       <span className="font-medium text-gray-900">
-                        {order.payment_method}
+                        {order.payment_method === "cash" ? "Tiền mặt" : order.payment_method === "payos" ? "Chuyển khoản bằng mã QR với dịch vụ PayOS" : order.payment_method}
                       </span>
                     </p>
                   )}

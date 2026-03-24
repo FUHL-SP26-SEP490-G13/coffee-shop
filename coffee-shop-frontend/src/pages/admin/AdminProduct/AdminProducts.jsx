@@ -123,7 +123,7 @@ export default function AdminProducts() {
     <div className='p-6'>
       <div className='flex items-center justify-between mb-6'>
         <div>
-          <h2 className='text-2xl mb-1'>Sản phẩm</h2>
+          <h2 className='text-2xl mb-1 font-bold'>Sản phẩm</h2>
           <p className='text-sm text-muted-foreground'>
             Quản lý sản phẩm quán cà phê
           </p>
@@ -203,11 +203,6 @@ export default function AdminProducts() {
                           <div className='text-sm font-medium'>
                             {product.name}
                           </div>
-                          {product.description && (
-                            <div className='text-xs text-muted-foreground line-clamp-1 max-w-[200px]'>
-                              {product.description}
-                            </div>
-                          )}
                         </div>
                       </div>
                     </TableCell>
@@ -293,7 +288,7 @@ export default function AdminProducts() {
 
       <div className='flex items-center justify-between mt-4'>
         <p className='text-sm text-muted-foreground'>
-          Trang {currentPage} / {totalPages}
+          Trang {currentPage} / {totalPages}, Tổng {pagination.total || 0} sản phẩm, mỗi trang {PAGE_SIZE} sản phẩm
         </p>
 
         <div className='flex gap-2'>
