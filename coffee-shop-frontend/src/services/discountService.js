@@ -1,5 +1,5 @@
-import axiosClient from "@/services/axiosClient";
-import { API_ENDPOINTS } from "@/constants";
+import axiosClient from '@/services/axiosClient';
+import { API_ENDPOINTS } from '@/constants';
 
 const discountService = {
   getAll: async (params = {}, signal) => {
@@ -10,8 +10,22 @@ const discountService = {
     return res.data;
   },
 
+  getPublic: async (signal) => {
+    const res = await axiosClient.get(`${API_ENDPOINTS.DISCOUNTS}/public`, {
+      signal,
+    });
+    return res.data;
+  },
+
   getById: async (id) => {
     const res = await axiosClient.get(`${API_ENDPOINTS.DISCOUNTS}/${id}`);
+    return res.data;
+  },
+
+  getByCode: async (code) => {
+    const res = await axiosClient.get(
+      `${API_ENDPOINTS.DISCOUNTS}/code/${code}`,
+    );
     return res.data;
   },
 

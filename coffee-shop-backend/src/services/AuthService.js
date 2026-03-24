@@ -1,5 +1,6 @@
 const { OAuth2Client } = require("google-auth-library");
 const UserRepository = require("../repositories/UserRepository");
+const ErrorResponse = require("../utils/ErrorResponse");
 const OAuthProviderRepository = require("../repositories/OAuthProviderRepository");
 const EmailVerificationRepository = require("../repositories/EmailVerificationRepository");
 const EmailService = require("./EmailService");
@@ -21,27 +22,27 @@ class AuthService {
    */
   validatePassword(password) {
     if (!password) {
-      throw new Error("Mật khẩu không được để trống");
+      throw new ErrorResponse(400, "Mật khẩu không được để trống");
     }
 
     if (password.length < 8 || password.length > 20) {
-      throw new Error("Mật khẩu phải từ 8-20 ký tự");
+      throw new ErrorResponse(400, "Mật khẩu phải từ 8-20 ký tự");
     }
 
     if (!/[a-z]/.test(password)) {
-      throw new Error("Mật khẩu phải chứa chữ thường (a-z)");
+      throw new ErrorResponse(400, "Mật khẩu phải chứa chữ thường (a-z)");
     }
 
     if (!/[A-Z]/.test(password)) {
-      throw new Error("Mật khẩu phải chứa chữ hoa (A-Z)");
+      throw new ErrorResponse(400, "Mật khẩu phải chứa chữ hoa (A-Z)");
     }
 
     if (!/[0-9]/.test(password)) {
-      throw new Error("Mật khẩu phải chứa số (0-9)");
+      throw new ErrorResponse(400, "Mật khẩu phải chứa số (0-9)");
     }
 
     if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
-      throw new Error("Mật khẩu phải chứa ký tự đặc biệt (!@#$...)");
+      throw new ErrorResponse(400, "Mật khẩu phải chứa ký tự đặc biệt (!@#$...)");
     }
   }
 
@@ -50,19 +51,19 @@ class AuthService {
    */
   validatePhone(phone) {
     if (!phone) {
-      throw new Error("Số điện thoại không được để trống");
+      throw new ErrorResponse(400, "Số điện thoại không được để trống");
     }
 
     const cleaned = phone.replace(/\s/g, "");
 
     // Check length (max 12 characters)
     if (cleaned.length > 12) {
-      throw new Error("Số điện thoại tối đa 12 ký tự");
+      throw new ErrorResponse(400, "Số điện thoại tối đa 12 ký tự");
     }
 
     // Check format: starts with 0 or +84, followed by 9-11 digits
     if (!/^(\+84|0)[0-9]{9,11}$/.test(cleaned)) {
-      throw new Error("Số điện thoại không hợp lệ (0xxx hoặc +84xxx)");
+      throw new ErrorResponse(400, "Số điện thoại không hợp lệ (0xxx hoặc +84xxx)");
     }
   }
 
@@ -71,12 +72,12 @@ class AuthService {
    */
   validateEmail(email) {
     if (!email) {
-      throw new Error("Email không được để trống");
+      throw new ErrorResponse(400, "Email không được để trống");
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      throw new Error("Email không hợp lệ");
+      throw new ErrorResponse(400, "Email không hợp lệ");
     }
   }
 
@@ -86,11 +87,11 @@ class AuthService {
   async register(data) {
     // Validate inputs
     if (!data.first_name) {
-      throw new Error("Họ không được để trống");
+      throw new ErrorResponse(400, "Họ không được để trống");
     }
 
     if (!data.last_name) {
-      throw new Error("Tên không được để trống");
+      throw new ErrorResponse(400, "Tên không được để trống");
     }
 
     this.validateEmail(data.email);
@@ -100,19 +101,19 @@ class AuthService {
     // Check if email exists
     const existingEmail = await UserRepository.findByEmail(data.email);
     if (existingEmail) {
-      throw new Error("Email đã được sử dụng");
+      throw new ErrorResponse(400, "Email đã được sử dụng");
     }
 
     // Check if phone exists
     const existingPhone = await UserRepository.findByPhone(data.phone);
     if (existingPhone) {
-      throw new Error("Số điện thoại đã được sử dụng");
+      throw new ErrorResponse(400, "Số điện thoại đã được sử dụng");
     }
 
     // Check if username exists
     const existingUsername = await UserRepository.findByUsername(data.username);
     if (existingUsername) {
-      throw new Error("Username đã được sử dụng");
+      throw new ErrorResponse(400, "Username đã được sử dụng");
     }
 
     // Hash password
@@ -159,11 +160,11 @@ class AuthService {
     const user = await UserRepository.findById(userId);
 
     if (!user) {
-      throw new Error("User không tồn tại");
+      throw new ErrorResponse(404, "User không tồn tại");
     }
 
     if (user.isVerified) {
-      throw new Error("Email đã được xác thực");
+      throw new ErrorResponse(400, "Email đã được xác thực");
     }
 
     // Generate 8-digit OTP
@@ -203,11 +204,11 @@ class AuthService {
   async verifyEmailOTP(userId, otp) {
     const user = await UserRepository.findById(userId);
     if (!user) {
-      throw new Error("User không tồn tại");
+      throw new ErrorResponse(404, "User không tồn tại");
     }
 
     if (user.isVerified) {
-      throw new Error("Email đã được xác thực");
+      throw new ErrorResponse(400, "Email đã được xác thực");
     }
 
     const record = await EmailVerificationRepository.findLatestValidByUser(
@@ -215,24 +216,24 @@ class AuthService {
     );
 
     if (!record) {
-      throw new Error("OTP không tồn tại");
+      throw new ErrorResponse(400, "OTP không tồn tại");
     }
 
     // Check expire
     if (new Date() > new Date(record.expires_at)) {
-      throw new Error("OTP đã hết hạn");
+      throw new ErrorResponse(400, "OTP đã hết hạn");
     }
 
     // Giới hạn số lần nhập sai
     if (record.failed_attempts >= 5) {
-      throw new Error("Bạn đã nhập sai OTP quá nhiều lần");
+      throw new ErrorResponse(400, "Bạn đã nhập sai OTP quá nhiều lần");
     }
 
     const isMatch = await comparePassword(otp, record.otp_hash);
 
     if (!isMatch) {
       await EmailVerificationRepository.incrementFailed(record.id);
-      throw new Error("OTP không đúng");
+      throw new ErrorResponse(400, "OTP không đúng");
     }
 
     // Thành công
@@ -285,19 +286,19 @@ class AuthService {
     }
 
     if (!user) {
-      throw new Error("Email/Username hoặc mật khẩu không đúng");
+      throw new ErrorResponse(400, "Email/Username hoặc mật khẩu không đúng");
     }
 
     // Check if user is active
     if (!user.isActive) {
-      throw new Error("Tài khoản đã bị vô hiệu hóa");
+      throw new ErrorResponse(400, "Tài khoản đã bị vô hiệu hóa");
     }
 
     // Compare password
     const isPasswordValid = await comparePassword(password, user.password);
 
     if (!isPasswordValid) {
-      throw new Error("Email/Username hoặc mật khẩu không đúng");
+      throw new ErrorResponse(400, "Email/Username hoặc mật khẩu không đúng");
     }
 
     // Get user with role
@@ -431,7 +432,7 @@ class AuthService {
         req.end();
       });
     } catch (error) {
-      throw new Error("Không thể lấy thông tin user từ Google");
+      throw new ErrorResponse(500, "Không thể lấy thông tin user từ Google");
     }
   }
 
@@ -440,7 +441,7 @@ class AuthService {
    */
   async loginWithGoogle(idToken, accessToken) {
     if (!idToken && !accessToken) {
-      throw new Error("Thiếu Google idToken hoặc accessToken");
+      throw new ErrorResponse(400, "Thiếu Google idToken hoặc accessToken");
     }
 
     let payload = null;
@@ -476,7 +477,7 @@ class AuthService {
         };
       } catch (err) {
         console.error("❌ FETCH ERROR MESSAGE:", err.message);
-        throw new Error("Không thể xác thực với Google");
+        throw new ErrorResponse(500, "Không thể xác thực với Google");
       }
     }
 
@@ -489,7 +490,7 @@ class AuthService {
     }
 
     if (!payload.email_verified) {
-      throw new Error("Email Google chưa xác thực");
+      throw new ErrorResponse(400, "Email Google chưa xác thực");
     }
 
     const { email, given_name, family_name, sub } = payload;
@@ -528,7 +529,7 @@ class AuthService {
     }
 
     if (!user.isActive) {
-      throw new Error("Tài khoản đã bị vô hiệu hóa");
+      throw new ErrorResponse(400, "Tài khoản đã bị vô hiệu hóa");
     }
 
     // 7️⃣ Lấy user + role
@@ -563,18 +564,18 @@ class AuthService {
     const decoded = verifyRefreshToken(refreshToken);
 
     if (!decoded) {
-      throw new Error("Refresh token không hợp lệ");
+      throw new ErrorResponse(400, "Refresh token không hợp lệ");
     }
 
     // Get user
     const user = await UserRepository.findById(decoded.id);
 
     if (!user) {
-      throw new Error("User không tồn tại");
+      throw new ErrorResponse(404, "User không tồn tại");
     }
 
     if (!user.isActive) {
-      throw new Error("Tài khoản đã bị vô hiệu hóa");
+      throw new ErrorResponse(400, "Tài khoản đã bị vô hiệu hóa");
     }
 
     // Generate new tokens
@@ -601,7 +602,7 @@ class AuthService {
     const user = await UserRepository.findByIdWithRole(userId);
 
     if (!user) {
-      throw new Error("User không tồn tại");
+      throw new ErrorResponse(404, "User không tồn tại");
     }
 
     // Remove password from response
@@ -618,14 +619,14 @@ class AuthService {
     const user = await UserRepository.findById(userId);
 
     if (!user) {
-      throw new Error("User không tồn tại");
+      throw new ErrorResponse(404, "User không tồn tại");
     }
 
     // Verify old password
     const isPasswordValid = await comparePassword(oldPassword, user.password);
 
     if (!isPasswordValid) {
-      throw new Error("Mật khẩu cũ không đúng");
+      throw new ErrorResponse(400, "Mật khẩu cũ không đúng");
     }
 
     // Validate new password
@@ -648,14 +649,14 @@ class AuthService {
     const user = await UserRepository.findById(userId);
 
     if (!user) {
-      throw new Error("User không tồn tại");
+      throw new ErrorResponse(404, "User không tồn tại");
     }
 
     // If updating phone, check if it's already used by another user
     if (data.phone && data.phone !== user.phone) {
       const phoneExists = await UserRepository.phoneExists(data.phone, userId);
       if (phoneExists) {
-        throw new Error("Số điện thoại đã được sử dụng");
+        throw new ErrorResponse(400, "Số điện thoại đã được sử dụng");
       }
     }
 
@@ -719,7 +720,7 @@ class AuthService {
     const user = await UserRepository.findByEmail(email);
 
     if (!user) {
-      throw new Error("Email không tồn tại");
+      throw new ErrorResponse(404, "Email không tồn tại");
     }
 
     const record = await EmailVerificationRepository.findLatestValidByUser(
@@ -727,24 +728,24 @@ class AuthService {
     );
 
     if (!record) {
-      throw new Error("OTP không tồn tại hoặc đã hết hạn");
+      throw new ErrorResponse(400, "OTP không tồn tại hoặc đã hết hạn");
     }
 
     // Check expire
     if (new Date() > new Date(record.expires_at)) {
-      throw new Error("OTP đã hết hạn");
+      throw new ErrorResponse(400, "OTP đã hết hạn");
     }
 
     // Giới hạn số lần nhập sai
     if (record.failed_attempts >= 5) {
-      throw new Error("Bạn đã nhập sai OTP quá nhiều lần");
+      throw new ErrorResponse(400, "Bạn đã nhập sai OTP quá nhiều lần");
     }
 
     const isMatch = await comparePassword(otp, record.otp_hash);
 
     if (!isMatch) {
       await EmailVerificationRepository.incrementFailed(record.id);
-      throw new Error("OTP không đúng");
+      throw new ErrorResponse(400, "OTP không đúng");
     }
 
     // OTP verified successfully - do NOT mark as used yet
@@ -761,7 +762,7 @@ class AuthService {
   async resetPasswordWithOtp(email, otp, newPassword, confirmPassword) {
     // Verify new password matches confirm password
     if (newPassword !== confirmPassword) {
-      throw new Error("Mật khẩu xác thực không khớp");
+      throw new ErrorResponse(400, "Mật khẩu xác thực không khớp");
     }
 
     // Validate new password strength
@@ -770,7 +771,7 @@ class AuthService {
     const user = await UserRepository.findByEmail(email);
 
     if (!user) {
-      throw new Error("Email không tồn tại");
+      throw new ErrorResponse(404, "Email không tồn tại");
     }
 
     // Get the latest OTP record for this user
@@ -779,12 +780,12 @@ class AuthService {
     );
 
     if (!record) {
-      throw new Error("OTP không tồn tại");
+      throw new ErrorResponse(400, "OTP không tồn tại");
     }
 
     // Check expire
     if (new Date() > new Date(record.expires_at)) {
-      throw new Error("OTP đã hết hạn");
+      throw new ErrorResponse(400, "OTP đã hết hạn");
     }
 
     // Verify OTP is correct
@@ -792,7 +793,7 @@ class AuthService {
 
     if (!isMatch) {
       await EmailVerificationRepository.incrementFailed(record.id);
-      throw new Error("OTP không đúng");
+      throw new ErrorResponse(400, "OTP không đúng");
     }
 
     // Hash new password

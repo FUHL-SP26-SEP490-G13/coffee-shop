@@ -1,4 +1,6 @@
 const TableService = require('../services/TableService');
+const NotificationService = require('../services/NotificationService');
+const { ROLES } = require('../config/constants');
 // const TableReservationService = require('../services/TableReservationService');
 
 class TableController {
@@ -53,7 +55,51 @@ class TableController {
    */
   async updateTable(req, res, next) {
     try {
-      const table = await TableService.updateTable(req.params.id, req.body);
+      const { id } = req.params;
+      const { status } = req.body;
+
+      // Get old table state to check for status change
+      const oldTable = await TableService.getTableById(id);
+      
+      const table = await TableService.updateTable(id, req.body);
+
+      // Trigger notification if status changes to "occupied" (Có khách)
+      if (status === "occupied" && oldTable.status !== "occupied") {
+        const io = req.app.get("io");
+        const result = await NotificationService.createForRole(ROLES.MANAGER, {
+          type: "table_status",
+          title: `Bàn ${table.code} có khách`,
+          message: `Bàn ${table.code} đã cập nhật trạng thái là có khách`,
+          link: "/admin/tables",
+          entity_type: "table",
+          entity_id: table.id,
+        });
+
+        if (io && result?.users?.length) {
+          result.users.forEach((user) => {
+            const recipient = result.recipients.find(
+              (r) => r.user_id === user.id
+            );
+            if (!recipient) return;
+
+            io.to(`user-${user.id}`).emit("admin:notification", {
+              recipient_id: recipient.id,
+              user_id: user.id,
+              id: result.notification.id,
+              type: result.notification.type,
+              title: result.notification.title,
+              message: result.notification.message,
+              link: result.notification.link,
+              entity_type: result.notification.entity_type,
+              entity_id: result.notification.entity_id,
+              created_at: result.notification.created_at,
+              is_read: recipient.is_read,
+              read_at: recipient.read_at,
+            });
+          });
+        }
+      }
+
       res.json({
         success: true,
         data: table,

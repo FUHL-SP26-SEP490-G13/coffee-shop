@@ -1,0 +1,512 @@
+const OrderRepository = require("../repositories/OrderRepository");
+const ErrorResponse = require("../utils/ErrorResponse");
+
+class OrderOnlineService {
+  createBadRequestError(message) {
+    const error = new Error(message);
+    error.statusCode = 400;
+    return error;
+  }
+
+  async calculateCartAmounts(connection, items) {
+    const FlashSaleService = require("../services/FlashSaleService");
+    const activeFlashSale = await FlashSaleService.getCurrentActive();
+
+    let totalAmount = 0;
+    let regularAmount = 0;
+    let flashSaleAmount = 0;
+    const normalizedItems = [];
+
+    for (const item of items) {
+      const quantity = Number(item.quantity);
+      const toppings = Array.isArray(item.toppings) ? item.toppings : [];
+
+      if (!item.product_size_id || quantity <= 0) {
+        throw new ErrorResponse(400, "Dữ liệu sản phẩm trong giỏ hàng không hợp lệ");
+      }
+
+      const productSize = await OrderRepository.findProductSizeById(
+        connection,
+        item.product_size_id
+      );
+
+      if (!productSize) {
+        throw new ErrorResponse(400, "Sản phẩm không tồn tại");
+      }
+
+      if (productSize.status !== "available") {
+        throw new ErrorResponse(400, `Sản phẩm "${productSize.name}" hiện không khả dụng`);
+      }
+
+      let basePrice = Number(productSize.price);
+      let isFlashSaleApplied = false;
+      
+      // APPLY FLASH SALE FOR SPECIFIC ITEMS
+      if (activeFlashSale && activeFlashSale.product_ids && activeFlashSale.product_ids.includes(productSize.product_id)) {
+         const discountRate = Number(activeFlashSale.discount_percent) / 100;
+         basePrice = Math.round(basePrice * (1 - discountRate));
+         isFlashSaleApplied = true;
+      }
+      let toppingsTotal = 0;
+      const normalizedToppings = [];
+
+      for (const toppingItem of toppings) {
+        const toppingId = Number(toppingItem.topping_id);
+        const toppingQty = Math.max(1, Number(toppingItem.quantity) || 1);
+
+        if (!toppingId) {
+          throw new ErrorResponse(400, "Topping không hợp lệ");
+        }
+
+        const topping = await OrderRepository.findToppingById(
+          connection,
+          toppingId
+        );
+
+        if (!topping) {
+          throw new ErrorResponse(400, "Topping không tồn tại");
+        }
+
+        const toppingPrice = Number(topping.price || 0);
+        toppingsTotal += toppingPrice * toppingQty;
+
+        normalizedToppings.push({
+          topping_id: topping.id,
+          quantity: toppingQty,
+          price: toppingPrice,
+          name: topping.name,
+        });
+      }
+
+      const unitPrice = basePrice + toppingsTotal;
+      const itemTotal = unitPrice * quantity;
+      totalAmount += itemTotal;
+      
+      if (isFlashSaleApplied) {
+         flashSaleAmount += itemTotal;
+      } else {
+         regularAmount += itemTotal;
+      }
+
+      normalizedItems.push({
+        product_size_id: productSize.id,
+        quantity,
+        price: unitPrice,
+        toppings: normalizedToppings,
+      });
+    }
+
+    return { totalAmount, regularAmount, flashSaleAmount, normalizedItems };
+  }
+
+  async checkout(payload, user) {
+    console.log("CHECKOUT BODY:", JSON.stringify(payload, null, 2));
+    const {
+      order_type,
+      payment_method,
+      receiver_name,
+      receiver_phone,
+      receiver_email,
+      address,
+      note,
+      discount_code,
+      items,
+    } = payload;
+
+    if (!Array.isArray(items) || items.length === 0) {
+      throw new ErrorResponse(400, "Giỏ hàng trống");
+    }
+
+    if (!["delivery", "takeaway"].includes(order_type)) {
+      throw new ErrorResponse(400, "Loại đơn hàng không hợp lệ");
+    }
+
+    if (!["cash", "payos"].includes(payment_method)) {
+      throw new ErrorResponse(400, "Phương thức thanh toán không hợp lệ");
+    }
+
+    if (!receiver_name || !receiver_phone) {
+      throw new ErrorResponse(400, "Vui lòng nhập tên và số điện thoại người nhận");
+    }
+
+    const connection = await OrderRepository.getConnection();
+
+    try {
+      await connection.beginTransaction();
+
+      const cartTotals = await this.calculateCartAmounts(connection, items);
+      let totalAmount = cartTotals.totalAmount;
+      let regularAmount = cartTotals.regularAmount;
+      const normalizedItems = cartTotals.normalizedItems;
+
+      let discountAmount = 0;
+      let discountCodeApplied = null;
+      let discountIdApplied = null;
+
+      const normalizedDiscountCode = String(discount_code || "").trim();
+      if (normalizedDiscountCode) {
+        const discount = await OrderRepository.findDiscountByCodeForCheckout(
+          connection,
+          normalizedDiscountCode
+        );
+
+        if (!discount) {
+          throw new ErrorResponse(400, "Mã giảm giá không tồn tại");
+        }
+
+        const now = new Date();
+        const validFrom = discount.valid_from ? new Date(discount.valid_from) : null;
+        const validUntil = discount.valid_until ? new Date(discount.valid_until) : null;
+
+        if (validFrom && now < validFrom) {
+          throw this.createBadRequestError("Mã giảm giá chưa đến thời gian sử dụng");
+        }
+
+        if (validUntil && now > validUntil) {
+          throw this.createBadRequestError("Mã giảm giá đã hết hạn");
+        }
+
+        const usageLimit =
+          discount.usage_limit === null || discount.usage_limit === undefined
+            ? null
+            : Number(discount.usage_limit);
+        const usedCount = Number(discount.used_count || 0);
+
+        if (usageLimit !== null && usedCount >= usageLimit) {
+          throw this.createBadRequestError("Mã giảm giá đã hết lượt sử dụng");
+        }
+
+        const minOrderAmount = Number(discount.min_order_amount || 0);
+        
+        if (regularAmount === 0) {
+           throw this.createBadRequestError("Không thể áp dụng mã giảm giá vì giỏ hàng của bạn chỉ toàn sản phẩm Flash Sale!");
+        }
+
+        if (regularAmount < minOrderAmount) {
+          throw this.createBadRequestError(
+             `Voucher chỉ áp dụng cho sản phẩm Thường. Mua thêm ${((minOrderAmount - regularAmount)).toLocaleString("vi-VN")}đ sản phẩm nguyên giá để áp dụng!`
+          );
+        }
+
+        const percentage = Number(discount.percentage || 0);
+        let calculatedDiscount = Math.round((regularAmount * percentage) / 100);
+        const maxDiscount =
+          discount.max_discount_amount === null ||
+          discount.max_discount_amount === undefined
+            ? null
+            : Number(discount.max_discount_amount);
+
+        if (maxDiscount !== null) {
+          calculatedDiscount = Math.min(calculatedDiscount, maxDiscount);
+        }
+
+        discountAmount = Math.min(regularAmount, Math.max(0, calculatedDiscount));
+        discountCodeApplied = discount.code;
+        discountIdApplied = discount.id;
+      }
+
+      const finalAmount = Math.max(0, totalAmount - discountAmount);
+
+      const userId = user?.id || null;
+
+      const orderId = await OrderRepository.createOrder(connection, {
+        user_id: userId,
+        created_by: userId,
+        customer_type: user ? "registered" : "guest",
+        order_type,
+        total_amount: finalAmount,
+      });
+
+      for (const item of normalizedItems) {
+        const orderDetailId = await OrderRepository.createOrderDetail(
+          connection,
+          {
+            order_id: orderId,
+            product_size_id: item.product_size_id,
+            quantity: item.quantity,
+            price: item.price,
+          }
+        );
+
+        for (const topping of item.toppings) {
+          console.log("INSERT TOPPING:", topping);
+          await OrderRepository.createOrderDetailTopping(connection, {
+            order_detail_id: orderDetailId,
+            topping_id: topping.topping_id,
+            quantity: topping.quantity,
+            price: topping.price,
+          });
+        }
+      }
+
+      await OrderRepository.createOrderDeliveryInfo(connection, {
+        order_id: orderId,
+        receiver_name: receiver_name.trim(),
+        receiver_phone: receiver_phone.trim(),
+        receiver_email: receiver_email?.trim() || null,
+        address: address?.trim() || null,
+        note: note?.trim() || null,
+      });
+
+      await OrderRepository.createOrderPayment(connection, {
+        order_id: orderId,
+        payment_method,
+        payment_status: "pending",
+        amount: finalAmount,
+      });
+
+      if (discountIdApplied) {
+        await OrderRepository.incrementDiscountUsedCount(connection, discountIdApplied);
+      }
+
+      await connection.commit();
+
+      return {
+        order_id: orderId,
+        subtotal_amount: totalAmount,
+        discount_amount: discountAmount,
+        discount_code: discountCodeApplied,
+        total_amount: finalAmount,
+      };
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
+  }
+
+  async validateDiscount(code, items) {
+    const normalizedCode = String(code || "").trim();
+
+    if (!normalizedCode) {
+      throw this.createBadRequestError("Vui lòng nhập mã giảm giá");
+    }
+
+    if (!Array.isArray(items) || items.length === 0) {
+      throw this.createBadRequestError("Giỏ hàng trống");
+    }
+
+    const connection = await OrderRepository.getConnection();
+    try {
+      const cartTotals = await this.calculateCartAmounts(connection, items);
+      const subtotal = cartTotals.totalAmount;
+      const regularAmount = cartTotals.regularAmount;
+      const discount = await OrderRepository.findDiscountByCodeForCheckout(
+        connection,
+        normalizedCode
+      );
+
+      if (!discount) {
+        throw this.createBadRequestError("Mã giảm giá không tồn tại");
+      }
+
+      const now = new Date();
+      const validFrom = discount.valid_from ? new Date(discount.valid_from) : null;
+      const validUntil = discount.valid_until ? new Date(discount.valid_until) : null;
+
+      if (validFrom && now < validFrom) {
+        throw this.createBadRequestError("Mã giảm giá chưa đến thời gian sử dụng");
+      }
+
+      if (validUntil && now > validUntil) {
+        throw this.createBadRequestError("Mã giảm giá đã hết hạn");
+      }
+
+      const usageLimit =
+        discount.usage_limit === null || discount.usage_limit === undefined
+          ? null
+          : Number(discount.usage_limit);
+      const usedCount = Number(discount.used_count || 0);
+
+      if (usageLimit !== null && usedCount >= usageLimit) {
+        throw this.createBadRequestError("Mã giảm giá đã hết lượt sử dụng");
+      }
+
+      const minOrderAmount = Number(discount.min_order_amount || 0);
+      
+      if (regularAmount === 0) {
+         throw this.createBadRequestError("Không thể áp dụng mã giảm giá vì giỏ hàng của bạn chỉ toàn sản phẩm Flash Sale!");
+      }
+
+      if (regularAmount < minOrderAmount) {
+        throw this.createBadRequestError(
+          `Voucher chỉ áp dụng cho sản phẩm Thường. Mua thêm ${(minOrderAmount - regularAmount).toLocaleString("vi-VN")}đ sản phẩm nguyên giá để áp dụng!`
+        );
+      }
+
+      const percentage = Number(discount.percentage || 0);
+      let calculatedDiscount = Math.round((regularAmount * percentage) / 100);
+      const maxDiscount =
+        discount.max_discount_amount === null ||
+        discount.max_discount_amount === undefined
+          ? null
+          : Number(discount.max_discount_amount);
+
+      if (maxDiscount !== null) {
+        calculatedDiscount = Math.min(calculatedDiscount, maxDiscount);
+      }
+
+      const discountAmount = Math.min(regularAmount, Math.max(0, calculatedDiscount));
+
+      return {
+        code: discount.code,
+        percentage,
+        min_order_amount: minOrderAmount,
+        max_discount_amount: maxDiscount,
+        discount_amount: discountAmount,
+        final_amount: Math.max(0, subtotal - discountAmount),
+      };
+    } finally {
+      connection.release();
+    }
+  }
+
+  async getOrdersByUser(userId) {
+    return await OrderRepository.findOrdersByUser(userId);
+  }
+
+  async getOrderDetailByUser(orderId, userId) {
+    const order = await OrderRepository.findOrderByIdAndUser(orderId, userId);
+
+    if (!order) {
+      throw new ErrorResponse(404, "Đơn hàng không tồn tại");
+    }
+
+    const items = await OrderRepository.findOrderItems(orderId);
+
+    return {
+      ...order,
+      items,
+    };
+  }
+
+  async cancelOrderByUser(orderId, userId) {
+    const order = await OrderRepository.findOrderByIdAndUser(orderId, userId);
+
+    if (!order) {
+      throw new ErrorResponse(404, "Đơn hàng không tồn tại");
+    }
+
+    if (!["pending", "preparing"].includes(order.status)) {
+      throw new ErrorResponse(
+        400,
+        "Chỉ có thể hủy đơn ở trạng thái chờ xác nhận hoặc đang chuẩn bị"
+      );
+    }
+
+    await OrderRepository.cancelOrderByUser(orderId, userId);
+
+    return {
+      order_id: orderId,
+      status: "cancelled",
+    };
+  }
+
+  async confirmDeliveryPreparing(orderId) {
+    const order = await OrderRepository.findOrderById(orderId);
+
+    if (!order) {
+      throw new ErrorResponse(404, "Đơn hàng không tồn tại");
+    }
+
+    if (order.order_type !== "delivery") {
+      throw new ErrorResponse(400, "Chỉ áp dụng cho đơn giao hàng");
+    }
+
+    if (order.status !== "pending") {
+      throw new ErrorResponse(400, "Chỉ xác nhận đơn đang chờ xử lý");
+    }
+
+    if (Number(order.is_paid) === 1 && order.payment_status !== "paid") {
+      throw new ErrorResponse(400, "Trạng thái thanh toán của đơn không hợp lệ");
+    }
+
+    await OrderRepository.updateOrderStatus(orderId, "preparing");
+
+    return {
+      order_id: orderId,
+      user_id: order.user_id,
+      status: "preparing",
+    };
+  }
+
+  async cancelDeliveryOrderByStaff(orderId) {
+    const order = await OrderRepository.findOrderById(orderId);
+
+    if (!order) {
+      throw new ErrorResponse(404, "Đơn hàng không tồn tại");
+    }
+
+    if (order.order_type !== "delivery") {
+      throw new ErrorResponse(400, "Chỉ áp dụng cho đơn giao hàng");
+    }
+
+    if (order.status !== "pending") {
+      throw new ErrorResponse(400, "Chỉ hủy đơn đang chờ xử lý");
+    }
+
+    if (Number(order.is_paid) !== 0) {
+      throw new ErrorResponse(400, "Chỉ hủy đơn chưa thanh toán");
+    }
+
+    await OrderRepository.updateOrderStatus(orderId, "cancelled");
+    await OrderRepository.updatePaymentStatusByOrderId(orderId, "cancelled");
+
+    return {
+      order_id: orderId,
+      status: "cancelled",
+    };
+  }
+
+  async getDeliveryOrderDetailForStaff(orderId) {
+    const order = await OrderRepository.findOrderDetailForStaff(orderId);
+
+    if (!order) {
+      throw new ErrorResponse(404, "Đơn hàng không tồn tại");
+    }
+
+    if (order.order_type !== "delivery") {
+      throw new ErrorResponse(400, "Đây không phải đơn giao hàng");
+    }
+
+    const items = await OrderRepository.findOrderItems(orderId);
+
+    return {
+      ...order,
+      items,
+    };
+  }
+
+  async savePayosReturn({ orderCode, payosId, status }) {
+    if (!orderCode) throw new ErrorResponse(400, "Thiếu orderCode");
+
+    const order = await OrderRepository.findOrderById(orderCode);
+    
+    const isPaid = status === "PAID";
+    const paymentStatus = isPaid
+      ? "paid"
+      : status === "CANCELLED"
+      ? "cancelled"
+      : "pending";
+
+    await OrderRepository.updatePaymentByOrderCode(orderCode, {
+      transaction_id: payosId || null,
+      payment_status: paymentStatus,
+    });
+
+    if (isPaid) {
+      await OrderRepository.updateOrderPaidStatus(orderCode, true);
+    }
+
+    return { 
+      saved: true,
+      order_id: orderCode,
+      user_id: order?.user_id,
+      payment_status: paymentStatus,
+      is_paid: isPaid ? 1 : 0,
+    };
+  }
+}
+
+module.exports = new OrderOnlineService();

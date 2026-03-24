@@ -1,9 +1,7 @@
 import { useState } from "react";
-import { Mail, Phone, MapPin, Loader2 } from "lucide-react";
-import axios from "@/services/axiosClient";
 import { Link } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { MapPin, Phone, Mail, Send, Loader2 } from "lucide-react";
+import axios from "@/services/axiosClient";
 import Logo from "/logo/Logo.png";
 
 function Footer() {
@@ -22,7 +20,7 @@ function Footer() {
     setMessage("");
     setError("");
 
-    if (!email) {
+    if (!email.trim()) {
       setError("Vui lòng nhập email.");
       return;
     }
@@ -34,9 +32,7 @@ function Footer() {
 
     try {
       setLoading(true);
-
-      await axios.post("/news-letter", { email });
-
+      await axios.post("/subscriber", { email });
       setMessage("Đăng ký thành công! Cảm ơn bạn.");
       setEmail("");
     } catch (err) {
@@ -49,116 +45,149 @@ function Footer() {
   };
 
   return (
-    <footer className="bg-card border-t mt-20">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 lg:gap-10">
-        {/* Company */}
-        <div>
-          <img src={Logo} alt="Coffee Shop Logo" className="h-16 w-auto mb-4"/>
-          <p className="text-sm text-muted-foreground mb-4">
-            Hương vị cà phê chuẩn vị, phục vụ mỗi ngày.
-          </p>
+    <footer className="mt-20 border-t border-border bg-card">
+      <div className="mx-auto max-w-7xl px-6 py-12 lg:px-8 lg:py-16">
+        <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-4">
+          <div>
+            <img
+              src={Logo}
+              alt="Coffee Shop Logo"
+              className="h-16 w-auto mb-4"
+            />
 
-          <div className="space-y-2 text-sm">
-            <div className="flex items-center gap-2">
-              <MapPin size={16} className="flex-shrink-0" />
-              <span>TP. Hà Nội</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Phone size={16} className="flex-shrink-0" />
-              <span>0123 456 789</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Mail size={16} className="flex-shrink-0" />
-              <span className="break-all">contact@coffeeshop.vn</span>
+            <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
+              Hương vị cà phê chuẩn vị, phục vụ mỗi ngày.
+            </p>
+
+            <div className="mt-5 space-y-2.5 text-sm text-muted-foreground">
+              <p className="flex items-center gap-2">
+                <MapPin size={15} className="shrink-0 text-primary" />
+                TP. Hà Nội
+              </p>
+              <p className="flex items-center gap-2">
+                <Phone size={15} className="shrink-0 text-primary" />
+                0123 456 789
+              </p>
+              <p className="flex items-center gap-2">
+                <Mail size={15} className="shrink-0 text-primary" />
+                <span className="break-all">contact@coffeeshop.vn</span>
+              </p>
             </div>
           </div>
-        </div>
 
-        {/* Policies */}
-        <div>
-          <h4 className="font-semibold mb-4">Chính sách</h4>
-          <ul className="space-y-2 text-sm text-muted-foreground">
-            <li>
-              <Link to="/order-policy" className="hover:text-black transition">
-                Chính sách đặt hàng
-              </Link>
-            </li>
+          <div>
+            <h4 className="text-sm font-semibold uppercase tracking-wider text-foreground">
+              Chính sách
+            </h4>
+            <ul className="mt-4 space-y-2.5">
+              <li>
+                <Link
+                  to="/order-policy"
+                  className="text-sm text-muted-foreground transition-colors hover:text-primary"
+                >
+                  Chính sách đặt hàng
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/privacy-policy"
+                  className="text-sm text-muted-foreground transition-colors hover:text-primary"
+                >
+                  Chính sách bảo mật
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/payment-policy"
+                  className="text-sm text-muted-foreground transition-colors hover:text-primary"
+                >
+                  Chính sách thanh toán
+                </Link>
+              </li>
+            </ul>
+          </div>
 
-            <li>
-              <Link
-                to="/privacy-policy"
-                className="hover:text-black transition"
-              >
-                Chính sách bảo mật
-              </Link>
-            </li>
+          <div>
+            <h4 className="text-sm font-semibold uppercase tracking-wider text-foreground">
+              Hỗ trợ
+            </h4>
+            <ul className="mt-4 space-y-2.5">
+              <li>
+                <Link
+                  to="/login"
+                  className="text-sm text-muted-foreground transition-colors hover:text-primary"
+                >
+                  Đăng nhập
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/register"
+                  className="text-sm text-muted-foreground transition-colors hover:text-primary"
+                >
+                  Đăng ký
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/cart"
+                  className="text-sm text-muted-foreground transition-colors hover:text-primary"
+                >
+                  Giỏ hàng
+                </Link>
+              </li>
+            </ul>
+          </div>
 
-            <li>
-              <Link
-                to="/payment-policy"
-                className="hover:text-black transition"
-              >
-                Chính sách thanh toán
-              </Link>
-            </li>
-          </ul>
-        </div>
+          <div>
+            <h4 className="text-sm font-semibold uppercase tracking-wider text-foreground">
+              Đăng ký nhận tin
+            </h4>
+            <p className="mt-4 text-sm text-muted-foreground">
+              Nhận ưu đãi và tin tức mới nhất từ chúng tôi.
+            </p>
 
-        {/* Support */}
-        <div>
-          <h4 className="font-semibold mb-4">Hỗ trợ</h4>
-          <ul className="space-y-2 text-sm text-muted-foreground">
-            <li>
-              <Link to="/login" className="hover:text-black transition">
-                Đăng nhập
-              </Link>
-            </li>
+            <form onSubmit={handleSubmit} className="mt-4">
+              <div className="flex gap-2">
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Email của bạn"
+                  className="flex-1 rounded-full border border-border bg-secondary/50 px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/60 transition-all focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                />
 
-            <li>
-              <Link to="/register" className="hover:text-black transition">
-                Đăng ký
-              </Link>
-            </li>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-all hover:brightness-110 active:scale-95 disabled:opacity-50"
+                >
+                  {loading ? (
+                    <Loader2 size={16} className="animate-spin" />
+                  ) : (
+                    <Send size={16} />
+                  )}
+                </button>
+              </div>
 
-            <li>
-              <Link to="/cart" className="hover:text-black transition">
-                Giỏ hàng
-              </Link>
-            </li>
-          </ul>
-        </div>
+              {message && (
+                <p className="mt-3 text-sm font-medium text-green-600">
+                  {message}
+                </p>
+              )}
 
-        {/* Newsletter */}
-        <div>
-          <h4 className="font-semibold mb-4">Đăng ký nhận tin</h4>
-
-          <form className="flex flex-col gap-2" onSubmit={handleSubmit}>
-            <div className="flex flex-col sm:flex-row gap-2">
-              <Input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Nhập email của bạn"
-                className="flex-1 text-sm"
-              />
-
-              <Button type="submit" disabled={loading} className="gap-2 w-full sm:w-auto">
-                {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-                {loading ? "Gửi..." : "Đăng ký"}
-              </Button>
-            </div>
-
-            {message && (
-              <p className="text-sm text-green-600 font-medium">{message}</p>
-            )}
-
-            {error && <p className="text-sm text-red-600">{error}</p>}
-          </form>
+              {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
+            </form>
+          </div>
         </div>
       </div>
 
-      <div className="border-t text-center py-4 px-4 text-xs sm:text-sm text-muted-foreground bg-muted">
-        © {new Date().getFullYear()} Coffee Shop. All rights reserved.
+      <div className="border-t border-border/60">
+        <div className="mx-auto max-w-7xl px-6 py-5 lg:px-8">
+          <p className="text-center text-xs text-muted-foreground">
+            © {new Date().getFullYear()} Coffee Shop. Tất cả quyền được bảo lưu.
+          </p>
+        </div>
       </div>
     </footer>
   );

@@ -4,13 +4,18 @@ import productService from "@/services/productService";
 import bannerService from "../../services/bannerService";
 import FeaturedNews from "@/pages/homePage/news/FeaturedNews";
 import HomeBanner from "./components/HomeBanner";
+import FlashSaleSection from "./components/FlashSaleSection";
+import DiscountSection from "./components/DiscountSection";
+import CategorySection from "./components/CategorySection";
 import BestSellerSection from "./components/BestSellerSection";
 import IntroVideoSection from "./components/IntroVideoSection";
+import ReviewSection from "./components/ReviewSection";
 import "swiper/css";
 import "swiper/css/pagination";
 import "swiper/css/navigation";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import AiAssistantWidget from "@/components/layout/AiAssistantWidget";
 
 export default function HomePage() {
   const [activeBannerIndex, setActiveBannerIndex] = useState(0);
@@ -31,20 +36,7 @@ export default function HomePage() {
 
   const { data: bannerRes } = useFetch(fetchBanners);
 
-  const banners = (bannerRes?.data ?? []).filter((b) => {
-    if (!b) return false;
-
-    const now = new Date();
-    const start = b.start_date ? new Date(b.start_date) : null;
-    const end = b.end_date ? new Date(b.end_date) : null;
-
-    if (start && Number.isNaN(start.getTime())) return false;
-    if (end && Number.isNaN(end.getTime())) return false;
-    if (start && now < start) return false;
-    if (end && now > end) return false;
-
-    return true;
-  });
+  const banners = bannerRes?.data ?? [];
 
   const defaultImage =
     "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085";
@@ -100,6 +92,14 @@ export default function HomePage() {
         defaultImage={defaultImage}
       />
 
+      <FlashSaleSection 
+        products={products}
+        getThumbnail={getThumbnail}
+        getDefaultCartSize={getDefaultCartSize}
+      />
+
+      <DiscountSection />
+
       <BestSellerSection
         loading={loading}
         products={products}
@@ -111,8 +111,14 @@ export default function HomePage() {
 
       <IntroVideoSection videoId="eDyD7y3M_c0" />
 
+      <CategorySection />
+
+      <ReviewSection />
+
       <FeaturedNews />
       <Footer />
+      
+      <AiAssistantWidget />
 
       <style>{`
         @keyframes fadeInUp {

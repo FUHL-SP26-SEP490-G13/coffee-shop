@@ -30,6 +30,18 @@ class NewsAIController {
         });
       }
 
+      if (
+        msg.includes("429") ||
+        msg.includes("RESOURCE_EXHAUSTED") ||
+        msg.includes("Quota") ||
+        msg.includes("quota")
+      ) {
+        return res.status(429).json({
+          success: false,
+          message: "Tài khoản API Google của bạn đã hết lượt Miễn phí trong ngày hôm nay (Quota Exceeded). Xin đổi Email khác hoặc thử lại vào ngày mai.",
+        });
+      }
+
       next(error);
     }
   }
@@ -69,6 +81,18 @@ class NewsAIController {
         return res.status(503).json({
           success: false,
           message: "AI đang quá tải, vui lòng thử lại sau vài giây.",
+        });
+      }
+
+      if (
+        msg.includes("429") ||
+        msg.includes("RESOURCE_EXHAUSTED") ||
+        msg.includes("Quota") ||
+        msg.includes("quota")
+      ) {
+        return res.status(429).json({
+          success: false,
+          message: "Tài khoản API Google của bạn đã hết lượt Miễn phí trong ngày hôm nay (Quota Exceeded). Xin đổi Email khác hoặc thử lại vào ngày mai.",
         });
       }
 

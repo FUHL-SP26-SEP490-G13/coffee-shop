@@ -1,10 +1,9 @@
-import { Button } from "@/components/ui/button";
-import { ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Swiper, SwiperSlide } from "swiper/react";
-import { Autoplay, Pagination } from "swiper/modules";
+import { Pagination, Autoplay, EffectFade } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/pagination";
+import "swiper/css/effect-fade";
 
 export default function HomeBanner({
   banners = [],
@@ -12,48 +11,61 @@ export default function HomeBanner({
   setActiveBannerIndex,
   defaultImage,
 }) {
+  const visibleBanners = banners.filter((b) => b?.is_active !== false);
+
   const safeBannerIndex =
-    banners.length > 0 ? activeBannerIndex % banners.length : 0;
+    visibleBanners.length > 0 ? activeBannerIndex % visibleBanners.length : 0;
+
+  const displayBanners = visibleBanners.length > 0 ? visibleBanners : [null];
 
   return (
-    <section className="relative w-full h-[260px] sm:h-[340px] lg:h-[600px] overflow-hidden bg-gradient-to-b from-gray-50 to-white">
+    <section className="relative">
       <Swiper
-        modules={[Autoplay, Pagination]}
-        autoplay={{ delay: 3000, disableOnInteraction: false }}
-        loop={banners.length > 1}
+        modules={[Pagination, Autoplay, EffectFade]}
         pagination={{ clickable: true }}
-        onSlideChange={(swiper) => setActiveBannerIndex(swiper.realIndex)}
-        className="w-full h-full homepage-banner-swiper"
+        autoplay={{ delay: 5000, disableOnInteraction: false }}
+        effect="fade"
+        loop={displayBanners.length > 1}
+        onSlideChange={(swiper) => {
+          if (visibleBanners.length > 0 && setActiveBannerIndex) {
+            setActiveBannerIndex(swiper.realIndex);
+          }
+        }}
+        className="w-full [&_.swiper-pagination-bullet]:h-2.5 [&_.swiper-pagination-bullet]:w-2.5 [&_.swiper-pagination-bullet]:bg-primary-foreground/50 [&_.swiper-pagination-bullet]:opacity-100 [&_.swiper-pagination-bullet-active]:bg-primary-foreground [&_.swiper-pagination-bullet-active]:w-8 [&_.swiper-pagination-bullet-active]:rounded-full [&_.swiper-pagination]:!bottom-6"
       >
-        {(banners.length ? banners : [null]).map((b, idx) => (
-          <SwiperSlide key={b?.id ?? idx}>
-            <div className="relative w-full h-full group">
+        {displayBanners.map((banner, idx) => (
+          <SwiperSlide key={banner?.id ?? idx}>
+            <div className="relative h-[340px] w-full overflow-hidden sm:h-[440px] lg:h-[540px]">
               <img
-                src={b?.image_url || defaultImage}
-                alt={b?.title || "Banner"}
-                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                src={banner?.image_url || defaultImage}
+                alt={banner?.title || "Banner"}
+                className="absolute inset-0 h-full w-full object-cover transition-transform duration-[8000ms] ease-out hover:scale-105"
               />
 
-              <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/50 to-transparent">
-                <div className="container mx-auto px-6 sm:px-10 lg:px-20 h-full flex items-center">
-                  <div className="max-w-2xl text-white">
-                    <h2 className="text-3xl sm:text-4xl lg:text-6xl font-bold mb-4 lg:mb-6 leading-tight">
-                      {b?.title || "Chào mừng đến với cửa hàng của chúng tôi"}
-                    </h2>
+              <div className="absolute inset-0 bg-gradient-to-r from-foreground/60 via-foreground/30 to-transparent" />
 
-                    <p className="text-base sm:text-lg lg:text-2xl mb-6 lg:mb-8 text-gray-100 leading-relaxed">
-                      {b?.subtitle || "Khám phá những sản phẩm nổi bật hôm nay"}
+              <div className="absolute inset-0 flex items-center">
+                <div className="mx-auto w-full max-w-7xl px-6 lg:px-8">
+                  <div className="max-w-lg">
+                    <h1
+                      className="text-3xl font-bold leading-tight text-primary-foreground sm:text-4xl lg:text-5xl"
+                      style={{ lineHeight: "1.1" }}
+                    >
+                      {banner?.title ||
+                        "Chào mừng đến với cửa hàng của chúng tôi"}
+                    </h1>
+
+                    <p className="mt-4 text-sm leading-relaxed text-primary-foreground/85 sm:text-base lg:text-lg">
+                      {banner?.subtitle ||
+                        "Khám phá những sản phẩm nổi bật hôm nay"}
                     </p>
 
-                    {(b?.button_text || b?.button_link) && (
-                      <Link to={b?.button_link || "/"}>
-                        <Button
-                          size="lg"
-                          className="bg-[#C65D2E] hover:bg-[#B55329] text-white px-6 sm:px-8 py-3 sm:py-4 rounded-full text-base sm:text-lg font-semibold shadow-lg transition-all duration-300 hover:scale-105"
-                        >
-                          {b?.button_text || "Xem ngay"}
-                          <ArrowRight className="ml-2 w-5 h-5" />
-                        </Button>
+                    {banner?.button_link && (
+                      <Link
+                        to={banner.button_link}
+                        className="mt-6 inline-block rounded-full bg-primary px-7 py-3 text-sm font-semibold text-primary-foreground shadow-lg transition-all hover:brightness-110 hover:shadow-xl active:scale-[0.97] sm:text-base"
+                      >
+                        {banner?.button_text || "Xem ngay"}
                       </Link>
                     )}
                   </div>
@@ -64,14 +76,19 @@ export default function HomeBanner({
         ))}
       </Swiper>
 
-      {banners.length > 0 && (
-        <div className="bg-[#f4eddc] py-6 text-center">
-          <h3 className="text-lg font-semibold text-gray-800">
-            {banners[safeBannerIndex]?.title}
-          </h3>
-          <p className="text-gray-600 mt-2">
-            {banners[safeBannerIndex]?.subtitle}
-          </p>
+      {visibleBanners.length > 0 && (
+        <div className="border-b border-border/50 bg-card">
+          <div className="mx-auto flex max-w-7xl items-center gap-3 px-6 py-3 lg:px-8">
+            <span className="h-1 w-8 rounded-full bg-primary" />
+            <div>
+              <p className="text-sm font-semibold text-foreground">
+                {visibleBanners[safeBannerIndex]?.title}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {visibleBanners[safeBannerIndex]?.subtitle}
+              </p>
+            </div>
+          </div>
         </div>
       )}
     </section>

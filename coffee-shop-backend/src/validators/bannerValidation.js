@@ -8,33 +8,19 @@ const bannerBaseSchema = {
     "string.max": "Tiêu đề không được vượt quá 50 ký tự",
   }),
 
-  subtitle: Joi.string()
-    .allow("")
-    .max(120)
-    .custom((value, helpers) => {
-      if (value && value.trim() !== "" && value.trim().length < 10) {
-        return helpers.error("string.min");
-      }
-      return value;
-    })
-    .messages({
-      "string.min": "Mô tả phải có ít nhất 10 ký tự",
-      "string.max": "Mô tả không được vượt quá 120 ký tự",
-    }),
+  subtitle: Joi.string().trim().min(10).max(120).required().messages({
+    "string.empty": "Mô tả không được để trống",
+    "any.required": "Mô tả là bắt buộc",
+    "string.min": "Mô tả phải có ít nhất 10 ký tự",
+    "string.max": "Mô tả không được vượt quá 120 ký tự",
+  }),
 
-  button_text: Joi.string()
-    .allow("")
-    .max(20)
-    .custom((value, helpers) => {
-      if (value && value.trim() !== "" && value.trim().length < 3) {
-        return helpers.error("string.min");
-      }
-      return value;
-    })
-    .messages({
-      "string.min": "Text nút phải có ít nhất 3 ký tự",
-      "string.max": "Text nút không được vượt quá 20 ký tự",
-    }),
+  button_text: Joi.string().trim().min(3).max(20).required().messages({
+    "string.empty": "Text nút không được để trống",
+    "any.required": "Text nút là bắt buộc",
+    "string.min": "Text nút phải có ít nhất 3 ký tự",
+    "string.max": "Text nút không được vượt quá 20 ký tự",
+  }),
 
   button_link: Joi.string()
     .pattern(/^(\/[a-zA-Z0-9\-_/]*|(https?:\/\/)[^\s]+)$/)
@@ -60,6 +46,9 @@ const bannerBaseSchema = {
     "any.only": "Loại banner không hợp lệ",
     "any.required": "Loại banner là bắt buộc",
   }),
+
+  //type: Joi.string().allow("", null),
+  //image_url: Joi.string().uri().allow("", null),
 };
 
 const createBannerSchema = Joi.object(bannerBaseSchema).custom(

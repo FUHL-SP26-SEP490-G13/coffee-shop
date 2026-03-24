@@ -12,7 +12,6 @@ import {
 
 import { Button } from '../../../../components/ui/button';
 import { Input } from '../../../../components/ui/input';
-import { Textarea } from '../../../../components/ui/textarea';
 import {
   Select,
   SelectContent,
@@ -20,12 +19,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../../../../components/ui/select';
+import RichTextEditor from "../../../../components/RichTextEditor/RichTextEditor";
+
+// ===== CONSTANTS =====
+const SIZE_ORDER = ['S', 'M', 'L'];
+
+const sortSizes = (sizesArr) =>
+  [...sizesArr].sort(
+    (a, b) => SIZE_ORDER.indexOf(a.size) - SIZE_ORDER.indexOf(b.size)
+  );
 
 export default function UpdateProduct({ open, onClose, onSuccess, product }) {
   const productId = product?.id;
 
   // ===== FORM STATE =====
   const [name, setName] = useState('');
+  const [code, setCode] = useState('');
   const [categoryId, setCategoryId] = useState('');
   const [description, setDescription] = useState('');
   const [status, setStatus] = useState('available');
@@ -70,10 +79,11 @@ export default function UpdateProduct({ open, onClose, onSuccess, product }) {
   useEffect(() => {
     if (open && product) {
       setName(product.name || '');
+      setCode(product.code || '');
       setCategoryId(String(product.category_id) || '');
       setDescription(product.description || '');
       setStatus(product.status || 'available');
-      setSizes(product.sizes || []);
+      setSizes(sortSizes(product.sizes || []));
       setOldImages(product.images || []);
 
       // Reset delete arrays
@@ -83,27 +93,34 @@ export default function UpdateProduct({ open, onClose, onSuccess, product }) {
     }
   }, [open, product]);
 
+  // ===== SELECTED SIZES (for disabling options) =====
+  const selectedSizeNames = sizes.map((s) => s.size);
+
   // ===== SIZE HANDLING =====
   const handleSizeChange = (index, field, value) => {
     const updated = [...sizes];
-    updated[index][field] = value;
-    setSizes(updated);
+    updated[index] = { ...updated[index], [field]: value };
+
+    // Re-sort only when the size label changes
+    const sorted = field === 'size' ? sortSizes(updated) : updated;
+    setSizes(sorted);
   };
 
   const handleAddSize = () => {
-    // Validate: max 3 sizes
     if (sizes.length >= 3) {
       toast.error('Tối đa chỉ có 3 loại size (S, M, L)');
       return;
     }
 
-    setSizes([...sizes, { size: 'S', price: '' }]);
+    // Pick the first size not yet used
+    const nextSize = SIZE_ORDER.find((s) => !selectedSizeNames.includes(s)) || 'S';
+    const newSizes = sortSizes([...sizes, { size: nextSize, price: '' }]);
+    setSizes(newSizes);
   };
 
   const handleRemoveSize = (index) => {
     const removed = sizes[index];
 
-    // If size has id (existing in DB), mark for deletion
     if (removed && removed.id) {
       setDeleteSizeIds((prev) => [...prev, removed.id]);
     }
@@ -116,12 +133,10 @@ export default function UpdateProduct({ open, onClose, onSuccess, product }) {
   // ===== IMAGE HANDLING =====
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files);
-
-    // Calculate total images after adding
     const totalAfterAdd = oldImages.length + newImages.length + files.length;
 
-    if (totalAfterAdd > 5) {
-      toast.error('Tổng số ảnh không được vượt quá 5');
+    if (totalAfterAdd > 3) {
+      toast.error('Tổng số ảnh không được vượt quá 3');
       return;
     }
 
@@ -129,22 +144,51 @@ export default function UpdateProduct({ open, onClose, onSuccess, product }) {
   };
 
   const handleRemoveImage = (index, imageId) => {
-    // If removing old image
     if (imageId) {
       setDeleteImageIds((prev) => [...prev, imageId]);
       setOldImages((prev) => prev.filter((img) => img.id !== imageId));
       toast.info('Ảnh sẽ được xóa khi lưu');
     } else {
-      // Removing new image (not uploaded yet)
       setNewImages((prev) => prev.filter((_, i) => i !== index));
     }
+  };
+
+  // ===== PRICE VALIDATION =====
+  const validatePrices = () => {
+    const getPrice = (sizeName) => {
+      const found = sizes.find((s) => s.size === sizeName);
+      return found ? Number(found.price) : null;
+    };
+
+    const priceS = getPrice('S');
+    const priceM = getPrice('M');
+    const priceL = getPrice('L');
+
+    // S + M → S < M
+    if (priceS !== null && priceM !== null && priceS >= priceM) {
+      toast.error('Giá size S phải nhỏ hơn size M');
+      return false;
+    }
+
+    // M + L → M < L
+    if (priceM !== null && priceL !== null && priceM >= priceL) {
+      toast.error('Giá size M phải nhỏ hơn size L');
+      return false;
+    }
+
+    // S + L (no M) → S < L
+    if (priceS !== null && priceL !== null && priceS >= priceL) {
+      toast.error('Giá size S phải nhỏ hơn size L');
+      return false;
+    }
+
+    return true;
   };
 
   // ===== SUBMIT =====
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Validation
     if (!name.trim()) {
       toast.error('Vui lòng nhập tên sản phẩm');
       return;
@@ -155,7 +199,17 @@ export default function UpdateProduct({ open, onClose, onSuccess, product }) {
       return;
     }
 
-    // Validate sizes
+    if (!code.trim()) {
+      toast.error('Vui lòng nhập mã sản phẩm');
+      return;
+    }
+
+    if (!/^[A-Z]{1,5}-[0-9]{1,5}$/.test(code.trim())) {
+      toast.error('Code phải có định dạng: CHỮ HOA - SỐ (VD: CF-001)');
+      return;
+    }
+
+    // Validate individual sizes
     const validSizes = ['S', 'M', 'L'];
     for (const size of sizes) {
       if (!validSizes.includes(size.size)) {
@@ -163,7 +217,7 @@ export default function UpdateProduct({ open, onClose, onSuccess, product }) {
         return;
       }
 
-      if (!size.price || size.price <= 0) {
+      if (!size.price || Number(size.price) <= 0) {
         toast.error(`Giá cho size ${size.size} phải là số dương`);
         return;
       }
@@ -171,27 +225,28 @@ export default function UpdateProduct({ open, onClose, onSuccess, product }) {
 
     // Check duplicate sizes
     const sizeNames = sizes.map((s) => s.size);
-    const uniqueSizes = [...new Set(sizeNames)];
-    if (sizeNames.length !== uniqueSizes.length) {
+    if (sizeNames.length !== new Set(sizeNames).size) {
       toast.error('Không được có size trùng lặp');
       return;
     }
+
+    // Validate price ordering across all combinations
+    if (!validatePrices()) return;
 
     try {
       setSubmitting(true);
 
       const formData = new FormData();
       formData.append('name', name.trim());
+      formData.append('code', code.trim());
       formData.append('category_id', categoryId);
       formData.append('description', description.trim());
       formData.append('status', status);
 
-      // Sizes
       if (sizes.length > 0) {
         formData.append('sizes', JSON.stringify(sizes));
       }
 
-      // Delete arrays
       if (deleteSizeIds.length > 0) {
         formData.append('deleteSizeIds', JSON.stringify(deleteSizeIds));
       }
@@ -200,7 +255,6 @@ export default function UpdateProduct({ open, onClose, onSuccess, product }) {
         formData.append('deleteImageIds', JSON.stringify(deleteImageIds));
       }
 
-      // New images
       newImages.forEach((file) => {
         formData.append('images', file);
       });
@@ -211,21 +265,21 @@ export default function UpdateProduct({ open, onClose, onSuccess, product }) {
       onSuccess?.();
       onClose();
     } catch (err) {
-      console.error('Update product error:', err);
-      const errorMsg =
-        err.response?.data?.errors[0].message || 'Cập nhật sản phẩm thất bại';
-      toast.error(errorMsg);
+      const res = err.response?.data;
+
+      if (res?.errors && Array.isArray(res.errors)) {
+        res.errors.forEach((e) => toast.error(e.message));
+      } else if (res?.message) {
+        toast.error(res.message);
+      } else {
+        toast.error('Cập nhật sản phẩm thất bại');
+      }
     } finally {
       setSubmitting(false);
     }
   };
 
-  // Helper: Check if image is thumbnail
-  const isThumbnail = (image) => {
-    return image.isThumbnail === 1;
-  };
-
-  // Helper: Get all images for preview
+  // ===== IMAGE PREVIEW =====
   const getAllImagesForPreview = () => {
     const oldImagePreviews = oldImages.map((img) => ({
       id: img.id,
@@ -254,125 +308,130 @@ export default function UpdateProduct({ open, onClose, onSuccess, product }) {
         if (!isOpen) onClose();
       }}
     >
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className='sm:max-w-2xl w-[99vw] max-w-[99vw] max-h-[96vh] overflow-y-auto'>
         <DialogHeader>
           <DialogTitle>Chỉnh sửa sản phẩm</DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* NAME + STATUS */}
-          <div className="grid grid-cols-3 gap-4">
-            <div className="col-span-2 space-y-2">
-              <label className="text-sm font-medium">
-                <span className="text-red-500">* </span>Tên sản phẩm
+        <form onSubmit={handleSubmit} className='space-y-6'>
+          {/* NAME + CODE */}
+          <div className='grid grid-cols-2 gap-4'>
+            <div className='space-y-2'>
+              <label className='text-sm font-medium'>
+                <span className='text-red-500'>*</span> Tên sản phẩm
               </label>
               <Input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="VD: Cà phê sữa đá"
+                placeholder='VD: Cà phê sữa đá'
               />
             </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium">
-                <span className="text-red-500">* </span>Trạng thái
+            <div className='space-y-2'>
+              <label className='text-sm font-medium'>
+                <span className='text-red-500'>*</span> Mã code
+              </label>
+              <Input
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                placeholder='VD: CF-001'
+              />
+            </div>
+          </div>
+
+          {/* CATEGORY + STATUS */}
+          <div className='grid grid-cols-2 gap-4'>
+            <div className='space-y-2'>
+              <label className='text-sm font-medium'>
+                <span className='text-red-500'>*</span> Danh mục
+              </label>
+              <Select
+                value={String(categoryId)}
+                onValueChange={setCategoryId}
+                disabled={loadingCategories}
+              >
+                <SelectTrigger className='w-full'>
+                  <SelectValue placeholder='Chọn danh mục' />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories?.map((c) => (
+                    <SelectItem key={c.id} value={String(c.id)}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className='space-y-2'>
+              <label className='text-sm font-medium'>
+                <span className='text-red-500'>*</span> Trạng thái
               </label>
               <Select value={status} onValueChange={setStatus}>
-                <SelectTrigger>
+                <SelectTrigger className='w-full'>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="available">Đang bán</SelectItem>
-                  <SelectItem value="unavailable">Ngừng bán</SelectItem>
+                  <SelectItem value='available'>Đang bán</SelectItem>
+                  <SelectItem value='unavailable'>Ngừng bán</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
 
-          {/* CATEGORY */}
-          <div className="space-y-2 w-full">
-            <label className="text-sm font-medium">
-              <span className="text-red-500">* </span>Danh mục
-            </label>
-            <Select
-              value={String(categoryId)}
-              onValueChange={setCategoryId}
-              disabled={loadingCategories}
-            >
-              <SelectTrigger className={"w-73"}>
-                <SelectValue placeholder="Chọn danh mục" />
-              </SelectTrigger>
-              <SelectContent>
-                {categories?.map((c) => (
-                  <SelectItem key={c.id} value={String(c.id)}>
-                    {c.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
           {/* DESCRIPTION */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Mô tả</label>
-            <Textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Mô tả ngắn về sản phẩm..."
-              rows={3}
-            />
+          <div className='space-y-2'>
+            <label className='text-sm font-medium'>Mô tả</label>
+            <RichTextEditor value={description} onChange={setDescription} />
           </div>
 
           {/* IMAGES */}
-          <div className="space-y-3">
-            <label className="text-sm font-medium">
+          <div className='space-y-3'>
+            <label className='text-sm font-medium'>
               Hình ảnh{' '}
-              <span className="text-muted-foreground">
-                ({imagePreviews.length}/5)
+              <span className='text-muted-foreground'>
+                ({imagePreviews.length}/3)
               </span>
             </label>
 
             <Input
-              type="file"
+              type='file'
               multiple
-              accept="image/*"
+              accept='image/*'
               onChange={handleImageChange}
-              disabled={imagePreviews.length >= 5}
+              disabled={imagePreviews.length >= 3}
             />
 
-            {imagePreviews.length >= 5 && (
-              <p className="text-xs text-amber-600">Đã đạt giới hạn 5 ảnh</p>
+            {imagePreviews.length >= 3 && (
+              <p className='text-xs text-amber-600'>Đã đạt giới hạn 3 ảnh</p>
             )}
 
             {imagePreviews.length > 0 && (
-              <div className="grid grid-cols-5 gap-3">
+              <div className='grid grid-cols-5 gap-3'>
                 {imagePreviews.map((img, index) => (
-                  <div key={index} className="relative group">
+                  <div key={index} className='relative group'>
                     <img
                       src={img.url}
-                      alt=""
-                      className="w-full h-24 object-cover rounded-lg border"
+                      alt=''
+                      className='w-full h-24 object-cover rounded-lg border'
                     />
 
-                    {/* Thumbnail badge */}
                     {img.isThumbnail && (
-                      <span className="absolute top-1 left-1 bg-blue-500 text-white text-[10px] px-1.5 py-0.5 rounded">
+                      <span className='absolute top-1 left-1 bg-blue-500 text-white text-[10px] px-1.5 py-0.5 rounded'>
                         Thumbnail
                       </span>
                     )}
 
-                    {/* Remove button */}
                     <button
-                      type="button"
+                      type='button'
                       onClick={() => handleRemoveImage(img.index, img.id)}
-                      className="absolute top-1 right-1 bg-black/70 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition"
+                      className='absolute top-1 right-1 bg-black/70 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition'
                     >
                       X
                     </button>
 
-                    {/* New badge */}
                     {!img.isOld && (
-                      <span className="absolute bottom-1 left-1 bg-green-500 text-white text-[10px] px-1.5 py-0.5 rounded">
+                      <span className='absolute bottom-1 left-1 bg-green-500 text-white text-[10px] px-1.5 py-0.5 rounded'>
                         Mới
                       </span>
                     )}
@@ -383,21 +442,21 @@ export default function UpdateProduct({ open, onClose, onSuccess, product }) {
           </div>
 
           {/* SIZE & PRICE */}
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h3 className="font-medium">
+          <div className='space-y-4'>
+            <div className='flex justify-between items-center'>
+              <h3 className='font-medium'>
                 Kích cỡ & Giá{' '}
-                <span className="text-muted-foreground text-sm">
+                <span className='text-muted-foreground text-sm'>
                   (Tối đa 3 loại)
                 </span>
               </h3>
-              <span className="text-xs bg-muted px-3 py-1 rounded-full">
+              <span className='text-xs bg-muted px-3 py-1 rounded-full'>
                 {sizes.length} size
               </span>
             </div>
 
             {sizes.length === 0 && (
-              <div className="bg-muted/40 rounded-lg p-4 text-center text-sm text-muted-foreground">
+              <div className='bg-muted/40 rounded-lg p-4 text-center text-sm text-muted-foreground'>
                 Chưa có kích cỡ nào. Nhấn "Thêm kích cỡ" để bắt đầu
               </div>
             )}
@@ -405,38 +464,48 @@ export default function UpdateProduct({ open, onClose, onSuccess, product }) {
             {sizes.map((size, index) => (
               <div
                 key={index}
-                className="flex items-center gap-4 bg-muted/40 p-4 rounded-xl"
+                className='flex items-center gap-4 bg-muted/40 p-4 rounded-xl'
               >
                 <Select
                   value={size.size}
                   onValueChange={(val) => handleSizeChange(index, 'size', val)}
                 >
-                  <SelectTrigger className="w-24">
+                  <SelectTrigger className='w-24'>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="S">S</SelectItem>
-                    <SelectItem value="M">M</SelectItem>
-                    <SelectItem value="L">L</SelectItem>
+                    {SIZE_ORDER.map((s) => (
+                      <SelectItem
+                        key={s}
+                        value={s}
+                        // Disable if already used by ANOTHER row
+                        disabled={
+                          selectedSizeNames.includes(s) && size.size !== s
+                        }
+                      >
+                        {s}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
 
                 <Input
-                  type="number"
+                  type='number'
                   value={size.price}
                   onChange={(e) =>
                     handleSizeChange(index, 'price', e.target.value)
                   }
-                  placeholder="Giá"
-                  className="flex-1"
+                  placeholder='Giá'
+                  className='flex-1'
+                  min={1}
                 />
 
-                <span className="text-sm">đ</span>
+                <span className='text-sm'>đ</span>
 
                 <button
-                  type="button"
+                  type='button'
                   onClick={() => handleRemoveSize(index)}
-                  className="text-red-500 hover:text-red-700 ml-auto"
+                  className='text-red-500 hover:text-red-700 ml-auto'
                 >
                   Xóa
                 </button>
@@ -444,9 +513,9 @@ export default function UpdateProduct({ open, onClose, onSuccess, product }) {
             ))}
 
             <button
-              type="button"
+              type='button'
               onClick={handleAddSize}
-              className="w-full border-2 border-dashed rounded-xl py-3 hover:bg-muted transition disabled:opacity-50 disabled:cursor-not-allowed"
+              className='w-full border-2 border-dashed rounded-xl py-3 hover:bg-muted transition disabled:opacity-50 disabled:cursor-not-allowed'
               disabled={sizes.length >= 3}
             >
               + Thêm kích cỡ
@@ -454,17 +523,17 @@ export default function UpdateProduct({ open, onClose, onSuccess, product }) {
           </div>
 
           {/* ACTION */}
-          <div className="flex justify-end gap-3 pt-4">
+          <div className='flex justify-end gap-3 pt-4'>
             <Button
-              type="button"
-              variant="outline"
+              type='button'
+              variant='outline'
               onClick={onClose}
               disabled={submitting}
             >
               Hủy
             </Button>
 
-            <Button type="submit" disabled={submitting}>
+            <Button type='submit' disabled={submitting}>
               {submitting ? 'Đang lưu...' : 'Lưu thay đổi'}
             </Button>
           </div>

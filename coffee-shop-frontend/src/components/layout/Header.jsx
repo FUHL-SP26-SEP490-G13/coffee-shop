@@ -13,18 +13,32 @@ import {
   Grid3X3,
   Loader2,
   Bell,
+  Heart,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { useNavigate } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
 import { STORAGE_KEYS } from "@/constants";
+import authenticationService from "@/services/authenticationService";
 import Logo from "/logo/Logo.png";
 import categoryService from "@/services/categoryService";
 import productService from "@/services/productService";
 import notificationService from "@/services/notificationService";
 import socket from "@/lib/socket";
 import { getNotificationLink } from "@/utils/getNotificationLink";
+import favoriteService from "@/services/favoriteService";
 
 const placeholders = [
   "Xin chào, bạn cần gì hôm nay?",
@@ -48,10 +62,22 @@ function Header() {
 
   const user = token ? jwtDecode(token) : null;
 
-  const handleLogout = () => {
-    localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
-    sessionStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
-    navigate("/");
+  const handleLogout = async () => {
+    try {
+      await authenticationService.logout();
+    } finally {
+      // Ensure auth is fully cleared even if service call changes later.
+      localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
+      sessionStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
+      localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
+      sessionStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
+
+      if (socket.connected) {
+        socket.disconnect();
+      }
+
+      window.location.replace("/");
+    }
   };
 
   const [text, setText] = useState("");
@@ -75,9 +101,13 @@ function Header() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [mobileResultOpen, setMobileResultOpen] = useState(false);
   const [cartCount, setCartCount] = useState(0);
+  const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
 
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
+
+  const [favoriteCount, setFavoriteCount] = useState(0);
+  const [favoriteLoading, setFavoriteLoading] = useState(false);
 
   const [cartItems, setCartItems] = useState([]);
   const [showCartPreview, setShowCartPreview] = useState(false);
@@ -102,7 +132,7 @@ function Header() {
       );
 
       setCartCount(total);
-    } catch (error) {
+    } catch {
       setCartItems([]);
       setCartCount(0);
     }
@@ -133,13 +163,41 @@ function Header() {
 
   const fetchCategories = useCallback(async () => {
     try {
-      const res = await categoryService.getAll();
+      const res = await categoryService.getAll({ with_count: true });
       const list = Array.isArray(res?.data) ? res.data : [];
       setCategories(list);
     } catch (error) {
       console.error("Lỗi lấy danh mục:", error);
     }
   }, []);
+
+  const loadFavorites = useCallback(async () => {
+    if (!user?.id) {
+      setFavoriteCount(0);
+      return;
+    }
+
+    try {
+      setFavoriteLoading(true);
+
+      const res = await favoriteService.getMyFavorites({
+        page: 1,
+        limit: 100,
+        keyword: "",
+      });
+
+      const payload = res?.data?.data || res?.data || {};
+      const items = Array.isArray(payload?.items) ? payload.items : [];
+      const total = Number(payload?.total ?? items.length ?? 0);
+
+      setFavoriteCount(total);
+    } catch (error) {
+      console.error("Lỗi lấy danh sách yêu thích:", error);
+      setFavoriteCount(0);
+    } finally {
+      setFavoriteLoading(false);
+    }
+  }, [user?.id]);
 
   useEffect(() => {
     fetchCategories();
@@ -250,6 +308,16 @@ function Header() {
       socket.off("notification:new", handleNewNotification);
     };
   }, [user?.id]);
+
+  useEffect(() => {
+    loadFavorites();
+
+    window.addEventListener("favoriteUpdated", loadFavorites);
+
+    return () => {
+      window.removeEventListener("favoriteUpdated", loadFavorites);
+    };
+  }, [loadFavorites]);
 
   const goToCategory = (category) => {
     navigate(`/products?category=${category.id}`);
@@ -581,9 +649,14 @@ function Header() {
                     <button
                       key={category.id}
                       onClick={() => goToCategory(category)}
-                      className="w-full text-left px-3 py-2 rounded-xl hover:bg-amber-50 hover:text-amber-700 transition text-sm"
+                      className="w-full flex items-center justify-between px-3 py-2 rounded-xl hover:bg-amber-50 hover:text-amber-700 transition text-sm group"
                     >
-                      {category.name}
+                      <span>{category.name}</span>
+                      {category.product_count !== undefined && (
+                        <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full group-hover:bg-amber-200 group-hover:text-amber-700 transition-colors">
+                          {category.product_count}
+                        </span>
+                      )}
                     </button>
                   ))
                 )}
@@ -659,7 +732,7 @@ function Header() {
                           : 0;
 
                         const price = basePrice + toppingsTotal;
-                        
+
                         const quantity = Number(item.quantity) || 1;
 
                         return (
@@ -831,7 +904,9 @@ function Header() {
               </div>
             )}
 
-            {!user && (
+            
+          </div>
+{!user && (
               <Button
                 onClick={() => navigate("/login")}
                 size="sm"
@@ -878,6 +953,23 @@ function Header() {
                         variant="ghost"
                         size="sm"
                         onClick={() => {
+                          navigate("/favorites");
+                          setOpen(false);
+                        }}
+                        className="w-full text-left px-3 py-2 text-gray-700 transition text-xs sm:text-sm justify-start"
+                      >
+                        <Heart className="w-4 h-4 mr-2" />
+                        <span className="flex-1 text-left">Yêu thích</span>
+
+                        <span className="text-xs font-semibold text-red-500">
+                          {favoriteLoading ? "..." : favoriteCount}
+                        </span>
+                      </Button>
+
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
                           navigate("/customer/profile");
                           setOpen(false);
                         }}
@@ -891,8 +983,8 @@ function Header() {
 
                       <button
                         onClick={() => {
-                          handleLogout();
                           setOpen(false);
+                          setLogoutDialogOpen(true);
                         }}
                         className="w-full text-left px-3 py-2 text-red-600 hover:bg-red-50 rounded transition flex items-center gap-2 text-xs sm:text-sm"
                       >
@@ -904,8 +996,6 @@ function Header() {
                 </div>
               </div>
             )}
-          </div>
-
           <Button
             variant="ghost"
             size="icon"
@@ -1003,9 +1093,14 @@ function Header() {
                     <button
                       key={category.id}
                       onClick={() => goToCategory(category)}
-                      className="w-full text-left px-3 py-2 rounded text-xs text-gray-700 hover:bg-amber-50"
+                      className="w-full flex items-center justify-between px-3 py-2 rounded text-xs text-gray-700 hover:bg-amber-50 group"
                     >
-                      {category.name}
+                      <span>{category.name}</span>
+                      {category.product_count !== undefined && (
+                        <span className="text-[10px] text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded-full group-hover:bg-amber-200 group-hover:text-amber-700 transition-colors">
+                          {category.product_count}
+                        </span>
+                      )}
                     </button>
                   ))
                 )}
@@ -1104,84 +1199,7 @@ function Header() {
               </div>
             )}
 
-            {!user && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  navigate("/login");
-                  setMobileMenuOpen(false);
-                }}
-                className="w-full justify-start text-gray-700 text-xs"
-              >
-                <LogIn className="w-4 h-4 mr-2" />
-                Đăng nhập
-              </Button>
-            )}
-
-            {user && (
-              <>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() =>
-                    setMobileUserDropdownOpen(!mobileUserDropdownOpen)
-                  }
-                  className="w-full justify-start text-gray-700 text-xs gap-2"
-                >
-                  <div className="w-6 h-6 rounded-full bg-amber-500 flex items-center justify-center text-white text-xs font-bold">
-                    {user.first_name?.charAt(0).toUpperCase()}
-                  </div>
-                  <span>{user.last_name}</span>
-                </Button>
-
-                {mobileUserDropdownOpen && (
-                  <div className="bg-white border border-gray-200 rounded-lg p-2 space-y-1 ml-2 mb-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        navigate("/my-orders");
-                        setMobileUserDropdownOpen(false);
-                        setMobileMenuOpen(false);
-                      }}
-                      className="w-full justify-start text-gray-700 text-xs"
-                    >
-                      <Package className="w-4 h-4 mr-2" />
-                      Đơn hàng
-                    </Button>
-
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        navigate("/customer/profile");
-                        setMobileUserDropdownOpen(false);
-                        setMobileMenuOpen(false);
-                      }}
-                      className="w-full justify-start text-gray-700 text-xs"
-                    >
-                      <User className="w-4 h-4 mr-2" />
-                      Hồ sơ cá nhân
-                    </Button>
-
-                    <div className="border-t border-gray-200 my-1" />
-
-                    <button
-                      onClick={() => {
-                        handleLogout();
-                        setMobileUserDropdownOpen(false);
-                        setMobileMenuOpen(false);
-                      }}
-                      className="w-full text-left px-3 py-2 text-red-600 hover:bg-red-50 rounded transition flex items-center gap-2 text-xs"
-                    >
-                      <LogOut className="w-4 h-4" />
-                      Đăng xuất
-                    </button>
-                  </div>
-                )}
-              </>
-            )}
+            
 
             <Button
               variant="ghost"
@@ -1198,6 +1216,27 @@ function Header() {
           </div>
         </div>
       )}
+
+      <AlertDialog open={logoutDialogOpen} onOpenChange={setLogoutDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Xác nhận đăng xuất</AlertDialogTitle>
+            <AlertDialogDescription>
+              Bạn có chắc muốn đăng xuất?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Hủy</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                handleLogout();
+              }}
+            >
+              Đăng xuất
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </header>
   );
 }

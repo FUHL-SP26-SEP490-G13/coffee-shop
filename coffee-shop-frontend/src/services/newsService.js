@@ -14,23 +14,27 @@ const newsService = {
 
   getAllAdmin(page = 1, keyword = "") {
     return axiosClient.get(API_ENDPOINTS.NEWS.ADMIN, {
-      params: { page, limit: 10, keyword },
+      params: { page, limit: 7, keyword },
     });
   },
 
-  update: (id, data) =>
+  update: (id, data, config = {}) =>
     axiosClient.put(`${API_ENDPOINTS.NEWS.BASE}/${id}`, data, {
+      ...config,
       headers: {
         "Content-Type": "multipart/form-data",
+        ...(config.headers || {}),
       },
     }),
 
   getById: (id) => axiosClient.get(`${API_ENDPOINTS.NEWS.ADMIN}/${id}`),
 
-  create: (data) =>
+  create: (data, config = {}) =>
     axiosClient.post(API_ENDPOINTS.NEWS.BASE, data, {
+      ...config,
       headers: {
         "Content-Type": "multipart/form-data",
+        ...(config.headers || {}),
       },
     }),
 

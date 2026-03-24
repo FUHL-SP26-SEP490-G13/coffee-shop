@@ -1,15 +1,30 @@
-const DiscountRepository = require("../repositories/DiscountRepository");
+const DiscountRepository = require('../repositories/DiscountRepository');
+const ErrorResponse = require('../utils/ErrorResponse');
 
 class DiscountService {
   async getAll(params) {
     return await DiscountRepository.findAll(params);
   }
 
+  async getPublic() {
+    return await DiscountRepository.findPublic();
+  }
+
   async getById(id) {
     const discount = await DiscountRepository.findById(id);
 
     if (!discount) {
-      throw new Error("Không tìm thấy mã giảm giá");
+      throw new ErrorResponse(404, 'Không tìm thấy mã giảm giá');
+    }
+
+    return discount;
+  }
+
+  async getByCode(code) {
+    const discount = await DiscountRepository.findByCodeFull(code);
+
+    if (!discount) {
+      throw new ErrorResponse(404, 'Mã giảm giá không tồn tại');
     }
 
     return discount;
@@ -19,7 +34,7 @@ class DiscountService {
     const existing = await DiscountRepository.findByCode(data.code.trim());
 
     if (existing) {
-      throw new Error("Mã giảm giá đã tồn tại");
+      throw new ErrorResponse(400, 'Mã giảm giá đã tồn tại');
     }
 
     return await DiscountRepository.create({
@@ -33,7 +48,7 @@ class DiscountService {
     const discount = await DiscountRepository.findById(id);
 
     if (!discount) {
-      throw new Error("Không tìm thấy mã giảm giá");
+      throw new ErrorResponse(404, 'Không tìm thấy mã giảm giá');
     }
 
     const usedCount = Number(discount.used_count || 0);
@@ -50,8 +65,9 @@ class DiscountService {
       }
 
       if (Object.keys(allowedData).length === 0) {
-        throw new Error(
-          "Mã giảm giá đã được sử dụng, chỉ được sửa ngày kết thúc, mô tả"
+        throw new ErrorResponse(
+          400,
+          'Mã giảm giá đã được sử dụng, chỉ được sửa ngày kết thúc, mô tả',
         );
       }
 
@@ -66,7 +82,7 @@ class DiscountService {
     ) {
       const existing = await DiscountRepository.findByCode(data.code.trim());
       if (existing) {
-        throw new Error("Mã giảm giá đã tồn tại");
+        throw new ErrorResponse(400, 'Mã giảm giá đã tồn tại');
       }
     }
 
@@ -86,7 +102,7 @@ class DiscountService {
     const discount = await DiscountRepository.findById(id);
 
     if (!discount) {
-      throw new Error("Không tìm thấy mã giảm giá");
+      throw new ErrorResponse(404, 'Không tìm thấy mã giảm giá');
     }
 
     const newCode = `${discount.code}__deleted__${discount.id}__${Date.now()}`;

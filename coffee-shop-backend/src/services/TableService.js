@@ -1,6 +1,7 @@
 const TableRepository = require("../repositories/TableRepository");
 const AreaRepository = require("../repositories/AreaRepository");
 const generateQrCode = require('../utils/generateQrCode');
+const ErrorResponse = require('../utils/ErrorResponse');
 
 class TableService {
   /**
@@ -32,7 +33,7 @@ class TableService {
   async getTableById(id) {
     const table = await TableRepository.findById(id);
     if (!table || table.is_deleted) {
-      throw new Error("Bàn không tồn tại");
+      throw new ErrorResponse(404, 'Bàn không tồn tại');
     }
     return table;
   }
@@ -44,7 +45,7 @@ class TableService {
     // Check if area exists
     const area = await AreaRepository.findById(data.area_id);
     if (!area) {
-      throw new Error("Khu vực không tồn tại");
+      throw new ErrorResponse(404, 'Khu vực không tồn tại');
     }
 
     // Auto-generate table code
@@ -78,7 +79,7 @@ class TableService {
     if (data.area_id) {
       const area = await AreaRepository.findById(data.area_id);
       if (!area) {
-        throw new Error("Khu vực không tồn tại");
+        throw new ErrorResponse(404, 'Khu vực không tồn tại');
       }
     }
 

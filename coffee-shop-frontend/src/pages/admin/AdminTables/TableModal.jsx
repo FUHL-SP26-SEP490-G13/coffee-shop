@@ -45,7 +45,7 @@ export default function TableModal({ isOpen, onClose, table, areas, initialAreaI
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!formData.area_id) {
       toast.error("Vui lòng chọn khu vực");
       return;
@@ -78,8 +78,8 @@ export default function TableModal({ isOpen, onClose, table, areas, initialAreaI
         <form onSubmit={handleSubmit} className="space-y-4 py-4">
           <div className="grid gap-2">
             <Label htmlFor="area">Khu vực</Label>
-            <Select 
-              value={formData.area_id} 
+            <Select
+              value={formData.area_id}
               onValueChange={(val) => setFormData({ ...formData, area_id: val })}
             >
               <SelectTrigger id="area">
@@ -94,7 +94,7 @@ export default function TableModal({ isOpen, onClose, table, areas, initialAreaI
               </SelectContent>
             </Select>
           </div>
-
+          {/* 
           <div className="grid gap-2">
             <Label htmlFor="seatNumber">Số chỗ ngồi</Label>
             <Input
@@ -106,7 +106,7 @@ export default function TableModal({ isOpen, onClose, table, areas, initialAreaI
               onChange={(e) => setFormData({ ...formData, seatNumber: parseInt(e.target.value) || "" })}
               required
             />
-          </div>
+          </div> */}
 
 
 

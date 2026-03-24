@@ -20,6 +20,8 @@ import {
   MapPin,
   LayoutGrid,
   Bell,
+  MessageSquare,
+  Zap,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import authenticationService from '../../services/authenticationService';
@@ -145,19 +147,7 @@ export default function AdminApp() {
           }
         };
 
-  const menuItems = [
-    { path: "/admin/orders", icon: ShoppingBag, label: "Đơn hàng" },
-    { path: "/admin/users", icon: Users, label: "Người dùng" },
-    { path: "/admin/schedule", icon: Calendar, label: "Lịch làm việc" },
-    { path: "/admin/inventory", icon: ClipboardList, label: "Kho hàng" },
-    { path: "/admin/discounts", icon: Tag, label: "Mã giảm giá" },
-    { path: "/admin/news-list", icon: ClipboardList, label: "Quản lý bài viết" },
-    { path: "/admin/news-letter", icon: Mail, label: "Email đăng kí" },
-    { path: "/admin/banners", icon: ImagePlus, label: "Quản lý quảng cáo" },
-    { path: "/admin/tables", icon: LayoutGrid, label: "Quản lý bàn" },
-    { path: "/admin/profile", icon: User, label: "Thông tin cá nhân" },
 
-  ];
 
   const handleToggleRead = async (item, e) => {
     e.stopPropagation();
@@ -244,8 +234,8 @@ export default function AdminApp() {
       {/* Sidebar */}
       <div
         className={`
-          fixed md:static inset-y-0 left-0 z-40
-          w-64 bg-card border-r border-border flex flex-col
+          fixed md:sticky top-0 left-0 z-40
+          h-screen w-64 bg-card border-r border-border flex flex-col
           transform transition-transform duration-300 ease-in-out
           ${
             mobileMenuOpen
@@ -266,133 +256,299 @@ export default function AdminApp() {
           <p className="text-sm text-muted-foreground">Cổng Quản lý</p>
         </div>
 
-        <nav className="space-y-1 p-4">
-          {/* ================= Dashboard ================= */}
-          <NavLink
-            to="/admin"
-            end
-            className={({ isActive }) =>
-              `w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
-                isActive
-                  ? "bg-primary text-white"
-                  : "text-muted-foreground hover:bg-secondary"
-              }`
-            }
-          >
-            <LayoutDashboard className="w-4 h-4" />
-            <span className="text-sm">Bảng điều khiển</span>
-          </NavLink>
-
-          {/* ================= Thực đơn ================= */}
-          <div>
-            <button
-              onClick={() => setOpenMenu(!openMenu)}
-              className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:bg-secondary transition-colors"
-            >
-              <Package className="w-4 h-4" />
-              <span className="text-sm flex-1 text-left">Thực đơn</span>
-
-              <ChevronDown
-                className={`w-4 h-4 transition-transform ${
-                  openMenu ? "rotate-180" : ""
-                }`}
-              />
-            </button>
-
-            {openMenu && (
-              <div className="ml-6 mt-1 space-y-1">
+        <nav className="p-4 overflow-y-auto flex-1 pb-24">
+          <div className="space-y-6">
+            {/* ================= TỔNG QUAN ================= */}
+            <div>
+              <p className="px-3 text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">
+                Tổng quan
+              </p>
+              <div className="space-y-1">
                 <NavLink
-                  to="/admin/menu/categories"
+                  to="/admin"
+                  end
                   className={({ isActive }) =>
-                    `flex items-center gap-2 px-3 py-2 rounded-md text-sm ${
+                    `w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
                       isActive
                         ? "bg-primary text-white"
                         : "text-muted-foreground hover:bg-secondary"
                     }`
                   }
                 >
-                  <ListOrdered className="w-4 h-4" />
-                  Danh mục
-                </NavLink>
-
-                <NavLink
-                  to="/admin/menu/products"
-                  className={({ isActive }) =>
-                    `flex items-center gap-2 px-3 py-2 rounded-md text-sm ${
-                      isActive
-                        ? "bg-primary text-white"
-                        : "text-muted-foreground hover:bg-secondary"
-                    }`
-                  }
-                >
-                  <Coffee className="w-4 h-4" />
-                  Sản phẩm
-                </NavLink>
-
-                {/* khải edit here */}
-                <NavLink
-                  to="/admin/toppings"
-                  className={({ isActive }) =>
-                    `flex items-center gap-2 px-3 py-2 rounded-md text-sm ${
-                      isActive
-                        ? "bg-primary text-white"
-                        : "text-muted-foreground hover:bg-secondary"
-                    }`
-                  }
-                >
-                  <PlusCircle className="w-4 h-4" />
-                  Topping
+                  <LayoutDashboard className="w-4 h-4" />
+                  <span className="text-sm tracking-wide">Bảng điều khiển</span>
                 </NavLink>
               </div>
-            )}
+            </div>
+
+            {/* ================= BÁN HÀNG & PHỤC VỤ ================= */}
+            <div>
+              <p className="px-3 text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2 mt-1">
+                Bán hàng & Phục vụ
+              </p>
+              <div className="space-y-1">
+                <NavLink
+                  to="/admin/orders"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={({ isActive }) =>
+                    `w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                      isActive ? "bg-primary text-white" : "text-muted-foreground hover:bg-secondary"
+                    }`
+                  }
+                >
+                  <ShoppingBag className="w-4 h-4" />
+                  <span className="text-sm tracking-wide">Đơn hàng</span>
+                </NavLink>
+                <NavLink
+                  to="/admin/tables"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={({ isActive }) =>
+                    `w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                      isActive ? "bg-primary text-white" : "text-muted-foreground hover:bg-secondary"
+                    }`
+                  }
+                >
+                  <LayoutGrid className="w-4 h-4" />
+                  <span className="text-sm tracking-wide">Quản lý bàn</span>
+                </NavLink>
+              </div>
+            </div>
+
+            {/* ================= SẢN PHẨM & KHO ================= */}
+            <div>
+              <p className="px-3 text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2 mt-1">
+                Sản phẩm & Kho
+              </p>
+              <div className="space-y-1">
+                <div>
+                  <button
+                    onClick={() => setOpenMenu(!openMenu)}
+                    className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:bg-secondary transition-colors"
+                  >
+                    <Package className="w-4 h-4" />
+                    <span className="text-sm tracking-wide flex-1 text-left">Thực đơn</span>
+                    <ChevronDown
+                      className={`w-4 h-4 transition-transform ${openMenu ? "rotate-180" : ""}`}
+                    />
+                  </button>
+
+                  {openMenu && (
+                    <div className="ml-6 mt-1 space-y-1">
+                      <NavLink
+                        to="/admin/menu/categories"
+                        className={({ isActive }) =>
+                          `flex items-center gap-2 px-3 py-2 rounded-md text-xs tracking-wide ${
+                            isActive ? "bg-primary text-white" : "text-muted-foreground hover:bg-secondary"
+                          }`
+                        }
+                      >
+                        <ListOrdered className="w-4 h-4" />
+                        Danh mục
+                      </NavLink>
+                      <NavLink
+                        to="/admin/menu/products"
+                        className={({ isActive }) =>
+                          `flex items-center gap-2 px-3 py-2 rounded-md text-xs tracking-wide ${
+                            isActive ? "bg-primary text-white" : "text-muted-foreground hover:bg-secondary"
+                          }`
+                        }
+                      >
+                        <Coffee className="w-4 h-4" />
+                        Sản phẩm
+                      </NavLink>
+                      <NavLink
+                        to="/admin/toppings"
+                        className={({ isActive }) =>
+                          `flex items-center gap-2 px-3 py-2 rounded-md text-xs tracking-wide ${
+                            isActive ? "bg-primary text-white" : "text-muted-foreground hover:bg-secondary"
+                          }`
+                        }
+                      >
+                        <PlusCircle className="w-4 h-4" />
+                        Topping
+                      </NavLink>
+                    </div>
+                  )}
+                </div>
+                
+                <NavLink
+                  to="/admin/inventory"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={({ isActive }) =>
+                    `w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                      isActive ? "bg-primary text-white" : "text-muted-foreground hover:bg-secondary"
+                    }`
+                  }
+                >
+                  <ClipboardList className="w-4 h-4" />
+                  <span className="text-sm tracking-wide">Kho hàng</span>
+                </NavLink>
+              </div>
+            </div>
+
+            {/* ================= KHÁCH HÀNG & MARKETING ================= */}
+            <div>
+              <p className="px-3 text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2 mt-1">
+                Khách hàng & Marketing
+              </p>
+              <div className="space-y-1">
+                <NavLink
+                  to="/admin/users"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={({ isActive }) =>
+                    `w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                      isActive ? "bg-primary text-white" : "text-muted-foreground hover:bg-secondary"
+                    }`
+                  }
+                >
+                  <Users className="w-4 h-4" />
+                  <span className="text-sm tracking-wide">Người dùng</span>
+                </NavLink>
+                <NavLink
+                  to="/admin/reviews"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={({ isActive }) =>
+                    `w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                      isActive ? "bg-primary text-white" : "text-muted-foreground hover:bg-secondary"
+                    }`
+                  }
+                >
+                  <MessageSquare className="w-4 h-4" />
+                  <span className="text-sm tracking-wide">Đánh giá</span>
+                </NavLink>
+                <NavLink
+                  to="/admin/discounts"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={({ isActive }) =>
+                    `w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                      isActive ? "bg-primary text-white" : "text-muted-foreground hover:bg-secondary"
+                    }`
+                  }
+                >
+                  <Tag className="w-4 h-4" />
+                  <span className="text-sm tracking-wide">Mã giảm giá</span>
+                </NavLink>
+                <NavLink
+                  to="/admin/flash-sales"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={({ isActive }) =>
+                    `w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                      isActive ? "bg-primary text-white" : "text-muted-foreground hover:bg-secondary"
+                    }`
+                  }
+                >
+                  <Zap className="w-4 h-4 text-amber-500" />
+                  <span className="text-sm tracking-wide">Flash Sales</span>
+                </NavLink>
+                <NavLink
+                  to="/admin/banners"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={({ isActive }) =>
+                    `w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                      isActive ? "bg-primary text-white" : "text-muted-foreground hover:bg-secondary"
+                    }`
+                  }
+                >
+                  <ImagePlus className="w-4 h-4" />
+                  <span className="text-sm tracking-wide">Quảng cáo</span>
+                </NavLink>
+                <NavLink
+                  to="/admin/news-list"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={({ isActive }) =>
+                    `w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                      isActive ? "bg-primary text-white" : "text-muted-foreground hover:bg-secondary"
+                    }`
+                  }
+                >
+                  <ClipboardList className="w-4 h-4" />
+                  <span className="text-sm tracking-wide">Bài viết</span>
+                </NavLink>
+                <NavLink
+                  to="/admin/subscriber"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={({ isActive }) =>
+                    `w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                      isActive ? "bg-primary text-white" : "text-muted-foreground hover:bg-secondary"
+                    }`
+                  }
+                >
+                  <Mail className="w-4 h-4" />
+                  <span className="text-sm tracking-wide">Email đăng kí</span>
+                </NavLink>
+              </div>
+            </div>
+
+            {/* ================= NHÂN SỰ & HỆ THỐNG ================= */}
+            <div>
+              <p className="px-3 text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2 mt-1">
+                Hệ thống
+              </p>
+              <div className="space-y-1">
+                <NavLink
+                  to="/admin/schedule"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={({ isActive }) =>
+                    `w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                      isActive ? "bg-primary text-white" : "text-muted-foreground hover:bg-secondary"
+                    }`
+                  }
+                >
+                  <Calendar className="w-4 h-4" />
+                  <span className="text-sm tracking-wide">Lịch làm việc</span>
+                </NavLink>
+                <NavLink
+                  to="/admin/receipt-settings"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={({ isActive }) =>
+                    `w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                      isActive ? "bg-primary text-white" : "text-muted-foreground hover:bg-secondary"
+                    }`
+                  }
+                >
+                  <ClipboardList className="w-4 h-4" />
+                  <span className="text-sm tracking-wide">Cấu hình hóa đơn</span>
+                </NavLink>
+                <NavLink
+                  to="/admin/profile"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={({ isActive }) =>
+                    `w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                      isActive ? "bg-primary text-white" : "text-muted-foreground hover:bg-secondary"
+                    }`
+                  }
+                >
+                  <User className="w-4 h-4" />
+                  <span className="text-sm tracking-wide">Thông tin cá nhân</span>
+                </NavLink>
+              </div>
+            </div>
           </div>
 
-          {/* ================= Các menu khác ================= */}
-          {menuItems.map((item) => {
-            const Icon = item.icon;
-            return (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                onClick={() => setMobileMenuOpen(false)}
-                className={({ isActive }) =>
-                  `w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
-                    isActive
-                      ? "bg-primary text-white"
-                      : "text-muted-foreground hover:bg-secondary"
-                  }`
-                }
-              >
-                <Icon className="w-4 h-4" />
-                <span className="text-sm">{item.label}</span>
-              </NavLink>
-            );
-          })}
-
-          {/* ================= Logout ================= */}
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <button className="w-full flex items-center gap-3 px-3 py-2 mt-4 text-red-600 hover:bg-red-100 rounded-lg">
-                <LogOut className="w-4 h-4" />
-                <span className="text-sm">Đăng xuất</span>
-              </button>
-            </AlertDialogTrigger>
-
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Xác nhận đăng xuất</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Bạn có chắc muốn đăng xuất?
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Hủy</AlertDialogCancel>
-                <AlertDialogAction onClick={handleLogout}>
-                  Đăng xuất
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+          <div className="mt-8 mb-4 border-t border-border pt-4">
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <button className="w-full flex items-center gap-3 px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                  <LogOut className="w-4 h-4" />
+                  <span className="text-sm font-bold tracking-wide">Đăng xuất</span>
+                </button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Xác nhận đăng xuất</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Bạn có chắc muốn đăng xuất?
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Hủy</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleLogout} className="bg-red-600 hover:bg-red-700">
+                    Đăng xuất
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
         </nav>
       </div>
 

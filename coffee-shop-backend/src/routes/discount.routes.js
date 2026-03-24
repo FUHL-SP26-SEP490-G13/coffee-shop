@@ -1,51 +1,60 @@
-const express = require("express");
+const express = require('express');
 const router = express.Router();
 
-const DiscountController = require("../controllers/DiscountController");
-const { authenticate } = require("../middlewares/auth");
-const { authorize } = require("../middlewares/authorize");
-const validate = require("../middlewares/validate");
+const DiscountController = require('../controllers/DiscountController');
+const { authenticate } = require('../middlewares/auth');
+const { authorize } = require('../middlewares/authorize');
+const validate = require('../middlewares/validate');
 const {
   createDiscountSchema,
   updateDiscountSchema,
-} = require("../validators/discountValidator");
-const { ROLES_STRING } = require("../config/constants");
+} = require('../validators/discountValidator');
+const { ROLES_STRING } = require('../config/constants');
+
+router.get('/public', DiscountController.getPublic);
 
 router.get(
-  "/",
+  '/',
   authenticate,
   authorize([ROLES_STRING.MANAGER]),
-  DiscountController.getAll
+  DiscountController.getAll,
 );
 
 router.get(
-  "/:id",
+  '/:id',
   authenticate,
   authorize([ROLES_STRING.MANAGER]),
-  DiscountController.getById
+  DiscountController.getById,
+);
+
+router.get(
+  '/code/:code',
+  authenticate,
+  authorize([ROLES_STRING.STAFF]),
+  DiscountController.getByCode,
 );
 
 router.post(
-  "/",
+  '/',
   authenticate,
   authorize([ROLES_STRING.MANAGER]),
   validate(createDiscountSchema),
-  DiscountController.create
+  DiscountController.create,
 );
 
 router.put(
-  "/:id",
+  '/:id',
   authenticate,
   authorize([ROLES_STRING.MANAGER]),
   validate(updateDiscountSchema),
-  DiscountController.update
+  DiscountController.update,
 );
 
 router.delete(
-  "/:id",
+  '/:id',
   authenticate,
   authorize([ROLES_STRING.MANAGER]),
-  DiscountController.delete
+  DiscountController.delete,
 );
 
 module.exports = router;

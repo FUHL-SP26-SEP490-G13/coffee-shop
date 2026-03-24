@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Loader2, Search, ChevronLeft, ChevronRight, Mars, Venus, Plus, Users } from 'lucide-react';
+import { Loader2, Search, ChevronLeft, ChevronRight, Plus, Users } from 'lucide-react';
 import userService from '../../services/userService';
 import { Badge } from '../../components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
@@ -39,6 +39,17 @@ export default function AdminUsers() {
   const [passwordError, setPasswordError] = useState('');
   const [isTogglingStatus, setIsTogglingStatus] = useState(false);
   const USERS_PER_PAGE = 10;
+
+  const normalizePhoneNumber = (phone) => {
+    const digitsOnly = (phone || '').replace(/\D/g, '');
+
+    // Convert +84xxxxxxxxx / 84xxxxxxxxx to local 0xxxxxxxxx format
+    if (digitsOnly.startsWith('84') && digitsOnly.length >= 11 && digitsOnly.length <= 12) {
+      return `0${digitsOnly.slice(2)}`;
+    }
+
+    return digitsOnly;
+  };
 
   const fetchUsers = async () => {
     try {
@@ -80,8 +91,11 @@ export default function AdminUsers() {
     }
     if (!createForm.phone.trim()) {
       errors.phone = 'Số điện thoại không được để trống';
-    } else if (!/^(\+84|0)[0-9]{9,11}$/.test(createForm.phone.replace(/\s/g, ''))) {
-      errors.phone = 'Số điện thoại không hợp lệ';
+    } else {
+      const normalizedPhone = normalizePhoneNumber(createForm.phone);
+      if (!/^[0-9]{10,11}$/.test(normalizedPhone)) {
+        errors.phone = 'Số điện thoại phải có 10-11 chữ số';
+      }
     }
     if (!createForm.username.trim()) {
       errors.username = 'Username không được để trống';
@@ -121,7 +135,7 @@ export default function AdminUsers() {
         first_name: createForm.first_name.trim(),
         last_name: createForm.last_name.trim(),
         email: createForm.email.trim(),
-        phone: createForm.phone.trim(),
+        phone: normalizePhoneNumber(createForm.phone),
         username: createForm.username.trim(),
         role_id: parseInt(createForm.role_id, 10),
       };
@@ -135,7 +149,7 @@ export default function AdminUsers() {
         setCreateError(response.message || 'Không thể tạo nhân viên');
       }
     } catch (err) {
-      setCreateError('Lỗi kết nối đến máy chủ');
+      setCreateError(err.message || 'Lỗi kết nối đến máy chủ');
       console.error(err);
     } finally {
       setIsCreating(false);
@@ -186,17 +200,6 @@ export default function AdminUsers() {
       console.error(err);
     } finally {
       setIsTogglingStatus(false);
-    }
-  };
-
-  const getGenderLabel = (gender) => {
-    switch (gender) {
-      case 1:
-        return { icon: <Mars className="w-4 h-4" />, label: 'Nam', color: 'text-blue-600' };
-      case 0:
-        return { icon: <Venus className="w-4 h-4" />, label: 'Nữ', color: 'text-pink-600' };
-      default:
-        return { icon: null, label: 'Khác', color: 'text-gray-600' };
     }
   };
 
@@ -372,7 +375,6 @@ export default function AdminUsers() {
             ) : (
               paginatedUsers.map((user) => {
               const roleInfo = getRoleInfo(user.role_id);
-              const genderInfo = getGenderLabel(user.gender);
               const fullName = `${user.first_name} ${user.last_name}`;
               
               return (
