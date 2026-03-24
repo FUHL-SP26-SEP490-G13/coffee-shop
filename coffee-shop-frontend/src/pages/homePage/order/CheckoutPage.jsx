@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Banknote, MapPin } from "lucide-react";
+import { MapPin } from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
@@ -38,7 +38,7 @@ export default function CheckoutPage() {
   const [isAddressDialogOpen, setIsAddressDialogOpen] = useState(false);
   const [form, setForm] = useState({
     order_type: "delivery",
-    payment_method: "cash",
+    payment_method: "payos",
     receiver_name: "",
     receiver_phone: "",
     receiver_email: "",
@@ -366,12 +366,6 @@ export default function CheckoutPage() {
               </label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {[
-                  {
-                    value: "cash",
-                    label: "Tiền mặt",
-                    sub: "Thanh toán khi nhận hàng",
-                    icon: <Banknote className="w-5 h-5 text-green-600" />,
-                  },
                   {
                     value: "payos",
                     label: "PayOS",

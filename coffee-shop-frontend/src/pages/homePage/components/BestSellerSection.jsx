@@ -115,9 +115,9 @@ export default function BestSellerSection({
             <span className="text-sm font-semibold uppercase tracking-[0.2em] text-primary">
               Menu Đặc Sắc
             </span>
-            <h2 className="mt-2 text-3xl font-bold text-foreground sm:text-4xl">
+            <h4 className="mt-2 text-xl font-semibold text-foreground sm:text-2xl">
               Sản phẩm bán chạy
-            </h2>
+            </h4>
             <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
               Những thức uống và món ăn được yêu thích nhất, được chọn lọc bởi
               hàng ngàn khách hàng.
@@ -179,11 +179,10 @@ export default function BestSellerSection({
                         type="button"
                         onClick={(e) => handleToggleFavorite(e, product.id)}
                         disabled={isFavoriteLoading}
-                        className={`absolute right-4 top-4 z-10 flex h-10 w-10 items-center justify-center rounded-full border shadow-sm transition ${
-                          isFavorite
+                        className={`absolute right-4 top-4 z-10 flex h-10 w-10 items-center justify-center rounded-full border shadow-sm transition ${isFavorite
                             ? "border-red-500 bg-red-50 text-red-500"
                             : "border-border bg-white/90 text-muted-foreground hover:border-red-400 hover:text-red-500"
-                        }`}
+                          }`}
                         title={
                           isFavorite
                             ? "Bỏ khỏi yêu thích"
@@ -194,9 +193,8 @@ export default function BestSellerSection({
                           <Loader2 className="h-4 w-4 animate-spin" />
                         ) : (
                           <Heart
-                            className={`h-5 w-5 ${
-                              isFavorite ? "fill-current" : ""
-                            }`}
+                            className={`h-5 w-5 ${isFavorite ? "fill-current" : ""
+                              }`}
                           />
                         )}
                       </button>

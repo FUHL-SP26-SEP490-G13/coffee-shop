@@ -4,6 +4,7 @@ import productService from "@/services/productService";
 import bannerService from "../../services/bannerService";
 import FeaturedNews from "@/pages/homePage/news/FeaturedNews";
 import HomeBanner from "./components/HomeBanner";
+import DiscountSection from "./components/DiscountSection";
 import BestSellerSection from "./components/BestSellerSection";
 import IntroVideoSection from "./components/IntroVideoSection";
 import "swiper/css";
@@ -86,6 +87,8 @@ export default function HomePage() {
         setActiveBannerIndex={setActiveBannerIndex}
         defaultImage={defaultImage}
       />
+
+      <DiscountSection />
 
       <BestSellerSection
         loading={loading}
