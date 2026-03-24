@@ -5,8 +5,10 @@ import bannerService from "../../services/bannerService";
 import FeaturedNews from "@/pages/homePage/news/FeaturedNews";
 import HomeBanner from "./components/HomeBanner";
 import DiscountSection from "./components/DiscountSection";
+import CategorySection from "./components/CategorySection";
 import BestSellerSection from "./components/BestSellerSection";
 import IntroVideoSection from "./components/IntroVideoSection";
+import ReviewSection from "./components/ReviewSection";
 import "swiper/css";
 import "swiper/css/pagination";
 import "swiper/css/navigation";
@@ -100,6 +102,10 @@ export default function HomePage() {
       <div className="w-full h-px bg-gradient-to-r from-transparent via-amber-300 to-transparent" />
 
       <IntroVideoSection videoId="eDyD7y3M_c0" />
+
+      <CategorySection />
+
+      <ReviewSection />
 
       <FeaturedNews />
       <Footer />

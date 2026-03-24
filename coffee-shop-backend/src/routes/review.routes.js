@@ -7,6 +7,7 @@ router.get("/product/:productId", ReviewController.getByProductId);
 router.get("/me/:productId", authenticate, ReviewController.getMyReview);
 router.post("/", authenticate, ReviewController.createOrUpdate);
 
+router.get("/public", ReviewController.getPublicReviews);
 router.get("/", authenticate, ReviewController.getAll);
 
 module.exports = router;

@@ -143,6 +143,25 @@ class ReviewRepository extends BaseRepository {
       totalPages: Math.ceil(total / pageSize) || 1,
     };
   }
+  async getPublicReviews(limit = 9) {
+    const query = `
+      SELECT
+        r.id,
+        r.rating,
+        r.comment,
+        r.created_at,
+        u.first_name,
+        u.last_name
+      FROM reviews r
+      INNER JOIN users u ON u.id = r.user_id
+      WHERE r.comment IS NOT NULL AND TRIM(r.comment) != ''
+      ORDER BY r.rating DESC, r.created_at DESC
+      LIMIT ?
+    `;
+
+    const [rows] = await this.db.query(query, [limit]);
+    return rows;
+  }
 }
 
 module.exports = new ReviewRepository();
