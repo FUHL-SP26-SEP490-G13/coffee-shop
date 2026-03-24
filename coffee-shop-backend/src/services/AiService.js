@@ -461,11 +461,45 @@ class AiService {
   }
 
   async callModel(contents, config) {
-    return this.ai.models.generateContent({
-      model: this.model,
-      contents,
-      config,
-    });
+    const modelsToTry = [
+      this.model || "gemini-2.5-flash",
+      "gemini-2.0-flash",
+      "gemini-1.5-flash"
+    ];
+
+    // Lọc trùng lặp model
+    const uniqueModels = [...new Set(modelsToTry)];
+    let lastError = null;
+
+    for (const modelName of uniqueModels) {
+      try {
+        const response = await this.ai.models.generateContent({
+          model: modelName,
+          contents,
+          config,
+        });
+        return response;
+      } catch (error) {
+        lastError = error;
+        const msg = error?.message || "";
+        // Nếu lỗi 429 (Rate Limit) hoặc 503 (Overloaded), thử model kết tiếp
+        if (
+          error?.status === 429 ||
+          msg.includes("429") ||
+          msg.includes("Quota") ||
+          error?.status === 503 ||
+          msg.includes("503") ||
+          msg.includes("UNAVAILABLE")
+        ) {
+          console.warn(`[AiService] Model ${modelName} failed (${error?.status || 'Rate Limit/Quota'}). Switching to next model...`);
+          continue;
+        }
+        // Lỗi logic (Bad Request, v.v.) thì dừng luôn
+        throw error;
+      }
+    }
+
+    throw lastError;
   }
 
   async executeFunctionCall(call, chatContents, config, sessionId) {
@@ -558,23 +592,41 @@ class AiService {
         let sizeName = item.size || "S";
         let sizeId = 0;
         let imageUrl = "";
+        let validProduct = null;
+        let finalProductId = item.product_id;
+        let finalProductName = item.product_name;
 
-        if (item.product_id) {
+        if (item.product_id || item.product_name) {
           try {
-            const product = await productService.getProductById(item.product_id);
-            if (product) {
-              const info = this.getProductCartInfo(product, sizeName);
-              finalPrice = info.price || finalPrice;
-              sizeName = info.sizeName;
-              sizeId = info.sizeId;
-              imageUrl = info.image;
+            if (item.product_id) {
+              validProduct = await productService.getProductById(item.product_id).catch(() => null);
+            }
+            if (!validProduct && item.product_name) {
+              const result = await productService.searchProducts(item.product_name, { limit: 1 });
+              const items = result?.data || result?.items || result || [];
+              if (items.length > 0) validProduct = items[0];
             }
           } catch (e) {}
         }
 
+        if (!validProduct) {
+          return {
+            type: "message",
+            text: `Xin lỗi bạn, quán mình hiện tại không có món "${item.product_name}" trong menu. Bạn vui lòng xem menu để chọn món khác nhé!`,
+          };
+        }
+
+        const info = this.getProductCartInfo(validProduct, sizeName);
+        finalPrice = info.price || finalPrice;
+        sizeName = info.sizeName;
+        sizeId = info.sizeId;
+        imageUrl = info.image;
+        finalProductId = validProduct.id;
+        finalProductName = validProduct.name;
+
         payloadArray.push({
-          product_id: item.product_id,
-          product_name: item.product_name,
+          product_id: finalProductId,
+          product_name: finalProductName,
           price: finalPrice,
           size: sizeName,
           productSizeId: sizeId,
@@ -582,7 +634,7 @@ class AiService {
           quantity: item.quantity || 1,
           note: item.note || ""
         });
-        textNames.push(`${item.quantity || 1} x ${item.product_name} (${sizeName})`);
+        textNames.push(`${item.quantity || 1} x ${finalProductName} (${sizeName})`);
       }
 
       return {
