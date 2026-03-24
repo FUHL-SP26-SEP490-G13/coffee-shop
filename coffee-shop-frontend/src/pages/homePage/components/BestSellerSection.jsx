@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Loader2, ArrowRight, Heart } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import favoriteService from "@/services/favoriteService";
+import flashSaleService from "@/services/flashSaleService";
 import { STORAGE_KEYS } from "@/constants";
 
 export default function BestSellerSection({
@@ -20,6 +21,13 @@ export default function BestSellerSection({
 
   const [favoriteMap, setFavoriteMap] = useState({});
   const [favoriteLoadingMap, setFavoriteLoadingMap] = useState({});
+  const [activeSale, setActiveSale] = useState(null);
+
+  useEffect(() => {
+    flashSaleService.getCurrentActive()
+      .then((res) => setActiveSale(res?.data || null))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     const fetchFavoriteStatus = async () => {
@@ -174,6 +182,12 @@ export default function BestSellerSection({
                           />
                         </div>
                       </Link>
+                      
+                      {activeSale && activeSale.product_ids?.includes(product.id) && (
+                        <div className="absolute top-4 left-4 z-10 bg-red-600 text-white text-xs font-bold px-2.5 py-1 rounded-md shadow-sm flex items-center gap-1 animate-pulse">
+                          ⚡ Flash Sale
+                        </div>
+                      )}
 
                       <button
                         type="button"
@@ -218,9 +232,31 @@ export default function BestSellerSection({
 
                       <div className="mt-5 flex items-end justify-between gap-3 border-t border-border/60 pt-4">
                         <div className="min-w-0 flex-1">
-                          <p className="break-words text-xl font-bold leading-tight text-primary">
-                            {getDisplayPrice(product)}
-                          </p>
+                          {(() => {
+                            const isFlashSale = activeSale && activeSale.product_ids?.includes(product.id);
+                            const originalPriceText = getDisplayPrice(product);
+                            
+                            if (isFlashSale) {
+                              const originalPriceNum = Number(originalPriceText.replace(/\D/g, ''));
+                              if (originalPriceNum > 0) {
+                                const salePriceNum = Math.round(originalPriceNum * (1 - (activeSale.discount_percent || 0) / 100));
+                                return (
+                                  <div className="flex flex-col">
+                                    <span className="text-sm line-through text-gray-400">{originalPriceText}</span>
+                                    <p className="break-words text-xl font-bold leading-tight text-red-600">
+                                      {salePriceNum.toLocaleString("vi-VN")}đ
+                                    </p>
+                                  </div>
+                                );
+                              }
+                            }
+                            
+                            return (
+                              <p className="break-words text-xl font-bold leading-tight text-primary">
+                                {originalPriceText}
+                              </p>
+                            );
+                          })()}
                         </div>
                       </div>
                     </div>

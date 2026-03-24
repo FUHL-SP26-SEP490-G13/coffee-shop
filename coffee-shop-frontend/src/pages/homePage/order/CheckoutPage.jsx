@@ -20,6 +20,7 @@ import orderService from "@/services/orderOnlineService";
 import { STORAGE_KEYS } from "@/constants";
 import { validateOrderField } from "@/utils/orderValidation";
 import PayOSLogo from "/logo/payOS.svg";
+import flashSaleService from "@/services/flashSaleService";
 
 export default function CheckoutPage() {
   const navigate = useNavigate();
@@ -46,6 +47,15 @@ export default function CheckoutPage() {
     note: "",
     discount_code: "",
   });
+  const [activeSale, setActiveSale] = useState(null);
+
+  useEffect(() => {
+    flashSaleService.getCurrentActive()
+      .then((res) => {
+        setActiveSale(res?.data || null);
+      })
+      .catch((err) => console.error("Error fetching active sale:", err));
+  }, []);
 
   useEffect(() => {
     if (cart.length === 0) {
@@ -134,6 +144,16 @@ export default function CheckoutPage() {
     );
   }, [cart]);
 
+  const regularAmount = useMemo(() => {
+    return cart.reduce((sum, item) => {
+      const isFlashSale = activeSale?.product_ids?.some(id => Number(id) === Number(item.product_id || item.id));
+      if (isFlashSale) {
+        return sum; // Do not include in regular amount
+      }
+      return sum + cartService.getItemSubtotal(item);
+    }, 0);
+  }, [cart, activeSale]);
+
   const discountAmount = Number(appliedDiscount?.discount_amount || 0);
   const totalAmount = subtotalAmount - discountAmount;
 
@@ -145,11 +165,25 @@ export default function CheckoutPage() {
       return;
     }
 
+    if (regularAmount === 0) {
+      alert("Mã giảm giá không áp dụng cho đơn hàng chỉ có sản phẩm Flash Sale!");
+      return;
+    }
+
     setIsApplyingDiscount(true);
     try {
+      const itemsPayload = cart.map((item) => ({
+        product_size_id: item.productSizeId || item.product_size_id,
+        quantity: item.quantity,
+        toppings: item.toppings?.map((t) => ({
+          topping_id: t.topping_id,
+          quantity: t.quantity,
+        })) || [],
+      }));
+
       const res = await orderService.validateDiscount({
         code,
-        order_amount: subtotalAmount,
+        items: itemsPayload,
       });
 
       const discountData = res?.data;

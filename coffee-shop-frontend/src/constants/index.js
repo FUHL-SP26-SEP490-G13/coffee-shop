@@ -100,6 +100,12 @@ export const API_ENDPOINTS = {
     SERVED: (id) => `/takeaway/orders/${id}/served`,
     COMPLETE: (id) => `/takeaway/orders/${id}/complete`,
   },
+  FLASH_SALES: {
+    CURRENT: '/flash-sales/current'
+  },
+  AI: {
+    CHAT: '/ai/chat'
+  }
 };
 
 // Các hằng số khác

@@ -25,8 +25,10 @@ const getToppingsSignature = (toppings = []) => {
 
 const getCartItemKey = (item) => {
   const sizeId = getItemSizeId(item);
+  const productId = item?.product_id || item?.id || 0;
+  const identifier = sizeId > 0 ? sizeId : `p${productId}`;
   const toppingKey = getToppingsSignature(item?.toppings || []);
-  return `${sizeId}__${toppingKey}`;
+  return `${identifier}__${toppingKey}`;
 };
 
 const getBasePrice = (item) =>

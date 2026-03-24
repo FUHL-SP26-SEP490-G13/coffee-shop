@@ -4,6 +4,7 @@ import productService from "@/services/productService";
 import bannerService from "../../services/bannerService";
 import FeaturedNews from "@/pages/homePage/news/FeaturedNews";
 import HomeBanner from "./components/HomeBanner";
+import FlashSaleSection from "./components/FlashSaleSection";
 import DiscountSection from "./components/DiscountSection";
 import CategorySection from "./components/CategorySection";
 import BestSellerSection from "./components/BestSellerSection";
@@ -14,6 +15,7 @@ import "swiper/css/pagination";
 import "swiper/css/navigation";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import AiAssistantWidget from "@/components/layout/AiAssistantWidget";
 
 export default function HomePage() {
   const [activeBannerIndex, setActiveBannerIndex] = useState(0);
@@ -90,6 +92,12 @@ export default function HomePage() {
         defaultImage={defaultImage}
       />
 
+      <FlashSaleSection 
+        products={products}
+        getThumbnail={getThumbnail}
+        getDefaultCartSize={getDefaultCartSize}
+      />
+
       <DiscountSection />
 
       <BestSellerSection
@@ -109,6 +117,8 @@ export default function HomePage() {
 
       <FeaturedNews />
       <Footer />
+      
+      <AiAssistantWidget />
 
       <style>{`
         @keyframes fadeInUp {

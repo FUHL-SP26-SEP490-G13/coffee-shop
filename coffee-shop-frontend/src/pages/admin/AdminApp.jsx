@@ -21,6 +21,7 @@ import {
   LayoutGrid,
   Bell,
   MessageSquare,
+  Zap,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import authenticationService from '../../services/authenticationService';
@@ -426,6 +427,18 @@ export default function AdminApp() {
                 >
                   <Tag className="w-4 h-4" />
                   <span className="text-sm tracking-wide">Mã giảm giá</span>
+                </NavLink>
+                <NavLink
+                  to="/admin/flash-sales"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={({ isActive }) =>
+                    `w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                      isActive ? "bg-primary text-white" : "text-muted-foreground hover:bg-secondary"
+                    }`
+                  }
+                >
+                  <Zap className="w-4 h-4 text-amber-500" />
+                  <span className="text-sm tracking-wide">Flash Sales</span>
                 </NavLink>
                 <NavLink
                   to="/admin/banners"
