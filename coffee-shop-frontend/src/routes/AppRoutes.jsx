@@ -59,6 +59,7 @@ import AdminReceiptSettings from "@/pages/admin/AdminReceiptSettings/AdminReceip
 import AdminFlashSales from "@/pages/admin/AdminFlashSale/AdminFlashSales";
 import TakeawayPOS from '../pages/staff/TakeawayPOS'
 import { OrderDelivery } from '@/pages/staff/OrderDelivery';
+import { StaffDashboard } from "@/pages/staff/StaffDashboard";
 
 const getStoredValue = (key) =>
   localStorage.getItem(key) || sessionStorage.getItem(key);
@@ -142,7 +143,8 @@ const AppRoutes = () => {
           </RoleGuard>
         }
       >
-        <Route index element={<Navigate to="pos" replace />} />
+        <Route index element={<Navigate to="dashboard" replace />} />
+        <Route path="dashboard" element={<StaffDashboard />} />
         <Route path="pos" element={<StaffPOS />} />
         <Route path="takeaway" element={<TakeawayPOS />} />
         <Route path="delivery" element={<OrderDelivery />} />

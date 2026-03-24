@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { APP_ROUTES, STORAGE_KEYS } from "@/constants";
 import authenticationService from "@/services/authenticationService";
+import { toast } from "sonner";
 
 const REMEMBER_ME_KEYS = {
 	IDENTIFIER: "coffee_shop_remember_identifier",
@@ -71,6 +72,8 @@ export default function LoginPage() {
 				localStorage.removeItem(REMEMBER_ME_KEYS.IDENTIFIER);
 				localStorage.removeItem(REMEMBER_ME_KEYS.PASSWORD);
 			}
+
+			toast.success("Chào mừng bạn đã trở lại!");
 
             // Điều hướng dựa trên vai trò người dùng
 			switch (user?.role_id) {
