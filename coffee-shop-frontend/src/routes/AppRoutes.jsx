@@ -1,4 +1,3 @@
-import OrderMenu from "@/pages/OrderMenu/OrderMenu";
 import React, { useEffect, useState } from "react";
 import { Navigate, Routes, Route } from "react-router-dom";
 import { APP_ROUTES, STORAGE_KEYS } from "../constants";
@@ -51,6 +50,7 @@ import ProductListPage from "../pages/homePage/product/ProductListPage";
 import ProductDetailPage from "../pages/homePage/product/ProductDetailPage";
 import CartPage from "@/pages/homePage/order/CartPage";
 import CheckoutPage from "@/pages/homePage/order/CheckoutPage";
+import OrderQRMenu from "@/pages/homePage/order/OrderQRMenu";
 
 const getStoredValue = (key) =>
   localStorage.getItem(key) || sessionStorage.getItem(key);
@@ -198,7 +198,7 @@ const AppRoutes = () => {
       <Route path="/cart" element={<CartPage />} />
       <Route path="/checkout" element={<CheckoutPage />} />
 
-      <Route path="/order" element={<OrderMenu />} />
+      <Route path="/order" element={<OrderQRMenu />} />
 
       {/* 404 */}
       <Route

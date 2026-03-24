@@ -1,6 +1,7 @@
 
 import React, { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import productService from "@/services/productService";
+import { data, useSearchParams } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -22,7 +23,7 @@ function CartBar({ count, onClick }) {
   );
 }
 
-export default function OrderMenu() {
+export default function OrderQRMenu() {
   const [searchParams] = useSearchParams();
   const tableId = searchParams.get("table");
   const [menu, setMenu] = useState([]);
@@ -30,16 +31,19 @@ export default function OrderMenu() {
   const [selected, setSelected] = useState([]);
   const [showCart, setShowCart] = useState(false);
 
+
   useEffect(() => {
-    // TODO: Gọi API lấy menu thực tế
-    setTimeout(() => {
-      setMenu([
-        { id: 1, name: "Cà phê sữa", price: 29000, img: "/assets/menu/cf-sua.jpg" },
-        { id: 2, name: "Trà đào", price: 35000, img: "/assets/menu/tra-dao.jpg" },
-        { id: 3, name: "Bạc xỉu", price: 32000, img: "/assets/menu/bac-xiu.jpg" },
-      ]);
-      setLoading(false);
-    }, 500);
+    setLoading(true);
+    productService.getAll()
+      .then(res => {
+        console.log("Fetched menu:", res);
+        
+        setMenu(res.data || []);
+      })
+      .catch(() => {
+        setMenu([]);
+      })
+      .finally(() => setLoading(false));
   }, []);
 
 
@@ -70,24 +74,22 @@ export default function OrderMenu() {
           <div className="text-center py-10 text-lg animate-pulse">Đang tải menu...</div>
         ) : (
           <div className="grid grid-cols-2 gap-4">
-            {menu.map((item) => {
+            {menu?.map((item) => {
               const isSelected = selected.some((i) => i.id === item.id);
               return (
                 <Card
-                  key={item.id}
+                  key={item.id || Math.random()}
                   className={`relative flex flex-col items-center p-4 rounded-2xl border-2 transition-all duration-200 ${isSelected ? "border-primary bg-primary/5 shadow-lg scale-105" : "hover:border-primary/60"}`}
                   onClick={() => handleSelect(item)}
                 >
-                  {item.img && (
-                    <img
-                      src={item.img}
-                      alt={item.name}
-                      className="w-20 h-20 object-cover rounded-xl mb-2 shadow-sm border"
-                      loading="lazy"
-                    />
-                  )}
-                  <div className="font-semibold text-lg text-center mb-1">{item.name}</div>
-                  <div className="text-base text-primary font-bold mb-2">{item.price.toLocaleString()}đ</div>
+                  <img
+                    src={item.img || item.images?.[0]?.url || "/assets/menu/default.jpg"}
+                    alt={item.name || "Sản phẩm"}
+                    className="w-20 h-20 object-cover rounded-xl mb-2 shadow-sm border"
+                    loading="lazy"
+                  />
+                  <div className="font-semibold text-lg text-center mb-1">{item.name || "Không tên"}</div>
+                  <div className="text-base text-primary font-bold mb-2">{(item.price || 0).toLocaleString()}đ</div>
                   {isSelected ? (
                     <Button
                       size="sm"
@@ -108,6 +110,9 @@ export default function OrderMenu() {
                 </Card>
               );
             })}
+            {(!menu || menu.length === 0) && (
+              <div className="col-span-2 text-center text-muted-foreground">Không có sản phẩm nào</div>
+            )}
           </div>
         )}
       </main>
