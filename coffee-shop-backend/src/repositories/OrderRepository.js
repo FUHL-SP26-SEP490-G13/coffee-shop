@@ -75,9 +75,10 @@ class OrderRepository {
         table_id,
         status,
         is_paid,
-        total_amount
+        total_amount,
+        session_id
       )
-      VALUES (?, ?, ?, ?, ?, 'pending', 0, ?)
+      VALUES (?, ?, ?, ?, ?, 'pending', 0, ?, ?)
       `,
       [
         data.user_id,
@@ -86,6 +87,7 @@ class OrderRepository {
         data.order_type,
         data.table_id || null,
         data.total_amount,
+        data.session_id || null,
       ]
     );
 
@@ -185,7 +187,6 @@ class OrderRepository {
   }
 
   async updatePaymentByOrderCode(orderCode, { transaction_id, payment_status }) {
-    // order_payments.order_id = orderCode because we use order_id as the PayOS orderCode
     const setParts = [];
     const params = [];
 

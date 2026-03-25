@@ -47,17 +47,17 @@ class OrderService {
     try {
       await connection.beginTransaction();
 
-      let activeOrderId = null;
-      let existingOrderAmount = 0;
-
+      let sessionId = null;
       if (order_type === "dine-in") {
-        const activeOrder = await OrderRepository.findActiveOrderByTableId(
-          connection,
-          payload.table_id
+        const [tableRows] = await connection.query(
+          "SELECT current_session_id FROM tables WHERE id = ?",
+          [payload.table_id]
         );
-        if (activeOrder) {
-          activeOrderId = activeOrder.id;
-          existingOrderAmount = Number(activeOrder.total_amount);
+        if (tableRows.length > 0) {
+          sessionId = tableRows[0].current_session_id;
+          if (!sessionId) {
+            sessionId = `sess_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+          }
         }
       }
 
@@ -192,29 +192,23 @@ class OrderService {
       }
 
       const finalAmount = Math.max(0, totalAmount - discountAmount);
-
       const userId = user?.id || null;
 
-      let orderId = activeOrderId;
-      if (!orderId) {
-        orderId = await OrderRepository.createOrder(connection, {
-          user_id: userId,
-          created_by: userId,
-          customer_type: user ? "registered" : "guest",
-          order_type,
-          table_id: order_type === "dine-in" ? payload.table_id : null,
-          total_amount: finalAmount,
-        });
+      const orderId = await OrderRepository.createOrder(connection, {
+        user_id: userId,
+        created_by: userId,
+        customer_type: user ? "registered" : "guest",
+        order_type,
+        table_id: order_type === "dine-in" ? payload.table_id : null,
+        total_amount: finalAmount,
+        session_id: sessionId
+      });
 
-        if (order_type === "dine-in") {
-          await connection.query(
-            "UPDATE tables SET status = 'occupied' WHERE id = ?",
-            [payload.table_id]
-          );
-        }
-      } else {
-        const newTotal = existingOrderAmount + finalAmount;
-        await OrderRepository.updateOrderTotalAmount(connection, orderId, newTotal);
+      if (order_type === "dine-in") {
+        await connection.query(
+          "UPDATE tables SET status = 'occupied', current_session_id = ? WHERE id = ?",
+          [sessionId, payload.table_id]
+        );
       }
 
       for (const item of normalizedItems) {
@@ -264,37 +258,18 @@ class OrderService {
         }
       }
 
-      const [existingPayment] = await connection.query(
-        "SELECT id FROM order_payments WHERE order_id = ?",
-        [orderId]
-      );
-
-      if (existingPayment.length > 0) {
-        await connection.query(
-          "UPDATE order_payments SET payment_method = ?, amount = ?, payment_status = ? WHERE order_id = ?",
-          [payment_method, finalAmount, "pending", orderId]
-        );
-      } else {
-        await OrderRepository.createOrderPayment(connection, {
-          order_id: orderId,
-          payment_method,
-          payment_status: "pending",
-          amount: finalAmount,
-        });
-      }
+      await OrderRepository.createOrderPayment(connection, {
+        order_id: orderId,
+        payment_method,
+        payment_status: "pending",
+        amount: finalAmount,
+      });
 
       if (payment_method === "cash") {
         await connection.query(
-          "UPDATE orders SET status = 'completed', is_paid = 1, paid_at = NOW() WHERE id = ?",
+          "UPDATE orders SET is_paid = 1, paid_at = NOW() WHERE id = ?",
           [orderId]
         );
-        
-        if (order_type === "dine-in") {
-          await connection.query(
-            "UPDATE tables SET status = 'available' WHERE id = ?",
-            [payload.table_id]
-          );
-        }
 
         await connection.query(
           "UPDATE order_payments SET payment_status = 'paid', paid_at = NOW() WHERE order_id = ?",
@@ -475,20 +450,39 @@ class OrderService {
   async getActiveOrderForTable(tableId) {
     const connection = await OrderRepository.getConnection();
     try {
-      const activeOrder = await OrderRepository.findActiveOrderByTableId(connection, tableId);
-      if (!activeOrder) {
-        return null; // Return null if no active order found
+      const [tableRows] = await connection.query("SELECT current_session_id FROM tables WHERE id = ?", [tableId]);
+      if (tableRows.length === 0 || !tableRows[0].current_session_id) {
+         return null;
       }
       
-      // Get full order details and items
-      const orderData = await OrderRepository.findOrderDetailForStaff(activeOrder.id);
-      if (!orderData) return null;
+      const sessionId = tableRows[0].current_session_id;
 
-      const items = await OrderRepository.findOrderItems(activeOrder.id);
+      const [rows] = await connection.query(
+        `SELECT id, total_amount FROM orders WHERE table_id = ? AND session_id = ? ORDER BY created_at ASC`,
+        [tableId, sessionId]
+      );
+
+      if (rows.length === 0) {
+        return null;
+      }
+
+      let combinedTotal = 0;
+      let allItems = [];
+      const firstOrderId = rows[0].id;
+
+      for (const order of rows) {
+        combinedTotal += Number(order.total_amount || 0);
+        const orderItems = await OrderRepository.findOrderItems(order.id);
+        allItems = allItems.concat(orderItems);
+      }
+
+      const orderData = await OrderRepository.findOrderDetailForStaff(firstOrderId);
+      if (!orderData) return null;
 
       return {
         ...orderData,
-        items,
+        total_amount: combinedTotal,
+        items: allItems,
       };
     } finally {
       connection.release();

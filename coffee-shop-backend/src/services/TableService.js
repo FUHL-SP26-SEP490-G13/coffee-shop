@@ -82,6 +82,15 @@ class TableService {
       }
     }
 
+    if (data.status === 'available') {
+      data.current_session_id = null;
+      // Mark all pending/processing orders for this table as completed
+      await TableRepository.db.query(
+        "UPDATE orders SET status = 'completed' WHERE table_id = ? AND status IN ('pending', 'processing')",
+        [id]
+      );
+    }
+
     return await TableRepository.update(id, data);
   }
 
