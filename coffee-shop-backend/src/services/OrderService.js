@@ -425,11 +425,7 @@ class OrderService {
     if (!orderCode) throw new ErrorResponse(400, "Thiếu orderCode");
 
     const isPaid = status === "PAID";
-    const paymentStatus = isPaid
-      ? "paid"
-      : status === "CANCELLED"
-      ? "cancelled"
-      : "pending";
+    const paymentStatus = isPaid ? "paid" : "pending";
 
     await OrderRepository.updatePaymentByOrderCode(orderCode, {
       transaction_id: payosId || null,

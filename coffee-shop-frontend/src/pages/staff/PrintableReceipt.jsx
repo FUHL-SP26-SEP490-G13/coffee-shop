@@ -402,6 +402,16 @@ export function PrintableReceipt({ order, onDone }) {
           </div>
         )}
 
+        {/* Ghi chú */}
+        {order.note && (
+          <div className="receipt-section">
+            <div className="receipt-item">
+              <span>Ghi chú:</span>
+              <span>{order.note}</span>
+            </div>
+          </div>
+        )}
+
         {/* Total */}
         <div className="receipt-total">
           <span>Tổng cộng</span>

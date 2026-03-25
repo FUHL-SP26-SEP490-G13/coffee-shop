@@ -11,6 +11,10 @@ const _payosAxios = axios.create({
 });
 
 const orderOnlineService = {
+  getReputationByPhone(phoneNumber) {
+    return axiosClient.get(API_ENDPOINTS.ORDER_ONLINE.REPUTATION_BY_PHONE(phoneNumber));
+  },
+
   validateDiscount(data) {
     return axiosClient.post("/order-online/validate-discount", data);
   },

@@ -53,7 +53,7 @@ export function StaffApp() {
   const getCurrentPage = () => {
     const path = location.pathname;
     if (path.includes('takeaway')) return 'takeaway'; 
-    if(path.includes('delivery')) return 'delivery';
+    if(path.includes('orders')) return 'orders';
     if (path.includes('kitchen')) return 'kitchen';
     if (path.includes('tables')) return 'tables';
     if (path.includes('attendance')) return 'attendance';
@@ -75,10 +75,10 @@ export function StaffApp() {
       path: '/staff/takeaway',
     },
     {
-      id: 'delivery',
-      icon: ShoppingBag,
-      label: 'Đặt giao hàng',
-      path: '/staff/delivery',
+      id: 'orders',
+      icon: FileText,
+      label: 'Danh sách đơn',
+      path: '/staff/orders',
     },
     { id: 'kitchen', icon: ChefHat, label: 'Bếp', path: '/staff/kitchen' },
     {

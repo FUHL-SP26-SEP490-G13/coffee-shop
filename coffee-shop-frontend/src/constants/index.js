@@ -66,6 +66,7 @@ export const API_ENDPOINTS = {
   },
   ORDER_ONLINE: {
     CHECKOUT: '/order-online/checkout',
+    REPUTATION_BY_PHONE: (phone) => `/order-online/reputation-by-phone?phone=${encodeURIComponent(phone)}`,
     MY_ORDERS: '/order-online/my-orders',
     MY_ORDER_DETAIL: (id) => `/order-online/my-orders/${id}`,
     STAFF_ORDER_DETAIL: (id) => `/order-online/${id}/staff-detail`,

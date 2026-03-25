@@ -1,6 +1,6 @@
 const Joi = require("joi");
 
-const phoneRegex = /^[0-9]{10}$/;
+const phoneRegex = /^(0\d{9}|(?:\+84|84)\d{9})$/;
 
 const checkoutOrderSchema = Joi.object({
   order_type: Joi.string().valid("delivery", "takeaway", "dine-in").required().messages({
@@ -28,7 +28,7 @@ const checkoutOrderSchema = Joi.object({
   receiver_phone: Joi.string().trim().pattern(phoneRegex).required().messages({
     "string.empty": "Số điện thoại không được để trống",
     "any.required": "Số điện thoại là bắt buộc",
-    "string.pattern.base": "Số điện thoại phải gồm đúng 10 chữ số",
+    "string.pattern.base": "Số điện thoại phải gồm đúng 10 chữ số và có thể bắt đầu bằng 0 hoặc +84",
   }),
 
   receiver_email: Joi.string()

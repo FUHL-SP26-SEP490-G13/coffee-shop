@@ -1,7 +1,7 @@
 export const ORDER_RULES = {
   RECEIVER_NAME_MIN: 2,
   RECEIVER_NAME_MAX: 100,
-  PHONE_REGEX: /^[0-9]{10}$/,
+  PHONE_REGEX: /^(0\d{9}|(?:\+84|84)\d{9})$/,
   EMAIL_REGEX: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
   ADDRESS_MAX: 255,
   NOTE_MAX: 500,
@@ -26,7 +26,7 @@ export const validateOrderField = (name, value) => {
       const v = value?.trim() || "";
       if (!v) return "Số điện thoại không được để trống";
       if (!ORDER_RULES.PHONE_REGEX.test(v)) {
-        return "Số điện thoại phải gồm đúng 10 chữ số";
+        return "Số điện thoại phải gồm đúng 10 chữ số và có thể bắt đầu bằng 0 hoặc +84";
       }
       return "";
     }

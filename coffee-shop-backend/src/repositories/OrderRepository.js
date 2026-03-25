@@ -483,6 +483,27 @@ class OrderRepository {
     const [rows] = await db.query(query, params);
     return rows[0].count;
   }
+
+  async findReputationProfileByPhone(phoneNumber) {
+    const [rows] = await db.query(
+      `
+      SELECT
+        phone_number,
+        current_score,
+        total_orders_completed,
+        total_orders_cancelled,
+        reputation_tier,
+        is_frozen,
+        updated_at
+      FROM reputation_profiles
+      WHERE phone_number = ?
+      LIMIT 1
+      `,
+      [phoneNumber]
+    );
+
+    return rows[0] || null;
+  }
 }
 
 module.exports = new OrderRepository();

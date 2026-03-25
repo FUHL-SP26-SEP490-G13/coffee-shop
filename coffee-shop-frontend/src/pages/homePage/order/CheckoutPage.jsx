@@ -20,6 +20,9 @@ import orderService from "@/services/orderOnlineService";
 import { STORAGE_KEYS } from "@/constants";
 import { validateOrderField } from "@/utils/orderValidation";
 import PayOSLogo from "/logo/payOS.svg";
+import reputationService from "@/services/reputationService";
+import { validateOrderPermissions } from "@/utils/reputationValidation";
+import { toast } from "sonner";
 
 export default function CheckoutPage() {
   const navigate = useNavigate();
@@ -36,6 +39,11 @@ export default function CheckoutPage() {
   const [selectedAddressId, setSelectedAddressId] = useState(null);
   const [isAddressLoading, setIsAddressLoading] = useState(false);
   const [isAddressDialogOpen, setIsAddressDialogOpen] = useState(false);
+  const [reputationScore, setReputationScore] = useState(50);
+  const [reputationTier, setReputationTier] = useState("SILVER");
+  const [reputationFrozen, setReputationFrozen] = useState(false);
+  const [isReputationLoading, setIsReputationLoading] = useState(false);
+  const [paymentValidation, setPaymentValidation] = useState(null);
   const [form, setForm] = useState({
     order_type: "delivery",
     payment_method: "cash",
@@ -64,6 +72,7 @@ export default function CheckoutPage() {
         ]);
 
         const user = profileRes?.data;
+
         const addressList = Array.isArray(addressesRes?.data)
           ? addressesRes.data
           : [];
@@ -94,6 +103,51 @@ export default function CheckoutPage() {
     setIsAddressLoading(true);
     loadCheckoutData();
   }, [token]);
+
+  const normalizePhoneNumber = (phone) => {
+    const digits = String(phone || "").replace(/\D/g, "");
+    if (!digits) return "";
+    if (digits.startsWith("84") && digits.length >= 11) {
+      return `0${digits.slice(2)}`;
+    }
+    if (digits.length === 9) return `0${digits}`;
+    return digits;
+  };
+
+  useEffect(() => {
+    const normalizedPhone = normalizePhoneNumber(form.receiver_phone);
+
+    if (normalizedPhone.length < 10) {
+      setReputationScore(50);
+      setReputationTier("SILVER");
+      setReputationFrozen(false);
+      setIsReputationLoading(false);
+      return;
+    }
+
+    const timeoutId = setTimeout(async () => {
+      setIsReputationLoading(true);
+      try {
+        const res = await reputationService.getReputationProfile(normalizedPhone);
+        const reputation = res?.data?.data || res?.data || {};
+
+        setReputationScore(Number(reputation?.current_score ?? 50));
+        setReputationTier(String(reputation?.reputation_tier || "SILVER"));
+        setReputationFrozen(
+          Number(reputation?.is_frozen || 0) === 1 || reputation?.is_frozen === true
+        );
+      } catch (error) {
+        console.error("Lỗi lấy điểm uy tín theo số điện thoại:", error);
+        setReputationScore(50);
+        setReputationTier("SILVER");
+        setReputationFrozen(false);
+      } finally {
+        setIsReputationLoading(false);
+      }
+    }, 450);
+
+    return () => clearTimeout(timeoutId);
+  }, [form.receiver_phone]);
 
   const getAddressTypeLabel = (type) => {
     if (type === "work") return "Văn phòng";
@@ -136,6 +190,34 @@ export default function CheckoutPage() {
 
   const discountAmount = Number(appliedDiscount?.discount_amount || 0);
   const totalAmount = subtotalAmount - discountAmount;
+
+  // Validate payment permissions khi điểm uy tín thay đổi
+  useEffect(() => {
+    try {
+      const validation = validateOrderPermissions(
+        reputationScore,
+        totalAmount,
+        reputationFrozen
+      );
+      setPaymentValidation(validation);
+
+      // Force PayOS nếu bắt buộc
+      if (validation.forcePayOS && form.payment_method === 'cash') {
+        setForm((prev) => ({
+          ...prev,
+          payment_method: 'payos',
+        }));
+        toast.warning(
+          `Chuyển sang PayOS: ${validation.message}`,
+          { duration: 5000 }
+        );
+      }
+    } catch (error) {
+      // Account blocked
+      toast.error(error.message, { duration: 5000 });
+      setPaymentValidation(null);
+    }
+  }, [reputationScore, reputationFrozen, totalAmount, form.payment_method]);
 
   const handleApplyDiscount = async () => {
     const code = discountCode.trim();
@@ -237,6 +319,17 @@ export default function CheckoutPage() {
                     {errors.receiver_phone}
                   </p>
                 )}
+                {!errors.receiver_phone && form.receiver_phone ? (
+                  <p
+                    className={`mt-1 text-xs ${
+                      reputationFrozen ? "text-red-600" : "text-emerald-600"
+                    }`}
+                  >
+                    {isReputationLoading
+                      ? "Đang đối chiếu điểm uy tín..."
+                      : `Điểm uy tín: ${reputationScore} (${reputationTier})${reputationFrozen ? " - Tài khoản đang bị đóng băng" : ""}`}
+                  </p>
+                ) : null}
               </div>
 
               <div>
@@ -364,6 +457,18 @@ export default function CheckoutPage() {
               <label className="text-sm font-medium mb-3 block">
                 Phương thức thanh toán
               </label>
+              {paymentValidation && (
+                <div className={`mb-3 p-3 rounded-lg text-sm ${
+                  paymentValidation.forcePayOS
+                    ? 'bg-yellow-50 text-yellow-800 border border-yellow-200'
+                    : 'bg-blue-50 text-blue-800 border border-blue-200'
+                }`}>
+                  <p className="font-medium">{paymentValidation.message}</p>
+                  {paymentValidation.reason && (
+                    <p className="text-xs mt-1 opacity-75">{paymentValidation.reason}</p>
+                  )}
+                </div>
+              )}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {[
                   {
@@ -379,41 +484,62 @@ export default function CheckoutPage() {
                     icon: <img src={PayOSLogo} alt="PayOS" className="w-20 object-contain" />,
                   },
                 ].map((opt) => {
+                  const isDisabled =
+                    opt.value === 'cash' &&
+                    paymentValidation &&
+                    !paymentValidation.canUseCash;
+
                   const selected = form.payment_method === opt.value;
                   return (
                     <button
                       key={opt.value}
                       type="button"
-                      onClick={() =>
-                        setForm((prev) => ({
-                          ...prev,
-                          payment_method: opt.value,
-                        }))
-                      }
+                      disabled={isDisabled}
+                      onClick={() => {
+                        if (!isDisabled) {
+                          setForm((prev) => ({
+                            ...prev,
+                            payment_method: opt.value,
+                          }));
+                        }
+                      }}
                       className={`flex items-center gap-3 rounded-xl border-2 px-4 py-3 text-left transition-all ${
-                        selected
+                        isDisabled
+                          ? 'border-gray-200 bg-gray-100 opacity-50 cursor-not-allowed'
+                          : selected
                           ? "border-amber-500 bg-amber-50"
                           : "border-gray-200 bg-white hover:border-gray-300"
                       }`}
                     >
                       <span
                         className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
-                          selected ? "bg-amber-100" : "bg-gray-100"
+                          isDisabled ? 'bg-gray-200' : selected ? "bg-amber-100" : "bg-gray-100"
                         }`}
                       >
-                        {opt.icon}
+                        {isDisabled ? (
+                          <span className="text-xs text-gray-500">✕</span>
+                        ) : (
+                          opt.icon
+                        )}
                       </span>
                       <span>
-                        <span className="block text-sm font-medium text-gray-900">
+                        <span className={`block text-sm font-medium ${
+                          isDisabled ? 'text-gray-500' : 'text-gray-900'
+                        }`}>
                           {opt.label}
+                          {isDisabled && ' (Không khả dụng)'}
                         </span>
-                        <span className="block text-xs text-gray-500">
+                        <span className={`block text-xs ${
+                          isDisabled ? 'text-gray-400' : 'text-gray-500'
+                        }`}>
                           {opt.sub}
                         </span>
                       </span>
                       <span
                         className={`ml-auto h-4 w-4 shrink-0 rounded-full border-2 ${
-                          selected
+                          isDisabled
+                            ? 'border-gray-300 bg-gray-300'
+                            : selected
                             ? "border-amber-500 bg-amber-500"
                             : "border-gray-300"
                         }`}

@@ -1,5 +1,5 @@
 ﻿import { useCallback, useEffect, useMemo, useState } from 'react';
-import { RefreshCw, ShoppingBag, Truck, Bell, Printer } from 'lucide-react';
+import { RefreshCw, ShoppingBag, Truck, Bell, Printer, Table, Table2, Coffee } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -30,6 +30,29 @@ const statusClassMap = {
   preparing: 'bg-blue-100 text-blue-700',
   served: 'bg-emerald-100 text-emerald-700',
 };
+
+const orderTypeLabelMap = {
+  delivery: 'Đơn giao hàng',
+  'dine-in': 'Tại bàn',
+  takeaway: 'Mang về',
+};
+
+const normalizeOrderType = (value) => {
+  const type = String(value || '').toLowerCase();
+  if (type === 'dinein') return 'dine-in';
+  if (type === 'take-away') return 'takeaway';
+  if (type === 'dine-in' || type === 'delivery' || type === 'takeaway') {
+    return type;
+  }
+  return type;
+};
+
+const getOrderTypeLabel = (value) => {
+  const type = normalizeOrderType(value);
+  return orderTypeLabelMap[type] || type || '--';
+};
+
+const isDeliveryOrder = (order) => normalizeOrderType(order?.order_type) === 'delivery';
 
 const money = (value) => Number(value || 0).toLocaleString('vi-VN') + ' đ';
 
@@ -76,40 +99,37 @@ export function OrderDelivery() {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [activeOrderType, setActiveOrderType] = useState('delivery');
   const [newOrderCount, setNewOrderCount] = useState(0);
   const [viewingReceipt, setViewingReceipt] = useState(null);
   const [printerName, setPrinterName] = useState('Nhân viên');
 
-  const loadDeliveryOrders = useCallback(async () => {
+  const loadOrders = useCallback(async () => {
     setLoading(true);
     try {
       const res = await baristaDBService.getActiveOrders();
       const list = res?.data?.data || res?.data || [];
 
-      const deliveryOrders = (Array.isArray(list) ? list : [])
-        .filter(
-          (order) =>
-            order?.order_type === 'delivery' &&
-            ACTIVE_STATUSES.includes(order?.status)
-        )
+      const activeOrders = (Array.isArray(list) ? list : [])
+        .filter((order) => ACTIVE_STATUSES.includes(order?.status))
         .sort(
           (a, b) =>
             new Date(b?.created_at || 0).getTime() -
             new Date(a?.created_at || 0).getTime()
         );
 
-      setOrders(deliveryOrders);
+      setOrders(activeOrders);
     } catch (error) {
-      toast.error('Không tải được danh sách đơn giao hàng');
-      console.error('Load delivery orders failed:', error);
+      toast.error('Không tải được danh sách Order List');
+      console.error('Load order list failed:', error);
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    loadDeliveryOrders();
-  }, [loadDeliveryOrders]);
+    loadOrders();
+  }, [loadOrders]);
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -131,7 +151,7 @@ export function OrderDelivery() {
       setNewOrderCount((prev) => prev + 1);
       toast.success(`🔔 Có đơn giao hàng mới! (#${data.order_id})`);
       // Auto-reload orders
-      loadDeliveryOrders();
+      loadOrders();
     };
 
     if (!socket.connected) {
@@ -143,10 +163,29 @@ export function OrderDelivery() {
     return () => {
       socket.off('new-delivery-order', handleNewDeliveryOrder);
     };
-  }, [loadDeliveryOrders]);
+  }, [loadOrders]);
+
+  const orderTypeCounts = useMemo(() => {
+    return orders.reduce(
+      (acc, order) => {
+        const type = normalizeOrderType(order?.order_type);
+        if (type in acc) {
+          acc[type] += 1;
+        }
+        return acc;
+      },
+      { delivery: 0, 'dine-in': 0, takeaway: 0 }
+    );
+  }, [orders]);
+
+  const ordersByType = useMemo(() => {
+    return orders.filter(
+      (order) => normalizeOrderType(order?.order_type) === activeOrderType
+    );
+  }, [orders, activeOrderType]);
 
   const counts = useMemo(() => {
-    return orders.reduce(
+    return ordersByType.reduce(
       (acc, order) => {
         const status = order?.status;
         if (ACTIVE_STATUSES.includes(status)) {
@@ -156,15 +195,15 @@ export function OrderDelivery() {
       },
       { pending: 0, preparing: 0, served: 0 }
     );
-  }, [orders]);
+  }, [ordersByType]);
 
   const filteredOrders = useMemo(() => {
     if (activeTab === 'all') {
-      return orders;
+      return ordersByType;
     }
 
-    return orders.filter((order) => order.status === activeTab);
-  }, [orders, activeTab]);
+    return ordersByType.filter((order) => order.status === activeTab);
+  }, [ordersByType, activeTab]);
 
   const handleConfirmOrder = async (order) => {
     setConfirmingId(order.id);
@@ -175,7 +214,7 @@ export function OrderDelivery() {
       } else {
         toast.success('Đã chuyển đơn sang trạng thái đang chuẩn bị');
       }
-      await loadDeliveryOrders();
+      await loadOrders();
     } catch (error) {
       toast.error(error?.response?.data?.message || 'Không thể xác nhận đơn');
     } finally {
@@ -188,7 +227,7 @@ export function OrderDelivery() {
     try {
       await orderOnlineService.cancelByStaff(orderId);
       toast.success('Đã hủy đơn giao hàng');
-      await loadDeliveryOrders();
+      await loadOrders();
     } catch (error) {
       toast.error(error?.response?.data?.message || 'Không thể hủy đơn');
     } finally {
@@ -196,11 +235,18 @@ export function OrderDelivery() {
     }
   };
 
-  const openDetailModal = async (orderId) => {
+  const openDetailModal = async (order) => {
     setIsDetailOpen(true);
+
+    if (!isDeliveryOrder(order)) {
+      setDetailLoading(false);
+      setSelectedOrder(order);
+      return;
+    }
+
     setDetailLoading(true);
     try {
-      const res = await orderOnlineService.getStaffOrderDetail(orderId);
+      const res = await orderOnlineService.getStaffOrderDetail(order.id);
       setSelectedOrder(res?.data?.data || res?.data || null);
     } catch (error) {
       setSelectedOrder(null);
@@ -238,7 +284,7 @@ export function OrderDelivery() {
     <div className="space-y-4 p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <h2 className="text-xl font-semibold">Đơn giao hàng</h2>
+          <h2 className="text-xl font-semibold">Order List</h2>
           {newOrderCount > 0 && (
             <Badge variant="destructive" className="flex items-center gap-1">
               <Bell className="h-3 w-3" />
@@ -250,13 +296,48 @@ export function OrderDelivery() {
         <Button 
           onClick={() => {
             setNewOrderCount(0);
-            loadDeliveryOrders();
+            loadOrders();
           }} 
           disabled={loading} 
           variant="outline"
         >
           <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
           Làm mới
+        </Button>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        <Button
+          variant={activeOrderType === 'delivery' ? 'default' : 'outline'}
+          onClick={() => {
+            setActiveOrderType('delivery');
+            setActiveTab('all');
+          }}
+        >
+          <Truck className="mr-1 h-3 w-3" />
+          ĐƠN GIAO HÀNG ({orderTypeCounts.delivery})
+        </Button>
+        <Button
+          variant={activeOrderType === 'dine-in' ? 'default' : 'outline'}
+          onClick={() => {
+            setActiveOrderType('dine-in');
+            setActiveTab('all');
+          }}
+        >
+          <Coffee className="mr-1 h-3 w-3" />
+
+          ĐƠN TẠI BÀN ({orderTypeCounts['dine-in']})
+        </Button>
+        <Button
+          variant={activeOrderType === 'takeaway' ? 'default' : 'outline'}
+          onClick={() => {
+            setActiveOrderType('takeaway');
+            setActiveTab('all');
+          }}
+        >
+          <ShoppingBag className="mr-1 h-3 w-3" />
+
+          ĐƠN MANG ĐI ({orderTypeCounts.takeaway})
         </Button>
       </div>
 
@@ -297,7 +378,7 @@ export function OrderDelivery() {
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="all">Tất cả ({orders.length})</TabsTrigger>
+          <TabsTrigger value="all">Tất cả ({ordersByType.length})</TabsTrigger>
           <TabsTrigger value="pending">Chờ xử lý ({counts.pending})</TabsTrigger>
           <TabsTrigger value="preparing">Đang chuẩn bị ({counts.preparing})</TabsTrigger>
           <TabsTrigger value="served">Sẵn sàng giao ({counts.served})</TabsTrigger>
@@ -306,6 +387,7 @@ export function OrderDelivery() {
         <TabsContent value={activeTab} className="mt-4 space-y-3">
           {filteredOrders.map((order) => {
             const paid = isOrderPaid(order);
+            const deliveryOrder = isDeliveryOrder(order);
             const isUnpaidPending = order.status === 'pending' && !paid;
             const isPending = order.status === 'pending';
 
@@ -314,8 +396,13 @@ export function OrderDelivery() {
                 <CardContent className="space-y-3 pt-6">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div className="flex items-center gap-2">
-                      <Truck className="h-4 w-4 text-muted-foreground" />
+                      {deliveryOrder ? (
+                        <Truck className="h-4 w-4 text-muted-foreground" />
+                      ) : (
+                        <Coffee className="h-4 w-4 text-muted-foreground" />
+                      )}
                       <p className="font-medium">Đơn #{order.id}</p>
+                      <Badge variant="secondary">{getOrderTypeLabel(order.order_type)}</Badge>
                       <Badge className={statusClassMap[order.status] || ''}>
                         {statusLabelMap[order.status] || order.status}
                       </Badge>
@@ -340,11 +427,11 @@ export function OrderDelivery() {
                     <div className="space-y-2 rounded-md border p-3">
                       {order.items.map((item, idx) => (
                         <div
-                          key={`${order.id}-${item.productName}-${idx}`}
+                          key={`${order.id}-${item.productName || item.name || idx}-${idx}`}
                           className="flex items-start justify-between gap-2 text-sm"
                         >
                           <div>
-                            <p className="font-medium">{item.productName}</p>
+                            <p className="font-medium">{item.productName || item.name || item.product_name || 'Sản phẩm'}</p>
                             <p className="text-muted-foreground">
                               Size {item.size} • x{item.quantity}
                             </p>
@@ -359,18 +446,18 @@ export function OrderDelivery() {
                               <p className="text-muted-foreground">Ghi chú: {item.note}</p>
                             ) : null}
                           </div>
-                          <p className="text-muted-foreground">{money(item.price)}</p>
+                          <p className="text-muted-foreground">{money(item.price || item.total_price)}</p>
                         </div>
                       ))}
                     </div>
                   ) : null}
 
                   <div className="flex flex-wrap justify-end gap-2">
-                    <Button variant="outline" onClick={() => openDetailModal(order.id)}>
+                    <Button variant="outline" onClick={() => openDetailModal(order)}>
                       Xem chi tiết
                     </Button>
 
-                    {isUnpaidPending ? (
+                    {deliveryOrder && isUnpaidPending ? (
                       <>
                         <Button
                           variant="destructive"
@@ -386,14 +473,14 @@ export function OrderDelivery() {
                           {confirmingId === order.id ? 'Đang xác nhận...' : 'Xác nhận với khách hàng'}
                         </Button>
                       </>
-                    ) : isPending ? (
+                    ) : deliveryOrder && isPending ? (
                       <Button
                         onClick={() => handleConfirmOrder(order)}
                         disabled={confirmingId === order.id}
                       >
                         {confirmingId === order.id ? 'Đang xác nhận...' : 'Xác nhận chuẩn bị'}
                       </Button>
-                    ) : order.status === 'served' ? (
+                    ) : deliveryOrder && order.status === 'served' ? (
                       <Button
                         onClick={() => handlePrintReceipt(order.id)}
                         className="gap-2"
@@ -413,7 +500,7 @@ export function OrderDelivery() {
               <CardContent className="flex flex-col items-center justify-center gap-3 py-10 text-center">
                 <ShoppingBag className="h-8 w-8 text-muted-foreground" />
                 <p className="text-sm text-muted-foreground">
-                  Không có đơn delivery trong trạng thái đã chọn.
+                  Không có đơn {getOrderTypeLabel(activeOrderType)} trong trạng thái đã chọn.
                 </p>
               </CardContent>
             </Card>
@@ -424,7 +511,9 @@ export function OrderDelivery() {
       <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Chi tiết đơn giao #{selectedOrder?.id || '--'}</DialogTitle>
+            <DialogTitle>
+              Chi tiết đơn {getOrderTypeLabel(selectedOrder?.order_type)} #{selectedOrder?.id || '--'}
+            </DialogTitle>
           </DialogHeader>
 
           {detailLoading ? (
@@ -462,10 +551,10 @@ export function OrderDelivery() {
                 </p>
                 {selectedOrder.note ? (
                   <p className="sm:col-span-2">
-                    Ghi chú giao hàng: <span className="font-medium">{selectedOrder.note}</span>
+                    Ghi chú đơn hàng: <span className="font-medium">{selectedOrder.note}</span>
                   </p>
                 ) : null}
-                {selectedOrder.receiver_name && (
+                {isDeliveryOrder(selectedOrder) && selectedOrder.receiver_name && (
                   <div className="sm:col-span-2 border-t pt-3 mt-3">
                     <button
                       onClick={() => {
@@ -493,12 +582,12 @@ export function OrderDelivery() {
                 {Array.isArray(selectedOrder.items) && selectedOrder.items.length > 0 ? (
                   selectedOrder.items.map((item) => (
                     <div
-                      key={`${selectedOrder.id}-${item.id}`}
+                      key={`${selectedOrder.id}-${item.id || item.product_name || item.name}`}
                       className="rounded-md border p-2 text-sm"
                     >
-                      <p className="font-medium">{item.name}</p>
+                      <p className="font-medium">{item.name || item.productName || item.product_name || 'Sản phẩm'}</p>
                       <p className="text-muted-foreground">
-                        Size {item.size} • x{item.quantity} • {money(item.price)}
+                        Size {item.size} • x{item.quantity} • {money(item.price || item.total_price)}
                       </p>
                       {Array.isArray(item.toppings) && item.toppings.length > 0 ? (
                         <p className="text-muted-foreground">

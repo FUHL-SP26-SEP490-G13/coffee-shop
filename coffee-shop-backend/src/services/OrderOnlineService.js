@@ -8,6 +8,52 @@ class OrderOnlineService {
     return error;
   }
 
+  normalizePhoneNumber(phoneNumber) {
+    const onlyDigits = String(phoneNumber || "").replace(/\D/g, "");
+    if (!onlyDigits) return "";
+
+    if (onlyDigits.startsWith("84") && onlyDigits.length >= 11) {
+      return `0${onlyDigits.slice(2)}`;
+    }
+
+    if (onlyDigits.length === 9) {
+      return `0${onlyDigits}`;
+    }
+
+    return onlyDigits;
+  }
+
+  getReputationTierByScore(score) {
+    if (score < 40) return "BRONZE";
+    if (score < 60) return "SILVER";
+    if (score < 85) return "GOLD";
+    return "DIAMOND";
+  }
+
+  async getReputationByPhone(phoneNumber) {
+    const normalizedPhone = this.normalizePhoneNumber(phoneNumber);
+
+    if (!normalizedPhone || normalizedPhone.length < 10) {
+      throw new ErrorResponse(400, "Số điện thoại không hợp lệ");
+    }
+
+    const profile = await OrderRepository.findReputationProfileByPhone(normalizedPhone);
+
+    const score = Number(profile?.current_score ?? 50);
+    const tier = profile?.reputation_tier || this.getReputationTierByScore(score);
+
+    return {
+      phone_number: normalizedPhone,
+      current_score: score,
+      total_orders_completed: Number(profile?.total_orders_completed || 0),
+      total_orders_cancelled: Number(profile?.total_orders_cancelled || 0),
+      reputation_tier: tier,
+      is_frozen: Number(profile?.is_frozen || 0) === 1,
+      updated_at: profile?.updated_at || null,
+      exists: Boolean(profile),
+    };
+  }
+
   async checkout(payload, user) {
     console.log("CHECKOUT BODY:", JSON.stringify(payload, null, 2));
     const {
@@ -459,7 +505,10 @@ class OrderOnlineService {
       throw new ErrorResponse(400, "Chỉ hủy đơn chưa thanh toán");
     }
 
+    // chuyển trạng thái đơn hàng về cancelled
     await OrderRepository.updateOrderStatus(orderId, "cancelled");
+
+    // chuyển trạng thái thanh toán về cancelled
     await OrderRepository.updatePaymentStatusByOrderId(orderId, "cancelled");
 
     return {
@@ -493,11 +542,7 @@ class OrderOnlineService {
     const order = await OrderRepository.findOrderById(orderCode);
     
     const isPaid = status === "PAID";
-    const paymentStatus = isPaid
-      ? "paid"
-      : status === "CANCELLED"
-      ? "cancelled"
-      : "pending";
+    const paymentStatus = isPaid ? "paid" : "pending";
 
     await OrderRepository.updatePaymentByOrderCode(orderCode, {
       transaction_id: payosId || null,
