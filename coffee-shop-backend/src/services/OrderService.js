@@ -471,6 +471,29 @@ class OrderService {
       }
     };
   }
+
+  async getActiveOrderForTable(tableId) {
+    const connection = await OrderRepository.getConnection();
+    try {
+      const activeOrder = await OrderRepository.findActiveOrderByTableId(connection, tableId);
+      if (!activeOrder) {
+        return null; // Return null if no active order found
+      }
+      
+      // Get full order details and items
+      const orderData = await OrderRepository.findOrderDetailForStaff(activeOrder.id);
+      if (!orderData) return null;
+
+      const items = await OrderRepository.findOrderItems(activeOrder.id);
+
+      return {
+        ...orderData,
+        items,
+      };
+    } finally {
+      connection.release();
+    }
+  }
 }
 
 module.exports = new OrderService();

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Search, Plus, Minus } from 'lucide-react';
 import productService from '../../services/productService';
 import tableService from '../../services/tableService';
@@ -38,7 +39,12 @@ const formatVND = (amount) => {
 };
 
 export function StaffPOS() {
-  const [selectedTable, setSelectedTable] = useState('');
+  const location = useLocation();
+  const navigate = useNavigate();
+  const tableIdFromLocation = location.state?.tableId;
+
+  const [selectedTable, setSelectedTable] = useState(tableIdFromLocation ? String(tableIdFromLocation) : '');
+  const [editingCartItem, setEditingCartItem] = useState(null);
   const [cart, setCart] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [products, setProducts] = useState([]);
@@ -102,11 +108,23 @@ export function StaffPOS() {
     });
   }, []);
 
-  const handleAddFromModal = (modalItem) => {
+  const handleAddFromModal = (modalItem, isEditing = false) => {
     setCart((prevCart) => {
+      if (isEditing) {
+        return prevCart.map(item => item.id === modalItem._uid ? {
+          ...item,
+          productId: modalItem.product_size_id,
+          originalProductId: modalItem.product_id,
+          size: modalItem.size,
+          price: Number(modalItem.price),
+          toppings: (modalItem.toppings || []).map(t => ({ ...t, price: Number(t.price) })),
+          note: modalItem.note,
+        } : item);
+      }
       return [...prevCart, {
         id: modalItem._uid,
         productId: modalItem.product_size_id,
+        originalProductId: modalItem.product_id,
         product: { name: modalItem.productName },
         size: modalItem.size,
         price: Number(modalItem.price),
@@ -115,6 +133,7 @@ export function StaffPOS() {
         quantity: 1
       }];
     });
+    if (isEditing) setEditingCartItem(null);
   };
 
   const updateQuantity = useCallback((id, delta) => {
@@ -225,7 +244,6 @@ export function StaffPOS() {
 
       toast.success('Đơn hàng đã được đặt thành công.!');
       setCart([]);
-      setSelectedTable('');
       setNote('');
       setIsPaymentModalOpen(false);
     } catch (error) {
@@ -323,21 +341,22 @@ export function StaffPOS() {
       {/* Cart */}
       <div className="bg-card rounded-xl p-4 border border-border flex flex-col">
         <div className="mb-4">
-          <label className="text-sm mb-2 block">Bàn</label>
-          <Select value={selectedTable} onValueChange={setSelectedTable}>
-            <SelectTrigger>
-              <SelectValue placeholder="Chọn bàn" />
-            </SelectTrigger>
-            <SelectContent>
-              {tables
-                .filter((t) => t.code && (t.status === 'available' || t.status === 'occupied'))
-                .map((table) => (
-                  <SelectItem key={table.id} value={String(table.id)}>
-                    {table.code}
-                  </SelectItem>
-                ))}
-            </SelectContent>
-          </Select>
+          <label className="text-sm mb-2 block text-muted-foreground font-medium">Bàn đang chọn</label>
+          {selectedTable ? (
+            <div className="flex items-center justify-between bg-primary/5 p-3 rounded-xl border border-primary/20">
+              <span className="font-bold text-lg text-primary">
+                Bàn {tables.find(t => String(t.id) === selectedTable)?.code || ''}
+              </span>
+              <Button variant="outline" size="sm" onClick={() => navigate('/staff/tables')} className="h-8">
+                Đổi bàn
+              </Button>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center p-4 bg-amber-50 text-amber-600 rounded-xl border border-amber-200 gap-3">
+               <span className="text-sm font-medium text-center">Vui lòng chọn bàn từ sơ đồ để tiếp tục thanh toán</span>
+               <Button size="sm" className="w-full bg-amber-500 hover:bg-amber-600 text-white" onClick={() => navigate('/staff/tables')}>Chọn bàn ngay</Button>
+            </div>
+          )}
         </div>
 
         <div className="flex-1 overflow-y-auto mb-4">
@@ -348,8 +367,12 @@ export function StaffPOS() {
           ) : (
             <div className="space-y-2">
               {cart.map((item) => (
-                <div key={item.id} className="bg-secondary rounded-lg p-2 flex flex-col gap-1">
-                  <div className="text-sm line-clamp-1 font-semibold">{item.productName || item.product?.name}</div>
+                <div 
+                  key={item.id} 
+                  className="bg-secondary/50 rounded-xl p-3 flex flex-col gap-1.5 cursor-pointer hover:bg-secondary transition-colors border border-transparent hover:border-border"
+                  onClick={() => setEditingCartItem(item)}
+                >
+                  <div className="text-sm line-clamp-1 font-bold">{item.productName || item.product?.name}</div>
                   <div className="text-xs text-muted-foreground">Size: {item.size}</div>
                   {item.toppings?.length > 0 && (
                     <div className="text-xs text-orange-500 line-clamp-1">
@@ -420,6 +443,15 @@ export function StaffPOS() {
           toppings={toppings}
           onClose={() => setSelectedProduct(null)}
           onAdd={handleAddFromModal}
+        />
+      )}
+      {editingCartItem && (
+        <ProductModal
+          product={products.find(p => p.id === editingCartItem.originalProductId) || editingCartItem.product || { name: editingCartItem.productName || 'Sản phẩm', sizes: [] }}
+          toppings={toppings}
+          initialItem={editingCartItem}
+          onClose={() => setEditingCartItem(null)}
+          onAdd={(item) => handleAddFromModal(item, true)}
         />
       )}
 

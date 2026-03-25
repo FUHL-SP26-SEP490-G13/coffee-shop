@@ -23,6 +23,11 @@ const tableService = {
     return response.data;
   },
 
+  getActiveOrder: async (id) => {
+    const response = await axios.get(`${API_URL}/tables/${id}/active-order`);
+    return response.data;
+  },
+
   // reserve: async (id, data) => {
   //   const response = await axios.post(`${API_URL}/tables/${id}/reserve`, data);
   //   return response.data;

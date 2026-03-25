@@ -58,6 +58,12 @@ const checkoutOrderSchema = Joi.object({
     "string.empty": "Hình thức nhận hàng không được để trống",
   }),
 
+  table_id: Joi.number().integer().positive().allow(null).optional().messages({
+    "number.base": "Mã bàn không hợp lệ",
+    "number.integer": "Mã bàn không hợp lệ",
+    "number.positive": "Mã bàn không hợp lệ",
+  }),
+
   payment_method: Joi.string()
     .valid("cash","payos")
     .required()

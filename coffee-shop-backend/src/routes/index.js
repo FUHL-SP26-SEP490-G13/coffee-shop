@@ -57,6 +57,7 @@ router.use("/receipt-settings", receiptSettingRoutes);
 router.use("/takeaway", takeawayRoutes);
 router.use('/ai', aiRoutes);
 router.use('/flash-sales', flashSaleRoutes);
+router.use('/orders', orderRoutes);
 
 
 // Health check endpoint

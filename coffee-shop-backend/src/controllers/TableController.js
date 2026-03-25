@@ -139,6 +139,24 @@ class TableController {
   //     next(error);
   //   }
   // }
+
+  /**
+   * Get active order for a table
+   */
+  async getActiveOrder(req, res, next) {
+    try {
+      const { id } = req.params;
+      const OrderService = require('../services/OrderService');
+      const order = await OrderService.getActiveOrderForTable(id);
+      
+      res.json({
+        success: true,
+        data: order,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 module.exports = new TableController();
