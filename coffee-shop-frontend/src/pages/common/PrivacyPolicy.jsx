@@ -19,7 +19,7 @@ function PrivacyPolicy() {
       <Header />
 
       <div className="text-center space-y-3 mt-10">
-        <h1 className="text-2xl md:text-3xl text-primary">
+        <h1 className="text-2xl md:text-3xl text-primary font-bold">
           Chính sách bảo mật
         </h1>
         <p className="text-gray-600 text-sm">

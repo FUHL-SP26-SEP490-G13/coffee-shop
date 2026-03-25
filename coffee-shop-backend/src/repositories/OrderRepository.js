@@ -172,6 +172,17 @@ class OrderRepository {
     );
   }
 
+  async createReputationProfileIfNotExists(connection, phoneNumber) {
+    await connection.query(
+      `
+      INSERT INTO reputation_profiles (phone_number)
+      VALUES (?)
+      ON DUPLICATE KEY UPDATE phone_number = phone_number
+      `,
+      [phoneNumber]
+    );
+  }
+
   async markOrderAsPaid(connection, orderId) {
     await connection.query(
       `

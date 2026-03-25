@@ -21,12 +21,12 @@ function OrderPolicy() {
       <Header />
 
       <div className="text-center space-y-3 mt-10">
-        <h1 className="text-2xl md:text-3xl text-primary">
+        <h1 className="text-2xl md:text-3xl text-primary font-bold">
           Chính sách đặt hàng
         </h1>
         <p className="text-gray-600 text-sm">
-          Thông tin chi tiết về quy trình đặt hàng, thanh toán và hỗ trợ
-          khách hàng.
+          Thông tin chi tiết về quy trình đặt hàng, thanh toán và hỗ trợ khách
+          hàng.
         </p>
       </div>
 
@@ -53,10 +53,23 @@ function OrderPolicy() {
 
           {/* 3 */}
           <PolicyCard icon={<XCircle />} title="3. Chính sách hủy đơn">
-            <ul className="space-y-2">
-              <li>• Được hủy trước khi bắt đầu pha chế.</li>
-              <li>• Không hỗ trợ hủy sau khi đã chế biến.</li>
+            <span>
+              Quý khách có thể yêu cầu hủy đơn hàng khi đơn ở trạng thái Chờ xử
+              lý hoặc Đang chuẩn bị. Chính sách hoàn tiền đối với các đơn đã
+              thanh toán trước được áp dụng như sau:{" "}
+            </span>
+            <ul className="space-y-2 my-4">
+              <li>
+                • Hoàn <strong>100% </strong> giá trị đơn hàng: Nếu đơn hàng chưa được xác nhận hoặc
+                chưa bắt đầu chế biến.{" "}
+              </li>
+              <li>
+                • Hoàn <strong>50% </strong> giá trị đơn hàng: Nếu đơn hàng đã chuyển sang trạng
+                thái Đang chuẩn bị (nhằm bù đắp chi phí nguyên liệu và công vận
+                hành đã phát sinh).
+              </li>
             </ul>
+            <span>Trường hợp hoàn tiền hãy liên hệ với chúng tôi qua số điện thoại hoặc Zalo trong vòng 24 giờ kể từ khi nhận được đơn hàng.</span>
           </PolicyCard>
 
           {/* 4 */}
@@ -72,8 +85,10 @@ function OrderPolicy() {
           <PolicyCard icon={<CreditCard />} title="5. Thanh toán">
             <ul className="space-y-2">
               <li>• Tiền mặt tại quầy.</li>
-              <li>• QR / chuyển khoản.</li>
-              <li>• Thanh toán online (nếu có).</li>
+              <li>
+                • QR / chuyển khoản trực tuyến thông qua hệ thống thanh toán
+                PayOS
+              </li>
             </ul>
           </PolicyCard>
 
@@ -82,7 +97,6 @@ function OrderPolicy() {
             <ul className="space-y-2">
               <li>• Cung cấp thông tin chính xác.</li>
               <li>• Kiểm tra sản phẩm khi nhận.</li>
-              <li>• Bảo quản đúng hướng dẫn.</li>
             </ul>
           </PolicyCard>
         </div>

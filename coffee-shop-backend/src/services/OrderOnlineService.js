@@ -349,6 +349,17 @@ class OrderOnlineService {
         amount: finalAmount,
       });
 
+      // Tạo hồ sơ uy tín cho số điện thoại nếu là đơn giao hàng hoặc mang đi
+      if (order_type !== "dine-in") {
+        const normalizedPhone = this.normalizePhoneNumber(receiver_phone);
+        if (normalizedPhone && normalizedPhone.length >= 10) {
+          await OrderRepository.createReputationProfileIfNotExists(
+            connection,
+            normalizedPhone
+          );
+        }
+      }
+
       if (discountIdApplied) {
         await OrderRepository.incrementDiscountUsedCount(connection, discountIdApplied);
       }
