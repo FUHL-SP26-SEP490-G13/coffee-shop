@@ -103,6 +103,7 @@ class OrderOnlineService {
     console.log("CHECKOUT BODY:", JSON.stringify(payload, null, 2));
     const {
       order_type,
+      table_id,
       payment_method,
       receiver_name,
       receiver_phone,
@@ -117,7 +118,7 @@ class OrderOnlineService {
       throw new ErrorResponse(400, "Giỏ hàng trống");
     }
 
-    if (!["delivery", "takeaway"].includes(order_type)) {
+    if (!["delivery", "takeaway", "dine-in"].includes(order_type)) {
       throw new ErrorResponse(400, "Loại đơn hàng không hợp lệ");
     }
 
@@ -125,7 +126,7 @@ class OrderOnlineService {
       throw new ErrorResponse(400, "Phương thức thanh toán không hợp lệ");
     }
 
-    if (!receiver_name || !receiver_phone) {
+    if (order_type !== "dine-in" && (!receiver_name || !receiver_phone)) {
       throw new ErrorResponse(400, "Vui lòng nhập tên và số điện thoại người nhận");
     }
 
@@ -214,6 +215,7 @@ class OrderOnlineService {
         created_by: userId,
         customer_type: user ? "registered" : "guest",
         order_type,
+        table_id: table_id || null,
         total_amount: finalAmount,
       });
 

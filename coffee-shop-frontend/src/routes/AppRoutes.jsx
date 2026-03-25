@@ -49,6 +49,7 @@ import ProductDetailPage from "../pages/homePage/product/ProductDetailPage";
 import CartPage from "@/pages/homePage/order/CartPage";
 import CheckoutPage from "@/pages/homePage/order/CheckoutPage";
 import OrderQRMenu from "@/pages/homePage/order/OrderQRMenu";
+import MyOrderQRDetail from "@/pages/homePage/order/MyOrderQRDetail";
 import PayOSReturnSuccess from "@/pages/common/PayOSReturnSuccess";
 import AdminDB from "@/pages/admin/AdminDB/AdminDB";
 import AdminSubscriber from "@/pages/admin/AdminSubscriber/AdminSubscriber";
@@ -244,6 +245,7 @@ const AppRoutes = () => {
       />
 
       <Route path="/order" element={<OrderQRMenu />} />
+      <Route path="/order/confirm" element={<MyOrderQRDetail />} />
 
       {/* 404 */}
       <Route

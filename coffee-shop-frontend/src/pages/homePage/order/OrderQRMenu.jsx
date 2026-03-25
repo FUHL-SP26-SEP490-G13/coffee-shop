@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import categoryService from "@/services/categoryService";
 import toppingService from "@/services/toppingService";
 import productService from "@/services/productService";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -24,6 +24,7 @@ function CartBar({ count, onClick }) {
 
 export default function OrderQRMenu() {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const tableId = searchParams.get("table");
 
   const [menu, setMenu] = useState([]);
@@ -67,24 +68,19 @@ export default function OrderQRMenu() {
 
   // ✅ CHỌN MÓN (safe data)
   const handleSelect = (item) => {
-    setSelected((prev) => {
-      const id = item.id ?? item._id;
-      if (prev.find((i) => i.id === id)) return prev;
-
-      return [
-        ...prev,
-        {
-          id,
-          name: item.name || "Không tên",
-          // Không set size mặc định, user sẽ chọn trong select
-          qty: 1,
-        },
-      ];
-    });
+    setSelected((prev) => [
+      ...prev,
+      {
+        cartKey: Date.now() + Math.random(),
+        id: item.id ?? item._id,
+        name: item.name || "Không tên",
+        qty: 1,
+      },
+    ]);
   };
 
-  const handleUnselect = (item) => {
-    setSelected((prev) => prev.filter((i) => i.id !== item.id));
+  const handleUnselect = (index) => {
+    setSelected((prev) => prev.filter((_, i) => i !== index));
   };
 
   return (
@@ -123,7 +119,7 @@ export default function OrderQRMenu() {
             {Array.isArray(menu) &&
               menu.map((item, index) => {
                 const id = item.id ?? item._id ?? index;
-                const isSelected = selected.some((i) => i.id === id);
+                const itemQty = selected.filter((i) => i.id === id).length;
 
                 const img =
                   item?.images?.[0]?.image_url ||
@@ -133,11 +129,16 @@ export default function OrderQRMenu() {
                 return (
                   <Card
                     key={id}
-                    className={`p-4 text-center border-2 rounded-xl ${
-                      isSelected ? "border-primary bg-primary/10" : ""
+                    className={`p-4 text-center border-2 rounded-xl relative ${
+                      itemQty > 0 ? "border-primary bg-primary/5" : ""
                     }`}
                     onClick={() => handleSelect(item)}
                   >
+                    {itemQty > 0 && (
+                      <div className="absolute top-2 right-2 bg-primary text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center">
+                        {itemQty}
+                      </div>
+                    )}
                     <img
                       src={img}
                       alt={item.name}
@@ -151,12 +152,10 @@ export default function OrderQRMenu() {
                       className="mt-2 w-full"
                       onClick={(e) => {
                         e.stopPropagation();
-                        isSelected
-                          ? handleUnselect({ id })
-                          : handleSelect(item);
+                        handleSelect(item);
                       }}
                     >
-                      {isSelected ? "Huỷ" : "Chọn"}
+                      Thêm
                     </Button>
                   </Card>
                 );
@@ -188,10 +187,10 @@ export default function OrderQRMenu() {
                 const sizes = menuItem?.sizes || [];
                 const toppings = Array.isArray(menuItem?.toppings) && menuItem.toppings.length > 0 ? menuItem.toppings : toppingsList;
                 return (
-                  <div key={item.id} className="py-4">
+                  <div key={item.cartKey || idx} className="py-4">
                     <div className="flex items-center justify-between mb-2">
-                      <div className="font-semibold text-base">{item.name}</div>
-                      <button onClick={() => handleUnselect(item)} className="text-red-500 text-sm px-2 py-1 rounded hover:bg-red-50 transition">Xoá</button>
+                       <div className="font-semibold text-base">{item.name}</div>
+                       <button onClick={() => handleUnselect(idx)} className="text-red-500 text-sm px-2 py-1 rounded hover:bg-red-50 transition">Xoá</button>
                     </div>
                     {/* Chọn size */}
                     {sizes.length > 0 && (
@@ -291,7 +290,12 @@ export default function OrderQRMenu() {
                 })()}
               </span>
             </div>
-            <Button className="w-full mt-2 py-3 rounded-full text-lg font-bold bg-primary text-white hover:bg-primary/90 transition">
+            <Button 
+              className="w-full mt-2 py-3 rounded-full text-lg font-bold bg-primary text-white hover:bg-primary/90 transition"
+              onClick={() => {
+                navigate("/order/confirm", { state: { selected, tableId, menu } });
+              }}
+            >
               Đặt món
             </Button>
           </div>

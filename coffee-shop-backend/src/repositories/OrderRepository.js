@@ -72,17 +72,19 @@ class OrderRepository {
         created_by,
         customer_type,
         order_type,
+        table_id,
         status,
         is_paid,
         total_amount
       )
-      VALUES (?, ?, ?, ?, 'pending', 0, ?)
+      VALUES (?, ?, ?, ?, ?, 'pending', 0, ?)
       `,
       [
         data.user_id,
         data.created_by,
         data.customer_type,
         data.order_type,
+        data.table_id || null,
         data.total_amount,
       ]
     );
