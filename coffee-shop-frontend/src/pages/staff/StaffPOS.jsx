@@ -37,6 +37,25 @@ const formatVND = (amount) => {
     currency: 'VND',
   }).format(amount);
 };
+const convertOrderItemsToCart = (items = []) => {
+  return items.map((item) => ({
+    id: `order-item-${item.order_detail_id || item.id}-${Date.now()}-${Math.random()}`,
+    productId: item.product_size_id,
+    originalProductId: item.product_id,
+    product: { name: item.name },
+    productName: item.name,
+    size: item.size,
+    price: Number(item.price),
+    quantity: Number(item.quantity),
+    note: item.note || "",
+    toppings: (item.toppings || []).map((t) => ({
+      topping_id: t.topping_id || t.id,
+      name: t.name,
+      quantity: Number(t.quantity),
+      price: Number(t.price),
+    })),
+  }));
+};
 
 export function StaffPOS() {
   const location = useLocation();
@@ -61,6 +80,30 @@ export function StaffPOS() {
   const [discountAmount, setDiscountAmount] = useState(0);
   const [customerCash, setCustomerCash] = useState(0);
   const [discountError, setDiscountError] = useState('');
+  useEffect(() => {
+    if (!selectedTable) return;
+
+    const loadActiveOrder = async () => {
+      try {
+        const res = await tableService.getActiveOrder(selectedTable);
+        const order = res?.data;
+
+        if (order?.items?.length) {
+          setCart(convertOrderItemsToCart(order.items));
+          setNote(order.note || "");
+        } else {
+          setCart([]);
+          setNote("");
+        }
+      } catch (error) {
+        console.error("Load active order error:", error);
+        setCart([]);
+        setNote("");
+      }
+    };
+
+    loadActiveOrder();
+  }, [selectedTable]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -196,10 +239,10 @@ export function StaffPOS() {
 
     try {
       const items = cart.map((item) => {
-        const productSizeId = item.price 
-          ? item.productId 
+        const productSizeId = item.price
+          ? item.productId
           : item.product.sizes?.find((s) => s.size === item.size)?.id;
-          
+
         return {
           product_size_id: productSizeId,
           quantity: item.quantity,
@@ -225,23 +268,31 @@ export function StaffPOS() {
 
       const res = await orderService.checkout(payload);
 
-      if (paymentMethod === 'payos') {
-        const orderId = res.data?.order_id || res.data?.id; 
+      if (paymentMethod === "payos") {
+        const orderId = res.data?.order_id || res.data?.id;
+
         if (orderId) {
+          const payosItems = cart.map((item) => ({
+            name: `${item.productName || item.product?.name || "Sản phẩm"}${item.size ? ` - ${item.size}` : ""
+              }`.slice(0, 100),
+            quantity: Number(item.quantity || 1),
+            price: Number(item.price || 0),
+          }));
+
           const createRes = await orderService.createPaymentLink({
-            orderCode: orderId,
-            amount: finalTotal,
-            description: `Thanh toán ĐH #${orderId}`,
+            orderCode: Number(orderId),
+            amount: Number(finalTotal),
+            description: `DH${orderId}`.slice(0, 25),
+            items: payosItems,
           });
-          
+
           if (createRes.data?.checkoutUrl) {
-            window.open(createRes.data.checkoutUrl, '_blank');
+            window.open(createRes.data.checkoutUrl, "_blank");
           } else {
             toast.error("Không tạo được link thanh toán QR");
           }
         }
       }
-
       toast.success('Đơn hàng đã được đặt thành công.!');
       setCart([]);
       setNote('');
@@ -310,11 +361,10 @@ export function StaffPOS() {
         <div className="flex gap-2 overflow-x-auto pb-3 mb-3 scrollbar-none">
           <button
             onClick={() => setActiveCategory('all')}
-            className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
-              activeCategory === 'all'
-                ? 'bg-amber-500 text-white shadow-sm'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
+            className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${activeCategory === 'all'
+              ? 'bg-amber-500 text-white shadow-sm'
+              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
           >
             Tất cả
           </button>
@@ -322,11 +372,10 @@ export function StaffPOS() {
             <button
               key={cat.id}
               onClick={() => setActiveCategory(cat.id)}
-              className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
-                activeCategory === cat.id
-                  ? 'bg-amber-500 text-white shadow-sm'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
+              className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${activeCategory === cat.id
+                ? 'bg-amber-500 text-white shadow-sm'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
             >
               {cat.name}
             </button>
@@ -353,8 +402,8 @@ export function StaffPOS() {
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center p-4 bg-amber-50 text-amber-600 rounded-xl border border-amber-200 gap-3">
-               <span className="text-sm font-medium text-center">Vui lòng chọn bàn từ sơ đồ để tiếp tục thanh toán</span>
-               <Button size="sm" className="w-full bg-amber-500 hover:bg-amber-600 text-white" onClick={() => navigate('/staff/tables')}>Chọn bàn ngay</Button>
+              <span className="text-sm font-medium text-center">Vui lòng chọn bàn từ sơ đồ để tiếp tục thanh toán</span>
+              <Button size="sm" className="w-full bg-amber-500 hover:bg-amber-600 text-white" onClick={() => navigate('/staff/tables')}>Chọn bàn ngay</Button>
             </div>
           )}
         </div>
@@ -367,8 +416,8 @@ export function StaffPOS() {
           ) : (
             <div className="space-y-2">
               {cart.map((item) => (
-                <div 
-                  key={item.id} 
+                <div
+                  key={item.id}
                   className="bg-secondary/50 rounded-xl p-3 flex flex-col gap-1.5 cursor-pointer hover:bg-secondary transition-colors border border-transparent hover:border-border"
                   onClick={() => setEditingCartItem(item)}
                 >
@@ -402,8 +451,8 @@ export function StaffPOS() {
                     </div>
                     <span className="text-sm text-primary">
                       {formatVND(
-                        (Number(item.price || getProductPrice(item.product, item.size) || 0) + 
-                        (item.toppings || []).reduce((s, t) => s + Number(t.price || 0) * (t.quantity || 1), 0)) * item.quantity
+                        (Number(item.price || getProductPrice(item.product, item.size) || 0) +
+                          (item.toppings || []).reduce((s, t) => s + Number(t.price || 0) * (t.quantity || 1), 0)) * item.quantity
                       )}
                     </span>
                   </div>
@@ -414,8 +463,8 @@ export function StaffPOS() {
         </div>
         <div className="mt-2 mb-4">
           <label className="text-sm mb-1 block text-muted-foreground">Ghi chú</label>
-          <Textarea 
-            placeholder="Ví dụ: Ít đá, không đường..." 
+          <Textarea
+            placeholder="Ví dụ: Ít đá, không đường..."
             value={note}
             onChange={(e) => setNote(e.target.value)}
             className="text-sm resize-none"
@@ -491,8 +540,8 @@ export function StaffPOS() {
                   onChange={(e) => setDiscountCode(e.target.value)}
                   className="bg-gray-50 border-gray-200"
                 />
-                <Button 
-                  onClick={handleApplyDiscount} 
+                <Button
+                  onClick={handleApplyDiscount}
                   className="bg-orange-100 text-orange-400 hover:bg-orange-200 border-none px-4"
                 >
                   Áp dụng
@@ -507,21 +556,19 @@ export function StaffPOS() {
               <div className="grid grid-cols-2 gap-3">
                 <button
                   onClick={() => setPaymentMethod('cash')}
-                  className={`flex items-center justify-center gap-2 p-3 rounded-xl border-2 font-medium transition-all ${
-                    paymentMethod === 'cash'
-                      ? 'border-green-500 text-green-600 bg-green-50/50'
-                      : 'border-gray-200 text-gray-600'
-                  }`}
+                  className={`flex items-center justify-center gap-2 p-3 rounded-xl border-2 font-medium transition-all ${paymentMethod === 'cash'
+                    ? 'border-green-500 text-green-600 bg-green-50/50'
+                    : 'border-gray-200 text-gray-600'
+                    }`}
                 >
                   <span className="text-lg">💵</span> Tiền mặt
                 </button>
                 <button
                   onClick={() => setPaymentMethod('payos')}
-                  className={`flex items-center justify-center gap-2 p-3 rounded-xl border-2 font-medium transition-all ${
-                    paymentMethod === 'payos'
-                      ? 'border-green-500 text-green-600 bg-green-50/50'
-                      : 'border-gray-200 text-gray-600'
-                  }`}
+                  className={`flex items-center justify-center gap-2 p-3 rounded-xl border-2 font-medium transition-all ${paymentMethod === 'payos'
+                    ? 'border-green-500 text-green-600 bg-green-50/50'
+                    : 'border-gray-200 text-gray-600'
+                    }`}
                 >
                   <span className="text-lg">💳</span> QR PayOS
                 </button>
@@ -543,18 +590,17 @@ export function StaffPOS() {
 
                 <div className="flex gap-2">
                   {suggestions.map((val) => (
-                      <button
-                        key={val}
-                        onClick={() => setCustomerCash(val)}
-                        className={`flex-1 p-2 rounded-full border text-sm font-medium transition-all ${
-                          customerCash === val
-                            ? 'border-green-500 text-green-600 bg-green-50'
-                            : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                    <button
+                      key={val}
+                      onClick={() => setCustomerCash(val)}
+                      className={`flex-1 p-2 rounded-full border text-sm font-medium transition-all ${customerCash === val
+                        ? 'border-green-500 text-green-600 bg-green-50'
+                        : 'border-gray-200 text-gray-600 hover:bg-gray-50'
                         }`}
-                      >
-                        {formatVND(val).replace(' ₫', '').trim()}
-                      </button>
-                    ))}
+                    >
+                      {formatVND(val).replace(' ₫', '').trim()}
+                    </button>
+                  ))}
                 </div>
 
                 <div className="bg-blue-50/50 rounded-xl p-3 flex justify-between items-center">
@@ -568,15 +614,15 @@ export function StaffPOS() {
 
             {/* Footer Buttons */}
             <div className="flex gap-3 pt-2">
-              <Button 
-                variant="outline" 
-                onClick={() => setIsPaymentModalOpen(false)} 
+              <Button
+                variant="outline"
+                onClick={() => setIsPaymentModalOpen(false)}
                 className="flex-1 rounded-xl border-gray-200"
               >
                 Huỷ
               </Button>
-              <Button 
-                onClick={handleConfirmPayment} 
+              <Button
+                onClick={handleConfirmPayment}
                 className="flex-1 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold"
               >
                 Thanh toán
