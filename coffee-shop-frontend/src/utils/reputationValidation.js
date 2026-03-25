@@ -43,7 +43,7 @@ export function validateOrderPermissions(userScore, orderTotal, isBanned = false
   // Rule 1: Account is blocked/frozen
   if (isBanned === true) {
     throw new Error(
-      'Tài khoản của bạn đã bị chặn. Vui lòng liên hệ quản lý viên để được hỗ trợ.'
+      'Tài khoản của bạn đã bị chặn. Vui lòng liên hệ quản lý để được hỗ trợ.'
     );
   }
 
@@ -75,8 +75,26 @@ export function validateOrderPermissions(userScore, orderTotal, isBanned = false
     };
   }
 
-  // Rule 4: Score 40-80 → Cash only if orderTotal < 100,000
-  if (score >= 40 && score <= 80) {
+  // Rule 4: Score 40-60 → Cash only if orderTotal < 50,000
+  if (score >= 40 && score <= 60) {
+    if (orderTotal >= 50000) {
+      return {
+        canUseCash: false,
+        forcePayOS: true,
+        message: `Tổng đơn hàng ${(orderTotal).toLocaleString('vi-VN')}đ vượt hạn mức (50,000đ). Vui lòng dùng PayOS.`,
+        reason: `Điểm uy tín: ${score}/100 - giới hạn tiền mặt: 50,000đ`,
+      };
+    }
+    return {
+      canUseCash: true,
+      forcePayOS: false,
+      message: `✓ Bạn có thể dùng tiền mặt (tối đa 50,000đ) hoặc PayOS.`,
+      reason: `Điểm uy tín: ${score}/100 - giới hạn tiền mặt: 50,000đ`,
+    };
+  }
+
+  // Rule 4: Score 60-80 → Cash only if orderTotal < 100,000
+  if (score >= 60 && score <= 80) {
     if (orderTotal >= 100000) {
       return {
         canUseCash: false,
