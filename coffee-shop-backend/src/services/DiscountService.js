@@ -6,6 +6,10 @@ class DiscountService {
     return await DiscountRepository.findAll(params);
   }
 
+  async getPublic() {
+    return await DiscountRepository.findPublic();
+  }
+
   async getById(id) {
     const discount = await DiscountRepository.findById(id);
 

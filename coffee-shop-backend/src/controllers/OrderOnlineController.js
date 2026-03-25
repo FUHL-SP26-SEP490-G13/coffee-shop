@@ -96,9 +96,9 @@ class OrderOnlineController {
 
   async validateDiscount(req, res, next) {
     try {
-      const { code, order_amount } = req.body;
+      const { code, items } = req.body;
 
-      const result = await OrderOnlineService.validateDiscount(code, order_amount);
+      const result = await OrderOnlineService.validateDiscount(code, items);
 
       return res.json({
         success: true,

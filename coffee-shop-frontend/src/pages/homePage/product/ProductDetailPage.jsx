@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import AiAssistantWidget from "@/components/layout/AiAssistantWidget";
 import { Button } from "@/components/ui/button";
 import productService from "@/services/productService";
 import toppingService from "@/services/toppingService";
@@ -21,6 +22,7 @@ import "swiper/css";
 import "swiper/css/pagination";
 import "swiper/css/navigation";
 import favoriteService from "@/services/favoriteService";
+import flashSaleService from "@/services/flashSaleService";
 import { STORAGE_KEYS } from "@/constants";
 import reviewService from "@/services/reviewService";
 import { Textarea } from "@/components/ui/textarea";
@@ -53,6 +55,14 @@ export default function ProductDetailPage() {
   const [myComment, setMyComment] = useState("");
   const [canReview, setCanReview] = useState(false);
   const [reviewSubmitting, setReviewSubmitting] = useState(false);
+
+  const [activeSale, setActiveSale] = useState(null);
+
+  useEffect(() => {
+    flashSaleService.getCurrentActive()
+      .then((res) => setActiveSale(res?.data || null))
+      .catch(() => {});
+  }, []);
 
   const fetchProduct = useCallback(() => {
     return productService.getById(id);
@@ -225,10 +235,25 @@ export default function ProductDetailPage() {
     );
   }, [selectedToppings]);
 
+  const isFlashSale = useMemo(() => {
+    return activeSale && product?.id && activeSale.product_ids?.includes(product.id);
+  }, [activeSale, product]);
+
+  const flashSaleDiscount = isFlashSale ? (activeSale?.discount_percent || 0) : 0;
+
   const displayPrice = useMemo(() => {
+    let basePrice = Number(selectedSizeObj?.price) || 0;
+    if (isFlashSale) {
+      basePrice = Math.round(basePrice * (1 - flashSaleDiscount / 100));
+    }
+    return basePrice + selectedToppingsTotal;
+  }, [selectedSizeObj, selectedToppingsTotal, isFlashSale, flashSaleDiscount]);
+
+  const originalDisplayPrice = useMemo(() => {
+    if (!isFlashSale) return null;
     const basePrice = Number(selectedSizeObj?.price) || 0;
     return basePrice + selectedToppingsTotal;
-  }, [selectedSizeObj, selectedToppingsTotal]);
+  }, [selectedSizeObj, selectedToppingsTotal, isFlashSale]);
 
   const fetchRelatedProducts = useCallback(() => {
     if (!product?.category_id) {
@@ -331,6 +356,11 @@ export default function ProductDetailPage() {
   const buildCartItem = () => {
     if (!product || !selectedSizeObj) return null;
 
+    let basePriceNum = Number(selectedSizeObj.price);
+    if (isFlashSale) {
+      basePriceNum = Math.round(basePriceNum * (1 - flashSaleDiscount / 100));
+    }
+
     return {
       id: product.id,
       product_id: product.id,
@@ -340,8 +370,8 @@ export default function ProductDetailPage() {
       name: product.name,
       image: displayImages[0]?.image_url || defaultImage,
       size: selectedSizeObj.size,
-      price: Number(selectedSizeObj.price),
-      basePrice: Number(selectedSizeObj.price),
+      price: basePriceNum,
+      basePrice: basePriceNum,
       quantity: Math.max(1, Number(quantity) || 1),
       toppings: selectedToppings.map((item) => ({
         topping_id: Number(item.topping_id),
@@ -416,8 +446,13 @@ export default function ProductDetailPage() {
               pagination={{ clickable: true }}
               autoplay={{ delay: 3000, disableOnInteraction: false }}
               loop
-              className="rounded-2xl overflow-hidden border border-gray-200"
+              className="rounded-2xl overflow-hidden border border-gray-200 shadow-sm relative"
             >
+              {isFlashSale && (
+                <div className="absolute top-4 left-4 z-20 bg-red-600 text-white text-sm font-bold px-3 py-1.5 rounded-lg shadow-lg flex items-center gap-1.5 animate-pulse">
+                  ⚡ Flash Sale Giảm {flashSaleDiscount}%
+                </div>
+              )}
               {displayImages.map((img, index) => (
                 <SwiperSlide key={index}>
                   <div className="h-[420px] bg-gray-100">
@@ -780,26 +815,41 @@ export default function ProductDetailPage() {
               </div>
             )}
 
-            <div className="mb-8">
-              <p className="text-sm text-gray-500 mb-1">Giá</p>
-              <p className="text-4xl font-bold text-amber-600">
-                {selectedSizeObj
-                  ? `${displayPrice.toLocaleString("vi-VN")}đ`
-                  : "Liên hệ"}
-              </p>
+            <div className="mb-8 p-4 rounded-2xl bg-gray-50 border border-gray-100">
+              <p className="text-sm font-medium text-gray-500 mb-1">Tổng tiền tạm tính</p>
+              
+              <div className="flex flex-col">
+                {isFlashSale && originalDisplayPrice ? (
+                  <div className="flex items-center gap-3">
+                    <p className="text-4xl font-bold text-red-600">
+                      {selectedSizeObj
+                        ? `${displayPrice.toLocaleString("vi-VN")}đ`
+                        : "Liên hệ"}
+                    </p>
+                    <span className="text-xl line-through text-gray-400 font-medium">
+                      {originalDisplayPrice.toLocaleString("vi-VN")}đ
+                    </span>
+                  </div>
+                ) : (
+                  <p className="text-4xl font-bold text-amber-600">
+                    {selectedSizeObj
+                      ? `${displayPrice.toLocaleString("vi-VN")}đ`
+                      : "Liên hệ"}
+                  </p>
+                )}
+              </div>
 
               {selectedToppings.length > 0 && (
-                <div className="mt-3 text-sm text-gray-500 space-y-1">
-                  <p>
-                    Giá size:{" "}
-                    {Number(selectedSizeObj?.price || 0).toLocaleString(
-                      "vi-VN"
-                    )}
-                    đ
-                  </p>
-                  <p>
-                    Topping: +{selectedToppingsTotal.toLocaleString("vi-VN")}đ
-                  </p>
+                <div className="mt-4 pt-3 border-t border-gray-200 text-sm text-gray-600 space-y-1.5">
+                  <div className="flex justify-between items-center">
+                    <span>Giá size {selectedSizeObj?.size || ""}:</span>
+                    <span className="font-medium">
+                      {isFlashSale 
+                        ? (Number(selectedSizeObj?.price || 0) * (1 - flashSaleDiscount/100)).toLocaleString("vi-VN")
+                        : Number(selectedSizeObj?.price || 0).toLocaleString("vi-VN")
+                      }đ
+                    </span>
+                  </div>
                 </div>
               )}
             </div>
@@ -921,6 +971,7 @@ export default function ProductDetailPage() {
       </section>
 
       <Footer />
+      <AiAssistantWidget />
     </div>
   );
 }

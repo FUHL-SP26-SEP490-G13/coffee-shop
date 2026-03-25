@@ -84,6 +84,18 @@ class ReviewController {
       next(error);
     }
   }
+  async getPublicReviews(req, res, next) {
+    try {
+      const data = await ReviewService.getPublicReviews();
+      return res.status(200).json({
+        success: true,
+        data,
+        message: "Lấy danh sách review public thành công",
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 module.exports = new ReviewController();

@@ -40,22 +40,6 @@ class AdminDBController {
     }
   }
 
-  async getPaymentMethodBreakdown(req, res, next) {
-    try {
-      const { days = 7 } = req.query;
-      const data = await AdminDBService.getPaymentMethodBreakdown({
-        days: parseInt(days),
-      });
-      return response.success(
-        res,
-        data,
-        "Lấy doanh thu theo phương thức thanh toán thành công"
-      );
-    } catch (error) {
-      next(error);
-    }
-  }
-
   // Optional: doanh thu theo loại đơn hàng (tại quán, mang về, giao hàng)
   async getOrderTypeRevenue(req, res, next) {
     try {
@@ -86,33 +70,6 @@ class AdminDBController {
     }
   }
 
-  // Optional: tóm tắt số lượng nhân viên theo vai trò (barista, phục vụ, quản lý) để dashboard có thêm vài số liệu hữu ích
-  async getStaffSummary(req, res) {
-    try {
-      const data = await AdminDBService.getStaffSummary();
-
-      res.json({
-        success: true,
-        data,
-      });
-    } catch (error) {
-      console.error("getStaffSummary error:", error);
-      res.status(500).json({
-        success: false,
-        message: "Lỗi server",
-      });
-    }
-  }
-
-  async getTableStatus(req, res, next) {
-    try {
-      const data = await AdminDBService.getTableStatus();
-
-      return response.success(res, data, "Lấy trạng thái bàn thành công");
-    } catch (err) {
-      next(err);
-    }
-  }
 }
 
 module.exports = new AdminDBController();

@@ -14,6 +14,7 @@ import {
   X,
   Bell,
   ShoppingBag,
+  LayoutDashboard,
 } from 'lucide-react';
 import {
   AlertDialog,
@@ -61,61 +62,38 @@ export function StaffApp() {
     if (path.includes('inventory')) return 'inventory';
     if (path.includes('requests')) return 'requests';
     if (path.includes('profile')) return 'profile';
-    return 'pos';
+    if (path.includes('pos')) return 'pos';
+    return 'dashboard';
   };
 
   const currentPage = getCurrentPage();
 
-  const menuItems = [
-    { id: 'pos', icon: LayoutGrid, label: 'POS', path: '/staff' },
+  const menuGroups = [
     {
-      id: 'takeaway',
-      icon: ShoppingBag,
-      label: 'Đặt mang đi',
-      path: '/staff/takeaway',
+      title: 'Bán Hàng & Phục Vụ',
+      items: [
+        { id: 'dashboard', icon: LayoutDashboard, label: 'Tổng quan', path: '/staff/dashboard' },
+        { id: 'pos', icon: LayoutGrid, label: 'Bán hàng (POS)', path: '/staff/pos' },
+        { id: 'takeaway', icon: ShoppingBag, label: 'Đặt mang đi', path: '/staff/takeaway' },
+        { id: 'orders', icon: ShoppingBag, label: 'Danh sách đơn hàng', path: '/staff/orders' },
+        { id: 'kitchen', icon: ChefHat, label: 'Bếp', path: '/staff/kitchen' },
+        { id: 'tables', icon: Users, label: 'Danh sách bàn', path: '/staff/tables' },
+      ],
     },
     {
-      id: 'orders',
-      icon: FileText,
-      label: 'Danh sách đơn',
-      path: '/staff/orders',
-    },
-    { id: 'kitchen', icon: ChefHat, label: 'Bếp', path: '/staff/kitchen' },
-    {
-      id: 'tables',
-      icon: Users,
-      label: 'Danh sách bàn',
-      path: '/staff/tables',
+      title: 'Vận Hành',
+      items: [
+        { id: 'inventory', icon: ClipboardList, label: 'Kho hàng', path: '/staff/inventory' },
+        { id: 'requests', icon: FileText, label: 'Yêu cầu', path: '/staff/requests' },
+      ],
     },
     {
-      id: 'attendance',
-      icon: Clock,
-      label: 'Điểm danh ca làm',
-      path: '/staff/attendance',
-    },
-    {
-      id: 'schedule',
-      icon: Calendar,
-      label: 'Lịch làm việc',
-      path: '/staff/schedule',
-    },
-    {
-      id: 'inventory',
-      icon: ClipboardList,
-      label: 'Kho hàng',
-      path: '/staff/inventory',
-    },
-    {
-      id: 'requests',
-      icon: FileText,
-      label: 'Yêu cầu',
-      path: '/staff/requests',
-    },
-    {
-      id: 'profile',
-      icon: User,
-      label: 'Thông tin cá nhân',
-      path: '/staff/profile',
+      title: 'Cá Nhân',
+      items: [
+        { id: 'attendance', icon: Clock, label: 'Điểm danh ca làm', path: '/staff/attendance' },
+        { id: 'schedule', icon: Calendar, label: 'Lịch làm việc', path: '/staff/schedule' },
+        { id: 'profile', icon: User, label: 'Thông tin cá nhân', path: '/staff/profile' },
+      ],
     },
   ];
 
@@ -318,26 +296,33 @@ export function StaffApp() {
         </div>
 
         <nav className='flex-1 p-4 overflow-auto'>
-          {menuItems.map((item) => {
-            const Icon = item.icon;
-            return (
-              <button
-                key={item.id}
-                onClick={() => {
-                  navigate(item.path);
-                  setMobileMenuOpen(false);
-                }}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all mb-2 ${
-                  currentPage === item.id
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-                }`}
-              >
-                <Icon className='w-5 h-5 flex-shrink-0' />
-                <span className='text-sm'>{item.label}</span>
-              </button>
-            );
-          })}
+          {menuGroups.map((group) => (
+            <div key={group.title} className="mb-6">
+              <h3 className="px-4 text-[11px] font-bold text-muted-foreground uppercase tracking-wider mb-3">
+                {group.title}
+              </h3>
+              {group.items.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => {
+                      navigate(item.path);
+                      setMobileMenuOpen(false);
+                    }}
+                    className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all mb-1 ${
+                      currentPage === item.id
+                        ? 'bg-primary text-primary-foreground shadow-sm'
+                        : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                    }`}
+                  >
+                    <Icon className='w-[18px] h-[18px] flex-shrink-0' />
+                    <span className='text-sm font-medium'>{item.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          ))}
 
           <AlertDialog>
             <AlertDialogTrigger asChild>

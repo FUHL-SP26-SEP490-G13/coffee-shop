@@ -10,6 +10,13 @@ const discountService = {
     return res.data;
   },
 
+  getPublic: async (signal) => {
+    const res = await axiosClient.get(`${API_ENDPOINTS.DISCOUNTS}/public`, {
+      signal,
+    });
+    return res.data;
+  },
+
   getById: async (id) => {
     const res = await axiosClient.get(`${API_ENDPOINTS.DISCOUNTS}/${id}`);
     return res.data;

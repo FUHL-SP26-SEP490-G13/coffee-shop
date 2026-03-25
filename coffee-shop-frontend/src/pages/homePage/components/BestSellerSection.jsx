@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Loader2, ArrowRight, Heart } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import favoriteService from "@/services/favoriteService";
+import flashSaleService from "@/services/flashSaleService";
 import { STORAGE_KEYS } from "@/constants";
 
 export default function BestSellerSection({
@@ -22,6 +21,13 @@ export default function BestSellerSection({
 
   const [favoriteMap, setFavoriteMap] = useState({});
   const [favoriteLoadingMap, setFavoriteLoadingMap] = useState({});
+  const [activeSale, setActiveSale] = useState(null);
+
+  useEffect(() => {
+    flashSaleService.getCurrentActive()
+      .then((res) => setActiveSale(res?.data || null))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     const fetchFavoriteStatus = async () => {
@@ -36,6 +42,7 @@ export default function BestSellerSection({
             try {
               const res = await favoriteService.checkFavorite(product.id);
               const payload = res?.data?.data || res?.data || res || {};
+
               return {
                 productId: product.id,
                 isFavorite: Boolean(payload.isFavorite),
@@ -109,137 +116,160 @@ export default function BestSellerSection({
   };
 
   return (
-    <section className="w-full px-4 sm:px-6 lg:px-8 py-16 sm:py-20 lg:py-28">
-      <div className="max-w-7xl mx-auto">
-        <div className="text-center mb-14 sm:mb-20">
-          <p className="text-amber-600 text-2xl sm:text-xl lg:text-2xl font-bold tracking-widest uppercase mb-3">
-            Menu Đặc Sắc
-          </p>
-          <p className="text-base sm:text-lg text-gray-600 max-w-2xl mx-auto">
-            Khám phá những lựa chọn tuyệt vời được chọn lựa kỹ lưỡng cho bạn
-          </p>
+    <section className="py-16 lg:py-24">
+      <div className="mx-auto max-w-7xl px-6 lg:px-8">
+        <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end">
+          <div>
+            <span className="text-sm font-semibold uppercase tracking-[0.2em] text-primary">
+              Menu Đặc Sắc
+            </span>
+            <h4 className="mt-2 text-xl font-semibold text-foreground sm:text-2xl">
+              Sản phẩm bán chạy
+            </h4>
+            <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
+              Những thức uống và món ăn được yêu thích nhất, được chọn lọc bởi
+              hàng ngàn khách hàng.
+            </p>
+          </div>
+
+          <Link
+            to="/products"
+            className="group flex shrink-0 items-center gap-2 rounded-full border border-primary/30 px-5 py-2.5 text-sm font-semibold text-primary transition-all hover:bg-primary hover:text-primary-foreground active:scale-[0.97]"
+          >
+            Xem tất cả
+            <ArrowRight
+              size={16}
+              className="transition-transform group-hover:translate-x-0.5"
+            />
+          </Link>
         </div>
 
         {loading && (
           <div className="flex items-center justify-center py-20">
             <div className="flex flex-col items-center gap-4">
-              <Loader2 className="w-10 h-10 animate-spin text-amber-600" />
-              <p className="text-gray-600">Đang tải sản phẩm...</p>
+              <Loader2 className="h-10 w-10 animate-spin text-primary" />
+              <p className="text-muted-foreground">Đang tải sản phẩm...</p>
             </div>
           </div>
         )}
 
-        {!loading && (
-          <>
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
-                  Sản phẩm bán chạy
-                </h2>
-                <p className="text-sm text-gray-500">
-                  Những món được khách hàng yêu thích nhất
-                </p>
-              </div>
+        {!loading && products.length > 0 && (
+          <div className="mt-10 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {products.map((product, index) => {
+              const isFavorite = Boolean(favoriteMap[product.id]);
+              const isFavoriteLoading = Boolean(favoriteLoadingMap[product.id]);
 
-              <Link to="/products">
-                <Button className="bg-amber-600 hover:bg-amber-700 text-white px-6">
-                  Xem tất cả
-                  <ArrowRight className="ml-2 w-4 h-4" />
-                </Button>
-              </Link>
-            </div>
+              return (
+                <div
+                  key={product.id}
+                  className="group h-full"
+                  style={{
+                    animation: `fadeInUp 0.6s ease-out ${index * 0.08}s both`,
+                  }}
+                >
+                  <div className="flex h-full flex-col overflow-hidden rounded-3xl border border-border/50 bg-card shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
+                    <div className="relative">
+                      <Link to={`/products/${product.id}`} className="block">
+                        <div className="relative h-60 overflow-hidden bg-secondary/40">
+                          <img
+                            src={getThumbnail(product)}
+                            alt={product.name}
+                            className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                            onError={(e) => {
+                              e.currentTarget.src =
+                                "https://images.unsplash.com/photo-1509042239860-f550ce710b93";
+                            }}
+                          />
+                        </div>
+                      </Link>
+                      
+                      {activeSale && activeSale.product_ids?.includes(product.id) && (
+                        <div className="absolute top-4 left-4 z-10 bg-red-600 text-white text-xs font-bold px-2.5 py-1 rounded-md shadow-sm flex items-center gap-1 animate-pulse">
+                          ⚡ Flash Sale
+                        </div>
+                      )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {products.map((product, index) => {
-                const isFavorite = Boolean(favoriteMap[product.id]);
-                const isFavoriteLoading = Boolean(
-                  favoriteLoadingMap[product.id]
-                );
-
-                return (
-                  <div
-                    key={product.id}
-                    className="group h-full transition-all duration-300"
-                    style={{
-                      animation: `fadeInUp 0.6s ease-out ${index * 0.08}s both`,
-                    }}
-                  >
-                    <Card className="overflow-hidden h-full flex flex-col bg-white border border-gray-200 shadow-md hover:shadow-xl transition">
-                      <div className="relative">
-                        <Link to={`/products/${product.id}`} className="block">
-                          <div className="relative h-56 bg-gray-100 overflow-hidden">
-                            <img
-                              src={getThumbnail(product)}
-                              alt={product.name}
-                              className="w-full h-full object-cover hover:scale-105 transition duration-500"
-                              onError={(e) => {
-                                e.currentTarget.src =
-                                  "https://images.unsplash.com/photo-1509042239860-f550ce710b93";
-                              }}
-                            />
-                          </div>
-                        </Link>
-
-                        <button
-                          type="button"
-                          onClick={(e) => handleToggleFavorite(e, product.id)}
-                          disabled={isFavoriteLoading}
-                          className={`absolute top-3 right-3 z-10 w-10 h-10 rounded-full border shadow-sm flex items-center justify-center transition ${
-                            isFavorite
-                              ? "bg-red-50 border-red-500 text-red-500"
-                              : "bg-white border-gray-300 text-gray-500 hover:border-red-400 hover:text-red-500"
+                      <button
+                        type="button"
+                        onClick={(e) => handleToggleFavorite(e, product.id)}
+                        disabled={isFavoriteLoading}
+                        className={`absolute right-4 top-4 z-10 flex h-10 w-10 items-center justify-center rounded-full border shadow-sm transition ${isFavorite
+                            ? "border-red-500 bg-red-50 text-red-500"
+                            : "border-border bg-white/90 text-muted-foreground hover:border-red-400 hover:text-red-500"
                           }`}
-                          title={
-                            isFavorite
-                              ? "Bỏ khỏi yêu thích"
-                              : "Thêm vào yêu thích"
-                          }
-                        >
-                          {isFavoriteLoading ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <Heart
-                              className={`w-5 h-5 ${
-                                isFavorite ? "fill-current" : ""
+                        title={
+                          isFavorite
+                            ? "Bỏ khỏi yêu thích"
+                            : "Thêm vào yêu thích"
+                        }
+                      >
+                        {isFavoriteLoading ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Heart
+                            className={`h-5 w-5 ${isFavorite ? "fill-current" : ""
                               }`}
-                            />
-                          )}
-                        </button>
-                      </div>
+                          />
+                        )}
+                      </button>
+                    </div>
 
-                      <div className="p-5 flex flex-col flex-grow">
-                        <div className="flex items-start justify-between gap-3 mb-2">
-                          <p className="text-xs uppercase tracking-wide text-gray-500">
-                            {product.category_name || "Danh mục"}
-                          </p>
+                    <div className="flex flex-grow flex-col p-5">
+                      <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                        {product.category_name || "Danh mục"}
+                      </p>
+
+                      <Link to={`/products/${product.id}`}>
+                        <h3 className="mt-2 line-clamp-2 text-lg font-bold text-foreground transition hover:text-primary">
+                          {product.name}
+                        </h3>
+                      </Link>
+
+                      <p className="mt-2 line-clamp-2 flex-grow text-sm leading-relaxed text-muted-foreground">
+                        {product.description ||
+                          "Thưởng thức hương vị đặc biệt của chúng tôi"}
+                      </p>
+
+                      <div className="mt-5 flex items-end justify-between gap-3 border-t border-border/60 pt-4">
+                        <div className="min-w-0 flex-1">
+                          {(() => {
+                            const isFlashSale = activeSale && activeSale.product_ids?.includes(product.id);
+                            const originalPriceText = getDisplayPrice(product);
+                            
+                            if (isFlashSale) {
+                              const originalPriceNum = Number(originalPriceText.replace(/\D/g, ''));
+                              if (originalPriceNum > 0) {
+                                const salePriceNum = Math.round(originalPriceNum * (1 - (activeSale.discount_percent || 0) / 100));
+                                return (
+                                  <div className="flex flex-col">
+                                    <span className="text-sm line-through text-gray-400">{originalPriceText}</span>
+                                    <p className="break-words text-xl font-bold leading-tight text-red-600">
+                                      {salePriceNum.toLocaleString("vi-VN")}đ
+                                    </p>
+                                  </div>
+                                );
+                              }
+                            }
+                            
+                            return (
+                              <p className="break-words text-xl font-bold leading-tight text-primary">
+                                {originalPriceText}
+                              </p>
+                            );
+                          })()}
                         </div>
-
-                        <Link to={`/products/${product.id}`}>
-                          <h3 className="font-bold text-lg text-gray-900 mb-2 hover:text-amber-600 transition line-clamp-2">
-                            {product.name}
-                          </h3>
-                        </Link>
-
-                        <div className="pt-4 border-t border-gray-200 flex items-end justify-between gap-3">
-                          <div className="min-w-0 flex-1">
-                            <p className="text-xl font-bold text-amber-600 leading-tight break-words">
-                              {getDisplayPrice(product)}
-                            </p>
-                            <p className="text-xs text-gray-500">VNĐ</p>
-                          </div>
-                        </div>
                       </div>
-                    </Card>
+                    </div>
                   </div>
-                );
-              })}
-            </div>
-          </>
+                </div>
+              );
+            })}
+          </div>
         )}
 
         {!loading && products.length === 0 && (
-          <div className="text-center py-20">
-            <p className="text-xl text-gray-600">
+          <div className="py-20 text-center">
+            <p className="text-lg text-muted-foreground">
               Hiện chưa có sản phẩm. Vui lòng quay lại sau!
             </p>
           </div>

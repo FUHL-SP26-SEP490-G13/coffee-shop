@@ -63,6 +63,19 @@ class DiscountRepository {
     };
   }
 
+  async findPublic() {
+    const sql = `
+      SELECT *
+      FROM discount
+      WHERE deleted_at IS NULL
+        AND valid_from <= NOW()
+        AND (valid_until IS NULL OR valid_until > NOW())
+      ORDER BY percentage DESC, created_at DESC
+    `;
+    const [rows] = await pool.query(sql);
+    return rows;
+  }
+
   async findById(id) {
     const [rows] = await pool.query(
       'SELECT * FROM discount WHERE id = ? AND deleted_at IS NULL',

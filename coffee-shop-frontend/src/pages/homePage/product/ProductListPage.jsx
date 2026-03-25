@@ -3,10 +3,12 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { Loader2, Heart } from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import AiAssistantWidget from "@/components/layout/AiAssistantWidget";
 import { Button } from "@/components/ui/button";
 import productService from "@/services/productService";
 import favoriteService from "@/services/favoriteService";
 import useFetch from "@/hooks/useFetch";
+import flashSaleService from "@/services/flashSaleService";
 import { STORAGE_KEYS } from "@/constants";
 
 const PAGE_SIZE = 8;
@@ -28,6 +30,13 @@ export default function ProductListPage() {
 
   const [favoriteMap, setFavoriteMap] = useState({});
   const [favoriteLoadingMap, setFavoriteLoadingMap] = useState({});
+  const [activeSale, setActiveSale] = useState(null);
+
+  useEffect(() => {
+    flashSaleService.getCurrentActive()
+      .then((res) => setActiveSale(res?.data || null))
+      .catch(() => {});
+  }, []);
 
   const fetchProducts = useCallback(() => {
     const params = {
@@ -258,6 +267,12 @@ export default function ProductListPage() {
                           alt={item.name}
                           className="w-full h-full object-cover"
                         />
+                        
+                        {activeSale && activeSale.product_ids?.includes(item.id) && (
+                          <div className="absolute top-3 left-3 z-10 bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-sm flex items-center gap-1 animate-pulse">
+                            ⚡ Flash Sale
+                          </div>
+                        )}
 
                         <button
                           type="button"
@@ -297,13 +312,36 @@ export default function ProductListPage() {
 
                         <div className="flex items-center justify-between mt-4 gap-3">
                           <div>
-                            <p className="text-amber-600 font-bold text-lg">
-                              {minPrice !== null
-                                ? hasMultiplePrices
+                            {(() => {
+                              const isFlashSale = activeSale && activeSale.product_ids?.includes(item.id);
+                              
+                              if (minPrice !== null) {
+                                const originalText = hasMultiplePrices 
                                   ? `${minPrice.toLocaleString("vi-VN")}đ - ${maxPrice.toLocaleString("vi-VN")}đ`
-                                  : `${minPrice.toLocaleString("vi-VN")}đ`
-                                : "Liên hệ"}
-                            </p>
+                                  : `${minPrice.toLocaleString("vi-VN")}đ`;
+                                  
+                                if (isFlashSale) {
+                                  const saleMin = Math.round(minPrice * (1 - (activeSale.discount_percent || 0) / 100));
+                                  const saleMax = maxPrice ? Math.round(maxPrice * (1 - (activeSale.discount_percent || 0) / 100)) : null;
+                                  
+                                  const saleText = hasMultiplePrices && saleMax
+                                    ? `${saleMin.toLocaleString("vi-VN")}đ - ${saleMax.toLocaleString("vi-VN")}đ`
+                                    : `${saleMin.toLocaleString("vi-VN")}đ`;
+                                    
+                                  return (
+                                    <div className="flex flex-col">
+                                      <span className="text-xs line-through text-gray-400">{originalText}</span>
+                                      <p className="text-red-600 font-bold text-lg">{saleText}</p>
+                                    </div>
+                                  );
+                                }
+                                
+                                return (
+                                  <p className="text-amber-600 font-bold text-lg">{originalText}</p>
+                                );
+                              }
+                              return <p className="text-amber-600 font-bold text-lg">Liên hệ</p>;
+                            })()}
                           </div>
 
                           <Button
@@ -364,6 +402,7 @@ export default function ProductListPage() {
       </section>
 
       <Footer />
+      <AiAssistantWidget />
     </div>
   );
 }
