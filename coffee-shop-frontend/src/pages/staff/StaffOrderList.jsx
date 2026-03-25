@@ -95,6 +95,7 @@ export function OrderDelivery() {
   const [loading, setLoading] = useState(false);
   const [confirmingId, setConfirmingId] = useState(null);
   const [cancelingId, setCancelingId] = useState(null);
+  const [customerConfirmedMap, setCustomerConfirmedMap] = useState({});
   const [activeTab, setActiveTab] = useState('all');
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
@@ -112,11 +113,14 @@ export function OrderDelivery() {
 
       const activeOrders = (Array.isArray(list) ? list : [])
         .filter((order) => ACTIVE_STATUSES.includes(order?.status))
-        .sort(
-          (a, b) =>
-            new Date(b?.created_at || 0).getTime() -
-            new Date(a?.created_at || 0).getTime()
-        );
+        .sort((a, b) => {
+          const createdDiff =
+            new Date(a?.created_at || 0).getTime() -
+            new Date(b?.created_at || 0).getTime();
+
+          if (createdDiff !== 0) return createdDiff;
+          return Number(a?.id || 0) - Number(b?.id || 0);
+        });
 
       setOrders(activeOrders);
     } catch (error) {
@@ -204,6 +208,18 @@ export function OrderDelivery() {
 
     return ordersByType.filter((order) => order.status === activeTab);
   }, [ordersByType, activeTab]);
+
+  useEffect(() => {
+    setCustomerConfirmedMap((prev) => {
+      const next = {};
+      orders.forEach((order) => {
+        if (prev[order.id]) {
+          next[order.id] = true;
+        }
+      });
+      return next;
+    });
+  }, [orders]);
 
   const handleConfirmOrder = async (order) => {
     setConfirmingId(order.id);
@@ -384,127 +400,160 @@ export function OrderDelivery() {
           <TabsTrigger value="served">Sẵn sàng giao ({counts.served})</TabsTrigger>
         </TabsList>
 
-        <TabsContent value={activeTab} className="mt-4 space-y-3">
-          {filteredOrders.map((order) => {
-            const paid = isOrderPaid(order);
-            const deliveryOrder = isDeliveryOrder(order);
-            const isUnpaidPending = order.status === 'pending' && !paid;
-            const isPending = order.status === 'pending';
+        <TabsContent value={activeTab} className="mt-4">
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 xl:grid-cols-3">
+            {filteredOrders.map((order) => {
+              const paid = isOrderPaid(order);
+              const deliveryOrder = isDeliveryOrder(order);
+              const isUnpaidPending = order.status === 'pending' && !paid;
+              const isPending = order.status === 'pending';
 
-            return (
-              <Card key={order.id}>
-                <CardContent className="space-y-3 pt-6">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div className="flex items-center gap-2">
-                      {deliveryOrder ? (
-                        <Truck className="h-4 w-4 text-muted-foreground" />
-                      ) : (
-                        <Coffee className="h-4 w-4 text-muted-foreground" />
-                      )}
-                      <p className="font-medium">Đơn #{order.id}</p>
-                      <Badge variant="secondary">{getOrderTypeLabel(order.order_type)}</Badge>
-                      <Badge className={statusClassMap[order.status] || ''}>
-                        {statusLabelMap[order.status] || order.status}
-                      </Badge>
-                      <Badge variant={paid ? 'default' : 'outline'}>
-                        {paid ? 'Đã thanh toán' : 'Chưa thanh toán'}
-                      </Badge>
+              return (
+                <Card key={order.id}>
+                  <CardContent className="space-y-3 pt-6">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div className="flex items-center gap-2">
+                        {deliveryOrder ? (
+                          <Truck className="h-4 w-4 text-muted-foreground" />
+                        ) : (
+                          <Coffee className="h-4 w-4 text-muted-foreground" />
+                        )}
+                        <p className="font-medium">Đơn #{order.id}</p>
+                        <Badge variant="secondary">{getOrderTypeLabel(order.order_type)}</Badge>
+                        <Badge className={statusClassMap[order.status] || ''}>
+                          {statusLabelMap[order.status] || order.status}
+                        </Badge>
+                        <Badge variant={paid ? 'default' : 'outline'}>
+                          {paid ? 'Đã thanh toán' : 'Chưa thanh toán'}
+                        </Badge>
+                      </div>
+
+                      <div className="text-sm text-muted-foreground">{dateTime(order.created_at)}</div>
                     </div>
 
-                    <div className="text-sm text-muted-foreground">{dateTime(order.created_at)}</div>
-                  </div>
+                    <div className="grid gap-2 text-sm text-muted-foreground sm:grid-cols-2">
+                      <p>
+                        Tổng món: <span className="font-medium text-foreground">{order.itemCount || 0}</span>
+                      </p>
+                      <p>
+                        Tổng tiền: <span className="font-medium text-foreground">{money(order.total_amount)}</span>
+                      </p>
+                    </div>
 
-                  <div className="grid gap-2 text-sm text-muted-foreground sm:grid-cols-2">
-                    <p>
-                      Tổng món: <span className="font-medium text-foreground">{order.itemCount || 0}</span>
-                    </p>
-                    <p>
-                      Tổng tiền: <span className="font-medium text-foreground">{money(order.total_amount)}</span>
-                    </p>
-                  </div>
-
-                  {Array.isArray(order.items) && order.items.length > 0 ? (
-                    <div className="space-y-2 rounded-md border p-3">
-                      {order.items.map((item, idx) => (
-                        <div
-                          key={`${order.id}-${item.productName || item.name || idx}-${idx}`}
-                          className="flex items-start justify-between gap-2 text-sm"
-                        >
-                          <div>
-                            <p className="font-medium">{item.productName || item.name || item.product_name || 'Sản phẩm'}</p>
-                            <p className="text-muted-foreground">
-                              Size {item.size} • x{item.quantity}
-                            </p>
-                            {Array.isArray(item.toppings) && item.toppings.length > 0 ? (
+                    {Array.isArray(order.items) && order.items.length > 0 ? (
+                      <div className="space-y-2 rounded-md border p-3">
+                        {order.items.map((item, idx) => (
+                          <div
+                            key={`${order.id}-${item.productName || item.name || idx}-${idx}`}
+                            className="flex items-start justify-between gap-2 text-sm"
+                          >
+                            <div>
+                              <p className="font-medium">{item.productName || item.name || item.product_name || 'Sản phẩm'}</p>
                               <p className="text-muted-foreground">
-                                Topping: {item.toppings
-                                  .map((top) => `${top.name} x${top.quantity || 1}`)
-                                  .join(', ')}
+                                Size {item.size} • x{item.quantity}
                               </p>
-                            ) : null}
-                            {item.note ? (
-                              <p className="text-muted-foreground">Ghi chú: {item.note}</p>
-                            ) : null}
+                              {Array.isArray(item.toppings) && item.toppings.length > 0 ? (
+                                <p className="text-muted-foreground">
+                                  Topping: {item.toppings
+                                    .map((top) => `${top.name} x${top.quantity || 1}`)
+                                    .join(', ')}
+                                </p>
+                              ) : null}
+                              {item.note ? (
+                                <p className="text-muted-foreground">Ghi chú: {item.note}</p>
+                              ) : null}
+                            </div>
+                            <p className="text-muted-foreground">{money(item.price || item.total_price)}</p>
                           </div>
-                          <p className="text-muted-foreground">{money(item.price || item.total_price)}</p>
-                        </div>
-                      ))}
-                    </div>
-                  ) : null}
-
-                  <div className="flex flex-wrap justify-end gap-2">
-                    <Button variant="outline" onClick={() => openDetailModal(order)}>
-                      Xem chi tiết
-                    </Button>
+                        ))}
+                      </div>
+                    ) : null}
 
                     {deliveryOrder && isUnpaidPending ? (
-                      <>
-                        <Button
-                          variant="destructive"
-                          onClick={() => handleCancelOrder(order.id)}
-                          disabled={cancelingId === order.id}
-                        >
-                          {cancelingId === order.id ? 'Đang hủy...' : 'Hủy đơn'}
-                        </Button>
+                      <div className="space-y-3 rounded-md border border-amber-300 bg-amber-50 p-3">
+                        <p className="text-sm font-semibold text-amber-800">Xác nhận khách hàng</p>
+                        <div className="space-y-1">
+                          <p className="text-sm text-muted-foreground">
+                            Tên khách hàng:{' '}
+                            <span className="font-semibold text-foreground">
+                              {order.receiver_name || order.customer_name || '--'}
+                            </span>
+                          </p>
+                          <p className="text-xl font-bold tracking-wide text-amber-900">
+                            {order.receiver_phone || order.customer_phone || '--'}
+                          </p>
+                        </div>
+                        <label className="flex items-center gap-2 text-sm font-medium text-amber-900">
+                          <input
+                            type="checkbox"
+                            className="h-4 w-4"
+                            checked={Boolean(customerConfirmedMap[order.id])}
+                            onChange={(e) =>
+                              setCustomerConfirmedMap((prev) => ({
+                                ...prev,
+                                [order.id]: e.target.checked,
+                              }))
+                            }
+                          />
+                          Đã xác nhận với khách hàng
+                        </label>
+                      </div>
+                    ) : null}
+
+                    <div className="flex flex-wrap justify-end gap-2">
+                      <Button variant="outline" onClick={() => openDetailModal(order)}>
+                        Xem chi tiết
+                      </Button>
+
+                      {deliveryOrder && isUnpaidPending ? (
+                        <>
+                          <Button
+                            variant="destructive"
+                            onClick={() => handleCancelOrder(order.id)}
+                          disabled={cancelingId === order.id || !customerConfirmedMap[order.id]}
+                          >
+                            {cancelingId === order.id ? 'Đang hủy...' : 'Hủy đơn'}
+                          </Button>
+                          <Button
+                            onClick={() => handleConfirmOrder(order)}
+                          disabled={confirmingId === order.id || !customerConfirmedMap[order.id]}
+                          >
+                          {confirmingId === order.id ? 'Đang xác nhận...' : 'Chuẩn bị đơn'}
+                          </Button>
+                        </>
+                      ) : deliveryOrder && isPending ? (
                         <Button
                           onClick={() => handleConfirmOrder(order)}
                           disabled={confirmingId === order.id}
                         >
-                          {confirmingId === order.id ? 'Đang xác nhận...' : 'Xác nhận với khách hàng'}
+                          {confirmingId === order.id ? 'Đang xác nhận...' : 'Xác nhận chuẩn bị'}
                         </Button>
-                      </>
-                    ) : deliveryOrder && isPending ? (
-                      <Button
-                        onClick={() => handleConfirmOrder(order)}
-                        disabled={confirmingId === order.id}
-                      >
-                        {confirmingId === order.id ? 'Đang xác nhận...' : 'Xác nhận chuẩn bị'}
-                      </Button>
-                    ) : deliveryOrder && order.status === 'served' ? (
-                      <Button
-                        onClick={() => handlePrintReceipt(order.id)}
-                        className="gap-2"
-                      >
-                        <Printer size={16} />
-                        In hóa đơn
-                      </Button>
-                    ) : null}
-                  </div>
+                      ) : deliveryOrder && order.status === 'served' ? (
+                        <Button
+                          onClick={() => handlePrintReceipt(order.id)}
+                          className="gap-2"
+                        >
+                          <Printer size={16} />
+                          In hóa đơn
+                        </Button>
+                      ) : null}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+
+            {!loading && filteredOrders.length === 0 ? (
+              <Card className="lg:col-span-2 xl:col-span-3">
+                <CardContent className="flex flex-col items-center justify-center gap-3 py-10 text-center">
+                  <ShoppingBag className="h-8 w-8 text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground">
+                    Không có đơn {getOrderTypeLabel(activeOrderType)} trong trạng thái đã chọn.
+                  </p>
                 </CardContent>
               </Card>
-            );
-          })}
-
-          {!loading && filteredOrders.length === 0 ? (
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center gap-3 py-10 text-center">
-                <ShoppingBag className="h-8 w-8 text-muted-foreground" />
-                <p className="text-sm text-muted-foreground">
-                  Không có đơn {getOrderTypeLabel(activeOrderType)} trong trạng thái đã chọn.
-                </p>
-              </CardContent>
-            </Card>
-          ) : null}
+            ) : null}
+          </div>
         </TabsContent>
       </Tabs>
 
