@@ -193,10 +193,15 @@ class OrderService {
 
       const finalAmount = Math.max(0, totalAmount - discountAmount);
       const userId = user?.id || null;
+      const status = order_type === "dine-in" ? "preparing" : "pending";
 
       const orderId = await OrderRepository.createOrder(connection, {
         user_id: userId,
         created_by: userId,
+
+        // Đơn tại quán sẽ bắt đầu ở trạng thái "preparing" để nhân viên bếp có 
+        // thể thấy và xử lý ngay, không phải chờ khách thanh toán xong mới hiển thị
+        status: order_type === "dine-in" ? "preparing" : "pending",
         customer_type: user ? "registered" : "guest",
         order_type,
         table_id: order_type === "dine-in" ? payload.table_id : null,

@@ -262,6 +262,7 @@ export function StaffPOS() {
         receiver_name: `Khách Bàn ${tables.find((t) => String(t.id) === selectedTable)?.code || ''}`,
         receiver_phone: '0000000000',
         items,
+        status: 'preparing',
         note: note.trim() || undefined,
         discount_code: discountAmount > 0 ? discountCode : undefined,
       };
