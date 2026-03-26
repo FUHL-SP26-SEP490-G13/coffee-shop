@@ -37,25 +37,7 @@ const formatVND = (amount) => {
     currency: 'VND',
   }).format(amount);
 };
-const convertOrderItemsToCart = (items = []) => {
-  return items.map((item) => ({
-    id: `order-item-${item.order_detail_id || item.id}-${Date.now()}-${Math.random()}`,
-    productId: item.product_size_id,
-    originalProductId: item.product_id,
-    product: { name: item.name },
-    productName: item.name,
-    size: item.size,
-    price: Number(item.price),
-    quantity: Number(item.quantity),
-    note: item.note || "",
-    toppings: (item.toppings || []).map((t) => ({
-      topping_id: t.topping_id || t.id,
-      name: t.name,
-      quantity: Number(t.quantity),
-      price: Number(t.price),
-    })),
-  }));
-};
+
 
 export function StaffPOS() {
   const location = useLocation();
@@ -80,30 +62,7 @@ export function StaffPOS() {
   const [discountAmount, setDiscountAmount] = useState(0);
   const [customerCash, setCustomerCash] = useState(0);
   const [discountError, setDiscountError] = useState('');
-  useEffect(() => {
-    if (!selectedTable) return;
 
-    const loadActiveOrder = async () => {
-      try {
-        const res = await tableService.getActiveOrder(selectedTable);
-        const order = res?.data;
-
-        if (order?.items?.length) {
-          setCart(convertOrderItemsToCart(order.items));
-          setNote(order.note || "");
-        } else {
-          setCart([]);
-          setNote("");
-        }
-      } catch (error) {
-        console.error("Load active order error:", error);
-        setCart([]);
-        setNote("");
-      }
-    };
-
-    loadActiveOrder();
-  }, [selectedTable]);
 
   useEffect(() => {
     const fetchData = async () => {
