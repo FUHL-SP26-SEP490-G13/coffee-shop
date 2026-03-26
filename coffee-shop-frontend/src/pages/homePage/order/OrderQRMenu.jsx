@@ -34,6 +34,7 @@ export default function OrderQRMenu() {
   const [toppingsList, setToppingsList] = useState([]);
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [warningMessage, setWarningMessage] = useState("");
 
   // Lấy danh sách category
   useEffect(() => {
@@ -293,10 +294,39 @@ export default function OrderQRMenu() {
             <Button 
               className="w-full mt-2 py-3 rounded-full text-lg font-bold bg-primary text-white hover:bg-primary/90 transition"
               onClick={() => {
+                const missingSizeItem = selected.find(item => {
+                  const menuItem = menu.find(m => m.id === item.id || m._id === item.id);
+                  return menuItem && Array.isArray(menuItem.sizes) && menuItem.sizes.length > 0 && !item.size;
+                });
+
+                if (missingSizeItem) {
+                  return setWarningMessage(`Vui lòng chọn size cho món: ${missingSizeItem.name}`);
+                }
+
                 navigate("/order/confirm", { state: { selected, tableId, menu } });
               }}
             >
               Đặt món
+            </Button>
+          </div>
+        </div>
+      )}
+      {/* WARNING MODAL */}
+      {warningMessage && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
+          <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl p-6 text-center animate-in zoom-in-95">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-100 mb-4">
+              <svg className="h-10 w-10 text-red-500" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">Chú ý</h3>
+            <p className="text-gray-600 mb-6">{warningMessage}</p>
+            <Button 
+              className="w-full py-3 rounded-full text-base font-bold bg-primary text-white hover:bg-primary/90" 
+              onClick={() => setWarningMessage("")}
+            >
+              Đã hiểu
             </Button>
           </div>
         </div>

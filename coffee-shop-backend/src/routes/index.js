@@ -26,6 +26,7 @@ const receiptSettingRoutes = require("./receiptSetting.routes");
 const takeawayRoutes = require("./takeaway.routes");
 const aiRoutes = require('./ai.routes');
 const flashSaleRoutes = require('./flashSale.routes');
+const qrOrderRoutes = require('./qrOrder.routes');
 
 
 // Mount routes
@@ -56,6 +57,7 @@ router.use("/receipt-settings", receiptSettingRoutes);
 router.use("/takeaway", takeawayRoutes);
 router.use('/ai', aiRoutes);
 router.use('/flash-sales', flashSaleRoutes);
+router.use('/qr-order', qrOrderRoutes);
 
 
 // Health check endpoint

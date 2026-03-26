@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ChevronLeft } from "lucide-react";
 import orderOnlineService from "@/services/orderOnlineService";
 import toppingService from "@/services/toppingService";
+import discountService from "@/services/discountService";
 
 export default function MyOrderQRDetail() {
   const { state } = useLocation();
@@ -15,16 +16,22 @@ export default function MyOrderQRDetail() {
   const tableId = state?.tableId || "";
   const menu = state?.menu || [];
 
-  const [form, setForm] = useState({ name: "", phone: "", note: "" });
+  const [form, setForm] = useState({ note: "", discountCode: "" });
   const [submitting, setSubmitting] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [toppingsList, setToppingsList] = useState([]);
+  const [discounts, setDiscounts] = useState([]);
+  const [modalConfig, setModalConfig] = useState({ show: false, title: "", message: "", type: "warning", onConfirm: null });
 
   useEffect(() => {
     toppingService.getAll().then(res => {
       setToppingsList(res?.data || res || []);
     }).catch(() => setToppingsList([]));
+
+    discountService.getPublic().then(res => {
+      setDiscounts(res?.data || res || []);
+    }).catch(err => console.error("Error fetching discounts", err));
   }, []);
 
   useEffect(() => {
@@ -53,6 +60,25 @@ export default function MyOrderQRDetail() {
     return total + itemTotal;
   }, 0);
 
+  const calculateDiscountAmount = (total) => {
+    if (!form.discountCode) return 0;
+    const discount = discounts.find(d => d.code === form.discountCode);
+    if (!discount) return 0;
+    
+    if (discount.min_order_amount && total < Number(discount.min_order_amount)) return 0;
+    
+    const percentage = Number(discount.percentage || 0);
+    let calculated = Math.round((total * percentage) / 100);
+    
+    if (discount.max_discount_amount) {
+      calculated = Math.min(calculated, Number(discount.max_discount_amount));
+    }
+    return calculated;
+  };
+
+  const discountAmount = calculateDiscountAmount(totalAmount);
+  const finalAmount = Math.max(0, totalAmount - discountAmount);
+
   const handleConfirm = async () => {
     try {
       setSubmitting(true);
@@ -69,14 +95,16 @@ export default function MyOrderQRDetail() {
             product_size_id = sizeObj.id || sizeObj.product_size_id || sizeObj._id;
           }
         } else if (Array.isArray(menuItem.sizes) && menuItem.sizes.length > 0) {
-           // Fallback if size not selected but exists, take first
-           product_size_id = menuItem.sizes[0].id || menuItem.sizes[0].product_size_id || menuItem.sizes[0]._id;
+           setModalConfig({ show: true, type: "warning", title: "Chú ý", message: `Vui lòng chọn size cho món: ${menuItem.name}` });
+           setSubmitting(false);
+           return;
         }
         
         // Ensure we pass a valid string for table_id, even if it's numeric in url
         itemsPayload.push({
           product_size_id: Number(product_size_id),
           quantity: Number(item.qty || 1),
+          note: item.note || null,
           toppings: Array.isArray(item.toppings) ? item.toppings.map(t => ({
              topping_id: Number(t.topping_id),
              quantity: Number(t.quantity || 1) // default 1
@@ -84,84 +112,38 @@ export default function MyOrderQRDetail() {
         });
       }
 
-      // Payload similar to Checkout but order_type is usually dine-in for QR menu 
       // table_id is custom field for dine_in
       const payload = {
-        order_type: "dine-in",
-        table_id: tableId, 
-        receiver_name: form.name.trim() || `Khách bàn ${tableId}`,
-        receiver_phone: form.phone.trim(),
+        tableId: tableId, 
+        items: itemsPayload,
         note: form.note.trim(),
-        payment_method: paymentMethod, 
-        items: itemsPayload
+        discountCode: form.discountCode.trim(),
+        paymentMethod: paymentMethod
       };
 
-      const orderRes = await orderOnlineService.checkout(payload);
+      const orderRes = await orderOnlineService.checkoutQr(payload);
       const orderData = orderRes?.data || {};
-      const order_id = Number(orderData?.order_id);
 
       if (paymentMethod === "payos") {
-        if (!order_id || Number.isNaN(order_id)) {
-          alert("Không lấy được mã đơn hàng để tạo thanh toán PayOS");
-          return;
-        }
-
-        const payosItems = selected.flatMap((item) => {
-          const menuItem = menu.find((m) => m.id === item.id || m._id === item.id);
-          let basePrice = 0;
-          if (item.size && Array.isArray(menuItem?.sizes)) {
-            const sz = menuItem.sizes.find((s) => s.size === item.size);
-            if (sz) basePrice = Number(sz.price);
-          } else {
-            basePrice = Number(menuItem?.price || 0);
-          }
-
-          const productItem = {
-            name: `${item.name} ${item.size ? `(${item.size})` : ''}`.trim(),
-            quantity: item.qty || 1,
-            price: basePrice,
-          };
-
-          const toppingItems = Array.isArray(item.toppings)
-            ? item.toppings
-                .map((tp) => {
-                  const tpObj = toppingsList.find((t) => t.id === tp.topping_id);
-                  const tPrice = Number(tpObj?.price || tp.price || 0);
-                  return {
-                    name: `Topping: ${tpObj?.name || 'Topping'}`,
-                    quantity: (item.qty || 1) * Math.max(1, Number(tp.quantity) || 1),
-                    price: tPrice,
-                  };
-                })
-                .filter((t) => t.price > 0 && t.quantity > 0)
-            : [];
-
-          return [productItem, ...toppingItems].filter(
-            (p) => p.quantity > 0 && p.price > 0
-          );
-        });
-
-        const payosRes = await orderOnlineService.createPaymentLink({
-          orderCode: order_id,
-          amount: Math.max(0, Math.round(totalAmount)),
-          description: `DH #${order_id}`.slice(0, 25),
-          items: payosItems,
-        });
-
-        const checkoutUrl = payosRes?.data?.checkoutUrl;
+        const checkoutUrl = orderData?.checkoutUrl;
         if (checkoutUrl) {
           window.location.href = checkoutUrl;
           return;
         } else {
-          alert("Không lấy được link thanh toán PayOS");
+          setModalConfig({ show: true, type: "warning", title: "Lỗi thanh toán", message: "Không lấy được link thanh toán PayOS" });
         }
       } else {
-        alert("Đặt món thành công! Vui lòng chờ lát nhé.");
-        navigate(`/order?table=${tableId}`); // Reset back to menu but empty selection
+        setModalConfig({ 
+          show: true, 
+          type: "success", 
+          title: "Thành công", 
+          message: "Đặt món thành công! Vui lòng chờ lát nhé.", 
+          onConfirm: () => navigate(`/order?table=${tableId}`) 
+        });
       }
     } catch (err) {
       console.error("Order error", err);
-      alert(err?.response?.data?.message || "Có lỗi xảy ra khi xác nhận đơn, vui lòng thử lại.");
+      setModalConfig({ show: true, type: "warning", title: "Lỗi đặt món", message: err?.response?.data?.message || "Có lỗi xảy ra khi xác nhận đơn, vui lòng thử lại." });
     } finally {
       setSubmitting(false);
     }
@@ -248,23 +230,6 @@ export default function MyOrderQRDetail() {
         <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 space-y-4">
           <h2 className="font-bold text-lg">Thông tin khách (Tùy chọn)</h2>
           
-          <div>
-            <label className="text-sm font-medium text-gray-700 block mb-1">Tên của bạn</label>
-            <Input 
-              placeholder="VD: Nguyễn Văn A" 
-              value={form.name}
-              onChange={(e) => setForm(f => ({...f, name: e.target.value}))}
-            />
-          </div>
-          
-          <div>
-            <label className="text-sm font-medium text-gray-700 block mb-1">Số điện thoại</label>
-            <Input 
-              placeholder="VD: 0987654321" 
-              value={form.phone}
-              onChange={(e) => setForm(f => ({...f, phone: e.target.value}))}
-            />
-          </div>
 
           <div>
             <label className="text-sm font-medium text-gray-700 block mb-1">Ghi chú chung</label>
@@ -274,6 +239,27 @@ export default function MyOrderQRDetail() {
               onChange={(e) => setForm(f => ({...f, note: e.target.value}))}
               rows={2}
             />
+          </div>
+
+          <div>
+            <label className="text-sm font-medium text-gray-700 block mb-1">Mã giảm giá</label>
+            <select 
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              value={form.discountCode}
+              onChange={(e) => setForm(f => ({...f, discountCode: e.target.value}))}
+            >
+              <option value="">-- Không áp dụng mã --</option>
+              {discounts.map(d => (
+                <option key={d.id} value={d.code}>
+                  {d.code} - Giảm {Number(d.percentage)}%
+                </option>
+              ))}
+            </select>
+            {discountAmount > 0 && (
+              <p className="mt-2 text-sm text-green-600 font-medium">
+                Được giảm: -{discountAmount.toLocaleString()}đ
+              </p>
+            )}
           </div>
         </div>
 
@@ -285,7 +271,10 @@ export default function MyOrderQRDetail() {
       <div className="fixed bottom-0 left-0 right-0 z-20 bg-white border-t px-4 py-3 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] max-w-lg mx-auto w-full">
         <div className="flex justify-between items-center text-sm font-medium text-gray-600 mb-2">
           <span>Tổng thanh toán</span>
-          <span className="text-xl font-bold text-primary">{totalAmount.toLocaleString()}đ</span>
+          <div className="flex flex-col items-end">
+            {discountAmount > 0 && <span className="text-xs text-gray-400 line-through">{totalAmount.toLocaleString()}đ</span>}
+            <span className="text-xl font-bold text-primary">{finalAmount.toLocaleString()}đ</span>
+          </div>
         </div>
         <Button 
           className="w-full py-4 text-base font-bold rounded-xl bg-primary text-white hover:bg-primary/90 transition shadow-md"
@@ -340,6 +329,36 @@ export default function MyOrderQRDetail() {
               disabled={submitting}
             >
               {submitting ? "Đang xử lý..." : "Xác nhận & Đặt món"}
+            </Button>
+          </div>
+        </div>
+      )}
+      {/* GLOBAL MODAL */}
+      {modalConfig.show && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
+          <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl p-6 text-center animate-in zoom-in-95">
+            <div className={`mx-auto flex h-16 w-16 items-center justify-center rounded-full mb-4 ${modalConfig.type === "success" ? "bg-green-100" : "bg-red-100"}`}>
+              {modalConfig.type === "success" ? (
+                <svg className="h-10 w-10 text-green-500" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              ) : (
+                <svg className="h-10 w-10 text-red-500" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              )}
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">{modalConfig.title || "Thông báo"}</h3>
+            <p className="text-gray-600 mb-6">{modalConfig.message}</p>
+            <Button 
+              className={`w-full py-3 rounded-full text-base font-bold text-white transition ${modalConfig.type === "success" ? "bg-green-600 hover:bg-green-700" : "bg-primary hover:bg-primary/90"}`}
+              onClick={() => {
+                const onC = modalConfig.onConfirm;
+                setModalConfig({ ...modalConfig, show: false });
+                if (onC) onC();
+              }}
+            >
+              Đã hiểu
             </Button>
           </div>
         </div>
