@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Search, Plus, Minus } from 'lucide-react';
+import { Search, Plus, Minus, Trash2 } from 'lucide-react';
 import productService from '../../services/productService';
 import tableService from '../../services/tableService';
 import orderService from '../../services/orderService';
@@ -13,6 +13,7 @@ import { Textarea } from '../../components/ui/textarea';
 import { toast } from 'sonner';
 import { ProductModal } from './TakeAwayOrder/ProductModal';
 import toppingService from '../../services/toppingService';
+import discountService from '../../services/discountService';
 import {
   Dialog,
   DialogContent,
@@ -37,25 +38,7 @@ const formatVND = (amount) => {
     currency: 'VND',
   }).format(amount);
 };
-const convertOrderItemsToCart = (items = []) => {
-  return items.map((item) => ({
-    id: `order-item-${item.order_detail_id || item.id}-${Date.now()}-${Math.random()}`,
-    productId: item.product_size_id,
-    originalProductId: item.product_id,
-    product: { name: item.name },
-    productName: item.name,
-    size: item.size,
-    price: Number(item.price),
-    quantity: Number(item.quantity),
-    note: item.note || "",
-    toppings: (item.toppings || []).map((t) => ({
-      topping_id: t.topping_id || t.id,
-      name: t.name,
-      quantity: Number(t.quantity),
-      price: Number(t.price),
-    })),
-  }));
-};
+
 
 export function StaffPOS() {
   const location = useLocation();
@@ -80,30 +63,7 @@ export function StaffPOS() {
   const [discountAmount, setDiscountAmount] = useState(0);
   const [customerCash, setCustomerCash] = useState(0);
   const [discountError, setDiscountError] = useState('');
-  useEffect(() => {
-    if (!selectedTable) return;
 
-    const loadActiveOrder = async () => {
-      try {
-        const res = await tableService.getActiveOrder(selectedTable);
-        const order = res?.data;
-
-        if (order?.items?.length) {
-          setCart(convertOrderItemsToCart(order.items));
-          setNote(order.note || "");
-        } else {
-          setCart([]);
-          setNote("");
-        }
-      } catch (error) {
-        console.error("Load active order error:", error);
-        setCart([]);
-        setNote("");
-      }
-    };
-
-    loadActiveOrder();
-  }, [selectedTable]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -214,13 +174,55 @@ export function StaffPOS() {
       toast.error('Vui lòng nhập mã giảm giá');
       return;
     }
+    setDiscountError('');
     try {
-      const res = await orderService.validateDiscount({
-        code: discountCode.trim(),
-        order_amount: total,
-      });
-      setDiscountAmount(res.data.discount_amount);
-      setCustomerCash(total - res.data.discount_amount); // Update cash to new total
+      const discount = await discountService.getByCode(discountCode.trim());
+
+      if (!discount || discount.deleted_at) {
+        setDiscountError('Mã giảm giá không tồn tại');
+        return;
+      }
+
+      const now = new Date();
+
+      if (discount.valid_from && now < new Date(discount.valid_from)) {
+        setDiscountError('Mã giảm giá chưa đến thời gian sử dụng');
+        return;
+      }
+
+      if (discount.valid_until && now > new Date(discount.valid_until)) {
+        setDiscountError('Mã giảm giá đã hết hạn');
+        return;
+      }
+
+      const usageLimit = discount.usage_limit == null ? null : Number(discount.usage_limit);
+      const usedCount = Number(discount.used_count || 0);
+
+      if (usageLimit !== null && usedCount >= usageLimit) {
+        setDiscountError('Mã giảm giá đã hết lượt sử dụng');
+        return;
+      }
+
+      const minOrder = Number(discount.min_order_amount || 0);
+
+      if (total < minOrder) {
+        setDiscountError(`Đơn tối thiểu ${formatVND(minOrder)} để dùng mã này`);
+        return;
+      }
+
+      const percentage = Number(discount.percentage || 0);
+      let amount = Math.round((total * percentage) / 100);
+
+      const maxDiscount = discount.max_discount_amount == null ? null : Number(discount.max_discount_amount);
+
+      if (maxDiscount !== null) {
+        amount = Math.min(amount, maxDiscount);
+      }
+
+      amount = Math.min(total, Math.max(0, amount));
+
+      setDiscountAmount(amount);
+      setCustomerCash(total - amount); // Update cash to new total
       setDiscountError('');
       toast.success('Áp dụng mã giảm giá thành công');
     } catch (error) {
@@ -422,7 +424,20 @@ export function StaffPOS() {
                   className="bg-secondary/50 rounded-xl p-3 flex flex-col gap-1.5 cursor-pointer hover:bg-secondary transition-colors border border-transparent hover:border-border"
                   onClick={() => setEditingCartItem(item)}
                 >
-                  <div className="text-sm line-clamp-1 font-bold">{item.productName || item.product?.name}</div>
+                  <div className="flex justify-between items-start gap-2">
+                    <div className="text-sm line-clamp-2 font-bold flex-1">
+                      {item.productName || item.product?.name}
+                    </div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setCart((prevCart) => prevCart.filter((i) => i.id !== item.id));
+                      }}
+                      className="text-red-500 hover:text-red-700 hover:bg-red-50 p-1.5 rounded-md transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                   <div className="text-xs text-muted-foreground">Size: {item.size}</div>
                   {item.toppings?.length > 0 && (
                     <div className="text-xs text-orange-500 line-clamp-1">
@@ -437,14 +452,20 @@ export function StaffPOS() {
                   <div className="flex items-center justify-between mt-1">
                     <div className="flex items-center gap-1">
                       <button
-                        onClick={() => updateQuantity(item.id, -1)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          updateQuantity(item.id, -1);
+                        }}
                         className="w-6 h-6 rounded bg-card flex items-center justify-center"
                       >
                         <Minus className="w-3 h-3" />
                       </button>
                       <span className="text-sm w-6 text-center">{item.quantity}</span>
                       <button
-                        onClick={() => updateQuantity(item.id, 1)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          updateQuantity(item.id, 1);
+                        }}
                         className="w-6 h-6 rounded bg-card flex items-center justify-center"
                       >
                         <Plus className="w-3 h-3" />
