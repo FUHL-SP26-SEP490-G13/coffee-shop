@@ -47,6 +47,27 @@ const orderOnlineService = {
     return axiosClient.put(API_ENDPOINTS.ORDER_ONLINE.CONFIRM_PREPARING(id));
   },
 
+  markPrintSuccess(id) {
+    return axiosClient.put(API_ENDPOINTS.ORDER_ONLINE.MARK_PRINT_SUCCESS(id));
+  },
+
+  markDeliveringByStaff(id) {
+    return axiosClient.put(API_ENDPOINTS.ORDER_ONLINE.MARK_DELIVERING(id));
+  },
+
+  cancelDeliveringByStaff(id) {
+    return axiosClient.put(
+      API_ENDPOINTS.ORDER_ONLINE.STAFF_CANCEL_DELIVERING(id)
+    );
+  },
+
+  completeDeliveryByStaff(id, payload = {}) {
+    return axiosClient.put(
+      API_ENDPOINTS.ORDER_ONLINE.STAFF_COMPLETE_DELIVERY(id),
+      payload
+    );
+  },
+
   createPaymentLink(data) {
     return _payosAxios.post("/create-payment-link", data);
   },

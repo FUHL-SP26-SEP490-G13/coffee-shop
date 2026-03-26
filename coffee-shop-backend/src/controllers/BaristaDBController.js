@@ -30,7 +30,12 @@ class BaristaDBController {
 
   async getActiveOrders(req, res, next) {
     try {
-      const data = await service.getActiveOrders();
+      const statuses = String(req.query.statuses || "")
+        .split(",")
+        .map((status) => status.trim())
+        .filter(Boolean);
+
+      const data = await service.getActiveOrders(statuses);
 
       return res.json({
         success: true,

@@ -54,12 +54,30 @@ class BaristaDBRepository {
     }));
   }
 
-  async getActiveOrders() {
-    const [rows] = await pool.query(`
+  async getActiveOrders(statuses = ["pending", "preparing", "served"]) {
+    const normalizedStatuses = Array.isArray(statuses)
+      ? statuses
+          .map((status) => String(status || "").trim().toLowerCase())
+          .filter((status) =>
+            ["pending", "preparing", "served", "delivering", "completed", "cancelled"].includes(
+              status
+            )
+          )
+      : [];
+
+    const finalStatuses = normalizedStatuses.length
+      ? normalizedStatuses
+      : ["pending", "preparing", "served"];
+
+    const placeholders = finalStatuses.map(() => "?").join(", ");
+
+    const [rows] = await pool.query(
+      `
       SELECT
         o.id,
         o.order_type,
         o.status,
+        o.print_status,
         o.is_paid,
         o.created_at,
         o.total_amount,
@@ -69,20 +87,23 @@ class BaristaDBRepository {
       FROM orders o
       LEFT JOIN order_details od ON od.order_id = o.id
       LEFT JOIN order_delivery_info odi ON odi.order_id = o.id
-      WHERE o.status IN ('pending', 'preparing', 'served')
+      WHERE o.status IN (${placeholders})
       GROUP BY
         o.id,
         o.order_type,
         o.status,
+        o.print_status,
         o.is_paid,
         o.created_at,
         o.total_amount,
         odi.receiver_name,
         odi.receiver_phone
-      ORDER BY 
-        FIELD(o.status, 'pending', 'preparing', 'served'),
+      ORDER BY
+        FIELD(o.status, 'pending', 'preparing', 'served', 'delivering', 'completed', 'cancelled'),
         o.created_at ASC
-    `);
+    `,
+      finalStatuses
+    );
 
     return rows;
   }

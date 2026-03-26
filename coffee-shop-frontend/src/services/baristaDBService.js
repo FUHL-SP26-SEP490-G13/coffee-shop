@@ -17,8 +17,12 @@ const baristaDBService = {
     return await axiosClient.get(`/barista/dashboard/trends?hours=${hours}`);
   },
 
-  getActiveOrders: async () => {
-    return await axiosClient.get("/barista/dashboard/active-orders");
+  getActiveOrders: async (statuses = null) => {
+    const query = Array.isArray(statuses) && statuses.length
+      ? `?statuses=${encodeURIComponent(statuses.join(","))}`
+      : "";
+
+    return await axiosClient.get(`/barista/dashboard/active-orders${query}`);
   },
 
   getDelayedOrders: async (minutes = 15) => {

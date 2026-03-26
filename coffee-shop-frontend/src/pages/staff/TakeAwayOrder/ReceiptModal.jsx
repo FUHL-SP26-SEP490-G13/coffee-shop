@@ -28,13 +28,30 @@ const calcSubtotal = (order) =>
   }, 0);
 
 /**
- * @param {{ order: Object, onClose: Function }} props
+ * @param {{ order: Object, onClose: Function, onPrint?: Function }} props
  */
-export function ReceiptModal({ order, onClose }) {
+export function ReceiptModal({ order, onClose, onPrint }) {
   const [isPrinting, setIsPrinting] = useState(false);
+  const [isPreparingPrint, setIsPreparingPrint] = useState(false);
   const subtotal = calcSubtotal(order);
   const totalAmount = Number(order.total_amount || 0);
   const computedDiscount = Math.max(0, subtotal - totalAmount);
+
+  const handlePrint = async () => {
+    if (isPreparingPrint) return;
+
+    try {
+      setIsPreparingPrint(true);
+
+      if (typeof onPrint === 'function') {
+        await onPrint(order);
+      }
+
+      setIsPrinting(true);
+    } finally {
+      setIsPreparingPrint(false);
+    }
+  };
 
   if (isPrinting) {
     return <PrintableReceipt order={order} onDone={onClose} />;
@@ -138,14 +155,16 @@ export function ReceiptModal({ order, onClose }) {
         {/* Footer */}
         <div className="p-4 border-t border-gray-100 flex gap-2">
           <button
-            onClick={() => setIsPrinting(true)}
+            onClick={handlePrint}
+            disabled={isPreparingPrint}
             className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-blue-600 text-white font-semibold text-sm hover:bg-blue-700 transition-colors"
           >
             <Printer size={16} />
-            In hóa đơn
+            {isPreparingPrint ? 'Đang xử lý...' : 'In hóa đơn'}
           </button>
           <button
             onClick={onClose}
+            disabled={isPreparingPrint}
             className="flex-1 py-2.5 rounded-xl bg-gray-800 text-white font-semibold text-sm hover:bg-gray-900 transition-colors"
           >
             Đóng

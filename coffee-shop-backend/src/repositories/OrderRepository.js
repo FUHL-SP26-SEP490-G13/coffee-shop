@@ -239,6 +239,17 @@ class OrderRepository {
     );
   }
 
+  async updateOrderPrintStatus(orderId, printStatus) {
+    await db.query(
+      `
+      UPDATE orders
+      SET print_status = ?
+      WHERE id = ?
+      `,
+      [printStatus, orderId]
+    );
+  }
+
   async updatePaymentStatusByOrderId(orderId, paymentStatus) {
     await db.query(
       `
@@ -295,6 +306,7 @@ class OrderRepository {
         o.customer_type,
         o.order_type,
         o.status,
+        o.print_status,
         o.is_paid,
         o.total_amount,
         o.created_at,
@@ -327,7 +339,9 @@ class OrderRepository {
         o.order_type,
         o.status,
         o.is_paid,
+        o.total_amount,
         o.created_at,
+        op.payment_method,
         op.payment_status
       FROM orders o
       LEFT JOIN order_payments op ON op.order_id = o.id
@@ -453,6 +467,58 @@ class OrderRepository {
     );
   }
 
+  // Đếm số đơn hàng chưa thanh toán online đang ở trạng thái pending của một 
+  // user
+  async countPendingUnpaidOnlineOrdersByUser(connection, userId) {
+    const [rows] = await connection.query(
+      `
+      SELECT COUNT(DISTINCT o.id) AS total
+      FROM orders o
+      JOIN order_payments op ON op.order_id = o.id
+      WHERE o.user_id = ?
+        AND o.order_type IN ('delivery', 'takeaway')
+        AND o.status = 'pending'
+        AND o.is_paid = 0
+        AND op.payment_status = 'pending'
+      `,
+      [userId]
+    );
+
+    return Number(rows[0]?.total || 0);
+  }
+
+  // Đếm số đơn hàng chưa thanh toán online đang ở trạng thái pending của một số
+  // điện thoại (dùng cho khách vãng lai)
+  async countPendingUnpaidOnlineOrdersByPhone(connection, normalizedPhone) {
+    const phoneDigitsExpr = `REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(TRIM(COALESCE(odi.receiver_phone, '')), ' ', ''), '.', ''), '-', ''), '(', ''), ')', ''), '+', '')`;
+    const normalizedPhoneExpr = `
+      CASE
+        WHEN LEFT(${phoneDigitsExpr}, 2) = '84' AND CHAR_LENGTH(${phoneDigitsExpr}) >= 11
+          THEN CONCAT('0', SUBSTRING(${phoneDigitsExpr}, 3))
+        WHEN CHAR_LENGTH(${phoneDigitsExpr}) = 9
+          THEN CONCAT('0', ${phoneDigitsExpr})
+        ELSE ${phoneDigitsExpr}
+      END
+    `;
+
+    const [rows] = await connection.query(
+      `
+      SELECT COUNT(DISTINCT o.id) AS total
+      FROM orders o
+      JOIN order_payments op ON op.order_id = o.id
+      JOIN order_delivery_info odi ON odi.order_id = o.id
+      WHERE o.order_type IN ('delivery', 'takeaway')
+        AND o.status = 'pending'
+        AND o.is_paid = 0
+        AND op.payment_status = 'pending'
+        AND ${normalizedPhoneExpr} = ?
+      `,
+      [normalizedPhone]
+    );
+
+    return Number(rows[0]?.total || 0);
+  }
+
   async findAllOrders({ limit = 20, offset = 0, status = "all" } = {}) {
     let query = `
       SELECT 
@@ -503,7 +569,6 @@ class OrderRepository {
         current_score,
         total_orders_completed,
         total_orders_cancelled,
-        reputation_tier,
         is_frozen,
         updated_at
       FROM reputation_profiles

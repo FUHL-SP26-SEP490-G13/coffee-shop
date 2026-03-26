@@ -271,6 +271,57 @@ class OrderOnlineController {
     });
   }
 
+  async markPrintSuccess(req, res) {
+    const orderId = Number(req.params.id);
+
+    const result = await OrderOnlineService.markOrderPrintSuccess(orderId);
+
+    return res.json({
+      success: true,
+      data: result,
+      message: "Cập nhật trạng thái in hóa đơn thành công",
+    });
+  }
+
+  async markDeliveringByStaff(req, res) {
+    const orderId = Number(req.params.id);
+
+    const result = await OrderOnlineService.markDeliveryDeliveringByStaff(orderId);
+
+    return res.json({
+      success: true,
+      data: result,
+      message: "Đơn hàng đã chuyển sang trạng thái đang giao",
+    });
+  }
+
+  async cancelDeliveringByStaff(req, res) {
+    const orderId = Number(req.params.id);
+
+    const result = await OrderOnlineService.cancelDeliveringOrderByStaff(orderId);
+
+    return res.json({
+      success: true,
+      data: result,
+      message: "Đã hủy đơn hàng đang giao",
+    });
+  }
+
+  async completeDeliveryByStaff(req, res) {
+    const orderId = Number(req.params.id);
+    const cashReceived = req.body?.cash_received;
+
+    const result = await OrderOnlineService.markDeliveryCompletedByStaff(orderId, {
+      cash_received: cashReceived,
+    });
+
+    return res.json({
+      success: true,
+      data: result,
+      message: "Đơn hàng đã hoàn tất",
+    });
+  }
+
   async payosReturn(req, res, next) {
     try {
       const { orderCode, payosId, status } = req.body;

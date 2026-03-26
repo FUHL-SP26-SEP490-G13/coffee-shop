@@ -73,6 +73,34 @@ router.put(
   AsyncMiddleware(OrderOnlineController.cancelDeliveryByStaff)
 );
 
+router.put(
+  "/:id/print-success",
+  authenticate,
+  authorize(STAFF_CONFIRM_ROLES),
+  AsyncMiddleware(OrderOnlineController.markPrintSuccess)
+);
+
+router.put(
+  "/:id/mark-delivering",
+  authenticate,
+  authorize(STAFF_CONFIRM_ROLES),
+  AsyncMiddleware(OrderOnlineController.markDeliveringByStaff)
+);
+
+router.put(
+  "/:id/staff-cancel-delivering",
+  authenticate,
+  authorize(STAFF_CONFIRM_ROLES),
+  AsyncMiddleware(OrderOnlineController.cancelDeliveringByStaff)
+);
+
+router.put(
+  "/:id/staff-complete-delivery",
+  authenticate,
+  authorize(STAFF_CONFIRM_ROLES),
+  AsyncMiddleware(OrderOnlineController.completeDeliveryByStaff)
+);
+
 // Nhận callback từ frontend sau khi PayOS redirect, lưu mã giao dịch vào DB
 router.post(
   "/payos-return",
