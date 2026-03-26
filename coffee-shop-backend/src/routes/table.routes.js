@@ -21,6 +21,7 @@ router.get('/', TableController.getAllTables);
 router.get('/area/:areaId', TableController.getTablesByArea);
 router.post('/', validateRequest(createTableSchema), TableController.createTable);
 // router.post('/:id/reserve', TableController.reserveTable);
+router.get('/:id/active-order', TableController.getActiveOrder);
 router.put('/:id', validateRequest(updateTableSchema), TableController.updateTable);
 router.delete('/:id', TableController.deleteTable);
 

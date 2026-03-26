@@ -8,7 +8,7 @@ const SIZE_ORDER = { S: 1, M: 2, L: 3 };
 
 // Vì tất cả sản phẩm được filter có size trước khi render,
 // trường hợp sizes rỗng gần như không xảy ra — nhưng giữ guard để an toàn.
-export function ProductModal({ product, toppings = [], onClose, onAdd }) {
+export function ProductModal({ product, toppings = [], initialItem = null, onClose, onAdd }) {
   if (!product.sizes || product.sizes.length === 0) {
     return (
       <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4'>
@@ -47,6 +47,7 @@ export function ProductModal({ product, toppings = [], onClose, onAdd }) {
     <ProductModalInner
       product={product}
       toppings={toppings}
+      initialItem={initialItem}
       onClose={onClose}
       onAdd={onAdd}
     />
@@ -54,7 +55,7 @@ export function ProductModal({ product, toppings = [], onClose, onAdd }) {
 }
 
 // Inner — chứa toàn bộ hooks
-function ProductModalInner({ product, toppings, onClose, onAdd }) {
+function ProductModalInner({ product, toppings, initialItem, onClose, onAdd }) {
   const sortedSizes = useMemo(() => {
     return [...product.sizes].sort((a, b) => {
       if (SIZE_ORDER[a.size] && SIZE_ORDER[b.size]) {
@@ -64,11 +65,14 @@ function ProductModalInner({ product, toppings, onClose, onAdd }) {
     });
   }, [product.sizes]);
 
-  const [selectedSize, setSelectedSize] = useState(
-    () => sortedSizes.find((s) => s.size === 'M') || sortedSizes[0],
-  );
-  const [selectedToppings, setSelectedToppings] = useState([]);
-  const [note, setNote] = useState('');
+  const [selectedSize, setSelectedSize] = useState(() => {
+    if (initialItem && initialItem.size) {
+      return sortedSizes.find((s) => s.size === initialItem.size) || sortedSizes[0];
+    }
+    return sortedSizes.find((s) => s.size === 'M') || sortedSizes[0];
+  });
+  const [selectedToppings, setSelectedToppings] = useState(() => initialItem?.toppings || []);
+  const [note, setNote] = useState(() => initialItem?.note || '');
 
   const toppingTotal = selectedToppings.reduce(
     (s, t) => s + t.price * t.quantity,
@@ -78,14 +82,15 @@ function ProductModalInner({ product, toppings, onClose, onAdd }) {
 
   const handleAdd = () => {
     onAdd({
+      product_id: product.id,
       product_size_id: selectedSize.id,
       size: selectedSize.size,
       price: selectedSize.price,
       productName: product.name,
-      quantity: 1,
+      quantity: initialItem ? initialItem.quantity : 1,
       note,
       toppings: selectedToppings,
-      _uid: uid(),
+      _uid: initialItem ? initialItem.id : uid(),
     });
     onClose();
   };
@@ -173,7 +178,7 @@ function ProductModalInner({ product, toppings, onClose, onAdd }) {
             className='flex-[2] py-3 rounded-xl bg-amber-500 text-white font-semibold text-sm hover:bg-amber-600 flex items-center justify-center gap-2'
           >
             <Plus size={16} />
-            Thêm · {fmt(total)}
+            {initialItem ? 'Cập nhật' : 'Thêm'} · {fmt(total)}
           </button>
         </div>
       </div>
