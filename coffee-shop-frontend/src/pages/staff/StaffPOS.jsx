@@ -13,6 +13,7 @@ import { Textarea } from '../../components/ui/textarea';
 import { toast } from 'sonner';
 import { ProductModal } from './TakeAwayOrder/ProductModal';
 import toppingService from '../../services/toppingService';
+import discountService from '../../services/discountService';
 import {
   Dialog,
   DialogContent,
@@ -173,13 +174,55 @@ export function StaffPOS() {
       toast.error('Vui lòng nhập mã giảm giá');
       return;
     }
+    setDiscountError('');
     try {
-      const res = await orderService.validateDiscount({
-        code: discountCode.trim(),
-        order_amount: total,
-      });
-      setDiscountAmount(res.data.discount_amount);
-      setCustomerCash(total - res.data.discount_amount); // Update cash to new total
+      const discount = await discountService.getByCode(discountCode.trim());
+
+      if (!discount || discount.deleted_at) {
+        setDiscountError('Mã giảm giá không tồn tại');
+        return;
+      }
+
+      const now = new Date();
+
+      if (discount.valid_from && now < new Date(discount.valid_from)) {
+        setDiscountError('Mã giảm giá chưa đến thời gian sử dụng');
+        return;
+      }
+
+      if (discount.valid_until && now > new Date(discount.valid_until)) {
+        setDiscountError('Mã giảm giá đã hết hạn');
+        return;
+      }
+
+      const usageLimit = discount.usage_limit == null ? null : Number(discount.usage_limit);
+      const usedCount = Number(discount.used_count || 0);
+
+      if (usageLimit !== null && usedCount >= usageLimit) {
+        setDiscountError('Mã giảm giá đã hết lượt sử dụng');
+        return;
+      }
+
+      const minOrder = Number(discount.min_order_amount || 0);
+
+      if (total < minOrder) {
+        setDiscountError(`Đơn tối thiểu ${formatVND(minOrder)} để dùng mã này`);
+        return;
+      }
+
+      const percentage = Number(discount.percentage || 0);
+      let amount = Math.round((total * percentage) / 100);
+
+      const maxDiscount = discount.max_discount_amount == null ? null : Number(discount.max_discount_amount);
+
+      if (maxDiscount !== null) {
+        amount = Math.min(amount, maxDiscount);
+      }
+
+      amount = Math.min(total, Math.max(0, amount));
+
+      setDiscountAmount(amount);
+      setCustomerCash(total - amount); // Update cash to new total
       setDiscountError('');
       toast.success('Áp dụng mã giảm giá thành công');
     } catch (error) {
