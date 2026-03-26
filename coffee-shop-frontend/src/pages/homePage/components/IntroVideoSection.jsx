@@ -6,9 +6,9 @@ export default function IntroVideoSection({ videoId }) {
           <p className="text-amber-600 font-bold sm:text-xl lg:text-2xl tracking-widest uppercase mb-3">
             Giới thiệu
           </p>
-          <h4 className="text-xl sm:text-lg lg:text-2xl text-gray-900 mb-3 leading-tight">
+          <h5 className="text-xl sm:text-lg lg:text-2xl text-gray-700 mb-3 leading-tight">
             Một chút thư giãn với cà phê tuyệt hảo
-          </h4>
+          </h5>
           <p className="text-base sm:text-lg text-gray-600 max-w-2xl mx-auto">
             Một chút không gian, một chút hương vị — và rất nhiều cảm hứng từ cà
             phê.

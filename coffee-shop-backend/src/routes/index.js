@@ -20,10 +20,13 @@ const notificationRoutes = require("./notification.routes");
 const ingredientRoutes = require("./ingredient.routes");
 const productSizeRoutes = require("./productSize.routes");
 const orderOnlineRoutes = require("./orderOnline.routes");
+const orderRoutes = require("./order.routes");
 const favoriteRoutes = require("./favorite.routes");
 const reviewRoutes = require("./review.routes");
 const receiptSettingRoutes = require("./receiptSetting.routes");
 const takeawayRoutes = require("./takeaway.routes");
+const aiRoutes = require('./ai.routes');
+const flashSaleRoutes = require('./flashSale.routes');
 
 
 // Mount routes
@@ -52,6 +55,9 @@ router.use("/favorites", favoriteRoutes);
 router.use("/reviews", reviewRoutes);
 router.use("/receipt-settings", receiptSettingRoutes);
 router.use("/takeaway", takeawayRoutes);
+router.use("/orders", orderRoutes);
+router.use('/ai', aiRoutes);
+router.use('/flash-sales', flashSaleRoutes);
 
 
 // Health check endpoint

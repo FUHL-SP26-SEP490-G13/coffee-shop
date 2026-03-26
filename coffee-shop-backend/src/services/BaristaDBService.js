@@ -9,8 +9,8 @@ class BaristaDBService {
     return repository.getOrderTrends(hours);
   }
 
-  async getActiveOrders() {
-    const orders = await repository.getActiveOrders();
+  async getActiveOrders(statuses) {
+    const orders = await repository.getActiveOrders(statuses);
 
     const enrichedOrders = await Promise.all(
       orders.map(async (order) => {

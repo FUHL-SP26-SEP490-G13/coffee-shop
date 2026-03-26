@@ -163,7 +163,7 @@ function Header() {
 
   const fetchCategories = useCallback(async () => {
     try {
-      const res = await categoryService.getAll();
+      const res = await categoryService.getAll({ with_count: true });
       const list = Array.isArray(res?.data) ? res.data : [];
       setCategories(list);
     } catch (error) {
@@ -649,9 +649,14 @@ function Header() {
                     <button
                       key={category.id}
                       onClick={() => goToCategory(category)}
-                      className="w-full text-left px-3 py-2 rounded-xl hover:bg-amber-50 hover:text-amber-700 transition text-sm"
+                      className="w-full flex items-center justify-between px-3 py-2 rounded-xl hover:bg-amber-50 hover:text-amber-700 transition text-sm group"
                     >
-                      {category.name}
+                      <span>{category.name}</span>
+                      {category.product_count !== undefined && (
+                        <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full group-hover:bg-amber-200 group-hover:text-amber-700 transition-colors">
+                          {category.product_count}
+                        </span>
+                      )}
                     </button>
                   ))
                 )}
@@ -1088,9 +1093,14 @@ function Header() {
                     <button
                       key={category.id}
                       onClick={() => goToCategory(category)}
-                      className="w-full text-left px-3 py-2 rounded text-xs text-gray-700 hover:bg-amber-50"
+                      className="w-full flex items-center justify-between px-3 py-2 rounded text-xs text-gray-700 hover:bg-amber-50 group"
                     >
-                      {category.name}
+                      <span>{category.name}</span>
+                      {category.product_count !== undefined && (
+                        <span className="text-[10px] text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded-full group-hover:bg-amber-200 group-hover:text-amber-700 transition-colors">
+                          {category.product_count}
+                        </span>
+                      )}
                     </button>
                   ))
                 )}

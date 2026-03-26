@@ -54,14 +54,29 @@ export const API_ENDPOINTS = {
     MARK_AS_UNREAD: (recipientId) => `/notifications/me/${recipientId}/unread`,
     MARK_ALL_AS_UNREAD: '/notifications/me/unread-all',
   },
+  ORDERSLIST: {
+    CHECKOUT: "/orders/checkout",
+    MY_ORDERS: "/orders/my-orders",
+    MY_ORDER_DETAIL: (id) => `/orders/my-orders/${id}`,
+    CANCEL: (id) => `/orders/${id}/cancel`,
+    PAYOS_RETURN: "/orders/payos-return",
+    VALIDATE_DISCOUNT: "/orders/validate-discount",
+    PAYMENT_LINK: "/create-payment-link",
+    ADMIN_LIST: "/orders/admin/list",
+  },
   ORDER_ONLINE: {
     CHECKOUT: '/order-online/checkout',
+    REPUTATION_BY_PHONE: (phone) => `/order-online/reputation-by-phone?phone=${encodeURIComponent(phone)}`,
     MY_ORDERS: '/order-online/my-orders',
     MY_ORDER_DETAIL: (id) => `/order-online/my-orders/${id}`,
     STAFF_ORDER_DETAIL: (id) => `/order-online/${id}/staff-detail`,
     CANCEL: (id) => `/order-online/${id}/cancel`,
     STAFF_CANCEL: (id) => `/order-online/${id}/staff-cancel`,
     CONFIRM_PREPARING: (id) => `/order-online/${id}/confirm-preparing`,
+    MARK_PRINT_SUCCESS: (id) => `/order-online/${id}/print-success`,
+    MARK_DELIVERING: (id) => `/order-online/${id}/mark-delivering`,
+    STAFF_CANCEL_DELIVERING: (id) => `/order-online/${id}/staff-cancel-delivering`,
+    STAFF_COMPLETE_DELIVERY: (id) => `/order-online/${id}/staff-complete-delivery`,
     PAYOS_RETURN: '/order-online/payos-return',
     VALIDATE_DISCOUNT: '/order-online/validate-discount',
     PAYMENT_LINK: '/create-payment-link',
@@ -100,6 +115,12 @@ export const API_ENDPOINTS = {
     SERVED: (id) => `/takeaway/orders/${id}/served`,
     COMPLETE: (id) => `/takeaway/orders/${id}/complete`,
   },
+  FLASH_SALES: {
+    CURRENT: '/flash-sales/current'
+  },
+  AI: {
+    CHAT: '/ai/chat'
+  }
 };
 
 // Các hằng số khác

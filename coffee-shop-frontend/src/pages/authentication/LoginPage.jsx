@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Coffee, Lock, Mail, Eye, EyeOff } from "lucide-react";
+import { ArrowLeft, Coffee, Lock, Mail, Eye, EyeOff } from "lucide-react";
 import GoogleButton from "@/components/ui/GoogleButton";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { APP_ROUTES, STORAGE_KEYS } from "@/constants";
 import authenticationService from "@/services/authenticationService";
+import { toast } from "sonner";
 
 const REMEMBER_ME_KEYS = {
 	IDENTIFIER: "coffee_shop_remember_identifier",
@@ -72,6 +73,8 @@ export default function LoginPage() {
 				localStorage.removeItem(REMEMBER_ME_KEYS.PASSWORD);
 			}
 
+			toast.success("Chào mừng bạn đã trở lại!");
+
             // Điều hướng dựa trên vai trò người dùng
 			switch (user?.role_id) {
 				case 1: // Admin
@@ -114,32 +117,48 @@ export default function LoginPage() {
 					<div className="absolute -bottom-24 right-0 h-96 w-96 rounded-full bg-accent/30 blur-3xl" />
 				</div>
 
+				<button 
+					onClick={() => navigate('/')} 
+					className="absolute top-6 left-6 z-50 flex items-center justify-center p-2.5 bg-white/20 hover:bg-white/30 backdrop-blur-md text-white rounded-full transition-all hover:scale-105"
+					title="Quay lại trang chủ"
+				>
+					<ArrowLeft className="w-5 h-5" />
+				</button>
 				<div className="relative grid min-h-screen grid-cols-1 lg:grid-cols-2">
-					<div className="flex items-center justify-center border-b border-border bg-card/60 p-10 lg:border-b-0 lg:border-r">
-						<div className="max-w-md space-y-6">
-							<div className="inline-flex items-center gap-3 rounded-2xl border border-border bg-background px-4 py-2 text-sm text-muted-foreground">
-								<Coffee className="h-4 w-4 text-primary" />
+					<div className="hidden lg:flex relative items-center justify-center overflow-hidden p-10">
+						<div className="absolute inset-0">
+							<img 
+								src="https://images.unsplash.com/photo-1497935586351-b67a49e012bf?auto=format&fit=crop&w=1200&q=80" 
+								alt="Coffee Shop Background" 
+								className="h-full w-full object-cover"
+							/>
+							<div className="absolute inset-0 bg-black/60 backdrop-blur-[2px]" />
+						</div>
+						
+						<div className="relative z-10 max-w-md space-y-6">
+							<div className="inline-flex items-center gap-3 rounded-2xl border border-white/20 bg-white/10 backdrop-blur-md px-4 py-2 text-sm text-white">
+								<Coffee className="h-4 w-4 text-amber-400" />
 								<span>Đăng nhập dành cho mọi người</span>
 							</div>
 							<div className="space-y-3">
-								<h1 className="text-3xl font-semibold text-foreground lg:text-4xl">
+								<h1 className="text-3xl font-bold text-white lg:text-5xl leading-tight">
 									Coffee Shop
 								</h1>
-								<p className="text-base text-muted-foreground">
+								<p className="text-base text-gray-200">
 									Đăng nhập để đặt món, theo dõi đơn hàng, hoặc quản lý vận hành cửa hàng trong cùng một hệ thống.
 								</p>
 							</div>
-							<div className="grid gap-3 text-sm text-muted-foreground">
-								<div className="flex items-center gap-3 rounded-xl border border-border bg-background px-4 py-3">
-									<span className="h-2 w-2 rounded-full bg-primary" />
+							<div className="grid gap-3 text-sm text-gray-200">
+								<div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 backdrop-blur-md px-4 py-3">
+									<span className="h-2 w-2 rounded-full bg-amber-400" />
 									Đặt món nhanh, theo dõi trạng thái đơn hàng
 								</div>
-								<div className="flex items-center gap-3 rounded-xl border border-border bg-background px-4 py-3">
-									<span className="h-2 w-2 rounded-full bg-accent" />
+								<div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 backdrop-blur-md px-4 py-3">
+									<span className="h-2 w-2 rounded-full bg-amber-400" />
 									Tích điểm thành viên và nhận ưu đãi cá nhân hóa
 								</div>
-								<div className="flex items-center gap-3 rounded-xl border border-border bg-background px-4 py-3">
-									<span className="h-2 w-2 rounded-full bg-primary" />
+								<div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 backdrop-blur-md px-4 py-3">
+									<span className="h-2 w-2 rounded-full bg-amber-400" />
 									Quản lý POS, bếp, kho và lịch làm việc cho đội ngũ
 								</div>
 							</div>

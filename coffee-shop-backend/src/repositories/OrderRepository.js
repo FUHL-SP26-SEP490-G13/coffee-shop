@@ -72,17 +72,19 @@ class OrderRepository {
         created_by,
         customer_type,
         order_type,
+        table_id,
         status,
         is_paid,
         total_amount
       )
-      VALUES (?, ?, ?, ?, 'pending', 0, ?)
+      VALUES (?, ?, ?, ?, ?, 'pending', 0, ?)
       `,
       [
         data.user_id,
         data.created_by,
         data.customer_type,
         data.order_type,
+        data.table_id || null,
         data.total_amount,
       ]
     );
@@ -170,6 +172,17 @@ class OrderRepository {
     );
   }
 
+  async createReputationProfileIfNotExists(connection, phoneNumber) {
+    await connection.query(
+      `
+      INSERT INTO reputation_profiles (phone_number)
+      VALUES (?)
+      ON DUPLICATE KEY UPDATE phone_number = phone_number
+      `,
+      [phoneNumber]
+    );
+  }
+
   async markOrderAsPaid(connection, orderId) {
     await connection.query(
       `
@@ -223,6 +236,17 @@ class OrderRepository {
       WHERE id = ?
       `,
       [status, orderId]
+    );
+  }
+
+  async updateOrderPrintStatus(orderId, printStatus) {
+    await db.query(
+      `
+      UPDATE orders
+      SET print_status = ?
+      WHERE id = ?
+      `,
+      [printStatus, orderId]
     );
   }
 
@@ -282,6 +306,7 @@ class OrderRepository {
         o.customer_type,
         o.order_type,
         o.status,
+        o.print_status,
         o.is_paid,
         o.total_amount,
         o.created_at,
@@ -314,7 +339,9 @@ class OrderRepository {
         o.order_type,
         o.status,
         o.is_paid,
+        o.total_amount,
         o.created_at,
+        op.payment_method,
         op.payment_status
       FROM orders o
       LEFT JOIN order_payments op ON op.order_id = o.id
@@ -412,6 +439,146 @@ class OrderRepository {
     }
 
     return rows;
+  }
+
+  async findActiveOrderByTableId(connection, tableId) {
+    const [rows] = await connection.query(
+      `
+      SELECT id, total_amount
+      FROM orders
+      WHERE table_id = ? AND status IN ('pending', 'processing')
+      ORDER BY created_at DESC
+      LIMIT 1
+      `,
+      [tableId]
+    );
+
+    return rows[0] || null;
+  }
+
+  async updateOrderTotalAmount(connection, orderId, finalAmount) {
+    await connection.query(
+      `
+      UPDATE orders
+      SET total_amount = ?
+      WHERE id = ?
+      `,
+      [finalAmount, orderId]
+    );
+  }
+
+  // Đếm số đơn hàng chưa thanh toán online đang ở trạng thái pending của một 
+  // user
+  async countPendingUnpaidOnlineOrdersByUser(connection, userId) {
+    const [rows] = await connection.query(
+      `
+      SELECT COUNT(DISTINCT o.id) AS total
+      FROM orders o
+      JOIN order_payments op ON op.order_id = o.id
+      WHERE o.user_id = ?
+        AND o.order_type IN ('delivery', 'takeaway')
+        AND o.status = 'pending'
+        AND o.is_paid = 0
+        AND op.payment_status = 'pending'
+      `,
+      [userId]
+    );
+
+    return Number(rows[0]?.total || 0);
+  }
+
+  // Đếm số đơn hàng chưa thanh toán online đang ở trạng thái pending của một số
+  // điện thoại (dùng cho khách vãng lai)
+  async countPendingUnpaidOnlineOrdersByPhone(connection, normalizedPhone) {
+    const phoneDigitsExpr = `REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(TRIM(COALESCE(odi.receiver_phone, '')), ' ', ''), '.', ''), '-', ''), '(', ''), ')', ''), '+', '')`;
+    const normalizedPhoneExpr = `
+      CASE
+        WHEN LEFT(${phoneDigitsExpr}, 2) = '84' AND CHAR_LENGTH(${phoneDigitsExpr}) >= 11
+          THEN CONCAT('0', SUBSTRING(${phoneDigitsExpr}, 3))
+        WHEN CHAR_LENGTH(${phoneDigitsExpr}) = 9
+          THEN CONCAT('0', ${phoneDigitsExpr})
+        ELSE ${phoneDigitsExpr}
+      END
+    `;
+
+    const [rows] = await connection.query(
+      `
+      SELECT COUNT(DISTINCT o.id) AS total
+      FROM orders o
+      JOIN order_payments op ON op.order_id = o.id
+      JOIN order_delivery_info odi ON odi.order_id = o.id
+      WHERE o.order_type IN ('delivery', 'takeaway')
+        AND o.status = 'pending'
+        AND o.is_paid = 0
+        AND op.payment_status = 'pending'
+        AND ${normalizedPhoneExpr} = ?
+      `,
+      [normalizedPhone]
+    );
+
+    return Number(rows[0]?.total || 0);
+  }
+
+  async findAllOrders({ limit = 20, offset = 0, status = "all" } = {}) {
+    let query = `
+      SELECT 
+        o.id,
+        o.customer_type,
+        o.order_type,
+        o.status,
+        o.is_paid,
+        o.total_amount,
+        o.created_at,
+        o.paid_at,
+        t.code as table_code
+      FROM orders o
+      LEFT JOIN tables t ON t.id = o.table_id
+    `;
+    const params = [];
+
+    if (status && status !== "all") {
+      query += " WHERE o.status = ?";
+      params.push(status);
+    }
+
+    query += " ORDER BY o.created_at DESC LIMIT ? OFFSET ?";
+    params.push(parseInt(limit), parseInt(offset));
+
+    const [rows] = await db.query(query, params);
+    return rows;
+  }
+
+  async countAllOrders({ status = "all" } = {}) {
+    let query = "SELECT COUNT(*) as count FROM orders o";
+    const params = [];
+
+    if (status && status !== "all") {
+      query += " WHERE o.status = ?";
+      params.push(status);
+    }
+
+    const [rows] = await db.query(query, params);
+    return rows[0].count;
+  }
+
+  async findReputationProfileByPhone(phoneNumber) {
+    const [rows] = await db.query(
+      `
+      SELECT
+        phone_number,
+        current_score,
+        total_orders_completed,
+        total_orders_cancelled,
+        is_frozen,
+        updated_at
+      FROM reputation_profiles
+      WHERE phone_number = ?
+      LIMIT 1
+      `,
+      [phoneNumber]
+    );
+
+    return rows[0] || null;
   }
 }
 

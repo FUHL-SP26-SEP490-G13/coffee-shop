@@ -11,6 +11,10 @@ const _payosAxios = axios.create({
 });
 
 const orderOnlineService = {
+  getReputationByPhone(phoneNumber) {
+    return axiosClient.get(API_ENDPOINTS.ORDER_ONLINE.REPUTATION_BY_PHONE(phoneNumber));
+  },
+
   validateDiscount(data) {
     return axiosClient.post("/order-online/validate-discount", data);
   },
@@ -41,6 +45,27 @@ const orderOnlineService = {
 
   confirmPreparing(id) {
     return axiosClient.put(API_ENDPOINTS.ORDER_ONLINE.CONFIRM_PREPARING(id));
+  },
+
+  markPrintSuccess(id) {
+    return axiosClient.put(API_ENDPOINTS.ORDER_ONLINE.MARK_PRINT_SUCCESS(id));
+  },
+
+  markDeliveringByStaff(id) {
+    return axiosClient.put(API_ENDPOINTS.ORDER_ONLINE.MARK_DELIVERING(id));
+  },
+
+  cancelDeliveringByStaff(id) {
+    return axiosClient.put(
+      API_ENDPOINTS.ORDER_ONLINE.STAFF_CANCEL_DELIVERING(id)
+    );
+  },
+
+  completeDeliveryByStaff(id, payload = {}) {
+    return axiosClient.put(
+      API_ENDPOINTS.ORDER_ONLINE.STAFF_COMPLETE_DELIVERY(id),
+      payload
+    );
   },
 
   createPaymentLink(data) {

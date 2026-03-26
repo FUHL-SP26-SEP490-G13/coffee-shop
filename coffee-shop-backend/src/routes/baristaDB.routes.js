@@ -8,36 +8,36 @@ const { ROLES_STRING } = require("../config/constants");
 
 router.get(
   "/dashboard",
-  //authenticate,
-  //authorize([ROLES_STRING.BARISTA]),
+  authenticate,
+  authorize([ROLES_STRING.BARISTA]),
   controller.getOverview
 );
 
 router.get(
   "/dashboard/trends",
-  //authenticate,
-  //authorize([ROLES_STRING.BARISTA]),
+  authenticate,
+  authorize([ROLES_STRING.BARISTA]),
   controller.getTrends
 );
 
 router.get(
   "/dashboard/active-orders",
-  //authenticate,
-  //authorize([ROLES_STRING.BARISTA]),
+  authenticate,
+  authorize([ROLES_STRING.BARISTA, ROLES_STRING.STAFF, ROLES_STRING.MANAGER]),
   controller.getActiveOrders
 );
 
 router.get(
   "/dashboard/delayed-orders",
-  //authenticate,
-  //authorize([ROLES_STRING.BARISTA]),
+  authenticate,
+  authorize([ROLES_STRING.BARISTA]),
   controller.getDelayedOrders
 );
 
 router.get(
   "/dashboard/top-products",
-  //authenticate,
-  //authorize([ROLES_STRING.BARISTA]),
+  authenticate,
+  authorize([ROLES_STRING.BARISTA]),
   controller.getTopProductsToday
 );
 

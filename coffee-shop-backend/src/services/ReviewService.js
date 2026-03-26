@@ -109,6 +109,16 @@ class ReviewService {
       })),
     };
   }
+  async getPublicReviews() {
+    const rows = await ReviewRepository.getPublicReviews(6);
+    return rows.map((item) => ({
+      id: item.id,
+      rating: Number(item.rating),
+      comment: item.comment || "",
+      created_at: item.created_at,
+      full_name: `${item.first_name || ""} ${item.last_name || ""}`.trim(),
+    }));
+  }
 }
 
 module.exports = new ReviewService();

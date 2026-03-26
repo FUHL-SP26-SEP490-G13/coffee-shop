@@ -10,7 +10,7 @@ export default function PaymentPolicyPage() {
     <div className="max-w-5xl mx-auto px-4 py-10 space-y-10">
       {/* Title */}
       <div className="text-center space-y-3">
-        <h1 className="text-2xl md:text-3xl text-primary">
+        <h1 className="text-2xl md:text-3xl text-primary font-bold">
           Chính sách thanh toán
         </h1>
         <p className="text-gray-600 text-sm">
@@ -27,8 +27,7 @@ export default function PaymentPolicyPage() {
               1. Phương thức thanh toán
             </h2>
             <p className="text-gray-700 text-sm">
-              Hỗ trợ chuyển khoản ngân hàng, ví điện tử và thanh toán khi nhận
-              hàng (COD).
+              Hỗ trợ thanh toán bằng tiền mặt và PayOS. Vui lòng chọn phương thức phù hợp khi đặt hàng.
             </p>
           </div>
         </div>

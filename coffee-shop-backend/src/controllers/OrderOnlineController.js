@@ -2,6 +2,21 @@ const OrderOnlineService = require("../services/OrderOnlineService");
 const NotificationService = require("../services/NotificationService");
 
 class OrderOnlineController {
+  async getReputationByPhone(req, res, next) {
+    try {
+      const { phone } = req.query;
+      const result = await OrderOnlineService.getReputationByPhone(phone);
+
+      return res.json({
+        success: true,
+        data: result,
+        message: "Lấy điểm uy tín thành công",
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async checkout(req, res, next) {
     try {
       const result = await OrderOnlineService.checkout(req.body, req.user || null);
@@ -81,9 +96,9 @@ class OrderOnlineController {
 
   async validateDiscount(req, res, next) {
     try {
-      const { code, order_amount } = req.body;
+      const { code, items } = req.body;
 
-      const result = await OrderOnlineService.validateDiscount(code, order_amount);
+      const result = await OrderOnlineService.validateDiscount(code, items);
 
       return res.json({
         success: true,
@@ -253,6 +268,57 @@ class OrderOnlineController {
       success: true,
       data: result,
       message: "Hủy đơn giao hàng thành công",
+    });
+  }
+
+  async markPrintSuccess(req, res) {
+    const orderId = Number(req.params.id);
+
+    const result = await OrderOnlineService.markOrderPrintSuccess(orderId);
+
+    return res.json({
+      success: true,
+      data: result,
+      message: "Cập nhật trạng thái in hóa đơn thành công",
+    });
+  }
+
+  async markDeliveringByStaff(req, res) {
+    const orderId = Number(req.params.id);
+
+    const result = await OrderOnlineService.markDeliveryDeliveringByStaff(orderId);
+
+    return res.json({
+      success: true,
+      data: result,
+      message: "Đơn hàng đã chuyển sang trạng thái đang giao",
+    });
+  }
+
+  async cancelDeliveringByStaff(req, res) {
+    const orderId = Number(req.params.id);
+
+    const result = await OrderOnlineService.cancelDeliveringOrderByStaff(orderId);
+
+    return res.json({
+      success: true,
+      data: result,
+      message: "Đã hủy đơn hàng đang giao",
+    });
+  }
+
+  async completeDeliveryByStaff(req, res) {
+    const orderId = Number(req.params.id);
+    const cashReceived = req.body?.cash_received;
+
+    const result = await OrderOnlineService.markDeliveryCompletedByStaff(orderId, {
+      cash_received: cashReceived,
+    });
+
+    return res.json({
+      success: true,
+      data: result,
+      message: "Đơn hàng đã hoàn tất",
     });
   }
 
