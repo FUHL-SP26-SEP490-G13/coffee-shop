@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Search, Plus, Minus } from 'lucide-react';
+import { Search, Plus, Minus, Trash2 } from 'lucide-react';
 import productService from '../../services/productService';
 import tableService from '../../services/tableService';
 import orderService from '../../services/orderService';
@@ -380,7 +380,20 @@ export function StaffPOS() {
                   className="bg-secondary/50 rounded-xl p-3 flex flex-col gap-1.5 cursor-pointer hover:bg-secondary transition-colors border border-transparent hover:border-border"
                   onClick={() => setEditingCartItem(item)}
                 >
-                  <div className="text-sm line-clamp-1 font-bold">{item.productName || item.product?.name}</div>
+                  <div className="flex justify-between items-start gap-2">
+                    <div className="text-sm line-clamp-2 font-bold flex-1">
+                      {item.productName || item.product?.name}
+                    </div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setCart((prevCart) => prevCart.filter((i) => i.id !== item.id));
+                      }}
+                      className="text-red-500 hover:text-red-700 hover:bg-red-50 p-1.5 rounded-md transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                   <div className="text-xs text-muted-foreground">Size: {item.size}</div>
                   {item.toppings?.length > 0 && (
                     <div className="text-xs text-orange-500 line-clamp-1">
@@ -395,14 +408,20 @@ export function StaffPOS() {
                   <div className="flex items-center justify-between mt-1">
                     <div className="flex items-center gap-1">
                       <button
-                        onClick={() => updateQuantity(item.id, -1)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          updateQuantity(item.id, -1);
+                        }}
                         className="w-6 h-6 rounded bg-card flex items-center justify-center"
                       >
                         <Minus className="w-3 h-3" />
                       </button>
                       <span className="text-sm w-6 text-center">{item.quantity}</span>
                       <button
-                        onClick={() => updateQuantity(item.id, 1)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          updateQuantity(item.id, 1);
+                        }}
                         className="w-6 h-6 rounded bg-card flex items-center justify-center"
                       >
                         <Plus className="w-3 h-3" />
