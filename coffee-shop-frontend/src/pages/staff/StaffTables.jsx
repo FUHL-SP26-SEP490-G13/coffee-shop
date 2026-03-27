@@ -1,14 +1,22 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Search,
   Table as TableIcon,
   Loader2,
   LayoutGrid,
   MapPin,
+  ReceiptText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -23,6 +31,7 @@ import areaService from "@/services/areaService";
 // import ReservationModal from "../admin/AdminTables/ReservationModal";
 
 export function StaffTables() {
+  const navigate = useNavigate();
   const [tables, setTables] = useState([]);
   const [areas, setAreas] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -37,6 +46,28 @@ export function StaffTables() {
   // Pagination states
   const [page, setPage] = useState(1);
   const limit = 12;
+
+  // Order Modal States
+  const [selectedTableForOrder, setSelectedTableForOrder] = useState(null);
+  const [activeOrder, setActiveOrder] = useState(null);
+  const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
+  const [loadingOrder, setLoadingOrder] = useState(false);
+
+  const handleViewOrder = async (e, table) => {
+    e.stopPropagation();
+    setSelectedTableForOrder(table);
+    setIsOrderModalOpen(true);
+    setLoadingOrder(true);
+    try {
+      const res = await tableService.getActiveOrder(table.id);
+      setActiveOrder(res.data);
+    } catch (err) {
+      toast.error("Không thể tải thông tin đơn hàng");
+      setActiveOrder(null);
+    } finally {
+      setLoadingOrder(false);
+    }
+  };
 
   const fetchData = async () => {
     try {
@@ -224,8 +255,19 @@ export function StaffTables() {
                 paginatedTables.map((table) => (
                   <Card
                     key={table.id}
-                    className="relative group p-6 flex flex-col items-center justify-center gap-4 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl bg-card border-border/50 hover:border-primary/50 cursor-default overflow-hidden"
+                    onClick={() => navigate('/staff/pos', { state: { tableId: table.id } })}
+                    className="relative group p-6 flex flex-col items-center justify-center gap-4 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl bg-card border-border/50 hover:border-primary/50 cursor-pointer overflow-hidden"
                   >
+                    {table.status === "occupied" && (
+                      <button 
+                        onClick={(e) => handleViewOrder(e, table)} 
+                        className="absolute top-2 right-2 p-1.5 rounded-full hover:bg-black/5 text-muted-foreground transition-colors z-20"
+                        title="Xem đơn hàng"
+                      >
+                        <ReceiptText className="w-5 h-5 text-blue-600" />
+                      </button>
+                    )}
+
                     {/* Status Indicator Bar */}
                     <div
                       className={`absolute top-0 left-0 w-full h-1 ${table.status === "available"
@@ -363,6 +405,58 @@ export function StaffTables() {
         table={tableToReserve}
         onSuccess={fetchData}
       /> */}
+
+      {/* Order Info Modal */}
+      <Dialog open={isOrderModalOpen} onOpenChange={setIsOrderModalOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Đơn hàng - {selectedTableForOrder ? `Bàn ${selectedTableForOrder.code}` : ''}</DialogTitle>
+          </DialogHeader>
+          {loadingOrder ? (
+            <div className="py-8 flex justify-center text-primary">
+              <Loader2 className="w-8 h-8 animate-spin" />
+            </div>
+          ) : activeOrder ? (
+            <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+              <div className="flex justify-between items-center border-b pb-3">
+                <span className="font-semibold text-lg">Mã đơn: #{activeOrder.id}</span>
+                <span className="text-muted-foreground text-sm">{new Date(activeOrder.created_at).toLocaleString('vi-VN')}</span>
+              </div>
+              <div className="space-y-4">
+                {activeOrder.items?.map((item, idx) => (
+                  <div key={idx} className="flex justify-between items-start text-sm">
+                    <div className="flex-1">
+                      <p className="font-medium text-base">{item.quantity} x {item.name}</p>
+                      <p className="text-muted-foreground">Size {item.size}</p>
+                      {item.toppings?.length > 0 && (
+                        <div className="mt-1 pl-2 border-l-2 border-muted space-y-1">
+                          {item.toppings.map((t, tidx) => (
+                            <p key={tidx} className="text-xs text-muted-foreground">
+                              + {t.name} (x{t.quantity})
+                            </p>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <div className="font-medium whitespace-nowrap ml-4 mt-1">
+                      {parseInt(item.price * item.quantity).toLocaleString('vi-VN')}đ
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="border-t pt-3 flex justify-between items-center font-bold text-lg">
+                <span>Tổng cộng:</span>
+                <span className="text-primary">{parseInt(activeOrder.total_amount).toLocaleString('vi-VN')}đ</span>
+              </div>
+            </div>
+          ) : (
+            <div className="py-8 text-center text-muted-foreground">
+              <ReceiptText className="w-12 h-12 mx-auto mb-3 opacity-20" />
+              <p>Chưa có đơn hàng nào cho bàn này</p>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Search, Plus, Minus } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { Search, Plus, Minus, Trash2 } from 'lucide-react';
 import productService from '../../services/productService';
 import tableService from '../../services/tableService';
 import orderService from '../../services/orderService';
@@ -12,6 +13,7 @@ import { Textarea } from '../../components/ui/textarea';
 import { toast } from 'sonner';
 import { ProductModal } from './TakeAwayOrder/ProductModal';
 import toppingService from '../../services/toppingService';
+import discountService from '../../services/discountService';
 import {
   Dialog,
   DialogContent,
@@ -37,8 +39,14 @@ const formatVND = (amount) => {
   }).format(amount);
 };
 
+
 export function StaffPOS() {
-  const [selectedTable, setSelectedTable] = useState('');
+  const location = useLocation();
+  const navigate = useNavigate();
+  const tableIdFromLocation = location.state?.tableId;
+
+  const [selectedTable, setSelectedTable] = useState(tableIdFromLocation ? String(tableIdFromLocation) : '');
+  const [editingCartItem, setEditingCartItem] = useState(null);
   const [cart, setCart] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [products, setProducts] = useState([]);
@@ -55,6 +63,7 @@ export function StaffPOS() {
   const [discountAmount, setDiscountAmount] = useState(0);
   const [customerCash, setCustomerCash] = useState(0);
   const [discountError, setDiscountError] = useState('');
+
 
   useEffect(() => {
     const fetchData = async () => {
@@ -102,11 +111,23 @@ export function StaffPOS() {
     });
   }, []);
 
-  const handleAddFromModal = (modalItem) => {
+  const handleAddFromModal = (modalItem, isEditing = false) => {
     setCart((prevCart) => {
+      if (isEditing) {
+        return prevCart.map(item => item.id === modalItem._uid ? {
+          ...item,
+          productId: modalItem.product_size_id,
+          originalProductId: modalItem.product_id,
+          size: modalItem.size,
+          price: Number(modalItem.price),
+          toppings: (modalItem.toppings || []).map(t => ({ ...t, price: Number(t.price) })),
+          note: modalItem.note,
+        } : item);
+      }
       return [...prevCart, {
         id: modalItem._uid,
         productId: modalItem.product_size_id,
+        originalProductId: modalItem.product_id,
         product: { name: modalItem.productName },
         size: modalItem.size,
         price: Number(modalItem.price),
@@ -115,6 +136,7 @@ export function StaffPOS() {
         quantity: 1
       }];
     });
+    if (isEditing) setEditingCartItem(null);
   };
 
   const updateQuantity = useCallback((id, delta) => {
@@ -152,13 +174,55 @@ export function StaffPOS() {
       toast.error('Vui lòng nhập mã giảm giá');
       return;
     }
+    setDiscountError('');
     try {
-      const res = await orderService.validateDiscount({
-        code: discountCode.trim(),
-        order_amount: total,
-      });
-      setDiscountAmount(res.data.discount_amount);
-      setCustomerCash(total - res.data.discount_amount); // Update cash to new total
+      const discount = await discountService.getByCode(discountCode.trim());
+
+      if (!discount || discount.deleted_at) {
+        setDiscountError('Mã giảm giá không tồn tại');
+        return;
+      }
+
+      const now = new Date();
+
+      if (discount.valid_from && now < new Date(discount.valid_from)) {
+        setDiscountError('Mã giảm giá chưa đến thời gian sử dụng');
+        return;
+      }
+
+      if (discount.valid_until && now > new Date(discount.valid_until)) {
+        setDiscountError('Mã giảm giá đã hết hạn');
+        return;
+      }
+
+      const usageLimit = discount.usage_limit == null ? null : Number(discount.usage_limit);
+      const usedCount = Number(discount.used_count || 0);
+
+      if (usageLimit !== null && usedCount >= usageLimit) {
+        setDiscountError('Mã giảm giá đã hết lượt sử dụng');
+        return;
+      }
+
+      const minOrder = Number(discount.min_order_amount || 0);
+
+      if (total < minOrder) {
+        setDiscountError(`Đơn tối thiểu ${formatVND(minOrder)} để dùng mã này`);
+        return;
+      }
+
+      const percentage = Number(discount.percentage || 0);
+      let amount = Math.round((total * percentage) / 100);
+
+      const maxDiscount = discount.max_discount_amount == null ? null : Number(discount.max_discount_amount);
+
+      if (maxDiscount !== null) {
+        amount = Math.min(amount, maxDiscount);
+      }
+
+      amount = Math.min(total, Math.max(0, amount));
+
+      setDiscountAmount(amount);
+      setCustomerCash(total - amount); // Update cash to new total
       setDiscountError('');
       toast.success('Áp dụng mã giảm giá thành công');
     } catch (error) {
@@ -177,10 +241,10 @@ export function StaffPOS() {
 
     try {
       const items = cart.map((item) => {
-        const productSizeId = item.price 
-          ? item.productId 
+        const productSizeId = item.price
+          ? item.productId
           : item.product.sizes?.find((s) => s.size === item.size)?.id;
-          
+
         return {
           product_size_id: productSizeId,
           quantity: item.quantity,
@@ -200,32 +264,40 @@ export function StaffPOS() {
         receiver_name: `Khách Bàn ${tables.find((t) => String(t.id) === selectedTable)?.code || ''}`,
         receiver_phone: '0000000000',
         items,
+        status: 'preparing',
         note: note.trim() || undefined,
         discount_code: discountAmount > 0 ? discountCode : undefined,
       };
 
       const res = await orderService.checkout(payload);
 
-      if (paymentMethod === 'payos') {
-        const orderId = res.data?.order_id || res.data?.id; 
+      if (paymentMethod === "payos") {
+        const orderId = res.data?.order_id || res.data?.id;
+
         if (orderId) {
+          const payosItems = cart.map((item) => ({
+            name: `${item.productName || item.product?.name || "Sản phẩm"}${item.size ? ` - ${item.size}` : ""
+              }`.slice(0, 100),
+            quantity: Number(item.quantity || 1),
+            price: Number(item.price || 0),
+          }));
+
           const createRes = await orderService.createPaymentLink({
-            orderCode: orderId,
-            amount: finalTotal,
-            description: `Thanh toán ĐH #${orderId}`,
+            orderCode: Number(orderId),
+            amount: Number(finalTotal),
+            description: `DH${orderId}`.slice(0, 25),
+            items: payosItems,
           });
-          
+
           if (createRes.data?.checkoutUrl) {
-            window.open(createRes.data.checkoutUrl, '_blank');
+            window.open(createRes.data.checkoutUrl, "_blank");
           } else {
             toast.error("Không tạo được link thanh toán QR");
           }
         }
       }
-
       toast.success('Đơn hàng đã được đặt thành công.!');
       setCart([]);
-      setSelectedTable('');
       setNote('');
       setIsPaymentModalOpen(false);
     } catch (error) {
@@ -292,11 +364,10 @@ export function StaffPOS() {
         <div className="flex gap-2 overflow-x-auto pb-3 mb-3 scrollbar-none">
           <button
             onClick={() => setActiveCategory('all')}
-            className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
-              activeCategory === 'all'
-                ? 'bg-amber-500 text-white shadow-sm'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
+            className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${activeCategory === 'all'
+              ? 'bg-amber-500 text-white shadow-sm'
+              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
           >
             Tất cả
           </button>
@@ -304,11 +375,10 @@ export function StaffPOS() {
             <button
               key={cat.id}
               onClick={() => setActiveCategory(cat.id)}
-              className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
-                activeCategory === cat.id
-                  ? 'bg-amber-500 text-white shadow-sm'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
+              className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${activeCategory === cat.id
+                ? 'bg-amber-500 text-white shadow-sm'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
             >
               {cat.name}
             </button>
@@ -323,21 +393,22 @@ export function StaffPOS() {
       {/* Cart */}
       <div className="bg-card rounded-xl p-4 border border-border flex flex-col">
         <div className="mb-4">
-          <label className="text-sm mb-2 block">Bàn</label>
-          <Select value={selectedTable} onValueChange={setSelectedTable}>
-            <SelectTrigger>
-              <SelectValue placeholder="Chọn bàn" />
-            </SelectTrigger>
-            <SelectContent>
-              {tables
-                .filter((t) => t.code && (t.status === 'available' || t.status === 'occupied'))
-                .map((table) => (
-                  <SelectItem key={table.id} value={String(table.id)}>
-                    {table.code}
-                  </SelectItem>
-                ))}
-            </SelectContent>
-          </Select>
+          <label className="text-sm mb-2 block text-muted-foreground font-medium">Bàn đang chọn</label>
+          {selectedTable ? (
+            <div className="flex items-center justify-between bg-primary/5 p-3 rounded-xl border border-primary/20">
+              <span className="font-bold text-lg text-primary">
+                Bàn {tables.find(t => String(t.id) === selectedTable)?.code || ''}
+              </span>
+              <Button variant="outline" size="sm" onClick={() => navigate('/staff/tables')} className="h-8">
+                Đổi bàn
+              </Button>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center p-4 bg-amber-50 text-amber-600 rounded-xl border border-amber-200 gap-3">
+              <span className="text-sm font-medium text-center">Vui lòng chọn bàn từ sơ đồ để tiếp tục thanh toán</span>
+              <Button size="sm" className="w-full bg-amber-500 hover:bg-amber-600 text-white" onClick={() => navigate('/staff/tables')}>Chọn bàn ngay</Button>
+            </div>
+          )}
         </div>
 
         <div className="flex-1 overflow-y-auto mb-4">
@@ -348,8 +419,25 @@ export function StaffPOS() {
           ) : (
             <div className="space-y-2">
               {cart.map((item) => (
-                <div key={item.id} className="bg-secondary rounded-lg p-2 flex flex-col gap-1">
-                  <div className="text-sm line-clamp-1 font-semibold">{item.productName || item.product?.name}</div>
+                <div
+                  key={item.id}
+                  className="bg-secondary/50 rounded-xl p-3 flex flex-col gap-1.5 cursor-pointer hover:bg-secondary transition-colors border border-transparent hover:border-border"
+                  onClick={() => setEditingCartItem(item)}
+                >
+                  <div className="flex justify-between items-start gap-2">
+                    <div className="text-sm line-clamp-2 font-bold flex-1">
+                      {item.productName || item.product?.name}
+                    </div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setCart((prevCart) => prevCart.filter((i) => i.id !== item.id));
+                      }}
+                      className="text-red-500 hover:text-red-700 hover:bg-red-50 p-1.5 rounded-md transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                   <div className="text-xs text-muted-foreground">Size: {item.size}</div>
                   {item.toppings?.length > 0 && (
                     <div className="text-xs text-orange-500 line-clamp-1">
@@ -364,14 +452,20 @@ export function StaffPOS() {
                   <div className="flex items-center justify-between mt-1">
                     <div className="flex items-center gap-1">
                       <button
-                        onClick={() => updateQuantity(item.id, -1)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          updateQuantity(item.id, -1);
+                        }}
                         className="w-6 h-6 rounded bg-card flex items-center justify-center"
                       >
                         <Minus className="w-3 h-3" />
                       </button>
                       <span className="text-sm w-6 text-center">{item.quantity}</span>
                       <button
-                        onClick={() => updateQuantity(item.id, 1)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          updateQuantity(item.id, 1);
+                        }}
                         className="w-6 h-6 rounded bg-card flex items-center justify-center"
                       >
                         <Plus className="w-3 h-3" />
@@ -379,8 +473,8 @@ export function StaffPOS() {
                     </div>
                     <span className="text-sm text-primary">
                       {formatVND(
-                        (Number(item.price || getProductPrice(item.product, item.size) || 0) + 
-                        (item.toppings || []).reduce((s, t) => s + Number(t.price || 0) * (t.quantity || 1), 0)) * item.quantity
+                        (Number(item.price || getProductPrice(item.product, item.size) || 0) +
+                          (item.toppings || []).reduce((s, t) => s + Number(t.price || 0) * (t.quantity || 1), 0)) * item.quantity
                       )}
                     </span>
                   </div>
@@ -391,8 +485,8 @@ export function StaffPOS() {
         </div>
         <div className="mt-2 mb-4">
           <label className="text-sm mb-1 block text-muted-foreground">Ghi chú</label>
-          <Textarea 
-            placeholder="Ví dụ: Ít đá, không đường..." 
+          <Textarea
+            placeholder="Ví dụ: Ít đá, không đường..."
             value={note}
             onChange={(e) => setNote(e.target.value)}
             className="text-sm resize-none"
@@ -420,6 +514,15 @@ export function StaffPOS() {
           toppings={toppings}
           onClose={() => setSelectedProduct(null)}
           onAdd={handleAddFromModal}
+        />
+      )}
+      {editingCartItem && (
+        <ProductModal
+          product={products.find(p => p.id === editingCartItem.originalProductId) || editingCartItem.product || { name: editingCartItem.productName || 'Sản phẩm', sizes: [] }}
+          toppings={toppings}
+          initialItem={editingCartItem}
+          onClose={() => setEditingCartItem(null)}
+          onAdd={(item) => handleAddFromModal(item, true)}
         />
       )}
 
@@ -459,8 +562,8 @@ export function StaffPOS() {
                   onChange={(e) => setDiscountCode(e.target.value)}
                   className="bg-gray-50 border-gray-200"
                 />
-                <Button 
-                  onClick={handleApplyDiscount} 
+                <Button
+                  onClick={handleApplyDiscount}
                   className="bg-orange-100 text-orange-400 hover:bg-orange-200 border-none px-4"
                 >
                   Áp dụng
@@ -475,21 +578,19 @@ export function StaffPOS() {
               <div className="grid grid-cols-2 gap-3">
                 <button
                   onClick={() => setPaymentMethod('cash')}
-                  className={`flex items-center justify-center gap-2 p-3 rounded-xl border-2 font-medium transition-all ${
-                    paymentMethod === 'cash'
-                      ? 'border-green-500 text-green-600 bg-green-50/50'
-                      : 'border-gray-200 text-gray-600'
-                  }`}
+                  className={`flex items-center justify-center gap-2 p-3 rounded-xl border-2 font-medium transition-all ${paymentMethod === 'cash'
+                    ? 'border-green-500 text-green-600 bg-green-50/50'
+                    : 'border-gray-200 text-gray-600'
+                    }`}
                 >
                   <span className="text-lg">💵</span> Tiền mặt
                 </button>
                 <button
                   onClick={() => setPaymentMethod('payos')}
-                  className={`flex items-center justify-center gap-2 p-3 rounded-xl border-2 font-medium transition-all ${
-                    paymentMethod === 'payos'
-                      ? 'border-green-500 text-green-600 bg-green-50/50'
-                      : 'border-gray-200 text-gray-600'
-                  }`}
+                  className={`flex items-center justify-center gap-2 p-3 rounded-xl border-2 font-medium transition-all ${paymentMethod === 'payos'
+                    ? 'border-green-500 text-green-600 bg-green-50/50'
+                    : 'border-gray-200 text-gray-600'
+                    }`}
                 >
                   <span className="text-lg">💳</span> QR PayOS
                 </button>
@@ -511,18 +612,17 @@ export function StaffPOS() {
 
                 <div className="flex gap-2">
                   {suggestions.map((val) => (
-                      <button
-                        key={val}
-                        onClick={() => setCustomerCash(val)}
-                        className={`flex-1 p-2 rounded-full border text-sm font-medium transition-all ${
-                          customerCash === val
-                            ? 'border-green-500 text-green-600 bg-green-50'
-                            : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                    <button
+                      key={val}
+                      onClick={() => setCustomerCash(val)}
+                      className={`flex-1 p-2 rounded-full border text-sm font-medium transition-all ${customerCash === val
+                        ? 'border-green-500 text-green-600 bg-green-50'
+                        : 'border-gray-200 text-gray-600 hover:bg-gray-50'
                         }`}
-                      >
-                        {formatVND(val).replace(' ₫', '').trim()}
-                      </button>
-                    ))}
+                    >
+                      {formatVND(val).replace(' ₫', '').trim()}
+                    </button>
+                  ))}
                 </div>
 
                 <div className="bg-blue-50/50 rounded-xl p-3 flex justify-between items-center">
@@ -536,15 +636,15 @@ export function StaffPOS() {
 
             {/* Footer Buttons */}
             <div className="flex gap-3 pt-2">
-              <Button 
-                variant="outline" 
-                onClick={() => setIsPaymentModalOpen(false)} 
+              <Button
+                variant="outline"
+                onClick={() => setIsPaymentModalOpen(false)}
                 className="flex-1 rounded-xl border-gray-200"
               >
                 Huỷ
               </Button>
-              <Button 
-                onClick={handleConfirmPayment} 
+              <Button
+                onClick={handleConfirmPayment}
                 className="flex-1 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold"
               >
                 Thanh toán

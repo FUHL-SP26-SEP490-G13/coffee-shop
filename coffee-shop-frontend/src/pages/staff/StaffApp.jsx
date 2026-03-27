@@ -73,11 +73,11 @@ export function StaffApp() {
       title: 'Bán Hàng & Phục Vụ',
       items: [
         { id: 'dashboard', icon: LayoutDashboard, label: 'Tổng quan', path: '/staff/dashboard' },
-        { id: 'pos', icon: LayoutGrid, label: 'Bán hàng (POS)', path: '/staff/pos' },
+        { id: 'tables', icon: Users, label: 'Phòng bàn', path: '/staff/tables' },
         { id: 'takeaway', icon: ShoppingBag, label: 'Đặt mang đi', path: '/staff/takeaway' },
         { id: 'orders', icon: ShoppingBag, label: 'Danh sách đơn hàng', path: '/staff/orders' },
         { id: 'kitchen', icon: ChefHat, label: 'Bếp', path: '/staff/kitchen' },
-        { id: 'tables', icon: Users, label: 'Danh sách bàn', path: '/staff/tables' },
+
       ],
     },
     {
@@ -120,10 +120,10 @@ export function StaffApp() {
         const notificationList = Array.isArray(notificationRes?.data)
           ? notificationRes.data
           : Array.isArray(notificationRes?.data?.data)
-          ? notificationRes.data.data
-          : Array.isArray(notificationRes)
-          ? notificationRes
-          : [];
+            ? notificationRes.data.data
+            : Array.isArray(notificationRes)
+              ? notificationRes
+              : [];
         setNotifications(notificationList);
       } catch (error) {
         console.error('Init staff notifications error:', error);
@@ -392,9 +392,8 @@ export function StaffApp() {
                     <button
                       key={item.recipient_id || `${item.id}-${item.created_at}`}
                       onClick={() => handleReadNotification(item)}
-                      className={`w-full text-left px-4 py-3 border-b hover:bg-gray-50 ${
-                        Number(item.is_read) === 0 ? 'bg-orange-50' : 'bg-white'
-                      }`}
+                      className={`w-full text-left px-4 py-3 border-b hover:bg-gray-50 ${Number(item.is_read) === 0 ? 'bg-orange-50' : 'bg-white'
+                        }`}
                     >
                       <div className='flex items-start justify-between gap-3'>
                         <div className='flex-1'>
