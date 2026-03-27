@@ -125,6 +125,39 @@ class TableController {
   }
 
   /**
+   * API tạo mới bàn kèm QR code
+   */
+  async createTableWithQrCode(req, res, next) {
+    try {
+      const table = await TableService.createTableWithQrCode(req.body);
+      res.status(201).json({
+        success: true,
+        data: table,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+  
+  
+  /**
+   * API cập nhật QR code cho bàn đã có sẵn
+   */
+  async updateQrForTable(req, res, next) {
+    try {
+      const table = await TableService.updateQrForTable(req.params.id);
+      res.json({
+        success: true,
+        data: table,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+
+
+  /**
    * Reserve table (Commented out)
    */
   // async reserveTable(req, res, next) {

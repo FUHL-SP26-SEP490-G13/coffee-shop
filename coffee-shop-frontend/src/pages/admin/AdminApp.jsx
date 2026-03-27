@@ -372,7 +372,7 @@ export default function AdminApp() {
                 </div>
                 
                 <NavLink
-                  to="/admin/inventory"
+                  to="/admin/ingredients"
                   onClick={() => setMobileMenuOpen(false)}
                   className={({ isActive }) =>
                     `w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
@@ -381,7 +381,7 @@ export default function AdminApp() {
                   }
                 >
                   <ClipboardList className="w-4 h-4" />
-                  <span className="text-sm tracking-wide">Kho hàng</span>
+                  <span className="text-sm tracking-wide">Nguyên liệu</span>
                 </NavLink>
               </div>
             </div>

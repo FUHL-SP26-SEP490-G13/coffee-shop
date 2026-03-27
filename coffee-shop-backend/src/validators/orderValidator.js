@@ -67,6 +67,8 @@ const checkoutOrderSchema = Joi.object({
     "number.positive": "Mã bàn không hợp lệ",
   }),
 
+  table_id: Joi.alternatives().try(Joi.string(), Joi.number()).allow(null, ""),
+
   payment_method: Joi.string()
     .valid("cash", "payos")
     .required()
@@ -83,10 +85,21 @@ const checkoutOrderSchema = Joi.object({
     "string.max": "Tên người nhận không được vượt quá 100 ký tự",
   }),
 
-  receiver_phone: Joi.string().trim().pattern(phoneRegex).required().messages({
-    "string.empty": "Số điện thoại không được để trống",
-    "any.required": "Số điện thoại là bắt buộc",
-    "string.pattern.base": "Số điện thoại phải gồm đúng 10 chữ số và có thể bắt đầu bằng 0 hoặc +84",
+  receiver_phone: Joi.alternatives().conditional('order_type', {
+    is: 'dine-in',
+    then: Joi.string().trim().allow("").custom((value, helpers) => {
+      if (value && !phoneRegex.test(value)) {
+        return helpers.error("string.pattern.base");
+      }
+      return value;
+    }).messages({
+      "string.pattern.base": "Số điện thoại phải gồm đúng 10 chữ số",
+    }),
+    otherwise: Joi.string().trim().pattern(phoneRegex).required().messages({
+      "string.empty": "Số điện thoại không được để trống",
+      "any.required": "Số điện thoại là bắt buộc",
+      "string.pattern.base": "Số điện thoại phải gồm đúng 10 chữ số",
+    })
   }),
 
   receiver_email: Joi.string()

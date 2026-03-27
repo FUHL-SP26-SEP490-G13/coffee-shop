@@ -23,6 +23,10 @@ const orderOnlineService = {
     return axiosClient.post(API_ENDPOINTS.ORDER_ONLINE.CHECKOUT, data);
   },
 
+  checkoutQr(data) {
+    return axiosClient.post("/qr-order/checkout", data);
+  },
+
   getMyOrders() {
     return axiosClient.get(API_ENDPOINTS.ORDER_ONLINE.MY_ORDERS);
   },

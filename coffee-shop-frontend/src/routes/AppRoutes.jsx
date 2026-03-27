@@ -10,7 +10,7 @@ import HomePage from "@/pages/homePage/HomePage";
 import ChangePasswordPage from "../pages/authentication/ChangePasswordPage";
 import ForgotPasswordPage from "../pages/authentication/ForgotPasswordPage";
 import AdminStaffSchedule from "../pages/admin/AdminStaffSchedule";
-import AdminInventory from "../pages/admin/AdminInventory";
+import AdminIngredients from "../pages/admin/AdminIngredient/AdminIngredients";
 import { UserProfile } from "../pages/common/UserProfile";
 import AdminNewsCreatePage from "../pages/admin/AdminNew/AdminNewsCreatePage";
 import AdminNewsList from "../pages/admin/AdminNew/AdminNewsList";
@@ -48,6 +48,8 @@ import ProductListPage from "../pages/homePage/product/ProductListPage";
 import ProductDetailPage from "../pages/homePage/product/ProductDetailPage";
 import CartPage from "@/pages/homePage/order/CartPage";
 import CheckoutPage from "@/pages/homePage/order/CheckoutPage";
+import OrderQRMenu from "@/pages/homePage/order/OrderQRMenu";
+import MyOrderQRDetail from "@/pages/homePage/order/MyOrderQRDetail";
 import PayOSReturnSuccess from "@/pages/common/PayOSReturnSuccess";
 import AdminDB from "@/pages/admin/AdminDB/AdminDB";
 import AdminSubscriber from "@/pages/admin/AdminSubscriber/AdminSubscriber";
@@ -191,7 +193,7 @@ const AppRoutes = () => {
         <Route path="orders" element={<AdminOrders />} />
         <Route path="users" element={<AdminUsers />} />
         <Route path="schedule" element={<AdminStaffSchedule />} />
-        <Route path="inventory" element={<AdminInventory />} />
+        <Route path="ingredients" element={<AdminIngredients />} />
         <Route path="create-news" element={<AdminNewsCreatePage />} />
         <Route path="profile" element={<UserProfile />} />
         <Route path="news-list" element={<AdminNewsList />} />
@@ -243,6 +245,9 @@ const AppRoutes = () => {
           </RoleGuard>
         }
       />
+
+      <Route path="/order" element={<OrderQRMenu />} />
+      <Route path="/order/confirm" element={<MyOrderQRDetail />} />
 
       {/* 404 */}
       <Route

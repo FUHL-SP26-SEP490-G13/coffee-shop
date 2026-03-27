@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const TableController = require('../controllers/TableController');
 const { createTableSchema, updateTableSchema, tableIdSchema } = require('../validators/tableValidator');
+const validate = require('../middlewares/validate');
 
 // Helper to validate request body/params
 const validateRequest = (schema, property = 'body') => {
@@ -23,6 +24,12 @@ router.post('/', validateRequest(createTableSchema), TableController.createTable
 // router.post('/:id/reserve', TableController.reserveTable);
 router.get('/:id/active-order', TableController.getActiveOrder);
 router.put('/:id', validateRequest(updateTableSchema), TableController.updateTable);
+
+// API cập nhật QR code cho bàn đã có sẵn
+router.put('/:id/update-qr', TableController.updateQrForTable);
 router.delete('/:id', TableController.deleteTable);
+
+router.post('/with-qr', validate(createTableSchema), TableController.createTableWithQrCode);
+
 
 module.exports = router;

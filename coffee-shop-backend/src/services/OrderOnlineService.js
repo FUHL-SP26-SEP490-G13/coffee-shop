@@ -142,6 +142,7 @@ class OrderOnlineService {
     console.log("CHECKOUT BODY:", JSON.stringify(payload, null, 2));
     const {
       order_type,
+      table_id,
       payment_method,
       receiver_name,
       receiver_phone,
