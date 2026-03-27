@@ -531,9 +531,18 @@ class OrderRepository {
         o.total_amount,
         o.created_at,
         o.paid_at,
-        t.code as table_code
+        t.code as table_code,
+        odi.receiver_name,
+        odi.receiver_phone,
+        odi.receiver_email,
+        odi.address,
+        odi.note,
+        op.payment_method,
+        op.payment_status
       FROM orders o
       LEFT JOIN tables t ON t.id = o.table_id
+      LEFT JOIN order_delivery_info odi ON odi.order_id = o.id
+      LEFT JOIN order_payments op ON op.order_id = o.id
     `;
     const params = [];
 

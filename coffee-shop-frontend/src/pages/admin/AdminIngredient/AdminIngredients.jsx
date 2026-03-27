@@ -17,6 +17,7 @@ import {
 import CreateIngredient from './Action/CreateIngredient';
 import UpdateIngredient from './Action/UpdateIngredient';
 import DeleteIngredient from './Action/DeleteIngredient';
+import PaginationControl from '../../../components/common/PaginationControl';
 
 export default function AdminIngredients() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -197,35 +198,15 @@ export default function AdminIngredients() {
       </div>
 
       {/* ===== PAGINATION ===== */}
-      {!loading && totalPages > 1 && (
-        <div className="flex items-center justify-between mt-4 px-2">
-          <p className="text-sm text-muted-foreground">
-            Hiển thị {(currentPage - 1) * ITEMS_PER_PAGE + 1} đến{' '}
-            {Math.min(currentPage * ITEMS_PER_PAGE, filteredIngredients.length)} trong tổng số{' '}
-            {filteredIngredients.length} nguyên liệu
-          </p>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              disabled={currentPage === 1}
-            >
-              Trước
-            </Button>
-            <div className="text-sm font-medium">
-              Trang {currentPage} / {totalPages}
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-              disabled={currentPage === totalPages}
-            >
-              Sau
-            </Button>
-          </div>
-        </div>
+      {!loading && (
+        <PaginationControl
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+          totalItems={filteredIngredients.length}
+          itemsPerPage={ITEMS_PER_PAGE}
+          itemName="nguyên liệu"
+        />
       )}
 
       {/* ===== MODALS ===== */}

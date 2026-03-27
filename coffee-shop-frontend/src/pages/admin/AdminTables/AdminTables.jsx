@@ -46,6 +46,7 @@ import AreaModal from "../AdminAreas/AreaModal";
 // import ReservationModal from "./ReservationModal";
 import { STORAGE_KEYS } from "@/constants";
 import { jwtDecode } from "jwt-decode";
+import PaginationControl from "@/components/common/PaginationControl";
 
 export default function AdminTables() {
   const token =
@@ -537,31 +538,14 @@ export default function AdminTables() {
           )}
 
           {/* PAGINATION */}
-          {totalPages > 1 && (
-            <div className="flex justify-center gap-4 mt-8">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={page === 1}
-                onClick={() => setPage((p) => p - 1)}
-              >
-                Trước
-              </Button>
-
-              <div className="flex items-center text-sm font-medium">
-                Trang {page} / {totalPages}
-              </div>
-
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={page >= totalPages}
-                onClick={() => setPage((p) => p + 1)}
-              >
-                Sau
-              </Button>
-            </div>
-          )}
+          <PaginationControl
+            currentPage={page}
+            totalPages={totalPages}
+            onPageChange={setPage}
+            totalItems={filteredTables.length}
+            itemsPerPage={limit}
+            itemName="bàn"
+          />
         </TabsContent>
       </Tabs>
 
