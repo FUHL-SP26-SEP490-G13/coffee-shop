@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import {
   Search,
   Table as TableIcon,
@@ -28,10 +27,10 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import tableService from "@/services/tableService";
 import areaService from "@/services/areaService";
+import { POSModal } from "./POSModal";
 // import ReservationModal from "../admin/AdminTables/ReservationModal";
 
 export function StaffTables() {
-  const navigate = useNavigate();
   const [tables, setTables] = useState([]);
   const [areas, setAreas] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -47,11 +46,20 @@ export function StaffTables() {
   const [page, setPage] = useState(1);
   const limit = 12;
 
+  // POS Modal States
+  const [selectedTableForPOS, setSelectedTableForPOS] = useState(null);
+  const [isPOSModalOpen, setIsPOSModalOpen] = useState(false);
+
   // Order Modal States
   const [selectedTableForOrder, setSelectedTableForOrder] = useState(null);
   const [activeOrder, setActiveOrder] = useState(null);
   const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
   const [loadingOrder, setLoadingOrder] = useState(false);
+
+  const handleOpenPOS = (table) => {
+    setSelectedTableForPOS(table);
+    setIsPOSModalOpen(true);
+  };
 
   const handleViewOrder = async (e, table) => {
     e.stopPropagation();
@@ -255,7 +263,7 @@ export function StaffTables() {
                 paginatedTables.map((table) => (
                   <Card
                     key={table.id}
-                    onClick={() => navigate('/staff/pos', { state: { tableId: table.id } })}
+                    onClick={() => handleOpenPOS(table)}
                     className="relative group p-6 flex flex-col items-center justify-center gap-4 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl bg-card border-border/50 hover:border-primary/50 cursor-pointer overflow-hidden"
                   >
                     {table.status === "occupied" && (
@@ -405,6 +413,22 @@ export function StaffTables() {
         table={tableToReserve}
         onSuccess={fetchData}
       /> */}
+
+      {/* POS Modal */}
+      <POSModal
+        isOpen={isPOSModalOpen}
+        onClose={() => {
+          setIsPOSModalOpen(false);
+          setSelectedTableForPOS(null);
+          fetchData();
+        }}
+        table={selectedTableForPOS}
+        onTableStatusChange={(tableId, newStatus) => {
+          setTables((prev) =>
+            prev.map((t) => (t.id === tableId ? { ...t, status: newStatus } : t))
+          );
+        }}
+      />
 
       {/* Order Info Modal */}
       <Dialog open={isOrderModalOpen} onOpenChange={setIsOrderModalOpen}>

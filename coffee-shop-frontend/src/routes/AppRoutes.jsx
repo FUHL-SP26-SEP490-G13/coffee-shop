@@ -26,7 +26,7 @@ import AdminDiscountEdit from "@/pages/admin/AdminDiscount/AdminDiscountEdit";
 import OrderPolicy from "@/pages/common/OrderPolicy";
 import PrivacyPolicy from "@/pages/common/PrivacyPolicy";
 import AdminApp from "../pages/admin/AdminApp";
-import { StaffPOS } from "@/pages/staff/StaffPOS";
+
 import { StaffAttendance } from "@/pages/staff/StaffAttendance";
 import { StaffKitchen } from "@/pages/staff/StaffKitchen";
 import { StaffInventory } from "@/pages/staff/StaffInventory";
@@ -145,7 +145,7 @@ const AppRoutes = () => {
       >
         <Route index element={<Navigate to="dashboard" replace />} />
         <Route path="dashboard" element={<StaffDashboard />} />
-        <Route path="pos" element={<StaffPOS />} />
+
         <Route path="takeaway" element={<TakeawayPOS />} />
         <Route path="delivery" element={<OrderDelivery />} />
         <Route path="attendance" element={<StaffAttendance />} />
