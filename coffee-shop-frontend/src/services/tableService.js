@@ -42,6 +42,14 @@ const tableService = {
     const response = await axios.delete(`${API_URL}/tables/${id}`);
     return response.data;
   },
+
+  transfer: async (fromTableId, toTableId) => {
+    const response = await axios.post(`${API_URL}/tables/transfer`, {
+      from_table_id: fromTableId,
+      to_table_id: toTableId,
+    });
+    return response.data;
+  },
 };
 
 export default tableService;

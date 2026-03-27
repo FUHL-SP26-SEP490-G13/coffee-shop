@@ -190,6 +190,42 @@ class TableController {
       next(error);
     }
   }
+
+  /**
+   * Transfer table: move all orders from source table to destination table
+   */
+  async transferTable(req, res, next) {
+    try {
+      const { from_table_id, to_table_id } = req.body;
+
+      if (!from_table_id || !to_table_id) {
+        return res.status(400).json({
+          success: false,
+          message: 'Vui lòng cung cấp bàn nguồn và bàn đích',
+        });
+      }
+
+      if (Number(from_table_id) === Number(to_table_id)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Bàn nguồn và bàn đích không được trùng nhau',
+        });
+      }
+
+      const result = await TableService.transferTable(
+        Number(from_table_id),
+        Number(to_table_id)
+      );
+
+      res.json({
+        success: true,
+        message: `Đã chuyển bàn ${result.from.code} → ${result.to.code}`,
+        data: result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 module.exports = new TableController();
