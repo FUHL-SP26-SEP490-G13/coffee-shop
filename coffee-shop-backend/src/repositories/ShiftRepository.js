@@ -123,6 +123,21 @@ class ShiftRepository {
         return row || null;
     }
 
+    // Lấy tất cả ca active của user trong 1 ngày cụ thể (để check overlap)
+    async findUserShiftsOnDate(userId, date) {
+        const [rows] = await pool.query(
+            `SELECT st.start_time, st.end_time, st.name AS template_name
+             FROM shift_registrations sr
+             JOIN shifts s ON sr.shift_id = s.id
+             JOIN shift_templates st ON s.template_id = st.id
+             WHERE sr.user_id = ?
+               AND s.shift_date = ?
+               AND sr.status NOT IN ('cancelled', 'swapped_out')`,
+            [userId, date],
+        );
+        return rows;
+    }
+
     async createRegistration(userId, shiftId) {
         const [result] = await pool.query(
             `INSERT INTO shift_registrations (user_id, shift_id, status, created_at)
@@ -179,6 +194,7 @@ class ShiftRepository {
          st.name AS template_name,
          st.start_time,
          st.end_time,
+         st.color,
          -- Tính display_status cho calendar
          CASE
            WHEN sr.status = 'cancelled' AND sr.leave_request_id IS NOT NULL
@@ -214,7 +230,10 @@ class ShiftRepository {
     // =============================================
     async findUserById(id) {
         const [[row]] = await pool.query(
-            `SELECT id, first_name, last_name, isActive FROM users WHERE id = ?`,
+            `SELECT u.id, u.first_name, u.last_name, u.isActive, r.role_name
+             FROM users u
+             JOIN role r ON u.role_id = r.id
+             WHERE u.id = ?`,
             [id],
         );
         return row || null;

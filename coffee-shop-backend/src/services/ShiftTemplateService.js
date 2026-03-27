@@ -1,8 +1,17 @@
 const ShiftRepository = require('../repositories/ShiftRepository');
 const ErrorResponse = require('../utils/ErrorResponse');
 
-const VALID_COLORS = ['amber', 'blue', 'purple', 'green', 'coral', 'teal', 'pink', 'gray'];
-
+const VALID_COLORS = [
+    'red',
+    'orange',
+    'yellow',
+    'green',
+    'emerald',
+    'teal',
+    'blue',
+    'indigo',
+    'purple'
+];
 const MIN_SHIFT_MINUTES = 120; // Ca tối thiểu 2 tiếng
 const MIN_SHIFT_HOURS = MIN_SHIFT_MINUTES / 60;
 const toMinutes = (hhmm) => { const [h, m] = hhmm.split(':').map(Number); return h * 60 + m; };
@@ -100,7 +109,7 @@ class ShiftTemplateService {
         if (usageCount > 0)
             throw new ErrorResponse(
                 400,
-                `Không thể xóa — ca này đang được dùng trong ${usageCount} lịch làm việc`,
+                `Không thể xóa ca này vì đang được dùng trong ${usageCount} lịch làm việc`,
             );
 
         await ShiftRepository.deleteTemplate(id);
