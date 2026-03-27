@@ -66,8 +66,8 @@ class TakeawayRepository {
   async createOrderPayment(connection, { order_id, payment_method, payment_status, amount, paid_amount }) {
     await connection.query(
       `INSERT INTO order_payments 
-         (order_id, payment_method, payment_status, amount, paid_amount, adjustment_amount, created_at)
-       VALUES (?, ?, ?, ?, ?, 0, NOW())`,
+         (order_id, payment_method, payment_status, amount, paid_amount, created_at)
+       VALUES (?, ?, ?, ?, ?, NOW())`,
       [order_id, payment_method, payment_status, amount, paid_amount || 0],
     );
   }
@@ -98,11 +98,17 @@ class TakeawayRepository {
       `SELECT o.*,
               u.first_name AS staff_first_name, u.last_name AS staff_last_name,
               d.code AS discount_code, d.percentage AS discount_percentage,
-              b.first_name AS barista_first_name, b.last_name AS barista_last_name
+              b.first_name AS barista_first_name, b.last_name AS barista_last_name,
+              odi.receiver_name,
+              odi.receiver_phone,
+              odi.receiver_email,
+              odi.address,
+              odi.note AS delivery_note
        FROM orders o
        LEFT JOIN users u ON o.created_by = u.id
        LEFT JOIN discount d ON o.discount_id = d.id
        LEFT JOIN users b ON o.assigned_barista_id = b.id
+       LEFT JOIN order_delivery_info odi ON odi.order_id = o.id
        WHERE o.id = ?`,
       [orderId],
     );
@@ -127,11 +133,24 @@ class TakeawayRepository {
        GROUP BY od.id, p.name, ps.size, od.quantity, od.price, od.note`,
       [orderId],
     );
-    return rows.map((row) => ({
-      ...row,
-      toppings: JSON.parse(row.toppings_raw || '[]').filter(Boolean),
-      toppings_raw: undefined,
-    }));
+    return rows.map((row) => {
+      let toppingsArray = [];
+      if (typeof row.toppings_raw === 'string') {
+        try {
+          toppingsArray = JSON.parse(row.toppings_raw || '[]');
+        } catch (e) {
+          toppingsArray = [];
+        }
+      } else if (Array.isArray(row.toppings_raw)) {
+        toppingsArray = row.toppings_raw;
+      }
+
+      return {
+        ...row,
+        toppings: toppingsArray.filter(Boolean),
+        toppings_raw: undefined,
+      };
+    });
   }
 
   async findOrderPayment(orderId) {
@@ -158,9 +177,9 @@ class TakeawayRepository {
     const adjustment = newAmount - oldPaidAmount; // âm = hoàn tiền, dương = thu thêm
     await connection.query(
       `UPDATE order_payments 
-       SET amount = ?, adjustment_amount = ?
+       SET amount = ?
        WHERE order_id = ?`,
-      [newAmount, adjustment, orderId],
+      [newAmount, orderId],
     );
   }
 

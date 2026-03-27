@@ -11,6 +11,7 @@ import { Badge } from '../../components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Textarea } from '../../components/ui/textarea';
 import { toast } from 'sonner';
+
 import { ProductModal } from './TakeAwayOrder/ProductModal';
 import toppingService from '../../services/toppingService';
 import discountService from '../../services/discountService';
@@ -20,6 +21,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "../../components/ui/dialog";
+import orderOnlineService from '../../services/orderOnlineService';
+import authenticationService from '../../services/authenticationService';
+import socket from '../../lib/socket';
+import { ReceiptModal } from './TakeAwayOrder/ReceiptModal';
+import takeawayService from '@/services/takeAwayService';
 
 const getProductPrice = (product, size = 'M') => {
   const sizeItem = product.sizes?.find((s) => s.size === size);
@@ -63,6 +69,8 @@ export function StaffPOS() {
   const [discountAmount, setDiscountAmount] = useState(0);
   const [customerCash, setCustomerCash] = useState(0);
   const [discountError, setDiscountError] = useState('');
+  const [viewingReceipt, setViewingReceipt] = useState(null);
+  const [printerName, setPrinterName] = useState('Nhân viên');
 
 
   useEffect(() => {
@@ -88,7 +96,52 @@ export function StaffPOS() {
       }
     };
     fetchData();
+    
+    // Load printer profile
+    const loadProfile = async () => {
+      try {
+        const res = await authenticationService.getProfile();
+        const user = res?.data?.id ? res.data : res?.data?.data || res?.data;
+        const firstName = String(user?.first_name || '').trim();
+        const lastName = String(user?.last_name || '').trim();
+        const fullName = `${firstName} ${lastName}`.trim();
+        setPrinterName(fullName || user?.username || user?.email || 'Nhân viên');
+      } catch {
+        // Ignore
+      }
+    };
+    loadProfile();
   }, []);
+
+  // Socket listener for PayOS Success
+  useEffect(() => {
+    if (!socket.connected) socket.connect();
+
+    const handlePaymentCompleted = async (data) => {
+      const orderId = data.order_id;
+      if (orderId) {
+        try {
+          const detailRes = await orderOnlineService.getStaffOrderDetail(orderId);
+          const orderData = detailRes?.data?.data || detailRes?.data;
+          
+          if (orderData) {
+            setViewingReceipt({
+              ...orderData,
+              order_id: orderData.id,
+              order_code: `DH-${String(orderData.id).padStart(6, '0')}`,
+              printed_by: printerName,
+            });
+            toast.success(`Thanh toán PayOS thành công cho đơn #${orderId}!`);
+          }
+        } catch (err) {
+          console.error("Lỗi in hóa đơn PayOS:", err);
+        }
+      }
+    };
+
+    socket.on('order:payment-completed', handlePaymentCompleted);
+    return () => socket.off('order:payment-completed', handlePaymentCompleted);
+  }, [printerName]);
 
   const addToCart = useCallback((product) => {
     setCart((prevCart) => {
@@ -234,9 +287,15 @@ export function StaffPOS() {
 
   const handleConfirmPayment = async () => {
     const finalTotal = Math.max(0, total - discountAmount);
-    if (paymentMethod === 'cash' && customerCash < finalTotal) {
-      toast.error('Tiền khách đưa không đủ');
-      return;
+    if (paymentMethod === 'cash') {
+      if (!customerCash || customerCash <= 0) {
+        toast.error('Vui lòng nhập tiền khách đưa');
+        return;
+      }
+      if (customerCash < finalTotal) {
+        toast.error('Tiền khách đưa không đủ');
+        return;
+      }
     }
 
     try {
@@ -257,12 +316,18 @@ export function StaffPOS() {
         return;
       }
 
+      const selectedTableInfo = tables.find((t) => String(t.id) === selectedTable);
+      const selectedTableLabel = selectedTableInfo?.code || selectedTableInfo?.name || selectedTable;
+      const dineInReceiverName = `Khách Bàn ${selectedTableLabel}`;
+      const dineInReceiverPhone = '0000000000';
+
       const payload = {
         order_type: 'dine-in',
         table_id: Number(selectedTable),
         payment_method: paymentMethod,
-        receiver_name: `Khách Bàn ${tables.find((t) => String(t.id) === selectedTable)?.code || ''}`,
-        receiver_phone: '0000000000',
+        is_paid: paymentMethod === 'cash' ? 1 : 0,
+        receiver_name: dineInReceiverName,
+        receiver_phone: dineInReceiverPhone,
         items,
         status: 'preparing',
         note: note.trim() || undefined,
@@ -270,30 +335,61 @@ export function StaffPOS() {
       };
 
       const res = await orderService.checkout(payload);
+      const orderId = res.data?.order_id || res.data?.id;
 
       if (paymentMethod === "payos") {
-        const orderId = res.data?.order_id || res.data?.id;
-
         if (orderId) {
           const payosItems = cart.map((item) => ({
-            name: `${item.productName || item.product?.name || "Sản phẩm"}${item.size ? ` - ${item.size}` : ""
-              }`.slice(0, 100),
+            name: `${item.productName || item.product?.name || "Sản phẩm"}${item.size ? ` - ${item.size}` : ""}`.slice(0, 100),
             quantity: Number(item.quantity || 1),
             price: Number(item.price || 0),
           }));
 
+          const returnUrl = `${window.location.origin}/staff/payment-result?origin=${encodeURIComponent(window.location.pathname)}`;
           const createRes = await orderService.createPaymentLink({
             orderCode: Number(orderId),
             amount: Number(finalTotal),
             description: `DH${orderId}`.slice(0, 25),
             items: payosItems,
+            returnUrl,
+            cancelUrl: returnUrl,
           });
 
           if (createRes.data?.checkoutUrl) {
-            window.open(createRes.data.checkoutUrl, "_blank");
+            window.location.href = createRes.data.checkoutUrl;
           } else {
             toast.error("Không tạo được link thanh toán QR");
           }
+        }
+      } else {
+        if (orderId) {
+          const resData = res.data?.data || res.data;
+          const orderData = {
+            ...resData,
+            order_id: orderId,
+            order_code: `DH-${String(orderId).padStart(6, '0')}`,
+            order_type: resData.order_type || 'dine-in',
+            receiver_name: resData.receiver_name || dineInReceiverName,
+            receiver_phone: resData.receiver_phone || dineInReceiverPhone,
+            printed_by: printerName,
+            items: cart.map((item) => ({
+              product_name: item.productName || item.product?.name || 'Sản phẩm',
+              size: item.size || 'M',
+              quantity: item.quantity,
+              unit_price: item.price || item.product?.price || 0,
+              toppings: item.toppings || [],
+              note: item.note || '',
+            })),
+            discount_code: discountAmount > 0 ? discountCode : null,
+            discount_amount: discountAmount || resData.discount_amount || 0,
+            total_amount: resData.total_amount || finalTotal,
+            is_paid: paymentMethod === 'cash' ? 1 : (resData.is_paid ? 1 : 0),
+            payment: {
+              method: paymentMethod,
+              status: paymentMethod === 'cash' ? 'paid' : (resData.is_paid ? 'paid' : 'pending'),
+            },
+          };
+          setViewingReceipt({ ...orderData, autoPrint: true });
         }
       }
       toast.success('Đơn hàng đã được đặt thành công.!');
@@ -653,6 +749,16 @@ export function StaffPOS() {
           </div>
         </DialogContent>
       </Dialog>
+      
+      {viewingReceipt && (
+        <ReceiptModal
+          order={viewingReceipt}
+          onClose={() => setViewingReceipt(null)}
+          onPrint={() => {
+            // Optional: call markPrintSuccess if needed
+          }}
+        />
+      )}
     </div>
   );
 }

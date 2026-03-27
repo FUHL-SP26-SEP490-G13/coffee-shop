@@ -144,15 +144,17 @@ export function CheckoutModal({ subtotal, onClose, onConfirm, loading }) {
   // ─── Submit ───────────────────────────────────────────────────────────────
   const handleConfirm = () => {
     // Validate cash trước khi submit
-    if (
-      paymentMethod === 'cash' &&
-      receivedAmt > 0 &&
-      receivedAmt < finalAmount
-    ) {
-      setReceivedError(
-        `Tiền khách đưa thiếu ${fmt(finalAmount - receivedAmt)}`,
-      );
-      return;
+    if (paymentMethod === 'cash') {
+      if (!receivedAmt || receivedAmt <= 0) {
+        setReceivedError('Vui lòng nhập tiền khách đưa');
+        return;
+      }
+      if (receivedAmt < finalAmount) {
+        setReceivedError(
+          `Tiền khách đưa thiếu ${fmt(finalAmount - receivedAmt)}`,
+        );
+        return;
+      }
     }
     onConfirm({
       paymentMethod,

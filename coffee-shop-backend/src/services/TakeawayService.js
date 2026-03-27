@@ -125,7 +125,7 @@ class TakeawayService {
   }
 
   // payOS
-  async _createPayosLink(orderId, amount, items) {
+  async _createPayosLink(orderId, amount, items, returnUrl, cancelUrl) {
     if (!payOS) {
       throw new ErrorResponse(500, 'PayOS chưa được cấu hình');
     }
@@ -141,8 +141,8 @@ class TakeawayService {
         quantity: Number(i.quantity),
         price: Number(i.price),
       })),
-      returnUrl: process.env.PAYOS_RETURN_TAKEAWAY_ORDER_URL,
-      cancelUrl: process.env.PAYOS_CANCEL_TAKEAWAY_ORDER_URL,
+      returnUrl: returnUrl || process.env.PAYOS_RETURN_TAKEAWAY_ORDER_URL,
+      cancelUrl: cancelUrl || process.env.PAYOS_CANCEL_TAKEAWAY_ORDER_URL,
     };
 
     const paymentLinkResponse = await payOS.paymentRequests.create(body);
@@ -160,7 +160,7 @@ class TakeawayService {
   // Cash  → paid ngay, barista có thể nhận
   // PayOS → pending, trả về checkout_url, barista chờ webhook xác nhận
   async createTakeawayOrder(payload, staffUser) {
-    const { items, discount_code, payment_method } = payload;
+    const { items, discount_code, payment_method, returnUrl, cancelUrl } = payload;
 
     if (!Array.isArray(items) || items.length === 0)
       throw new ErrorResponse(400, 'Giỏ hàng trống');
@@ -256,6 +256,8 @@ class TakeawayService {
           orderId,
           finalAmount,
           normalizedItems,
+          returnUrl,
+          cancelUrl
         );
         response.checkout_url = payosData.checkout_url;
         response.qr_code = payosData.qr_code;
@@ -548,12 +550,11 @@ class TakeawayService {
     );
 
     const paidAmount = payment ? Number(payment.paid_amount || 0) : 0;
-    const adjustment = payment ? Number(payment.adjustment_amount || 0) : 0;
 
     return {
       receipt: {
         order_id: order.id,
-        order_code: `TW-${String(order.id).padStart(6, '0')}`,
+        order_code: `${String(order.id).padStart(6, '0')}`,
         created_at: order.created_at,
         paid_at: order.paid_at,
         staff:
@@ -579,12 +580,16 @@ class TakeawayService {
           : null,
         discount_amount: subtotal - Number(order.total_amount),
         total_amount: Number(order.total_amount),
+        receiver_name: order.receiver_name || null,
+        receiver_phone: order.receiver_phone || null,
+        receiver_email: order.receiver_email || null,
+        address: order.address || null,
+        delivery_note: order.delivery_note || order.note || null,
         payment: {
           method: payment?.payment_method || null,
           status: payment?.payment_status || null,
           paid_amount: paidAmount, // số tiền đã thực thu
           current_amount: payment ? Number(payment.amount) : null, // tổng đơn hiện tại
-          adjustment_amount: adjustment, // âm = hoàn, dương = thu thêm
           transaction_id: payment?.transaction_id || null,
           paid_at: payment?.paid_at || null,
         },

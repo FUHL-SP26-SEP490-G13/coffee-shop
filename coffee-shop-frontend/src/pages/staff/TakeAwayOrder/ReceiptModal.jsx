@@ -27,37 +27,45 @@ const calcSubtotal = (order) =>
     return sum + base + topping;
   }, 0);
 
+const getOrderTypeLabel = (orderType) => {
+  switch (String(orderType || '').toLowerCase()) {
+    case 'delivery':
+      return 'Giao hàng';
+    case 'takeaway':
+      return 'Mang đi';
+    case 'dine-in':
+      return 'Tại quán';
+    default:
+      return 'Khác';
+  }
+};
+
 /**
  * @param {{ order: Object, onClose: Function, onPrint?: Function }} props
  */
-export function ReceiptModal({ order, onClose, onPrint }) {
-  const [isPrinting, setIsPrinting] = useState(false);
+export function ReceiptModal({ order, onClose, onPrint, autoPrint = false }) {
+  const [isPrinting, setIsPrinting] = useState(autoPrint);
   const [isPreparingPrint, setIsPreparingPrint] = useState(false);
   const subtotal = calcSubtotal(order);
   const totalAmount = Number(order.total_amount || 0);
   const computedDiscount = Math.max(0, subtotal - totalAmount);
+  const normalizedOrderType = String(order?.order_type || '').toLowerCase();
+  const hasReceiverInfo = Boolean(
+    order?.receiver_name || order?.receiver_phone || order?.address || order?.receiver_email
+  );
+  const shouldShowDeliveryInfo = normalizedOrderType === 'delivery' && hasReceiverInfo;
 
-  const handlePrint = async () => {
-    if (isPreparingPrint) return;
-
-    try {
-      setIsPreparingPrint(true);
-
-      if (typeof onPrint === 'function') {
-        await onPrint(order);
-      }
-
-      setIsPrinting(true);
-    } finally {
-      setIsPreparingPrint(false);
-    }
+  const handlePrint = () => {
+    if (isPreparingPrint || isPrinting) return;
+    setIsPreparingPrint(true);
+    setIsPrinting(true);
   };
 
   if (isPrinting) {
-    return <PrintableReceipt order={order} onDone={onClose} />;
+    return <PrintableReceipt order={order} onPrintSuccess={onPrint} onDone={onClose} />;
   }
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95">
 
         {/* Header */}
@@ -65,7 +73,7 @@ export function ReceiptModal({ order, onClose, onPrint }) {
           <Coffee size={28} className="mx-auto mb-2 text-amber-400" />
           <p className="text-xs text-gray-400 uppercase tracking-widest">Hóa đơn</p>
           <h3 className="font-bold text-xl mt-1">
-            {order.order_code || `TW-${String(order.order_id).padStart(6, '0')}`}
+            {order.order_code || `${String(order.order_id).padStart(6, '0')}`}
           </h3>
         </div>
 
@@ -81,10 +89,45 @@ export function ReceiptModal({ order, onClose, onPrint }) {
             <span className="font-medium text-gray-800">{order.printed_by || order.staff || '—'}</span>
           </div>
 
+          <div className="flex justify-between text-sm text-gray-500">
+            <span>Loại đơn</span>
+            <span className="font-medium text-gray-800">{getOrderTypeLabel(order.order_type)}</span>
+          </div>
+
           {order.barista && (
             <div className="flex justify-between text-sm text-gray-500">
               <span>Barista</span>
               <span className="font-medium text-gray-800">{order.barista}</span>
+            </div>
+          )}
+
+          {/* Delivery Info */}
+          {shouldShowDeliveryInfo && (
+            <div className="border-t border-dashed border-gray-200 pt-3 space-y-1">
+              {order.receiver_name && (
+                <div className="flex justify-between text-sm text-gray-500">
+                  <span>Người nhận</span>
+                  <span className="font-medium text-gray-800 text-right">{order.receiver_name}</span>
+                </div>
+              )}
+              {order.receiver_phone && (
+                <div className="flex justify-between text-sm text-gray-500">
+                  <span>Số điện thoại</span>
+                  <span className="font-medium text-gray-800 text-right">{order.receiver_phone}</span>
+                </div>
+              )}
+              {order.receiver_email && (
+                <div className="flex justify-between text-sm text-gray-500">
+                  <span>Email</span>
+                  <span className="font-medium text-gray-800 text-right break-all max-w-[60%]">{order.receiver_email}</span>
+                </div>
+              )}
+              {order.address && (
+                <div className="flex justify-between text-sm text-gray-500">
+                  <span>Địa chỉ</span>
+                  <span className="font-medium text-gray-800 text-right max-w-[200px] break-words">{order.address}</span>
+                </div>
+              )}
             </div>
           )}
 
@@ -129,11 +172,21 @@ export function ReceiptModal({ order, onClose, onPrint }) {
           </div>
 
           {/* Payment status */}
-          <div className="bg-gray-50 rounded-xl p-3 text-center text-sm text-gray-500">
-            {(order.payment_method || order.payment?.method) === 'cash'
-              ? '💵 Tiền mặt'
-              : '📱 QR PayOS'}{' '}
-            · {isOrderPaid(order) ? '✅ Đã thanh toán' : '⏳ Chờ thanh toán'}
+          <div className="border-t border-dashed border-gray-200 pt-3 space-y-1">
+            <div className="flex justify-between text-sm text-gray-500">
+              <span>Phương thức thanh toán</span>
+              <span className="font-medium text-gray-800">
+                {(order.payment_method || order.payment?.method) === 'cash'
+                  ? 'Tiền mặt'
+                  : 'PayOS'}
+              </span>
+            </div>
+            <div className="flex justify-between text-sm text-gray-500">
+              <span>Trạng thái thanh toán</span>
+              <span className={`font-medium ${isOrderPaid(order) ? 'text-green-600' : 'text-amber-600'}`}>
+                {isOrderPaid(order) ? 'Đã thanh toán' : 'Chờ thanh toán'}
+              </span>
+            </div>
           </div>
 
           {/* Adjustment */}

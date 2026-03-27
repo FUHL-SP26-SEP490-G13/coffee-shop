@@ -23,6 +23,9 @@ import categoryService from '@/services/categoryService';
 import toppingService from '@/services/toppingService';
 import { toast } from 'sonner';
 import QRDisplay from '../common/QRDisplay';
+import socket from '@/lib/socket';
+import authenticationService from '@/services/authenticationService';
+import orderOnlineService from '@/services/orderOnlineService';
 
 const fmt = (n) => Number(n).toLocaleString('vi-VN') + ' đ';
 
@@ -50,6 +53,7 @@ function TakeawayPOS() {
   // ─── Checkout state ───────────────────────────────────────────────────────
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [checkoutResult, setCheckoutResult] = useState(null);
+  const [printerName, setPrinterName] = useState('Nhân viên');
 
   // ─── Load categories + toppings ───────────────────────────────────────────
   useEffect(() => {
@@ -77,7 +81,46 @@ function TakeawayPOS() {
       }
     };
     loadMeta();
+
+    // Load printer profile
+    const loadProfile = async () => {
+      try {
+        const res = await authenticationService.getProfile();
+        const user = res?.data?.id ? res.data : res?.data?.data || res?.data;
+        const firstName = String(user?.first_name || '').trim();
+        const lastName = String(user?.last_name || '').trim();
+        const fullName = `${firstName} ${lastName}`.trim();
+        setPrinterName(fullName || user?.username || user?.email || 'Nhân viên');
+      } catch {
+        // Ignore
+      }
+    };
+    loadProfile();
   }, []);
+
+  // ─── Socket listener PayOS ────────────────────────────────────────────────
+  useEffect(() => {
+    if (!socket.connected) socket.connect();
+
+    const handlePaymentCompleted = (data) => {
+      const orderId = data.order_id;
+      // Socket event handler is no longer primarily used to render the receipt for PayOS 
+      // because we redirect the page, but we keep it here just in case another client completes it.
+      if (orderId && checkoutResult && (checkoutResult.order_id === orderId || checkoutResult.id === orderId)) {
+        toast.success(`Thanh toán PayOS thành công cho đơn #${orderId}!`);
+        setViewingReceipt({
+          ...checkoutResult,
+          order_id: checkoutResult.order_id || checkoutResult.id,
+          order_code: `DH-${String(checkoutResult.order_id || checkoutResult.id).padStart(6, '0')}`,
+          printed_by: printerName,
+        });
+        setCheckoutResult(null);
+      }
+    };
+
+    socket.on('order:payment-completed', handlePaymentCompleted);
+    return () => socket.off('order:payment-completed', handlePaymentCompleted);
+  }, [printerName, checkoutResult]);
 
   // ─── Load orders ──────────────────────────────────────────────────────────
   const loadOrders = useCallback(async () => {
@@ -136,9 +179,13 @@ function TakeawayPOS() {
   }) => {
     setCheckoutLoading(true);
     try {
+      const returnUrl = `${window.location.origin}/staff/payment-result?origin=${encodeURIComponent(window.location.pathname)}`;
       const payload = {
         payment_method: paymentMethod,
+        is_paid: paymentMethod === 'cash' ? 1 : 0,
         discount_code: discountCode || '',
+        returnUrl,
+        cancelUrl: returnUrl,
         items: cart.map((item) => ({
           product_size_id: item.product_size_id,
           quantity: item.quantity,
@@ -164,9 +211,10 @@ function TakeawayPOS() {
         })),
         discount_code: discountCode || null,
         discount_amount: discountAmount || data.discount_amount || 0,
+        is_paid: paymentMethod === 'cash' ? 1 : (data.is_paid ? 1 : 0),
         payment: {
           method: paymentMethod,
-          status: data.is_paid ? 'paid' : 'pending',
+          status: paymentMethod === 'cash' ? 'paid' : (data.is_paid ? 'paid' : 'pending'),
         },
       };
 
@@ -175,12 +223,12 @@ function TakeawayPOS() {
       setShowCheckout(false);
 
       if (paymentMethod === 'payos' && data.checkout_url) {
-        setCheckoutResult(data);
+        window.location.href = data.checkout_url;
       } else {
         toast.success(
           `Tạo đơn #${data.order_id} thành công · ${fmt(data.total_amount)}`,
         );
-        setViewingReceipt(newOrder);
+        setViewingReceipt({ ...newOrder, autoPrint: true });
       }
     } catch (e) {
       toast.error(e?.response?.data?.message || 'Lỗi tạo đơn');

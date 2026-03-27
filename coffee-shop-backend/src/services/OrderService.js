@@ -238,27 +238,47 @@ class OrderService {
         }
       }
 
-      if (order_type !== "dine-in" || (note && note.trim())) {
+      const normalizedReceiverName = receiver_name ? receiver_name.trim() : "";
+      const normalizedReceiverPhone = receiver_phone ? receiver_phone.trim() : "";
+      const normalizedReceiverEmail = receiver_email?.trim() || null;
+      const normalizedAddress = address?.trim() || null;
+      const normalizedNote = note?.trim() || null;
+
+      const hasReceiverInfo = Boolean(
+        normalizedReceiverName ||
+        normalizedReceiverPhone ||
+        normalizedReceiverEmail ||
+        normalizedAddress
+      );
+
+      if (order_type !== "dine-in" || hasReceiverInfo || normalizedNote) {
         const [existingInfo] = await connection.query(
           "SELECT id FROM order_delivery_info WHERE order_id = ?",
           [orderId]
         );
 
         if (existingInfo.length > 0) {
-          if (note && note.trim()) {
-            await connection.query(
-              "UPDATE order_delivery_info SET note = ? WHERE order_id = ?",
-              [note.trim(), orderId]
-            );
-          }
+          await connection.query(
+            `UPDATE order_delivery_info
+             SET receiver_name = ?, receiver_phone = ?, receiver_email = ?, address = ?, note = ?
+             WHERE order_id = ?`,
+            [
+              normalizedReceiverName,
+              normalizedReceiverPhone,
+              normalizedReceiverEmail,
+              normalizedAddress,
+              normalizedNote,
+              orderId,
+            ]
+          );
         } else {
           await OrderRepository.createOrderDeliveryInfo(connection, {
             order_id: orderId,
-            receiver_name: receiver_name ? receiver_name.trim() : "",
-            receiver_phone: receiver_phone ? receiver_phone.trim() : "",
-            receiver_email: receiver_email?.trim() || null,
-            address: address?.trim() || null,
-            note: note?.trim() || null,
+            receiver_name: normalizedReceiverName,
+            receiver_phone: normalizedReceiverPhone,
+            receiver_email: normalizedReceiverEmail,
+            address: normalizedAddress,
+            note: normalizedNote,
           });
         }
       }

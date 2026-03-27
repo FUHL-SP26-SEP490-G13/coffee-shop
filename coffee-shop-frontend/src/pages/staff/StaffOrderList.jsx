@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   RefreshCw,
   ShoppingBag,
@@ -35,6 +35,7 @@ import socket from "@/lib/socket";
 import baristaDBService from "@/services/baristaDBService";
 import orderOnlineService from "@/services/orderOnlineService";
 import authenticationService from "@/services/authenticationService";
+import takeawayService from "@/services/takeAwayService";
 import { ReceiptModal } from "./TakeAwayOrder/ReceiptModal";
 
 const STAFF_TAB_STATUSES = [
@@ -343,23 +344,18 @@ export function OrderDelivery() {
 
   const handlePrintReceipt = async (orderId) => {
     try {
-      const res = await orderOnlineService.getStaffOrderDetail(orderId);
-      const orderData = res?.data?.data || res?.data;
-      if (orderData) {
+      toast.info("Đang lấy dữ liệu hóa đơn...");
+      const res = await takeawayService.getReceipt(orderId);
+      if (res.data?.receipt) {
         setViewingReceipt({
-          ...orderData,
-          order_id: orderData.id,
-          order_code: `DL-${String(orderData.id).padStart(6, "0")}`,
-          total_amount: orderData.total_amount,
-          receiver_name: orderData.receiver_name,
-          receiver_phone: orderData.receiver_phone,
+          ...res.data.receipt,
           printed_by: printerName,
+          autoPrint: true,
         });
-      } else {
-        toast.error("Không tải được chi tiết hóa đơn");
       }
-    } catch (error) {
-      toast.error(error?.response?.data?.message || "Lỗi tải hóa đơn");
+    } catch (err) {
+      console.error("Lỗi lấy dữ liệu hóa đơn:", err);
+      toast.error("Không thể lấy dữ liệu in hóa đơn");
     }
   };
 
@@ -474,13 +470,19 @@ export function OrderDelivery() {
   };
 
   return (
-    <div className="space-y-4 p-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <h2 className="text-xl font-semibold">Order List</h2>
+    <div className="mx-auto max-w-[1600px] space-y-6 p-4 md:p-6 pb-20">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between rounded-xl bg-white p-5 shadow-sm border border-slate-100">
+        <div className="flex items-center gap-4">
+          <div className="rounded-full bg-primary/10 p-3">
+            <ShoppingBag className="h-6 w-6 text-primary" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight text-slate-900">Quản lý Đơn hàng</h2>
+            <p className="text-sm text-slate-500">Theo dõi và xử lý đơn hàng của quán</p>
+          </div>
           {newOrderCount > 0 && (
-            <Badge variant="destructive" className="flex items-center gap-1">
-              <Bell className="h-3 w-3" />
+            <Badge variant="destructive" className="ml-2 animate-pulse px-3 py-1 text-sm font-medium shadow-sm">
+              <Bell className="mr-1.5 h-4 w-4" />
               {newOrderCount} đơn mới
             </Badge>
           )}
@@ -493,93 +495,127 @@ export function OrderDelivery() {
           }}
           disabled={loading}
           variant="outline"
+          className="gap-2 bg-white hover:bg-slate-50 border-slate-200 shadow-sm font-medium"
         >
-          <RefreshCw
-            className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`}
-          />
-          Làm mới
+          <RefreshCw className={`h-4 w-4 text-slate-500 ${loading ? "animate-spin text-primary" : ""}`} />
+          Cập nhật
         </Button>
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        <Button
-          variant={activeOrderType === "delivery" ? "default" : "outline"}
-          onClick={() => {
-            setActiveOrderType("delivery");
-            setActiveTab("pending");
-          }}
-        >
-          <Truck className="mr-1 h-3 w-3" />
-          ĐƠN GIAO HÀNG ({orderTypeCounts.delivery})
-        </Button>
-        <Button
-          variant={activeOrderType === "dine-in" ? "default" : "outline"}
-          onClick={() => {
-            setActiveOrderType("dine-in");
-            setActiveTab("pending");
-          }}
-        >
-          <Coffee className="mr-1 h-3 w-3" />
-          ĐƠN TẠI BÀN ({orderTypeCounts["dine-in"]})
-        </Button>
-        <Button
-          variant={activeOrderType === "takeaway" ? "default" : "outline"}
-          onClick={() => {
-            setActiveOrderType("takeaway");
-            setActiveTab("pending");
-          }}
-        >
-          <ShoppingBag className="mr-1 h-3 w-3" />
-          ĐƠN MANG ĐI ({orderTypeCounts.takeaway})
-        </Button>
+      <div className="grid gap-6 lg:grid-cols-[auto_1fr]">
+        <div className="flex flex-col gap-3 rounded-xl bg-white p-5 shadow-sm border border-slate-100">
+          <p className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Loại đơn hàng</p>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Button
+              variant={activeOrderType === "delivery" ? "default" : "outline"}
+              onClick={() => { setActiveOrderType("delivery"); setActiveTab("pending"); }}
+              className={`justify-start sm:w-44 transition-all ${
+                activeOrderType === "delivery" 
+                  ? "shadow-md bg-primary hover:bg-primary/90" 
+                  : "hover:bg-slate-50 border-slate-200 text-slate-700 font-medium"
+              }`}
+            >
+              <Truck className="mr-2 h-4 w-4" />
+              <span>Giao hàng</span>
+              <Badge variant={activeOrderType === "delivery" ? "secondary" : "secondary"} className="ml-auto bg-white/20 hover:bg-white/30 text-current border-none">
+                {orderTypeCounts.delivery}
+              </Badge>
+            </Button>
+            <Button
+              variant={activeOrderType === "dine-in" ? "default" : "outline"}
+              onClick={() => { setActiveOrderType("dine-in"); setActiveTab("pending"); }}
+              className={`justify-start sm:w-44 transition-all ${
+                activeOrderType === "dine-in" 
+                  ? "shadow-md bg-primary hover:bg-primary/90" 
+                  : "hover:bg-slate-50 border-slate-200 text-slate-700 font-medium"
+              }`}
+            >
+              <Coffee className="mr-2 h-4 w-4" />
+              <span>Tại bàn</span>
+              <Badge variant={activeOrderType === "dine-in" ? "secondary" : "secondary"} className="ml-auto bg-white/20 hover:bg-white/30 text-current border-none">
+                {orderTypeCounts["dine-in"]}
+              </Badge>
+            </Button>
+            <Button
+              variant={activeOrderType === "takeaway" ? "default" : "outline"}
+              onClick={() => { setActiveOrderType("takeaway"); setActiveTab("pending"); }}
+              className={`justify-start sm:w-44 transition-all ${
+                activeOrderType === "takeaway" 
+                  ? "shadow-md bg-primary hover:bg-primary/90" 
+                  : "hover:bg-slate-50 border-slate-200 text-slate-700 font-medium"
+              }`}
+            >
+              <ShoppingBag className="mr-2 h-4 w-4" />
+              <span>Mang đi</span>
+              <Badge variant={activeOrderType === "takeaway" ? "secondary" : "secondary"} className="ml-auto bg-white/20 hover:bg-white/30 text-current border-none">
+                {orderTypeCounts.takeaway}
+              </Badge>
+            </Button>
+          </div>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-3 w-full">
+          <Card className="border-cyan-100 bg-cyan-50/50 shadow-sm transition-all hover:shadow-md hover:bg-cyan-50">
+            <CardHeader className="pb-2 pt-5">
+              <CardTitle className="text-sm font-medium text-cyan-800 flex items-center justify-between">
+                <span>Giao hàng</span>
+                <Truck className="h-4 w-4 text-cyan-600/50" />
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-3xl font-bold text-cyan-900">{counts.served}</p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-emerald-100 bg-emerald-50/50 shadow-sm transition-all hover:shadow-md hover:bg-emerald-50">
+            <CardHeader className="pb-2 pt-5">
+              <CardTitle className="text-sm font-medium text-emerald-800 flex items-center justify-between">
+                <span>Thành công</span>
+                <RefreshCw className="h-4 w-4 text-emerald-600/50" />
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-3xl font-bold text-emerald-900">{counts.completed}</p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-rose-100 bg-rose-50/50 shadow-sm transition-all hover:shadow-md hover:bg-rose-50">
+            <CardHeader className="pb-2 pt-5">
+              <CardTitle className="text-sm font-medium text-rose-800 flex items-center justify-between">
+                <span>Đã Hủy</span>
+                <ShoppingBag className="h-4 w-4 text-rose-600/50" />
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-3xl font-bold text-rose-900">{counts.cancelled}</p>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-3">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Giao hàng
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-semibold">{counts.served}</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Thành công
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-semibold">{counts.completed}</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Hủy
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-semibold">{counts.cancelled}</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-6">
-          <TabsTrigger value="pending">Đang chờ ({counts.pending})</TabsTrigger>
-          <TabsTrigger value="preparing">Đang pha chế  ({counts.preparing})</TabsTrigger>
-          <TabsTrigger value="served">Sẵn sàng phục vụ ({counts.served})</TabsTrigger>
-          <TabsTrigger value="delivering">Giao hàng ({counts.delivering})</TabsTrigger>
-          <TabsTrigger value="completed">
-            Thành công ({counts.completed})
-          </TabsTrigger>
-          <TabsTrigger value="cancelled">Hủy ({counts.cancelled})</TabsTrigger>
-        </TabsList>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <div className="rounded-xl bg-white p-2 shadow-sm border border-slate-100 overflow-hidden">
+          <TabsList className="flex h-auto w-full justify-start overflow-x-auto bg-transparent p-1 gap-2 hide-scrollbar">
+            <TabsTrigger value="pending" className="flex-1 whitespace-nowrap px-4 py-2.5 data-[state=active]:bg-slate-100 data-[state=active]:text-slate-900 data-[state=active]:shadow-sm rounded-lg min-w-[120px]">
+              Đang chờ <Badge variant="secondary" className="ml-2 bg-white/50">{counts.pending}</Badge>
+            </TabsTrigger>
+            <TabsTrigger value="preparing" className="flex-1 whitespace-nowrap px-4 py-2.5 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 data-[state=active]:shadow-sm rounded-lg min-w-[120px]">
+              Đang pha chế <Badge variant="secondary" className="ml-2 bg-white/50">{counts.preparing}</Badge>
+            </TabsTrigger>
+            <TabsTrigger value="served" className="flex-1 whitespace-nowrap px-4 py-2.5 data-[state=active]:bg-amber-50 data-[state=active]:text-amber-700 data-[state=active]:shadow-sm rounded-lg min-w-[140px]">
+              Sẵn sàng phục vụ <Badge variant="secondary" className="ml-2 bg-white/50">{counts.served}</Badge>
+            </TabsTrigger>
+            <TabsTrigger value="delivering" className="flex-1 whitespace-nowrap px-4 py-2.5 data-[state=active]:bg-cyan-50 data-[state=active]:text-cyan-700 data-[state=active]:shadow-sm rounded-lg min-w-[120px]">
+              Giao hàng <Badge variant="secondary" className="ml-2 bg-white/50">{counts.delivering}</Badge>
+            </TabsTrigger>
+            <TabsTrigger value="completed" className="flex-1 whitespace-nowrap px-4 py-2.5 data-[state=active]:bg-emerald-50 data-[state=active]:text-emerald-700 data-[state=active]:shadow-sm rounded-lg min-w-[120px]">
+              Thành công <Badge variant="secondary" className="ml-2 bg-white/50">{counts.completed}</Badge>
+            </TabsTrigger>
+            <TabsTrigger value="cancelled" className="flex-1 whitespace-nowrap px-4 py-2.5 data-[state=active]:bg-rose-50 data-[state=active]:text-rose-700 data-[state=active]:shadow-sm rounded-lg min-w-[120px]">
+              Đã hủy <Badge variant="secondary" className="ml-2 bg-white/50">{counts.cancelled}</Badge>
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value={activeTab} className="mt-4">
           <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 xl:grid-cols-3">
@@ -590,146 +626,160 @@ export function OrderDelivery() {
               const isPending = order.status === "pending";
 
               return (
-                <Card key={order.id}>
-                  <CardContent className="space-y-3 pt-6">
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <div className="flex items-center gap-2">
-                        {deliveryOrder ? (
-                          <Truck className="h-4 w-4 text-muted-foreground" />
-                        ) : (
-                          <Coffee className="h-4 w-4 text-muted-foreground" />
-                        )}
-                        <p className="font-medium">Đơn #{order.id}</p>
-                        <Badge variant="secondary">
+                <Card key={order.id} className="overflow-hidden border-slate-200 transition-all hover:shadow-md bg-white">
+                  <div className="border-b border-slate-100 bg-slate-50/50 p-4">
+                    <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className={`p-2 rounded-full ${deliveryOrder ? 'bg-blue-100 text-blue-600' : 'bg-amber-100 text-amber-600'}`}>
+                          {deliveryOrder ? (
+                            <Truck className="h-4 w-4" />
+                          ) : (
+                            <Coffee className="h-4 w-4" />
+                          )}
+                        </div>
+                        <div>
+                          <p className="font-bold tracking-tight text-slate-900">Đơn #{order.id}</p>
+                          <div className="text-xs text-slate-500 font-medium">
+                            {dateTime(order.created_at)}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant="secondary" className="bg-slate-100/80 hover:bg-slate-200 border-none font-medium text-slate-700">
                           {getOrderTypeLabel(order.order_type)}
                         </Badge>
-                        <Badge className={statusClassMap[order.status] || ""}>
+                        <Badge className={`${statusClassMap[order.status] || ""} border-none font-medium shadow-none`}>
                           {statusLabelMap[order.status] || order.status}
                         </Badge>
-                        <Badge variant={paid ? "default" : "outline"}>
+                        <Badge variant={paid ? "default" : "outline"} className={paid ? "bg-emerald-500 hover:bg-emerald-600 shadow-none text-white border-none" : "border-slate-300 text-slate-600"}>
                           {paid ? "Đã thanh toán" : "Chưa thanh toán"}
                         </Badge>
                       </div>
-
-                      <div className="text-sm text-muted-foreground">
-                        {dateTime(order.created_at)}
-                      </div>
                     </div>
 
-                    <div className="grid gap-2 text-sm text-muted-foreground sm:grid-cols-2">
-                      <p>
-                        Tổng món:{" "}
-                        <span className="font-medium text-foreground">
-                          {order.itemCount || 0}
+                    <div className="grid grid-cols-2 gap-4 rounded-lg bg-white p-3 border border-slate-100 shadow-sm">
+                      <div className="flex flex-col">
+                        <span className="text-xs text-slate-500 font-medium uppercase tracking-wider mb-1">Tổng món</span>
+                        <span className="font-bold text-slate-900 text-lg">
+                          {order.itemCount || order?.items?.reduce((acc, item) => acc + (item.quantity || 1), 0) || 0}
                         </span>
-                      </p>
-                      <p>
-                        Tổng tiền:{" "}
-                        <span className="font-medium text-foreground">
+                      </div>
+                      <div className="flex flex-col items-end">
+                        <span className="text-xs text-slate-500 font-medium uppercase tracking-wider mb-1">Tổng tiền</span>
+                        <span className="font-bold text-primary text-lg">
                           {money(order.total_amount)}
                         </span>
-                      </p>
+                      </div>
                     </div>
+                  </div>
+
+                  <CardContent className="space-y-4 p-4">
 
                     {Array.isArray(order.items) && order.items.length > 0 ? (
-                      <div className="space-y-2 rounded-md border p-3">
+                      <div className="space-y-3">
                         {order.items.map((item, idx) => (
                           <div
                             key={`${order.id}-${item.productName || item.name || idx}-${idx}`}
-                            className="flex items-start justify-between gap-2 text-sm"
+                            className="flex items-start justify-between gap-3 text-sm pb-3 border-b border-slate-100 last:border-0 last:pb-0"
                           >
-                            <div>
-                              <p className="font-medium">
-                                {item.productName ||
-                                  item.name ||
-                                  item.product_name ||
-                                  "Sản phẩm"}
-                              </p>
-                              <p className="text-muted-foreground">
-                                Size {item.size} • x{item.quantity}
-                              </p>
-                              {Array.isArray(item.toppings) &&
-                              item.toppings.length > 0 ? (
-                                <p className="text-muted-foreground">
-                                  Topping:{" "}
-                                  {item.toppings
-                                    .map(
-                                      (top) =>
-                                        `${top.name} x${top.quantity || 1}`,
-                                    )
-                                    .join(", ")}
+                            <div className="flex items-start gap-3">
+                              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-slate-100/80 border border-slate-200 text-xs font-semibold text-slate-700">
+                                {item.quantity}
+                              </div>
+                              <div className="space-y-1">
+                                <p className="font-semibold text-slate-900 leading-none mt-1">
+                                  {item.productName ||
+                                    item.name ||
+                                    item.product_name ||
+                                    "Sản phẩm"}
                                 </p>
-                              ) : null}
-                              {item.note ? (
-                                <p className="text-muted-foreground">
-                                  Ghi chú: {item.note}
-                                </p>
-                              ) : null}
+                                <div className="text-xs text-slate-500 mt-1">
+                                  <span className="font-medium text-slate-700">Size {item.size}</span>
+                                  {Array.isArray(item.toppings) && item.toppings.length > 0 && (
+                                    <span className="ml-1.5 border-l border-slate-300 pl-1.5">
+                                      + {item.toppings.map((top) => `${top.name} (x${top.quantity || 1})`).join(", ")}
+                                    </span>
+                                  )}
+                                </div>
+                                {item.note ? (
+                                  <p className="text-xs text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md w-fit mt-1 border border-amber-100 font-medium">
+                                    Ghi chú: {item.note}
+                                  </p>
+                                ) : null}
+                              </div>
                             </div>
-                            <p className="text-muted-foreground">
+                            <p className="font-medium text-slate-700 whitespace-nowrap mt-1">
                               {money(item.price || item.total_price)}
                             </p>
                           </div>
                         ))}
                       </div>
-                    ) : null}
+                    ) : (
+                      <p className="text-sm text-slate-500 italic text-center py-2">Không có thông tin sản phẩm</p>
+                    )}
 
                     {deliveryOrder && isUnpaidPending ? (
-                      <div className="space-y-3 rounded-md border border-amber-300 bg-amber-50 p-3">
-                        <p className="text-sm font-semibold text-amber-800">
-                          Xử lý đơn hàng với khách
+                      <div className="space-y-4 rounded-lg border border-amber-200 bg-amber-50/50 p-4">
+                        <p className="text-sm font-bold text-amber-800 flex items-center gap-2">
+                          <Bell className="h-4 w-4" /> Xử lý đơn hàng với khách
                         </p>
-                        <div className="space-y-1">
-                          <p className="text-sm text-muted-foreground">
-                            Tên khách hàng:{" "}
-                            <span className="font-semibold text-foreground">
+                        <div className="space-y-1 bg-white p-3 rounded-md border border-amber-100 shadow-sm">
+                          <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">
+                            Thông tin liên hệ
+                          </p>
+                          <p className="text-sm text-slate-700">
+                            Khách hàng:{" "}
+                            <span className="font-bold text-slate-900">
                               {order.receiver_name ||
                                 order.customer_name ||
                                 "--"}
                             </span>
                           </p>
-                          <p className="text-xl font-bold tracking-wide text-amber-900">
+                          <p className="text-xl font-black tracking-wider text-amber-600">
                             {order.receiver_phone ||
                               order.customer_phone ||
                               "--"}
                           </p>
                         </div>
 
-                        <label className="flex items-center gap-2 text-sm font-medium text-amber-900">
-                          <input
-                            type="radio"
-                            name={`pending-action-${order.id}`}
-                            className="h-4 w-4"
-                            checked={pendingActionMap[order.id] === "confirm"}
-                            onChange={(e) =>
-                              setPendingActionMap((prev) => ({
-                                ...prev,
-                                [order.id]: e.target.checked
-                                  ? "confirm"
-                                  : prev[order.id],
-                              }))
-                            }
-                          />
-                          Xác nhận nhận đơn với khách hàng
-                        </label>
+                        <div className="space-y-3 pt-1">
+                          <label className="flex items-start gap-3 text-sm font-medium text-amber-900 cursor-pointer p-2 rounded hover:bg-amber-100/50 transition-colors">
+                            <input
+                              type="radio"
+                              name={`pending-action-${order.id}`}
+                              className="mt-0.5 h-4 w-4 text-amber-600 focus:ring-amber-500"
+                              checked={pendingActionMap[order.id] === "confirm"}
+                              onChange={(e) =>
+                                setPendingActionMap((prev) => ({
+                                  ...prev,
+                                  [order.id]: e.target.checked
+                                    ? "confirm"
+                                    : prev[order.id],
+                                }))
+                              }
+                            />
+                            <span>Xác nhận nhận đơn với khách hàng</span>
+                          </label>
 
-                        <label className="flex items-center gap-2 text-sm font-medium text-amber-900">
-                          <input
-                            type="radio"
-                            name={`pending-action-${order.id}`}
-                            className="h-4 w-4"
-                            checked={pendingActionMap[order.id] === "cancel"}
-                            onChange={(e) =>
-                              setPendingActionMap((prev) => ({
-                                ...prev,
-                                [order.id]: e.target.checked
-                                  ? "cancel"
-                                  : prev[order.id],
-                              }))
-                            }
-                          />
-                          Hủy đơn / Gọi khách 3 lần, khách không nhấc máy
-                        </label>
+                          <label className="flex items-start gap-3 text-sm font-medium text-amber-900 cursor-pointer p-2 rounded hover:bg-amber-100/50 transition-colors">
+                            <input
+                              type="radio"
+                              name={`pending-action-${order.id}`}
+                              className="mt-0.5 h-4 w-4 text-amber-600 focus:ring-amber-500"
+                              checked={pendingActionMap[order.id] === "cancel"}
+                              onChange={(e) =>
+                                setPendingActionMap((prev) => ({
+                                  ...prev,
+                                  [order.id]: e.target.checked
+                                    ? "cancel"
+                                    : prev[order.id],
+                                }))
+                              }
+                            />
+                            <span>Hủy đơn / Gọi khách 3 lần, khách không nhấc máy</span>
+                          </label>
+                        </div>
                       </div>
                     ) : null}
 
@@ -912,17 +962,7 @@ export function OrderDelivery() {
                   selectedOrder.receiver_name && (
                     <div className="sm:col-span-2 border-t pt-3 mt-3">
                       <button
-                        onClick={() => {
-                          setViewingReceipt({
-                            ...selectedOrder,
-                            order_id: selectedOrder.id,
-                            order_code: `DL-${String(selectedOrder.id).padStart(6, "0")}`,
-                            total_amount: selectedOrder.total_amount,
-                            receiver_name: selectedOrder.receiver_name,
-                            receiver_phone: selectedOrder.receiver_phone,
-                            printed_by: printerName,
-                          });
-                        }}
+                        onClick={() => handlePrintReceipt(selectedOrder.id)}
                         className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm font-medium"
                       >
                         <Printer size={16} />
@@ -999,6 +1039,7 @@ export function OrderDelivery() {
 
       {viewingReceipt && (
         <ReceiptModal
+          autoPrint={viewingReceipt.autoPrint}
           order={viewingReceipt}
           onPrint={handleMarkPrintSuccess}
           onClose={() => setViewingReceipt(null)}

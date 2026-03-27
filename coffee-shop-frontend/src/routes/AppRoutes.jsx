@@ -60,6 +60,7 @@ import AdminFlashSales from "@/pages/admin/AdminFlashSale/AdminFlashSales";
 import TakeawayPOS from '../pages/staff/TakeawayPOS'
 import { OrderDelivery } from '@/pages/staff/StaffOrderList';
 import { StaffDashboard } from "@/pages/staff/StaffDashboard";
+import StaffPayOSReturn from "@/pages/staff/StaffPayOSReturn";
 
 const getStoredValue = (key) =>
   localStorage.getItem(key) || sessionStorage.getItem(key);
@@ -147,6 +148,7 @@ const AppRoutes = () => {
         <Route path="dashboard" element={<StaffDashboard />} />
         <Route path="pos" element={<StaffPOS />} />
         <Route path="takeaway" element={<TakeawayPOS />} />
+        <Route path="payment-result" element={<StaffPayOSReturn />} />
         <Route path="orders" element={<OrderDelivery />} />
         <Route path="attendance" element={<StaffAttendance />} />
         <Route path="inventory" element={<StaffInventory />} />
