@@ -297,7 +297,7 @@ class QrOrderService {
       };
 
       if (paymentMethod === "payos") {
-         const payosData = await payOS.createPaymentLink(orderId, finalAmount, normalizedItems, tableId);
+         const payosData = await this._createPayosLink(orderId, finalAmount, normalizedItems, tableId);
          response.checkoutUrl = payosData.checkoutUrl;
       }
 
