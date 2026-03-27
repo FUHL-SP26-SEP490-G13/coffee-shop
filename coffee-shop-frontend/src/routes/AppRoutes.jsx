@@ -13,7 +13,6 @@ import AdminIngredients from "../pages/admin/AdminIngredient/AdminIngredients";
 import AdminSchedulePage from "../pages/admin/AdminSchedule/AdminSchedulePage";
 import ShiftTemplatePage from "../pages/admin/AdminSchedule/ShiftTemplate/ShiftTemplatePage";
 import WorkSchedulePage from "../pages/admin/AdminSchedule/WorkSchedule/WorkSchedulePage";
-// import AdminInventory from "../pages/admin/AdminInventory";
 import { UserProfile } from "../pages/common/UserProfile";
 import AdminNewsCreatePage from "../pages/admin/AdminNew/AdminNewsCreatePage";
 import AdminNewsList from "../pages/admin/AdminNew/AdminNewsList";
@@ -201,7 +200,7 @@ const AppRoutes = () => {
           <Route path="templates" element={<ShiftTemplatePage />} />
           <Route path="list" element={<WorkSchedulePage />} />
         </Route>
-        {/* <Route path="inventory" element={<AdminInventory />} /> */}
+        <Route path="inventory" element={<AdminIngredients />} />
         <Route path="create-news" element={<AdminNewsCreatePage />} />
         <Route path="profile" element={<UserProfile />} />
         <Route path="news-list" element={<AdminNewsList />} />
