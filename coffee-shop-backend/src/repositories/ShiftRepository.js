@@ -67,7 +67,6 @@ class ShiftRepository {
     // SHIFTS (slot ca theo ngày)
     // =============================================
 
-    // findOrCreate: tìm hoặc tạo shift cho ngày + template
     async findOrCreateShift(templateId, date) {
         const [[existing]] = await pool.query(
             `SELECT id, template_id, shift_date FROM shifts
@@ -83,9 +82,22 @@ class ShiftRepository {
         return { id: result.insertId, template_id: templateId, shift_date: date };
     }
 
-    // =============================================
+    // Kiểm tra nhân viên có ca nào trùng giờ trong cùng ngày không
+    async findOverlappingRegistration(userId, date, startTime, endTime) {
+        const [[row]] = await pool.query(
+            `SELECT sr.id FROM shift_registrations sr
+             JOIN shifts s ON sr.shift_id = s.id
+             JOIN shift_templates st ON s.template_id = st.id
+             WHERE sr.user_id = ?
+               AND s.shift_date = ?
+               AND sr.status NOT IN ('cancelled')
+               AND st.start_time < ? AND st.end_time > ?`,
+            [userId, date, endTime, startTime],
+        );
+        return row || null;
+    }
+
     // SHIFT REGISTRATIONS
-    // =============================================
     async findRegistration(userId, shiftId) {
         const [[row]] = await pool.query(
             `SELECT id, user_id, shift_id, status, leave_request_id

@@ -10,7 +10,7 @@ const { ROLES_STRING } = require('../config/constants');
 const MANAGER_ONLY = [ROLES_STRING.MANAGER];
 const ALL_STAFF = [ROLES_STRING.MANAGER, ROLES_STRING.STAFF, ROLES_STRING.BARISTA];
 
-// SHIFT TEMPLATES (Ca Sáng / Chiều / Tối)
+// ================ SHIFT TEMPLATES ===============
 router.get(
     '/templates',
     authenticate,
@@ -39,34 +39,32 @@ router.delete(
     AsyncMiddleware(shiftTemplateController.remove),
 );
 
-
-// SHIFT ASSIGNMENT
-// Gán ca từng ngày lẻ (từ modal "Gán Ca" trong UI)
+// =========== SHIFT ASSIGNMENT =====================
+// Gán ca từng ngày lẻ 
 router.post(
     '/assign',
-    // authenticate,
-    // authorize(MANAGER_ONLY),
+    authenticate,
+    authorize(MANAGER_ONLY),
     AsyncMiddleware(shiftController.assignSingle),
 );
 
 // Gán ca hàng loạt theo tuần
 router.post(
     '/assign-bulk',
-    // authenticate,
-    // authorize(MANAGER_ONLY),
+    authenticate,
+    authorize(MANAGER_ONLY),
     AsyncMiddleware(shiftController.assignBulk),
 );
 
 // Xóa nhân viên khỏi ca (1 registration cụ thể)
 router.delete(
     '/registrations/:id',
-    // authenticate,
-    // authorize(MANAGER_ONLY),
+    authenticate,
+    authorize(MANAGER_ONLY),
     AsyncMiddleware(shiftController.removeRegistration),
 );
 
 // LỊCH LÀM VIỆC TỔNG QUAN
-// Lấy lịch theo tuần (dùng cho calendar view image 2)
 router.get(
     '/schedule',
     authenticate,
