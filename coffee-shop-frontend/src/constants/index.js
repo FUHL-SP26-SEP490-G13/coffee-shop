@@ -120,7 +120,22 @@ export const API_ENDPOINTS = {
   },
   AI: {
     CHAT: '/ai/chat'
-  }
+  },
+  CATEGORIES: {
+    BASE: '/categories',
+    BY_ID: (id) => `/categories/${id}`,
+  },
+  SHIFT_TEMPLATES: {
+    BASE: '/shifts/templates',
+    BY_ID: (id) => `/shifts/templates/${id}`,
+  },
+  SHIFTS: {
+    ASSIGN: '/shifts/assign',
+    ASSIGN_BULK: '/shifts/assign-bulk',
+    REGISTRATION_BY_ID: (id) => `/shifts/registrations/${id}`,
+    SCHEDULE: '/shifts/schedule',
+    MY_SCHEDULE: '/shifts/schedule/me',
+  },
 };
 
 // Các hằng số khác

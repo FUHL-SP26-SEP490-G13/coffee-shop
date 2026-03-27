@@ -11,6 +11,10 @@ import ChangePasswordPage from "../pages/authentication/ChangePasswordPage";
 import ForgotPasswordPage from "../pages/authentication/ForgotPasswordPage";
 import AdminStaffSchedule from "../pages/admin/AdminStaffSchedule";
 import AdminIngredients from "../pages/admin/AdminIngredient/AdminIngredients";
+import AdminSchedulePage from "../pages/admin/AdminSchedule/AdminSchedulePage";
+import ShiftTemplatePage from "../pages/admin/AdminSchedule/ShiftTemplate/ShiftTemplatePage";
+import WorkSchedulePage from "../pages/admin/AdminSchedule/WorkSchedule/WorkSchedulePage";
+import AdminInventory from "../pages/admin/AdminInventory";
 import { UserProfile } from "../pages/common/UserProfile";
 import AdminNewsCreatePage from "../pages/admin/AdminNew/AdminNewsCreatePage";
 import AdminNewsList from "../pages/admin/AdminNew/AdminNewsList";
@@ -194,6 +198,12 @@ const AppRoutes = () => {
         <Route path="users" element={<AdminUsers />} />
         <Route path="schedule" element={<AdminStaffSchedule />} />
         <Route path="ingredients" element={<AdminIngredients />} />
+        <Route path="schedule" element={<AdminSchedulePage />}>
+          <Route index element={<ShiftTemplatePage />} />
+          <Route path="templates" element={<ShiftTemplatePage />} />
+          <Route path="list" element={<WorkSchedulePage />} />
+        </Route>
+        <Route path="inventory" element={<AdminInventory />} />
         <Route path="create-news" element={<AdminNewsCreatePage />} />
         <Route path="profile" element={<UserProfile />} />
         <Route path="news-list" element={<AdminNewsList />} />

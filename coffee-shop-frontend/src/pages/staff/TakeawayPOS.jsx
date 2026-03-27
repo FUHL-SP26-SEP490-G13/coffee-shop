@@ -176,6 +176,7 @@ function TakeawayPOS() {
     paymentMethod,
     discountCode,
     discountAmount,
+    receivedAmount,
   }) => {
     setCheckoutLoading(true);
     try {
@@ -186,6 +187,7 @@ function TakeawayPOS() {
         discount_code: discountCode || '',
         returnUrl,
         cancelUrl: returnUrl,
+        cash_received: paymentMethod === 'cash' ? receivedAmount || 0 : 0, 
         items: cart.map((item) => ({
           product_size_id: item.product_size_id,
           quantity: item.quantity,
