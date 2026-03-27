@@ -27,6 +27,9 @@ const receiptSettingRoutes = require("./receiptSetting.routes");
 const takeawayRoutes = require("./takeaway.routes");
 const aiRoutes = require('./ai.routes');
 const flashSaleRoutes = require('./flashSale.routes');
+const shiftRoutes = require('./shift.routes');
+
+
 
 
 // Mount routes
@@ -58,6 +61,8 @@ router.use("/takeaway", takeawayRoutes);
 router.use("/orders", orderRoutes);
 router.use('/ai', aiRoutes);
 router.use('/flash-sales', flashSaleRoutes);
+router.use('/shifts', shiftRoutes);
+
 
 
 // Health check endpoint

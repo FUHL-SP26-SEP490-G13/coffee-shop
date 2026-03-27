@@ -120,7 +120,11 @@ export const API_ENDPOINTS = {
   },
   AI: {
     CHAT: '/ai/chat'
-  }
+  },
+  CATEGORIES: {
+    BASE: '/categories',
+    BY_ID: (id) => `/categories/${id}`,
+  },
 };
 
 // Các hằng số khác
