@@ -49,7 +49,7 @@ export default function NewsListPage() {
                 <Newspaper className="h-8 w-8 text-primary" />
               </div>
               <h1 className="text-1xl md:text-2xl lg:text-2xl bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
-                Tin tức & Sự kiện
+                Tin tức cà phê
               </h1>
               <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
                 Khám phá những câu chuyện thú vị và cập nhật tin tức mới nhất từ

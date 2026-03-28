@@ -636,25 +636,55 @@ export default function ProductDetailPage() {
                 </h1>
               </div>
 
-              <button
-                type="button"
-                onClick={handleToggleFavorite}
-                disabled={favoriteLoading}
-                className={`shrink-0 w-12 h-12 rounded-full border flex items-center justify-center transition ${
-                  isFavorite
-                    ? "bg-red-50 border-red-500 text-red-500"
-                    : "bg-white border-gray-300 text-gray-500 hover:border-red-400 hover:text-red-500"
-                }`}
-                title={isFavorite ? "Bỏ yêu thích" : "Thêm vào yêu thích"}
-              >
-                {favoriteLoading ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  <Heart
-                    className={`w-5 h-5 ${isFavorite ? "fill-current" : ""}`}
-                  />
-                )}
-              </button>
+              <div className="flex gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const url = encodeURIComponent(window.location.href);
+                    const text = encodeURIComponent(`Sản phẩm ${product.name} rất ngon, hãy vào cà phê mua ngay bạn nhé`);
+                    window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}&quote=${text}`, '_blank', 'width=600,height=400');
+                  }}
+                  className="w-12 h-12 rounded-full border flex items-center justify-center transition bg-white border-gray-300 text-blue-600 hover:border-blue-500 hover:text-blue-700 hover:bg-blue-50"
+                  title="Chia sẻ lên Facebook"
+                >
+                  <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.469h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                  </svg>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const url = encodeURIComponent(window.location.href);
+                    const text = encodeURIComponent(`Sản phẩm ${product.name} rất ngon, hãy vào cà phê mua ngay bạn nhé`);
+                    window.open(`https://twitter.com/intent/tweet?url=${url}&text=${text}`, '_blank', 'width=600,height=400');
+                  }}
+                  className="w-12 h-12 rounded-full border flex items-center justify-center transition bg-white border-gray-300 text-gray-800 hover:border-black hover:text-black hover:bg-gray-100"
+                  title="Chia sẻ lên X (Twitter)"
+                >
+                  <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                  </svg>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleToggleFavorite}
+                  disabled={favoriteLoading}
+                  className={`w-12 h-12 rounded-full border flex items-center justify-center transition ${
+                    isFavorite
+                      ? "bg-red-50 border-red-500 text-red-500"
+                      : "bg-white border-gray-300 text-gray-500 hover:border-red-400 hover:text-red-500 hover:bg-red-50"
+                  }`}
+                  title={isFavorite ? "Bỏ yêu thích" : "Thêm vào yêu thích"}
+                >
+                  {favoriteLoading ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <Heart className={`w-5 h-5 ${isFavorite ? "fill-current" : ""}`} />
+                  )}
+                </button>
+              </div>
             </div>
 
             {sizes.length > 0 && (

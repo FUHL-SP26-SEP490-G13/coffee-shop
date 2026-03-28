@@ -5,8 +5,8 @@ class CategoryService {
   /**
    * Get all categories
    */
-  async getAllCategories() {
-    return CategoryRepository.findAllActive();
+  async getAllCategories(options = {}) {
+    return CategoryRepository.findAllActive(options);
   }
 
   /**
