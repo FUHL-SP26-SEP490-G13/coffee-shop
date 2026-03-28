@@ -2,6 +2,21 @@ const OrderOnlineService = require("../services/OrderOnlineService");
 const NotificationService = require("../services/NotificationService");
 
 class OrderOnlineController {
+  async getReputationByPhone(req, res, next) {
+    try {
+      const { phone } = req.query;
+      const result = await OrderOnlineService.getReputationByPhone(phone);
+
+      return res.json({
+        success: true,
+        data: result,
+        message: "Lấy điểm uy tín thành công",
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async checkout(req, res, next) {
     try {
       const result = await OrderOnlineService.checkout(req.body, req.user || null);
@@ -10,7 +25,10 @@ class OrderOnlineController {
       // Emit socket event for new order
       const io = req.app.get("io");
       if (io) {
-        const eventName = orderType === "delivery" ? "new-delivery-order" : "new-takeaway-order";
+        let eventName = "new-order";
+        if (orderType === "delivery") eventName = "new-delivery-order";
+        else if (orderType === "takeaway") eventName = "new-takeaway-order";
+        else if (orderType === "dine-in") eventName = "new-dine-in-order";
         
         io.emit(eventName, {
           order_id: result.order_id,
@@ -22,14 +40,29 @@ class OrderOnlineController {
 
       // Save operational notifications into DB and emit to each recipient room
       try {
+        let notifTitle = "Đơn hàng mới";
+        let notifMsg = `Có đơn hàng mới #${result.order_id}`;
+        let notifLink = "/staff/orders";
+
+        if (orderType === "delivery") {
+          notifTitle = "Đơn giao hàng mới";
+          notifMsg = `Có đơn giao hàng mới #${result.order_id}`;
+          notifLink = "/staff/delivery";
+        } else if (orderType === "takeaway") {
+          notifTitle = "Đơn mang đi mới";
+          notifMsg = `Có đơn mang đi mới #${result.order_id}`;
+          notifLink = "/staff/takeaway";
+        } else if (orderType === "dine-in") {
+          notifTitle = "Đơn tại bàn mới";
+          notifMsg = `Bàn ${req.body.table_id || 'khuyết'} vừa đặt đơn mới #${result.order_id}`;
+          notifLink = "/staff/orders"; // Fallback to general staff order view
+        }
+
         const notificationPayload = {
           type: "new_order",
-          title: orderType === "delivery" ? "Đơn giao hàng mới" : "Đơn mang đi mới",
-          message:
-            orderType === "delivery"
-              ? `Có đơn giao hàng mới #${result.order_id}`
-              : `Có đơn mang đi mới #${result.order_id}`,
-          link: orderType === "delivery" ? "/staff/delivery" : "/staff/takeaway",
+          title: notifTitle,
+          message: notifMsg,
+          link: notifLink,
           entity_type: "order",
           entity_id: result.order_id,
         };
@@ -253,6 +286,57 @@ class OrderOnlineController {
       success: true,
       data: result,
       message: "Hủy đơn giao hàng thành công",
+    });
+  }
+
+  async markPrintSuccess(req, res) {
+    const orderId = Number(req.params.id);
+
+    const result = await OrderOnlineService.markOrderPrintSuccess(orderId);
+
+    return res.json({
+      success: true,
+      data: result,
+      message: "Cập nhật trạng thái in hóa đơn thành công",
+    });
+  }
+
+  async markDeliveringByStaff(req, res) {
+    const orderId = Number(req.params.id);
+
+    const result = await OrderOnlineService.markDeliveryDeliveringByStaff(orderId);
+
+    return res.json({
+      success: true,
+      data: result,
+      message: "Đơn hàng đã chuyển sang trạng thái đang giao",
+    });
+  }
+
+  async cancelDeliveringByStaff(req, res) {
+    const orderId = Number(req.params.id);
+
+    const result = await OrderOnlineService.cancelDeliveringOrderByStaff(orderId);
+
+    return res.json({
+      success: true,
+      data: result,
+      message: "Đã hủy đơn hàng đang giao",
+    });
+  }
+
+  async completeDeliveryByStaff(req, res) {
+    const orderId = Number(req.params.id);
+    const cashReceived = req.body?.cash_received;
+
+    const result = await OrderOnlineService.markDeliveryCompletedByStaff(orderId, {
+      cash_received: cashReceived,
+    });
+
+    return res.json({
+      success: true,
+      data: result,
+      message: "Đơn hàng đã hoàn tất",
     });
   }
 

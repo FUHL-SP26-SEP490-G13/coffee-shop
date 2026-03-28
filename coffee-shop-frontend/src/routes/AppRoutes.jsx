@@ -9,8 +9,10 @@ import authenticationService from "../services/authenticationService";
 import HomePage from "@/pages/homePage/HomePage";
 import ChangePasswordPage from "../pages/authentication/ChangePasswordPage";
 import ForgotPasswordPage from "../pages/authentication/ForgotPasswordPage";
-import AdminStaffSchedule from "../pages/admin/AdminStaffSchedule";
-import AdminInventory from "../pages/admin/AdminInventory";
+import AdminIngredients from "../pages/admin/AdminIngredient/AdminIngredients";
+import AdminSchedulePage from "../pages/admin/AdminSchedule/AdminSchedulePage";
+import ShiftTemplatePage from "../pages/admin/AdminSchedule/ShiftTemplate/ShiftTemplatePage";
+import WorkSchedulePage from "../pages/admin/AdminSchedule/WorkSchedule/WorkSchedulePage";
 import { UserProfile } from "../pages/common/UserProfile";
 import AdminNewsCreatePage from "../pages/admin/AdminNew/AdminNewsCreatePage";
 import AdminNewsList from "../pages/admin/AdminNew/AdminNewsList";
@@ -48,6 +50,8 @@ import ProductListPage from "../pages/homePage/product/ProductListPage";
 import ProductDetailPage from "../pages/homePage/product/ProductDetailPage";
 import CartPage from "@/pages/homePage/order/CartPage";
 import CheckoutPage from "@/pages/homePage/order/CheckoutPage";
+import OrderQRMenu from "@/pages/homePage/order/OrderQRMenu";
+import MyOrderQRDetail from "@/pages/homePage/order/MyOrderQRDetail";
 import PayOSReturnSuccess from "@/pages/common/PayOSReturnSuccess";
 import AdminDB from "@/pages/admin/AdminDB/AdminDB";
 import AdminSubscriber from "@/pages/admin/AdminSubscriber/AdminSubscriber";
@@ -58,8 +62,9 @@ import MyOrderDetailPage from "../pages/homePage/order/MyOrderDetailPage";
 import AdminReceiptSettings from "@/pages/admin/AdminReceiptSettings/AdminReceiptSettings";
 import AdminFlashSales from "@/pages/admin/AdminFlashSale/AdminFlashSales";
 import TakeawayPOS from '../pages/staff/TakeawayPOS'
-import { OrderDelivery } from '@/pages/staff/OrderDelivery';
+import { OrderDelivery } from '@/pages/staff/StaffOrderList';
 import { StaffDashboard } from "@/pages/staff/StaffDashboard";
+import StaffPayOSReturn from "@/pages/staff/StaffPayOSReturn";
 
 const getStoredValue = (key) =>
   localStorage.getItem(key) || sessionStorage.getItem(key);
@@ -147,7 +152,8 @@ const AppRoutes = () => {
         <Route path="dashboard" element={<StaffDashboard />} />
 
         <Route path="takeaway" element={<TakeawayPOS />} />
-        <Route path="delivery" element={<OrderDelivery />} />
+        <Route path="payment-result" element={<StaffPayOSReturn />} />
+        <Route path="orders" element={<OrderDelivery />} />
         <Route path="attendance" element={<StaffAttendance />} />
         <Route path="inventory" element={<StaffInventory />} />
         <Route path="kitchen" element={<StaffKitchen />} />
@@ -188,8 +194,13 @@ const AppRoutes = () => {
         <Route path="menu/categories" element={<AdminCategories />} />
         <Route path="orders" element={<AdminOrders />} />
         <Route path="users" element={<AdminUsers />} />
-        <Route path="schedule" element={<AdminStaffSchedule />} />
-        <Route path="inventory" element={<AdminInventory />} />
+        <Route path="ingredients" element={<AdminIngredients />} />
+        <Route path="schedule" element={<AdminSchedulePage />}>
+          <Route index element={<ShiftTemplatePage />} />
+          <Route path="templates" element={<ShiftTemplatePage />} />
+          <Route path="list" element={<WorkSchedulePage />} />
+        </Route>
+        <Route path="inventory" element={<AdminIngredients />} />
         <Route path="create-news" element={<AdminNewsCreatePage />} />
         <Route path="profile" element={<UserProfile />} />
         <Route path="news-list" element={<AdminNewsList />} />
@@ -241,6 +252,9 @@ const AppRoutes = () => {
           </RoleGuard>
         }
       />
+
+      <Route path="/order" element={<OrderQRMenu />} />
+      <Route path="/order/confirm" element={<MyOrderQRDetail />} />
 
       {/* 404 */}
       <Route

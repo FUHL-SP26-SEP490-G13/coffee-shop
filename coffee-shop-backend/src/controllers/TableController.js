@@ -60,7 +60,7 @@ class TableController {
 
       // Get old table state to check for status change
       const oldTable = await TableService.getTableById(id);
-      
+
       const table = await TableService.updateTable(id, req.body);
 
       // Trigger notification if status changes to "occupied" (Có khách)
@@ -125,6 +125,39 @@ class TableController {
   }
 
   /**
+   * API tạo mới bàn kèm QR code
+   */
+  async createTableWithQrCode(req, res, next) {
+    try {
+      const table = await TableService.createTableWithQrCode(req.body);
+      res.status(201).json({
+        success: true,
+        data: table,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+
+  /**
+   * API cập nhật QR code cho bàn đã có sẵn
+   */
+  async updateQrForTable(req, res, next) {
+    try {
+      const table = await TableService.updateQrForTable(req.params.id);
+      res.json({
+        success: true,
+        data: table,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+
+
+  /**
    * Reserve table (Commented out)
    */
   // async reserveTable(req, res, next) {
@@ -148,7 +181,7 @@ class TableController {
       const { id } = req.params;
       const OrderService = require('../services/OrderService');
       const order = await OrderService.getActiveOrderForTable(id);
-      
+
       res.json({
         success: true,
         data: order,
@@ -157,8 +190,6 @@ class TableController {
       next(error);
     }
   }
-<<<<<<< Updated upstream
-=======
 
   /**
    * Transfer table: move all orders from source table to destination table
@@ -197,11 +228,34 @@ class TableController {
   }
 
   /**
-   * Merge order: move all active orders from source table into destination table
+   * Settle debt for all unpaid orders of current table session.
    */
-  async mergeOrder(req, res, next) {
+  async settleTableDebt(req, res, next) {
     try {
-      const { from_table_id, to_table_id } = req.body;
+      const { id } = req.params;
+      const { payment_method, cash_received } = req.body || {};
+
+      const result = await TableService.settleTableDebt(Number(id), {
+        payment_method,
+        cash_received,
+      });
+
+      return res.json({
+        success: true,
+        message: `Thanh toán  cho bàn ${result.table_code} thành công`,
+        data: result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Merge active order(s) from source table to destination table.
+   */
+  async mergeOrders(req, res, next) {
+    try {
+      const { from_table_id, to_table_id } = req.body || {};
 
       if (!from_table_id || !to_table_id) {
         return res.status(400).json({
@@ -231,7 +285,6 @@ class TableController {
       next(error);
     }
   }
->>>>>>> Stashed changes
 }
 
 module.exports = new TableController();

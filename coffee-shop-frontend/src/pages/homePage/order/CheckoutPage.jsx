@@ -1,11 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { MapPin } from "lucide-react";
+import { Banknote, CircleHelp, MapPin } from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   Dialog,
   DialogContent,
@@ -16,10 +23,18 @@ import {
 import { cartService } from "@/services/cartService";
 import authenticationService from "@/services/authenticationService";
 import PlaceOrderButton from "@/components/order/PlaceOrderButton";
+import ReputationScoreDialog from "@/components/order/ReputationScoreDialog";
 import orderService from "@/services/orderOnlineService";
 import { STORAGE_KEYS } from "@/constants";
 import { validateOrderField } from "@/utils/orderValidation";
 import PayOSLogo from "/logo/payOS.svg";
+import reputationService from "@/services/reputationService";
+import {
+  getReputationColor,
+  getReputationTierLabel,
+  validateOrderPermissions,
+} from "@/utils/reputationValidation";
+import { toast } from "sonner";
 import flashSaleService from "@/services/flashSaleService";
 
 export default function CheckoutPage() {
@@ -37,6 +52,12 @@ export default function CheckoutPage() {
   const [selectedAddressId, setSelectedAddressId] = useState(null);
   const [isAddressLoading, setIsAddressLoading] = useState(false);
   const [isAddressDialogOpen, setIsAddressDialogOpen] = useState(false);
+  const [isReputationDialogOpen, setIsReputationDialogOpen] = useState(false);
+  const [reputationScore, setReputationScore] = useState(50);
+  const [reputationTier, setReputationTier] = useState("SILVER");
+  const [reputationFrozen, setReputationFrozen] = useState(false);
+  const [isReputationLoading, setIsReputationLoading] = useState(false);
+  const [paymentValidation, setPaymentValidation] = useState(null);
   const [form, setForm] = useState({
     order_type: "delivery",
     payment_method: "payos",
@@ -50,7 +71,8 @@ export default function CheckoutPage() {
   const [activeSale, setActiveSale] = useState(null);
 
   useEffect(() => {
-    flashSaleService.getCurrentActive()
+    flashSaleService
+      .getCurrentActive()
       .then((res) => {
         setActiveSale(res?.data || null);
       })
@@ -74,6 +96,7 @@ export default function CheckoutPage() {
         ]);
 
         const user = profileRes?.data;
+
         const addressList = Array.isArray(addressesRes?.data)
           ? addressesRes.data
           : [];
@@ -105,6 +128,53 @@ export default function CheckoutPage() {
     loadCheckoutData();
   }, [token]);
 
+  const normalizePhoneNumber = (phone) => {
+    const digits = String(phone || "").replace(/\D/g, "");
+    if (!digits) return "";
+    if (digits.startsWith("84") && digits.length >= 11) {
+      return `0${digits.slice(2)}`;
+    }
+    if (digits.length === 9) return `0${digits}`;
+    return digits;
+  };
+
+  useEffect(() => {
+    const normalizedPhone = normalizePhoneNumber(form.receiver_phone);
+
+    if (normalizedPhone.length < 10) {
+      setReputationScore(50);
+      setReputationTier("SILVER");
+      setReputationFrozen(false);
+      setIsReputationLoading(false);
+      return;
+    }
+
+    const timeoutId = setTimeout(async () => {
+      setIsReputationLoading(true);
+      try {
+        const res =
+          await reputationService.getReputationProfile(normalizedPhone);
+        const reputation = res?.data?.data || res?.data || {};
+
+        setReputationScore(Number(reputation?.current_score ?? 50));
+        setReputationTier(String(reputation?.reputation_tier || "SILVER"));
+        setReputationFrozen(
+          Number(reputation?.is_frozen || 0) === 1 ||
+            reputation?.is_frozen === true,
+        );
+      } catch (error) {
+        console.error("Lỗi lấy điểm uy tín theo số điện thoại:", error);
+        setReputationScore(50);
+        setReputationTier("SILVER");
+        setReputationFrozen(false);
+      } finally {
+        setIsReputationLoading(false);
+      }
+    }, 450);
+
+    return () => clearTimeout(timeoutId);
+  }, [form.receiver_phone]);
+
   const getAddressTypeLabel = (type) => {
     if (type === "work") return "Văn phòng";
     if (type === "other") return "Khác";
@@ -123,11 +193,11 @@ export default function CheckoutPage() {
       ...prev,
       receiver_name: validateOrderField(
         "receiver_name",
-        item.receiver_name || form.receiver_name
+        item.receiver_name || form.receiver_name,
       ),
       receiver_phone: validateOrderField(
         "receiver_phone",
-        item.receiver_phone || form.receiver_phone
+        item.receiver_phone || form.receiver_phone,
       ),
       address: validateOrderField("address", item.address || ""),
     }));
@@ -137,16 +207,36 @@ export default function CheckoutPage() {
   const selectedAddress =
     addresses.find((item) => item.id === selectedAddressId) || null;
 
+  const normalizedReputationTier = useMemo(() => {
+    const tier = String(reputationTier || "").toUpperCase();
+    if (["BRONZE", "SILVER", "GOLD", "DIAMOND"].includes(tier)) {
+      return tier;
+    }
+    return getReputationTierLabel(reputationScore);
+  }, [reputationTier, reputationScore]);
+
+  const reputationTierText = useMemo(() => {
+    const map = {
+      BRONZE: "Đồng",
+      SILVER: "Bạc",
+      GOLD: "Vàng",
+      DIAMOND: "Kim cương",
+    };
+    return map[normalizedReputationTier] || normalizedReputationTier;
+  }, [normalizedReputationTier]);
+
   const subtotalAmount = useMemo(() => {
     return cart.reduce(
       (sum, item) => sum + cartService.getItemSubtotal(item),
-      0
+      0,
     );
   }, [cart]);
 
   const regularAmount = useMemo(() => {
     return cart.reduce((sum, item) => {
-      const isFlashSale = activeSale?.product_ids?.some(id => Number(id) === Number(item.product_id || item.id));
+      const isFlashSale = activeSale?.product_ids?.some(
+        (id) => Number(id) === Number(item.product_id || item.id),
+      );
       if (isFlashSale) {
         return sum; // Do not include in regular amount
       }
@@ -157,6 +247,33 @@ export default function CheckoutPage() {
   const discountAmount = Number(appliedDiscount?.discount_amount || 0);
   const totalAmount = subtotalAmount - discountAmount;
 
+  // Validate payment permissions khi điểm uy tín thay đổi
+  useEffect(() => {
+    try {
+      const validation = validateOrderPermissions(
+        reputationScore,
+        totalAmount,
+        reputationFrozen,
+      );
+      setPaymentValidation(validation);
+
+      // Force PayOS nếu bắt buộc
+      if (validation.forcePayOS && form.payment_method === "cash") {
+        setForm((prev) => ({
+          ...prev,
+          payment_method: "payos",
+        }));
+        toast.warning(`Chuyển sang PayOS: ${validation.message}`, {
+          duration: 5000,
+        });
+      }
+    } catch (error) {
+      // Account blocked
+      toast.error(error.message, { duration: 5000 });
+      setPaymentValidation(null);
+    }
+  }, [reputationScore, reputationFrozen, totalAmount, form.payment_method]);
+
   const handleApplyDiscount = async () => {
     const code = discountCode.trim();
 
@@ -166,7 +283,9 @@ export default function CheckoutPage() {
     }
 
     if (regularAmount === 0) {
-      alert("Mã giảm giá không áp dụng cho đơn hàng chỉ có sản phẩm Flash Sale!");
+      alert(
+        "Mã giảm giá không áp dụng cho đơn hàng chỉ có sản phẩm Flash Sale!",
+      );
       return;
     }
 
@@ -175,10 +294,11 @@ export default function CheckoutPage() {
       const itemsPayload = cart.map((item) => ({
         product_size_id: item.productSizeId || item.product_size_id,
         quantity: item.quantity,
-        toppings: item.toppings?.map((t) => ({
-          topping_id: t.topping_id,
-          quantity: t.quantity,
-        })) || [],
+        toppings:
+          item.toppings?.map((t) => ({
+            topping_id: t.topping_id,
+            quantity: t.quantity,
+          })) || [],
       }));
 
       const res = await orderService.validateDiscount({
@@ -261,7 +381,7 @@ export default function CheckoutPage() {
                       ...prev,
                       receiver_phone: validateOrderField(
                         "receiver_phone",
-                        value
+                        value,
                       ),
                     }));
                   }}
@@ -271,6 +391,17 @@ export default function CheckoutPage() {
                     {errors.receiver_phone}
                   </p>
                 )}
+                {!errors.receiver_phone && form.receiver_phone ? (
+                  <p
+                    className={`mt-1 text-xs ${
+                      reputationFrozen ? "text-red-600" : "text-emerald-600"
+                    }`}
+                  >
+                    {reputationFrozen
+                      ? "Số điện thoại này đã bị khóa"
+                      : "Số điện thoại hợp lệ"}
+                  </p>
+                ) : null}
               </div>
 
               <div>
@@ -287,7 +418,7 @@ export default function CheckoutPage() {
                       ...prev,
                       receiver_email: validateOrderField(
                         "receiver_email",
-                        value
+                        value,
                       ),
                     }));
                   }}
@@ -345,7 +476,8 @@ export default function CheckoutPage() {
 
                     {addresses.length === 0 && !isAddressLoading && (
                       <p className="text-sm text-gray-500 mt-2">
-                        Bạn chưa lưu địa chỉ nào. Hãy nhập địa chỉ giao hàng bên dưới.
+                        Bạn chưa lưu địa chỉ nào. Hãy nhập địa chỉ giao hàng bên
+                        dưới.
                       </p>
                     )}
 
@@ -353,16 +485,20 @@ export default function CheckoutPage() {
                       <div className="mt-3 border rounded-xl p-3 bg-amber-50 border-amber-200">
                         <div className="flex items-center justify-between gap-2">
                           <p className="text-sm font-semibold text-gray-900">
-                            {selectedAddress.receiver_name || "Địa chỉ giao hàng"}
+                            {selectedAddress.receiver_name ||
+                              "Địa chỉ giao hàng"}
                           </p>
                           <span className="text-xs text-gray-600">
                             {getAddressTypeLabel(selectedAddress.address_type)}
                           </span>
                         </div>
                         <p className="text-sm text-gray-600 mt-1">
-                          {selectedAddress.receiver_phone || "Chưa có số điện thoại"}
+                          {selectedAddress.receiver_phone ||
+                            "Chưa có số điện thoại"}
                         </p>
-                        <p className="text-sm text-gray-800 mt-1">{selectedAddress.address}</p>
+                        <p className="text-sm text-gray-800 mt-1">
+                          {selectedAddress.address}
+                        </p>
                       </div>
                     )}
                   </div>
@@ -388,7 +524,9 @@ export default function CheckoutPage() {
                     }}
                   />
                   {errors.address && (
-                    <p className="text-sm text-red-500 mt-1">{errors.address}</p>
+                    <p className="text-sm text-red-500 mt-1">
+                      {errors.address}
+                    </p>
                   )}
                 </div>
               </div>
@@ -398,52 +536,111 @@ export default function CheckoutPage() {
               <label className="text-sm font-medium mb-3 block">
                 Phương thức thanh toán
               </label>
+              {paymentValidation && (
+                <div
+                  className={`mb-3 p-3 rounded-lg text-sm ${
+                    paymentValidation.forcePayOS
+                      ? "bg-yellow-50 text-yellow-800 border border-yellow-200"
+                      : "bg-blue-50 text-blue-800 border border-blue-200"
+                  }`}
+                >
+                  <p className="font-medium">{paymentValidation.message}</p>
+                  {paymentValidation.reason && (
+                    <p className="text-xs mt-1 opacity-75">
+                      {paymentValidation.reason}
+                    </p>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => setIsReputationDialogOpen(true)}
+                    className="mt-2 font-bold underline underline-offset-2 hover:opacity-80"
+                  >
+                    Xem chi tiết về cách xét điểm uy tín
+                  </button>
+                </div>
+              )}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {[
                   {
                     value: "payos",
                     label: "PayOS",
                     sub: "Thanh toán trực tuyến qua PayOS",
-                    icon: <img src={PayOSLogo} alt="PayOS" className="w-20 object-contain" />,
+                    icon: (
+                      <img
+                        src={PayOSLogo}
+                        alt="PayOS"
+                        className="w-20 object-contain"
+                      />
+                    ),
                   },
                 ].map((opt) => {
+                  const isDisabled =
+                    opt.value === "cash" &&
+                    paymentValidation &&
+                    !paymentValidation.canUseCash;
+
                   const selected = form.payment_method === opt.value;
                   return (
                     <button
                       key={opt.value}
                       type="button"
-                      onClick={() =>
-                        setForm((prev) => ({
-                          ...prev,
-                          payment_method: opt.value,
-                        }))
-                      }
+                      disabled={isDisabled}
+                      onClick={() => {
+                        if (!isDisabled) {
+                          setForm((prev) => ({
+                            ...prev,
+                            payment_method: opt.value,
+                          }));
+                        }
+                      }}
                       className={`flex items-center gap-3 rounded-xl border-2 px-4 py-3 text-left transition-all ${
-                        selected
-                          ? "border-amber-500 bg-amber-50"
-                          : "border-gray-200 bg-white hover:border-gray-300"
+                        isDisabled
+                          ? "border-gray-200 bg-gray-100 opacity-50 cursor-not-allowed"
+                          : selected
+                            ? "border-amber-500 bg-amber-50"
+                            : "border-gray-200 bg-white hover:border-gray-300"
                       }`}
                     >
                       <span
                         className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
-                          selected ? "bg-amber-100" : "bg-gray-100"
+                          isDisabled
+                            ? "bg-gray-200"
+                            : selected
+                              ? "bg-amber-100"
+                              : "bg-gray-100"
                         }`}
                       >
-                        {opt.icon}
+                        {isDisabled ? (
+                          <span className="text-xs text-gray-500">✕</span>
+                        ) : (
+                          opt.icon
+                        )}
                       </span>
                       <span>
-                        <span className="block text-sm font-medium text-gray-900">
+                        <span
+                          className={`block text-sm font-medium ${
+                            isDisabled ? "text-gray-500" : "text-gray-900"
+                          }`}
+                        >
                           {opt.label}
+                          {isDisabled && " (Không khả dụng)"}
                         </span>
-                        <span className="block text-xs text-gray-500">
+                        <span
+                          className={`block text-xs ${
+                            isDisabled ? "text-gray-400" : "text-gray-500"
+                          }`}
+                        >
                           {opt.sub}
                         </span>
                       </span>
                       <span
                         className={`ml-auto h-4 w-4 shrink-0 rounded-full border-2 ${
-                          selected
-                            ? "border-amber-500 bg-amber-500"
-                            : "border-gray-300"
+                          isDisabled
+                            ? "border-gray-300 bg-gray-300"
+                            : selected
+                              ? "border-amber-500 bg-amber-500"
+                              : "border-gray-300"
                         }`}
                       />
                     </button>
@@ -540,7 +737,8 @@ export default function CheckoutPage() {
 
               {appliedDiscount && (
                 <p className="text-xs text-green-600 mt-2">
-                  Đã áp dụng mã {appliedDiscount.code} giảm {discountAmount.toLocaleString("vi-VN")}đ
+                  Đã áp dụng mã {appliedDiscount.code} giảm{" "}
+                  {discountAmount.toLocaleString("vi-VN")}đ
                 </p>
               )}
             </div>
@@ -631,6 +829,13 @@ export default function CheckoutPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <ReputationScoreDialog
+        open={isReputationDialogOpen}
+        onClose={() => setIsReputationDialogOpen(false)}
+        currentScore={reputationScore}
+        currentTier={normalizedReputationTier}
+      />
 
       <Footer />
     </div>

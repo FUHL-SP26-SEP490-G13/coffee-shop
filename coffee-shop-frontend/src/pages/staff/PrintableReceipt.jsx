@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import receiptSettingService from '@/services/receiptSettingService';
 
@@ -37,12 +37,26 @@ const calcSubtotal = (order) =>
     return sum + base + topping;
   }, 0);
 
+const getOrderTypeLabel = (orderType) => {
+  switch (String(orderType || '').toLowerCase()) {
+    case 'delivery':
+      return 'Giao hàng';
+    case 'takeaway':
+      return 'Mang đi';
+    case 'dine-in':
+      return 'Tại quán';
+    default:
+      return 'Khác';
+  }
+};
+
 /**
- * @param {{ order: Object, onDone?: Function }} props
+ * @param {{ order: Object, onDone?: Function, onPrintSuccess?: Function }} props
  */
-export function PrintableReceipt({ order, onDone }) {
+export function PrintableReceipt({ order, onDone, onPrintSuccess }) {
   const [setting, setSetting] = useState(null);
   const [printedAt] = useState(() => Date.now());
+  const afterPrintHandledRef = useRef(false);
 
   useEffect(() => {
     let mounted = true;
@@ -85,6 +99,11 @@ export function PrintableReceipt({ order, onDone }) {
   const subtotal = calcSubtotal(order);
   const totalAmount = Number(order.total_amount || 0);
   const computedDiscount = Math.max(0, subtotal - totalAmount);
+  const normalizedOrderType = String(order?.order_type || '').toLowerCase();
+  const hasReceiverInfo = Boolean(
+    order?.receiver_name || order?.receiver_phone || order?.address || order?.receiver_email
+  );
+  const shouldShowDeliveryInfo = normalizedOrderType === 'delivery' && hasReceiverInfo;
   const orderDate = new Date(order.created_at || printedAt).toLocaleString(
     'vi-VN',
     {
@@ -98,20 +117,33 @@ export function PrintableReceipt({ order, onDone }) {
   );
 
   useEffect(() => {
+    afterPrintHandledRef.current = false;
+
     const timer = setTimeout(() => {
       window.print();
     }, 400);
-    const handleAfterPrint = () => {
-      if (typeof onDone === 'function') {
-        onDone();
+
+    const handleAfterPrint = async () => {
+      if (afterPrintHandledRef.current) return;
+      afterPrintHandledRef.current = true;
+
+      try {
+        if (typeof onPrintSuccess === 'function') {
+          await onPrintSuccess(order);
+        }
+      } finally {
+        if (typeof onDone === 'function') {
+          onDone();
+        }
       }
     };
+
     window.addEventListener('afterprint', handleAfterPrint);
     return () => {
       clearTimeout(timer);
       window.removeEventListener('afterprint', handleAfterPrint);
     };
-  }, [onDone]);
+  }, [onDone, onPrintSuccess, order]);
 
   return createPortal(
     <div className="printable-receipt-portal">
@@ -327,24 +359,10 @@ export function PrintableReceipt({ order, onDone }) {
             <span>Ngày:</span>
             <span>{orderDate}</span>
           </div>
-          {order.receiver_name ? (
-            <div className="receipt-item">
-              <span>Người đặt:</span>
-              <span>{order.receiver_name}</span>
-            </div>
-          ) : null}
-          {order.receiver_phone ? (
-            <div className="receipt-item">
-              <span>SĐT:</span>
-              <span>{order.receiver_phone}</span>
-            </div>
-          ) : null}
-          {order.address ? (
-            <div className="receipt-item">
-              <span>Địa chỉ:</span>
-              <span>{order.address}</span>
-            </div>
-          ) : null}
+          <div className="receipt-item">
+            <span>Loại đơn:</span>
+            <span>{getOrderTypeLabel(order.order_type)}</span>
+          </div>
           {order.printed_by ? (
             <div className="receipt-item">
               <span>Người in:</span>
@@ -352,6 +370,37 @@ export function PrintableReceipt({ order, onDone }) {
             </div>
           ) : null}
         </div>
+
+        {/* Delivery Info */}
+        {shouldShowDeliveryInfo && (
+          <div className="receipt-section">
+            {order.receiver_name && (
+              <div className="receipt-item">
+                <span>Người nhận:</span>
+                <span style={{ textAlign: 'right' }}>{order.receiver_name}</span>
+              </div>
+            )}
+            {order.receiver_phone && (
+              <div className="receipt-item">
+                <span>Số điện thoại:</span>
+                <span style={{ textAlign: 'right' }}>{order.receiver_phone}</span>
+              </div>
+            )}
+            {order.receiver_email && (
+              <div className="receipt-item">
+                <span>Email:</span>
+                <span style={{ textAlign: 'right', wordBreak: 'break-all', maxWidth: '60%' }}>{order.receiver_email}</span>
+              </div>
+            )}
+            {order.address && (
+              <div className="receipt-item">
+                <span>Địa chỉ:</span>
+                <span style={{ textAlign: 'right' }}>{order.address}</span>
+              </div>
+            )}
+          </div>
+        )}
+
 
         {/* Items */}
         <div className="receipt-section">
@@ -398,6 +447,16 @@ export function PrintableReceipt({ order, onDone }) {
             <div className="receipt-item">
               <span>Giảm giá{order.discount_code ? ` (${order.discount_code})` : ''}</span>
               <span>-{fmt(computedDiscount)}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Ghi chú */}
+        {order.note && (
+          <div className="receipt-section">
+            <div className="receipt-item">
+              <span>Ghi chú:</span>
+              <span>{order.note}</span>
             </div>
           </div>
         )}

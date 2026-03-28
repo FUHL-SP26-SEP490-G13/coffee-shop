@@ -1,26 +1,8 @@
 const CategoryService = require('../services/CategoryService');
 const response = require('../utils/response');
 const cloudinary = require('../config/cloudinary');
+const extractPublicId = require('../helpers/extractPublicId');
 
-/**
- * Helper: Extract Cloudinary public_id từ URL
- */
-function extractPublicId(url) {
-  if (!url) return null;
-
-  try {
-    const urlObj = new URL(url);
-    const pathname = urlObj.pathname;
-    const segments = pathname.split('/');
-
-    const fileName = segments.pop(); // abc123.jpg
-    const folder = segments.pop(); // categories
-
-    return `${folder}/${fileName.split('.')[0]}`;
-  } catch (error) {
-    return null;
-  }
-}
 
 class CategoryController {
   /**
@@ -28,69 +10,11 @@ class CategoryController {
    */
   async getAll(req, res, next) {
     try {
-      const { with_count, page, limit } = req.query;
-
-      if (page && limit) {
-        const pageNumber = parseInt(page);
-        const limitNumber = parseInt(limit);
-        const offset = (pageNumber - 1) * limitNumber;
-
-        const categories = await CategoryService.getAllCategories({
-          limit: limitNumber,
-          offset,
-        });
-
-        const total = await CategoryService.countCategories();
-
-        return response.paginate(
-          res,
-          categories,
-          pageNumber,
-          limitNumber,
-          total,
-          'Lấy danh sách categories thành công',
-        );
-      }
-
-      let categories;
-
-      if (with_count === 'true') {
-        categories = await CategoryService.getCategoriesWithProductCount();
-      } else {
-        categories = await CategoryService.getAllCategories();
-      }
-
-      return response.success(
-        res,
-        categories,
-        'Lấy danh sách categories thành công',
-      );
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  /**
-   * GET /api/categories/:id
-   */
-  async getById(req, res, next) {
-    try {
-      const { id } = req.params;
       const { with_count } = req.query;
-
-      let category;
-
-      if (with_count === 'true') {
-        category = await CategoryService.getCategoryWithProductCount(id);
-      } else {
-        category = await CategoryService.getCategoryById(id);
-      }
-
-      return response.success(
-        res,
-        category,
-        'Lấy thông tin category thành công',
-      );
+      const categories = await CategoryService.getAllCategories({ 
+        with_count: with_count === 'true' 
+      });
+      return response.success(res, categories, 'Lấy danh sách categories thành công');
     } catch (error) {
       next(error);
     }
@@ -187,10 +111,7 @@ class CategoryController {
       }
 
       // Update DB trước
-      const updatedCategory = await CategoryService.updateCategory(
-        id,
-        categoryData,
-      );
+      const updatedCategory = await CategoryService.updateCategory(id, categoryData);
 
       /**
        * Sau khi update thành công:
@@ -203,19 +124,12 @@ class CategoryController {
           try {
             await cloudinary.uploader.destroy(publicId);
           } catch (cloudinaryError) {
-            console.error(
-              'Failed to delete old Cloudinary image:',
-              cloudinaryError,
-            );
+            console.error('Failed to delete old Cloudinary image:', cloudinaryError);
           }
         }
       }
 
-      return response.success(
-        res,
-        updatedCategory,
-        'Cập nhật category thành công',
-      );
+      return response.success(res, updatedCategory, 'Cập nhật category thành công');
     } catch (error) {
       // Nếu upload ảnh mới mà DB fail → rollback ảnh mới
       if (newUploadedPublicId) {
@@ -240,64 +154,6 @@ class CategoryController {
       await CategoryService.deleteCategory(id);
 
       return response.success(res, null, 'Xóa category thành công');
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  /**
-   * GET /api/categories/search
-   */
-  async search(req, res, next) {
-    try {
-      const { keyword, limit, page } = req.query;
-
-      if (page && limit) {
-        const pageNumber = parseInt(page);
-        const limitNumber = parseInt(limit);
-        const offset = (pageNumber - 1) * limitNumber;
-
-        const categories = await CategoryService.searchCategories(keyword, {
-          limit: limitNumber,
-          offset,
-        });
-
-        const total = await CategoryService.countSearchResults(keyword);
-
-        return response.paginate(
-          res,
-          categories,
-          pageNumber,
-          limitNumber,
-          total,
-          'Tìm kiếm categories thành công',
-        );
-      }
-
-      const categories = await CategoryService.searchCategories(keyword, {
-        limit: parseInt(limit) || 20,
-      });
-
-      return response.success(
-        res,
-        categories,
-        'Tìm kiếm categories thành công',
-      );
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  /**
-   * POST /api/categories/:id/restore
-   */
-  async restore(req, res, next) {
-    try {
-      const { id } = req.params;
-
-      const category = await CategoryService.restoreCategory(id);
-
-      return response.success(res, category, 'Khôi phục category thành công');
     } catch (error) {
       next(error);
     }

@@ -1,8 +1,103 @@
-const TableRepository = require('../repositories/TableRepository');
-const AreaRepository = require('../repositories/AreaRepository');
+const TableRepository = require("../repositories/TableRepository");
+const AreaRepository = require("../repositories/AreaRepository");
+const generateQrCode = require('../utils/generateQrCode');
 const ErrorResponse = require('../utils/ErrorResponse');
 
 class TableService {
+  buildToppingSignature(toppings = []) {
+    if (!Array.isArray(toppings) || toppings.length === 0) return "";
+    return toppings
+      .map((t) => `${Number(t.topping_id)}:${Number(t.quantity || 0)}:${Number(t.price || 0)}`)
+      .sort()
+      .join("|");
+  }
+
+  buildOrderDetailSignature(detail) {
+    return [
+      Number(detail.product_id || 0),
+      Number(detail.product_size_id || 0),
+      Number(detail.price || 0),
+      String(detail.note || "").trim(),
+      this.buildToppingSignature(detail.toppings || []),
+    ].join("#");
+  }
+
+  async loadOrderDetailsForMerge(connection, orderId) {
+    const [rows] = await connection.query(
+      `
+      SELECT
+        od.id,
+        od.product_size_id,
+        ps.product_id,
+        od.quantity,
+        od.price,
+        COALESCE(od.note, '') AS note
+      FROM order_details od
+      JOIN product_sizes ps ON ps.id = od.product_size_id
+      WHERE od.order_id = ?
+      ORDER BY od.id ASC
+      `,
+      [orderId]
+    );
+
+    if (rows.length === 0) return [];
+
+    const detailIds = rows.map((r) => r.id);
+    const placeholders = detailIds.map(() => "?").join(",");
+    const [toppings] = await connection.query(
+      `
+      SELECT
+        order_detail_id,
+        topping_id,
+        quantity,
+        price
+      FROM order_detail_toppings
+      WHERE order_detail_id IN (${placeholders})
+      ORDER BY order_detail_id ASC, topping_id ASC, quantity ASC, price ASC
+      `,
+      detailIds
+    );
+
+    const toppingsByDetail = new Map();
+    toppings.forEach((t) => {
+      const key = Number(t.order_detail_id);
+      if (!toppingsByDetail.has(key)) toppingsByDetail.set(key, []);
+      toppingsByDetail.get(key).push({
+        topping_id: Number(t.topping_id),
+        quantity: Number(t.quantity || 0),
+        price: Number(t.price || 0),
+      });
+    });
+
+    return rows.map((r) => ({
+      id: Number(r.id),
+      product_size_id: Number(r.product_size_id),
+      product_id: Number(r.product_id),
+      quantity: Number(r.quantity || 0),
+      price: Number(r.price || 0),
+      note: String(r.note || ""),
+      toppings: toppingsByDetail.get(Number(r.id)) || [],
+    }));
+  }
+
+  async recalculateOrderTotal(connection, orderId) {
+    const [rows] = await connection.query(
+      `
+      SELECT
+        COALESCE(SUM((od.price + COALESCE(t.topping_total, 0)) * od.quantity), 0) AS total
+      FROM order_details od
+      LEFT JOIN (
+        SELECT order_detail_id, COALESCE(SUM(price * quantity), 0) AS topping_total
+        FROM order_detail_toppings
+        GROUP BY order_detail_id
+      ) t ON t.order_detail_id = od.id
+      WHERE od.order_id = ?
+      `,
+      [orderId]
+    );
+    return Number(rows[0]?.total || 0);
+  }
+
   /**
    * Get all tables with area information
    */
@@ -111,14 +206,12 @@ class TableService {
   async getTablesByArea(areaId) {
     return await TableRepository.findByAreaId(areaId);
   }
-<<<<<<< Updated upstream
-=======
 
-    /**
-   * Tạo mới bàn và sinh QR code (base64)
-   * @param {object} data - { name, seatNumber, area_id, status }
-   * @returns {Promise<object>} - Bản ghi bàn vừa tạo
-   */
+  /**
+ * Tạo mới bàn và sinh QR code (base64)
+ * @param {object} data - { name, seatNumber, area_id, status }
+ * @returns {Promise<object>} - Bản ghi bàn vừa tạo
+ */
   async createTableWithQrCode(data) {
     // Validate area tồn tại
     const area = await AreaRepository.findById(data.area_id);
@@ -249,83 +342,98 @@ class TableService {
   }
 
   /**
-   * Ghép order: chuyển toàn bộ order active từ bàn nguồn sang bàn đích.
-   * Bàn nguồn sẽ trở về trống, bàn đích vẫn giữ trạng thái có khách.
+   * Thanh toán công nợ cho bàn theo session hiện tại.
+   * Chỉ thanh toán các order chưa paid, không cộng các order đã thanh toán trước đó.
    */
-  async mergeOrder(fromTableId, toTableId) {
+  async settleTableDebt(tableId, { payment_method = 'cash', cash_received = null } = {}) {
+    const method = String(payment_method || 'cash').toLowerCase();
+    if (!['cash', 'payos'].includes(method)) {
+      throw new ErrorResponse(400, 'Phương thức thanh toán không hợp lệ');
+    }
+
     const connection = await TableRepository.db.getConnection();
     try {
       await connection.beginTransaction();
 
-      const [fromRows] = await connection.query(
-        'SELECT id, code, status, current_session_id FROM tables WHERE id = ? AND is_deleted = 0',
-        [fromTableId]
+      const [tableRows] = await connection.query(
+        'SELECT id, code, current_session_id FROM tables WHERE id = ? AND is_deleted = 0 LIMIT 1',
+        [tableId]
       );
-      if (fromRows.length === 0) throw new ErrorResponse(404, 'Bàn nguồn không tồn tại');
-      const fromTable = fromRows[0];
-      if (fromTable.status !== 'occupied') {
-        throw new ErrorResponse(400, `Bàn ${fromTable.code} không có order để ghép`);
-      }
-      if (!fromTable.current_session_id) {
-        throw new ErrorResponse(400, `Bàn ${fromTable.code} không có phiên order active`);
+      if (tableRows.length === 0) {
+        throw new ErrorResponse(404, 'Bàn không tồn tại');
       }
 
-      const [toRows] = await connection.query(
-        'SELECT id, code, status, current_session_id FROM tables WHERE id = ? AND is_deleted = 0',
-        [toTableId]
-      );
-      if (toRows.length === 0) throw new ErrorResponse(404, 'Bàn đích không tồn tại');
-      const toTable = toRows[0];
-      if (toTable.status !== 'occupied') {
-        throw new ErrorResponse(400, `Bàn ${toTable.code} cần ở trạng thái có khách để ghép order`);
+      const table = tableRows[0];
+      if (!table.current_session_id) {
+        throw new ErrorResponse(400, `Bàn ${table.code} chưa có phiên phục vụ`);
       }
 
-      const [activeSourceOrders] = await connection.query(
+      const [debtOrders] = await connection.query(
         `
-          SELECT id
-          FROM orders
-          WHERE table_id = ?
-            AND session_id = ?
-            AND status NOT IN ('completed', 'cancelled')
+        SELECT
+          o.id,
+          o.total_amount,
+          o.is_paid,
+          COALESCE(op.payment_status, 'pending') AS payment_status
+        FROM orders o
+        LEFT JOIN order_payments op ON op.order_id = o.id
+        WHERE o.table_id = ? AND o.session_id = ?
+        ORDER BY o.created_at ASC
         `,
-        [fromTableId, fromTable.current_session_id]
+        [tableId, table.current_session_id]
       );
 
-      if (activeSourceOrders.length === 0) {
-        throw new ErrorResponse(400, `Bàn ${fromTable.code} không có order active để ghép`);
+      if (debtOrders.length === 0) {
+        throw new ErrorResponse(404, 'Không có đơn hàng nào để thanh toán');
       }
 
-      const destinationSessionId =
-        toTable.current_session_id || `sess_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+      const unpaidOrders = debtOrders.filter((order) => {
+        const paidByFlag = Number(order.is_paid || 0) === 1;
+        const paidByStatus = String(order.payment_status || '').toLowerCase() === 'paid';
+        return !(paidByFlag || paidByStatus);
+      });
+
+      if (unpaidOrders.length === 0) {
+        throw new ErrorResponse(400, `Bàn ${table.code} không còn công nợ`);
+      }
+
+      const debtAmount = unpaidOrders.reduce(
+        (sum, order) => sum + Number(order.total_amount || 0),
+        0
+      );
+
+      if (method === 'cash' && cash_received !== null && cash_received !== undefined) {
+        const received = Number(cash_received);
+        if (Number.isNaN(received) || received < debtAmount) {
+          throw new ErrorResponse(400, 'Tiền khách đưa không đủ để thanh toán công nợ');
+        }
+      }
+
+      const orderIds = unpaidOrders.map((o) => Number(o.id));
+      const placeholders = orderIds.map(() => '?').join(',');
+
+      await connection.query(
+        `UPDATE orders SET is_paid = 1, paid_at = NOW() WHERE id IN (${placeholders})`,
+        orderIds
+      );
 
       await connection.query(
         `
-          UPDATE orders
-          SET table_id = ?, session_id = ?
-          WHERE table_id = ?
-            AND session_id = ?
-            AND status NOT IN ('completed', 'cancelled')
+        UPDATE order_payments
+        SET payment_status = 'paid', payment_method = ?, paid_at = NOW()
+        WHERE order_id IN (${placeholders})
         `,
-        [toTableId, destinationSessionId, fromTableId, fromTable.current_session_id]
-      );
-
-      await connection.query(
-        "UPDATE tables SET status = 'available', current_session_id = NULL WHERE id = ?",
-        [fromTableId]
-      );
-
-      await connection.query(
-        "UPDATE tables SET status = 'occupied', current_session_id = ? WHERE id = ?",
-        [destinationSessionId, toTableId]
+        [method, ...orderIds]
       );
 
       await connection.commit();
 
       return {
-        from: { id: fromTableId, code: fromTable.code },
-        to: { id: toTableId, code: toTable.code },
-        merged_order_count: activeSourceOrders.length,
-        destination_session_id: destinationSessionId,
+        table_id: Number(tableId),
+        table_code: table.code,
+        settled_orders: orderIds.length,
+        debt_amount: debtAmount,
+        payment_method: method,
       };
     } catch (error) {
       await connection.rollback();
@@ -334,7 +442,266 @@ class TableService {
       connection.release();
     }
   }
->>>>>>> Stashed changes
+
+  /**
+   * Merge active orders from source table into destination table.
+   */
+  async mergeOrders(fromTableId, toTableId) {
+    if (Number(fromTableId) === Number(toTableId)) {
+      throw new ErrorResponse(400, 'Không thể gộp order vào chính nó');
+    }
+
+    const connection = await TableRepository.db.getConnection();
+    try {
+      await connection.beginTransaction();
+
+      const [tableRows] = await connection.query(
+        `
+        SELECT id, code, status, current_session_id
+        FROM tables
+        WHERE id IN (?, ?) AND is_deleted = 0
+        FOR UPDATE
+        `,
+        [fromTableId, toTableId]
+      );
+
+      const fromTable = tableRows.find((t) => Number(t.id) === Number(fromTableId));
+      const toTable = tableRows.find((t) => Number(t.id) === Number(toTableId));
+
+      if (!fromTable) throw new ErrorResponse(404, 'Bàn nguồn không tồn tại');
+      if (!toTable) throw new ErrorResponse(404, 'Bàn đích không tồn tại');
+
+      if (!fromTable.current_session_id) {
+        throw new ErrorResponse(400, `Bàn ${fromTable.code} không có order active`);
+      }
+
+      const [sourceOrders] = await connection.query(
+        `
+        SELECT
+          o.id,
+          o.table_id,
+          o.session_id,
+          o.status,
+          o.is_paid,
+          o.total_amount,
+          o.created_at,
+          COALESCE(op.payment_status, 'pending') AS payment_status
+        FROM orders o
+        LEFT JOIN order_payments op ON op.order_id = o.id
+        WHERE o.table_id = ?
+          AND o.session_id = ?
+          AND o.status IN ('pending', 'preparing', 'processing')
+        ORDER BY o.created_at ASC
+        FOR UPDATE
+        `,
+        [fromTableId, fromTable.current_session_id]
+      );
+
+      if (sourceOrders.length === 0) {
+        throw new ErrorResponse(400, `Bàn ${fromTable.code} không có order active`);
+      }
+
+      const invalidSource = sourceOrders.find(
+        (o) => Number(o.is_paid || 0) === 1 || String(o.payment_status || '').toLowerCase() === 'paid'
+      );
+      if (invalidSource) {
+        throw new ErrorResponse(400, 'Không thể merge khi order nguồn đã thanh toán');
+      }
+
+      let destinationSession = toTable.current_session_id;
+      const destinationOrdersQuery = destinationSession
+        ? `
+          SELECT
+            o.id,
+            o.table_id,
+            o.session_id,
+            o.status,
+            o.is_paid,
+            o.total_amount,
+            o.created_at,
+            COALESCE(op.payment_status, 'pending') AS payment_status
+          FROM orders o
+          LEFT JOIN order_payments op ON op.order_id = o.id
+          WHERE o.table_id = ?
+            AND o.session_id = ?
+            AND o.status IN ('pending', 'preparing', 'processing')
+          ORDER BY o.created_at ASC
+          FOR UPDATE
+        `
+        : `
+          SELECT
+            o.id,
+            o.table_id,
+            o.session_id,
+            o.status,
+            o.is_paid,
+            o.total_amount,
+            o.created_at,
+            COALESCE(op.payment_status, 'pending') AS payment_status
+          FROM orders o
+          LEFT JOIN order_payments op ON op.order_id = o.id
+          WHERE o.table_id = ?
+            AND o.status IN ('pending', 'preparing', 'processing')
+          ORDER BY o.created_at ASC
+          FOR UPDATE
+        `;
+      const destinationParams = destinationSession ? [toTableId, destinationSession] : [toTableId];
+      const [destinationOrders] = await connection.query(destinationOrdersQuery, destinationParams);
+
+      const invalidDestination = destinationOrders.find(
+        (o) => Number(o.is_paid || 0) === 1 || String(o.payment_status || '').toLowerCase() === 'paid'
+      );
+      if (invalidDestination) {
+        throw new ErrorResponse(400, 'Không thể merge khi order đích đã thanh toán');
+      }
+
+      if (destinationOrders.length === 0) {
+        destinationSession = destinationSession || `sess_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+        const sourceOrderIds = sourceOrders.map((o) => Number(o.id));
+        const placeholders = sourceOrderIds.map(() => '?').join(',');
+
+        await connection.query(
+          `
+          UPDATE orders
+          SET table_id = ?, session_id = ?
+          WHERE id IN (${placeholders})
+          `,
+          [toTableId, destinationSession, ...sourceOrderIds]
+        );
+
+        await connection.query(
+          "UPDATE tables SET status = 'available', current_session_id = NULL WHERE id = ?",
+          [fromTableId]
+        );
+        await connection.query(
+          "UPDATE tables SET status = 'occupied', current_session_id = ? WHERE id = ?",
+          [destinationSession, toTableId]
+        );
+
+        await connection.commit();
+        return {
+          merged: true,
+          merged_into_order_id: null,
+          source_closed_orders: sourceOrderIds.length,
+          moved_orders: sourceOrderIds.length,
+          from: { id: fromTable.id, code: fromTable.code },
+          to: { id: toTable.id, code: toTable.code },
+          mode: 'move-all',
+        };
+      }
+
+      const keeperOrder = destinationOrders[0];
+      const keeperOrderId = Number(keeperOrder.id);
+      const keeperDetails = await this.loadOrderDetailsForMerge(connection, keeperOrderId);
+      const keeperBySignature = new Map();
+
+      keeperDetails.forEach((detail) => {
+        const signature = this.buildOrderDetailSignature(detail);
+        if (!keeperBySignature.has(signature)) {
+          keeperBySignature.set(signature, detail);
+        }
+      });
+
+      for (const sourceOrder of sourceOrders) {
+        const sourceDetails = await this.loadOrderDetailsForMerge(connection, Number(sourceOrder.id));
+
+        for (const detail of sourceDetails) {
+          const signature = this.buildOrderDetailSignature(detail);
+          const existed = keeperBySignature.get(signature);
+
+          if (existed) {
+            await connection.query(
+              'UPDATE order_details SET quantity = quantity + ? WHERE id = ?',
+              [Number(detail.quantity || 0), Number(existed.id)]
+            );
+          } else {
+            const [insertDetail] = await connection.query(
+              `
+              INSERT INTO order_details (order_id, product_size_id, quantity, price, note)
+              VALUES (?, ?, ?, ?, ?)
+              `,
+              [
+                keeperOrderId,
+                Number(detail.product_size_id),
+                Number(detail.quantity || 0),
+                Number(detail.price || 0),
+                String(detail.note || ''),
+              ]
+            );
+
+            const newDetailId = Number(insertDetail.insertId);
+            if (Array.isArray(detail.toppings) && detail.toppings.length > 0) {
+              for (const topping of detail.toppings) {
+                await connection.query(
+                  `
+                  INSERT INTO order_detail_toppings (order_detail_id, topping_id, quantity, price)
+                  VALUES (?, ?, ?, ?)
+                  `,
+                  [
+                    newDetailId,
+                    Number(topping.topping_id),
+                    Number(topping.quantity || 0),
+                    Number(topping.price || 0),
+                  ]
+                );
+              }
+            }
+
+            keeperBySignature.set(signature, {
+              ...detail,
+              id: newDetailId,
+            });
+          }
+        }
+      }
+
+      const sourceOrderIds = sourceOrders.map((o) => Number(o.id));
+      const sourcePlaceholders = sourceOrderIds.map(() => '?').join(',');
+
+      await connection.query(
+        `
+        UPDATE orders
+        SET status = 'cancelled', total_amount = 0
+        WHERE id IN (${sourcePlaceholders})
+        `,
+        sourceOrderIds
+      );
+
+      const keeperTotal = await this.recalculateOrderTotal(connection, keeperOrderId);
+      await connection.query(
+        'UPDATE orders SET total_amount = ? WHERE id = ?',
+        [keeperTotal, keeperOrderId]
+      );
+      await connection.query(
+        'UPDATE order_payments SET amount = ? WHERE order_id = ?',
+        [keeperTotal, keeperOrderId]
+      );
+
+      await connection.query(
+        "UPDATE tables SET status = 'available', current_session_id = NULL WHERE id = ?",
+        [fromTableId]
+      );
+      await connection.query(
+        "UPDATE tables SET status = 'occupied', current_session_id = ? WHERE id = ?",
+        [keeperOrder.session_id || destinationSession || toTable.current_session_id, toTableId]
+      );
+
+      await connection.commit();
+      return {
+        merged: true,
+        merged_into_order_id: keeperOrderId,
+        source_closed_orders: sourceOrderIds.length,
+        from: { id: fromTable.id, code: fromTable.code },
+        to: { id: toTable.id, code: toTable.code },
+        mode: 'merge-items',
+      };
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
+  }
 }
 
 module.exports = new TableService();

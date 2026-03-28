@@ -53,8 +53,8 @@ export function StaffApp() {
 
   const getCurrentPage = () => {
     const path = location.pathname;
-    if (path.includes('takeaway')) return 'takeaway';
-    if (path.includes('delivery')) return 'delivery';
+    if (path.includes('takeaway')) return 'takeaway'; 
+    if(path.includes('orders')) return 'orders';
     if (path.includes('kitchen')) return 'kitchen';
     if (path.includes('tables')) return 'tables';
     if (path.includes('attendance')) return 'attendance';
@@ -75,7 +75,7 @@ export function StaffApp() {
         { id: 'dashboard', icon: LayoutDashboard, label: 'Tổng quan', path: '/staff/dashboard' },
         { id: 'tables', icon: Users, label: 'Phòng bàn', path: '/staff/tables' },
         { id: 'takeaway', icon: ShoppingBag, label: 'Đặt mang đi', path: '/staff/takeaway' },
-        { id: 'delivery', icon: ShoppingBag, label: 'Đặt giao hàng', path: '/staff/delivery' },
+        { id: 'orders', icon: ShoppingBag, label: 'Danh sách đơn hàng', path: '/staff/orders' },
         { id: 'kitchen', icon: ChefHat, label: 'Bếp', path: '/staff/kitchen' },
 
       ],
@@ -310,10 +310,11 @@ export function StaffApp() {
                       navigate(item.path);
                       setMobileMenuOpen(false);
                     }}
-                    className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all mb-1 ${currentPage === item.id
-                      ? 'bg-primary text-primary-foreground shadow-sm'
-                      : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-                      }`}
+                    className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all mb-1 ${
+                      currentPage === item.id
+                        ? 'bg-primary text-primary-foreground shadow-sm'
+                        : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                    }`}
                   >
                     <Icon className='w-[18px] h-[18px] flex-shrink-0' />
                     <span className='text-sm font-medium'>{item.label}</span>

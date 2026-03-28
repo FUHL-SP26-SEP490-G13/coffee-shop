@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Trash2, Mail, Search, Copy, Bell } from "lucide-react";
 import socket from "@/lib/socket";
+import PaginationControl from "@/components/common/PaginationControl";
 
 export default function AdminSubscriber() {
   const [emails, setEmails] = useState([]);
@@ -255,39 +256,14 @@ export default function AdminSubscriber() {
           </div>
         )}
       </Card>
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between pt-4">
-          <p className="text-sm text-muted-foreground">
-            Hiển thị {startIndex + 1} -{" "}
-            {Math.min(startIndex + itemsPerPage, filteredEmails.length)} /{" "}
-            {filteredEmails.length} email
-          </p>
-
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
-              disabled={page === 1}
-            >
-              Trước
-            </Button>
-
-            <span className="text-sm px-2">
-              Trang {page} / {totalPages}
-            </span>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPage((prev) => Math.min(prev + 1, totalPages))}
-              disabled={page === totalPages}
-            >
-              Sau
-            </Button>
-          </div>
-        </div>
-      )}
+      <PaginationControl
+        currentPage={page}
+        totalPages={totalPages}
+        onPageChange={setPage}
+        totalItems={filteredEmails.length}
+        itemsPerPage={itemsPerPage}
+        itemName="email"
+      />
     </div>
   );
 }

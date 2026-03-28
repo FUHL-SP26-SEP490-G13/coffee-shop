@@ -33,6 +33,7 @@
     "multer-storage-cloudinary": "^4.0.0",
     "mysql2": "^3.6.5",
     "nodemailer": "^8.0.1",
+    "qrcode": "^1.5.4",
     "slugify": "^1.6.6",
     "socket.io": "^4.8.3",
     "winston": "^3.11.0",

@@ -22,6 +22,7 @@ import {
   Bell,
   MessageSquare,
   Zap,
+  Clock,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import authenticationService from '../../services/authenticationService';
@@ -43,6 +44,7 @@ import { getNotificationLink } from "@/utils/getNotificationLink";
 
 export default function AdminApp() {
    const [openMenu, setOpenMenu] = useState(false);
+   const [openScheduleMenu, setOpenScheduleMenu] = useState(false);
    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
    const [notifications, setNotifications] = useState([]);
    const [showNotifications, setShowNotifications] = useState(false);
@@ -372,7 +374,7 @@ export default function AdminApp() {
                 </div>
                 
                 <NavLink
-                  to="/admin/inventory"
+                  to="/admin/ingredients"
                   onClick={() => setMobileMenuOpen(false)}
                   className={({ isActive }) =>
                     `w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
@@ -381,7 +383,7 @@ export default function AdminApp() {
                   }
                 >
                   <ClipboardList className="w-4 h-4" />
-                  <span className="text-sm tracking-wide">Kho hàng</span>
+                  <span className="text-sm tracking-wide">Nguyên liệu</span>
                 </NavLink>
               </div>
             </div>
@@ -485,18 +487,47 @@ export default function AdminApp() {
                 Hệ thống
               </p>
               <div className="space-y-1">
-                <NavLink
-                  to="/admin/schedule"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={({ isActive }) =>
-                    `w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
-                      isActive ? "bg-primary text-white" : "text-muted-foreground hover:bg-secondary"
-                    }`
-                  }
-                >
-                  <Calendar className="w-4 h-4" />
-                  <span className="text-sm tracking-wide">Lịch làm việc</span>
-                </NavLink>
+                <div>
+                  <button
+                    onClick={() => setOpenScheduleMenu(!openScheduleMenu)}
+                    className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:bg-secondary transition-colors"
+                  >
+                    <Calendar className="w-4 h-4" />
+                    <span className="text-sm tracking-wide flex-1 text-left">Lịch làm việc</span>
+                    <ChevronDown
+                      className={`w-4 h-4 transition-transform ${openScheduleMenu ? 'rotate-180' : ''}`}
+                    />
+                  </button>
+
+                  {openScheduleMenu && (
+                    <div className="ml-6 mt-1 space-y-1">
+                      <NavLink
+                        to="/admin/schedule/templates"
+                        onClick={() => setMobileMenuOpen(false)}
+                        className={({ isActive }) =>
+                          `flex items-center gap-2 px-3 py-2 rounded-md text-xs tracking-wide ${
+                            isActive ? 'bg-primary text-white' : 'text-muted-foreground hover:bg-secondary'
+                          }`
+                        }
+                      >
+                        <Clock className="w-4 h-4" />
+                        Quản lý ca làm
+                      </NavLink>
+                      <NavLink
+                        to="/admin/schedule/list"
+                        onClick={() => setMobileMenuOpen(false)}
+                        className={({ isActive }) =>
+                          `flex items-center gap-2 px-3 py-2 rounded-md text-xs tracking-wide ${
+                            isActive ? 'bg-primary text-white' : 'text-muted-foreground hover:bg-secondary'
+                          }`
+                        }
+                      >
+                        <Calendar className="w-4 h-4" />
+                        Lịch làm việc
+                      </NavLink>
+                    </div>
+                  )}
+                </div>
                 <NavLink
                   to="/admin/receipt-settings"
                   onClick={() => setMobileMenuOpen(false)}

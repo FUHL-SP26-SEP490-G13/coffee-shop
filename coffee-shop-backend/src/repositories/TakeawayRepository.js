@@ -34,18 +34,30 @@ class TakeawayRepository {
     return row || null;
   }
 
-  async createOrder(connection, { user_id, created_by, order_type, total_amount, discount_id }) {
+  async createOrder(
+    connection,
+    { user_id, created_by, order_type, total_amount, discount_id },
+  ) {
     const [result] = await connection.query(
       `INSERT INTO orders 
          (user_id, created_by, order_type, total_amount, discount_id,
           status, is_paid, customer_type, created_at)
        VALUES (?, ?, ?, ?, ?, 'pending', 0, 'guest', NOW())`,
-      [user_id || null, created_by, order_type, total_amount, discount_id || null],
+      [
+        user_id || null,
+        created_by,
+        order_type,
+        total_amount,
+        discount_id || null,
+      ],
     );
     return result.insertId;
   }
 
-  async createOrderDetail(connection, { order_id, product_size_id, quantity, price, note }) {
+  async createOrderDetail(
+    connection,
+    { order_id, product_size_id, quantity, price, note },
+  ) {
     const [result] = await connection.query(
       `INSERT INTO order_details (order_id, product_size_id, quantity, price, note)
        VALUES (?, ?, ?, ?, ?)`,
@@ -54,7 +66,10 @@ class TakeawayRepository {
     return result.insertId;
   }
 
-  async createOrderDetailTopping(connection, { order_detail_id, topping_id, quantity, price }) {
+  async createOrderDetailTopping(
+    connection,
+    { order_detail_id, topping_id, quantity, price },
+  ) {
     await connection.query(
       `INSERT INTO order_detail_toppings (order_detail_id, topping_id, quantity, price)
        VALUES (?, ?, ?, ?)`,
@@ -63,12 +78,33 @@ class TakeawayRepository {
   }
 
   // Tạo payment — cash gộp paid ngay, payos để pending
-  async createOrderPayment(connection, { order_id, payment_method, payment_status, amount, paid_amount }) {
+  async createOrderPayment(
+    connection,
+    {
+      order_id,
+      payment_method,
+      payment_status,
+      amount,
+      paid_amount,
+      cash_received,
+      change_amount,
+    },
+  ) {
+    const isPaid = payment_status === 'paid';
     await connection.query(
       `INSERT INTO order_payments 
-         (order_id, payment_method, payment_status, amount, paid_amount, adjustment_amount, created_at)
-       VALUES (?, ?, ?, ?, ?, 0, NOW())`,
-      [order_id, payment_method, payment_status, amount, paid_amount || 0],
+     (order_id, payment_method, payment_status, amount, paid_amount, cash_received, change_amount, paid_at,created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+      [
+        order_id,
+        payment_method,
+        payment_status,
+        amount,
+        paid_amount || 0,
+        cash_received || 0,
+        change_amount || 0,
+        isPaid ? new Date() : null,
+      ],
     );
   }
 
@@ -98,11 +134,17 @@ class TakeawayRepository {
       `SELECT o.*,
               u.first_name AS staff_first_name, u.last_name AS staff_last_name,
               d.code AS discount_code, d.percentage AS discount_percentage,
-              b.first_name AS barista_first_name, b.last_name AS barista_last_name
+              b.first_name AS barista_first_name, b.last_name AS barista_last_name,
+              odi.receiver_name,
+              odi.receiver_phone,
+              odi.receiver_email,
+              odi.address,
+              odi.note AS delivery_note
        FROM orders o
        LEFT JOIN users u ON o.created_by = u.id
        LEFT JOIN discount d ON o.discount_id = d.id
        LEFT JOIN users b ON o.assigned_barista_id = b.id
+       LEFT JOIN order_delivery_info odi ON odi.order_id = o.id
        WHERE o.id = ?`,
       [orderId],
     );
@@ -127,11 +169,24 @@ class TakeawayRepository {
        GROUP BY od.id, p.name, ps.size, od.quantity, od.price, od.note`,
       [orderId],
     );
-    return rows.map((row) => ({
-      ...row,
-      toppings: JSON.parse(row.toppings_raw || '[]').filter(Boolean),
-      toppings_raw: undefined,
-    }));
+    return rows.map((row) => {
+      let toppingsArray = [];
+      if (typeof row.toppings_raw === 'string') {
+        try {
+          toppingsArray = JSON.parse(row.toppings_raw || '[]');
+        } catch (e) {
+          toppingsArray = [];
+        }
+      } else if (Array.isArray(row.toppings_raw)) {
+        toppingsArray = row.toppings_raw;
+      }
+
+      return {
+        ...row,
+        toppings: toppingsArray.filter(Boolean),
+        toppings_raw: undefined,
+      };
+    });
   }
 
   async findOrderPayment(orderId) {
@@ -143,7 +198,9 @@ class TakeawayRepository {
   }
 
   async deleteOrderDetails(connection, orderId) {
-    await connection.query(`DELETE FROM order_details WHERE order_id = ?`, [orderId]);
+    await connection.query(`DELETE FROM order_details WHERE order_id = ?`, [
+      orderId,
+    ]);
   }
 
   async updateOrderAmounts(connection, { orderId, total_amount, discount_id }) {
@@ -154,13 +211,12 @@ class TakeawayRepository {
   }
 
   // Cập nhật payment sau khi sửa đơn (kể cả đã paid)
-  async updatePaymentAfterEdit(connection, { orderId, newAmount, oldPaidAmount }) {
-    const adjustment = newAmount - oldPaidAmount; // âm = hoàn tiền, dương = thu thêm
+  async updatePaymentAfterEdit(connection, { orderId, newAmount }) {
     await connection.query(
       `UPDATE order_payments 
-       SET amount = ?, adjustment_amount = ?
+       SET amount = ?
        WHERE order_id = ?`,
-      [newAmount, adjustment, orderId],
+      [newAmount, orderId],
     );
   }
 

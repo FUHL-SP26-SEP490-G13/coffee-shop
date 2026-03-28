@@ -23,7 +23,7 @@ router.get(
 router.get(
   "/dashboard/active-orders",
   authenticate,
-  authorize([ROLES_STRING.BARISTA]),
+  authorize([ROLES_STRING.BARISTA, ROLES_STRING.STAFF, ROLES_STRING.MANAGER]),
   controller.getActiveOrders
 );
 

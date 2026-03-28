@@ -193,10 +193,15 @@ class OrderService {
 
       const finalAmount = Math.max(0, totalAmount - discountAmount);
       const userId = user?.id || null;
+      const status = order_type === "dine-in" ? "preparing" : "pending";
 
       const orderId = await OrderRepository.createOrder(connection, {
         user_id: userId,
         created_by: userId,
+
+        // Đơn tại quán sẽ bắt đầu ở trạng thái "preparing" để nhân viên bếp có 
+        // thể thấy và xử lý ngay, không phải chờ khách thanh toán xong mới hiển thị
+        status: order_type === "dine-in" ? "preparing" : "pending",
         customer_type: user ? "registered" : "guest",
         order_type,
         table_id: order_type === "dine-in" ? payload.table_id : null,
@@ -233,27 +238,47 @@ class OrderService {
         }
       }
 
-      if (order_type !== "dine-in" || (note && note.trim())) {
+      const normalizedReceiverName = receiver_name ? receiver_name.trim() : "";
+      const normalizedReceiverPhone = receiver_phone ? receiver_phone.trim() : "";
+      const normalizedReceiverEmail = receiver_email?.trim() || null;
+      const normalizedAddress = address?.trim() || null;
+      const normalizedNote = note?.trim() || null;
+
+      const hasReceiverInfo = Boolean(
+        normalizedReceiverName ||
+        normalizedReceiverPhone ||
+        normalizedReceiverEmail ||
+        normalizedAddress
+      );
+
+      if (order_type !== "dine-in" || hasReceiverInfo || normalizedNote) {
         const [existingInfo] = await connection.query(
           "SELECT id FROM order_delivery_info WHERE order_id = ?",
           [orderId]
         );
 
         if (existingInfo.length > 0) {
-          if (note && note.trim()) {
-            await connection.query(
-              "UPDATE order_delivery_info SET note = ? WHERE order_id = ?",
-              [note.trim(), orderId]
-            );
-          }
+          await connection.query(
+            `UPDATE order_delivery_info
+             SET receiver_name = ?, receiver_phone = ?, receiver_email = ?, address = ?, note = ?
+             WHERE order_id = ?`,
+            [
+              normalizedReceiverName,
+              normalizedReceiverPhone,
+              normalizedReceiverEmail,
+              normalizedAddress,
+              normalizedNote,
+              orderId,
+            ]
+          );
         } else {
           await OrderRepository.createOrderDeliveryInfo(connection, {
             order_id: orderId,
-            receiver_name: receiver_name ? receiver_name.trim() : "",
-            receiver_phone: receiver_phone ? receiver_phone.trim() : "",
-            receiver_email: receiver_email?.trim() || null,
-            address: address?.trim() || null,
-            note: note?.trim() || null,
+            receiver_name: normalizedReceiverName,
+            receiver_phone: normalizedReceiverPhone,
+            receiver_email: normalizedReceiverEmail,
+            address: normalizedAddress,
+            note: normalizedNote,
           });
         }
       }
@@ -400,11 +425,7 @@ class OrderService {
     if (!orderCode) throw new ErrorResponse(400, "Thiếu orderCode");
 
     const isPaid = status === "PAID";
-    const paymentStatus = isPaid
-      ? "paid"
-      : status === "CANCELLED"
-      ? "cancelled"
-      : "pending";
+    const paymentStatus = isPaid ? "paid" : "pending";
 
     await OrderRepository.updatePaymentByOrderCode(orderCode, {
       transaction_id: payosId || null,
@@ -459,15 +480,15 @@ class OrderService {
 
       const [rows] = await connection.query(
         `
-          SELECT
-            o.id,
-            o.total_amount,
-            o.is_paid,
-            COALESCE(op.payment_status, 'pending') AS payment_status
-          FROM orders o
-          LEFT JOIN order_payments op ON op.order_id = o.id
-          WHERE o.table_id = ? AND o.session_id = ?
-          ORDER BY o.created_at ASC
+        SELECT
+          o.id,
+          o.total_amount,
+          o.is_paid,
+          COALESCE(op.payment_status, 'pending') AS payment_status
+        FROM orders o
+        LEFT JOIN order_payments op ON op.order_id = o.id
+        WHERE o.table_id = ? AND o.session_id = ?
+        ORDER BY o.created_at ASC
         `,
         [tableId, sessionId]
       );
@@ -477,7 +498,8 @@ class OrderService {
       }
 
       let combinedTotal = 0;
-      let outstandingTotal = 0;
+      let debtAmount = 0;
+      let unpaidOrdersCount = 0;
       let allItems = [];
       const unpaidOrders = rows.filter((order) => {
         const paidFlag = Number(order.is_paid || 0) === 1;
@@ -487,12 +509,17 @@ class OrderService {
       const representativeOrderId = unpaidOrders[0]?.id || rows[0].id;
 
       for (const order of rows) {
-        combinedTotal += Number(order.total_amount || 0);
-        const paidFlag = Number(order.is_paid || 0) === 1;
-        const paymentStatus = String(order.payment_status || '').toLowerCase();
-        if (!(paidFlag && paymentStatus === 'paid')) {
-          outstandingTotal += Number(order.total_amount || 0);
+        const orderTotal = Number(order.total_amount || 0);
+        const paidByFlag = Number(order.is_paid || 0) === 1;
+        const paidByStatus = String(order.payment_status || '').toLowerCase() === 'paid';
+        const isOrderPaid = paidByFlag || paidByStatus;
+
+        combinedTotal += orderTotal;
+        if (!isOrderPaid) {
+          debtAmount += orderTotal;
+          unpaidOrdersCount += 1;
         }
+
         const orderItems = await OrderRepository.findOrderItems(order.id);
         allItems = allItems.concat(orderItems);
       }
@@ -503,9 +530,8 @@ class OrderService {
       return {
         ...orderData,
         total_amount: combinedTotal,
-        outstanding_amount: outstandingTotal,
-        has_outstanding: outstandingTotal > 0,
-        unpaid_order_id: unpaidOrders[0]?.id || null,
+        debt_amount: debtAmount,
+        unpaid_orders_count: unpaidOrdersCount,
         items: allItems,
       };
     } finally {

@@ -22,6 +22,7 @@ import UpdateProduct from './Action/UpdateProduct';
 import DeleteProduct from './Action/DeleteProduct';
 import AddRecipeModal from './Action/AddRecipeModal';
 import ViewRecipeModal from './Action/ViewRecipeModal';
+import PaginationControl from '../../../components/common/PaginationControl';
 
 const PAGE_SIZE = 8;
 
@@ -286,29 +287,14 @@ export default function AdminProducts() {
         </Table>
       </div>
 
-      <div className='flex items-center justify-between mt-4'>
-        <p className='text-sm text-muted-foreground'>
-          Trang {currentPage} / {totalPages}, Tổng {pagination.total || 0} sản phẩm, mỗi trang {PAGE_SIZE} sản phẩm
-        </p>
-
-        <div className='flex gap-2'>
-          <Button
-            variant='outline'
-            disabled={currentPage <= 1}
-            onClick={() => handlePageChange(currentPage - 1)}
-          >
-            Trước
-          </Button>
-
-          <Button
-            variant='outline'
-            disabled={currentPage >= totalPages}
-            onClick={() => handlePageChange(currentPage + 1)}
-          >
-            Sau
-          </Button>
-        </div>
-      </div>
+      <PaginationControl
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={handlePageChange}
+        totalItems={pagination.total || 0}
+        itemsPerPage={PAGE_SIZE}
+        itemName="sản phẩm"
+      />
 
       {modal.type === 'create' && (
         <CreateProduct

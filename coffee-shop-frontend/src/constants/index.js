@@ -66,12 +66,17 @@ export const API_ENDPOINTS = {
   },
   ORDER_ONLINE: {
     CHECKOUT: '/order-online/checkout',
+    REPUTATION_BY_PHONE: (phone) => `/order-online/reputation-by-phone?phone=${encodeURIComponent(phone)}`,
     MY_ORDERS: '/order-online/my-orders',
     MY_ORDER_DETAIL: (id) => `/order-online/my-orders/${id}`,
     STAFF_ORDER_DETAIL: (id) => `/order-online/${id}/staff-detail`,
     CANCEL: (id) => `/order-online/${id}/cancel`,
     STAFF_CANCEL: (id) => `/order-online/${id}/staff-cancel`,
     CONFIRM_PREPARING: (id) => `/order-online/${id}/confirm-preparing`,
+    MARK_PRINT_SUCCESS: (id) => `/order-online/${id}/print-success`,
+    MARK_DELIVERING: (id) => `/order-online/${id}/mark-delivering`,
+    STAFF_CANCEL_DELIVERING: (id) => `/order-online/${id}/staff-cancel-delivering`,
+    STAFF_COMPLETE_DELIVERY: (id) => `/order-online/${id}/staff-complete-delivery`,
     PAYOS_RETURN: '/order-online/payos-return',
     VALIDATE_DISCOUNT: '/order-online/validate-discount',
     PAYMENT_LINK: '/create-payment-link',
@@ -115,7 +120,22 @@ export const API_ENDPOINTS = {
   },
   AI: {
     CHAT: '/ai/chat'
-  }
+  },
+  CATEGORIES: {
+    BASE: '/categories',
+    BY_ID: (id) => `/categories/${id}`,
+  },
+  SHIFT_TEMPLATES: {
+    BASE: '/shifts/templates',
+    BY_ID: (id) => `/shifts/templates/${id}`,
+  },
+  SHIFTS: {
+    ASSIGN: '/shifts/assign',
+    ASSIGN_BULK: '/shifts/assign-bulk',
+    REGISTRATION_BY_ID: (id) => `/shifts/registrations/${id}`,
+    SCHEDULE: '/shifts/schedule',
+    MY_SCHEDULE: '/shifts/schedule/me',
+  },
 };
 
 // Các hằng số khác

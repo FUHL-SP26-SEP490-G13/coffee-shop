@@ -225,11 +225,6 @@ export default function BestSellerSection({
                         </h3>
                       </Link>
 
-                      <p className="mt-2 line-clamp-2 flex-grow text-sm leading-relaxed text-muted-foreground">
-                        {product.description ||
-                          "Thưởng thức hương vị đặc biệt của chúng tôi"}
-                      </p>
-
                       <div className="mt-5 flex items-end justify-between gap-3 border-t border-border/60 pt-4">
                         <div className="min-w-0 flex-1">
                           {(() => {

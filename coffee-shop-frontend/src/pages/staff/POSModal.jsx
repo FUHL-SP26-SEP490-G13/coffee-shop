@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { X, Search, Plus, Minus, Trash2, ShoppingCart, Coffee, Send } from 'lucide-react';
+import { X, Search, Plus, Minus, Trash2, ShoppingCart, Coffee, Send, Clock3 } from 'lucide-react';
 import productService from '../../services/productService';
 import tableService from '../../services/tableService';
 import orderService from '../../services/orderService';
@@ -17,6 +17,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from '../../components/ui/dialog';
+import authenticationService from '../../services/authenticationService';
+import socket from '../../lib/socket';
+import { ReceiptModal } from './TakeAwayOrder/ReceiptModal';
+import { useNavigate } from 'react-router-dom';
+import PayOSLogo from "/logo/payOS.svg";
 
 const getProductPrice = (product, size = 'M') => {
   const sizeItem = product.sizes?.find((s) => s.size === size);
@@ -36,6 +41,7 @@ const formatVND = (amount) =>
 const TABLE_MANAGEMENT_PATH = '/staff/tables';
 
 export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
+  const navigate = useNavigate();
   const [editingCartItem, setEditingCartItem] = useState(null);
   const [cart, setCart] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -52,13 +58,10 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
   const [discountAmount, setDiscountAmount] = useState(0);
   const [customerCash, setCustomerCash] = useState(0);
   const [discountError, setDiscountError] = useState('');
-<<<<<<< Updated upstream
-=======
   const [pendingPayosOrderId, setPendingPayosOrderId] = useState(null);
   const [viewingReceipt, setViewingReceipt] = useState(null);
   const [printerName, setPrinterName] = useState('Nhân viên');
-  const [sendingToBarista, setSendingToBarista] = useState(false);
->>>>>>> Stashed changes
+  const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -87,6 +90,43 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
     };
     fetchData();
   }, [isOpen]);
+
+  useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        const res = await authenticationService.getProfile();
+        const user = res?.data?.id ? res.data : res?.data?.data || res?.data;
+        const firstName = String(user?.first_name || '').trim();
+        const lastName = String(user?.last_name || '').trim();
+        const fullName = `${firstName} ${lastName}`.trim();
+        setPrinterName(fullName || user?.username || user?.email || 'Nhân viên');
+      } catch {
+        // Ignore
+      }
+    };
+    loadProfile();
+  }, []);
+
+  // Socket listener for PayOS Success
+  useEffect(() => {
+    if (!socket.connected) socket.connect();
+
+    const handlePaymentCompleted = (data) => {
+      const orderId = data.order_id;
+      if (orderId && Number(orderId) === Number(pendingPayosOrderId)) {
+        const params = new URLSearchParams({
+          orderCode: String(orderId),
+          status: 'PAID',
+          origin: window.location.pathname,
+        });
+        setPendingPayosOrderId(null);
+        navigate(`/staff/payment-result?${params.toString()}`);
+      }
+    };
+
+    socket.on('order:payment-completed', handlePaymentCompleted);
+    return () => socket.off('order:payment-completed', handlePaymentCompleted);
+  }, [navigate, pendingPayosOrderId]);
 
   // Reset cart khi đổi bàn
   useEffect(() => {
@@ -350,18 +390,22 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
     }
   };
 
-  const handleConfirmPayment = async () => {
+  const handleSubmitOrder = async ({ deferredPayment = false, notifyBarista = false } = {}) => {
     const finalTotal = Math.max(0, total - discountAmount);
-    if (paymentMethod === 'cash' && customerCash < finalTotal) {
+    const resolvedPaymentMethod = deferredPayment || notifyBarista ? 'payos' : paymentMethod;
+
+    if (resolvedPaymentMethod === 'cash' && customerCash < finalTotal) {
       toast.error('Tiền khách đưa không đủ');
       return;
     }
+
+    setIsSubmittingOrder(true);
     try {
       const items = buildOrderItemsPayload();
       const payload = {
         order_type: 'dine-in',
         table_id: Number(table.id),
-        payment_method: paymentMethod,
+        payment_method: resolvedPaymentMethod,
         receiver_name: `Khách Bàn ${table.code || ''}`,
         receiver_phone: '0000000000',
         items,
@@ -369,9 +413,11 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
         discount_code: discountAmount > 0 ? discountCode : undefined,
       };
       const res = await orderService.checkout(payload);
-      if (paymentMethod === 'payos') {
+      if (resolvedPaymentMethod === 'payos' && !deferredPayment && !notifyBarista) {
         const orderId = res.data?.order_id || res.data?.id;
         if (orderId) {
+          setPendingPayosOrderId(Number(orderId));
+          const returnUrl = `${window.location.origin}/staff/payment-result?origin=${encodeURIComponent(window.location.pathname)}`;
           const payosItems = cart.map((item) => ({
             name: `${item.productName || item.product?.name || 'Sản phẩm'}${item.size ? ` - ${item.size}` : ''
               }`.slice(0, 100),
@@ -383,19 +429,20 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
             amount: Number(finalTotal),
             description: `DH${orderId}`.slice(0, 25),
             items: payosItems,
+            returnUrl,
+            cancelUrl: returnUrl,
           });
           if (createRes.data?.checkoutUrl) {
-            window.open(createRes.data.checkoutUrl, '_blank');
+            window.location.href = createRes.data.checkoutUrl;
           } else {
+            setPendingPayosOrderId(null);
             toast.error('Không tạo được link thanh toán QR');
           }
         }
-<<<<<<< Updated upstream
-=======
       } else {
         setPendingPayosOrderId(null);
         const orderId = res.data?.order_id || res.data?.id;
-        if (orderId && paymentMethod === 'cash') {
+        if (orderId) {
           const resData = res.data?.data || res.data;
           const orderData = {
             ...resData,
@@ -416,47 +463,68 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
             discount_code: discountAmount > 0 ? discountCode : null,
             discount_amount: discountAmount || resData.discount_amount || 0,
             total_amount: resData.total_amount || finalTotal,
-            is_paid: paymentMethod === 'cash' ? 1 : (resData.is_paid ? 1 : 0),
+            is_paid: resolvedPaymentMethod === 'cash' ? 1 : (resData.is_paid ? 1 : 0),
             payment: {
-              method: paymentMethod,
-              status: paymentMethod === 'cash' ? 'paid' : (resData.is_paid ? 'paid' : 'pending'),
+              method: resolvedPaymentMethod,
+              status: resolvedPaymentMethod === 'cash' ? 'paid' : (resData.is_paid ? 'paid' : 'pending'),
             },
           };
-          setViewingReceipt({ ...orderData, autoPrint: true });
+          if (!notifyBarista && !deferredPayment) {
+            setViewingReceipt({ ...orderData, autoPrint: true });
+          }
         }
->>>>>>> Stashed changes
+
+        
       }
-      toast.success('Đặt hàng thành công!');
+
+      if (notifyBarista) {
+        toast.success('Đã gửi đơn cho barista');
+      } else if (deferredPayment) {
+        toast.success('Đã tạo đơn thanh toán sau');
+      } else {
+        toast.success('Đặt hàng thành công!');
+      }
+
       setCart([]);
       setNote('');
       setIsPaymentModalOpen(false);
       // Cập nhật trạng thái bàn về "occupied" nếu cần
       if (onTableStatusChange) onTableStatusChange(table.id, 'occupied');
-<<<<<<< Updated upstream
-      onClose();
-    } catch (error) {
-=======
 
-      if (paymentMethod !== 'cash') {
-        navigate(TABLE_MANAGEMENT_PATH, {
-          state: {
-            focusTableId: table.id,
-            sourceAction: 'payos-payment',
-          },
-        });
+      if (resolvedPaymentMethod !== 'cash') {
         onClose();
       }
     } catch (error) {
-      if (error?.message === 'invalid-product-size') {
-        toast.error('Có lỗi xảy ra với thông tin sản phẩm');
-        return;
-      }
-      if (paymentMethod === 'payos') {
+      if (resolvedPaymentMethod === 'payos') {
         setPendingPayosOrderId(null);
       }
->>>>>>> Stashed changes
+      onClose();
+    } catch (error) {
+      
       toast.error(error.response?.data?.message || 'Không đặt được hàng');
+    } finally {
+      setIsSubmittingOrder(false);
     }
+  };
+
+  const handleConfirmPayment = async () => {
+    await handleSubmitOrder();
+  };
+
+  const handlePayLater = async () => {
+    await handleSubmitOrder({ deferredPayment: true });
+  };
+
+  const handleSendToBarista = async () => {
+    if (!table) {
+      toast.error('Không tìm thấy thông tin bàn');
+      return;
+    }
+    if (cart.length === 0) {
+      toast.error('Giỏ hàng trống');
+      return;
+    }
+    await handleSubmitOrder({ deferredPayment: true, notifyBarista: true });
   };
 
   const filteredProducts = useMemo(() => {
@@ -725,42 +793,22 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
                 <span className="text-sm text-muted-foreground">Tổng cộng</span>
                 <span className="text-xl font-black text-amber-600">{formatVND(total)}</span>
               </div>
-
-              {/* Send to Barista */}
-              <Button
-                onClick={handleSendToBarista}
-                disabled={cart.length === 0 || sendingToBarista}
-                className="w-full h-11 rounded-xl bg-teal-500 hover:bg-teal-600 text-white font-bold text-sm gap-2 shadow-sm transition-all active:scale-95"
-              >
-                {sendingToBarista ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    Đang gửi...
-                  </>
-                ) : (
-                  <>
-                    <Send className="w-4 h-4" />
-                    Gửi Barista
-                  </>
-                )}
-              </Button>
-
               <div className="grid grid-cols-2 gap-2">
                 <Button
-                  onClick={handleOpenPaymentModal}
-                  disabled={cart.length === 0}
-                  className="h-11 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-sm gap-2 shadow-sm transition-all active:scale-95"
+                  onClick={handleSendToBarista}
+                  disabled={cart.length === 0 || isSubmittingOrder}
+                  variant="outline"
+                  className="h-11 border-sky-200 text-sky-700 hover:bg-sky-50 rounded-xl text-sm"
                 >
-                  <ShoppingCart className="w-4 h-4" />
-                  Thanh toán
+                  <Send className="w-4 h-4 mr-1.5" />
+                  Gửi barista
                 </Button>
                 <Button
-                  variant="outline"
-                  onClick={handleSaveForLaterPayment}
-                  disabled={cart.length === 0}
-                  className="h-11 rounded-xl border-sky-200 text-sky-700 hover:bg-sky-50 font-semibold"
+                  onClick={handleOpenPaymentModal}
+                  disabled={cart.length === 0 || isSubmittingOrder}
+                  className="bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl h-11 text-sm"
                 >
-                  Trả sau
+                  Thanh toán · {formatVND(total)}
                 </Button>
               </div>
             </div>
@@ -864,7 +912,8 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
                     : 'border-gray-200 text-gray-600'
                     }`}
                 >
-                  <span className="text-lg">💳</span> QR PayOS
+                  <img src={PayOSLogo} alt="PayOS" className="h-10 w-10" />
+                  QR PayOS
                 </button>
               </div>
             </div>
@@ -913,22 +962,31 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
               <Button
                 variant="outline"
                 onClick={() => setIsPaymentModalOpen(false)}
-                className="flex-1 rounded-xl border-gray-200"
+                disabled={isSubmittingOrder}
+                className="rounded-xl border-gray-200"
               >
                 Huỷ
               </Button>
               <Button
-                onClick={handleConfirmPayment}
-                className="flex-1 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold"
+                onClick={handlePayLater}
+                disabled={isSubmittingOrder}
+                variant="outline"
+                className="rounded-xl border-amber-200 text-amber-700 hover:bg-amber-50"
               >
-                Xác nhận thanh toán
+                <Clock3 className="w-4 h-4 mr-1.5" />
+                Thanh toán sau
+              </Button>
+              <Button
+                onClick={handleConfirmPayment}
+                disabled={isSubmittingOrder}
+                className="rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold"
+              >
+                {isSubmittingOrder ? 'Đang xử lý...' : 'Xác nhận thanh toán'}
               </Button>
             </div>
           </div>
         </DialogContent>
       </Dialog>
-<<<<<<< Updated upstream
-=======
 
       {viewingReceipt && (
         <ReceiptModal
@@ -942,7 +1000,7 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
           }}
         />
       )}
->>>>>>> Stashed changes
+
     </>
   );
 }

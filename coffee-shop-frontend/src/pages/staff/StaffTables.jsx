@@ -6,16 +6,23 @@ import {
   LayoutGrid,
   MapPin,
   ReceiptText,
-<<<<<<< Updated upstream
-=======
   ArrowLeftRight,
+  MoreVertical,
   GitMerge,
-  MoreHorizontal,
->>>>>>> Stashed changes
+  Clock3,
+  HandCoins,
+  Wallet,
+
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Dialog,
   DialogContent,
@@ -40,52 +47,93 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import tableService from "@/services/tableService";
 import areaService from "@/services/areaService";
+import orderService from "@/services/orderService";
 import { POSModal } from "./POSModal";
-import { useNavigate } from "react-router-dom";
+import PayOSLogo from "/logo/payOS.svg";
 // import ReservationModal from "../admin/AdminTables/ReservationModal";
 
-<<<<<<< Updated upstream
-=======
-const fmtCurrency = (value) => `${Number(value || 0).toLocaleString("vi-VN")}đ`;
+const formatVND = (amount) =>
+  new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(
+    Number(amount || 0)
+  );
 
-const getElapsedLabel = (createdAt, nowTick) => {
-  if (!createdAt) return "";
-  const start = new Date(createdAt).getTime();
-  if (Number.isNaN(start)) return "";
-  const diffMs = Math.max(0, nowTick - start);
-  const totalMinutes = Math.floor(diffMs / (1000 * 60));
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-  if (hours <= 0) return `${minutes} phút`;
-  return `${hours} giờ ${minutes} phút`;
+const CASH_SUGGESTIONS = [10000, 20000, 50000, 100000, 200000, 500000];
+
+const formatOrderTime = (dateString) => {
+  if (!dateString) return "--:--";
+  const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) return "--:--";
+  return date.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
 };
 
-function TableCard({ table, orderSummary, nowTick, onOpenPOS, onViewOrder, onRequestPayment, onStatusChange, onTransfer, onMergeOrder }) {
-  const elapsedLabel = useMemo(
-    () => getElapsedLabel(orderSummary?.created_at, nowTick),
-    [orderSummary?.created_at, nowTick]
-  );
-  const showRequestPayment =
-    table.status === "occupied" &&
-    orderSummary &&
-    Number(orderSummary.outstanding_amount || 0) > 0;
+function TableCard({
+  table,
+  onOpenPOS,
+  onViewOrder,
+  onStatusChange,
+  onTransfer,
+  onMergeOrder,
+  onRequestPayment,
+  activeOrderMeta,
+  paymentRequested,
+}) {
+  const debtAmount = Number(activeOrderMeta?.debt_amount || 0);
 
   return (
     <Card
       onClick={() => onOpenPOS(table)}
-      className={`relative group p-5 flex flex-col items-center justify-center gap-3 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl border-border/50 cursor-pointer overflow-hidden ${table.status === "occupied"
-        ? "bg-zinc-100 border-zinc-300 hover:border-zinc-400"
-        : "bg-card hover:border-primary/50"
-        }`}
+      className="relative group p-5 flex flex-col items-center justify-center gap-3 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl bg-card border-border/50 hover:border-primary/50 cursor-pointer overflow-hidden"
     >
       {table.status === "occupied" && (
-        <button
-          onClick={(e) => onViewOrder(e, table)}
-          className="absolute top-2 right-2 p-1.5 rounded-full hover:bg-black/5 text-muted-foreground transition-colors z-20"
-          title="Xem đơn hàng"
-        >
-          <ReceiptText className="w-4 h-4 text-blue-600" />
-        </button>
+        <div className="absolute top-2 right-2 flex items-center gap-1 z-20">
+          <button
+            onClick={(e) => onViewOrder(e, table)}
+            className="p-1.5 rounded-full hover:bg-black/5 text-muted-foreground transition-colors"
+            title="Xem đơn hàng"
+          >
+            <ReceiptText className="w-4 h-4 text-blue-600" />
+          </button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                onClick={(e) => e.stopPropagation()}
+                className="p-1.5 rounded-full hover:bg-black/5 text-muted-foreground transition-colors"
+                title="Tùy chọn"
+              >
+                <MoreVertical className="w-4 h-4" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onMergeOrder(table);
+                }}
+              >
+                <GitMerge className="w-4 h-4" />
+               Ghép đơn
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onTransfer(table);
+                }}
+              >
+                <ArrowLeftRight className="w-4 h-4" />
+                Chuyển bàn
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRequestPayment(table);
+                }}
+              >
+                <HandCoins className="w-4 h-4" />
+                Yêu cầu thanh toán
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       )}
 
       {/* Status Indicator Bar */}
@@ -103,7 +151,7 @@ function TableCard({ table, orderSummary, nowTick, onOpenPOS, onViewOrder, onReq
         className={`min-w-[4rem] h-14 px-4 rounded-2xl flex flex-col items-center justify-center transition-colors duration-300 ${table.status === "available"
           ? "bg-green-50"
           : table.status === "occupied"
-            ? "bg-zinc-200"
+            ? "bg-blue-50"
             : "bg-amber-50"
           }`}
       >
@@ -111,7 +159,7 @@ function TableCard({ table, orderSummary, nowTick, onOpenPOS, onViewOrder, onReq
           className={`text-xl font-black tracking-tighter whitespace-nowrap ${table.status === "available"
             ? "text-green-700"
             : table.status === "occupied"
-              ? "text-zinc-700"
+              ? "text-blue-700"
               : "text-amber-700"
             }`}
         >
@@ -124,29 +172,28 @@ function TableCard({ table, orderSummary, nowTick, onOpenPOS, onViewOrder, onReq
         <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-widest">
           {table.area_name}
         </p>
+        {table.status === "occupied" && (
+          <p className="text-[10px] font-medium text-blue-700 flex items-center justify-center gap-1 pt-0.5">
+            <Clock3 className="w-3 h-3" />
+            Order: {formatOrderTime(activeOrderMeta?.created_at || table.updated_at)}
+          </p>
+        )}
       </div>
-
-      {table.status === "occupied" && orderSummary && (
-        <div className="w-full rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-2 text-center">
-          <p className="text-[11px] font-bold text-blue-700">{fmtCurrency(orderSummary.outstanding_amount || 0)}</p>
-          <p className="text-[10px] text-blue-600">Đã order: {elapsedLabel || "-"}</p>
-        </div>
-      )}
 
       {/* Status Badge */}
       <div
         className={`flex items-center gap-1.5 px-3 py-1 rounded-full border text-[10px] font-bold uppercase tracking-wider ${table.status === "available"
           ? "bg-green-50 text-green-700 border-green-200"
           : table.status === "occupied"
-            ? "bg-zinc-300 text-zinc-800 border-zinc-300"
-            : "bg-amber-50 text-amber-900 border-amber-200"
+            ? "bg-blue-50 text-blue-700 border-blue-200"
+            : "bg-amber-50 text-amber-700 border-amber-200"
           }`}
       >
         <span
           className={`w-1.5 h-1.5 rounded-full animate-pulse ${table.status === "available"
             ? "bg-green-500"
             : table.status === "occupied"
-              ? "bg-zinc-700"
+              ? "bg-blue-500"
               : "bg-amber-500"
             }`}
         />
@@ -156,6 +203,21 @@ function TableCard({ table, orderSummary, nowTick, onOpenPOS, onViewOrder, onReq
             ? "Có khách"
             : "Đã đặt"}
       </div>
+
+      {(paymentRequested || debtAmount > 0) && (
+        <div className="w-full space-y-1.5">
+          {paymentRequested && (
+            <div className="text-[10px] font-semibold text-amber-700 bg-amber-100/80 px-2.5 py-1 rounded-full border border-amber-200 text-center">
+              Khách yêu cầu thanh toán
+            </div>
+          )}
+          {debtAmount > 0 && (
+            <div className="text-[10px] font-semibold text-red-700 bg-red-50 px-2.5 py-1 rounded-full border border-red-200 text-center">
+              Khách phải trả: {formatVND(debtAmount)}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Action Buttons */}
       <div className="flex gap-2 w-full justify-center mt-1 z-10">
@@ -197,53 +259,6 @@ function TableCard({ table, orderSummary, nowTick, onOpenPOS, onViewOrder, onReq
               Trống
             </Button>
 
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-7 w-7 p-0"
-                  onClick={(e) => e.stopPropagation()}
-                  title="Thao tác khác"
-                >
-                  <MoreHorizontal className="w-4 h-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-44" onClick={(e) => e.stopPropagation()}>
-                {showRequestPayment && (
-                  <DropdownMenuItem
-                    className="text-amber-700 focus:text-amber-700"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onRequestPayment(table);
-                    }}
-                  >
-                    Yêu cầu thanh toán
-                  </DropdownMenuItem>
-                )}
-                <DropdownMenuItem
-                  className="text-indigo-700 focus:text-indigo-700"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onTransfer(table);
-                  }}
-                >
-                  <ArrowLeftRight className="w-4 h-4 mr-2" />
-                  Chuyển bàn
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  className="text-violet-700 focus:text-violet-700"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onMergeOrder(table);
-                  }}
-                >
-                  <GitMerge className="w-4 h-4 mr-2" />
-                  Ghép order
-                </DropdownMenuItem>
-                {showRequestPayment && <DropdownMenuSeparator />}
-              </DropdownMenuContent>
-            </DropdownMenu>
           </>
         )}
       </div>
@@ -251,7 +266,7 @@ function TableCard({ table, orderSummary, nowTick, onOpenPOS, onViewOrder, onReq
   );
 }
 
->>>>>>> Stashed changes
+
 export function StaffTables() {
   const navigate = useNavigate();
   const [tables, setTables] = useState([]);
@@ -283,81 +298,151 @@ export function StaffTables() {
   const [requestedPaymentByTable, setRequestedPaymentByTable] = useState({});
   const [nowTick, setNowTick] = useState(Date.now());
 
-<<<<<<< Updated upstream
-=======
   // Transfer Modal States
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
   const [tableToTransfer, setTableToTransfer] = useState(null);
   const [transferTargetId, setTransferTargetId] = useState(null);
   const [transferring, setTransferring] = useState(false);
   const [transferAreaFilter, setTransferAreaFilter] = useState("all");
+  const [tableActionMode, setTableActionMode] = useState("transfer");
+  const [activeOrderMetaByTable, setActiveOrderMetaByTable] = useState({});
+  const [paymentRequestedByTable, setPaymentRequestedByTable] = useState({});
+  const [debtPaymentDialog, setDebtPaymentDialog] = useState({
+    open: false,
+    table: null,
+    debtAmount: 0,
+    method: "cash",
+    cashReceived: "",
+    loading: false,
+  });
 
-  // Merge Order Modal States
-  const [isMergeModalOpen, setIsMergeModalOpen] = useState(false);
-  const [tableToMerge, setTableToMerge] = useState(null);
-  const [mergeTargetId, setMergeTargetId] = useState(null);
-  const [mergeAreaFilter, setMergeAreaFilter] = useState("all");
-  const [merging, setMerging] = useState(false);
+  const debtCashSuggestions = useMemo(() => {
+    const debt = Math.max(0, Number(debtPaymentDialog.debtAmount || 0));
+    const base = [debt, ...CASH_SUGGESTIONS.filter((v) => v > debt)];
+    const roundUp = Math.ceil(debt / 10000) * 10000;
+    if (roundUp > 0 && !base.includes(roundUp)) base.splice(1, 0, roundUp);
+    return [...new Set(base)].filter((v) => v > 0).slice(0, 4);
+  }, [debtPaymentDialog.debtAmount]);
 
->>>>>>> Stashed changes
+  useEffect(() => {
+    const handleDebtPayosReturn = async () => {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("debtPay") !== "1") return;
+
+      const tableId = Number(params.get("tableId") || 0);
+      const status = String(params.get("status") || "").toUpperCase();
+
+      if (!tableId) return;
+
+      if (status === "PAID") {
+        try {
+          await tableService.settleDebt(tableId, { payment_method: "payos" });
+          toast.success("Thanh toán QR thành công");
+          setPaymentRequestedByTable((prev) => {
+            const next = { ...prev };
+            delete next[tableId];
+            return next;
+          });
+          await fetchData();
+        } catch (error) {
+          const msg =
+            error?.response?.data?.message ||
+            "Không thể chốt  sau thanh toán QR";
+          toast.error(msg);
+        }
+      } else if (status === "CANCELLED") {
+        toast.info("Khách đã hủy giao dịch QR");
+      }
+
+      window.history.replaceState({}, "", window.location.pathname);
+    };
+
+    handleDebtPayosReturn();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+
   const handleOpenPOS = (table) => {
     setSelectedTableForPOS(table);
     setIsPOSModalOpen(true);
   };
 
-<<<<<<< Updated upstream
-=======
-  const handleOpenTransfer = (table) => {
+  const handleOpenTransfer = (table, mode = "transfer") => {
+    setTableActionMode(mode);
     setTableToTransfer(table);
     setTransferTargetId(null);
     setTransferAreaFilter("all");
     setIsTransferModalOpen(true);
   };
 
-  const handleOpenMerge = (table) => {
-    setTableToMerge(table);
-    setMergeTargetId(null);
-    setMergeAreaFilter("all");
-    setIsMergeModalOpen(true);
-  };
-
   const handleConfirmTransfer = async () => {
     if (!tableToTransfer || !transferTargetId) return;
     setTransferring(true);
     try {
-      const res = await tableService.transfer(tableToTransfer.id, transferTargetId);
-      toast.success(res.message || "Chuyển bàn thành công!");
+      const res =
+        tableActionMode === "merge"
+          ? await tableService.mergeOrder(tableToTransfer.id, transferTargetId)
+          : await tableService.transfer(tableToTransfer.id, transferTargetId);
+      toast.success(
+        res.message ||
+        (tableActionMode === "merge"
+          ? "Gộp order thành công!"
+          : "Chuyển bàn thành công!")
+      );
       setIsTransferModalOpen(false);
       setTableToTransfer(null);
       setTransferTargetId(null);
       fetchData();
     } catch (err) {
       toast.error(
-        err?.response?.data?.message || "Chuyển bàn thất bại"
+        err?.response?.data?.message ||
+        (tableActionMode === "merge"
+          ? "Gộp order thất bại"
+          : "Chuyển bàn thất bại")
       );
     } finally {
       setTransferring(false);
     }
   };
 
-  const handleConfirmMerge = async () => {
-    if (!tableToMerge || !mergeTargetId) return;
-    setMerging(true);
-    try {
-      const res = await tableService.mergeOrder(tableToMerge.id, mergeTargetId);
-      toast.success(res.message || "Ghép order thành công!");
-      setIsMergeModalOpen(false);
-      setTableToMerge(null);
-      setMergeTargetId(null);
-      fetchData();
-    } catch (err) {
-      toast.error(err?.response?.data?.message || "Ghép order thất bại");
-    } finally {
-      setMerging(false);
+  const fetchActiveOrderMeta = async (tableList) => {
+    const occupiedTables = tableList.filter((t) => t.status === "occupied");
+    if (occupiedTables.length === 0) {
+      setActiveOrderMetaByTable({});
+      return;
     }
+
+    const results = await Promise.all(
+      occupiedTables.map(async (t) => {
+        try {
+          const res = await tableService.getActiveOrder(t.id);
+          const order = res?.data || null;
+          if (!order) return [t.id, null];
+          return [
+            t.id,
+            {
+              id: order.id,
+              created_at: order.created_at,
+              is_paid: Number(order.is_paid || 0) === 1,
+              payment_status: order.payment_status || "pending",
+              debt_amount: Number(order.debt_amount || 0),
+              unpaid_orders_count: Number(order.unpaid_orders_count || 0),
+            },
+          ];
+        } catch {
+          return [t.id, null];
+        }
+      })
+    );
+
+    const next = {};
+    results.forEach(([tableId, meta]) => {
+      if (meta) next[tableId] = meta;
+    });
+    setActiveOrderMetaByTable(next);
   };
 
->>>>>>> Stashed changes
+
   const handleViewOrder = async (e, table) => {
     e.stopPropagation();
     setOrderModalMode("view-order");
@@ -415,49 +500,7 @@ export function StaffTables() {
       const nextTables = tablesRes.data || [];
       setTables(nextTables);
       setAreas(areasRes.data || []);
-
-      const occupiedTables = nextTables.filter((t) => t.status === "occupied");
-      if (occupiedTables.length === 0) {
-        setActiveOrderSummaries({});
-        return;
-      }
-
-      const summaries = await Promise.allSettled(
-        occupiedTables.map(async (t) => {
-          const res = await tableService.getActiveOrder(t.id);
-          return [
-            t.id,
-            {
-              id: res?.data?.id,
-              total_amount: Number(res?.data?.total_amount || 0),
-              outstanding_amount: Number(res?.data?.outstanding_amount || 0),
-              created_at: res?.data?.created_at,
-              is_paid: Number(res?.data?.is_paid || 0),
-            },
-          ];
-        })
-      );
-
-      const nextSummaries = {};
-      summaries.forEach((result) => {
-        if (result.status === "fulfilled") {
-          const [tableId, summary] = result.value;
-          nextSummaries[tableId] = summary;
-        }
-      });
-      setActiveOrderSummaries(nextSummaries);
-
-      // Keep only tables that still have outstanding amount.
-      setRequestedPaymentByTable((prev) => {
-        const next = {};
-        Object.keys(prev).forEach((tableId) => {
-          const summary = nextSummaries[Number(tableId)];
-          if (prev[tableId] && Number(summary?.outstanding_amount || 0) > 0) {
-            next[tableId] = true;
-          }
-        });
-        return next;
-      });
+      await fetchActiveOrderMeta(nextTables);
     } catch (error) {
       toast.error("Không thể tải dữ liệu");
     } finally {
@@ -490,6 +533,14 @@ export function StaffTables() {
 
     try {
       await tableService.update(table.id, { status: newStatus });
+      if (newStatus === "available") {
+        setPaymentRequestedByTable((prev) => {
+          if (!prev[table.id]) return prev;
+          const next = { ...prev };
+          delete next[table.id];
+          return next;
+        });
+      }
       toast.success("Cập nhật trạng thái thành công");
       setRequestedPaymentByTable((prev) => {
         const next = { ...prev };
@@ -499,6 +550,130 @@ export function StaffTables() {
       fetchData();
     } catch (error) {
       toast.error(error.message || "Cập nhật thất bại");
+    }
+  };
+
+  const handleMergeOrder = (table) => {
+    toast.info("Chọn bàn đích để ghép order");
+    handleOpenTransfer(table, "merge");
+  };
+
+  const handleRequestPayment = async (table) => {
+    const orderMeta = activeOrderMetaByTable[table.id];
+    if (!orderMeta) {
+      toast.error("Bàn này chưa có đơn để yêu cầu thanh toán");
+      return;
+    }
+    const debtAmount = Number(orderMeta.debt_amount || 0);
+    if (debtAmount <= 0) {
+      toast.info("Bàn này hiện không có đơn hàng cần thanh toán");
+      return;
+    }
+
+    setPaymentRequestedByTable((prev) => ({
+      ...prev,
+      [table.id]: {
+        requested_at: new Date().toISOString(),
+        debt_amount: debtAmount,
+      },
+    }));
+    toast.success(`Số tiền khách phải trả cho bàn ${table.code} (${formatVND(debtAmount)})`);
+    handleOpenDebtPayment(table, debtAmount);
+  };
+
+  const handleOpenDebtPayment = (table, debtAmount) => {
+    setDebtPaymentDialog({
+      open: true,
+      table,
+      debtAmount: Number(debtAmount || 0),
+      method: "cash",
+      cashReceived: String(Number(debtAmount || 0)),
+      loading: false,
+    });
+  };
+
+  const handleSettleDebt = async () => {
+    if (!debtPaymentDialog.table) return;
+
+    const debtAmount = Number(debtPaymentDialog.debtAmount || 0);
+    if (debtAmount <= 0) {
+      toast.error("Không có số tiền để thanh toán");
+      return;
+    }
+
+
+
+    setDebtPaymentDialog((prev) => ({ ...prev, loading: true }));
+
+    if (debtPaymentDialog.method === "payos") {
+      try {
+        const now = Date.now();
+        const orderCode = Number(String(now).slice(-6));
+        const returnUrl = `${window.location.origin}/staff/tables?debtPay=1&tableId=${debtPaymentDialog.table.id}`;
+        const payosItems = [
+          {
+            name: `Cong no ban ${debtPaymentDialog.table.code}`.slice(0, 100),
+            quantity: 1,
+            price: Math.round(debtAmount),
+          },
+        ];
+
+        const createRes = await orderService.createPaymentLink({
+          orderCode,
+          amount: Math.round(debtAmount),
+          description: `CN${debtPaymentDialog.table.code}`.slice(0, 25),
+          items: payosItems,
+          returnUrl,
+          cancelUrl: returnUrl,
+        });
+
+        const checkoutUrl = createRes?.data?.checkoutUrl;
+        if (!checkoutUrl) {
+          setDebtPaymentDialog((prev) => ({ ...prev, loading: false }));
+          toast.error("Không tạo được link thanh toán QR");
+          return;
+        }
+
+        window.location.href = checkoutUrl;
+        return;
+      } catch (error) {
+        toast.error(error?.response?.data?.message || "Không tạo được QR PayOS");
+        setDebtPaymentDialog((prev) => ({ ...prev, loading: false }));
+        return;
+      }
+    }
+
+    const cashReceived = Number(debtPaymentDialog.cashReceived || 0);
+    if (Number.isNaN(cashReceived) || cashReceived < debtAmount) {
+      setDebtPaymentDialog((prev) => ({ ...prev, loading: false }));
+      toast.error("Tiền khách đưa không đủ");
+      return;
+    }
+
+    try {
+      const res = await tableService.settleDebt(debtPaymentDialog.table.id, {
+        payment_method: debtPaymentDialog.method,
+        cash_received: cashReceived,
+      });
+
+      toast.success(res?.message || "Thanh toán  thành công");
+      setDebtPaymentDialog({
+        open: false,
+        table: null,
+        debtAmount: 0,
+        method: "cash",
+        cashReceived: "",
+        loading: false,
+      });
+      setPaymentRequestedByTable((prev) => {
+        const next = { ...prev };
+        delete next[debtPaymentDialog.table.id];
+        return next;
+      });
+      await fetchData();
+    } catch (error) {
+      toast.error(error?.response?.data?.message || "Không thanh toán được ");
+      setDebtPaymentDialog((prev) => ({ ...prev, loading: false }));
     }
   };
 
@@ -619,140 +794,16 @@ export function StaffTables() {
         </div>
 
         <TabsContent value={selectedAreaId} className="mt-0">
-          {/* Area display if a specific area is selected */}
-          {selectedAreaId !== "all" && currentAreaObj && (
-            <div className="flex items-center justify-between bg-card border rounded-lg p-4 mb-6">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-md overflow-hidden bg-muted border flex-shrink-0 flex items-center justify-center">
-                  {currentAreaObj.image ? (
-                    <img
-                      src={currentAreaObj.image}
-                      alt={currentAreaObj.name}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <MapPin className="w-6 h-6 opacity-50 text-muted-foreground" />
-                  )}
-                </div>
-                <div>
-                  <h3 className="font-semibold text-lg">
-                    {currentAreaObj.name}
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    {filteredTables.length} bàn trong khu vực này
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
           {loading ? (
             <div className="p-12 flex flex-col items-center justify-center gap-2">
               <Loader2 className="w-8 h-8 animate-spin text-primary" />
               <p className="text-muted-foreground">Đang tải...</p>
             </div>
-          ) : (
-            <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-6">
-              {paginatedTables.length > 0 ? (
-                paginatedTables.map((table) => (
-                  <Card
-                    key={table.id}
-                    onClick={() => handleOpenPOS(table)}
-                    className="relative group p-6 flex flex-col items-center justify-center gap-4 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl bg-card border-border/50 hover:border-primary/50 cursor-pointer overflow-hidden"
-                  >
-                    {table.status === "occupied" && (
-                      <button 
-                        onClick={(e) => handleViewOrder(e, table)} 
-                        className="absolute top-2 right-2 p-1.5 rounded-full hover:bg-black/5 text-muted-foreground transition-colors z-20"
-                        title="Xem đơn hàng"
-                      >
-                        <ReceiptText className="w-5 h-5 text-blue-600" />
-                      </button>
-                    )}
-
-                    {/* Status Indicator Bar */}
-                    <div
-                      className={`absolute top-0 left-0 w-full h-1 ${table.status === "available"
-                          ? "bg-green-500"
-                          : table.status === "occupied"
-                            ? "bg-blue-500"
-                            : "bg-amber-500"
-                        }`}
-                    />
-
-                    {/* Table Identity */}
-                    <div
-                      className={`min-w-[4rem] h-16 px-4 rounded-2xl flex flex-col items-center justify-center transition-colors duration-300 ${table.status === "available"
-                          ? "bg-green-50"
-                          : table.status === "occupied"
-                            ? "bg-blue-50"
-                            : "bg-amber-50"
-                        }`}
-                    >
-                      <span
-                        className={`text-xl font-black tracking-tighter whitespace-nowrap ${table.status === "available"
-                            ? "text-green-700"
-                            : table.status === "occupied"
-                              ? "text-blue-700"
-                              : "text-amber-700"
-                          }`}
-                      >
-                        {table.code?.replace("TB-", "")}
-                      </span>
-                    </div>
-
-                    <div className="text-center space-y-1">
-                      <h3 className="text-sm font-bold text-foreground flex items-center justify-center gap-1">
-                        Bàn {table.code}
-                      </h3>
-                      <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-widest text-center">
-                        {table.area_name}
-                      </p>
-                    </div>
-
-                    {/* Status Badge */}
-                    <div
-                      className={`flex items-center gap-1.5 px-3 py-1 rounded-full border text-[10px] font-bold uppercase tracking-wider ${table.status === "available"
-                          ? "bg-green-50 text-green-700 border-green-200"
-                          : table.status === "occupied"
-                            ? "bg-blue-50 text-blue-700 border-blue-200"
-                            : "bg-amber-50 text-amber-700 border-amber-200"
-                        }`}
-                    >
-                      <span
-                        className={`w-1.5 h-1.5 rounded-full animate-pulse ${table.status === "available"
-                            ? "bg-green-500"
-                            : table.status === "occupied"
-                              ? "bg-blue-500"
-                              : "bg-amber-500"
-                          }`}
-                      />
-                      {table.status === "available"
-                        ? "Trống"
-                        : table.status === "occupied"
-                          ? "Có khách"
-                          : "Đã đặt"}
-                    </div>
-
-                    {/* Staff Status Actions */}
-                    <div className="flex gap-2 w-full justify-center mt-2 z-10 transition-all duration-300">
-                      {table.status === "available" && (
-                        <>
-                          <Button size="sm" onClick={(e) => { e.stopPropagation(); handleStatusChange(table, "occupied"); }}>Có khách</Button>
-                          {/* <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); handleReserveTable(table); }}>Đã đặt</Button> */}
-                        </>
-                      )}
-                      {table.status === "reserved" && (
-                        <Button size="sm" onClick={(e) => { e.stopPropagation(); handleStatusChange(table, "occupied"); }}>Có khách</Button>
-                      )}
-                      {table.status === "occupied" && (
-                        <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); handleStatusChange(table, "available"); }}>Trống</Button>
-                      )}
-                    </div>
-                  </Card>
-                ))
-              ) : (
-                <div className="col-span-full p-20 text-center flex flex-col items-center gap-4 bg-muted/30 rounded-3xl border-2 border-dashed">
+          ) : selectedAreaId === "all" ? (
+            /* === ALL AREAS: Grouped by area === */
+            <div className="space-y-8">
+              {filteredTables.length === 0 ? (
+                <div className="p-20 text-center flex flex-col items-center gap-4 bg-muted/30 rounded-3xl border-2 border-dashed">
                   <TableIcon className="w-12 h-12 text-muted-foreground/30" />
                   <p className="text-muted-foreground font-medium text-lg">
                     Không tìm thấy bàn nào phù hợp
@@ -768,8 +819,6 @@ export function StaffTables() {
                     Xóa bộ lọc
                   </Button>
                 </div>
-<<<<<<< Updated upstream
-=======
               ) : (
                 areas.map((area) => {
                   const areaTables = filteredTables.filter(
@@ -817,26 +866,64 @@ export function StaffTables() {
                           <TableCard
                             key={table.id}
                             table={table}
-                            orderSummary={activeOrderSummaries[table.id]}
-                            nowTick={nowTick}
                             onOpenPOS={handleOpenPOS}
                             onViewOrder={handleViewOrder}
-                            onRequestPayment={handleRequestPayment}
                             onStatusChange={handleStatusChange}
                             onTransfer={handleOpenTransfer}
-                            onMergeOrder={handleOpenMerge}
+                            onMergeOrder={handleMergeOrder}
+                            onRequestPayment={handleRequestPayment}
+                            activeOrderMeta={activeOrderMetaByTable[table.id]}
+                            paymentRequested={Boolean(paymentRequestedByTable[table.id])}
                           />
                         ))}
                       </div>
                     </div>
                   );
                 })
->>>>>>> Stashed changes
+              )}
+            </div>
+          ) : (
+            /* === SPECIFIC AREA === */
+            <div>
+              {/* Area Info Banner */}
+              {currentAreaObj && (
+                <div className="flex items-center justify-between bg-card border rounded-xl p-4 mb-6 shadow-sm">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-lg overflow-hidden bg-muted border flex-shrink-0 flex items-center justify-center">
+                      {currentAreaObj.image ? (
+                        <img
+                          src={currentAreaObj.image}
+                          alt={currentAreaObj.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <MapPin className="w-6 h-6 opacity-50 text-muted-foreground" />
+                      )}
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-lg">{currentAreaObj.name}</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {filteredTables.length} bàn trong khu vực này
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 text-xs font-medium">
+                    <span className="flex items-center gap-1.5 bg-green-50 text-green-700 border border-green-200 rounded-full px-3 py-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" />
+                      {filteredTables.filter((t) => t.status === "available").length} trống
+                    </span>
+                    <span className="flex items-center gap-1.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-full px-3 py-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-blue-500 inline-block" />
+                      {filteredTables.filter((t) => t.status === "occupied").length} có khách
+                    </span>
+                  </div>
+                </div>
+              )}
+
               )}
             </div>
           )}
 
-<<<<<<< Updated upstream
           {/* PAGINATION */}
           {totalPages > 1 && (
             <div className="flex justify-center gap-4 mt-8">
@@ -851,21 +938,20 @@ export function StaffTables() {
 
               <div className="flex items-center text-sm font-medium">
                 Trang {page} / {totalPages}
-=======
               <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-6">
                 {paginatedTables.length > 0 ? (
                   paginatedTables.map((table) => (
                     <TableCard
                       key={table.id}
                       table={table}
-                      orderSummary={activeOrderSummaries[table.id]}
-                      nowTick={nowTick}
                       onOpenPOS={handleOpenPOS}
                       onViewOrder={handleViewOrder}
-                      onRequestPayment={handleRequestPayment}
                       onStatusChange={handleStatusChange}
                       onTransfer={handleOpenTransfer}
-                      onMergeOrder={handleOpenMerge}
+                      onMergeOrder={handleMergeOrder}
+                      onRequestPayment={handleRequestPayment}
+                      activeOrderMeta={activeOrderMetaByTable[table.id]}
+                      paymentRequested={Boolean(paymentRequestedByTable[table.id])}
                     />
                   ))
                 ) : (
@@ -886,17 +972,33 @@ export function StaffTables() {
                     </Button>
                   </div>
                 )}
->>>>>>> Stashed changes
+
               </div>
 
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={page >= totalPages}
-                onClick={() => setPage((p) => p + 1)}
-              >
-                Sau
-              </Button>
+              {/* PAGINATION */}
+              {totalPages > 1 && (
+                <div className="flex justify-center gap-4 mt-8">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={page === 1}
+                    onClick={() => setPage((p) => p - 1)}
+                  >
+                    Trước
+                  </Button>
+                  <div className="flex items-center text-sm font-medium">
+                    Trang {page} / {totalPages}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={page >= totalPages}
+                    onClick={() => setPage((p) => p + 1)}
+                  >
+                    Sau
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </TabsContent>
@@ -925,15 +1027,13 @@ export function StaffTables() {
         }}
       />
 
-<<<<<<< Updated upstream
-=======
       {/* Transfer Table Modal */}
-      <Dialog open={isTransferModalOpen} onOpenChange={(open) => { if (!open) { setIsTransferModalOpen(false); setTableToTransfer(null); setTransferTargetId(null); } }}>
+      <Dialog open={isTransferModalOpen} onOpenChange={(open) => { if (!open) { setIsTransferModalOpen(false); setTableToTransfer(null); setTransferTargetId(null); setTableActionMode("transfer"); } }}>
         <DialogContent className="sm:max-w-[560px]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <ArrowLeftRight className="w-5 h-5 text-indigo-600" />
-              Chuyển bàn {tableToTransfer ? `— Bàn ${tableToTransfer.code}` : ""}
+              {tableActionMode === "merge" ? "Ghép order" : "Chuyển bàn"} {tableToTransfer ? `— Bàn ${tableToTransfer.code}` : ""}
             </DialogTitle>
           </DialogHeader>
 
@@ -945,7 +1045,10 @@ export function StaffTables() {
               </div>
               <div>
                 <p className="text-sm font-medium">Bàn hiện tại</p>
-                <p className="text-xs text-muted-foreground">{tableToTransfer?.area_name}</p>
+                <p className="text-xs text-muted-foreground">
+                  {tableToTransfer?.area_name}
+                  {tableActionMode === "merge" ? " · Nguồn" : ""}
+                </p>
               </div>
               <ArrowLeftRight className="w-4 h-4 text-muted-foreground mx-auto" />
               <div className="flex-1 text-right">
@@ -991,13 +1094,13 @@ export function StaffTables() {
               </div>
             </div>
 
-            {/* Available tables grid */}
+            {/* Destination tables grid */}
             <div className="grid grid-cols-4 gap-2 max-h-64 overflow-y-auto pr-1">
               {tables
                 .filter(
                   (t) =>
-                    t.status === "available" &&
                     t.id !== tableToTransfer?.id &&
+                    (tableActionMode === "merge" || t.status === "available") &&
                     (transferAreaFilter === "all" || t.area_id.toString() === transferAreaFilter)
                 )
                 .map((t) => (
@@ -1014,18 +1117,18 @@ export function StaffTables() {
                       {t.code?.replace("TB-", "")}
                     </span>
                     <span className="text-[10px] text-muted-foreground mt-0.5 text-center leading-tight">
-                      {t.area_name}
+                      {t.area_name} {tableActionMode === "merge" && t.status === "occupied" ? "· Có khách" : ""}
                     </span>
                   </button>
                 ))}
               {tables.filter(
                 (t) =>
-                  t.status === "available" &&
                   t.id !== tableToTransfer?.id &&
+                  (tableActionMode === "merge" || t.status === "available") &&
                   (transferAreaFilter === "all" || t.area_id.toString() === transferAreaFilter)
               ).length === 0 && (
                   <div className="col-span-4 py-8 text-center text-muted-foreground text-sm">
-                    Không có bàn trống nào
+                    {tableActionMode === "merge" ? "Không có bàn phù hợp" : "Không có bàn trống nào"}
                   </div>
                 )}
             </div>
@@ -1041,16 +1144,16 @@ export function StaffTables() {
               className="bg-indigo-600 hover:bg-indigo-700"
             >
               {transferring ? (
-                <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Đang chuyển...</>
+                <><Loader2 className="w-4 h-4 mr-2 animate-spin" />{tableActionMode === "merge" ? "Đang gộp..." : "Đang chuyển..."}</>
               ) : (
-                <><ArrowLeftRight className="w-4 h-4 mr-2" />Xác nhận chuyển bàn</>
+                <><ArrowLeftRight className="w-4 h-4 mr-2" />{tableActionMode === "merge" ? "Xác nhận ghép order" : "Xác nhận chuyển bàn"}</>
               )}
             </Button>
           </div>
         </DialogContent>
       </Dialog>
 
->>>>>>> Stashed changes
+
       {/* Order Info Modal */}
       <Dialog open={isOrderModalOpen} onOpenChange={setIsOrderModalOpen}>
         <DialogContent className="sm:max-w-[500px]">
@@ -1117,127 +1220,141 @@ export function StaffTables() {
         </DialogContent>
       </Dialog>
 
-      {/* Merge Order Modal */}
-      <Dialog open={isMergeModalOpen} onOpenChange={(open) => {
-        if (!open) {
-          setIsMergeModalOpen(false);
-          setTableToMerge(null);
-          setMergeTargetId(null);
-        }
-      }}>
-        <DialogContent className="sm:max-w-[560px]">
+      {/* Debt Payment Modal */}
+      <Dialog
+        open={debtPaymentDialog.open}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDebtPaymentDialog({
+              open: false,
+              table: null,
+              debtAmount: 0,
+              method: "cash",
+              cashReceived: "",
+              loading: false,
+            });
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-[520px]">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <GitMerge className="w-5 h-5 text-violet-600" />
-              Ghép Order {tableToMerge ? `— ${tableToMerge.code}` : ""}
+            <DialogTitle>
+              Thanh toán  - {debtPaymentDialog.table ? `Bàn ${debtPaymentDialog.table.code}` : ""}
             </DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-4">
-            <div className="flex items-center gap-3 bg-muted/50 rounded-lg px-4 py-3">
-              <div className="bg-violet-100 text-violet-700 font-bold text-sm rounded-lg px-3 py-2">
-                {tableToMerge?.code}
-              </div>
-              <div>
-                <p className="text-sm font-medium">Bàn nguồn</p>
-                <p className="text-xs text-muted-foreground">Có thể ghép sang bàn đích ở khu vực khác</p>
-              </div>
-              <GitMerge className="w-4 h-4 text-muted-foreground mx-auto" />
-              <div className="flex-1 text-right">
-                {mergeTargetId ? (() => {
-                  const t = tables.find(x => x.id === mergeTargetId);
-                  return t ? (
-                    <div className="inline-flex flex-col items-end">
-                      <span className="text-sm font-bold text-violet-700">{t.code}</span>
-                      <span className="text-xs text-muted-foreground">{t.area_name}</span>
-                    </div>
-                  ) : null;
-                })() : (
-                  <span className="text-xs text-muted-foreground italic">Chưa chọn bàn đích</span>
-                )}
+          <div className="space-y-5">
+            <div className="bg-gray-50 rounded-xl p-4">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-500">Khách cần trả ()</span>
+                <span className="text-xl font-bold text-orange-500">{formatVND(debtPaymentDialog.debtAmount)}</span>
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium shrink-0">Khu vực:</span>
-              <div className="flex flex-wrap gap-1.5">
+            <div>
+              <label className="text-xs font-semibold text-gray-400 block mb-2">PHƯƠNG THỨC THANH TOÁN</label>
+              <div className="grid grid-cols-2 gap-3">
                 <button
-                  onClick={() => setMergeAreaFilter("all")}
-                  className={`text-xs px-3 py-1 rounded-full border transition-colors ${mergeAreaFilter === "all"
-                    ? "bg-violet-600 text-white border-violet-600"
-                    : "border-border text-muted-foreground hover:border-violet-400"
+                  onClick={() => setDebtPaymentDialog((prev) => ({ ...prev, method: "cash" }))}
+                  className={`flex items-center justify-center gap-2 p-3 rounded-xl border-2 font-medium transition-all ${debtPaymentDialog.method === "cash"
+                    ? "border-green-500 text-green-600 bg-green-50/50"
+                    : "border-gray-200 text-gray-600"
                     }`}
                 >
-                  Tất cả
+                  <Wallet className="w-4 h-4" /> Tiền mặt
                 </button>
-                {areas.map((a) => (
-                  <button
-                    key={a.id}
-                    onClick={() => setMergeAreaFilter(a.id.toString())}
-                    className={`text-xs px-3 py-1 rounded-full border transition-colors ${mergeAreaFilter === a.id.toString()
-                      ? "bg-violet-600 text-white border-violet-600"
-                      : "border-border text-muted-foreground hover:border-violet-400"
-                      }`}
-                  >
-                    {a.name}
-                  </button>
-                ))}
+                <button
+                  onClick={() => setDebtPaymentDialog((prev) => ({ ...prev, method: "payos" }))}
+                  className={`flex items-center justify-center gap-2 p-3 rounded-xl border-2 font-medium transition-all ${debtPaymentDialog.method === "payos"
+                    ? "border-green-500 text-green-600 bg-green-50/50"
+                    : "border-gray-200 text-gray-600"
+                    }`}
+                >
+                  <img src={PayOSLogo} alt="PayOS" className="h-8 w-8" />
+                  QR PayOS
+                </button>
               </div>
             </div>
 
-            <div className="grid grid-cols-4 gap-2 max-h-64 overflow-y-auto pr-1">
-              {tables
-                .filter(
-                  (t) =>
-                    t.status === "occupied" &&
-                    t.id !== tableToMerge?.id &&
-                    (mergeAreaFilter === "all" || t.area_id.toString() === mergeAreaFilter)
-                )
-                .map((t) => (
-                  <button
-                    key={t.id}
-                    onClick={() => setMergeTargetId(t.id)}
-                    className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all ${mergeTargetId === t.id
-                      ? "border-violet-500 bg-violet-50"
-                      : "border-border hover:border-violet-300 bg-card"
-                      }`}
-                  >
-                    <span className={`text-base font-black ${mergeTargetId === t.id ? "text-violet-700" : "text-foreground"}`}>
-                      {t.code?.replace("TB-", "")}
-                    </span>
-                    <span className="text-[10px] text-muted-foreground mt-0.5 text-center leading-tight">
-                      {t.area_name}
-                    </span>
-                  </button>
-                ))}
-              {tables.filter(
-                (t) =>
-                  t.status === "occupied" &&
-                  t.id !== tableToMerge?.id &&
-                  (mergeAreaFilter === "all" || t.area_id.toString() === mergeAreaFilter)
-              ).length === 0 && (
-                  <div className="col-span-4 py-8 text-center text-muted-foreground text-sm">
-                    Không có bàn có khách để ghép
-                  </div>
-                )}
-            </div>
-          </div>
+            {debtPaymentDialog.method === "cash" && (
+              <div>
+                <label className="text-xs font-semibold text-gray-400 block mb-1">TIỀN KHÁCH ĐƯA</label>
+                <Input
+                  type="number"
+                  value={debtPaymentDialog.cashReceived}
+                  onChange={(e) =>
+                    setDebtPaymentDialog((prev) => ({ ...prev, cashReceived: e.target.value }))
+                  }
+                  className="bg-gray-50 border-gray-200 text-lg font-bold"
+                />
+                <div className="flex gap-2 mt-3">
+                  {debtCashSuggestions.map((val) => {
+                    const selected = Number(debtPaymentDialog.cashReceived || 0) === val;
+                    return (
+                      <button
+                        key={val}
+                        onClick={() =>
+                          setDebtPaymentDialog((prev) => ({
+                            ...prev,
+                            cashReceived: String(val),
+                          }))
+                        }
+                        className={`flex-1 p-2 rounded-full border text-sm font-medium transition-all ${selected
+                          ? "border-green-500 text-green-600 bg-green-50"
+                          : "border-gray-200 text-gray-600 hover:bg-gray-50"
+                          }`}
+                      >
+                        {formatVND(val).replace(/\s?₫/, "").trim()}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="mt-2 text-sm text-blue-700 bg-blue-50 rounded-lg px-3 py-2 flex justify-between items-center">
+                  <span>Tiền thừa trả khách</span>
+                  <span className="font-bold">
+                    {formatVND(
+                      Math.max(
+                        0,
+                        Number(debtPaymentDialog.cashReceived || 0) - Number(debtPaymentDialog.debtAmount || 0)
+                      )
+                    )}
+                  </span>
+                </div>
+              </div>
+            )}
 
-          <div className="flex justify-end gap-2 pt-2">
-            <Button variant="outline" onClick={() => setIsMergeModalOpen(false)} disabled={merging}>
-              Hủy
-            </Button>
-            <Button
-              disabled={!mergeTargetId || merging}
-              onClick={handleConfirmMerge}
-              className="bg-violet-600 hover:bg-violet-700"
-            >
-              {merging ? (
-                <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Đang ghép...</>
-              ) : (
-                <><GitMerge className="w-4 h-4 mr-2" />Xác nhận ghép order</>
-              )}
-            </Button>
+
+
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                onClick={() =>
+                  setDebtPaymentDialog({
+                    open: false,
+                    table: null,
+                    debtAmount: 0,
+                    method: "cash",
+                    cashReceived: "",
+                    loading: false,
+                  })
+                }
+                disabled={debtPaymentDialog.loading}
+                className="flex-1"
+              >
+                Hủy
+              </Button>
+              <Button
+                onClick={handleSettleDebt}
+                disabled={debtPaymentDialog.loading}
+                className="flex-1 bg-orange-500 hover:bg-orange-600 text-white"
+              >
+                {debtPaymentDialog.loading
+                  ? "Đang xử lý..."
+                  : debtPaymentDialog.method === "payos"
+                    ? "Tạo QR thanh toán"
+                    : "Xác nhận thanh toán"}
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

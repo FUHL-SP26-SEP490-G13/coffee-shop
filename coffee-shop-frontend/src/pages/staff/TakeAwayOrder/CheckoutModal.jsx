@@ -10,8 +10,16 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import discountService from '@/services/discountService';
+import PayOSLogo from "/logo/payOS.svg";
 
 const fmt = (n) => Number(n).toLocaleString('vi-VN') + ' đ';
+const roundCash = (amount) => {
+  const remainder = amount % 1000;
+  if (remainder >= 500) {
+    return amount + (1000 - remainder);
+  }
+  return amount - remainder;
+};
 const CASH_SUGGESTIONS = [10000, 20000, 50000, 100000, 200000, 500000];
 
 export function CheckoutModal({ subtotal, onClose, onConfirm, loading }) {
@@ -27,16 +35,20 @@ export function CheckoutModal({ subtotal, onClose, onConfirm, loading }) {
   const [receivedError, setReceivedError] = useState('');
 
   const finalAmount = Math.max(0, subtotal - discountAmount);
+  const cashFinalAmount = roundCash(finalAmount);
+
   const receivedAmt = Number(String(receivedInput).replace(/\D/g, '')) || 0;
-  const changeAmount = Math.max(0, receivedAmt - finalAmount);
+
+  const changeAmount =
+    paymentMethod === 'cash' ? Math.max(0, receivedAmt - cashFinalAmount) : 0;
 
   // Gợi ý mệnh giá
   const suggestions = (() => {
     const base = [
-      finalAmount,
-      ...CASH_SUGGESTIONS.filter((v) => v > finalAmount),
+      cashFinalAmount,
+      ...CASH_SUGGESTIONS.filter((v) => v > cashFinalAmount),
     ];
-    const roundUp = Math.ceil(finalAmount / 10000) * 10000;
+    const roundUp = Math.ceil(cashFinalAmount / 10000) * 10000;
     if (!base.includes(roundUp)) base.splice(1, 0, roundUp);
     return [...new Set(base)].slice(0, 4);
   })();
@@ -133,27 +145,22 @@ export function CheckoutModal({ subtotal, onClose, onConfirm, loading }) {
     setReceivedError('');
   };
 
-  const handleReceivedBlur = () => {
-    if (receivedAmt > 0 && receivedAmt < finalAmount) {
-      setReceivedError(
-        `Tiền khách đưa thiếu ${fmt(finalAmount - receivedAmt)}`,
-      );
-    }
-  };
-
   // ─── Submit ───────────────────────────────────────────────────────────────
   const handleConfirm = () => {
-    // Validate cash trước khi submit
-    if (
-      paymentMethod === 'cash' &&
-      receivedAmt > 0 &&
-      receivedAmt < finalAmount
-    ) {
-      setReceivedError(
-        `Tiền khách đưa thiếu ${fmt(finalAmount - receivedAmt)}`,
-      );
-      return;
+    if (paymentMethod === 'cash') {
+      if (!receivedAmt) {
+        setReceivedError('Vui lòng nhập tiền khách đưa');
+        return;
+      }
+
+      if (receivedAmt < cashFinalAmount) {
+        setReceivedError(
+          `Tiền khách đưa thiếu ${fmt(cashFinalAmount - receivedAmt)}`,
+        );
+        return;
+      }
     }
+
     onConfirm({
       paymentMethod,
       discountCode: discountApplied ? discountCode : '',
@@ -162,11 +169,6 @@ export function CheckoutModal({ subtotal, onClose, onConfirm, loading }) {
       receivedAmount: paymentMethod === 'cash' ? receivedAmt : finalAmount,
     });
   };
-
-  // const canConfirm =
-  //   paymentMethod === 'payos' ||
-  //   (paymentMethod === 'cash' &&
-  //     (receivedAmt === 0 || receivedAmt >= finalAmount));
 
   return (
     <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4'>
@@ -294,7 +296,8 @@ export function CheckoutModal({ subtotal, onClose, onConfirm, loading }) {
                     : 'border-gray-200 text-gray-500 hover:border-gray-300'
                 }`}
               >
-                <CreditCard size={18} /> QR PayOS
+                <img src={PayOSLogo} alt="PayOS" className="h-10 w-10" />
+                QR PayOS
               </button>
             </div>
           </div>
@@ -317,8 +320,11 @@ export function CheckoutModal({ subtotal, onClose, onConfirm, loading }) {
                       : ''
                   }
                   onChange={handleReceivedChange}
-                  onBlur={handleReceivedBlur}
-                  placeholder={fmt(finalAmount) + ' (đúng tiền)'}
+                  placeholder={
+                    paymentMethod === 'cash'
+                      ? fmt(cashFinalAmount) + ' (tiền mặt)'
+                      : fmt(finalAmount)
+                  }
                   className={`w-full border rounded-xl px-4 py-3 text-sm font-semibold text-gray-800 focus:outline-none focus:ring-2 transition-all ${
                     receivedError
                       ? 'border-red-300 focus:border-red-400 focus:ring-red-100'

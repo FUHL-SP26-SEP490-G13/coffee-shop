@@ -23,6 +23,8 @@ import categoryService from '@/services/categoryService';
 import toppingService from '@/services/toppingService';
 import { toast } from 'sonner';
 import QRDisplay from '../common/QRDisplay';
+import socket from '@/lib/socket';
+import authenticationService from '@/services/authenticationService';
 
 const fmt = (n) => Number(n).toLocaleString('vi-VN') + ' đ';
 
@@ -50,6 +52,7 @@ function TakeawayPOS() {
   // ─── Checkout state ───────────────────────────────────────────────────────
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [checkoutResult, setCheckoutResult] = useState(null);
+  const [printerName, setPrinterName] = useState('Nhân viên');
 
   // ─── Load categories + toppings ───────────────────────────────────────────
   useEffect(() => {
@@ -77,7 +80,46 @@ function TakeawayPOS() {
       }
     };
     loadMeta();
+
+    // Load printer profile
+    const loadProfile = async () => {
+      try {
+        const res = await authenticationService.getProfile();
+        const user = res?.data?.id ? res.data : res?.data?.data || res?.data;
+        const firstName = String(user?.first_name || '').trim();
+        const lastName = String(user?.last_name || '').trim();
+        const fullName = `${firstName} ${lastName}`.trim();
+        setPrinterName(fullName || user?.username || user?.email || 'Nhân viên');
+      } catch {
+        // Ignore
+      }
+    };
+    loadProfile();
   }, []);
+
+  // ─── Socket listener PayOS ────────────────────────────────────────────────
+  useEffect(() => {
+    if (!socket.connected) socket.connect();
+
+    const handlePaymentCompleted = (data) => {
+      const orderId = data.order_id;
+      // Socket event handler is no longer primarily used to render the receipt for PayOS 
+      // because we redirect the page, but we keep it here just in case another client completes it.
+      if (orderId && checkoutResult && (checkoutResult.order_id === orderId || checkoutResult.id === orderId)) {
+        toast.success(`Thanh toán PayOS thành công cho đơn #${orderId}!`);
+        setViewingReceipt({
+          ...checkoutResult,
+          order_id: checkoutResult.order_id || checkoutResult.id,
+          order_code: `DH-${String(checkoutResult.order_id || checkoutResult.id).padStart(6, '0')}`,
+          printed_by: printerName,
+        });
+        setCheckoutResult(null);
+      }
+    };
+
+    socket.on('order:payment-completed', handlePaymentCompleted);
+    return () => socket.off('order:payment-completed', handlePaymentCompleted);
+  }, [printerName, checkoutResult]);
 
   // ─── Load orders ──────────────────────────────────────────────────────────
   const loadOrders = useCallback(async () => {
@@ -106,16 +148,16 @@ function TakeawayPOS() {
     return s + (item.price + toppingSum) * item.quantity;
   }, 0);
 
-  const activeCount = orders.filter((o) =>
-    ['pending', 'preparing', 'served'].includes(o.status),
-  ).length;
-  const servedCount = orders.filter((o) => o.status === 'served').length;
-  const displayOrders =
-    orderFilter === 'active'
-      ? orders.filter((o) =>
-          ['pending', 'preparing', 'served'].includes(o.status),
-        )
-      : orders;
+  // const activeCount = orders.filter((o) =>
+  //   ['pending', 'preparing', 'served'].includes(o.status),
+  // ).length;
+  // const servedCount = orders.filter((o) => o.status === 'served').length;
+  // const displayOrders =
+  //   orderFilter === 'active'
+  //     ? orders.filter((o) =>
+  //         ['pending', 'preparing', 'served'].includes(o.status),
+  //       )
+  //     : orders;
 
   // ─── Cart helpers ─────────────────────────────────────────────────────────
   const addToCart = (item) => setCart((prev) => [...prev, item]);
@@ -133,12 +175,18 @@ function TakeawayPOS() {
     paymentMethod,
     discountCode,
     discountAmount,
+    receivedAmount,
   }) => {
     setCheckoutLoading(true);
     try {
+      const returnUrl = `${window.location.origin}/staff/payment-result?origin=${encodeURIComponent(window.location.pathname)}`;
       const payload = {
         payment_method: paymentMethod,
+        is_paid: paymentMethod === 'cash' ? 1 : 0,
         discount_code: discountCode || '',
+        returnUrl,
+        cancelUrl: returnUrl,
+        cash_received: paymentMethod === 'cash' ? receivedAmount || 0 : 0, 
         items: cart.map((item) => ({
           product_size_id: item.product_size_id,
           quantity: item.quantity,
@@ -164,9 +212,10 @@ function TakeawayPOS() {
         })),
         discount_code: discountCode || null,
         discount_amount: discountAmount || data.discount_amount || 0,
+        is_paid: paymentMethod === 'cash' ? 1 : (data.is_paid ? 1 : 0),
         payment: {
           method: paymentMethod,
-          status: data.is_paid ? 'paid' : 'pending',
+          status: paymentMethod === 'cash' ? 'paid' : (data.is_paid ? 'paid' : 'pending'),
         },
       };
 
@@ -175,12 +224,12 @@ function TakeawayPOS() {
       setShowCheckout(false);
 
       if (paymentMethod === 'payos' && data.checkout_url) {
-        setCheckoutResult(data);
+        window.location.href = data.checkout_url;
       } else {
         toast.success(
           `Tạo đơn #${data.order_id} thành công · ${fmt(data.total_amount)}`,
         );
-        setViewingReceipt(newOrder);
+        setViewingReceipt({ ...newOrder, autoPrint: true });
       }
     } catch (e) {
       toast.error(e?.response?.data?.message || 'Lỗi tạo đơn');
@@ -216,21 +265,21 @@ function TakeawayPOS() {
     }
   };
 
-  const handleComplete = async (order) => {
-    try {
-      await takeawayService.markCompleted(order.order_id || order.id);
-      setOrders((prev) =>
-        prev.map((o) =>
-          (o.order_id || o.id) === (order.order_id || order.id)
-            ? { ...o, status: 'completed' }
-            : o,
-        ),
-      );
-      toast.success(`Đơn #${order.order_id || order.id} đã giao cho khách`);
-    } catch (e) {
-      toast.error(e?.response?.data?.message || 'Lỗi cập nhật trạng thái');
-    }
-  };
+  // const handleComplete = async (order) => {
+  //   try {
+  //     await takeawayService.markCompleted(order.order_id || order.id);
+  //     setOrders((prev) =>
+  //       prev.map((o) =>
+  //         (o.order_id || o.id) === (order.order_id || order.id)
+  //           ? { ...o, status: 'completed' }
+  //           : o,
+  //       ),
+  //     );
+  //     toast.success(`Đơn #${order.order_id || order.id} đã giao cho khách`);
+  //   } catch (e) {
+  //     toast.error(e?.response?.data?.message || 'Lỗi cập nhật trạng thái');
+  //   }
+  // };
 
   const handleEditSave = (updatedData) => {
     setOrders((prev) =>
@@ -417,70 +466,6 @@ function TakeawayPOS() {
         </div>
       </div>
 
-      {/*  CỘT PHẢI — Đơn mang đi */}
-      <div className='flex flex-col w-0 flex-[3] min-w-0'>
-        <div className='px-4 pt-5 pb-3 border-b border-gray-100 shrink-0'>
-          <div className='flex items-center justify-between mb-3'>
-            <h3 className='font-bold text-gray-800 flex items-center gap-2'>
-              <Receipt size={16} className='text-amber-500' />
-              Đơn mang đi
-              {servedCount > 0 && (
-                <span className='ml-1 px-2 py-0.5 bg-green-500 text-white text-xs rounded-full animate-pulse font-semibold'>
-                  {servedCount} sẵn sàng
-                </span>
-              )}
-            </h3>
-            <button
-              onClick={loadOrders}
-              className='p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600'
-              title='Làm mới'
-            >
-              <RefreshCw
-                size={14}
-                className={ordersLoading ? 'animate-spin' : ''}
-              />
-            </button>
-          </div>
-          <div className='flex bg-gray-100 rounded-xl p-1 gap-1'>
-            <button
-              onClick={() => setOrderFilter('active')}
-              className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all ${orderFilter === 'active' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500'}`}
-            >
-              Đang xử lý{activeCount > 0 ? ` (${activeCount})` : ''}
-            </button>
-            <button
-              onClick={() => setOrderFilter('all')}
-              className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all ${orderFilter === 'all' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500'}`}
-            >
-              Tất cả ({orders.length})
-            </button>
-          </div>
-        </div>
-
-        <div className='flex-1 overflow-y-auto p-4 space-y-2.5 min-h-0'>
-          {ordersLoading ? (
-            <div className='flex items-center justify-center h-full'>
-              <Loader2 size={24} className='animate-spin text-gray-300' />
-            </div>
-          ) : displayOrders.length === 0 ? (
-            <div className='flex flex-col items-center justify-center h-full text-gray-300 gap-3'>
-              <Coffee size={40} />
-              <p className='text-sm'>Chưa có đơn nào</p>
-            </div>
-          ) : (
-            displayOrders.map((order) => (
-              <OrderCard
-                key={order.order_id || order.id}
-                order={order}
-                onEdit={setEditingOrder}
-                onCancel={setCancelingOrder}
-                onComplete={handleComplete}
-              />
-            ))
-          )}
-        </div>
-      </div>
-
       {/*  MODALS  */}
       {selectedProduct && (
         <ProductModal
@@ -500,23 +485,23 @@ function TakeawayPOS() {
         />
       )}
 
-      {editingOrder && (
+      {/* {editingOrder && (
         <EditOrderModal
           order={editingOrder}
           toppings={toppings}
           onClose={() => setEditingOrder(null)}
           onSave={handleEditSave}
         />
-      )}
+      )} */}
 
-      {cancelingOrder && (
+      {/* {cancelingOrder && (
         <CancelModal
           order={cancelingOrder}
           onClose={() => setCancelingOrder(null)}
           onConfirm={handleCancelConfirm}
           loading={cancelLoading}
         />
-      )}
+      )} */}
 
       {viewingReceipt && (
         <ReceiptModal
@@ -526,7 +511,7 @@ function TakeawayPOS() {
       )}
 
       {/* PayOS QR */}
-      {checkoutResult && (
+      {/* {checkoutResult && (
         <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4'>
           <div className='bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center animate-in fade-in zoom-in-95'>
             <div className='w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center mx-auto mb-4'>
@@ -567,7 +552,7 @@ function TakeawayPOS() {
             </button>
           </div>
         </div>
-      )}
+      )} */}
     </div>
   );
 }
