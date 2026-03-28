@@ -25,7 +25,6 @@ import { toast } from 'sonner';
 import QRDisplay from '../common/QRDisplay';
 import socket from '@/lib/socket';
 import authenticationService from '@/services/authenticationService';
-import orderOnlineService from '@/services/orderOnlineService';
 
 const fmt = (n) => Number(n).toLocaleString('vi-VN') + ' đ';
 

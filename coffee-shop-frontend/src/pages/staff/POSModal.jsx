@@ -21,6 +21,7 @@ import authenticationService from '../../services/authenticationService';
 import socket from '../../lib/socket';
 import { ReceiptModal } from './TakeAwayOrder/ReceiptModal';
 import { useNavigate } from 'react-router-dom';
+import PayOSLogo from "/logo/payOS.svg";
 
 const getProductPrice = (product, size = 'M') => {
   const sizeItem = product.sizes?.find((s) => s.size === size);
@@ -760,7 +761,8 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
                       : 'border-gray-200 text-gray-600'
                     }`}
                 >
-                  <span className="text-lg">💳</span> QR PayOS
+                  <img src={PayOSLogo} alt="PayOS" className="h-10 w-10" />
+                  QR PayOS
                 </button>
               </div>
             </div>
