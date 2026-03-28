@@ -10,7 +10,10 @@ class CategoryController {
    */
   async getAll(req, res, next) {
     try {
-      const categories = await CategoryService.getAllCategories();
+      const { with_count } = req.query;
+      const categories = await CategoryService.getAllCategories({ 
+        with_count: with_count === 'true' 
+      });
       return response.success(res, categories, 'Lấy danh sách categories thành công');
     } catch (error) {
       next(error);

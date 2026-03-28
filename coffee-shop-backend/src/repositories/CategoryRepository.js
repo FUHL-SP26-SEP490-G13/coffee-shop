@@ -9,7 +9,22 @@ class CategoryRepository extends BaseRepository {
   /**
    * Get all active categories (not deleted)
    */
-  async findAllActive() {
+  async findAllActive(options = {}) {
+    if (options.with_count) {
+      const query = `
+        SELECT c.*, 
+          (SELECT COUNT(*) 
+           FROM products p 
+           WHERE p.category_id = c.id AND p.is_deleted = 0 AND p.status = 'available'
+          ) as product_count
+        FROM category c 
+        WHERE c.is_deleted = 0
+        ORDER BY c.name ASC
+      `;
+      const [rows] = await db.query(query);
+      return rows;
+    }
+
     return this.findAll(
       { is_deleted: 0 },
       { orderBy: 'name', order: 'ASC' },
