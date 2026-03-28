@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { X, Search, Plus, Minus, Trash2, ShoppingCart, Coffee } from 'lucide-react';
+import { X, Search, Plus, Minus, Trash2, ShoppingCart, Coffee, Send } from 'lucide-react';
 import productService from '../../services/productService';
 import tableService from '../../services/tableService';
 import orderService from '../../services/orderService';
@@ -33,6 +33,8 @@ const CASH_SUGGESTIONS = [10000, 20000, 50000, 100000, 200000, 500000];
 const formatVND = (amount) =>
   new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
 
+const TABLE_MANAGEMENT_PATH = '/staff/tables';
+
 export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
   const [editingCartItem, setEditingCartItem] = useState(null);
   const [cart, setCart] = useState([]);
@@ -50,6 +52,13 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
   const [discountAmount, setDiscountAmount] = useState(0);
   const [customerCash, setCustomerCash] = useState(0);
   const [discountError, setDiscountError] = useState('');
+<<<<<<< Updated upstream
+=======
+  const [pendingPayosOrderId, setPendingPayosOrderId] = useState(null);
+  const [viewingReceipt, setViewingReceipt] = useState(null);
+  const [printerName, setPrinterName] = useState('Nhân viên');
+  const [sendingToBarista, setSendingToBarista] = useState(false);
+>>>>>>> Stashed changes
 
   useEffect(() => {
     if (!isOpen) return;
@@ -180,6 +189,118 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
     setIsPaymentModalOpen(true);
   };
 
+  const buildOrderItemsPayload = () => {
+    const items = cart.map((item) => {
+      const productSizeId = item.price
+        ? item.productId
+        : item.product.sizes?.find((s) => s.size === item.size)?.id;
+      return {
+        product_size_id: productSizeId,
+        quantity: item.quantity,
+        toppings: (item.toppings || []).map((t) => ({
+          topping_id: t.topping_id || t.id,
+          quantity: t.quantity || 1,
+        })),
+      };
+    });
+
+    if (items.some((i) => !i.product_size_id)) {
+      throw new Error('invalid-product-size');
+    }
+
+    return items;
+  };
+
+  const createUnpaidOrder = async () => {
+    const items = buildOrderItemsPayload();
+    const payload = {
+      order_type: 'dine-in',
+      table_id: Number(table.id),
+      payment_method: 'payos',
+      receiver_name: `Khách Bàn ${table.code || ''}`,
+      receiver_phone: '0000000000',
+      items,
+      note: note.trim() || undefined,
+      discount_code: discountAmount > 0 ? discountCode : undefined,
+    };
+    return orderService.checkout(payload);
+  };
+
+  const handleSendToBarista = async () => {
+    if (!table) {
+      toast.error('Không tìm thấy thông tin bàn');
+      return;
+    }
+    if (cart.length === 0) {
+      toast.error('Giỏ hàng trống');
+      return;
+    }
+    setSendingToBarista(true);
+    try {
+      await createUnpaidOrder();
+
+      // Placeholder for future Barista-account handoff integration.
+      const handoffToBaristaAccount = () => {
+        return true;
+      };
+      handoffToBaristaAccount();
+
+      toast.success('Đã gửi order cho Barista! 🎉', {
+        description: `Bàn ${table.code} — ${cart.reduce((a, i) => a + i.quantity, 0)} món`,
+      });
+      if (onTableStatusChange) onTableStatusChange(table.id, 'occupied');
+      setCart([]);
+      setNote('');
+      navigate(TABLE_MANAGEMENT_PATH, {
+        state: {
+          focusTableId: table.id,
+          sourceAction: 'send-barista',
+        },
+      });
+      onClose();
+    } catch (error) {
+      if (error?.message === 'invalid-product-size') {
+        toast.error('Có lỗi xảy ra với thông tin sản phẩm');
+        return;
+      }
+      toast.error(error.response?.data?.message || 'Không gửi được order cho Barista');
+    } finally {
+      setSendingToBarista(false);
+    }
+  };
+
+  const handleSaveForLaterPayment = async () => {
+    if (!table) {
+      toast.error('Không tìm thấy thông tin bàn');
+      return;
+    }
+    if (cart.length === 0) {
+      toast.error('Giỏ hàng trống');
+      return;
+    }
+
+    try {
+      await createUnpaidOrder();
+      toast.success('Đã lưu đơn chờ thanh toán');
+      setCart([]);
+      setNote('');
+      if (onTableStatusChange) onTableStatusChange(table.id, 'occupied');
+      navigate(TABLE_MANAGEMENT_PATH, {
+        state: {
+          focusTableId: table.id,
+          sourceAction: 'save-for-later',
+        },
+      });
+      onClose();
+    } catch (error) {
+      if (error?.message === 'invalid-product-size') {
+        toast.error('Có lỗi xảy ra với thông tin sản phẩm');
+        return;
+      }
+      toast.error(error.response?.data?.message || 'Không lưu được đơn chờ thanh toán');
+    }
+  };
+
   const handleApplyDiscount = async () => {
     if (!discountCode.trim()) {
       toast.error('Vui lòng nhập mã giảm giá');
@@ -236,23 +357,7 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
       return;
     }
     try {
-      const items = cart.map((item) => {
-        const productSizeId = item.price
-          ? item.productId
-          : item.product.sizes?.find((s) => s.size === item.size)?.id;
-        return {
-          product_size_id: productSizeId,
-          quantity: item.quantity,
-          toppings: (item.toppings || []).map((t) => ({
-            topping_id: t.topping_id || t.id,
-            quantity: t.quantity || 1,
-          })),
-        };
-      });
-      if (items.some((i) => !i.product_size_id)) {
-        toast.error('Có lỗi xảy ra với thông tin sản phẩm');
-        return;
-      }
+      const items = buildOrderItemsPayload();
       const payload = {
         order_type: 'dine-in',
         table_id: Number(table.id),
@@ -285,6 +390,41 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
             toast.error('Không tạo được link thanh toán QR');
           }
         }
+<<<<<<< Updated upstream
+=======
+      } else {
+        setPendingPayosOrderId(null);
+        const orderId = res.data?.order_id || res.data?.id;
+        if (orderId && paymentMethod === 'cash') {
+          const resData = res.data?.data || res.data;
+          const orderData = {
+            ...resData,
+            order_id: orderId,
+            order_code: `DH-${String(orderId).padStart(6, '0')}`,
+            order_type: resData.order_type || 'dine-in',
+            receiver_name: `Khách Bàn ${table?.code || ''}`,
+            receiver_phone: '0000000000',
+            printed_by: printerName,
+            items: cart.map((item) => ({
+              product_name: item.productName || item.product?.name || 'Sản phẩm',
+              size: item.size || 'M',
+              quantity: item.quantity,
+              unit_price: item.price || item.product?.price || 0,
+              toppings: item.toppings || [],
+              note: item.note || '',
+            })),
+            discount_code: discountAmount > 0 ? discountCode : null,
+            discount_amount: discountAmount || resData.discount_amount || 0,
+            total_amount: resData.total_amount || finalTotal,
+            is_paid: paymentMethod === 'cash' ? 1 : (resData.is_paid ? 1 : 0),
+            payment: {
+              method: paymentMethod,
+              status: paymentMethod === 'cash' ? 'paid' : (resData.is_paid ? 'paid' : 'pending'),
+            },
+          };
+          setViewingReceipt({ ...orderData, autoPrint: true });
+        }
+>>>>>>> Stashed changes
       }
       toast.success('Đặt hàng thành công!');
       setCart([]);
@@ -292,8 +432,29 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
       setIsPaymentModalOpen(false);
       // Cập nhật trạng thái bàn về "occupied" nếu cần
       if (onTableStatusChange) onTableStatusChange(table.id, 'occupied');
+<<<<<<< Updated upstream
       onClose();
     } catch (error) {
+=======
+
+      if (paymentMethod !== 'cash') {
+        navigate(TABLE_MANAGEMENT_PATH, {
+          state: {
+            focusTableId: table.id,
+            sourceAction: 'payos-payment',
+          },
+        });
+        onClose();
+      }
+    } catch (error) {
+      if (error?.message === 'invalid-product-size') {
+        toast.error('Có lỗi xảy ra với thông tin sản phẩm');
+        return;
+      }
+      if (paymentMethod === 'payos') {
+        setPendingPayosOrderId(null);
+      }
+>>>>>>> Stashed changes
       toast.error(error.response?.data?.message || 'Không đặt được hàng');
     }
   };
@@ -374,8 +535,8 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
                 <button
                   onClick={() => setActiveCategory('all')}
                   className={`px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all flex-shrink-0 ${activeCategory === 'all'
-                      ? 'bg-amber-500 text-white shadow-sm'
-                      : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                    ? 'bg-amber-500 text-white shadow-sm'
+                    : 'bg-muted text-muted-foreground hover:bg-muted/80'
                     }`}
                 >
                   Tất cả
@@ -385,8 +546,8 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
                     key={cat.id}
                     onClick={() => setActiveCategory(cat.id)}
                     className={`px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all flex-shrink-0 ${activeCategory === cat.id
-                        ? 'bg-amber-500 text-white shadow-sm'
-                        : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                      ? 'bg-amber-500 text-white shadow-sm'
+                      : 'bg-muted text-muted-foreground hover:bg-muted/80'
                       }`}
                   >
                     {cat.name}
@@ -559,18 +720,49 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
             </div>
 
             {/* Total + Checkout */}
-            <div className="p-3 border-t border-border flex-shrink-0 space-y-2">
+            <div className="p-3 border-t border-border flex-shrink-0 space-y-3">
               <div className="flex justify-between items-center px-1">
                 <span className="text-sm text-muted-foreground">Tổng cộng</span>
                 <span className="text-xl font-black text-amber-600">{formatVND(total)}</span>
               </div>
+
+              {/* Send to Barista */}
               <Button
-                onClick={handleOpenPaymentModal}
-                disabled={cart.length === 0}
-                className="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl h-11 text-sm"
+                onClick={handleSendToBarista}
+                disabled={cart.length === 0 || sendingToBarista}
+                className="w-full h-11 rounded-xl bg-teal-500 hover:bg-teal-600 text-white font-bold text-sm gap-2 shadow-sm transition-all active:scale-95"
               >
-                Thanh toán · {formatVND(total)}
+                {sendingToBarista ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Đang gửi...
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-4 h-4" />
+                    Gửi Barista
+                  </>
+                )}
               </Button>
+
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  onClick={handleOpenPaymentModal}
+                  disabled={cart.length === 0}
+                  className="h-11 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-sm gap-2 shadow-sm transition-all active:scale-95"
+                >
+                  <ShoppingCart className="w-4 h-4" />
+                  Thanh toán
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={handleSaveForLaterPayment}
+                  disabled={cart.length === 0}
+                  className="h-11 rounded-xl border-sky-200 text-sky-700 hover:bg-sky-50 font-semibold"
+                >
+                  Trả sau
+                </Button>
+              </div>
             </div>
           </div>
         </div>
@@ -659,8 +851,8 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
                 <button
                   onClick={() => setPaymentMethod('cash')}
                   className={`flex items-center justify-center gap-2 p-3 rounded-xl border-2 font-medium transition-all ${paymentMethod === 'cash'
-                      ? 'border-green-500 text-green-600 bg-green-50/50'
-                      : 'border-gray-200 text-gray-600'
+                    ? 'border-green-500 text-green-600 bg-green-50/50'
+                    : 'border-gray-200 text-gray-600'
                     }`}
                 >
                   <span className="text-lg">💵</span> Tiền mặt
@@ -668,8 +860,8 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
                 <button
                   onClick={() => setPaymentMethod('payos')}
                   className={`flex items-center justify-center gap-2 p-3 rounded-xl border-2 font-medium transition-all ${paymentMethod === 'payos'
-                      ? 'border-green-500 text-green-600 bg-green-50/50'
-                      : 'border-gray-200 text-gray-600'
+                    ? 'border-green-500 text-green-600 bg-green-50/50'
+                    : 'border-gray-200 text-gray-600'
                     }`}
                 >
                   <span className="text-lg">💳</span> QR PayOS
@@ -697,8 +889,8 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
                       key={val}
                       onClick={() => setCustomerCash(val)}
                       className={`flex-1 p-2 rounded-full border text-sm font-medium transition-all ${customerCash === val
-                          ? 'border-green-500 text-green-600 bg-green-50'
-                          : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                        ? 'border-green-500 text-green-600 bg-green-50'
+                        : 'border-gray-200 text-gray-600 hover:bg-gray-50'
                         }`}
                     >
                       {formatVND(val).replace(' ₫', '').trim()}
@@ -735,6 +927,22 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
           </div>
         </DialogContent>
       </Dialog>
+<<<<<<< Updated upstream
+=======
+
+      {viewingReceipt && (
+        <ReceiptModal
+          order={viewingReceipt}
+          onClose={() => {
+            setViewingReceipt(null);
+            onClose();
+          }}
+          onPrint={() => {
+            // Optional: call markPrintSuccess if needed
+          }}
+        />
+      )}
+>>>>>>> Stashed changes
     </>
   );
 }

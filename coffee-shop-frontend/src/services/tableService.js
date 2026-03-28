@@ -36,7 +36,27 @@ const tableService = {
   delete: async (id) => {
     const response = await axios.delete(`${API_URL}/tables/${id}`);
     return response.data;
+<<<<<<< Updated upstream
   }
+=======
+  },
+
+  transfer: async (fromTableId, toTableId) => {
+    const response = await axios.post(`${API_URL}/tables/transfer`, {
+      from_table_id: fromTableId,
+      to_table_id: toTableId,
+    });
+    return response.data;
+  },
+
+  mergeOrder: async (fromTableId, toTableId) => {
+    const response = await axios.post(`${API_URL}/tables/merge-order`, {
+      from_table_id: fromTableId,
+      to_table_id: toTableId,
+    });
+    return response.data;
+  },
+>>>>>>> Stashed changes
 };
 
 export default tableService;

@@ -178,7 +178,7 @@ class OrderService {
         let calculatedDiscount = Math.round((totalAmount * percentage) / 100);
         const maxDiscount =
           discount.max_discount_amount === null ||
-          discount.max_discount_amount === undefined
+            discount.max_discount_amount === undefined
             ? null
             : Number(discount.max_discount_amount);
 
@@ -354,7 +354,7 @@ class OrderService {
       let discountAmount = Math.round((subtotal * percentage) / 100);
       const maxDiscount =
         discount.max_discount_amount === null ||
-        discount.max_discount_amount === undefined
+          discount.max_discount_amount === undefined
           ? null
           : Number(discount.max_discount_amount);
 
@@ -452,13 +452,23 @@ class OrderService {
     try {
       const [tableRows] = await connection.query("SELECT current_session_id FROM tables WHERE id = ?", [tableId]);
       if (tableRows.length === 0 || !tableRows[0].current_session_id) {
-         return null;
+        return null;
       }
-      
+
       const sessionId = tableRows[0].current_session_id;
 
       const [rows] = await connection.query(
-        `SELECT id, total_amount FROM orders WHERE table_id = ? AND session_id = ? ORDER BY created_at ASC`,
+        `
+          SELECT
+            o.id,
+            o.total_amount,
+            o.is_paid,
+            COALESCE(op.payment_status, 'pending') AS payment_status
+          FROM orders o
+          LEFT JOIN order_payments op ON op.order_id = o.id
+          WHERE o.table_id = ? AND o.session_id = ?
+          ORDER BY o.created_at ASC
+        `,
         [tableId, sessionId]
       );
 
@@ -467,21 +477,35 @@ class OrderService {
       }
 
       let combinedTotal = 0;
+      let outstandingTotal = 0;
       let allItems = [];
-      const firstOrderId = rows[0].id;
+      const unpaidOrders = rows.filter((order) => {
+        const paidFlag = Number(order.is_paid || 0) === 1;
+        const paymentStatus = String(order.payment_status || '').toLowerCase();
+        return !(paidFlag && paymentStatus === 'paid');
+      });
+      const representativeOrderId = unpaidOrders[0]?.id || rows[0].id;
 
       for (const order of rows) {
         combinedTotal += Number(order.total_amount || 0);
+        const paidFlag = Number(order.is_paid || 0) === 1;
+        const paymentStatus = String(order.payment_status || '').toLowerCase();
+        if (!(paidFlag && paymentStatus === 'paid')) {
+          outstandingTotal += Number(order.total_amount || 0);
+        }
         const orderItems = await OrderRepository.findOrderItems(order.id);
         allItems = allItems.concat(orderItems);
       }
 
-      const orderData = await OrderRepository.findOrderDetailForStaff(firstOrderId);
+      const orderData = await OrderRepository.findOrderDetailForStaff(representativeOrderId);
       if (!orderData) return null;
 
       return {
         ...orderData,
         total_amount: combinedTotal,
+        outstanding_amount: outstandingTotal,
+        has_outstanding: outstandingTotal > 0,
+        unpaid_order_id: unpaidOrders[0]?.id || null,
         items: allItems,
       };
     } finally {
