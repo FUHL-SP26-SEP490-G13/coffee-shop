@@ -91,6 +91,8 @@ function Header() {
   const [categories, setCategories] = useState([]);
   const [categoryOpen, setCategoryOpen] = useState(false);
   const [mobileCategoryOpen, setMobileCategoryOpen] = useState(false);
+  const [hoveredCategory, setHoveredCategory] = useState(null);
+  const [categoryProductsMap, setCategoryProductsMap] = useState({});
 
   const [keyword, setKeyword] = useState("");
   const [mobileKeyword, setMobileKeyword] = useState("");
@@ -325,6 +327,19 @@ function Header() {
     setMobileCategoryOpen(false);
     setMobileMenuOpen(false);
   };
+
+  const handleCategoryHover = useCallback(async (category) => {
+    setHoveredCategory(category.id);
+    if (!categoryProductsMap[category.id]) {
+      try {
+        const res = await productService.getByCategory(category.id, { limit: 4, status: "available" });
+        const list = Array.isArray(res?.data) ? res.data : (res?.data?.data || []);
+        setCategoryProductsMap((prev) => ({ ...prev, [category.id]: list }));
+      } catch (error) {
+        console.error("Lỗi lấy sản phẩm theo danh mục:", error);
+      }
+    }
+  }, [categoryProductsMap]);
 
   const normalizeProducts = (res) => {
     const raw = res?.data;
@@ -639,26 +654,90 @@ function Header() {
             </Button>
 
             {categoryOpen && (
-              <div className="absolute left-0 mt-2 w-64 bg-white border border-gray-200 rounded-2xl shadow-xl p-2 z-50">
-                {categories.length === 0 ? (
-                  <div className="px-3 py-2 text-sm text-gray-500">
-                    Không có danh mục
+              <div 
+                className="absolute left-0 mt-2 flex bg-white border border-gray-200 rounded-2xl shadow-xl z-50 overflow-hidden"
+                onMouseLeave={() => setHoveredCategory(null)}
+              >
+                <div className="w-64 p-2 border-r border-gray-100 shrink-0">
+                  {categories.length === 0 ? (
+                    <div className="px-3 py-2 text-sm text-gray-500">
+                      Không có danh mục
+                    </div>
+                  ) : (
+                    categories.map((category) => (
+                      <button
+                        key={category.id}
+                        onClick={() => goToCategory(category)}
+                        onMouseEnter={() => handleCategoryHover(category)}
+                        className={`w-full flex items-center justify-between px-3 py-2 rounded-xl transition text-sm group ${
+                          hoveredCategory === category.id 
+                            ? "bg-amber-50 text-amber-700" 
+                            : "hover:bg-amber-50 hover:text-amber-700"
+                        }`}
+                      >
+                        <span>{category.name}</span>
+                        {category.product_count !== undefined && (
+                          <span className={`text-xs px-2 py-0.5 rounded-full transition-colors ${
+                            hoveredCategory === category.id 
+                              ? "bg-amber-200 text-amber-700" 
+                              : "text-gray-500 bg-gray-100 group-hover:bg-amber-200 group-hover:text-amber-700"
+                          }`}>
+                            {category.product_count}
+                          </span>
+                        )}
+                      </button>
+                    ))
+                  )}
+                </div>
+
+                {hoveredCategory && (
+                  <div className="w-[380px] p-4 bg-gray-50 hidden md:block">
+                    <div className="flex justify-between items-center mb-3">
+                      <h4 className="font-semibold text-gray-800">Sản phẩm nổi bật</h4>
+                      <button 
+                        onClick={() => {
+                          const cat = categories.find(c => c.id === hoveredCategory);
+                          if(cat) goToCategory(cat);
+                        }}
+                        className="text-amber-600 text-xs hover:underline"
+                      >
+                        Xem tất cả
+                      </button>
+                    </div>
+                    
+                    {!categoryProductsMap[hoveredCategory] ? (
+                       <div className="flex items-center justify-center py-10">
+                         <Loader2 className="w-5 h-5 animate-spin text-amber-600" />
+                       </div>
+                    ) : categoryProductsMap[hoveredCategory].length === 0 ? (
+                       <div className="text-gray-500 text-sm py-4 text-center">Chưa có sản phẩm</div>
+                    ) : (
+                       <div className="grid grid-cols-2 gap-3">
+                         {categoryProductsMap[hoveredCategory].slice(0, 4).map(prod => {
+                            const image = Array.isArray(prod.images) && prod.images[0] ? prod.images[0].image_url : defaultImage;
+                            const minPrice = Array.isArray(prod.sizes) && prod.sizes.length > 0 
+                               ? Math.min(...prod.sizes.map(s => Number(s.price))) 
+                               : null;
+                               
+                            return (
+                              <div key={prod.id} 
+                                onClick={() => {
+                                  navigate(`/products/${prod.id}`);
+                                  setCategoryOpen(false);
+                                }}
+                                className="bg-white border border-gray-100 rounded-xl p-2 cursor-pointer hover:border-amber-300 hover:shadow-md transition"
+                              >
+                                <img src={image} alt={prod.name} className="w-full h-24 object-cover rounded-lg mb-2" />
+                                <p className="text-xs font-medium text-gray-900 line-clamp-2" title={prod.name}>{prod.name}</p>
+                                <p className="text-xs text-amber-600 font-semibold mt-1">
+                                  {minPrice ? `${minPrice.toLocaleString("vi-VN")}đ` : "Liên hệ"}
+                                </p>
+                              </div>
+                            );
+                         })}
+                       </div>
+                    )}
                   </div>
-                ) : (
-                  categories.map((category) => (
-                    <button
-                      key={category.id}
-                      onClick={() => goToCategory(category)}
-                      className="w-full flex items-center justify-between px-3 py-2 rounded-xl hover:bg-amber-50 hover:text-amber-700 transition text-sm group"
-                    >
-                      <span>{category.name}</span>
-                      {category.product_count !== undefined && (
-                        <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full group-hover:bg-amber-200 group-hover:text-amber-700 transition-colors">
-                          {category.product_count}
-                        </span>
-                      )}
-                    </button>
-                  ))
                 )}
               </div>
             )}
