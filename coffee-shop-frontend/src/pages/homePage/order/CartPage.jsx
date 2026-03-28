@@ -145,13 +145,17 @@ export default function CartPage() {
                         <img
                           src={item.image}
                           alt={item.name}
-                          className="w-24 h-24 rounded-xl object-cover border"
+                          onClick={() => navigate(`/products/${item.product_id || item.id}`)}
+                          className="w-24 h-24 text-gray-900 rounded-xl object-cover border cursor-pointer hover:opacity-80 transition-opacity"
                         />
 
                         <div className="flex-1">
                           <div className="flex items-start justify-between gap-4 flex-wrap">
                             <div>
-                              <h3 className="text-lg font-semibold text-gray-900">
+                              <h3
+                                className="text-lg font-semibold cursor-pointer hover:text-amber-600 transition-colors"
+                                onClick={() => navigate(`/products/${item.product_id || item.id}`)}
+                              >
                                 {item.name}
                               </h3>
 
