@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
+
 import {
   Dialog,
   DialogContent,
@@ -18,7 +19,8 @@ const formatVND = (amount) =>
     Number(amount || 0)
   );
 
-const CASH_SUGGESTIONS = [10000, 20000, 50000, 100000, 200000, 500000];
+const BILLS = [10000, 20000, 50000, 100000, 200000, 500000];
+
 
 export function PaySplitBillModal({ isOpen, onClose, table, onSuccess }) {
   const [orders, setOrders] = useState([]);
@@ -28,6 +30,26 @@ export function PaySplitBillModal({ isOpen, onClose, table, onSuccess }) {
   const [customerCash, setCustomerCash] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isPayingAll, setIsPayingAll] = useState(false);
+
+  const activePayingOrder = useMemo(() => orders.find(o => o.id === payingOrderId), [orders, payingOrderId]);
+
+  const totalAmountToPay = useMemo(() => {
+    if (isPayingAll) {
+      return orders.reduce((sum, o) => sum + Number(o.total_amount || 0), 0);
+    }
+    return activePayingOrder?.total_amount || 0;
+  }, [isPayingAll, orders, activePayingOrder]);
+
+  const suggestions = useMemo(() => {
+    const amt = Number(totalAmountToPay || 0);
+    if (amt <= 0) return [];
+    const base = [amt, ...BILLS.filter((v) => v > amt)];
+    const roundUp = Math.ceil(amt / 10000) * 10000;
+    if (!base.includes(roundUp)) base.splice(1, 0, roundUp);
+    return [...new Set(base)].slice(0, 4);
+  }, [totalAmountToPay]);
+
+
 
   useEffect(() => {
     if (isOpen && table?.id) {
@@ -62,7 +84,7 @@ export function PaySplitBillModal({ isOpen, onClose, table, onSuccess }) {
     }
   };
 
-  const activePayingOrder = orders.find(o => o.id === payingOrderId);
+
 
   const handleStartPayment = (order) => {
     setIsPayingAll(false);
@@ -80,9 +102,8 @@ export function PaySplitBillModal({ isOpen, onClose, table, onSuccess }) {
   };
 
   const handleConfirmPayment = async () => {
-    const amountToPay = isPayingAll 
-      ? orders.reduce((sum, o) => sum + Number(o.total_amount || 0), 0)
-      : activePayingOrder?.total_amount || 0;
+    const amountToPay = totalAmountToPay;
+
 
     if (paymentMethod === 'cash' && customerCash < amountToPay) {
       toast.error('Số tiền khách đưa không đủ');
@@ -272,29 +293,34 @@ export function PaySplitBillModal({ isOpen, onClose, table, onSuccess }) {
                               className="text-xl font-bold h-12 bg-gray-50 border-gray-100"
                             />
                           </div>
-                          <div className="grid grid-cols-2 gap-2">
-                            {CASH_SUGGESTIONS.map(val => (
-                              <button
-                                key={val}
-                                onClick={() => setCustomerCash(val)}
-                                className="p-2 border rounded-lg text-xs font-medium hover:bg-gray-50"
-                              >
-                                {formatVND(val)}
-                              </button>
-                            ))}
+                          <div className="flex gap-2">
+                            {suggestions.map((val) => {
+                              const selected = Number(customerCash || 0) === val;
+                              return (
+                                <button
+                                  key={val}
+                                  onClick={() => setCustomerCash(val)}
+                                  className={`flex-1 p-2 rounded-full border text-xs font-medium transition-all ${
+                                    selected
+                                      ? "border-green-500 text-green-600 bg-green-50"
+                                      : "border-gray-200 text-gray-600 hover:bg-gray-50"
+                                  }`}
+                                >
+                                  {formatVND(val).replace(/\s?₫/, "").trim()}
+                                </button>
+                              );
+                            })}
                           </div>
-                          {customerCash > (isPayingAll 
-                            ? orders.reduce((sum, o) => sum + Number(o.total_amount || 0), 0)
-                            : activePayingOrder?.total_amount || 0) && (
+
+                          {customerCash > totalAmountToPay && (
                             <div className="p-3 bg-blue-50 rounded-xl flex justify-between items-center border border-blue-100">
                               <span className="text-blue-600 text-xs font-bold">Tiền thừa:</span>
                               <span className="text-blue-700 font-black">
-                                {formatVND(customerCash - (isPayingAll 
-                                  ? orders.reduce((sum, o) => sum + Number(o.total_amount || 0), 0)
-                                  : activePayingOrder.total_amount))}
+                                {formatVND(customerCash - totalAmountToPay)}
                               </span>
                             </div>
                           )}
+
                         </div>
                       )}
 
