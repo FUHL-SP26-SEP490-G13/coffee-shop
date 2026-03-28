@@ -178,7 +178,7 @@ class OrderService {
         let calculatedDiscount = Math.round((totalAmount * percentage) / 100);
         const maxDiscount =
           discount.max_discount_amount === null ||
-          discount.max_discount_amount === undefined
+            discount.max_discount_amount === undefined
             ? null
             : Number(discount.max_discount_amount);
 
@@ -379,7 +379,7 @@ class OrderService {
       let discountAmount = Math.round((subtotal * percentage) / 100);
       const maxDiscount =
         discount.max_discount_amount === null ||
-        discount.max_discount_amount === undefined
+          discount.max_discount_amount === undefined
           ? null
           : Number(discount.max_discount_amount);
 
@@ -473,13 +473,23 @@ class OrderService {
     try {
       const [tableRows] = await connection.query("SELECT current_session_id FROM tables WHERE id = ?", [tableId]);
       if (tableRows.length === 0 || !tableRows[0].current_session_id) {
-         return null;
+        return null;
       }
-      
+
       const sessionId = tableRows[0].current_session_id;
 
       const [rows] = await connection.query(
-        `SELECT id, total_amount FROM orders WHERE table_id = ? AND session_id = ? ORDER BY created_at ASC`,
+        `
+        SELECT
+          o.id,
+          o.total_amount,
+          o.is_paid,
+          COALESCE(op.payment_status, 'pending') AS payment_status
+        FROM orders o
+        LEFT JOIN order_payments op ON op.order_id = o.id
+        WHERE o.table_id = ? AND o.session_id = ?
+        ORDER BY o.created_at ASC
+        `,
         [tableId, sessionId]
       );
 
@@ -488,11 +498,23 @@ class OrderService {
       }
 
       let combinedTotal = 0;
+      let debtAmount = 0;
+      let unpaidOrdersCount = 0;
       let allItems = [];
       const firstOrderId = rows[0].id;
 
       for (const order of rows) {
-        combinedTotal += Number(order.total_amount || 0);
+        const orderTotal = Number(order.total_amount || 0);
+        const paidByFlag = Number(order.is_paid || 0) === 1;
+        const paidByStatus = String(order.payment_status || '').toLowerCase() === 'paid';
+        const isOrderPaid = paidByFlag || paidByStatus;
+
+        combinedTotal += orderTotal;
+        if (!isOrderPaid) {
+          debtAmount += orderTotal;
+          unpaidOrdersCount += 1;
+        }
+
         const orderItems = await OrderRepository.findOrderItems(order.id);
         allItems = allItems.concat(orderItems);
       }
@@ -503,6 +525,8 @@ class OrderService {
       return {
         ...orderData,
         total_amount: combinedTotal,
+        debt_amount: debtAmount,
+        unpaid_orders_count: unpaidOrdersCount,
         items: allItems,
       };
     } finally {

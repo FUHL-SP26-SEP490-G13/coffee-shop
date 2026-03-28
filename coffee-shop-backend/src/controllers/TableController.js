@@ -60,7 +60,7 @@ class TableController {
 
       // Get old table state to check for status change
       const oldTable = await TableService.getTableById(id);
-      
+
       const table = await TableService.updateTable(id, req.body);
 
       // Trigger notification if status changes to "occupied" (Có khách)
@@ -138,8 +138,8 @@ class TableController {
       next(error);
     }
   }
-  
-  
+
+
   /**
    * API cập nhật QR code cho bàn đã có sẵn
    */
@@ -181,7 +181,7 @@ class TableController {
       const { id } = req.params;
       const OrderService = require('../services/OrderService');
       const order = await OrderService.getActiveOrderForTable(id);
-      
+
       res.json({
         success: true,
         data: order,
@@ -220,6 +220,65 @@ class TableController {
       res.json({
         success: true,
         message: `Đã chuyển bàn ${result.from.code} → ${result.to.code}`,
+        data: result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Settle debt for all unpaid orders of current table session.
+   */
+  async settleTableDebt(req, res, next) {
+    try {
+      const { id } = req.params;
+      const { payment_method, cash_received } = req.body || {};
+
+      const result = await TableService.settleTableDebt(Number(id), {
+        payment_method,
+        cash_received,
+      });
+
+      return res.json({
+        success: true,
+        message: `Thanh toán  cho bàn ${result.table_code} thành công`,
+        data: result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Merge active order(s) from source table to destination table.
+   */
+  async mergeOrders(req, res, next) {
+    try {
+      const { from_table_id, to_table_id } = req.body || {};
+
+      if (!from_table_id || !to_table_id) {
+        return res.status(400).json({
+          success: false,
+          message: 'Vui lòng cung cấp bàn nguồn và bàn đích',
+        });
+      }
+
+      if (Number(from_table_id) === Number(to_table_id)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Không thể gộp order vào chính nó',
+        });
+      }
+
+      const result = await TableService.mergeOrders(
+        Number(from_table_id),
+        Number(to_table_id)
+      );
+
+      return res.json({
+        success: true,
+        message: `Đã gộp order từ bàn ${result.from.code} sang bàn ${result.to.code}`,
         data: result,
       });
     } catch (error) {

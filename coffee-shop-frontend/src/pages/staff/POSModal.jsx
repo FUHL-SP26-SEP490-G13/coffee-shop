@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { X, Search, Plus, Minus, Trash2, ShoppingCart, Coffee } from 'lucide-react';
+import { X, Search, Plus, Minus, Trash2, ShoppingCart, Coffee, Send, Clock3 } from 'lucide-react';
 import productService from '../../services/productService';
 import tableService from '../../services/tableService';
 import orderService from '../../services/orderService';
@@ -59,6 +59,7 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
   const [pendingPayosOrderId, setPendingPayosOrderId] = useState(null);
   const [viewingReceipt, setViewingReceipt] = useState(null);
   const [printerName, setPrinterName] = useState('Nhân viên');
+  const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -275,12 +276,16 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
     }
   };
 
-  const handleConfirmPayment = async () => {
+  const handleSubmitOrder = async ({ deferredPayment = false, notifyBarista = false } = {}) => {
     const finalTotal = Math.max(0, total - discountAmount);
-    if (paymentMethod === 'cash' && customerCash < finalTotal) {
+    const resolvedPaymentMethod = deferredPayment || notifyBarista ? 'payos' : paymentMethod;
+
+    if (resolvedPaymentMethod === 'cash' && customerCash < finalTotal) {
       toast.error('Tiền khách đưa không đủ');
       return;
     }
+
+    setIsSubmittingOrder(true);
     try {
       const items = cart.map((item) => {
         const productSizeId = item.price
@@ -302,7 +307,7 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
       const payload = {
         order_type: 'dine-in',
         table_id: Number(table.id),
-        payment_method: paymentMethod,
+        payment_method: resolvedPaymentMethod,
         receiver_name: `Khách Bàn ${table.code || ''}`,
         receiver_phone: '0000000000',
         items,
@@ -310,7 +315,7 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
         discount_code: discountAmount > 0 ? discountCode : undefined,
       };
       const res = await orderService.checkout(payload);
-      if (paymentMethod === 'payos') {
+      if (resolvedPaymentMethod === 'payos' && !deferredPayment && !notifyBarista) {
         const orderId = res.data?.order_id || res.data?.id;
         if (orderId) {
           setPendingPayosOrderId(Number(orderId));
@@ -360,31 +365,63 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
             discount_code: discountAmount > 0 ? discountCode : null,
             discount_amount: discountAmount || resData.discount_amount || 0,
             total_amount: resData.total_amount || finalTotal,
-            is_paid: paymentMethod === 'cash' ? 1 : (resData.is_paid ? 1 : 0),
+            is_paid: resolvedPaymentMethod === 'cash' ? 1 : (resData.is_paid ? 1 : 0),
             payment: {
-              method: paymentMethod,
-              status: paymentMethod === 'cash' ? 'paid' : (resData.is_paid ? 'paid' : 'pending'),
+              method: resolvedPaymentMethod,
+              status: resolvedPaymentMethod === 'cash' ? 'paid' : (resData.is_paid ? 'paid' : 'pending'),
             },
           };
-          setViewingReceipt({ ...orderData, autoPrint: true });
+          if (!notifyBarista && !deferredPayment) {
+            setViewingReceipt({ ...orderData, autoPrint: true });
+          }
         }
       }
-      toast.success('Đặt hàng thành công!');
+
+      if (notifyBarista) {
+        toast.success('Đã gửi đơn cho barista');
+      } else if (deferredPayment) {
+        toast.success('Đã tạo đơn thanh toán sau');
+      } else {
+        toast.success('Đặt hàng thành công!');
+      }
+
       setCart([]);
       setNote('');
       setIsPaymentModalOpen(false);
       // Cập nhật trạng thái bàn về "occupied" nếu cần
       if (onTableStatusChange) onTableStatusChange(table.id, 'occupied');
-      
-      if (paymentMethod !== 'cash') {
+
+      if (resolvedPaymentMethod !== 'cash') {
         onClose();
       }
     } catch (error) {
-      if (paymentMethod === 'payos') {
+      if (resolvedPaymentMethod === 'payos') {
         setPendingPayosOrderId(null);
       }
       toast.error(error.response?.data?.message || 'Không đặt được hàng');
+    } finally {
+      setIsSubmittingOrder(false);
     }
+  };
+
+  const handleConfirmPayment = async () => {
+    await handleSubmitOrder();
+  };
+
+  const handlePayLater = async () => {
+    await handleSubmitOrder({ deferredPayment: true });
+  };
+
+  const handleSendToBarista = async () => {
+    if (!table) {
+      toast.error('Không tìm thấy thông tin bàn');
+      return;
+    }
+    if (cart.length === 0) {
+      toast.error('Giỏ hàng trống');
+      return;
+    }
+    await handleSubmitOrder({ deferredPayment: true, notifyBarista: true });
   };
 
   const filteredProducts = useMemo(() => {
@@ -463,8 +500,8 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
                 <button
                   onClick={() => setActiveCategory('all')}
                   className={`px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all flex-shrink-0 ${activeCategory === 'all'
-                      ? 'bg-amber-500 text-white shadow-sm'
-                      : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                    ? 'bg-amber-500 text-white shadow-sm'
+                    : 'bg-muted text-muted-foreground hover:bg-muted/80'
                     }`}
                 >
                   Tất cả
@@ -474,8 +511,8 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
                     key={cat.id}
                     onClick={() => setActiveCategory(cat.id)}
                     className={`px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all flex-shrink-0 ${activeCategory === cat.id
-                        ? 'bg-amber-500 text-white shadow-sm'
-                        : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                      ? 'bg-amber-500 text-white shadow-sm'
+                      : 'bg-muted text-muted-foreground hover:bg-muted/80'
                       }`}
                   >
                     {cat.name}
@@ -653,13 +690,24 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
                 <span className="text-sm text-muted-foreground">Tổng cộng</span>
                 <span className="text-xl font-black text-amber-600">{formatVND(total)}</span>
               </div>
-              <Button
-                onClick={handleOpenPaymentModal}
-                disabled={cart.length === 0}
-                className="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl h-11 text-sm"
-              >
-                Thanh toán · {formatVND(total)}
-              </Button>
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  onClick={handleSendToBarista}
+                  disabled={cart.length === 0 || isSubmittingOrder}
+                  variant="outline"
+                  className="h-11 border-sky-200 text-sky-700 hover:bg-sky-50 rounded-xl text-sm"
+                >
+                  <Send className="w-4 h-4 mr-1.5" />
+                  Gửi barista
+                </Button>
+                <Button
+                  onClick={handleOpenPaymentModal}
+                  disabled={cart.length === 0 || isSubmittingOrder}
+                  className="bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl h-11 text-sm"
+                >
+                  Thanh toán · {formatVND(total)}
+                </Button>
+              </div>
             </div>
           </div>
         </div>
@@ -748,8 +796,8 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
                 <button
                   onClick={() => setPaymentMethod('cash')}
                   className={`flex items-center justify-center gap-2 p-3 rounded-xl border-2 font-medium transition-all ${paymentMethod === 'cash'
-                      ? 'border-green-500 text-green-600 bg-green-50/50'
-                      : 'border-gray-200 text-gray-600'
+                    ? 'border-green-500 text-green-600 bg-green-50/50'
+                    : 'border-gray-200 text-gray-600'
                     }`}
                 >
                   <span className="text-lg">💵</span> Tiền mặt
@@ -757,8 +805,8 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
                 <button
                   onClick={() => setPaymentMethod('payos')}
                   className={`flex items-center justify-center gap-2 p-3 rounded-xl border-2 font-medium transition-all ${paymentMethod === 'payos'
-                      ? 'border-green-500 text-green-600 bg-green-50/50'
-                      : 'border-gray-200 text-gray-600'
+                    ? 'border-green-500 text-green-600 bg-green-50/50'
+                    : 'border-gray-200 text-gray-600'
                     }`}
                 >
                   <img src={PayOSLogo} alt="PayOS" className="h-10 w-10" />
@@ -787,8 +835,8 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
                       key={val}
                       onClick={() => setCustomerCash(val)}
                       className={`flex-1 p-2 rounded-full border text-sm font-medium transition-all ${customerCash === val
-                          ? 'border-green-500 text-green-600 bg-green-50'
-                          : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                        ? 'border-green-500 text-green-600 bg-green-50'
+                        : 'border-gray-200 text-gray-600 hover:bg-gray-50'
                         }`}
                     >
                       {formatVND(val).replace(' ₫', '').trim()}
@@ -811,21 +859,32 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
               <Button
                 variant="outline"
                 onClick={() => setIsPaymentModalOpen(false)}
-                className="flex-1 rounded-xl border-gray-200"
+                disabled={isSubmittingOrder}
+                className="rounded-xl border-gray-200"
               >
                 Huỷ
               </Button>
               <Button
-                onClick={handleConfirmPayment}
-                className="flex-1 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold"
+                onClick={handlePayLater}
+                disabled={isSubmittingOrder}
+                variant="outline"
+                className="rounded-xl border-amber-200 text-amber-700 hover:bg-amber-50"
               >
-                Xác nhận thanh toán
+                <Clock3 className="w-4 h-4 mr-1.5" />
+                Thanh toán sau
+              </Button>
+              <Button
+                onClick={handleConfirmPayment}
+                disabled={isSubmittingOrder}
+                className="rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold"
+              >
+                {isSubmittingOrder ? 'Đang xử lý...' : 'Xác nhận thanh toán'}
               </Button>
             </div>
           </div>
         </DialogContent>
       </Dialog>
-      
+
       {viewingReceipt && (
         <ReceiptModal
           order={viewingReceipt}

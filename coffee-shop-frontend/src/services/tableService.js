@@ -50,6 +50,19 @@ const tableService = {
     });
     return response.data;
   },
+
+  mergeOrder: async (fromTableId, toTableId) => {
+    const response = await axios.post(`${API_URL}/tables/merge-order`, {
+      from_table_id: fromTableId,
+      to_table_id: toTableId,
+    });
+    return response.data;
+  },
+
+  settleDebt: async (tableId, payload = {}) => {
+    const response = await axios.post(`${API_URL}/tables/${tableId}/settle-debt`, payload);
+    return response.data;
+  },
 };
 
 export default tableService;
