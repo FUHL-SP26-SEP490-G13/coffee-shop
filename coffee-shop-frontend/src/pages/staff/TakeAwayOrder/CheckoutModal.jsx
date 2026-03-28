@@ -10,6 +10,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import discountService from '@/services/discountService';
+import PayOSLogo from "/logo/payOS.svg";
 
 const fmt = (n) => Number(n).toLocaleString('vi-VN') + ' đ';
 const roundCash = (amount) => {
@@ -295,7 +296,8 @@ export function CheckoutModal({ subtotal, onClose, onConfirm, loading }) {
                     : 'border-gray-200 text-gray-500 hover:border-gray-300'
                 }`}
               >
-                <CreditCard size={18} /> QR PayOS
+                <img src={PayOSLogo} alt="PayOS" className="h-10 w-10" />
+                QR PayOS
               </button>
             </div>
           </div>

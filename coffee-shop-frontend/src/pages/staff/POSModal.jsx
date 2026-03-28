@@ -17,6 +17,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from '../../components/ui/dialog';
+import authenticationService from '../../services/authenticationService';
+import socket from '../../lib/socket';
+import { ReceiptModal } from './TakeAwayOrder/ReceiptModal';
+import { useNavigate } from 'react-router-dom';
+import PayOSLogo from "/logo/payOS.svg";
 
 const getProductPrice = (product, size = 'M') => {
   const sizeItem = product.sizes?.find((s) => s.size === size);
@@ -34,6 +39,7 @@ const formatVND = (amount) =>
   new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
 
 export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
+  const navigate = useNavigate();
   const [editingCartItem, setEditingCartItem] = useState(null);
   const [cart, setCart] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -50,6 +56,9 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
   const [discountAmount, setDiscountAmount] = useState(0);
   const [customerCash, setCustomerCash] = useState(0);
   const [discountError, setDiscountError] = useState('');
+  const [pendingPayosOrderId, setPendingPayosOrderId] = useState(null);
+  const [viewingReceipt, setViewingReceipt] = useState(null);
+  const [printerName, setPrinterName] = useState('Nhân viên');
 
   useEffect(() => {
     if (!isOpen) return;
@@ -78,6 +87,43 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
     };
     fetchData();
   }, [isOpen]);
+
+  useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        const res = await authenticationService.getProfile();
+        const user = res?.data?.id ? res.data : res?.data?.data || res?.data;
+        const firstName = String(user?.first_name || '').trim();
+        const lastName = String(user?.last_name || '').trim();
+        const fullName = `${firstName} ${lastName}`.trim();
+        setPrinterName(fullName || user?.username || user?.email || 'Nhân viên');
+      } catch {
+        // Ignore
+      }
+    };
+    loadProfile();
+  }, []);
+
+  // Socket listener for PayOS Success
+  useEffect(() => {
+    if (!socket.connected) socket.connect();
+
+    const handlePaymentCompleted = (data) => {
+      const orderId = data.order_id;
+      if (orderId && Number(orderId) === Number(pendingPayosOrderId)) {
+        const params = new URLSearchParams({
+          orderCode: String(orderId),
+          status: 'PAID',
+          origin: window.location.pathname,
+        });
+        setPendingPayosOrderId(null);
+        navigate(`/staff/payment-result?${params.toString()}`);
+      }
+    };
+
+    socket.on('order:payment-completed', handlePaymentCompleted);
+    return () => socket.off('order:payment-completed', handlePaymentCompleted);
+  }, [navigate, pendingPayosOrderId]);
 
   // Reset cart khi đổi bàn
   useEffect(() => {
@@ -267,6 +313,8 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
       if (paymentMethod === 'payos') {
         const orderId = res.data?.order_id || res.data?.id;
         if (orderId) {
+          setPendingPayosOrderId(Number(orderId));
+          const returnUrl = `${window.location.origin}/staff/payment-result?origin=${encodeURIComponent(window.location.pathname)}`;
           const payosItems = cart.map((item) => ({
             name: `${item.productName || item.product?.name || 'Sản phẩm'}${item.size ? ` - ${item.size}` : ''
               }`.slice(0, 100),
@@ -278,12 +326,47 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
             amount: Number(finalTotal),
             description: `DH${orderId}`.slice(0, 25),
             items: payosItems,
+            returnUrl,
+            cancelUrl: returnUrl,
           });
           if (createRes.data?.checkoutUrl) {
-            window.open(createRes.data.checkoutUrl, '_blank');
+            window.location.href = createRes.data.checkoutUrl;
           } else {
+            setPendingPayosOrderId(null);
             toast.error('Không tạo được link thanh toán QR');
           }
+        }
+      } else {
+        setPendingPayosOrderId(null);
+        const orderId = res.data?.order_id || res.data?.id;
+        if (orderId) {
+          const resData = res.data?.data || res.data;
+          const orderData = {
+            ...resData,
+            order_id: orderId,
+            order_code: `DH-${String(orderId).padStart(6, '0')}`,
+            order_type: resData.order_type || 'dine-in',
+            receiver_name: `Khách Bàn ${table?.code || ''}`,
+            receiver_phone: '0000000000',
+            printed_by: printerName,
+            items: cart.map((item) => ({
+              product_name: item.productName || item.product?.name || 'Sản phẩm',
+              size: item.size || 'M',
+              quantity: item.quantity,
+              unit_price: item.price || item.product?.price || 0,
+              toppings: item.toppings || [],
+              note: item.note || '',
+            })),
+            discount_code: discountAmount > 0 ? discountCode : null,
+            discount_amount: discountAmount || resData.discount_amount || 0,
+            total_amount: resData.total_amount || finalTotal,
+            is_paid: paymentMethod === 'cash' ? 1 : (resData.is_paid ? 1 : 0),
+            payment: {
+              method: paymentMethod,
+              status: paymentMethod === 'cash' ? 'paid' : (resData.is_paid ? 'paid' : 'pending'),
+            },
+          };
+          setViewingReceipt({ ...orderData, autoPrint: true });
         }
       }
       toast.success('Đặt hàng thành công!');
@@ -292,8 +375,14 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
       setIsPaymentModalOpen(false);
       // Cập nhật trạng thái bàn về "occupied" nếu cần
       if (onTableStatusChange) onTableStatusChange(table.id, 'occupied');
-      onClose();
+      
+      if (paymentMethod !== 'cash') {
+        onClose();
+      }
     } catch (error) {
+      if (paymentMethod === 'payos') {
+        setPendingPayosOrderId(null);
+      }
       toast.error(error.response?.data?.message || 'Không đặt được hàng');
     }
   };
@@ -672,7 +761,8 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
                       : 'border-gray-200 text-gray-600'
                     }`}
                 >
-                  <span className="text-lg">💳</span> QR PayOS
+                  <img src={PayOSLogo} alt="PayOS" className="h-10 w-10" />
+                  QR PayOS
                 </button>
               </div>
             </div>
@@ -735,6 +825,19 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
           </div>
         </DialogContent>
       </Dialog>
+      
+      {viewingReceipt && (
+        <ReceiptModal
+          order={viewingReceipt}
+          onClose={() => {
+            setViewingReceipt(null);
+            onClose();
+          }}
+          onPrint={() => {
+            // Optional: call markPrintSuccess if needed
+          }}
+        />
+      )}
     </>
   );
 }
