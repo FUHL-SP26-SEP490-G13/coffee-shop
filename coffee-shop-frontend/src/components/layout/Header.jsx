@@ -699,9 +699,10 @@ function Header() {
               </Button>
 
               {showCartPreview && (
-                <div className="absolute right-0 mt-2 w-[360px] bg-white border border-gray-200 rounded-xl shadow-xl z-50 overflow-hidden">
-                  <div className="max-h-80 overflow-y-auto">
-                    {cartItems.length === 0 ? (
+                <div className="absolute right-0 top-full pt-2 w-[360px] z-50">
+                  <div className="bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden">
+                    <div className="max-h-80 overflow-y-auto">
+                      {cartItems.length === 0 ? (
                       <div className="p-4 text-sm text-gray-500">
                         Giỏ hàng đang trống
                       </div>
@@ -808,6 +809,7 @@ function Header() {
                       </Button>
                     </div>
                   )}
+                  </div>
                 </div>
               )}
             </div>
