@@ -676,7 +676,7 @@ export function OrderDelivery() {
 
                   <CardContent className="space-y-4 p-4">
 
-                    {Array.isArray(order.items) && order.items.length > 0 ? (
+                    {/* {Array.isArray(order.items) && order.items.length > 0 ? (
                       <div className="space-y-3">
                         {order.items.map((item, idx) => (
                           <div
@@ -717,7 +717,7 @@ export function OrderDelivery() {
                       </div>
                     ) : (
                       <p className="text-sm text-slate-500 italic text-center py-2">Không có thông tin sản phẩm</p>
-                    )}
+                    )} */}
 
                     {deliveryOrder && isUnpaidPending ? (
                       <div className="space-y-4 rounded-lg border border-amber-200 bg-amber-50/50 p-4">
