@@ -1,4 +1,5 @@
 const OrderRepository = require("../repositories/OrderRepository");
+const TableService = require("./TableService");
 const ErrorResponse = require("../utils/ErrorResponse");
 
 class OrderService {
@@ -300,6 +301,29 @@ class OrderService {
           "UPDATE order_payments SET payment_status = 'paid', paid_at = NOW() WHERE order_id = ?",
           [orderId]
         );
+
+        // If this is a dine-in order, check if all orders in the session are now paid
+        // and reset table status if so
+        if (order_type === "dine-in" && payload.table_id) {
+          const [tableRows] = await connection.query(
+            "SELECT current_session_id FROM tables WHERE id = ? LIMIT 1",
+            [payload.table_id]
+          );
+          const sessionId = tableRows[0]?.current_session_id;
+          if (sessionId) {
+            const [remainingUnpaid] = await connection.query(
+              `SELECT COUNT(*) AS cnt FROM orders o
+               LEFT JOIN order_payments op ON op.order_id = o.id
+               WHERE o.table_id = ? AND o.session_id = ?
+                 AND o.status NOT IN ('cancelled')
+                 AND (o.is_paid = 0 OR COALESCE(op.payment_status,'pending') != 'paid')`,
+              [payload.table_id, sessionId]
+            );
+            if (Number(remainingUnpaid[0]?.cnt || 0) === 0) {
+              await TableService.checkAndResetTableStatus(connection, payload.table_id, sessionId);
+            }
+          }
+        }
       }
 
       if (discountIdApplied) {
@@ -421,6 +445,21 @@ class OrderService {
     };
   }
 
+  async getOrderDetail(orderId) {
+    const order = await OrderRepository.findOrderDetailForStaff(orderId);
+
+    if (!order) {
+      throw new ErrorResponse(404, "Đơn hàng không tồn tại");
+    }
+
+    const items = await OrderRepository.findOrderItems(orderId);
+
+    return {
+      ...order,
+      items,
+    };
+  }
+
   async savePayosReturn({ orderCode, payosId, status }) {
     if (!orderCode) throw new ErrorResponse(400, "Thiếu orderCode");
 
@@ -434,6 +473,20 @@ class OrderService {
 
     if (isPaid) {
       await OrderRepository.updateOrderPaidStatus(orderCode, true);
+
+      // Check and reset table if dine-in
+      const [orderRows] = await db.query(
+        "SELECT order_type, table_id, session_id FROM orders WHERE id = ?",
+        [Number(orderCode)]
+      );
+      if (orderRows.length > 0 && orderRows[0].order_type === "dine-in" && orderRows[0].table_id) {
+        const conn = await db.getConnection();
+        try {
+          await TableService.checkAndResetTableStatus(conn, orderRows[0].table_id, orderRows[0].session_id);
+        } finally {
+          conn.release();
+        }
+      }
     }
 
     return { saved: true };
@@ -484,10 +537,14 @@ class OrderService {
           o.id,
           o.total_amount,
           o.is_paid,
+          o.status AS order_status,
           COALESCE(op.payment_status, 'pending') AS payment_status
         FROM orders o
         LEFT JOIN order_payments op ON op.order_id = o.id
-        WHERE o.table_id = ? AND o.session_id = ?
+        WHERE o.table_id = ?
+          AND o.session_id = ?
+          AND o.status NOT IN ('cancelled')
+          AND o.total_amount > 0
         ORDER BY o.created_at ASC
         `,
         [tableId, sessionId]
@@ -506,6 +563,7 @@ class OrderService {
         const paymentStatus = String(order.payment_status || '').toLowerCase();
         return !(paidFlag && paymentStatus === 'paid');
       });
+      // Pick a non-cancelled order as representative
       const representativeOrderId = unpaidOrders[0]?.id || rows[0].id;
 
       for (const order of rows) {

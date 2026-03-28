@@ -743,7 +743,6 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
               />
             </div>
 
-            {/* Total + Checkout */}
             <div className="p-3 border-t border-border flex-shrink-0 space-y-3">
               <div className="flex justify-between items-center px-1">
                 <span className="text-sm text-muted-foreground">Tổng cộng</span>
@@ -932,13 +931,15 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
                 <Clock3 className="w-4 h-4 mr-1.5" />
                 Thanh toán sau
               </Button>
-              <Button
-                onClick={handleConfirmPayment}
-                disabled={isSubmittingOrder}
-                className="rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold"
-              >
-                {isSubmittingOrder ? 'Đang xử lý...' : 'Xác nhận thanh toán'}
-              </Button>
+              {table?.status !== 'occupied' && (
+                <Button
+                  onClick={handleConfirmPayment}
+                  disabled={isSubmittingOrder}
+                  className="rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold"
+                >
+                  {isSubmittingOrder ? 'Đang xử lý...' : 'Xác nhận thanh toán'}
+                </Button>
+              )}
             </div>
           </div>
         </DialogContent>

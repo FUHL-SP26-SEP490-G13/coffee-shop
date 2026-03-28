@@ -26,6 +26,7 @@ router.post('/merge-order', TableController.mergeOrders);
 router.post('/:id/settle-debt', TableController.settleTableDebt);
 // router.post('/:id/reserve', TableController.reserveTable);
 router.get('/:id/active-order', TableController.getActiveOrder);
+router.get('/:id/unpaid-orders', TableController.getUnpaidOrders);
 router.put('/:id', validateRequest(updateTableSchema), TableController.updateTable);
 
 // API cập nhật QR code cho bàn đã có sẵn
@@ -34,5 +35,10 @@ router.delete('/:id', TableController.deleteTable);
 
 router.post('/with-qr', validate(createTableSchema), TableController.createTableWithQrCode);
 
+// Split bill logic
+router.post(
+  '/:id/split-bill',
+  TableController.splitBill
+);
 
 module.exports = router;

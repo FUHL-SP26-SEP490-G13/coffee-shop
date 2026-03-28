@@ -4,6 +4,29 @@ const generateQrCode = require('../utils/generateQrCode');
 const ErrorResponse = require('../utils/ErrorResponse');
 
 class TableService {
+  /**
+   * Kiểm tra và reset trạng thái bàn về 'available' nếu tất cả order trong session đã được thanh toán hoặc huỷ.
+   */
+  async checkAndResetTableStatus(connection, tableId, sessionId) {
+    if (!tableId || !sessionId) return;
+
+    const [remainingUnpaid] = await connection.query(
+      `SELECT COUNT(*) AS cnt FROM orders o
+       LEFT JOIN order_payments op ON op.order_id = o.id
+       WHERE o.table_id = ? AND o.session_id = ?
+         AND o.status NOT IN ('cancelled')
+         AND (o.is_paid = 0 OR COALESCE(op.payment_status,'pending') != 'paid')`,
+      [tableId, sessionId]
+    );
+
+    if (Number(remainingUnpaid[0]?.cnt || 0) === 0) {
+      await connection.query(
+        "UPDATE tables SET status = 'available', current_session_id = NULL WHERE id = ?",
+        [tableId]
+      );
+    }
+  }
+
   buildToppingSignature(toppings = []) {
     if (!Array.isArray(toppings) || toppings.length === 0) return "";
     return toppings
@@ -130,6 +153,39 @@ class TableService {
       throw new ErrorResponse(404, 'Bàn không tồn tại');
     }
     return table;
+  }
+
+  async getUnpaidOrders(tableId) {
+    const table = await TableRepository.findById(tableId);
+    if (!table || !table.current_session_id) {
+      return [];
+    }
+
+    const [rows] = await TableRepository.db.query(
+      `
+      SELECT
+        o.id,
+        o.total_amount,
+        o.is_paid,
+        o.status AS order_status,
+        o.created_at,
+        COALESCE(op.payment_status, 'pending') AS payment_status
+      FROM orders o
+      LEFT JOIN order_payments op ON op.order_id = o.id
+      WHERE o.table_id = ?
+        AND o.session_id = ?
+        AND o.status NOT IN ('cancelled')
+      ORDER BY o.created_at ASC
+      `,
+      [tableId, table.current_session_id]
+    );
+
+    // Filter only unpaid orders
+    return rows.filter((order) => {
+      const paidByFlag = Number(order.is_paid || 0) === 1;
+      const paidByStatus = String(order.payment_status || '').toLowerCase() === 'paid';
+      return !(paidByFlag || paidByStatus);
+    });
   }
 
   /**
@@ -345,7 +401,7 @@ class TableService {
    * Thanh toán công nợ cho bàn theo session hiện tại.
    * Chỉ thanh toán các order chưa paid, không cộng các order đã thanh toán trước đó.
    */
-  async settleTableDebt(tableId, { payment_method = 'cash', cash_received = null } = {}) {
+  async settleTableDebt(tableId, { payment_method = 'cash', cash_received = null, order_ids = null } = {}) {
     const method = String(payment_method || 'cash').toLowerCase();
     if (!['cash', 'payos'].includes(method)) {
       throw new ErrorResponse(400, 'Phương thức thanh toán không hợp lệ');
@@ -377,7 +433,10 @@ class TableService {
           COALESCE(op.payment_status, 'pending') AS payment_status
         FROM orders o
         LEFT JOIN order_payments op ON op.order_id = o.id
-        WHERE o.table_id = ? AND o.session_id = ?
+        WHERE o.table_id = ?
+          AND o.session_id = ?
+          AND o.status NOT IN ('cancelled')
+          AND o.total_amount > 0
         ORDER BY o.created_at ASC
         `,
         [tableId, table.current_session_id]
@@ -387,15 +446,22 @@ class TableService {
         throw new ErrorResponse(404, 'Không có đơn hàng nào để thanh toán');
       }
 
-      const unpaidOrders = debtOrders.filter((order) => {
+      let unpaidOrders = debtOrders.filter((order) => {
         const paidByFlag = Number(order.is_paid || 0) === 1;
         const paidByStatus = String(order.payment_status || '').toLowerCase() === 'paid';
         return !(paidByFlag || paidByStatus);
       });
 
-      if (unpaidOrders.length === 0) {
-        throw new ErrorResponse(400, `Bàn ${table.code} không còn công nợ`);
+      // Nếu có danh sách `order_ids` truyền lên, chỉ thanh toán các đơn đó
+      if (order_ids && Array.isArray(order_ids) && order_ids.length > 0) {
+        const selectedIds = order_ids.map(Number);
+        unpaidOrders = unpaidOrders.filter((o) => selectedIds.includes(Number(o.id)));
       }
+
+      if (unpaidOrders.length === 0) {
+        throw new ErrorResponse(400, `Bàn ${table.code} không có đơn hàng phù hợp để thanh toán`);
+      }
+
 
       const debtAmount = unpaidOrders.reduce(
         (sum, order) => sum + Number(order.total_amount || 0),
@@ -417,14 +483,19 @@ class TableService {
         orderIds
       );
 
-      await connection.query(
-        `
-        UPDATE order_payments
-        SET payment_status = 'paid', payment_method = ?, paid_at = NOW()
-        WHERE order_id IN (${placeholders})
-        `,
-        [method, ...orderIds]
-      );
+      // Upsert order_payments: insert if missing (e.g. split orders), update if existing
+      for (const oid of orderIds) {
+        const orderTotal = unpaidOrders.find(o => Number(o.id) === oid)?.total_amount || 0;
+        await connection.query(
+          `INSERT INTO order_payments (order_id, payment_method, payment_status, amount, paid_at)
+           VALUES (?, ?, 'paid', ?, NOW())
+           ON DUPLICATE KEY UPDATE payment_status = 'paid', payment_method = ?, paid_at = NOW()`,
+          [oid, method, orderTotal, method]
+        );
+      }
+
+      // Reset table status to available after full payment
+      await this.checkAndResetTableStatus(connection, tableId, table.current_session_id);
 
       await connection.commit();
 
@@ -694,6 +765,163 @@ class TableService {
         from: { id: fromTable.id, code: fromTable.code },
         to: { id: toTable.id, code: toTable.code },
         mode: 'merge-items',
+      };
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
+  }
+  /**
+   * Tách hóa đơn từ bàn hiện tại (Tạo order mới)
+   */
+  async splitBill(tableId, items) {
+    if (!items || !items.length) {
+      throw new ErrorResponse(400, 'Không có món nào để tách');
+    }
+
+    const connection = await TableRepository.db.getConnection();
+    try {
+      await connection.beginTransaction();
+
+      // 1. Get Table
+      const [tableRows] = await connection.query(
+        'SELECT id, code, current_session_id FROM tables WHERE id = ? AND is_deleted = 0 FOR UPDATE',
+        [tableId]
+      );
+      if (tableRows.length === 0) throw new ErrorResponse(404, 'Bàn không tồn tại');
+      const table = tableRows[0];
+      if (!table.current_session_id) throw new ErrorResponse(400, 'Bàn chưa có order nào');
+
+      // 2. Lấy tất cả các order chưa thanh toán của session này
+      const [sourceOrders] = await connection.query(
+        `
+        SELECT o.id, o.is_paid, o.status, COALESCE(op.payment_status, 'pending') AS payment_status
+        FROM orders o
+        LEFT JOIN order_payments op ON op.order_id = o.id
+        WHERE o.table_id = ? AND o.session_id = ? AND o.status IN ('pending', 'processing')
+        FOR UPDATE
+        `,
+        [tableId, table.current_session_id]
+      );
+
+      const unpaidOrders = sourceOrders.filter(
+        o => Number(o.is_paid || 0) !== 1 && String(o.payment_status || '').toLowerCase() !== 'paid'
+      );
+      if (unpaidOrders.length === 0) throw new ErrorResponse(400, 'Không có đơn hàng nào chưa thanh toán để tách');
+      const orderIds = unpaidOrders.map(o => Number(o.id));
+
+      // 3. Lấy tất cả order details của các order trên
+      const placeholders = orderIds.map(() => '?').join(',');
+      const [allDetails] = await connection.query(
+        `
+        SELECT id, order_id, product_size_id, quantity, price, COALESCE(note, '') AS note
+        FROM order_details
+        WHERE order_id IN (${placeholders})
+        FOR UPDATE
+        `,
+        orderIds
+      );
+
+      // 4. Tạo order mới (Tách), dùng session_id của bàn để có thể settle cùng
+      const [insertOrder] = await connection.query(
+        `
+        INSERT INTO orders (user_id, created_by, customer_type, order_type, table_id, status, is_paid, total_amount, session_id)
+        VALUES (1, 1, 'guest', 'dine-in', ?, 'pending', 0, 0, ?)
+        `,
+        [tableId, table.current_session_id]
+      );
+      const newOrderId = Number(insertOrder.insertId);
+
+      let splitTotal = 0;
+      const modifiedOrderIds = new Set();
+
+      for (const reqItem of items) {
+        const detailId = Number(reqItem.order_detail_id);
+        const splitQty = Number(reqItem.quantity);
+        if (!splitQty || splitQty <= 0) continue;
+
+        const originalDetail = allDetails.find(d => Number(d.id) === detailId);
+        if (!originalDetail) throw new ErrorResponse(400, `Item ${detailId} không tồn tại trong hóa đơn hiện tại`);
+        if (splitQty > originalDetail.quantity) throw new ErrorResponse(400, `Số lượng tách (${splitQty}) lớn hơn số lượng hiện có (${originalDetail.quantity})`);
+
+        // Load toppings
+        const [toppings] = await connection.query(
+          'SELECT id, topping_id, quantity, price FROM order_detail_toppings WHERE order_detail_id = ? FOR UPDATE',
+          [detailId]
+        );
+
+        // Tạo order detail cho order mới
+        const [insertDetail] = await connection.query(
+          `
+          INSERT INTO order_details (order_id, product_size_id, quantity, price, note)
+          VALUES (?, ?, ?, ?, ?)
+          `,
+          [newOrderId, originalDetail.product_size_id, splitQty, originalDetail.price, originalDetail.note]
+        );
+        const newDetailId = Number(insertDetail.insertId);
+
+        let toppingTotalForSplit = 0;
+
+        for (const t of toppings) {
+          const splitToppingQty = Math.floor((t.quantity * splitQty) / originalDetail.quantity);
+          if (splitToppingQty > 0) {
+            await connection.query(
+              `INSERT INTO order_detail_toppings (order_detail_id, topping_id, quantity, price) VALUES (?, ?, ?, ?)`,
+              [newDetailId, t.topping_id, splitToppingQty, t.price]
+            );
+            toppingTotalForSplit += splitToppingQty * t.price;
+
+            const remainingToppingQty = t.quantity - splitToppingQty;
+            if (remainingToppingQty > 0) {
+              await connection.query('UPDATE order_detail_toppings SET quantity = ? WHERE id = ?', [remainingToppingQty, t.id]);
+            } else {
+              await connection.query('DELETE FROM order_detail_toppings WHERE id = ?', [t.id]);
+            }
+          }
+        }
+
+        splitTotal += (splitQty * originalDetail.price) + toppingTotalForSplit;
+
+        // Trừ số lượng ở order detail gốc
+        const remainingQty = originalDetail.quantity - splitQty;
+        if (remainingQty > 0) {
+          await connection.query('UPDATE order_details SET quantity = ? WHERE id = ?', [remainingQty, detailId]);
+        } else {
+          await connection.query('DELETE FROM order_details WHERE id = ?', [detailId]);
+        }
+        modifiedOrderIds.add(originalDetail.order_id);
+      }
+
+      if (splitTotal === 0) throw new ErrorResponse(400, 'Không tách được sản phẩm nào');
+
+      // Cập nhật lại tổng tiền order mới (để trạng thái pending, chưa thanh toán)
+      await connection.query(
+        'UPDATE orders SET total_amount = ?, is_paid = 0, status = "pending" WHERE id = ?',
+        [splitTotal, newOrderId]
+      );
+
+      // (Đã loại bỏ phần tự động tạo order_payments và đánh dấu đã thanh toán)
+
+      // Tính lại tổng tiền order gốc
+      for (const oId of modifiedOrderIds) {
+        const remainingTotal = await this.recalculateOrderTotal(connection, oId);
+        if (remainingTotal > 0) {
+          await connection.query('UPDATE orders SET total_amount = ? WHERE id = ?', [remainingTotal, oId]);
+        } else {
+          await connection.query('UPDATE orders SET status = "cancelled", total_amount = 0 WHERE id = ?', [oId]);
+        }
+      }
+
+      // (Đã loại bỏ checkAndResetTableStatus vì đơn mới tách chưa được thanh toán)
+
+
+      await connection.commit();
+      return {
+        table_id: tableId,
+        new_order_id: newOrderId,
+        split_total: splitTotal
       };
     } catch (error) {
       await connection.rollback();

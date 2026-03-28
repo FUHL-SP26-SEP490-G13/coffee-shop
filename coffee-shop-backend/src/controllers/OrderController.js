@@ -94,6 +94,21 @@ class OrderController {
       next(error);
     }
   }
+
+  async getOrderDetailByStaff(req, res, next) {
+    try {
+      const orderId = Number(req.params.id);
+      const result = await OrderService.getOrderDetail(orderId);
+
+      return res.json({
+        success: true,
+        data: result,
+        message: "Lấy chi tiết đơn hàng (staff) thành công",
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 module.exports = new OrderController();
