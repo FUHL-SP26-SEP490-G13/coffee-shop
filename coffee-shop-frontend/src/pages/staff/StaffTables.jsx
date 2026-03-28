@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Search,
   Table as TableIcon,
@@ -17,12 +18,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+
 import {
   Dialog,
   DialogContent,
@@ -460,22 +456,6 @@ export function StaffTables() {
     }
   };
 
-  const handleRequestPayment = async (table) => {
-    setRequestedPaymentByTable((prev) => ({ ...prev, [table.id]: true }));
-    setOrderModalMode("request-payment");
-    setSelectedTableForOrder(table);
-    setIsOrderModalOpen(true);
-    setLoadingOrder(true);
-    try {
-      const res = await tableService.getActiveOrder(table.id);
-      setActiveOrder(res.data);
-    } catch {
-      toast.error("Không thể tải thông tin đơn hàng");
-      setActiveOrder(null);
-    } finally {
-      setLoadingOrder(false);
-    }
-  };
 
   const handleOpenPaymentFromRequest = () => {
     const orderId = Number(activeOrder?.unpaid_order_id || activeOrder?.id || 0);
@@ -920,24 +900,6 @@ export function StaffTables() {
                 </div>
               )}
 
-              )}
-            </div>
-          )}
-
-          {/* PAGINATION */}
-          {totalPages > 1 && (
-            <div className="flex justify-center gap-4 mt-8">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={page === 1}
-                onClick={() => setPage((p) => p - 1)}
-              >
-                Trước
-              </Button>
-
-              <div className="flex items-center text-sm font-medium">
-                Trang {page} / {totalPages}
               <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-6">
                 {paginatedTables.length > 0 ? (
                   paginatedTables.map((table) => (
@@ -972,7 +934,6 @@ export function StaffTables() {
                     </Button>
                   </div>
                 )}
-
               </div>
 
               {/* PAGINATION */}

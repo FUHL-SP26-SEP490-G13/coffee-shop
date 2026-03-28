@@ -266,48 +266,7 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
     return orderService.checkout(payload);
   };
 
-  const handleSendToBarista = async () => {
-    if (!table) {
-      toast.error('Không tìm thấy thông tin bàn');
-      return;
-    }
-    if (cart.length === 0) {
-      toast.error('Giỏ hàng trống');
-      return;
-    }
-    setSendingToBarista(true);
-    try {
-      await createUnpaidOrder();
 
-      // Placeholder for future Barista-account handoff integration.
-      const handoffToBaristaAccount = () => {
-        return true;
-      };
-      handoffToBaristaAccount();
-
-      toast.success('Đã gửi order cho Barista! 🎉', {
-        description: `Bàn ${table.code} — ${cart.reduce((a, i) => a + i.quantity, 0)} món`,
-      });
-      if (onTableStatusChange) onTableStatusChange(table.id, 'occupied');
-      setCart([]);
-      setNote('');
-      navigate(TABLE_MANAGEMENT_PATH, {
-        state: {
-          focusTableId: table.id,
-          sourceAction: 'send-barista',
-        },
-      });
-      onClose();
-    } catch (error) {
-      if (error?.message === 'invalid-product-size') {
-        toast.error('Có lỗi xảy ra với thông tin sản phẩm');
-        return;
-      }
-      toast.error(error.response?.data?.message || 'Không gửi được order cho Barista');
-    } finally {
-      setSendingToBarista(false);
-    }
-  };
 
   const handleSaveForLaterPayment = async () => {
     if (!table) {
@@ -498,9 +457,6 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
       if (resolvedPaymentMethod === 'payos') {
         setPendingPayosOrderId(null);
       }
-      onClose();
-    } catch (error) {
-      
       toast.error(error.response?.data?.message || 'Không đặt được hàng');
     } finally {
       setIsSubmittingOrder(false);
