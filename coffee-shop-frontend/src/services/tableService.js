@@ -41,6 +41,7 @@ const tableService = {
   delete: async (id) => {
     const response = await axios.delete(`${API_URL}/tables/${id}`);
     return response.data;
+  }
   },
 
   transfer: async (fromTableId, toTableId) => {
@@ -63,6 +64,7 @@ const tableService = {
     const response = await axios.post(`${API_URL}/tables/${tableId}/settle-debt`, payload);
     return response.data;
   },
+
 };
 
 export default tableService;

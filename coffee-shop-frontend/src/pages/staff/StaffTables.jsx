@@ -12,6 +12,7 @@ import {
   Clock3,
   HandCoins,
   Wallet,
+
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,6 +36,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import tableService from "@/services/tableService";
@@ -258,7 +266,9 @@ function TableCard({
   );
 }
 
+
 export function StaffTables() {
+  const navigate = useNavigate();
   const [tables, setTables] = useState([]);
   const [areas, setAreas] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -283,6 +293,10 @@ export function StaffTables() {
   const [activeOrder, setActiveOrder] = useState(null);
   const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
   const [loadingOrder, setLoadingOrder] = useState(false);
+  const [orderModalMode, setOrderModalMode] = useState("view-order");
+  const [activeOrderSummaries, setActiveOrderSummaries] = useState({});
+  const [requestedPaymentByTable, setRequestedPaymentByTable] = useState({});
+  const [nowTick, setNowTick] = useState(Date.now());
 
   // Transfer Modal States
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
@@ -346,6 +360,7 @@ export function StaffTables() {
     handleDebtPayosReturn();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
 
   const handleOpenPOS = (table) => {
     setSelectedTableForPOS(table);
@@ -427,8 +442,10 @@ export function StaffTables() {
     setActiveOrderMetaByTable(next);
   };
 
+
   const handleViewOrder = async (e, table) => {
     e.stopPropagation();
+    setOrderModalMode("view-order");
     setSelectedTableForOrder(table);
     setIsOrderModalOpen(true);
     setLoadingOrder(true);
@@ -441,6 +458,36 @@ export function StaffTables() {
     } finally {
       setLoadingOrder(false);
     }
+  };
+
+  const handleRequestPayment = async (table) => {
+    setRequestedPaymentByTable((prev) => ({ ...prev, [table.id]: true }));
+    setOrderModalMode("request-payment");
+    setSelectedTableForOrder(table);
+    setIsOrderModalOpen(true);
+    setLoadingOrder(true);
+    try {
+      const res = await tableService.getActiveOrder(table.id);
+      setActiveOrder(res.data);
+    } catch {
+      toast.error("Không thể tải thông tin đơn hàng");
+      setActiveOrder(null);
+    } finally {
+      setLoadingOrder(false);
+    }
+  };
+
+  const handleOpenPaymentFromRequest = () => {
+    const orderId = Number(activeOrder?.unpaid_order_id || activeOrder?.id || 0);
+    const tableId = Number(selectedTableForOrder?.id || 0);
+    setIsOrderModalOpen(false);
+    navigate('/staff/orders', {
+      state: {
+        focusOrderId: orderId || null,
+        focusTableId: tableId || null,
+        sourceAction: 'request-payment',
+      },
+    });
   };
 
   const fetchData = async () => {
@@ -465,8 +512,25 @@ export function StaffTables() {
     fetchData();
   }, [selectedStatus]);
 
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setNowTick(Date.now());
+    }, 60000);
+    return () => clearInterval(timer);
+  }, []);
+
   // -- TABLE HANDLERS --
   const handleStatusChange = async (table, newStatus) => {
+    if (newStatus === "available") {
+      const outstandingAmount = Number(activeOrderSummaries[table.id]?.outstanding_amount || 0);
+      const hasRequestedPayment = Boolean(requestedPaymentByTable[table.id]);
+
+      if (outstandingAmount > 0 && !hasRequestedPayment) {
+        toast.error("Vui lòng bấm 'Yêu cầu thanh toán' trước khi đổi bàn về Trống");
+        return;
+      }
+    }
+
     try {
       await tableService.update(table.id, { status: newStatus });
       if (newStatus === "available") {
@@ -478,6 +542,11 @@ export function StaffTables() {
         });
       }
       toast.success("Cập nhật trạng thái thành công");
+      setRequestedPaymentByTable((prev) => {
+        const next = { ...prev };
+        delete next[table.id];
+        return next;
+      });
       fetchData();
     } catch (error) {
       toast.error(error.message || "Cập nhật thất bại");
@@ -851,6 +920,24 @@ export function StaffTables() {
                 </div>
               )}
 
+              )}
+            </div>
+          )}
+
+          {/* PAGINATION */}
+          {totalPages > 1 && (
+            <div className="flex justify-center gap-4 mt-8">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page === 1}
+                onClick={() => setPage((p) => p - 1)}
+              >
+                Trước
+              </Button>
+
+              <div className="flex items-center text-sm font-medium">
+                Trang {page} / {totalPages}
               <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-6">
                 {paginatedTables.length > 0 ? (
                   paginatedTables.map((table) => (
@@ -885,6 +972,7 @@ export function StaffTables() {
                     </Button>
                   </div>
                 )}
+
               </div>
 
               {/* PAGINATION */}
@@ -1065,6 +1153,7 @@ export function StaffTables() {
         </DialogContent>
       </Dialog>
 
+
       {/* Order Info Modal */}
       <Dialog open={isOrderModalOpen} onOpenChange={setIsOrderModalOpen}>
         <DialogContent className="sm:max-w-[500px]">
@@ -1105,8 +1194,22 @@ export function StaffTables() {
               </div>
               <div className="border-t pt-3 flex justify-between items-center font-bold text-lg">
                 <span>Tổng cộng:</span>
-                <span className="text-primary">{parseInt(activeOrder.total_amount).toLocaleString('vi-VN')}đ</span>
+                <span className="text-primary">
+                  {parseInt(
+                    orderModalMode === "request-payment"
+                      ? (activeOrder.outstanding_amount || activeOrder.total_amount || 0)
+                      : (activeOrder.total_amount || 0)
+                  ).toLocaleString('vi-VN')}đ
+                </span>
               </div>
+              {orderModalMode === "request-payment" && (
+                <Button
+                  onClick={handleOpenPaymentFromRequest}
+                  className="w-full rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold"
+                >
+                  Thanh toán
+                </Button>
+              )}
             </div>
           ) : (
             <div className="py-8 text-center text-muted-foreground">

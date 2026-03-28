@@ -38,6 +38,8 @@ const CASH_SUGGESTIONS = [10000, 20000, 50000, 100000, 200000, 500000];
 const formatVND = (amount) =>
   new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
 
+const TABLE_MANAGEMENT_PATH = '/staff/tables';
+
 export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
   const navigate = useNavigate();
   const [editingCartItem, setEditingCartItem] = useState(null);
@@ -227,6 +229,118 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
     setIsPaymentModalOpen(true);
   };
 
+  const buildOrderItemsPayload = () => {
+    const items = cart.map((item) => {
+      const productSizeId = item.price
+        ? item.productId
+        : item.product.sizes?.find((s) => s.size === item.size)?.id;
+      return {
+        product_size_id: productSizeId,
+        quantity: item.quantity,
+        toppings: (item.toppings || []).map((t) => ({
+          topping_id: t.topping_id || t.id,
+          quantity: t.quantity || 1,
+        })),
+      };
+    });
+
+    if (items.some((i) => !i.product_size_id)) {
+      throw new Error('invalid-product-size');
+    }
+
+    return items;
+  };
+
+  const createUnpaidOrder = async () => {
+    const items = buildOrderItemsPayload();
+    const payload = {
+      order_type: 'dine-in',
+      table_id: Number(table.id),
+      payment_method: 'payos',
+      receiver_name: `Khách Bàn ${table.code || ''}`,
+      receiver_phone: '0000000000',
+      items,
+      note: note.trim() || undefined,
+      discount_code: discountAmount > 0 ? discountCode : undefined,
+    };
+    return orderService.checkout(payload);
+  };
+
+  const handleSendToBarista = async () => {
+    if (!table) {
+      toast.error('Không tìm thấy thông tin bàn');
+      return;
+    }
+    if (cart.length === 0) {
+      toast.error('Giỏ hàng trống');
+      return;
+    }
+    setSendingToBarista(true);
+    try {
+      await createUnpaidOrder();
+
+      // Placeholder for future Barista-account handoff integration.
+      const handoffToBaristaAccount = () => {
+        return true;
+      };
+      handoffToBaristaAccount();
+
+      toast.success('Đã gửi order cho Barista! 🎉', {
+        description: `Bàn ${table.code} — ${cart.reduce((a, i) => a + i.quantity, 0)} món`,
+      });
+      if (onTableStatusChange) onTableStatusChange(table.id, 'occupied');
+      setCart([]);
+      setNote('');
+      navigate(TABLE_MANAGEMENT_PATH, {
+        state: {
+          focusTableId: table.id,
+          sourceAction: 'send-barista',
+        },
+      });
+      onClose();
+    } catch (error) {
+      if (error?.message === 'invalid-product-size') {
+        toast.error('Có lỗi xảy ra với thông tin sản phẩm');
+        return;
+      }
+      toast.error(error.response?.data?.message || 'Không gửi được order cho Barista');
+    } finally {
+      setSendingToBarista(false);
+    }
+  };
+
+  const handleSaveForLaterPayment = async () => {
+    if (!table) {
+      toast.error('Không tìm thấy thông tin bàn');
+      return;
+    }
+    if (cart.length === 0) {
+      toast.error('Giỏ hàng trống');
+      return;
+    }
+
+    try {
+      await createUnpaidOrder();
+      toast.success('Đã lưu đơn chờ thanh toán');
+      setCart([]);
+      setNote('');
+      if (onTableStatusChange) onTableStatusChange(table.id, 'occupied');
+      navigate(TABLE_MANAGEMENT_PATH, {
+        state: {
+          focusTableId: table.id,
+          sourceAction: 'save-for-later',
+        },
+      });
+      onClose();
+    } catch (error) {
+      if (error?.message === 'invalid-product-size') {
+        toast.error('Có lỗi xảy ra với thông tin sản phẩm');
+        return;
+      }
+      toast.error(error.response?.data?.message || 'Không lưu được đơn chờ thanh toán');
+    }
+  };
+
   const handleApplyDiscount = async () => {
     if (!discountCode.trim()) {
       toast.error('Vui lòng nhập mã giảm giá');
@@ -287,23 +401,7 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
 
     setIsSubmittingOrder(true);
     try {
-      const items = cart.map((item) => {
-        const productSizeId = item.price
-          ? item.productId
-          : item.product.sizes?.find((s) => s.size === item.size)?.id;
-        return {
-          product_size_id: productSizeId,
-          quantity: item.quantity,
-          toppings: (item.toppings || []).map((t) => ({
-            topping_id: t.topping_id || t.id,
-            quantity: t.quantity || 1,
-          })),
-        };
-      });
-      if (items.some((i) => !i.product_size_id)) {
-        toast.error('Có lỗi xảy ra với thông tin sản phẩm');
-        return;
-      }
+      const items = buildOrderItemsPayload();
       const payload = {
         order_type: 'dine-in',
         table_id: Number(table.id),
@@ -375,6 +473,8 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
             setViewingReceipt({ ...orderData, autoPrint: true });
           }
         }
+
+        
       }
 
       if (notifyBarista) {
@@ -398,6 +498,9 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
       if (resolvedPaymentMethod === 'payos') {
         setPendingPayosOrderId(null);
       }
+      onClose();
+    } catch (error) {
+      
       toast.error(error.response?.data?.message || 'Không đặt được hàng');
     } finally {
       setIsSubmittingOrder(false);
@@ -685,7 +788,7 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
             </div>
 
             {/* Total + Checkout */}
-            <div className="p-3 border-t border-border flex-shrink-0 space-y-2">
+            <div className="p-3 border-t border-border flex-shrink-0 space-y-3">
               <div className="flex justify-between items-center px-1">
                 <span className="text-sm text-muted-foreground">Tổng cộng</span>
                 <span className="text-xl font-black text-amber-600">{formatVND(total)}</span>
@@ -897,6 +1000,7 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
           }}
         />
       )}
+
     </>
   );
 }

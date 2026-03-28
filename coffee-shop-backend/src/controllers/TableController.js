@@ -267,18 +267,18 @@ class TableController {
       if (Number(from_table_id) === Number(to_table_id)) {
         return res.status(400).json({
           success: false,
-          message: 'Không thể gộp order vào chính nó',
+          message: 'Bàn nguồn và bàn đích không được trùng nhau',
         });
       }
 
-      const result = await TableService.mergeOrders(
+      const result = await TableService.mergeOrder(
         Number(from_table_id),
         Number(to_table_id)
       );
 
-      return res.json({
+      res.json({
         success: true,
-        message: `Đã gộp order từ bàn ${result.from.code} sang bàn ${result.to.code}`,
+        message: `Đã ghép order từ ${result.from.code} vào ${result.to.code}`,
         data: result,
       });
     } catch (error) {

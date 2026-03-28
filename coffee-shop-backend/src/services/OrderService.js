@@ -501,7 +501,12 @@ class OrderService {
       let debtAmount = 0;
       let unpaidOrdersCount = 0;
       let allItems = [];
-      const firstOrderId = rows[0].id;
+      const unpaidOrders = rows.filter((order) => {
+        const paidFlag = Number(order.is_paid || 0) === 1;
+        const paymentStatus = String(order.payment_status || '').toLowerCase();
+        return !(paidFlag && paymentStatus === 'paid');
+      });
+      const representativeOrderId = unpaidOrders[0]?.id || rows[0].id;
 
       for (const order of rows) {
         const orderTotal = Number(order.total_amount || 0);
@@ -519,7 +524,7 @@ class OrderService {
         allItems = allItems.concat(orderItems);
       }
 
-      const orderData = await OrderRepository.findOrderDetailForStaff(firstOrderId);
+      const orderData = await OrderRepository.findOrderDetailForStaff(representativeOrderId);
       if (!orderData) return null;
 
       return {
