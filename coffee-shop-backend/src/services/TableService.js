@@ -176,7 +176,76 @@ class TableService {
     return updatedTable;
   }
 
+  /**
+   * Chuyển bàn: di chuyển toàn bộ đơn hàng từ bàn nguồn sang bàn đích
+   * @param {number} fromTableId - ID bàn nguồn (đang có khách)
+   * @param {number} toTableId   - ID bàn đích (phải trống)
+   */
+  async transferTable(fromTableId, toTableId) {
+    const connection = await TableRepository.db.getConnection();
+    try {
+      await connection.beginTransaction();
 
+      // 1. Kiểm tra bàn nguồn
+      const [fromRows] = await connection.query(
+        'SELECT id, code, status, current_session_id FROM tables WHERE id = ? AND is_deleted = 0',
+        [fromTableId]
+      );
+      if (fromRows.length === 0) throw new ErrorResponse(404, 'Bàn nguồn không tồn tại');
+      const fromTable = fromRows[0];
+      if (fromTable.status !== 'occupied') {
+        throw new ErrorResponse(400, `Bàn ${fromTable.code} không có khách để chuyển`);
+      }
+
+      // 2. Kiểm tra bàn đích
+      const [toRows] = await connection.query(
+        'SELECT id, code, status FROM tables WHERE id = ? AND is_deleted = 0',
+        [toTableId]
+      );
+      if (toRows.length === 0) throw new ErrorResponse(404, 'Bàn đích không tồn tại');
+      const toTable = toRows[0];
+      if (toTable.status !== 'available') {
+        throw new ErrorResponse(400, `Bàn ${toTable.code} hiện không trống, không thể chuyển`);
+      }
+
+      // 3. Tạo session mới cho bàn đích
+      const oldSessionId = fromTable.current_session_id;
+      const newSessionId = `sess_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+
+      // 4. Chuyển tất cả orders thuộc session cũ sang bàn đích
+      if (oldSessionId) {
+        await connection.query(
+          'UPDATE orders SET table_id = ?, session_id = ? WHERE table_id = ? AND session_id = ?',
+          [toTableId, newSessionId, fromTableId, oldSessionId]
+        );
+      }
+
+      // 5. Bàn nguồn → trống
+      await connection.query(
+        "UPDATE tables SET status = 'available', current_session_id = NULL WHERE id = ?",
+        [fromTableId]
+      );
+
+      // 6. Bàn đích → có khách với session mới
+      await connection.query(
+        "UPDATE tables SET status = 'occupied', current_session_id = ? WHERE id = ?",
+        [newSessionId, toTableId]
+      );
+
+      await connection.commit();
+
+      return {
+        from: { id: fromTableId, code: fromTable.code },
+        to: { id: toTableId, code: toTable.code },
+        new_session_id: newSessionId,
+      };
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
+  }
 }
 
 module.exports = new TableService();
