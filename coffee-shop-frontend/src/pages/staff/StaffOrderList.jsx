@@ -618,8 +618,9 @@ export function OrderDelivery() {
         </div>
 
         <TabsContent value={activeTab} className="mt-4">
-          <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 xl:grid-cols-3">
-            {filteredOrders.map((order) => {
+          <div className="max-h-[calc(100vh-340px)] min-h-[260px] overflow-y-auto pr-1 md:max-h-[calc(100vh-320px)]">
+            <div className="grid grid-cols-1 gap-3 pb-1 lg:grid-cols-2 xl:grid-cols-3">
+              {filteredOrders.map((order) => {
               const paid = isOrderPaid(order);
               const deliveryOrder = isDeliveryOrder(order);
               const isUnpaidPending = order.status === "pending" && !paid;
@@ -879,17 +880,18 @@ export function OrderDelivery() {
               );
             })}
 
-            {!loading && filteredOrders.length === 0 ? (
-              <Card className="lg:col-span-2 xl:col-span-3">
-                <CardContent className="flex flex-col items-center justify-center gap-3 py-10 text-center">
-                  <ShoppingBag className="h-8 w-8 text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground">
-                    Không có đơn {getOrderTypeLabel(activeOrderType)} trong
-                    trạng thái đã chọn.
-                  </p>
-                </CardContent>
-              </Card>
-            ) : null}
+              {!loading && filteredOrders.length === 0 ? (
+                <Card className="lg:col-span-2 xl:col-span-3">
+                  <CardContent className="flex flex-col items-center justify-center gap-3 py-10 text-center">
+                    <ShoppingBag className="h-8 w-8 text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">
+                      Không có đơn {getOrderTypeLabel(activeOrderType)} trong
+                      trạng thái đã chọn.
+                    </p>
+                  </CardContent>
+                </Card>
+              ) : null}
+            </div>
           </div>
         </TabsContent>
       </Tabs>
