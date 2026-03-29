@@ -123,7 +123,7 @@ export default function AdminDiscountCreate() {
   };
 
   return (
-    <div className="max-w-4xl p-4 mx-auto">
+    <div className="p-6">
       <div className="mb-6">
         <Button
           variant="ghost"
