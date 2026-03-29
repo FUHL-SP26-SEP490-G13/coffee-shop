@@ -289,7 +289,7 @@ class TableController {
         });
       }
 
-      const result = await TableService.mergeOrder(
+      const result = await TableService.mergeOrders(
         Number(from_table_id),
         Number(to_table_id)
       );
