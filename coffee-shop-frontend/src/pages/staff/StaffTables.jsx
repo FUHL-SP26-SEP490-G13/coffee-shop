@@ -46,6 +46,7 @@ import orderService from "@/services/orderService";
 import { POSModal } from "./POSModal";
 import { SplitBillModal } from './SplitBillModal';
 import { PaySplitBillModal } from './PaySplitBillModal';
+import { ReceiptModal } from "./TakeAwayOrder/ReceiptModal";
 import PayOSLogo from "/logo/payOS.svg";
 // import ReservationModal from "../admin/AdminTables/ReservationModal";
 
@@ -320,6 +321,7 @@ export function StaffTables() {
   const [tableActionMode, setTableActionMode] = useState("transfer");
   const [activeOrderMetaByTable, setActiveOrderMetaByTable] = useState({});
   const [paymentRequestedByTable, setPaymentRequestedByTable] = useState({});
+  const [debtReceiptOrder, setDebtReceiptOrder] = useState(null);
   const [debtPaymentDialog, setDebtPaymentDialog] = useState({
     open: false,
     table: null,
@@ -603,8 +605,99 @@ export function StaffTables() {
     });
   };
 
+  const buildDebtReceiptOrder = async ({
+    table,
+    paymentMethod,
+    cashReceived = 0,
+    fallbackAmount = 0,
+    orderId = null,
+  }) => {
+    const unpaidRes = await tableService.getUnpaidOrders(table.id);
+    let unpaidOrders = unpaidRes?.data || [];
+
+    if (orderId) {
+      unpaidOrders = unpaidOrders.filter((o) => Number(o.id) === Number(orderId));
+    }
+
+    const detailedOrders = await Promise.all(
+      unpaidOrders.map(async (order) => {
+        try {
+          const detailRes = await orderService.getOrderDetailForStaff(order.id);
+          return detailRes?.data || null;
+        } catch {
+          return null;
+        }
+      })
+    );
+
+    const validOrders = detailedOrders.filter(Boolean);
+    const orderIds = (validOrders.length > 0 ? validOrders : unpaidOrders)
+      .map((order) => Number(order.id || 0))
+      .filter((id) => id > 0);
+
+    if (orderIds.length === 0) {
+      throw new Error("Không lấy được mã đơn hàng");
+    }
+
+    const orderCodeText =
+      orderIds.length > 0
+        ? orderIds.length === 1
+          ? `#${orderIds[0]}`
+          : orderIds.map((id) => `#${id}`).join(", ")
+        : orderId
+          ? `#${Number(orderId)}`
+          : "#N/A";
+
+    let items = validOrders.flatMap((order) =>
+      (order.items || []).map((item) => ({
+        product_name: item.name || item.product_name || "",
+        size: item.size || "M",
+        quantity: Number(item.quantity || 0),
+        unit_price: Number(item.price || item.unit_price || 0),
+        toppings: (item.toppings || []).map((t) => ({
+          name: t.name,
+          quantity: Number(t.quantity || 0),
+          price: Number(t.price || 0),
+        })),
+        note: item.note || "",
+      }))
+    );
+
+    const totalAmountFromOrders = validOrders.reduce(
+      (sum, order) => sum + Number(order.total_amount || 0),
+      0
+    );
+    const totalAmount = Number(totalAmountFromOrders || fallbackAmount || 0);
+    items = items.filter((item) => item.product_name && item.quantity > 0 && item.unit_price >= 0);
+
+    if (items.length === 0) {
+      throw new Error("Không lấy được tên sản phẩm đã bán");
+    }
+
+    return {
+      order_id: orderIds[0] || Number(orderId || Date.now()),
+      order_code: orderCodeText,
+      created_at: new Date().toISOString(),
+      order_type: "dine-in",
+      receiver_name: `Khách bàn ${table.code || table.id}`,
+      payment_method: paymentMethod,
+      items,
+      total_amount: totalAmount,
+      payment: {
+        method: paymentMethod,
+        status: "paid",
+        cash_received: paymentMethod === "cash" ? Number(cashReceived || 0) : undefined,
+        change_amount:
+          paymentMethod === "cash"
+            ? Math.max(0, Number(cashReceived || 0) - Number(totalAmount || 0))
+            : undefined,
+      },
+    };
+  };
+
   const handleSettleDebt = async () => {
     if (!debtPaymentDialog.table) return;
+    const selectedTable = debtPaymentDialog.table;
 
     const debtAmount = Number(debtPaymentDialog.debtAmount || 0);
     if (debtAmount <= 0) {
@@ -618,21 +711,48 @@ export function StaffTables() {
 
     if (debtPaymentDialog.method === "payos") {
       try {
+        const receiptForPayos = await buildDebtReceiptOrder({
+          table: selectedTable,
+          paymentMethod: "payos",
+          fallbackAmount: debtAmount,
+        });
+
+        const payosItems = (receiptForPayos.items || [])
+          .map((item) => ({
+            name: String(item.product_name || "").slice(0, 100),
+            quantity: Math.max(1, Number(item.quantity || 1)),
+            price: Math.round(Number(item.unit_price || item.price || 0)),
+          }))
+          .filter((item) => item.name && item.price > 0);
+
+        if (payosItems.length === 0) {
+          setDebtPaymentDialog((prev) => ({ ...prev, loading: false }));
+          toast.error("Không lấy được sản phẩm đã bán để tạo thanh toán");
+          return;
+        }
+
         const now = Date.now();
         const orderCode = Number(String(now).slice(-6));
-        const returnUrl = `${window.location.origin}/staff/tables?debtPay=1&tableId=${debtPaymentDialog.table.id}`;
-        const payosItems = [
-          {
-            name: `Cong no ban ${debtPaymentDialog.table.code}`.slice(0, 100),
-            quantity: 1,
-            price: Math.round(debtAmount),
-          },
-        ];
+        const transferOrderId = Number(receiptForPayos.order_id || 0);
+        if (!transferOrderId) {
+          setDebtPaymentDialog((prev) => ({ ...prev, loading: false }));
+          toast.error("Không lấy được mã id đơn để tạo thanh toán");
+          return;
+        }
+        const transferDescription = `DH${transferOrderId}`.slice(0, 25);
+        const payosReturnParams = new URLSearchParams({
+          origin: "/staff/tables",
+          debtPay: "1",
+          tableId: String(selectedTable.id),
+          tableCode: String(selectedTable.code || ""),
+          debtAmount: String(Math.round(debtAmount)),
+        });
+        const returnUrl = `${window.location.origin}/staff/payment-result?${payosReturnParams.toString()}`;
 
         const createRes = await orderService.createPaymentLink({
           orderCode,
           amount: Math.round(debtAmount),
-          description: `CN${debtPaymentDialog.table.code}`.slice(0, 25),
+          description: transferDescription,
           items: payosItems,
           returnUrl,
           cancelUrl: returnUrl,
@@ -661,8 +781,22 @@ export function StaffTables() {
       return;
     }
 
+    let receiptOrderDraft = null;
     try {
-      const res = await tableService.settleDebt(debtPaymentDialog.table.id, {
+      receiptOrderDraft = await buildDebtReceiptOrder({
+        table: selectedTable,
+        paymentMethod: "cash",
+        cashReceived,
+        fallbackAmount: debtAmount,
+      });
+    } catch (error) {
+      setDebtPaymentDialog((prev) => ({ ...prev, loading: false }));
+      toast.error(error?.message || "Không lấy được thông tin đơn hàng");
+      return;
+    }
+
+    try {
+      const res = await tableService.settleDebt(selectedTable.id, {
         payment_method: debtPaymentDialog.method,
         cash_received: cashReceived,
       });
@@ -678,9 +812,12 @@ export function StaffTables() {
       });
       setPaymentRequestedByTable((prev) => {
         const next = { ...prev };
-        delete next[debtPaymentDialog.table.id];
+        delete next[selectedTable.id];
         return next;
       });
+
+      setDebtReceiptOrder(receiptOrderDraft);
+
       await fetchData();
     } catch (error) {
       toast.error(error?.response?.data?.message || "Không thanh toán được ");
@@ -1400,6 +1537,13 @@ export function StaffTables() {
           onSuccess={() => {
             fetchData();
           }}
+        />
+      )}
+
+      {debtReceiptOrder && (
+        <ReceiptModal
+          order={debtReceiptOrder}
+          onClose={() => setDebtReceiptOrder(null)}
         />
       )}
 
