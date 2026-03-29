@@ -1,5 +1,4 @@
 const OrderRepository = require("../repositories/OrderRepository");
-const TableService = require("./TableService");
 const ErrorResponse = require("../utils/ErrorResponse");
 
 class OrderService {
@@ -37,10 +36,6 @@ class OrderService {
 
     if (!["cash", "payos"].includes(payment_method)) {
       throw new ErrorResponse(400, "Phương thức thanh toán không hợp lệ");
-    }
-
-    if (order_type !== "dine-in" && (!receiver_name || !receiver_phone)) {
-      throw new ErrorResponse(400, "Vui lòng nhập tên và số điện thoại người nhận");
     }
 
     const connection = await OrderRepository.getConnection();
@@ -301,29 +296,6 @@ class OrderService {
           "UPDATE order_payments SET payment_status = 'paid', paid_at = NOW() WHERE order_id = ?",
           [orderId]
         );
-
-        // If this is a dine-in order, check if all orders in the session are now paid
-        // and reset table status if so
-        if (order_type === "dine-in" && payload.table_id) {
-          const [tableRows] = await connection.query(
-            "SELECT current_session_id FROM tables WHERE id = ? LIMIT 1",
-            [payload.table_id]
-          );
-          const sessionId = tableRows[0]?.current_session_id;
-          if (sessionId) {
-            const [remainingUnpaid] = await connection.query(
-              `SELECT COUNT(*) AS cnt FROM orders o
-               LEFT JOIN order_payments op ON op.order_id = o.id
-               WHERE o.table_id = ? AND o.session_id = ?
-                 AND o.status NOT IN ('cancelled')
-                 AND (o.is_paid = 0 OR COALESCE(op.payment_status,'pending') != 'paid')`,
-              [payload.table_id, sessionId]
-            );
-            if (Number(remainingUnpaid[0]?.cnt || 0) === 0) {
-              await TableService.checkAndResetTableStatus(connection, payload.table_id, sessionId);
-            }
-          }
-        }
       }
 
       if (discountIdApplied) {
@@ -473,20 +445,6 @@ class OrderService {
 
     if (isPaid) {
       await OrderRepository.updateOrderPaidStatus(orderCode, true);
-
-      // Check and reset table if dine-in
-      const [orderRows] = await db.query(
-        "SELECT order_type, table_id, session_id FROM orders WHERE id = ?",
-        [Number(orderCode)]
-      );
-      if (orderRows.length > 0 && orderRows[0].order_type === "dine-in" && orderRows[0].table_id) {
-        const conn = await db.getConnection();
-        try {
-          await TableService.checkAndResetTableStatus(conn, orderRows[0].table_id, orderRows[0].session_id);
-        } finally {
-          conn.release();
-        }
-      }
     }
 
     return { saved: true };
