@@ -6,12 +6,16 @@ import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
 import { cartService } from "@/services/cartService";
 import toppingService from "@/services/toppingService";
+import productService from "@/services/productService";
+import flashSaleService from "@/services/flashSaleService";
 
 export default function CartPage() {
   const navigate = useNavigate();
   const [cart, setCart] = useState(() => cartService.getCart());
   const [allToppings, setAllToppings] = useState([]);
   const [editingIndex, setEditingIndex] = useState(null);
+  const [productSizesMap, setProductSizesMap] = useState({});
+  const [activeSale, setActiveSale] = useState(null);
 
   const refreshCart = () => {
     setCart(cartService.getCart());
@@ -45,6 +49,39 @@ export default function CartPage() {
 
     fetchToppings();
   }, []);
+
+  useEffect(() => {
+    flashSaleService.getCurrentActive()
+      .then((res) => setActiveSale(res?.data || null))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    const fetchSizes = async () => {
+      const ids = [...new Set(cart.map((item) => item.product_id || item.id).filter(Boolean))];
+      const missingIds = ids.filter(id => !productSizesMap[id]);
+      
+      if (missingIds.length === 0) return;
+
+      const map = { ...productSizesMap };
+      await Promise.all(
+        missingIds.map(async (id) => {
+          try {
+            const res = await productService.getById(id);
+            const sizes = res?.data?.data?.sizes || res?.data?.sizes || [];
+            if (sizes.length > 0) {
+              map[id] = sizes;
+            }
+          } catch (error) {
+            console.error("Lỗi lấy size", error);
+          }
+        })
+      );
+      setProductSizesMap(map);
+    };
+    
+    fetchSizes();
+  }, [cart]);
 
   const totalAmount = cartService.getTotalAmount();
 
@@ -105,6 +142,24 @@ export default function CartPage() {
     refreshCart();
   };
 
+  const handleSizeChange = (item, newSizeId) => {
+    const productId = item.product_id || item.id;
+    const sizes = productSizesMap[productId];
+    if (!sizes) return;
+
+    const newSizeObj = sizes.find((s) => Number(s.id) === Number(newSizeId));
+    if (!newSizeObj) return;
+
+    let newPrice = Number(newSizeObj.price);
+    
+    if (activeSale && activeSale.product_ids?.includes(Number(productId))) {
+       newPrice = Math.round(newPrice * (1 - activeSale.discount_percent / 100));
+    }
+
+    cartService.updateItemSize(item.cartKey, newSizeObj.id, newSizeObj.size, newPrice);
+    refreshCart();
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-white">
       <Header />
@@ -159,9 +214,24 @@ export default function CartPage() {
                                 {item.name}
                               </h3>
 
-                              <p className="text-sm text-gray-500 mt-1">
-                                Size: {item.size}
-                              </p>
+                              <div className="mt-2 flex items-center gap-2">
+                                <span className="text-sm text-gray-500">Size:</span>
+                                {productSizesMap[item.product_id || item.id]?.length > 0 ? (
+                                  <select
+                                    value={item.productSizeId || item.product_size_id}
+                                    onChange={(e) => handleSizeChange(item, e.target.value)}
+                                    className="border rounded px-2 py-1 text-sm bg-gray-50 outline-none hover:border-amber-500 transition-colors cursor-pointer"
+                                  >
+                                    {productSizesMap[item.product_id || item.id].map(size => (
+                                      <option key={size.id} value={size.id}>
+                                        {size.size}
+                                      </option>
+                                    ))}
+                                  </select>
+                                ) : (
+                                  <span className="text-sm text-gray-700 font-medium">{item.size}</span>
+                                )}
+                              </div>
 
                               <p className="text-sm text-gray-500 mt-1">
                                 Giá gốc:{" "}
