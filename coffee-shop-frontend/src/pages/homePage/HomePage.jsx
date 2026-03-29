@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
+import FadeInView from "@/components/common/FadeInView";
 import useFetch from "../../hooks/useFetch";
 import productService from "@/services/productService";
 import bannerService from "../../services/bannerService";
@@ -10,6 +11,7 @@ import CategorySection from "./components/CategorySection";
 import BestSellerSection from "./components/BestSellerSection";
 import IntroVideoSection from "./components/IntroVideoSection";
 import ReviewSection from "./components/ReviewSection";
+import InstagramFeedSection from "./components/InstagramFeedSection";
 import "swiper/css";
 import "swiper/css/pagination";
 import "swiper/css/navigation";
@@ -29,6 +31,8 @@ export default function HomePage() {
   const products = useMemo(() => {
     return Array.isArray(data?.data) ? data.data : [];
   }, [data]);
+
+
 
   const fetchBanners = useCallback(() => {
     return bannerService.getActiveList();
@@ -85,37 +89,60 @@ export default function HomePage() {
     <div className="min-h-screen flex flex-col bg-white">
       <Header />
 
-      <HomeBanner
-        banners={banners}
-        activeBannerIndex={activeBannerIndex}
-        setActiveBannerIndex={setActiveBannerIndex}
-        defaultImage={defaultImage}
-      />
+      <FadeInView delay={0} duration={1200}>
+        <HomeBanner
+          banners={banners}
+          activeBannerIndex={activeBannerIndex}
+          setActiveBannerIndex={setActiveBannerIndex}
+          defaultImage={defaultImage}
+        />
+      </FadeInView>
 
-      <FlashSaleSection 
-        products={products}
-        getThumbnail={getThumbnail}
-        getDefaultCartSize={getDefaultCartSize}
-      />
+      <FadeInView>
+        <FlashSaleSection 
+          products={products}
+          getThumbnail={getThumbnail}
+          getDefaultCartSize={getDefaultCartSize}
+        />
+      </FadeInView>
 
-      <DiscountSection />
+      <FadeInView>
+        <DiscountSection />
+      </FadeInView>
 
-      <BestSellerSection
-        loading={loading}
-        products={products}
-        getThumbnail={getThumbnail}
-        getDisplayPrice={getDisplayPrice}
-      />
+      <FadeInView>
+        <BestSellerSection
+          loading={loading}
+          products={products}
+          getThumbnail={getThumbnail}
+          getDisplayPrice={getDisplayPrice}
+        />
+      </FadeInView>
 
-      <div className="w-full h-px bg-gradient-to-r from-transparent via-amber-300 to-transparent" />
+      <FadeInView delay={200}>
+        <div className="w-full h-px bg-gradient-to-r from-transparent via-amber-300 to-transparent" />
+      </FadeInView>
 
-      <IntroVideoSection videoId="eDyD7y3M_c0" />
+      <FadeInView>
+        <IntroVideoSection videoId="eDyD7y3M_c0" />
+      </FadeInView>
 
-      <CategorySection />
+      <FadeInView>
+        <CategorySection />
+      </FadeInView>
 
-      <ReviewSection />
+      <FadeInView>
+        <ReviewSection />
+      </FadeInView>
 
-      <FeaturedNews />
+      <FadeInView>
+        <FeaturedNews />
+      </FadeInView>
+      
+      <FadeInView>
+        <InstagramFeedSection />
+      </FadeInView>
+      
       <Footer />
       
       <AiAssistantWidget />
