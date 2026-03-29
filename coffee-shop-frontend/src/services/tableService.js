@@ -64,6 +64,16 @@ const tableService = {
     return response.data;
   },
 
+  splitBill: async (tableId, payload = {}) => {
+    const response = await axios.post(`${API_URL}/tables/${tableId}/split-bill`, payload);
+    return response.data;
+  },
+
+  getUnpaidOrders: async (tableId) => {
+    const response = await axios.get(`${API_URL}/tables/${tableId}/unpaid-orders`);
+    return response.data;
+  },
+
 };
 
 export default tableService;

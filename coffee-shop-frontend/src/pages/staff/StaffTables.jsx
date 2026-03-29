@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Search,
   Table as TableIcon,
@@ -23,6 +24,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+
 import {
   Dialog,
   DialogContent,
@@ -38,11 +40,12 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
 import tableService from "@/services/tableService";
 import areaService from "@/services/areaService";
 import orderService from "@/services/orderService";
 import { POSModal } from "./POSModal";
+import { SplitBillModal } from './SplitBillModal';
+import { PaySplitBillModal } from './PaySplitBillModal';
 import PayOSLogo from "/logo/payOS.svg";
 // import ReservationModal from "../admin/AdminTables/ReservationModal";
 
@@ -67,6 +70,7 @@ function TableCard({
   onStatusChange,
   onTransfer,
   onMergeOrder,
+  onSeparateBill,
   onRequestPayment,
   activeOrderMeta,
   paymentRequested,
@@ -115,6 +119,15 @@ function TableCard({
               >
                 <ArrowLeftRight className="w-4 h-4" />
                 Chuyển bàn
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onSeparateBill(table);
+                }}
+              >
+                <ReceiptText className="w-4 h-4" />
+                Tách đơn
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={(e) => {
@@ -288,7 +301,13 @@ export function StaffTables() {
   const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
   const [loadingOrder, setLoadingOrder] = useState(false);
   const [orderModalMode, setOrderModalMode] = useState("view-order");
-  const [activeOrderSummaries, _setActiveOrderSummaries] = useState({});
+  const [isSplitBillModalOpen, setIsSplitBillModalOpen] = useState(false);
+  const [isPaySplitBillModalOpen, setIsPaySplitBillModalOpen] = useState(false);
+  const [splitOrderIds, setSplitOrderIds] = useState([]);
+
+  const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+  const [selectedTableToReset, setSelectedTableToReset] = useState(null);
+  const [activeOrderSummaries, setActiveOrderSummaries] = useState({});
   const [requestedPaymentByTable, setRequestedPaymentByTable] = useState({});
   const [_nowTick, setNowTick] = useState(Date.now());
 
@@ -437,6 +456,20 @@ export function StaffTables() {
   };
 
 
+  const handleOpenSeparateBill = async (table) => {
+    setSelectedTableForOrder(table);
+    setLoadingOrder(true);
+    try {
+      const res = await tableService.getActiveOrder(table.id);
+      setActiveOrder(res.data);
+      setIsSplitBillModalOpen(true);
+    } catch (err) {
+      toast.error("Không thể tải thông tin đơn hàng để tách");
+    } finally {
+      setLoadingOrder(false);
+    }
+  };
+
   const handleViewOrder = async (e, table) => {
     e.stopPropagation();
     setOrderModalMode("view-order");
@@ -446,7 +479,7 @@ export function StaffTables() {
     try {
       const res = await tableService.getActiveOrder(table.id);
       setActiveOrder(res.data);
-    } catch {
+    } catch (err) {
       toast.error("Không thể tải thông tin đơn hàng");
       setActiveOrder(null);
     } finally {
@@ -849,6 +882,7 @@ export function StaffTables() {
                             onStatusChange={handleStatusChange}
                             onTransfer={handleOpenTransfer}
                             onMergeOrder={handleMergeOrder}
+                            onSeparateBill={handleOpenSeparateBill}
                             onRequestPayment={handleRequestPayment}
                             activeOrderMeta={activeOrderMetaByTable[table.id]}
                             paymentRequested={Boolean(paymentRequestedByTable[table.id])}
@@ -909,6 +943,7 @@ export function StaffTables() {
                       onStatusChange={handleStatusChange}
                       onTransfer={handleOpenTransfer}
                       onMergeOrder={handleMergeOrder}
+                      onSeparateBill={handleOpenSeparateBill}
                       onRequestPayment={handleRequestPayment}
                       activeOrderMeta={activeOrderMetaByTable[table.id]}
                       paymentRequested={Boolean(paymentRequestedByTable[table.id])}
@@ -1115,7 +1150,12 @@ export function StaffTables() {
 
 
       {/* Order Info Modal */}
-      <Dialog open={isOrderModalOpen} onOpenChange={setIsOrderModalOpen}>
+      <Dialog open={isOrderModalOpen} onOpenChange={(open) => {
+        setIsOrderModalOpen(open);
+        if (!open) {
+          setOrderModalMode("view-order");
+        }
+      }}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>Đơn hàng - {selectedTableForOrder ? `Bàn ${selectedTableForOrder.code}` : ''}</DialogTitle>
@@ -1132,7 +1172,7 @@ export function StaffTables() {
               </div>
               <div className="space-y-4">
                 {activeOrder.items?.map((item, idx) => (
-                  <div key={idx} className="flex justify-between items-start text-sm">
+                  <div key={idx} className="flex justify-between items-start text-sm border-b pb-2 last:border-0">
                     <div className="flex-1">
                       <p className="font-medium text-base">{item.quantity} x {item.name}</p>
                       <p className="text-muted-foreground">Size {item.size}</p>
@@ -1162,14 +1202,36 @@ export function StaffTables() {
                   ).toLocaleString('vi-VN')}đ
                 </span>
               </div>
-              {orderModalMode === "request-payment" && (
+              
+              <div className="flex w-full gap-2 mt-4">
                 <Button
-                  onClick={handleOpenPaymentFromRequest}
-                  className="w-full rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold"
+                  variant="outline"
+                  onClick={() => {
+                    setIsOrderModalOpen(false);
+                    setIsSplitBillModalOpen(true);
+                  }}
+                  className="flex-1 font-semibold border-amber-500 text-amber-600 hover:bg-amber-50"
                 >
-                  Thanh toán
+                  Tách nhiều đơn
                 </Button>
-              )}
+                {(orderModalMode === "request-payment" || activeOrder?.total_amount > 0) && (
+                  <Button
+                    onClick={() => {
+                      const debtAmount = Number(
+                        activeOrder?.debt_amount ||
+                        activeOrder?.outstanding_amount ||
+                        activeOrder?.total_amount ||
+                        0
+                      );
+                      setIsOrderModalOpen(false);
+                      handleOpenDebtPayment(selectedTableForOrder, debtAmount);
+                    }}
+                    className="flex-1 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold"
+                  >
+                    Thanh toán toàn bộ
+                  </Button>
+                )}
+              </div>
             </div>
           ) : (
             <div className="py-8 text-center text-muted-foreground">
@@ -1318,6 +1380,29 @@ export function StaffTables() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <SplitBillModal 
+        isOpen={isSplitBillModalOpen} 
+        onClose={() => setIsSplitBillModalOpen(false)} 
+        table={selectedTableForOrder} 
+        activeOrder={activeOrder} 
+        onSplitSuccess={() => {
+          setIsPaySplitBillModalOpen(true);
+          fetchData();
+        }} 
+      />
+
+      {isPaySplitBillModalOpen && (
+        <PaySplitBillModal
+          isOpen={isPaySplitBillModalOpen}
+          onClose={() => setIsPaySplitBillModalOpen(false)}
+          table={selectedTableForOrder}
+          onSuccess={() => {
+            fetchData();
+          }}
+        />
+      )}
+
     </div>
   );
 }

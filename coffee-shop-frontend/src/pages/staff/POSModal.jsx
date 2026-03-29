@@ -228,6 +228,55 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
     return items;
   };
 
+  const createUnpaidOrder = async () => {
+    const items = buildOrderItemsPayload();
+    const payload = {
+      order_type: 'dine-in',
+      table_id: Number(table.id),
+      payment_method: 'payos',
+      receiver_name: `Khách Bàn ${table.code || ''}`,
+      receiver_phone: '0000000000',
+      items,
+      note: note.trim() || undefined,
+      discount_code: discountAmount > 0 ? discountCode : undefined,
+    };
+    return orderService.checkout(payload);
+  };
+
+
+
+  const handleSaveForLaterPayment = async () => {
+    if (!table) {
+      toast.error('Không tìm thấy thông tin bàn');
+      return;
+    }
+    if (cart.length === 0) {
+      toast.error('Giỏ hàng trống');
+      return;
+    }
+
+    try {
+      await createUnpaidOrder();
+      toast.success('Đã lưu đơn chờ thanh toán');
+      setCart([]);
+      setNote('');
+      if (onTableStatusChange) onTableStatusChange(table.id, 'occupied');
+      navigate(TABLE_MANAGEMENT_PATH, {
+        state: {
+          focusTableId: table.id,
+          sourceAction: 'save-for-later',
+        },
+      });
+      onClose();
+    } catch (error) {
+      if (error?.message === 'invalid-product-size') {
+        toast.error('Có lỗi xảy ra với thông tin sản phẩm');
+        return;
+      }
+      toast.error(error.response?.data?.message || 'Không lưu được đơn chờ thanh toán');
+    }
+  };
+
   const handleApplyDiscount = async () => {
     if (!discountCode.trim()) {
       toast.error('Vui lòng nhập mã giảm giá');
@@ -385,7 +434,6 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
       if (resolvedPaymentMethod === 'payos') {
         setPendingPayosOrderId(null);
       }
-      onClose();
       toast.error(error.response?.data?.message || 'Không đặt được hàng');
     } finally {
       setIsSubmittingOrder(false);
@@ -672,7 +720,6 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
               />
             </div>
 
-            {/* Total + Checkout */}
             <div className="p-3 border-t border-border flex-shrink-0 space-y-3">
               <div className="flex justify-between items-center px-1">
                 <span className="text-sm text-muted-foreground">Tổng cộng</span>
@@ -861,13 +908,15 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
                 <Clock3 className="w-4 h-4 mr-1.5" />
                 Thanh toán sau
               </Button>
-              <Button
-                onClick={handleConfirmPayment}
-                disabled={isSubmittingOrder}
-                className="rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold"
-              >
-                {isSubmittingOrder ? 'Đang xử lý...' : 'Xác nhận thanh toán'}
-              </Button>
+              {table?.status !== 'occupied' && (
+                <Button
+                  onClick={handleConfirmPayment}
+                  disabled={isSubmittingOrder}
+                  className="rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold"
+                >
+                  {isSubmittingOrder ? 'Đang xử lý...' : 'Xác nhận thanh toán'}
+                </Button>
+              )}
             </div>
           </div>
         </DialogContent>

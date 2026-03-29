@@ -45,6 +45,13 @@ router.get(
   AsyncMiddleware(OrderController.getAllOrders)
 );
 
+router.get(
+  "/:id",
+  authenticate,
+  authorize([ROLES_STRING.STAFF, ROLES_STRING.MANAGER]),
+  AsyncMiddleware(OrderController.getOrderDetailByStaff)
+);
+
 // Nhận callback từ frontend sau khi PayOS redirect, lưu mã giao dịch vào DB
 router.post(
   "/payos-return",
