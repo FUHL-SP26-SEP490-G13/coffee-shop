@@ -54,10 +54,10 @@ import OrderQRMenu from "@/pages/homePage/order/OrderQRMenu";
 import MyOrderQRDetail from "@/pages/homePage/order/MyOrderQRDetail";
 import PayOSReturnSuccess from "@/pages/common/PayOSReturnSuccess";
 import AdminDB from "@/pages/admin/AdminDB/AdminDB";
-import AdminSubscriber from "@/pages/admin/AdminSubscriber/AdminSubscriber";
 import FavoritePage from "@/pages/homePage/favorite/FavoritePage";
 import AdminReviews from "@/pages/admin/AdminReview/AdminReview";
 import MyOrderOnlinePage from "../pages/homePage/order/MyOrderOnlinePage";
+import AdminSettings from "@/pages/admin/AdminSettings/AdminSettings";
 import MyOrderDetailPage from "../pages/homePage/order/MyOrderDetailPage";
 import AdminReceiptSettings from "@/pages/admin/AdminReceiptSettings/AdminReceiptSettings";
 import AdminFlashSales from "@/pages/admin/AdminFlashSale/AdminFlashSales";
@@ -209,12 +209,12 @@ const AppRoutes = () => {
         <Route path="discounts" element={<AdminDiscounts />} />
         <Route path="discounts/create" element={<AdminDiscountCreate />} />
         <Route path="discounts/edit/:id" element={<AdminDiscountEdit />} />
-        <Route path="subscriber" element={<AdminSubscriber />} />
         <Route path="banners" element={<AdminBanner />} />
         <Route path="tables" element={<AdminTables />} />
         <Route path="toppings" element={<AdminToppings />} />
         <Route path="reviews" element={<AdminReviews />} />
         <Route path="receipt-settings" element={<AdminReceiptSettings />} />
+        <Route path="settings" element={<AdminSettings />} />
         <Route path="flash-sales" element={<AdminFlashSales />} />
       </Route>
       <Route path="/news/:slug" element={<NewsDetailPage />} />

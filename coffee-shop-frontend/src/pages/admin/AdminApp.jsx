@@ -9,7 +9,6 @@ import {
   User,
   Tag,
   LogOut,
-  Mail,
   ImagePlus,
   ListOrdered,
   Coffee,
@@ -20,6 +19,7 @@ import {
   MapPin,
   LayoutGrid,
   Bell,
+  Settings,
   MessageSquare,
   Zap,
   Clock,
@@ -466,18 +466,6 @@ export default function AdminApp() {
                   <ClipboardList className="w-4 h-4" />
                   <span className="text-sm tracking-wide">Bài viết</span>
                 </NavLink>
-                <NavLink
-                  to="/admin/subscriber"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={({ isActive }) =>
-                    `w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
-                      isActive ? "bg-primary text-white" : "text-muted-foreground hover:bg-secondary"
-                    }`
-                  }
-                >
-                  <Mail className="w-4 h-4" />
-                  <span className="text-sm tracking-wide">Email đăng kí</span>
-                </NavLink>
               </div>
             </div>
 
@@ -487,6 +475,19 @@ export default function AdminApp() {
                 Hệ thống
               </p>
               <div className="space-y-1">
+                <NavLink
+                  to="/admin/settings"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={({ isActive }) =>
+                    `w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                      isActive ? "bg-primary text-white" : "text-muted-foreground hover:bg-secondary"
+                    }`
+                  }
+                >
+                  <Settings className="w-4 h-4" />
+                  <span className="text-sm tracking-wide">Giờ Hoạt Động</span>
+                </NavLink>
+
                 <div>
                   <button
                     onClick={() => setOpenScheduleMenu(!openScheduleMenu)}

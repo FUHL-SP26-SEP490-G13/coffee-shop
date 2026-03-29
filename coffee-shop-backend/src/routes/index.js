@@ -7,7 +7,6 @@ const categoryRoutes = require("./category.routes");
 const discountRoutes = require("./discount.routes");
 const productRoutes = require("./product.routes");
 const newsRoutes = require("./news.routes");
-const subscriberRoutes = require("./subscriber.routes");
 const userRoutes = require("./user.routes");
 const bannerRoutes = require("./banner.routes");
 const { publicToppingRoutes, adminToppingRoutes } = require("./topping.routes");
@@ -29,6 +28,7 @@ const aiRoutes = require('./ai.routes');
 const flashSaleRoutes = require('./flashSale.routes');
 const qrOrderRoutes = require('./qrOrder.routes');
 const shiftRoutes = require('./shift.routes');
+const appSettingRoutes = require('./appSetting.routes');
 
 
 
@@ -38,7 +38,6 @@ router.use("/auth", authRoutes);
 router.use("/categories", categoryRoutes);
 router.use("/users", userRoutes);
 router.use("/products", productRoutes);
-router.use("/subscriber", subscriberRoutes);
 router.use("/news", newsRoutes);
 router.use("/users", userRoutes);
 router.use("/toppings", publicToppingRoutes);
@@ -58,6 +57,7 @@ router.use("/order-online", orderOnlineRoutes);
 router.use("/favorites", favoriteRoutes);
 router.use("/reviews", reviewRoutes);
 router.use("/receipt-settings", receiptSettingRoutes);
+router.use("/settings", appSettingRoutes);
 router.use("/takeaway", takeawayRoutes);
 router.use("/orders", orderRoutes);
 router.use('/ai', aiRoutes);

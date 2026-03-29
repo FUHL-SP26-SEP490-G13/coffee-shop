@@ -1,48 +1,66 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { MapPin, Phone, Mail, Send, Loader2 } from "lucide-react";
-import axios from "@/services/axiosClient";
+import { MapPin, Phone, Mail } from "lucide-react";
 import Logo from "/logo/Logo.png";
+import appSettingService from "@/services/appSettingService";
 
 function Footer() {
-  const [email, setEmail] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
+  const [isOpen, setIsOpen] = useState(false);
+  const [settings, setSettings] = useState(null);
 
-  const validateEmail = (value) => {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
-  };
+  useEffect(() => {
+    let interval;
+    const fetchSettings = async () => {
+      try {
+        const res = await appSettingService.getSettings();
+        if (res?.data) {
+          setSettings(res.data);
+          
+          const checkOpenStatus = () => {
+            const now = new Date();
+            const day = now.getDay(); // 0 is Sunday, 1 is Monday ... 6 is Saturday
+            const currentHour = now.getHours();
+            const currentMinute = now.getMinutes();
+            const currentTime = currentHour + currentMinute / 60;
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+            const parseTime = (timeStr) => {
+              if (!timeStr) return 0;
+              const [h, m] = timeStr.split(":");
+              return parseInt(h) + parseInt(m) / 60;
+            };
 
-    setMessage("");
-    setError("");
+            let isShopOpen = false;
 
-    if (!email.trim()) {
-      setError("Vui lòng nhập email.");
-      return;
-    }
+            // Thứ 2 - Thứ 6
+            if (day >= 1 && day <= 5) {
+              const open = parseTime(res.data.weekday_open || "07:00");
+              const close = parseTime(res.data.weekday_close || "22:30");
+              isShopOpen = currentTime >= open && currentTime < close;
+            } 
+            // Thứ 7 - Chủ Nhật
+            else {
+              const open = parseTime(res.data.weekend_open || "07:30");
+              const close = parseTime(res.data.weekend_close || "23:00");
+              isShopOpen = currentTime >= open && currentTime < close;
+            }
 
-    if (!validateEmail(email)) {
-      setError("Email không hợp lệ.");
-      return;
-    }
+            setIsOpen(isShopOpen);
+          };
 
-    try {
-      setLoading(true);
-      await axios.post("/subscriber", { email });
-      setMessage("Đăng ký thành công! Cảm ơn bạn.");
-      setEmail("");
-    } catch (err) {
-      setError(
-        err?.response?.data?.message || "Email đã tồn tại hoặc có lỗi xảy ra."
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
+          checkOpenStatus();
+          interval = setInterval(checkOpenStatus, 60000); // Cập nhật mỗi phút
+        }
+      } catch (error) {
+        console.error("Failed to load generic settings", error);
+      }
+    };
+
+    fetchSettings();
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, []);
 
   return (
     <footer className="mt-20 border-t border-border bg-card">
@@ -141,43 +159,41 @@ function Footer() {
 
           <div>
             <h4 className="text-sm font-semibold uppercase tracking-wider text-foreground">
-              Đăng ký nhận tin
+              Giờ mở cửa
             </h4>
-            <p className="mt-4 text-sm text-muted-foreground">
-              Nhận ưu đãi và tin tức mới nhất từ chúng tôi.
-            </p>
-
-            <form onSubmit={handleSubmit} className="mt-4">
-              <div className="flex gap-2">
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Email của bạn"
-                  className="flex-1 rounded-full border border-border bg-secondary/50 px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/60 transition-all focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/20"
-                />
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-all hover:brightness-110 active:scale-95 disabled:opacity-50"
-                >
-                  {loading ? (
-                    <Loader2 size={16} className="animate-spin" />
-                  ) : (
-                    <Send size={16} />
-                  )}
-                </button>
+            <div className="mt-4 space-y-3 text-sm text-muted-foreground">
+              <div className="flex justify-between border-b border-border/50 pb-2">
+                <span>Thứ 2 - Thứ 6</span>
+                <span className="font-medium text-foreground">
+                  {settings?.weekday_open || "07:00"} - {settings?.weekday_close || "22:30"}
+                </span>
               </div>
-
-              {message && (
-                <p className="mt-3 text-sm font-medium text-green-600">
-                  {message}
-                </p>
-              )}
-
-              {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
-            </form>
+              <div className="flex justify-between border-b border-border/50 pb-2">
+                <span>Thứ 7 - Chủ Nhật</span>
+                <span className="font-medium text-foreground">
+                  {settings?.weekend_open || "07:30"} - {settings?.weekend_close || "23:00"}
+                </span>
+              </div>
+              <div className="flex justify-between pb-2">
+                <span>Trạng thái</span>
+                {isOpen ? (
+                  <span className="font-medium flex items-center gap-1.5 text-primary">
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                    </span>
+                    Đang mở cửa
+                  </span>
+                ) : (
+                  <span className="font-medium flex items-center gap-1.5 text-red-500">
+                    <span className="relative flex h-2 w-2">
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                    </span>
+                    Đã đóng cửa
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </div>

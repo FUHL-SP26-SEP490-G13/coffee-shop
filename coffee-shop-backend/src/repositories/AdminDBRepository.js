@@ -94,14 +94,7 @@ class AdminDBRepository {
     }));
   }
 
-  async getTotalNewsletterSubscribers() {
-    const sql = `
-    SELECT COUNT(*) AS total
-    FROM newsletter_subscribers
-  `;
-    const [rows] = await pool.query(sql);
-    return rows[0].total;
-  }
+
 
   // Optional: doanh thu theo loại đơn hàng (tại quán, mang về, giao hàng)
   async getOrderTypeRevenue({ days = 7 }) {
