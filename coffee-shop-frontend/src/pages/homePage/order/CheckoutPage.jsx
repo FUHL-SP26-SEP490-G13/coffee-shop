@@ -563,6 +563,12 @@ export default function CheckoutPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {[
                   {
+                    value: "cash",
+                    label: "Tiền mặt",
+                    sub: "Thanh toán khi nhận hàng",
+                    icon: <Banknote className="w-5 h-5 text-green-600" />,
+                  },
+                  {
                     value: "payos",
                     label: "PayOS",
                     sub: "Thanh toán trực tuyến qua PayOS",

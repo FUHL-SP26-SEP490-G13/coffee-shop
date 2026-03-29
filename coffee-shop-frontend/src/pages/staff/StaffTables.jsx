@@ -36,15 +36,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 import tableService from "@/services/tableService";
 import areaService from "@/services/areaService";
 import orderService from "@/services/orderService";
@@ -294,9 +288,9 @@ export function StaffTables() {
   const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
   const [loadingOrder, setLoadingOrder] = useState(false);
   const [orderModalMode, setOrderModalMode] = useState("view-order");
-  const [activeOrderSummaries, setActiveOrderSummaries] = useState({});
+  const [activeOrderSummaries, _setActiveOrderSummaries] = useState({});
   const [requestedPaymentByTable, setRequestedPaymentByTable] = useState({});
-  const [nowTick, setNowTick] = useState(Date.now());
+  const [_nowTick, setNowTick] = useState(Date.now());
 
   // Transfer Modal States
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
@@ -452,23 +446,6 @@ export function StaffTables() {
     try {
       const res = await tableService.getActiveOrder(table.id);
       setActiveOrder(res.data);
-    } catch (err) {
-      toast.error("Không thể tải thông tin đơn hàng");
-      setActiveOrder(null);
-    } finally {
-      setLoadingOrder(false);
-    }
-  };
-
-  const handleRequestPayment = async (table) => {
-    setRequestedPaymentByTable((prev) => ({ ...prev, [table.id]: true }));
-    setOrderModalMode("request-payment");
-    setSelectedTableForOrder(table);
-    setIsOrderModalOpen(true);
-    setLoadingOrder(true);
-    try {
-      const res = await tableService.getActiveOrder(table.id);
-      setActiveOrder(res.data);
     } catch {
       toast.error("Không thể tải thông tin đơn hàng");
       setActiveOrder(null);
@@ -501,7 +478,7 @@ export function StaffTables() {
       setTables(nextTables);
       setAreas(areasRes.data || []);
       await fetchActiveOrderMeta(nextTables);
-    } catch (error) {
+    } catch {
       toast.error("Không thể tải dữ liệu");
     } finally {
       setLoading(false);
@@ -510,6 +487,7 @@ export function StaffTables() {
 
   useEffect(() => {
     fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedStatus]);
 
   useEffect(() => {
@@ -884,7 +862,7 @@ export function StaffTables() {
             </div>
           ) : (
             /* === SPECIFIC AREA === */
-            <div>
+            <div className="space-y-6">
               {/* Area Info Banner */}
               {currentAreaObj && (
                 <div className="flex items-center justify-between bg-card border rounded-xl p-4 mb-6 shadow-sm">
@@ -920,24 +898,6 @@ export function StaffTables() {
                 </div>
               )}
 
-              )}
-            </div>
-          )}
-
-          {/* PAGINATION */}
-          {totalPages > 1 && (
-            <div className="flex justify-center gap-4 mt-8">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={page === 1}
-                onClick={() => setPage((p) => p - 1)}
-              >
-                Trước
-              </Button>
-
-              <div className="flex items-center text-sm font-medium">
-                Trang {page} / {totalPages}
               <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-6">
                 {paginatedTables.length > 0 ? (
                   paginatedTables.map((table) => (
@@ -972,7 +932,6 @@ export function StaffTables() {
                     </Button>
                   </div>
                 )}
-
               </div>
 
               {/* PAGINATION */}
@@ -1001,6 +960,7 @@ export function StaffTables() {
               )}
             </div>
           )}
+
         </TabsContent>
       </Tabs>
 
