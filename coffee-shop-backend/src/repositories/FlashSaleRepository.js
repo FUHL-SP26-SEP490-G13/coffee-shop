@@ -27,6 +27,27 @@ class FlashSaleRepository {
     return activeSale;
   }
 
+  // Helper method check trùng khung giờ
+  async checkOverlap(startTime, endTime, excludeId = null) {
+    let query = `
+      SELECT id, title, start_time, end_time FROM flash_sales 
+      WHERE is_deleted = 0 
+        AND status = 'active'
+        AND (? < end_time AND ? > start_time)
+    `;
+    const params = [startTime, endTime];
+    
+    if (excludeId) {
+      query += ` AND id != ?`;
+      params.push(excludeId);
+    }
+    
+    query += ` LIMIT 1`;
+    
+    const [rows] = await db.query(query, params);
+    return rows[0] || null;
+  }
+
   async findAll() {
     const [rows] = await db.query(
       `SELECT * FROM flash_sales WHERE is_deleted = 0 ORDER BY created_at DESC`

@@ -180,7 +180,7 @@ export default function FlashSaleSection({ products, getThumbnail, getDefaultCar
                         onClick={(e) => handleAddToCart(e, product)}
                         className="w-full bg-gradient-to-r from-red-500 to-orange-500 text-white font-medium py-3 rounded-xl hover:from-red-600 hover:to-orange-600 active:scale-95 transition-all shadow-md shadow-orange-500/30 flex justify-center items-center gap-2"
                       >
-                        <ShoppingCart className="w-5 h-5" /> Mua Ngay
+                        <ShoppingCart className="w-5 h-5" /> Thêm Ngay
                       </button>
                     )}
                   </div>
