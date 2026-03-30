@@ -47,9 +47,9 @@ export default function InstagramFeedSection() {
   };
 
   return (
-    <section className="w-full bg-white py-16">
+    <section className="w-full bg-white dark:bg-gray-900 py-16">
       <div className="mx-auto max-w-7xl px-4 text-center mb-10">
-        <h2 className="text-3xl font-bold text-gray-900 font-serif mb-3">
+        <h2 className="text-3xl font-bold text-gray-900 dark:text-gray-100 font-serif mb-3">
           Follow Us
         </h2>
         <div className="flex items-center justify-center gap-2 text-primary hover:opacity-80 transition-opacity cursor-pointer mx-auto" onClick={handleImageClick}>
@@ -89,7 +89,7 @@ export default function InstagramFeedSection() {
             </div>
             
             {/* Instagram Icon Badge */}
-            <div className="absolute top-4 right-4 bg-white/20 p-2 rounded-full backdrop-blur-md opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+            <div className="absolute top-4 right-4 bg-white dark:bg-gray-900/20 p-2 rounded-full backdrop-blur-md opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                <Instagram className="w-4 h-4 text-white" />
             </div>
             </div>

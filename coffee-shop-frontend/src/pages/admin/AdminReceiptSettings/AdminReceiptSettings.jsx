@@ -201,7 +201,7 @@ export default function AdminReceiptSettings() {
 
   if (isLoading) {
     return (
-      <div className="p-6 flex items-center gap-2 text-muted-foreground">
+      <div className="p-6 flex items-center gap-2 text-muted-foreground dark:text-gray-400">
         <Loader2 className="w-5 h-5 animate-spin" />
         Đang tải cấu hình hóa đơn...
       </div>
@@ -219,7 +219,7 @@ export default function AdminReceiptSettings() {
           </div>
           <div>
             <h1 className="text-2xl font-semibold">Cấu hình hóa đơn</h1>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-muted-foreground dark:text-gray-400">
               Thiết lập thông tin cửa hàng và nội dung in trên hóa đơn
             </p>
           </div>
@@ -236,7 +236,7 @@ export default function AdminReceiptSettings() {
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        <div className="bg-white border rounded-xl p-5 space-y-4">
+        <div className="bg-white dark:bg-gray-900 dark:border-gray-800 border rounded-xl p-5 space-y-4">
           <div className="space-y-2">
             <Label htmlFor="store_name">Tên cửa hàng</Label>
             <Input
@@ -286,11 +286,11 @@ export default function AdminReceiptSettings() {
               }}
             />
             {logoFile ? (
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-muted-foreground dark:text-gray-400">
                 Đã chọn: {logoFile.name}
               </p>
             ) : (
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-muted-foreground dark:text-gray-400">
                 Chưa chọn tệp mới, sẽ giữ logo hiện tại.
               </p>
             )}
@@ -325,7 +325,7 @@ export default function AdminReceiptSettings() {
           <div className="flex items-center justify-between border rounded-lg p-3">
             <div>
               <p className="text-sm font-medium">Kích hoạt cấu hình này</p>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-muted-foreground dark:text-gray-400">
                 Hệ thống sẽ dùng cấu hình active để in hóa đơn
               </p>
             </div>
@@ -336,7 +336,7 @@ export default function AdminReceiptSettings() {
           </div>
         </div>
 
-        <div className="bg-white border rounded-xl p-5 xl:col-start-2 xl:sticky xl:top-6 h-fit">
+        <div className="bg-white dark:bg-gray-900 dark:border-gray-800 border rounded-xl p-5 xl:col-start-2 xl:sticky xl:top-6 h-fit">
           <div className="flex items-center justify-between mb-4 gap-3">
             <h2 className="text-lg font-semibold">Xem trước hóa đơn</h2>
             <Button variant="outline" onClick={handlePrintPreview}>
@@ -345,7 +345,7 @@ export default function AdminReceiptSettings() {
             </Button>
           </div>
 
-          <div className="mx-auto max-w-[360px] bg-slate-50 border rounded-lg p-4 text-sm text-slate-800">
+          <div className="mx-auto max-w-[360px] bg-slate-50 dark:bg-slate-800 dark:border-slate-700 border rounded-lg p-4 text-sm text-slate-800 dark:text-slate-200">
             {displayLogo ? (
               <div className="flex justify-center mb-3">
                 <img
@@ -422,7 +422,7 @@ export default function AdminReceiptSettings() {
               </div>
             )}
 
-            <p className="text-center text-[11px] mt-4 text-slate-500">
+            <p className="text-center text-[11px] mt-4 text-slate-500 dark:text-slate-400">
               Trạng thái cấu hình: {form.is_active ? "Đang kích hoạt" : "Tắt"}
             </p>
           </div>

@@ -100,7 +100,7 @@ export default function HomePage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-white">
+    <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900 dark:border-gray-800">
       <Header />
 
       <FadeInView delay={0} duration={1200}>

@@ -152,12 +152,12 @@ export default function MyOrderQRDetail() {
   if (!selected || selected.length === 0) return null;
 
   return (
-    <div className="max-w-lg mx-auto min-h-screen bg-gray-50 flex flex-col pb-24">
+    <div className="max-w-lg mx-auto min-h-screen bg-gray-50 dark:bg-gray-950 flex flex-col pb-24">
       {/* HEADER */}
-      <header className="sticky top-0 z-10 bg-white border-b py-3 px-4 shadow-sm flex items-center justify-between">
+      <header className="sticky top-0 z-10 bg-white dark:bg-gray-900 border-b py-3 px-4 shadow-sm flex items-center justify-between">
         <button 
           onClick={() => navigate(-1)} 
-          className="p-2 -ml-2 text-gray-600 hover:text-primary transition"
+          className="p-2 -ml-2 text-gray-600 dark:text-gray-400 hover:text-primary transition"
         >
           <ChevronLeft className="w-6 h-6" />
         </button>
@@ -168,13 +168,13 @@ export default function MyOrderQRDetail() {
       <main className="flex-1 px-4 py-4 space-y-4">
         
         {/* Bàn */}
-        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
-          <span className="text-gray-600 font-medium">Bàn phục vụ</span>
+        <div className="bg-white dark:bg-gray-900 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 flex items-center justify-between">
+          <span className="text-gray-600 dark:text-gray-400 font-medium">Bàn phục vụ</span>
           <span className="font-bold text-lg text-primary">{tableId}</span>
         </div>
 
         {/* Danh sách món */}
-        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+        <div className="bg-white dark:bg-gray-900 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800">
           <h2 className="font-bold text-lg mb-3">Món đã chọn</h2>
           <div className="divide-y divide-gray-100">
             {selected.map((item, idx) => {
@@ -190,8 +190,8 @@ export default function MyOrderQRDetail() {
               return (
                 <div key={`${item.id}-${idx}`} className="py-3 items-start flex justify-between gap-3">
                   <div className="flex-1">
-                    <div className="font-semibold text-gray-900">{item.name}</div>
-                    <div className="text-sm text-gray-500 mt-1">
+                    <div className="font-semibold text-gray-900 dark:text-gray-100">{item.name}</div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                       {item.size && <span className="mr-2">Size {item.size}</span>}
                       <span>SL: {item.qty || 1}</span>
                     </div>
@@ -204,7 +204,7 @@ export default function MyOrderQRDetail() {
                            const tPrice = Number(tpObj?.price || tp.price || 0);
                            const tPriceStr = tPrice > 0 ? ` (+${tPrice.toLocaleString()}đ)` : '';
                            return (
-                             <div key={tidx} className="text-xs text-gray-500 flex justify-between">
+                             <div key={tidx} className="text-xs text-gray-500 dark:text-gray-400 flex justify-between">
                                <span>+ {tName}{tPriceStr}</span>
                              </div>
                            )
@@ -227,12 +227,12 @@ export default function MyOrderQRDetail() {
         </div>
 
         {/* Thông tin bổ sung */}
-        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 space-y-4">
+        <div className="bg-white dark:bg-gray-900 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 space-y-4">
           <h2 className="font-bold text-lg">Thông tin khách (Tùy chọn)</h2>
           
 
           <div>
-            <label className="text-sm font-medium text-gray-700 block mb-1">Ghi chú chung</label>
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">Ghi chú chung</label>
             <Textarea 
               placeholder="Ghi chú thêm cho quán (tùy chọn)" 
               value={form.note}
@@ -242,7 +242,7 @@ export default function MyOrderQRDetail() {
           </div>
 
           <div>
-            <label className="text-sm font-medium text-gray-700 block mb-1">Mã giảm giá</label>
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">Mã giảm giá</label>
             <select 
               className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               value={form.discountCode}
@@ -268,8 +268,8 @@ export default function MyOrderQRDetail() {
       </main>
 
       {/* FOOTER BAR */}
-      <div className="fixed bottom-0 left-0 right-0 z-20 bg-white border-t px-4 py-3 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] max-w-lg mx-auto w-full">
-        <div className="flex justify-between items-center text-sm font-medium text-gray-600 mb-2">
+      <div className="fixed bottom-0 left-0 right-0 z-20 bg-white dark:bg-gray-900 border-t px-4 py-3 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] max-w-lg mx-auto w-full">
+        <div className="flex justify-between items-center text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
           <span>Tổng thanh toán</span>
           <div className="flex flex-col items-end">
             {discountAmount > 0 && <span className="text-xs text-gray-400 line-through">{totalAmount.toLocaleString()}đ</span>}
@@ -289,7 +289,7 @@ export default function MyOrderQRDetail() {
       {/* MODAL CHỌN PHƯƠNG THỨC THANH TOÁN */}
       {showPaymentModal && (
         <div className="fixed inset-0 z-50 flex flex-col justify-end bg-black/40 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white w-full max-w-lg mx-auto rounded-t-2xl shadow-2xl border-t border-gray-200 p-6 animate-in slide-in-from-bottom-5 relative">
+          <div className="bg-white dark:bg-gray-900 w-full max-w-lg mx-auto rounded-t-2xl shadow-2xl border-t border-gray-200 dark:border-gray-700 p-6 animate-in slide-in-from-bottom-5 relative">
             <button onClick={() => setShowPaymentModal(false)} className="absolute top-4 right-4 text-2xl text-gray-400 hover:text-red-500 transition">&times;</button>
             <h2 className="font-bold text-xl mb-4 text-center tracking-tight">Thanh toán</h2>
             <div className="grid grid-cols-2 gap-3 mb-6">
@@ -299,7 +299,7 @@ export default function MyOrderQRDetail() {
                 className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition ${
                   paymentMethod === "cash"
                     ? "border-primary bg-primary/5 text-primary"
-                    : "border-gray-100 text-gray-600 bg-gray-50 hover:bg-gray-100"
+                    : "border-gray-100 dark:border-gray-800 text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-950 hover:bg-gray-100 dark:hover:bg-gray-700 dark:bg-gray-800"
                 }`}
               >
                 <span className="text-3xl mb-2">💵</span>
@@ -311,7 +311,7 @@ export default function MyOrderQRDetail() {
                 className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition ${
                   paymentMethod === "payos"
                     ? "border-primary bg-primary/5 text-primary"
-                    : "border-gray-100 text-gray-600 bg-gray-50 hover:bg-gray-100"
+                    : "border-gray-100 dark:border-gray-800 text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-950 hover:bg-gray-100 dark:hover:bg-gray-700 dark:bg-gray-800"
                 }`}
               >
                 <span className="text-3xl mb-2">💳</span>
@@ -336,7 +336,7 @@ export default function MyOrderQRDetail() {
       {/* GLOBAL MODAL */}
       {modalConfig.show && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
-          <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl p-6 text-center animate-in zoom-in-95">
+          <div className="bg-white dark:bg-gray-900 w-full max-w-sm rounded-2xl shadow-2xl p-6 text-center animate-in zoom-in-95">
             <div className={`mx-auto flex h-16 w-16 items-center justify-center rounded-full mb-4 ${modalConfig.type === "success" ? "bg-green-100" : "bg-red-100"}`}>
               {modalConfig.type === "success" ? (
                 <svg className="h-10 w-10 text-green-500" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
@@ -348,8 +348,8 @@ export default function MyOrderQRDetail() {
                 </svg>
               )}
             </div>
-            <h3 className="text-xl font-bold text-gray-900 mb-2">{modalConfig.title || "Thông báo"}</h3>
-            <p className="text-gray-600 mb-6">{modalConfig.message}</p>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">{modalConfig.title || "Thông báo"}</h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">{modalConfig.message}</p>
             <Button 
               className={`w-full py-3 rounded-full text-base font-bold text-white transition ${modalConfig.type === "success" ? "bg-green-600 hover:bg-green-700" : "bg-primary hover:bg-primary/90"}`}
               onClick={() => {

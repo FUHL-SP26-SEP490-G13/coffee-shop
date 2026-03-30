@@ -103,7 +103,7 @@ export default function AdminOrders() {
           color: "bg-red-100 text-red-800 border-red-200",
         };
       default:
-        return { label: status, color: "bg-gray-100 text-gray-800" };
+        return { label: status, color: "bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-100" };
     }
   };
 
@@ -144,16 +144,16 @@ export default function AdminOrders() {
             <div className="p-2.5 bg-primary/10 rounded-xl">
               <ShoppingBag className="w-6 h-6 text-primary" />
             </div>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100">
               Quản lý Đơn hàng
             </h1>
           </div>
-          <p className="text-sm text-muted-foreground ml-[52px]">
+          <p className="text-sm text-muted-foreground dark:text-gray-400 ml-[52px]">
             Theo dõi và cập nhật trạng thái các đơn hàng trong hệ thống
           </p>
         </div>
 
-        <div className="flex items-center gap-3 w-full sm:w-auto bg-white p-1 rounded-xl border shadow-sm">
+        <div className="flex items-center gap-3 w-full sm:w-auto bg-white dark:bg-gray-900 dark:border-gray-800 p-1 rounded-xl border shadow-sm">
           <span className="text-sm font-medium text-gray-500 pl-3">
             Trạng thái:
           </span>
@@ -173,27 +173,27 @@ export default function AdminOrders() {
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-gray-900 dark:border-gray-800 rounded-2xl border shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <Table>
-            <TableHeader className="bg-gray-50/50">
+            <TableHeader className="bg-gray-50 dark:bg-gray-800/50">
               <TableRow className="hover:bg-transparent">
-                <TableHead className="font-semibold text-gray-600 w-[120px]">
+                <TableHead className="font-semibold text-gray-600 dark:text-gray-300 w-[120px]">
                   Mã đơn
                 </TableHead>
-                <TableHead className="font-semibold text-gray-600">
+                <TableHead className="font-semibold text-gray-600 dark:text-gray-300">
                   Sản phẩm
                 </TableHead>
-                <TableHead className="font-semibold text-gray-600">
+                <TableHead className="font-semibold text-gray-600 dark:text-gray-300">
                   Loại đơn
                 </TableHead>
-                <TableHead className="font-semibold text-gray-600">
+                <TableHead className="font-semibold text-gray-600 dark:text-gray-300">
                   Trạng thái
                 </TableHead>
-                <TableHead className="font-semibold text-gray-600">
+                <TableHead className="font-semibold text-gray-600 dark:text-gray-300">
                   Thời gian
                 </TableHead>
-                <TableHead className="font-semibold text-gray-600 text-right">
+                <TableHead className="font-semibold text-gray-600 dark:text-gray-300 text-right">
                   Tổng tiền
                 </TableHead>
                 <TableHead className="w-[50px]"></TableHead>
@@ -203,7 +203,7 @@ export default function AdminOrders() {
               {loading ? (
                 <TableRow>
                   <TableCell colSpan={7} className="h-64 text-center">
-                    <div className="flex flex-col items-center justify-center text-muted-foreground gap-3">
+                    <div className="flex flex-col items-center justify-center text-muted-foreground dark:text-gray-400 gap-3">
                       <Loader2 className="w-8 h-8 animate-spin text-primary/50" />
                       <span className="text-sm font-medium">
                         Đang tải danh sách đơn hàng...
@@ -214,8 +214,8 @@ export default function AdminOrders() {
               ) : orders.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={7} className="h-64 text-center">
-                    <div className="flex flex-col items-center justify-center text-muted-foreground gap-3">
-                      <div className="p-4 bg-gray-50 rounded-full">
+                    <div className="flex flex-col items-center justify-center text-muted-foreground dark:text-gray-400 gap-3">
+                      <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-full">
                         <ShoppingBag className="w-8 h-8 text-gray-400" />
                       </div>
                       <span className="text-sm font-medium">
@@ -232,10 +232,10 @@ export default function AdminOrders() {
                   return (
                     <TableRow
                       key={order.id}
-                      className="group hover:bg-gray-50/50 transition-colors"
+                      className="group hover:bg-gray-50 dark:hover:bg-gray-800 dark:bg-gray-800/50 transition-colors"
                     >
                       <TableCell>
-                        <span className="font-mono font-medium text-gray-700 bg-gray-100 px-2 py-1 rounded-md text-xs">
+                        <span className="font-mono font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-md text-xs">
                           #{String(order.id).padStart(5, "0")}
                         </span>
                       </TableCell>
@@ -257,11 +257,11 @@ export default function AdminOrders() {
                                     className="flex flex-col text-sm gap-0.5 mb-1"
                                   >
                                     <div className="flex items-center gap-1.5">
-                                      <span className="font-medium text-gray-600 bg-gray-100 px-1.5 rounded text-xs min-w-[24px] text-center">
+                                      <span className="font-medium text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 px-1.5 rounded text-xs min-w-[24px] text-center">
                                         {item.quantity}x
                                       </span>
                                       <span
-                                        className="truncate text-gray-800"
+                                        className="truncate text-gray-800 dark:text-gray-100"
                                         title={item.product?.name}
                                       >
                                         {item.product?.name || "Sản phẩm"}
@@ -284,7 +284,7 @@ export default function AdminOrders() {
                                 );
                               })}
                               {order.items.length > 2 && (
-                                <div className="text-xs text-muted-foreground font-medium pl-1">
+                                <div className="text-xs text-muted-foreground dark:text-gray-400 font-medium pl-1">
                                   + {order.items.length - 2} sản phẩm khác
                                 </div>
                               )}
@@ -314,7 +314,7 @@ export default function AdminOrders() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center text-sm text-gray-600">
+                        <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
                           <CalendarClock className="w-4 h-4 mr-1.5 text-gray-400 shrink-0" />
                           <span>
                             {new Date(order.created_at).toLocaleString(
@@ -371,7 +371,7 @@ export default function AdminOrders() {
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-0 gap-0">
           {selectedOrder && (
             <>
-              <DialogHeader className="p-6 border-b bg-gray-50/50 sticky top-0 z-10 backdrop-blur-sm">
+              <DialogHeader className="p-6 border-b bg-gray-50 dark:bg-gray-800/50 sticky top-0 z-10 backdrop-blur-sm">
                 <div className="flex items-center justify-between">
                   <div className="space-y-1">
                     <DialogTitle className="text-xl flex items-center gap-2">
@@ -409,7 +409,7 @@ export default function AdminOrders() {
                 {/* Info Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Customer Info */}
-                  <div className="rounded-xl border border-gray-100 bg-white p-4 space-y-3 shadow-sm">
+                  <div className="rounded-xl border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-900 dark:border-gray-800 p-4 space-y-3 shadow-sm">
                     <div className="flex items-center gap-2 text-primary font-medium border-b border-gray-50 pb-2">
                       <User className="w-4 h-4" />
                       Thông tin khách hàng
@@ -420,7 +420,7 @@ export default function AdminOrders() {
                         {selectedOrder.receiver_name && (
                           <div className="flex justify-between">
                             <span className="text-gray-500">Tên:</span>
-                            <span className="font-medium text-gray-900">
+                            <span className="font-medium text-gray-900 dark:text-gray-100">
                               {selectedOrder.receiver_name}
                             </span>
                           </div>
@@ -428,7 +428,7 @@ export default function AdminOrders() {
                         {selectedOrder.receiver_phone && (
                           <div className="flex justify-between">
                             <span className="text-gray-500">SĐT:</span>
-                            <span className="font-medium text-gray-900">
+                            <span className="font-medium text-gray-900 dark:text-gray-100">
                               {selectedOrder.receiver_phone}
                             </span>
                           </div>
@@ -436,7 +436,7 @@ export default function AdminOrders() {
                         {selectedOrder.receiver_email && (
                           <div className="flex justify-between">
                             <span className="text-gray-500">Email:</span>
-                            <span className="font-medium text-gray-900">
+                            <span className="font-medium text-gray-900 dark:text-gray-100">
                               {selectedOrder.receiver_email}
                             </span>
                           </div>
@@ -450,7 +450,7 @@ export default function AdminOrders() {
                   </div>
 
                   {/* Delivery Info */}
-                  <div className="rounded-xl border border-gray-100 bg-white p-4 space-y-3 shadow-sm">
+                  <div className="rounded-xl border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-900 dark:border-gray-800 p-4 space-y-3 shadow-sm">
                     <div className="flex items-center gap-2 text-primary font-medium border-b border-gray-50 pb-2">
                       <MapPin className="w-4 h-4" />
                       Chi tiết nhận hàng
@@ -461,24 +461,24 @@ export default function AdminOrders() {
                           <span className="text-gray-500 block mb-1">
                             Địa chỉ:
                           </span>
-                          <p className="font-medium text-gray-900 leading-relaxed">
+                          <p className="font-medium text-gray-900 dark:text-gray-100 leading-relaxed">
                             {selectedOrder.address}
                           </p>
                         </div>
                       ) : (
                         <div className="flex justify-between">
                           <span className="text-gray-500">Hình thức:</span>
-                          <span className="font-medium text-gray-900">
+                          <span className="font-medium text-gray-900 dark:text-gray-100">
                             {getOrderTypeInfo(selectedOrder.order_type).label}
                           </span>
                         </div>
                       )}
                       {selectedOrder.note && (
-                        <div className="mt-2 pt-2 border-t border-dashed border-gray-100">
+                        <div className="mt-2 pt-2 border-t border-dashed border-gray-100 dark:border-gray-700">
                           <span className="text-gray-500 block mb-1">
                             Ghi chú giao hàng:
                           </span>
-                          <span className="text-gray-800 bg-yellow-50/50 p-2 rounded block">
+                          <span className="text-gray-800 dark:text-gray-100 bg-yellow-50/50 p-2 rounded block">
                             {selectedOrder.note}
                           </span>
                         </div>
@@ -488,8 +488,8 @@ export default function AdminOrders() {
                 </div>
 
                 {/* Items List */}
-                <div className="rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-                  <div className="bg-gray-50/50 p-3 border-b border-gray-100 flex items-center gap-2 text-primary font-medium">
+                <div className="rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
+                  <div className="bg-gray-50 dark:bg-gray-800/50 p-3 border-b border-gray-100 dark:border-gray-700 flex items-center gap-2 text-primary font-medium">
                     <ReceiptText className="w-4 h-4" />
                     Danh sách sản phẩm
                   </div>
@@ -514,14 +514,14 @@ export default function AdminOrders() {
                         return (
                           <div
                             key={index}
-                            className="p-4 flex justify-between gap-4 bg-white hover:bg-gray-50/30 transition-colors"
+                            className="p-4 flex justify-between gap-4 bg-white dark:bg-gray-900 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 dark:bg-gray-800/30 transition-colors"
                           >
                             <div className="flex gap-3">
-                              <span className="font-semibold text-gray-900 bg-gray-100 w-6 h-6 flex items-center justify-center rounded text-sm shrink-0">
+                              <span className="font-semibold text-gray-900 dark:text-gray-100 bg-gray-100 dark:bg-gray-800 w-6 h-6 flex items-center justify-center rounded text-sm shrink-0">
                                 {item.quantity}
                               </span>
                               <div className="space-y-1">
-                                <p className="font-medium text-gray-900 leading-none">
+                                <p className="font-medium text-gray-900 dark:text-gray-100 leading-none">
                                   {item.product?.name || "Sản phẩm"}
                                   <span className="ml-2 font-normal text-gray-500">
                                     (
@@ -534,7 +534,7 @@ export default function AdminOrders() {
                                 {item.size && (
                                   <p className="text-xs text-gray-500">
                                     Size:{" "}
-                                    <span className="font-medium text-gray-700">
+                                    <span className="font-medium text-gray-700 dark:text-gray-200">
                                       {item.size}
                                     </span>
                                   </p>
@@ -543,7 +543,7 @@ export default function AdminOrders() {
                                   <ul className="text-xs text-gray-500 list-disc pl-4 space-y-0.5 mt-1">
                                     {toppings.map((t, idx) => (
                                       <li key={idx}>
-                                        <span className="text-gray-700">
+                                        <span className="text-gray-700 dark:text-gray-200">
                                           {t.name}
                                         </span>{" "}
                                         (+
@@ -563,7 +563,7 @@ export default function AdminOrders() {
                               </div>
                             </div>
                             <div className="text-right shrink-0">
-                              <p className="font-medium text-gray-900">
+                              <p className="font-medium text-gray-900 dark:text-gray-100">
                                 {Number(
                                   unitTotal * item.quantity,
                                 ).toLocaleString("vi-VN")}
@@ -583,12 +583,12 @@ export default function AdminOrders() {
                 </div>
 
                 {/* Payment Summary */}
-                <div className="rounded-xl bg-gray-50 p-4 space-y-3">
-                  <div className="flex items-center gap-2 text-gray-700 font-medium pb-2 border-b border-gray-200">
+                <div className="rounded-xl bg-gray-50 dark:bg-gray-800 p-4 space-y-3">
+                  <div className="flex items-center gap-2 text-gray-700 dark:text-gray-200 font-medium pb-2 border-b border-gray-200 dark:border-gray-700">
                     <CreditCard className="w-4 h-4" />
                     Thanh toán
                   </div>
-                  <div className="flex justify-between text-sm text-gray-600">
+                  <div className="flex justify-between text-sm text-gray-600 dark:text-gray-300">
                     <span>Tạm tính</span>
                     <span>
                       {Number(calculateSubtotal(selectedOrder)).toLocaleString(
@@ -611,7 +611,7 @@ export default function AdminOrders() {
                       </span>
                     </div>
                   )}
-                  <div className="flex justify-between text-base font-bold text-gray-900 pt-2 border-t border-gray-200">
+                  <div className="flex justify-between text-base font-bold text-gray-900 dark:text-gray-100 pt-2 border-t border-gray-200 dark:border-gray-700">
                     <span>Tổng thanh toán</span>
                     <span className="text-primary">
                       {Number(selectedOrder.total_amount).toLocaleString(
@@ -624,7 +624,7 @@ export default function AdminOrders() {
                   <div className="pt-2 flex items-center justify-between text-xs text-gray-500">
                     <span>
                       Phương thức:{" "}
-                      <span className="font-medium text-gray-700">
+                      <span className="font-medium text-gray-700 dark:text-gray-200">
                         {(selectedOrder.payment_method === "cash"
                           ? "Tiền mặt"
                           : "PayOS"

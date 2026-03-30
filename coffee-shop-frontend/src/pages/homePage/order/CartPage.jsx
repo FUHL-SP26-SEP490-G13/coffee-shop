@@ -161,13 +161,13 @@ export default function CartPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-white">
+    <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900">
       <Header />
 
       <section className="flex-1 w-full px-4 sm:px-6 lg:px-8 py-10">
         <div className="max-w-6xl mx-auto">
           <div className="flex items-center justify-between gap-4 mb-8 flex-wrap">
-            <h1 className="text-3xl font-bold text-gray-900">Giỏ hàng</h1>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Giỏ hàng</h1>
 
             <Button variant="outline" onClick={() => navigate("/products")}>
               Tiếp tục mua hàng
@@ -175,9 +175,9 @@ export default function CartPage() {
           </div>
 
           {cart.length === 0 ? (
-            <div className="text-center py-16 border rounded-2xl bg-gray-50">
+            <div className="text-center py-16 border rounded-2xl bg-gray-50 dark:bg-gray-950">
               <ShoppingBag className="w-10 h-10 mx-auto text-gray-400 mb-3" />
-              <p className="text-gray-500 mb-4">Giỏ hàng của bạn đang trống</p>
+              <p className="text-gray-500 dark:text-gray-400 mb-4">Giỏ hàng của bạn đang trống</p>
               <Button onClick={() => navigate("/products")}>
                 Tiếp tục mua hàng
               </Button>
@@ -194,14 +194,14 @@ export default function CartPage() {
                   return (
                     <div
                       key={cartKey}
-                      className="border border-gray-200 rounded-2xl p-5 bg-white"
+                      className="border border-gray-200  rounded-2xl p-5 bg-white dark:bg-gray-900"
                     >
                       <div className="flex gap-4">
                         <img
                           src={item.image}
                           alt={item.name}
                           onClick={() => navigate(`/products/${item.product_id || item.id}`)}
-                          className="w-24 h-24 text-gray-900 rounded-xl object-cover border cursor-pointer hover:opacity-80 transition-opacity"
+                          className="w-24 h-24 text-gray-900 dark:text-gray-100 rounded-xl object-cover border cursor-pointer hover:opacity-80 transition-opacity"
                         />
 
                         <div className="flex-1">
@@ -215,12 +215,12 @@ export default function CartPage() {
                               </h3>
 
                               <div className="mt-2 flex items-center gap-2">
-                                <span className="text-sm text-gray-500">Size:</span>
+                                <span className="text-sm text-gray-500 dark:text-gray-400">Size:</span>
                                 {productSizesMap[item.product_id || item.id]?.length > 0 ? (
                                   <select
                                     value={item.productSizeId || item.product_size_id}
                                     onChange={(e) => handleSizeChange(item, e.target.value)}
-                                    className="border rounded px-2 py-1 text-sm bg-gray-50 outline-none hover:border-amber-500 transition-colors cursor-pointer"
+                                    className="border rounded px-2 py-1 text-sm bg-gray-50 dark:bg-gray-950 outline-none hover:border-amber-500 transition-colors cursor-pointer"
                                   >
                                     {productSizesMap[item.product_id || item.id].map(size => (
                                       <option key={size.id} value={size.id}>
@@ -229,11 +229,11 @@ export default function CartPage() {
                                     ))}
                                   </select>
                                 ) : (
-                                  <span className="text-sm text-gray-700 font-medium">{item.size}</span>
+                                  <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">{item.size}</span>
                                 )}
                               </div>
 
-                              <p className="text-sm text-gray-500 mt-1">
+                              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                                 Giá gốc:{" "}
                                 {Number(
                                   item.basePrice || item.price
@@ -242,7 +242,7 @@ export default function CartPage() {
                               </p>
                             </div>
 
-                            <div className="font-bold text-gray-900 whitespace-nowrap">
+                            <div className="font-bold text-gray-900 dark:text-gray-100 whitespace-nowrap">
                               {itemTotal.toLocaleString("vi-VN")}đ
                             </div>
                           </div>
@@ -250,7 +250,7 @@ export default function CartPage() {
                           {Array.isArray(item.toppings) &&
                             item.toppings.length > 0 && (
                               <div className="mt-3">
-                                <p className="text-sm font-medium text-gray-700">
+                                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
                                   Topping:
                                 </p>
 
@@ -258,7 +258,7 @@ export default function CartPage() {
                                   {item.toppings.map((topping) => (
                                     <div
                                       key={topping.topping_id}
-                                      className="flex items-center justify-between gap-3 text-sm text-gray-500"
+                                      className="flex items-center justify-between gap-3 text-sm text-gray-500 dark:text-gray-400"
                                     >
                                       <span className="break-words">
                                         - {topping.name} x {topping.quantity} (
@@ -303,7 +303,7 @@ export default function CartPage() {
                                 cartService.updateQuantity(cartKey, nextQty);
                                 refreshCart();
                               }}
-                              className="w-10 h-10 border rounded-lg hover:bg-gray-50 text-lg"
+                              className="w-10 h-10 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 dark:bg-gray-950 text-lg"
                             >
                               -
                             </button>
@@ -330,7 +330,7 @@ export default function CartPage() {
                                 cartService.updateQuantity(cartKey, nextQty);
                                 refreshCart();
                               }}
-                              className="w-10 h-10 border rounded-lg hover:bg-gray-50 text-lg"
+                              className="w-10 h-10 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 dark:bg-gray-950 text-lg"
                             >
                               +
                             </button>
@@ -364,7 +364,7 @@ export default function CartPage() {
 
                       {isEditing && (
                         <div className="mt-4 border-t pt-4">
-                          <p className="text-sm font-semibold text-gray-800 mb-3">
+                          <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-3">
                             Chọn topping
                           </p>
 
@@ -382,7 +382,7 @@ export default function CartPage() {
                               return (
                                 <div
                                   key={topping.id}
-                                  className="border border-gray-200 rounded-2xl p-4"
+                                  className="border border-gray-200  rounded-2xl p-4"
                                 >
                                   <div className="flex items-center justify-between gap-4">
                                     <label className="flex items-center gap-3 cursor-pointer flex-1">
@@ -396,7 +396,7 @@ export default function CartPage() {
                                       />
 
                                       <div className="min-w-0">
-                                        <p className="font-medium text-gray-900 break-words">
+                                        <p className="font-medium text-gray-900 dark:text-gray-100 break-words">
                                           {topping.name}
                                         </p>
                                         <p className="text-sm text-amber-600 font-semibold">
@@ -422,7 +422,7 @@ export default function CartPage() {
                                               ) - 1
                                             )
                                           }
-                                          className="w-8 h-8 border rounded-lg hover:bg-gray-50"
+                                          className="w-8 h-8 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 dark:bg-gray-950"
                                         >
                                           -
                                         </button>
@@ -442,7 +442,7 @@ export default function CartPage() {
                                               ) + 1
                                             )
                                           }
-                                          className="w-8 h-8 border rounded-lg hover:bg-gray-50"
+                                          className="w-8 h-8 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 dark:bg-gray-950"
                                         >
                                           +
                                         </button>
@@ -460,12 +460,12 @@ export default function CartPage() {
                 })}
               </div>
 
-              <div className="border rounded-2xl p-5 h-fit bg-gray-50 lg:sticky lg:top-24">
-                <h2 className="text-xl font-bold text-gray-900 mb-4">
+              <div className="border rounded-2xl p-5 h-fit bg-gray-50 dark:bg-gray-950 lg:sticky lg:top-24">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">
                   Tóm tắt đơn hàng
                 </h2>
 
-                <div className="flex justify-between text-gray-700 mb-3">
+                <div className="flex justify-between text-gray-700 dark:text-gray-300 mb-3">
                   <span>Tổng tiền</span>
                   <span className="font-bold text-amber-600">
                     {totalAmount.toLocaleString("vi-VN")}đ

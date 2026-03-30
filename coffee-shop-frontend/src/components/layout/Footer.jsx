@@ -73,11 +73,11 @@ function Footer() {
               className="h-16 w-auto mb-4"
             />
 
-            <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
+            <p className="mt-4 text-sm leading-relaxed text-muted-foreground dark:text-gray-400">
               Hương vị cà phê chuẩn vị, phục vụ mỗi ngày.
             </p>
 
-            <div className="mt-5 space-y-2.5 text-sm text-muted-foreground">
+            <div className="mt-5 space-y-2.5 text-sm text-muted-foreground dark:text-gray-400">
               <p className="flex items-center gap-2">
                 <MapPin size={15} className="shrink-0 text-primary" />
                 TP. Hà Nội
@@ -101,7 +101,7 @@ function Footer() {
               <li>
                 <Link
                   to="/order-policy"
-                  className="text-sm text-muted-foreground transition-colors hover:text-primary"
+                  className="text-sm text-muted-foreground dark:text-gray-400 transition-colors hover:text-primary"
                 >
                   Chính sách đặt hàng
                 </Link>
@@ -109,7 +109,7 @@ function Footer() {
               <li>
                 <Link
                   to="/privacy-policy"
-                  className="text-sm text-muted-foreground transition-colors hover:text-primary"
+                  className="text-sm text-muted-foreground dark:text-gray-400 transition-colors hover:text-primary"
                 >
                   Chính sách bảo mật
                 </Link>
@@ -117,7 +117,7 @@ function Footer() {
               <li>
                 <Link
                   to="/payment-policy"
-                  className="text-sm text-muted-foreground transition-colors hover:text-primary"
+                  className="text-sm text-muted-foreground dark:text-gray-400 transition-colors hover:text-primary"
                 >
                   Chính sách thanh toán
                 </Link>
@@ -133,7 +133,7 @@ function Footer() {
               <li>
                 <Link
                   to="/login"
-                  className="text-sm text-muted-foreground transition-colors hover:text-primary"
+                  className="text-sm text-muted-foreground dark:text-gray-400 transition-colors hover:text-primary"
                 >
                   Đăng nhập
                 </Link>
@@ -141,7 +141,7 @@ function Footer() {
               <li>
                 <Link
                   to="/register"
-                  className="text-sm text-muted-foreground transition-colors hover:text-primary"
+                  className="text-sm text-muted-foreground dark:text-gray-400 transition-colors hover:text-primary"
                 >
                   Đăng ký
                 </Link>
@@ -149,7 +149,7 @@ function Footer() {
               <li>
                 <Link
                   to="/cart"
-                  className="text-sm text-muted-foreground transition-colors hover:text-primary"
+                  className="text-sm text-muted-foreground dark:text-gray-400 transition-colors hover:text-primary"
                 >
                   Giỏ hàng
                 </Link>
@@ -161,7 +161,7 @@ function Footer() {
             <h4 className="text-sm font-semibold uppercase tracking-wider text-foreground">
               Giờ mở cửa
             </h4>
-            <div className="mt-4 space-y-3 text-sm text-muted-foreground">
+            <div className="mt-4 space-y-3 text-sm text-muted-foreground dark:text-gray-400">
               <div className="flex justify-between border-b border-border/50 pb-2">
                 <span>Thứ 2 - Thứ 6</span>
                 <span className="font-medium text-foreground">
@@ -200,7 +200,7 @@ function Footer() {
 
       <div className="border-t border-border/60">
         <div className="mx-auto max-w-7xl px-6 py-5 lg:px-8">
-          <p className="text-center text-xs text-muted-foreground">
+          <p className="text-center text-xs text-muted-foreground dark:text-gray-400">
             © {new Date().getFullYear()} Coffee Shop. Tất cả quyền được bảo lưu.
           </p>
         </div>

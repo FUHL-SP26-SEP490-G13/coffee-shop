@@ -15,6 +15,8 @@ import {
   Bell,
   Heart,
   MapPin,
+  Moon,
+  Sun,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -122,6 +124,20 @@ function Header() {
 
   const [cartItems, setCartItems] = useState([]);
   const [showCartPreview, setShowCartPreview] = useState(false);
+
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    return document.documentElement.classList.contains("dark");
+  });
+
+  const toggleDarkMode = () => {
+    if (isDarkMode) {
+      document.documentElement.classList.remove("dark");
+      setIsDarkMode(false);
+    } else {
+      document.documentElement.classList.add("dark");
+      setIsDarkMode(true);
+    }
+  };
 
   const unreadCount = notifications.filter(
     (item) => Number(item.is_read) === 0
@@ -593,7 +609,7 @@ function Header() {
     return (
       <span>
         {parts.map((part, i) => 
-          regex.test(part) ? <span key={i} className="text-amber-600 font-bold bg-amber-50 rounded px-0.5">{part}</span> : <span key={i}>{part}</span>
+          regex.test(part) ? <span key={i} className="text-amber-600 font-bold bg-amber-50 dark:bg-amber-900/20 rounded px-0.5">{part}</span> : <span key={i}>{part}</span>
         )}
       </span>
     );
@@ -615,19 +631,19 @@ function Header() {
         type="button"
         onMouseEnter={() => !isMobile && setFocusedResultIndex(-1)}
         onClick={() => goToProductDetail(item.id, isMobile, kw)}
-        className={`w-full flex items-center gap-3 px-3 py-3 transition text-left ${isFocused ? 'bg-amber-50 rounded-lg mx-2 w-[calc(100%-16px)] my-1' : 'hover:bg-amber-50 rounded-lg mx-2 w-[calc(100%-16px)] my-1'}`}
+        className={`w-full flex items-center gap-3 px-3 py-3 transition text-left ${isFocused ? 'bg-amber-50 dark:bg-amber-900/20 rounded-lg mx-2 w-[calc(100%-16px)] my-1' : 'hover:bg-amber-50 dark:bg-amber-900/20 rounded-lg mx-2 w-[calc(100%-16px)] my-1'}`}
       >
         <img
           src={image}
           alt={item.name}
-          className="w-14 h-14 rounded-lg object-cover border border-gray-200 flex-shrink-0"
+          className="w-14 h-14 rounded-lg object-cover border border-gray-200 dark:border-gray-700 flex-shrink-0"
         />
 
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium text-gray-900 line-clamp-2">
+          <p className="text-sm font-medium text-gray-900 dark:text-gray-100 line-clamp-2">
             {highlightText(item.name, kw)}
           </p>
-          <p className="text-xs text-gray-500 mt-1">
+          <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
             {item.category_name || "Danh mục"}
           </p>
           <p className="text-sm font-semibold text-amber-600 mt-1">
@@ -641,7 +657,7 @@ function Header() {
   };
 
   return (
-    <header className="border-b border-gray-200 bg-white sticky top-0 z-50 shadow-sm">
+    <header className="border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:border-gray-800 sticky top-0 z-50 shadow-sm">
       <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-3 sm:py-4 flex justify-between items-center gap-2 sm:gap-3 lg:gap-4">
         <div
           className="flex-shrink-0 cursor-pointer"
@@ -670,11 +686,11 @@ function Header() {
                 }}
                 onKeyDown={handleSearchKeyDown}
                 placeholder={text || "Tìm kiếm sản phẩm..."}
-                className="w-full rounded-full py-2 pl-4 pr-24 bg-gray-50 border border-gray-200 focus:border-amber-500 focus:bg-white transition"
+                className="w-full rounded-full py-2 pl-4 pr-24 bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-700 focus:border-amber-500 focus:bg-white dark:bg-gray-900 dark:border-gray-800 transition"
               />
 
               {!keyword && (
-                <div className="absolute right-12 top-1/2 -translate-y-1/2 pointer-events-none hidden lg:flex space-x-1 items-center bg-gray-200 px-1.5 py-0.5 rounded text-[10px] font-medium text-gray-500">
+                <div className="absolute right-12 top-1/2 -translate-y-1/2 pointer-events-none hidden lg:flex space-x-1 items-center bg-gray-200 px-1.5 py-0.5 rounded text-[10px] font-medium text-gray-500 dark:text-gray-500">
                   <span>Ctrl</span><span>K</span>
                 </div>
               )}
@@ -688,7 +704,7 @@ function Header() {
                     const input = searchRef.current?.querySelector('input');
                     if(input) input.focus();
                   }}
-                  className="absolute right-12 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1"
+                  className="absolute right-12 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:text-gray-400 p-1"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -704,12 +720,12 @@ function Header() {
             </div>
 
             {searchOpen && (
-              <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-2xl shadow-xl overflow-hidden z-50">
+              <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-gray-900 dark:border-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-xl overflow-hidden z-50">
                 {!keyword ? (
                   recentSearches.length > 0 ? (
                     <div className="py-2">
                        <div className="flex justify-between items-center px-4 py-2 border-b border-gray-50">
-                          <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Tìm kiếm gần đây</span>
+                          <span className="text-xs font-semibold text-gray-500 dark:text-gray-500 uppercase tracking-wider">Tìm kiếm gần đây</span>
                           <button onClick={() => setRecentSearches([])} className="text-xs text-amber-600 hover:text-amber-700">Xóa</button>
                        </div>
                        <ul className="py-1">
@@ -718,10 +734,10 @@ function Header() {
                              <button
                                onClick={() => goToSearchPage(kw)}
                                onMouseEnter={() => setFocusedResultIndex(-1)}
-                               className={`w-[calc(100%-16px)] mx-2 rounded-lg text-left px-4 py-2.5 text-sm flex items-center gap-2 transition ${focusedResultIndex === idx ? 'bg-amber-50' : 'hover:bg-amber-50'}`}
+                               className={`w-[calc(100%-16px)] mx-2 rounded-lg text-left px-4 py-2.5 text-sm flex items-center gap-2 transition ${focusedResultIndex === idx ? 'bg-amber-50 dark:bg-amber-900/20' : 'hover:bg-amber-50 dark:bg-amber-900/20'}`}
                              >
                                <Search className="w-3.5 h-3.5 text-gray-400" />
-                               <span className="text-gray-700">{kw}</span>
+                               <span className="text-gray-700 dark:text-gray-300">{kw}</span>
                              </button>
                            </li>
                          ))}
@@ -729,12 +745,12 @@ function Header() {
                     </div>
                   ) : null
                 ) : searchLoading ? (
-                  <div className="flex items-center justify-center py-6 text-gray-500">
+                  <div className="flex items-center justify-center py-6 text-gray-500 dark:text-gray-500">
                     <Loader2 className="w-5 h-5 animate-spin mr-2" />
                     Đang tìm kiếm...
                   </div>
                 ) : searchResults.length === 0 ? (
-                  <div className="px-4 py-4 text-sm text-gray-500">
+                  <div className="px-4 py-4 text-sm text-gray-500 dark:text-gray-500">
                     Không tìm thấy sản phẩm phù hợp
                   </div>
                 ) : (
@@ -744,7 +760,7 @@ function Header() {
                       type="button"
                       onMouseEnter={() => setFocusedResultIndex(-1)}
                       onClick={() => goToSearchPage(keyword)}
-                      className={`w-[calc(100%-16px)] mx-2 mt-1 rounded-lg px-4 py-3 text-sm text-center transition ${focusedResultIndex === searchResults.length ? 'bg-amber-50 text-amber-700 font-semibold border-transparent' : 'border border-gray-100 text-amber-600 hover:bg-amber-50'}`}
+                      className={`w-[calc(100%-16px)] mx-2 mt-1 rounded-lg px-4 py-3 text-sm text-center transition ${focusedResultIndex === searchResults.length ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 font-semibold border-transparent' : 'border border-gray-100 dark:border-gray-800 text-amber-600 hover:bg-amber-50 dark:bg-amber-900/20'}`}
                     >
                       Xem tất cả kết quả cho "{keyword.trim()}"
                     </button>
@@ -759,7 +775,7 @@ function Header() {
           <Button
             variant="ghost"
             size="icon"
-            className="md:hidden hover:bg-gray-100"
+            className="md:hidden hover:bg-gray-100 dark:hover:bg-gray-700 dark:bg-gray-800"
             onClick={() => setMobileSearchOpen(!mobileSearchOpen)}
           >
             <Search className="w-5 h-5" />
@@ -787,11 +803,11 @@ function Header() {
             {categoryOpen && (
               <div className="absolute left-0 top-full pt-2 z-50">
                 <div 
-                  className="flex bg-white border border-gray-200 rounded-2xl shadow-xl overflow-hidden"
+                  className="flex bg-white dark:bg-gray-900 dark:border-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-xl overflow-hidden"
                 >
-                  <div className="w-64 p-2 border-r border-gray-100 shrink-0">
+                  <div className="w-64 p-2 border-r border-gray-100 dark:border-gray-800 shrink-0">
                     {categories.length === 0 ? (
-                      <div className="px-3 py-2 text-sm text-gray-500">
+                      <div className="px-3 py-2 text-sm text-gray-500 dark:text-gray-500">
                         Không có danh mục
                       </div>
                     ) : (
@@ -802,8 +818,8 @@ function Header() {
                         onMouseEnter={() => handleCategoryHover(category)}
                         className={`w-full flex items-center justify-between px-3 py-2 rounded-xl transition text-sm group ${
                           hoveredCategory === category.id 
-                            ? "bg-amber-50 text-amber-700" 
-                            : "hover:bg-amber-50 hover:text-amber-700"
+                            ? "bg-amber-50 dark:bg-amber-900/20 text-amber-700" 
+                            : "hover:bg-amber-50 dark:bg-amber-900/20 hover:text-amber-700"
                         }`}
                       >
                         <span>{category.name}</span>
@@ -811,7 +827,7 @@ function Header() {
                           <span className={`text-xs px-2 py-0.5 rounded-full transition-colors ${
                             hoveredCategory === category.id 
                               ? "bg-amber-200 text-amber-700" 
-                              : "text-gray-500 bg-gray-100 group-hover:bg-amber-200 group-hover:text-amber-700"
+                              : "text-gray-500 dark:text-gray-500 bg-gray-100 dark:bg-gray-800 group-hover:bg-amber-200 group-hover:text-amber-700"
                           }`}>
                             {category.product_count}
                           </span>
@@ -822,9 +838,9 @@ function Header() {
                 </div>
 
                 {hoveredCategory && (
-                  <div className="w-[380px] p-4 bg-gray-50 hidden md:block">
+                  <div className="w-[380px] p-4 bg-gray-50 dark:bg-gray-950 hidden md:block">
                     <div className="flex justify-between items-center mb-3">
-                      <h4 className="font-semibold text-gray-800">Sản phẩm nổi bật</h4>
+                      <h4 className="font-semibold text-gray-800 dark:text-gray-200">Sản phẩm nổi bật</h4>
                       <button 
                         onClick={() => {
                           const cat = categories.find(c => c.id === hoveredCategory);
@@ -841,7 +857,7 @@ function Header() {
                          <Loader2 className="w-5 h-5 animate-spin text-amber-600" />
                        </div>
                     ) : categoryProductsMap[hoveredCategory].length === 0 ? (
-                       <div className="text-gray-500 text-sm py-4 text-center">Chưa có sản phẩm</div>
+                       <div className="text-gray-500 dark:text-gray-500 text-sm py-4 text-center">Chưa có sản phẩm</div>
                     ) : (
                        <div className="grid grid-cols-2 gap-3">
                          {categoryProductsMap[hoveredCategory].slice(0, 4).map(prod => {
@@ -856,10 +872,10 @@ function Header() {
                                   navigate(`/products/${prod.id}`);
                                   setCategoryOpen(false);
                                 }}
-                                className="bg-white border border-gray-100 rounded-xl p-2 cursor-pointer hover:border-amber-300 hover:shadow-md transition"
+                                className="bg-white dark:bg-gray-900 dark:border-gray-800 border border-gray-100 dark:border-gray-800 rounded-xl p-2 cursor-pointer hover:border-amber-300 hover:shadow-md transition"
                               >
                                 <img src={image} alt={prod.name} className="w-full h-24 object-cover rounded-lg mb-2" />
-                                <p className="text-xs font-medium text-gray-900 line-clamp-2" title={prod.name}>{prod.name}</p>
+                                <p className="text-xs font-medium text-gray-900 dark:text-gray-100 line-clamp-2" title={prod.name}>{prod.name}</p>
                                 <p className="text-xs text-amber-600 font-semibold mt-1">
                                   {minPrice ? `${minPrice.toLocaleString("vi-VN")}đ` : "Liên hệ"}
                                 </p>
@@ -895,6 +911,16 @@ function Header() {
             <span>Tin tức</span>
           </Button>
 
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={toggleDarkMode}
+            className="relative p-2 rounded-full border border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 dark:bg-gray-950 flex items-center justify-center transition-colors"
+            title="Bật/Tắt giao diện tối"
+          >
+            {isDarkMode ? <Sun className="w-4 h-4 text-gray-700 dark:text-gray-300" /> : <Moon className="w-4 h-4 text-gray-700 dark:text-gray-300" />}
+          </Button>
+
           <div className="hidden sm:flex items-center gap-1 lg:gap-2">
             <div
               className="relative"
@@ -921,10 +947,10 @@ function Header() {
 
               {showCartPreview && (
                 <div className="absolute right-0 top-full pt-2 w-[360px] z-50">
-                  <div className="bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden">
+                  <div className="bg-white dark:bg-gray-900 dark:border-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl overflow-hidden">
                     <div className="max-h-80 overflow-y-auto">
                       {cartItems.length === 0 ? (
-                      <div className="p-4 text-sm text-gray-500">
+                      <div className="p-4 text-sm text-gray-500 dark:text-gray-500">
                         Giỏ hàng đang trống
                       </div>
                     ) : (
@@ -967,7 +993,7 @@ function Header() {
                                 `/products/${item.product_id || item.id}`
                               )
                             }
-                            className="flex gap-3 p-3 border-b last:border-b-0 cursor-pointer hover:bg-gray-50"
+                            className="flex gap-3 p-3 border-b last:border-b-0 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 dark:bg-gray-950"
                           >
                             <img
                               src={image}
@@ -976,12 +1002,12 @@ function Header() {
                             />
 
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-gray-800 line-clamp-2">
+                              <p className="text-sm font-medium text-gray-800 dark:text-gray-200 line-clamp-2">
                                 {item.name}
                               </p>
 
                               {item.size && (
-                                <p className="text-xs text-gray-500 mt-1">
+                                <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
                                   {item.size}
                                 </p>
                               )}
@@ -992,7 +1018,7 @@ function Header() {
                                     {item.toppings.map((topping) => (
                                       <p
                                         key={topping.topping_id}
-                                        className="text-[11px] text-gray-500"
+                                        className="text-[11px] text-gray-500 dark:text-gray-500"
                                       >
                                         + {topping.name} x {topping.quantity}
                                       </p>
@@ -1011,8 +1037,8 @@ function Header() {
                   </div>
 
                   {cartItems.length > 0 && (
-                    <div className="p-3 border-t bg-white">
-                      <p className="text-sm text-gray-700 mb-3">
+                    <div className="p-3 border-t bg-white dark:bg-gray-900 dark:border-gray-800">
+                      <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
                         Tổng tiền tạm tính:{" "}
                         <span className="font-semibold text-red-600">
                           {getCartSubtotal().toLocaleString("vi-VN")}đ
@@ -1037,22 +1063,24 @@ function Header() {
 
             {user && (
               <div className="relative" ref={notificationRef}>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowNotifications((prev) => !prev)}
-                  className="relative p-2"
-                >
-                  <Bell className="w-5 h-5" />
-                  {unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-red-500 text-white text-[10px] flex items-center justify-center">
-                      {unreadCount > 99 ? "99+" : unreadCount}
-                    </span>
-                  )}
-                </Button>
+                <div className="flex items-center gap-1 sm:gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowNotifications((prev) => !prev)}
+                    className="relative p-2"
+                  >
+                    <Bell className="w-5 h-5" />
+                    {unreadCount > 0 && (
+                      <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-red-500 text-white text-[10px] flex items-center justify-center">
+                        {unreadCount > 99 ? "99+" : unreadCount}
+                      </span>
+                    )}
+                  </Button>
+                </div>
 
                 {showNotifications && (
-                  <div className="absolute right-0 mt-2 w-[360px] bg-white border rounded-2xl shadow-xl z-50 overflow-hidden">
+                  <div className="absolute right-0 mt-2 w-[360px] bg-white dark:bg-gray-900 dark:border-gray-800 border rounded-2xl shadow-xl z-50 overflow-hidden">
                     <div className="flex items-center justify-between px-4 py-3 border-b">
                       <h3 className="font-semibold">Thông báo</h3>
                       {notifications.length > 0 && (
@@ -1071,7 +1099,7 @@ function Header() {
 
                     <div className="max-h-96 overflow-y-auto">
                       {notifications.length === 0 ? (
-                        <div className="p-4 text-sm text-muted-foreground">
+                        <div className="p-4 text-sm text-muted-foreground dark:text-gray-400">
                           Chưa có thông báo nào
                         </div>
                       ) : (
@@ -1082,10 +1110,10 @@ function Header() {
                               `${item.id}-${item.created_at}`
                             }
                             onClick={() => handleReadNotification(item)}
-                            className={`w-full text-left px-4 py-3 border-b hover:bg-gray-50 ${
+                            className={`w-full text-left px-4 py-3 border-b hover:bg-gray-50 dark:hover:bg-gray-800 dark:bg-gray-950 ${
                               Number(item.is_read) === 0
                                 ? "bg-orange-50"
-                                : "bg-white"
+                                : "bg-white dark:bg-gray-900 dark:border-gray-800"
                             }`}
                           >
                             <div className="flex items-start justify-between gap-3">
@@ -1093,7 +1121,7 @@ function Header() {
                                 <p className="font-medium text-sm">
                                   {item.title}
                                 </p>
-                                <p className="text-sm text-muted-foreground">
+                                <p className="text-sm text-muted-foreground dark:text-gray-400">
                                   {item.message}
                                 </p>
                                 <p className="text-xs text-gray-400 mt-1">
@@ -1129,7 +1157,7 @@ function Header() {
 
             
           </div>
-{!user && (
+            {!user && (
               <Button
                 onClick={() => navigate("/login")}
                 size="sm"
@@ -1151,7 +1179,7 @@ function Header() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="gap-1 sm:gap-2 text-gray-700 transition p-1.5 sm:p-2"
+                    className="gap-1 sm:gap-2 text-gray-700 dark:text-gray-300 transition p-1.5 sm:p-2"
                   >
                     <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-amber-500 flex items-center justify-center text-white text-xs font-bold">
                       {user.first_name?.charAt(0).toUpperCase()}
@@ -1163,7 +1191,7 @@ function Header() {
 
                   {open && (
                     <div className="absolute right-0 top-full pt-1 w-48 sm:w-56 z-50">
-                      <div className="bg-white shadow-xl rounded-lg sm:rounded-2xl p-1.5 sm:p-2 border border-gray-200 animate-in fade-in zoom-in-95 flex flex-col gap-0">
+                      <div className="bg-white dark:bg-gray-900 dark:border-gray-800 shadow-xl rounded-lg sm:rounded-2xl p-1.5 sm:p-2 border border-gray-200 dark:border-gray-700 animate-in fade-in zoom-in-95 flex flex-col gap-0">
                       <Button
                         variant="ghost"
                         size="sm"
@@ -1171,7 +1199,7 @@ function Header() {
                           navigate("/my-orders");
                           setOpen(false);
                         }}
-                        className="w-full text-left px-3 py-2 text-gray-700 transition text-xs sm:text-sm justify-start"
+                        className="w-full text-left px-3 py-2 text-gray-700 dark:text-gray-300 transition text-xs sm:text-sm justify-start"
                       >
                         <Package className="w-4 h-4 mr-2" />
                         <span>Đơn hàng</span>
@@ -1184,7 +1212,7 @@ function Header() {
                           navigate("/favorites");
                           setOpen(false);
                         }}
-                        className="w-full text-left px-3 py-2 text-gray-700 transition text-xs sm:text-sm justify-start"
+                        className="w-full text-left px-3 py-2 text-gray-700 dark:text-gray-300 transition text-xs sm:text-sm justify-start"
                       >
                         <Heart className="w-4 h-4 mr-2" />
                         <span className="flex-1 text-left">Yêu thích</span>
@@ -1201,13 +1229,13 @@ function Header() {
                           navigate("/customer/profile");
                           setOpen(false);
                         }}
-                        className="w-full text-left px-3 py-2 text-gray-700 transition text-xs sm:text-sm justify-start"
+                        className="w-full text-left px-3 py-2 text-gray-700 dark:text-gray-300 transition text-xs sm:text-sm justify-start"
                       >
                         <User className="w-4 h-4 mr-2" />
                         <span>Hồ sơ cá nhân</span>
                       </Button>
 
-                      <div className="my-0.5 border-t border-gray-200" />
+                      <div className="my-0.5 border-t border-gray-200 dark:border-gray-700" />
 
                       <button
                         onClick={() => {
@@ -1228,7 +1256,7 @@ function Header() {
           <Button
             variant="ghost"
             size="icon"
-            className="sm:hidden hover:bg-gray-100"
+            className="sm:hidden hover:bg-gray-100 dark:hover:bg-gray-700 dark:bg-gray-800"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           >
             {mobileMenuOpen ? (
@@ -1241,7 +1269,7 @@ function Header() {
       </div>
 
       {mobileSearchOpen && (
-        <div className="md:hidden px-3 pb-3 border-t border-gray-200 bg-gray-50">
+        <div className="md:hidden px-3 pb-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-950">
           <div className="w-full relative" ref={searchRef}>
             <Input
               type="text"
@@ -1256,7 +1284,7 @@ function Header() {
                 }
               }}
               placeholder={text || "Tìm kiếm sản phẩm..."}
-              className="w-full rounded-full py-2 pl-4 pr-12 bg-gray-50 border border-gray-200 focus:border-amber-500 focus:bg-white transition"
+              className="w-full rounded-full py-2 pl-4 pr-12 bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-700 focus:border-amber-500 focus:bg-white dark:bg-gray-900 dark:border-gray-800 transition"
             />
 
             <button
@@ -1268,14 +1296,14 @@ function Header() {
             </button>
 
             {mobileResultOpen && (
-              <div className="mt-2 bg-white border border-gray-200 rounded-2xl shadow-lg overflow-hidden">
+              <div className="mt-2 bg-white dark:bg-gray-900 dark:border-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-lg overflow-hidden">
                 {mobileSearchLoading ? (
-                  <div className="flex items-center justify-center py-6 text-gray-500">
+                  <div className="flex items-center justify-center py-6 text-gray-500 dark:text-gray-500">
                     <Loader2 className="w-5 h-5 animate-spin mr-2" />
                     Đang tìm kiếm...
                   </div>
                 ) : mobileSearchResults.length === 0 ? (
-                  <div className="px-4 py-4 text-sm text-gray-500">
+                  <div className="px-4 py-4 text-sm text-gray-500 dark:text-gray-500">
                     Không tìm thấy sản phẩm phù hợp
                   </div>
                 ) : (
@@ -1286,7 +1314,7 @@ function Header() {
                     <button
                       type="button"
                       onClick={() => goToSearchPage(mobileKeyword, true)}
-                      className="w-full px-4 py-3 text-sm text-center text-amber-600 border-t border-gray-100 hover:bg-amber-50"
+                      className="w-full px-4 py-3 text-sm text-center text-amber-600 border-t border-gray-100 dark:border-gray-800 hover:bg-amber-50 dark:bg-amber-900/20"
                     >
                       Xem tất cả kết quả cho "{mobileKeyword.trim()}"
                     </button>
@@ -1299,22 +1327,22 @@ function Header() {
       )}
 
       {mobileMenuOpen && (
-        <div className="sm:hidden border-t border-gray-200 bg-gray-50">
+        <div className="sm:hidden border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-950">
           <div className="px-3 py-2 space-y-0.5">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setMobileCategoryOpen(!mobileCategoryOpen)}
-              className="w-full justify-start text-gray-700 text-xs"
+              className="w-full justify-start text-gray-700 dark:text-gray-300 text-xs"
             >
               <Grid3X3 className="w-4 h-4 mr-2" />
               Danh mục
             </Button>
 
             {mobileCategoryOpen && (
-              <div className="bg-white border border-gray-200 rounded-lg p-2 ml-2 mb-2 space-y-1">
+              <div className="bg-white dark:bg-gray-900 dark:border-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-2 ml-2 mb-2 space-y-1">
                 {categories.length === 0 ? (
-                  <div className="px-3 py-2 text-xs text-gray-500">
+                  <div className="px-3 py-2 text-xs text-gray-500 dark:text-gray-500">
                     Không có danh mục
                   </div>
                 ) : (
@@ -1322,11 +1350,11 @@ function Header() {
                     <button
                       key={category.id}
                       onClick={() => goToCategory(category)}
-                      className="w-full flex items-center justify-between px-3 py-2 rounded text-xs text-gray-700 hover:bg-amber-50 group"
+                      className="w-full flex items-center justify-between px-3 py-2 rounded text-xs text-gray-700 dark:text-gray-300 hover:bg-amber-50 dark:bg-amber-900/20 group"
                     >
                       <span>{category.name}</span>
                       {category.product_count !== undefined && (
-                        <span className="text-[10px] text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded-full group-hover:bg-amber-200 group-hover:text-amber-700 transition-colors">
+                        <span className="text-[10px] text-gray-500 dark:text-gray-500 bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded-full group-hover:bg-amber-200 group-hover:text-amber-700 transition-colors">
                           {category.product_count}
                         </span>
                       )}
@@ -1343,7 +1371,7 @@ function Header() {
                 navigate("/cart");
                 setMobileMenuOpen(false);
               }}
-              className="w-full justify-start text-gray-700 text-xs"
+              className="w-full justify-start text-gray-700 dark:text-gray-300 text-xs"
             >
               <div className="relative mr-2">
                 <ShoppingCart className="w-4 h-4" />
@@ -1363,7 +1391,7 @@ function Header() {
                 onClick={() => {
                   setShowNotifications((prev) => !prev);
                 }}
-                className="w-full justify-start text-gray-700 text-xs"
+                className="w-full justify-start text-gray-700 dark:text-gray-300 text-xs"
               >
                 <div className="relative mr-2">
                   <Bell className="w-4 h-4" />
@@ -1378,7 +1406,7 @@ function Header() {
             )}
 
             {user && showNotifications && (
-              <div className="bg-white border border-gray-200 rounded-lg p-2 ml-2 mb-2">
+              <div className="bg-white dark:bg-gray-900 dark:border-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-2 ml-2 mb-2">
                 <div className="flex items-center justify-between px-2 py-2 border-b mb-2">
                   <h3 className="font-semibold text-sm">Thông báo</h3>
                   {notifications.length > 0 && (
@@ -1395,7 +1423,7 @@ function Header() {
 
                 <div className="max-h-72 overflow-y-auto">
                   {notifications.length === 0 ? (
-                    <div className="p-2 text-xs text-muted-foreground">
+                    <div className="p-2 text-xs text-muted-foreground dark:text-gray-400">
                       Chưa có thông báo nào
                     </div>
                   ) : (
@@ -1411,11 +1439,11 @@ function Header() {
                         className={`w-full text-left px-3 py-3 border-b rounded-md ${
                           Number(item.is_read) === 0
                             ? "bg-orange-50"
-                            : "bg-white"
+                            : "bg-white dark:bg-gray-900 dark:border-gray-800"
                         }`}
                       >
                         <p className="font-medium text-xs">{item.title}</p>
-                        <p className="text-xs text-muted-foreground mt-1">
+                        <p className="text-xs text-muted-foreground dark:text-gray-400 mt-1">
                           {item.message}
                         </p>
                         <p className="text-[11px] text-gray-400 mt-1">
@@ -1437,7 +1465,7 @@ function Header() {
                 navigate("/news");
                 setMobileMenuOpen(false);
               }}
-              className="w-full justify-start text-gray-700 text-xs"
+              className="w-full justify-start text-gray-700 dark:text-gray-300 text-xs"
             >
               <Newspaper className="w-4 h-4 mr-2" />
               Tin tức
