@@ -15,14 +15,14 @@ import {
 
 function PrivacyPolicy() {
   return (
-    <div className="min-h-screen flex flex-col bg-white">
+    <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900">
       <Header />
 
       <div className="text-center space-y-3 mt-10">
         <h1 className="text-2xl md:text-3xl text-primary font-bold">
           Chính sách bảo mật
         </h1>
-        <p className="text-gray-600 text-sm">
+        <p className="text-gray-600 dark:text-gray-400 text-sm">
           Cam kết minh bạch trong việc thu thập, sử dụng và bảo vệ thông tin cá
           nhân.
         </p>
@@ -73,14 +73,14 @@ function PrivacyPolicy() {
 /* Reusable Card */
 function PolicyCard({ icon, title, children }) {
   return (
-    <Card className="rounded-3xl shadow-xl border border-gray-200 hover:border-amber-300 transition-all duration-300 p-8">
+    <Card className="rounded-3xl shadow-xl border border-gray-200 dark:border-gray-800 hover:border-amber-300 dark:hover:border-amber-500 transition-all duration-300 p-8 bg-white dark:bg-gray-950">
       <div className="flex items-center gap-4 mb-4">
-        <div className="p-3 bg-amber-100 rounded-xl text-amber-600">{icon}</div>
-        <h3 className="text-lg sm:text-xl font-semibold text-gray-900">
+        <div className="p-3 bg-amber-100 dark:bg-amber-900/40 rounded-xl text-amber-600 dark:text-amber-500">{icon}</div>
+        <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100">
           {title}
         </h3>
       </div>
-      <p className="text-sm sm:text-base text-gray-600 leading-relaxed">
+      <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 leading-relaxed">
         {children}
       </p>
     </Card>
