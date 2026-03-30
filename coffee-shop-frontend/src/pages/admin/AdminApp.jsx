@@ -506,18 +506,7 @@ export default function AdminApp() {
                 Hệ thống
               </p>
               <div className="space-y-1">
-                <NavLink
-                  to="/admin/settings"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={({ isActive }) =>
-                    `w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
-                      isActive ? "bg-primary text-white" : "text-muted-foreground hover:bg-secondary"
-                    }`
-                  }
-                >
-                  <Settings className="w-4 h-4" />
-                  <span className="text-sm tracking-wide">Giờ Hoạt Động</span>
-                </NavLink>
+
 
                 <div>
                   <button
