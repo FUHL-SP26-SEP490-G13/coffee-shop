@@ -140,7 +140,7 @@ class ProductRepository extends BaseRepository {
   buildAdvancedCondition(options) {
     let sql = "";
     const params = [];
-    const { min_price, max_price, size } = options || {};
+    const { min_price, max_price, size, min_rating } = options || {};
 
     if (min_price !== undefined || max_price !== undefined || size !== undefined) {
       sql += ` AND EXISTS (
@@ -162,6 +162,12 @@ class ProductRepository extends BaseRepository {
       }
       sql += `)`;
     }
+
+    if (min_rating !== undefined && min_rating !== "") {
+      sql += ` AND (SELECT COALESCE(AVG(rating), 0) FROM reviews WHERE product_id = p.id) >= ?`;
+      params.push(Number(min_rating));
+    }
+
     return { sql, params };
   }
 

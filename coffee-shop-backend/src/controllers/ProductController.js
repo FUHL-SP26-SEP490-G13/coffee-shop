@@ -22,7 +22,7 @@ class ProductController {
     try {
       const page = parseInt(req.query.page) || 1;
       const limit = parseInt(req.query.limit) || 12;
-      const { status, sort, category_id, min_price, max_price, size } = req.query;
+      const { status, sort, category_id, min_price, max_price, size, min_rating } = req.query;
 
       if (page <= 0 || limit <= 0) {
         throw new ErrorResponse(400, "page và limit phải lớn hơn 0");
@@ -39,6 +39,7 @@ class ProductController {
         min_price,
         max_price,
         size,
+        min_rating,
       });
 
       const total = await ProductService.countProducts({
@@ -47,6 +48,7 @@ class ProductController {
         min_price,
         max_price,
         size,
+        min_rating,
       });
 
       return response.paginate(
@@ -81,7 +83,7 @@ class ProductController {
   async getByCategory(req, res, next) {
     try {
       const { categoryId } = req.params;
-      const { page, limit, sort, status, min_price, max_price, size } = req.query;
+      const { page, limit, sort, status, min_price, max_price, size, min_rating } = req.query;
 
       if (page && limit) {
         const offset = (page - 1) * limit;
@@ -96,6 +98,7 @@ class ProductController {
             min_price,
             max_price,
             size,
+            min_rating,
           }
         );
 
@@ -104,6 +107,7 @@ class ProductController {
           min_price,
           max_price,
           size,
+          min_rating,
         });
 
         return response.paginate(
@@ -122,6 +126,7 @@ class ProductController {
         min_price,
         max_price,
         size,
+        min_rating,
       });
 
       return response.success(
@@ -263,7 +268,7 @@ class ProductController {
 
   async search(req, res, next) {
     try {
-      const { keyword, limit, page, category_id, status, sort, min_price, max_price, size } = req.query;
+      const { keyword, limit, page, category_id, status, sort, min_price, max_price, size, min_rating } = req.query;
 
       if (page && limit) {
         const offset = (page - 1) * limit;
@@ -277,6 +282,7 @@ class ProductController {
           min_price,
           max_price,
           size,
+          min_rating,
         });
 
         const total = await ProductService.countSearchResults(keyword, {
@@ -285,6 +291,7 @@ class ProductController {
           min_price,
           max_price,
           size,
+          min_rating,
         });
 
         return response.paginate(
@@ -305,6 +312,7 @@ class ProductController {
         min_price,
         max_price,
         size,
+        min_rating,
       });
 
       return response.success(res, products, "Tìm kiếm products thành công");
