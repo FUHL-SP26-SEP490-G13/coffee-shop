@@ -174,17 +174,6 @@ class OrderRepository {
     );
   }
 
-  async createReputationProfileIfNotExists(connection, phoneNumber) {
-    await connection.query(
-      `
-      INSERT INTO reputation_profiles (phone_number)
-      VALUES (?)
-      ON DUPLICATE KEY UPDATE phone_number = phone_number
-      `,
-      [phoneNumber]
-    );
-  }
-
   async markOrderAsPaid(connection, orderId) {
     await connection.query(
       `
@@ -571,26 +560,6 @@ class OrderRepository {
 
     const [rows] = await db.query(query, params);
     return rows[0].count;
-  }
-
-  async findReputationProfileByPhone(phoneNumber) {
-    const [rows] = await db.query(
-      `
-      SELECT
-        phone_number,
-        current_score,
-        total_orders_completed,
-        total_orders_cancelled,
-        is_frozen,
-        updated_at
-      FROM reputation_profiles
-      WHERE phone_number = ?
-      LIMIT 1
-      `,
-      [phoneNumber]
-    );
-
-    return rows[0] || null;
   }
 }
 

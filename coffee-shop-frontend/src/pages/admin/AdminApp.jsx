@@ -21,6 +21,7 @@ import {
   Bell,
   Settings,
   MessageSquare,
+  Shield,
   Zap,
   Clock,
   Moon,
@@ -445,6 +446,18 @@ export default function AdminApp() {
                 >
                   <Tag className="w-4 h-4" />
                   <span className="text-sm tracking-wide">Mã giảm giá</span>
+                </NavLink>
+                <NavLink
+                  to="/admin/reputation"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={({ isActive }) =>
+                    `w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                      isActive ? "bg-primary text-white" : "text-muted-foreground hover:bg-secondary"
+                    }`
+                  }
+                >
+                  <Shield className="w-4 h-4" />
+                  <span className="text-sm tracking-wide">Điểm uy tín</span>
                 </NavLink>
                 <NavLink
                   to="/admin/flash-sales"

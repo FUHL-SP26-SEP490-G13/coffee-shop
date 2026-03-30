@@ -1,4 +1,5 @@
 const OrderRepository = require("../repositories/OrderRepository");
+const ReputationService = require("./ReputationService");
 const ErrorResponse = require("../utils/ErrorResponse");
 
 class OrderOnlineService {
@@ -23,29 +24,6 @@ class OrderOnlineService {
     }
 
     return onlyDigits;
-  }
-
-  // Lấy hồ sơ uy tín theo số điện thoại, tạo mới nếu chưa tồn tại
-  async getReputationByPhone(phoneNumber) {
-    const normalizedPhone = this.normalizePhoneNumber(phoneNumber);
-
-    if (!normalizedPhone || normalizedPhone.length < 10) {
-      throw new ErrorResponse(400, "Số điện thoại không hợp lệ");
-    }
-
-    const profile = await OrderRepository.findReputationProfileByPhone(normalizedPhone);
-
-    const score = Number(profile?.current_score ?? 50);
-
-    return {
-      phone_number: normalizedPhone,
-      current_score: score,
-      total_orders_completed: Number(profile?.total_orders_completed || 0),
-      total_orders_cancelled: Number(profile?.total_orders_cancelled || 0),
-      is_frozen: Number(profile?.is_frozen || 0) === 1,
-      updated_at: profile?.updated_at || null,
-      exists: Boolean(profile),
-    };
   }
 
   async calculateCartAmounts(connection, items) {
@@ -378,13 +356,7 @@ class OrderOnlineService {
 
       // Tạo hồ sơ uy tín cho số điện thoại nếu là đơn giao hàng hoặc mang đi
       if (order_type !== "dine-in") {
-        const normalizedPhone = this.normalizePhoneNumber(receiver_phone);
-        if (normalizedPhone && normalizedPhone.length >= 10) {
-          await OrderRepository.createReputationProfileIfNotExists(
-            connection,
-            normalizedPhone
-          );
-        }
+        await ReputationService.ensureProfileForPhone(connection, receiver_phone);
       }
 
       if (discountIdApplied) {
