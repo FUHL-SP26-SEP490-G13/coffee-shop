@@ -34,6 +34,11 @@ export function BaristaApp() {
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
 
+  // Force disable dark mode for barista
+  useEffect(() => {
+    document.documentElement.classList.remove('dark');
+  }, []);
+
   const navigate = useNavigate();
   const location = useLocation();
   const notificationRef = useRef(null);
