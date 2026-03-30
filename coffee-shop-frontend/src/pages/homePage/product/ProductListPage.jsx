@@ -11,6 +11,7 @@ import categoryService from "@/services/categoryService";
 import useFetch from "@/hooks/useFetch";
 import flashSaleService from "@/services/flashSaleService";
 import { STORAGE_KEYS } from "@/constants";
+import { useStoreHours } from "@/hooks/useStoreHours";
 
 const PAGE_SIZE = 9;
 
@@ -19,6 +20,7 @@ const SIZES = ["S", "M", "L"];
 export default function ProductListPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const { isOpen: isStoreOpen, nextOpenMessage } = useStoreHours();
 
   const token =
     localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN) ||
@@ -442,6 +444,14 @@ export default function ProductListPage() {
                               className="w-full h-full object-cover"
                             />
 
+                            {!isStoreOpen && (
+                              <div className="absolute inset-x-0 bottom-0 z-[15] bg-white/90 dark:bg-gray-900/90 py-1.5 px-3 flex justify-center border-t dark:border-gray-800 shadow-sm">
+                                <span className="text-xs font-semibold text-gray-800 dark:text-gray-200">
+                                  {nextOpenMessage}
+                                </span>
+                              </div>
+                            )}
+
                             {activeSale && activeSale.product_ids?.includes(item.id) && (
                               <div className="absolute top-3 left-3 z-10 bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-sm flex items-center gap-1 animate-pulse">
                                 ⚡ Flash Sale
@@ -518,13 +528,14 @@ export default function ProductListPage() {
 
                               <Button
                                 size="sm"
-                                className="bg-amber-600 hover:bg-amber-700 text-white"
+                                disabled={!isStoreOpen}
+                                className="bg-amber-600 hover:bg-amber-700 text-white disabled:bg-gray-400 disabled:opacity-100"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  navigate(`/products/${item.id}`);
+                                  if (isStoreOpen) navigate(`/products/${item.id}`);
                                 }}
                               >
-                                Thêm
+                                {isStoreOpen ? "Thêm" : "Đóng cửa"}
                               </Button>
                             </div>
                           </div>

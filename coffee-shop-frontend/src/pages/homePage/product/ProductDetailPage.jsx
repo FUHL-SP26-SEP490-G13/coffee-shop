@@ -26,10 +26,12 @@ import flashSaleService from "@/services/flashSaleService";
 import { STORAGE_KEYS } from "@/constants";
 import reviewService from "@/services/reviewService";
 import { Textarea } from "@/components/ui/textarea";
+import { useStoreHours } from "@/hooks/useStoreHours";
 
 export default function ProductDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { isOpen: isStoreOpen, nextOpenMessage } = useStoreHours();
 
   const token =
     localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN) ||
@@ -860,19 +862,27 @@ export default function ProductDetailPage() {
               </button>
             </div>
 
+            {!isStoreOpen && (
+              <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 rounded-xl flex items-center gap-2">
+                <span className="font-medium text-sm">Cửa hàng hiện đang đóng cửa. {nextOpenMessage}. Bạn không thể đặt hàng lúc này.</span>
+              </div>
+            )}
+
             <div className="flex gap-4 flex-wrap">
               <Button
                 onClick={addToCart}
-                className="bg-amber-600 hover:bg-amber-700 text-white px-8 py-6 text-base"
+                disabled={!isStoreOpen}
+                className="bg-amber-600 hover:bg-amber-700 text-white px-8 py-6 text-base disabled:bg-gray-400 disabled:opacity-100"
               >
                 <Plus className="w-5 h-5 mr-2" />
-                Thêm vào giỏ hàng
+                {isStoreOpen ? "Thêm vào giỏ hàng" : "Đóng cửa"}
               </Button>
 
               <Button
                 onClick={buyNow}
+                disabled={!isStoreOpen}
                 variant="outline"
-                className="px-8 py-6 text-base border-amber-600 text-amber-600 hover:bg-amber-50 dark:bg-amber-900/20"
+                className="px-8 py-6 text-base border-amber-600 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20 disabled:border-gray-400 disabled:text-gray-500 disabled:hover:bg-transparent"
               >
                 Mua ngay
               </Button>
