@@ -15,6 +15,10 @@ const buildNormalizedPhoneExpr = (fieldExpr) => {
 };
 
 class ReputationRepository {
+  async getConnection() {
+    return db.getConnection();
+  }
+
   async createReputationProfileIfNotExists(connection, phoneNumber) {
     await connection.query(
       `
@@ -24,6 +28,20 @@ class ReputationRepository {
       `,
       [phoneNumber]
     );
+  }
+
+  async findDeliveryInfoByOrderId(connection, orderId) {
+    const [rows] = await connection.query(
+      `
+      SELECT receiver_phone
+      FROM order_delivery_info
+      WHERE order_id = ?
+      LIMIT 1
+      `,
+      [orderId],
+    );
+
+    return rows[0] || null;
   }
 
   async findReputationProfileByPhone(phoneNumber) {
@@ -44,6 +62,73 @@ class ReputationRepository {
     );
 
     return rows[0] || null;
+  }
+
+  async findReputationProfileByPhoneForUpdate(connection, phoneNumber) {
+    const [rows] = await connection.query(
+      `
+      SELECT
+        phone_number,
+        current_score,
+        total_orders_completed,
+        total_orders_cancelled,
+        is_frozen,
+        updated_at
+      FROM reputation_profiles
+      WHERE phone_number = ?
+      LIMIT 1
+      FOR UPDATE
+      `,
+      [phoneNumber],
+    );
+
+    return rows[0] || null;
+  }
+
+  async updateReputationProfileScore(
+    connection,
+    { phoneNumber, scoreAfter, completedDelta = 0, cancelledDelta = 0 },
+  ) {
+    await connection.query(
+      `
+      UPDATE reputation_profiles
+      SET
+        current_score = ?,
+        total_orders_completed = COALESCE(total_orders_completed, 0) + ?,
+        total_orders_cancelled = COALESCE(total_orders_cancelled, 0) + ?,
+        updated_at = NOW()
+      WHERE phone_number = ?
+      `,
+      [scoreAfter, completedDelta, cancelledDelta, phoneNumber],
+    );
+  }
+
+  async createReputationHistory(connection, payload) {
+    await connection.query(
+      `
+      INSERT INTO reputation_history (
+        phone_number,
+        order_id,
+        score_before,
+        change_amount,
+        score_after,
+        applied_multiplier,
+        reason_type,
+        description
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `,
+      [
+        payload.phone_number,
+        payload.order_id || null,
+        payload.score_before,
+        payload.change_amount,
+        payload.score_after,
+        payload.applied_multiplier ?? 1,
+        payload.reason_type || null,
+        payload.description || null,
+      ],
+    );
   }
 
   async findReputationProfiles({ keyword = "", limit = 20, offset = 0 } = {}) {
@@ -127,8 +212,13 @@ class ReputationRepository {
         COALESCE(
           rh.description,
           CASE
-            WHEN rh.reason_type = 'ORDER_COMPLETED' THEN 'Hoàn thành đơn hàng'
-            WHEN rh.reason_type = 'ORDER_CANCELLED' THEN 'Đơn hàng bị hủy'
+            WHEN rh.reason_type = 'INITIAL_GIFT' THEN 'Điểm khởi tạo'
+            WHEN rh.reason_type = 'ORDER_SUCCESS' THEN 'Hoàn thành đơn hàng'
+            WHEN rh.reason_type = 'PAYOS_BONUS' THEN 'Thưởng thanh toán PayOS'
+            WHEN rh.reason_type = 'USER_CANCEL' THEN 'Khách hủy đơn'
+            WHEN rh.reason_type = 'BOOM_ORDER' THEN 'Khách không nhận đơn'
+            WHEN rh.reason_type = 'ABUSIVE_BEHAVIOR' THEN 'Hành vi lạm dụng'
+            WHEN rh.reason_type = 'ADMIN_ADJUST' THEN 'Điều chỉnh bởi quản trị viên'
             ELSE rh.reason_type
           END,
           'Cập nhật điểm'

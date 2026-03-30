@@ -572,6 +572,17 @@ class OrderOnlineService {
       await OrderRepository.updateOrderStatus(orderId, "cancelled");
       await OrderRepository.updatePaymentStatusByOrderId(orderId, "pending");
 
+      // Delivery: preparing -> cancelled (khách không nhận) => -20 điểm uy tín
+      if (order.order_type === "delivery" && currentStatus === "preparing") {
+        await ReputationService.applyScoreChangeByOrder({
+          orderId,
+          changeAmount: -20,
+          reasonType: "BOOM_ORDER",
+          description:
+            "Khách hàng không nhận đơn (staff xác nhận hủy từ trạng thái preparing)",
+        });
+      }
+
       return {
         order_id: orderId,
         status: "cancelled",
@@ -610,6 +621,17 @@ class OrderOnlineService {
     }
 
     await OrderRepository.updateOrderStatus(orderId, "completed");
+
+    // Delivery: preparing -> completed (khách nhận thành công) => +10 điểm uy tín
+    if (order.order_type === "delivery" && currentStatus === "preparing") {
+      await ReputationService.applyScoreChangeByOrder({
+        orderId,
+        changeAmount: 10,
+        reasonType: "ORDER_SUCCESS",
+        description:
+          "Khách hàng nhận đơn thành công (staff xác nhận completed từ preparing)",
+      });
+    }
 
     return {
       order_id: orderId,
