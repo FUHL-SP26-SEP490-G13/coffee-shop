@@ -110,7 +110,7 @@ function TableCard({
                 }}
               >
                 <GitMerge className="w-4 h-4" />
-               Ghép đơn
+                Ghép đơn
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={(e) => {
@@ -1339,35 +1339,10 @@ export function StaffTables() {
                   ).toLocaleString('vi-VN')}đ
                 </span>
               </div>
-              
+
               <div className="flex w-full gap-2 mt-4">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setIsOrderModalOpen(false);
-                    setIsSplitBillModalOpen(true);
-                  }}
-                  className="flex-1 font-semibold border-amber-500 text-amber-600 hover:bg-amber-50"
-                >
-                  Tách nhiều đơn
-                </Button>
-                {(orderModalMode === "request-payment" || activeOrder?.total_amount > 0) && (
-                  <Button
-                    onClick={() => {
-                      const debtAmount = Number(
-                        activeOrder?.debt_amount ||
-                        activeOrder?.outstanding_amount ||
-                        activeOrder?.total_amount ||
-                        0
-                      );
-                      setIsOrderModalOpen(false);
-                      handleOpenDebtPayment(selectedTableForOrder, debtAmount);
-                    }}
-                    className="flex-1 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold"
-                  >
-                    Thanh toán toàn bộ
-                  </Button>
-                )}
+              
+             
               </div>
             </div>
           ) : (
@@ -1518,15 +1493,15 @@ export function StaffTables() {
         </DialogContent>
       </Dialog>
 
-      <SplitBillModal 
-        isOpen={isSplitBillModalOpen} 
-        onClose={() => setIsSplitBillModalOpen(false)} 
-        table={selectedTableForOrder} 
-        activeOrder={activeOrder} 
+      <SplitBillModal
+        isOpen={isSplitBillModalOpen}
+        onClose={() => setIsSplitBillModalOpen(false)}
+        table={selectedTableForOrder}
+        activeOrder={activeOrder}
         onSplitSuccess={() => {
           setIsPaySplitBillModalOpen(true);
           fetchData();
-        }} 
+        }}
       />
 
       {isPaySplitBillModalOpen && (
