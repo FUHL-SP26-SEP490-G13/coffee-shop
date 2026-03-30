@@ -5,6 +5,8 @@ import { cartService } from "@/services/cartService";
 import orderService from "@/services/orderOnlineService";
 import { validateOrderForm } from "@/utils/orderValidation";
 
+const DELIVERY_SHIPPING_FEE = 20000;
+
 /**
  * Nút đặt hàng tái sử dụng cho cả trang Checkout (khách) lẫn Staff.
  *
@@ -103,9 +105,22 @@ export default function PlaceOrderButton({
           );
         });
 
+        if (form.order_type === "delivery") {
+          payosItems.push({
+            name: "Phí vận chuyển",
+            quantity: 1,
+            price: DELIVERY_SHIPPING_FEE,
+          });
+        }
+
+        const amountFromCheckout = Number(orderData?.total_amount || 0);
+
         const payosRes = await orderService.createPaymentLink({
           orderCode: order_id,
-          amount: Math.max(0, Math.round(totalAmount)),
+          amount: Math.max(
+            0,
+            Math.round(amountFromCheckout > 0 ? amountFromCheckout : totalAmount),
+          ),
           description: `DH #${order_id}`.slice(0, 25),
           items: payosItems,
         });

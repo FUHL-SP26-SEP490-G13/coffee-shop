@@ -2,6 +2,8 @@ const OrderRepository = require("../repositories/OrderRepository");
 const ErrorResponse = require("../utils/ErrorResponse");
 
 class OrderOnlineService {
+  static DELIVERY_SHIPPING_FEE = 20000;
+
   createBadRequestError(message) {
     const error = new Error(message);
     error.statusCode = 400;
@@ -223,6 +225,10 @@ class OrderOnlineService {
       let totalAmount = cartTotals.totalAmount;
       let regularAmount = cartTotals.regularAmount;
       const normalizedItems = cartTotals.normalizedItems;
+      const shippingFee =
+        order_type === "delivery" ? OrderOnlineService.DELIVERY_SHIPPING_FEE : 0;
+
+      totalAmount += shippingFee;
 
       let discountAmount = 0;
       let discountCodeApplied = null;
@@ -390,6 +396,7 @@ class OrderOnlineService {
       return {
         order_id: orderId,
         subtotal_amount: totalAmount,
+        shipping_fee: shippingFee,
         discount_amount: discountAmount,
         discount_code: discountCodeApplied,
         total_amount: finalAmount,

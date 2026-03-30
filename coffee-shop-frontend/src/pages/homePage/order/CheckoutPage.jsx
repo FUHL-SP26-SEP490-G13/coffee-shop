@@ -37,6 +37,8 @@ import {
 import { toast } from "sonner";
 import flashSaleService from "@/services/flashSaleService";
 
+const DELIVERY_SHIPPING_FEE = 20000;
+
 export default function CheckoutPage() {
   const navigate = useNavigate();
   const cart = useMemo(() => cartService.getCart(), []);
@@ -60,7 +62,7 @@ export default function CheckoutPage() {
   const [paymentValidation, setPaymentValidation] = useState(null);
   const [form, setForm] = useState({
     order_type: "delivery",
-    payment_method: "payos",
+    payment_method: "cash",
     receiver_name: "",
     receiver_phone: "",
     receiver_email: "",
@@ -245,7 +247,8 @@ export default function CheckoutPage() {
   }, [cart, activeSale]);
 
   const discountAmount = Number(appliedDiscount?.discount_amount || 0);
-  const totalAmount = subtotalAmount - discountAmount;
+  const shippingFee = form.order_type === "delivery" ? DELIVERY_SHIPPING_FEE : 0;
+  const totalAmount = subtotalAmount - discountAmount + shippingFee;
 
   // Validate payment permissions khi điểm uy tín thay đổi
   useEffect(() => {
@@ -759,6 +762,13 @@ export default function CheckoutPage() {
                 <span>Giảm giá</span>
                 <span>- {discountAmount.toLocaleString("vi-VN")}đ</span>
               </div>
+
+              {shippingFee > 0 ? (
+                <div className="flex justify-between text-sm text-gray-700 dark:text-gray-300">
+                  <span>Phí vận chuyển</span>
+                  <span>+ {shippingFee.toLocaleString("vi-VN")}đ</span>
+                </div>
+              ) : null}
 
               <div className="flex justify-between text-base font-bold">
                 <span>Tổng cộng</span>

@@ -401,7 +401,7 @@ export default function AdminOrders() {
 
               <div className="p-6 space-y-6">
                 {/* Info Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4">
                   {/* Customer Info */}
                   <div className="rounded-xl border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-900 dark:border-gray-800 p-4 space-y-3 shadow-sm">
                     <div className="flex items-center gap-2 text-primary font-medium border-b border-gray-50 pb-2">

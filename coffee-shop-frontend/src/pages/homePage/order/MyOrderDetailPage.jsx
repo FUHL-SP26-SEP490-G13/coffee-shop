@@ -9,6 +9,7 @@ import { handleBuyAgain } from "@/utils/handleBuyAgain";
 
 const defaultProductImage =
   "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085";
+const DEFAULT_DELIVERY_FEE = 20000;
 
 export default function MyOrderDetailPage() {
   const navigate = useNavigate();
@@ -149,6 +150,34 @@ export default function MyOrderDetailPage() {
   }
 
   const items = Array.isArray(order.items) ? order.items : [];
+  const shippingFee =
+    order.order_type === "delivery"
+      ? Number(order.shipping_fee ?? DEFAULT_DELIVERY_FEE)
+      : 0;
+
+  const getItemQuantity = (item) => Math.max(1, Number(item?.quantity) || 1);
+
+  const getItemUnitPrice = (item) =>
+    Number(item?.unit_price ?? item?.price ?? 0);
+
+  const getToppingUnitTotal = (item) =>
+    (item?.toppings || []).reduce(
+      (sum, topping) =>
+        sum + Number(topping?.price || 0) * Number(topping?.quantity || 0),
+      0,
+    );
+
+  const getBaseUnitPrice = (item) => {
+    const fromApi = Number(item?.base_unit_price);
+    if (Number.isFinite(fromApi) && fromApi >= 0) return fromApi;
+    return Math.max(0, getItemUnitPrice(item) - getToppingUnitTotal(item));
+  };
+
+  const getItemLineTotal = (item) => {
+    const lineTotal = Number(item?.line_total);
+    if (Number.isFinite(lineTotal) && lineTotal >= 0) return lineTotal;
+    return getItemUnitPrice(item) * getItemQuantity(item);
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900">
@@ -222,6 +251,11 @@ export default function MyOrderDetailPage() {
 
               <div className="text-right">
                 <p className="text-sm text-gray-500 dark:text-gray-400">Tổng cộng</p>
+                {shippingFee > 0 && (
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
+                    Phí vận chuyển: <strong>+{shippingFee.toLocaleString("vi-VN")}đ</strong>
+                  </p>
+                )}
                 <p className="text-3xl font-bold text-amber-600">
                   {Number(order.total_amount || 0).toLocaleString("vi-VN")}đ
                 </p>
@@ -314,8 +348,9 @@ export default function MyOrderDetailPage() {
                             <p>Số lượng: {item.quantity}</p>
                             <p>
                               Đơn giá:{" "}
-                              {Number(item.price || 0).toLocaleString("vi-VN")}đ
+                              {getBaseUnitPrice(item).toLocaleString("vi-VN")}đ
                             </p>
+                          
                           </div>
 
                           {Array.isArray(item.toppings) &&
@@ -331,10 +366,12 @@ export default function MyOrderDetailPage() {
                                       key={topping.id || topping.topping_id}
                                       className="text-sm text-gray-600 dark:text-gray-400"
                                     >
-                                      + {topping.name} x {topping.quantity} (
-                                      {Number(topping.price).toLocaleString(
-                                        "vi-VN"
-                                      )}
+                                      + {topping.name} x {Number(topping.quantity || 0) * getItemQuantity(item)} (
+                                      {(
+                                        Number(topping.price || 0) *
+                                        Number(topping.quantity || 0) *
+                                        getItemQuantity(item)
+                                      ).toLocaleString("vi-VN")}
                                       đ)
                                     </p>
                                   ))}
@@ -347,10 +384,7 @@ export default function MyOrderDetailPage() {
                         <div className="text-right">
                           <p className="text-sm text-gray-500 dark:text-gray-400">Thành tiền</p>
                           <p className="text-lg font-bold text-amber-600">
-                            {(
-                              Number(item.price || 0) *
-                              Number(item.quantity || 1)
-                            ).toLocaleString("vi-VN")}
+                            {getItemLineTotal(item).toLocaleString("vi-VN")}
                             đ
                           </p>
                         </div>

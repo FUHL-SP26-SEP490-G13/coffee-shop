@@ -514,6 +514,8 @@ export function OrderDelivery() {
     const minutesAgo = getElapsedMinutes(order?.created_at);
     const isPending = order.status === "pending";
     const isPreparing = order.status === "preparing";
+    const hasPrintedReceipt =
+      String(order?.print_status || "").toUpperCase() === "SUCCESS";
     const isPendingUnpaidOnline =
       ["delivery", "takeaway"].includes(normalizedOrderType) &&
       isPending &&
@@ -668,25 +670,34 @@ export function OrderDelivery() {
                   : "Nhận đơn"}
               </Button>
             ) : isPreparing ? (
-              <Button
-                onClick={() =>
-                  !paid
-                    ? openCashPaymentDialog(order)
-                    : handleCompleteDeliveryOrder(order.id)
-                }
-                disabled={completingId === order.id}
-              >
-                {completingId === order.id
-                  ? "Đang cập nhật..."
-                  : !paid
-                    ? "Xác nhận thanh toán"
-                    : "Hoàn thành"}
-              </Button>
+              !hasPrintedReceipt ? (
+                <Button
+                  onClick={() => handlePrintReceipt(order.id)}
+                >
+                  In hóa đơn
+                </Button>
+              ) : (
+                <Button
+                  onClick={() =>
+                    !paid
+                      ? openCashPaymentDialog(order)
+                      : handleCompleteDeliveryOrder(order.id)
+                  }
+                  disabled={completingId === order.id}
+                >
+                  {completingId === order.id
+                    ? "Đang cập nhật..."
+                    : !paid
+                      ? "Xác nhận thanh toán"
+                      : "Hoàn thành"}
+                </Button>
+              )
             ) : null}
 
             {!(["completed", "cancelled"].includes(order.status) ||
               isPendingUnpaidOnline ||
-              (isPending && paid)) ? (
+              (isPending && paid) ||
+              (isPreparing && !hasPrintedReceipt)) ? (
               <Button
                 variant="destructive"
                 onClick={() =>

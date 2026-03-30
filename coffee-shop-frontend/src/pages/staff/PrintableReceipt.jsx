@@ -27,15 +27,31 @@ const toLines = (textOrLines) => {
     .filter(Boolean);
 };
 
+const getItemQuantity = (item) => Math.max(1, Number(item?.quantity) || 1);
+
+const getItemLineTotal = (item) => {
+  const lineTotal = Number(item?.line_total);
+  if (Number.isFinite(lineTotal) && lineTotal >= 0) return lineTotal;
+  return Number(item?.unit_price ?? item?.price ?? 0) * getItemQuantity(item);
+};
+
+const getToppingUnitTotal = (item) =>
+  (item?.toppings || []).reduce(
+    (sum, topping) =>
+      sum + Number(topping?.price || 0) * Number(topping?.quantity || 0),
+    0
+  );
+
+const getBaseUnitPrice = (item) => {
+  const fromApi = Number(item?.base_unit_price);
+  if (Number.isFinite(fromApi) && fromApi >= 0) return fromApi;
+
+  const unitPrice = getItemLineTotal(item) / getItemQuantity(item);
+  return Math.max(0, unitPrice - getToppingUnitTotal(item));
+};
+
 const calcSubtotal = (order) =>
-  (order.items || []).reduce((sum, item) => {
-    const base = Number(item.unit_price || item.price || 0) * Number(item.quantity || 0);
-    const topping = (item.toppings || []).reduce(
-      (s, t) => s + Number(t.price || 0) * Number(t.quantity || 0),
-      0
-    );
-    return sum + base + topping;
-  }, 0);
+  (order.items || []).reduce((sum, item) => sum + getItemLineTotal(item), 0);
 
 const getOrderTypeLabel = (orderType) => {
   switch (String(orderType || '').toLowerCase()) {
@@ -411,7 +427,7 @@ export function PrintableReceipt({ order, onDone, onPrintSuccess }) {
                   {item.product_name || item.name} ({item.size}) x{item.quantity}
                 </div>
                 <div className="receipt-item-price">
-                  {fmt((item.unit_price || item.price) * item.quantity)}
+                  {fmt(getBaseUnitPrice(item) * getItemQuantity(item))}
                 </div>
               </div>
 
@@ -421,10 +437,15 @@ export function PrintableReceipt({ order, onDone, onPrintSuccess }) {
                   {item.toppings.map((t, j) => (
                     <div key={j} className="receipt-item">
                       <span style={{ fontSize: '10px' }}>
-                        + {t.name} ×{t.quantity}
+                        + {t.name} ×{Number(t.quantity || 0) * getItemQuantity(item)}
                       </span>
                       <span style={{ fontSize: '10px' }}>
-                        +{fmt(t.price * t.quantity)}
+                        +
+                        {fmt(
+                          Number(t.price || 0) *
+                            Number(t.quantity || 0) *
+                            getItemQuantity(item)
+                        )}
                       </span>
                     </div>
                   ))}

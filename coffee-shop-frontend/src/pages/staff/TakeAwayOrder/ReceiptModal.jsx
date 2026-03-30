@@ -15,16 +15,31 @@ const isOrderPaid = (order) => {
   );
 };
 
+const getItemQuantity = (item) => Math.max(1, Number(item?.quantity) || 1);
+
+const getItemLineTotal = (item) => {
+  const lineTotal = Number(item?.line_total);
+  if (Number.isFinite(lineTotal) && lineTotal >= 0) return lineTotal;
+  return Number(item?.unit_price ?? item?.price ?? 0) * getItemQuantity(item);
+};
+
+const getToppingUnitTotal = (item) =>
+  (item?.toppings || []).reduce(
+    (sum, topping) =>
+      sum + Number(topping?.price || 0) * Number(topping?.quantity || 0),
+    0,
+  );
+
+const getBaseUnitPrice = (item) => {
+  const fromApi = Number(item?.base_unit_price);
+  if (Number.isFinite(fromApi) && fromApi >= 0) return fromApi;
+
+  const unitPrice = getItemLineTotal(item) / getItemQuantity(item);
+  return Math.max(0, unitPrice - getToppingUnitTotal(item));
+};
+
 const calcSubtotal = (order) =>
-  (order.items || []).reduce((sum, item) => {
-    const base =
-      Number(item.unit_price || item.price || 0) * Number(item.quantity || 0);
-    const topping = (item.toppings || []).reduce(
-      (s, t) => s + Number(t.price || 0) * Number(t.quantity || 0),
-      0,
-    );
-    return sum + base + topping;
-  }, 0);
+  (order.items || []).reduce((sum, item) => sum + getItemLineTotal(item), 0);
 
 const getOrderTypeLabel = (orderType) => {
   switch (String(orderType || '').toLowerCase()) {
@@ -145,7 +160,7 @@ export function ReceiptModal({ order, onClose, onPrint, autoPrint = false }) {
                     {item.product_name} ({item.size}) × {item.quantity}
                   </span>
                   <span className='font-medium'>
-                    {fmt((item.unit_price || item.price) * item.quantity)}
+                    {fmt(getBaseUnitPrice(item) * getItemQuantity(item))}
                   </span>
                 </div>
                 {item.toppings?.map((t, j) => (
@@ -154,9 +169,16 @@ export function ReceiptModal({ order, onClose, onPrint, autoPrint = false }) {
                     className='flex justify-between text-xs text-gray-400 pl-3'
                   >
                     <span>
-                      + {t.name} × {t.quantity}
+                      + {t.name} × {Number(t.quantity || 0) * getItemQuantity(item)}
                     </span>
-                    <span>+{fmt(t.price * t.quantity)}</span>
+                    <span>
+                      +
+                      {fmt(
+                        Number(t.price || 0) *
+                          Number(t.quantity || 0) *
+                          getItemQuantity(item),
+                      )}
+                    </span>
                   </div>
                 ))}
                 {item.note && (
