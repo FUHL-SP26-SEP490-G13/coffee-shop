@@ -249,7 +249,7 @@ export default function ProductListPage() {
                 <select
                   value={sortBy}
                   onChange={(e) => handleSortChange(e.target.value)}
-                  className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-amber-500"
+                  className="w-full bg-transparent dark:bg-gray-900 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-700 rounded-xl px-4 py-3 focus:outline-none focus:border-amber-500"
                 >
                   <option value="">Sắp xếp mặc định</option>
                   <option value="name_asc">A - Z</option>
@@ -304,7 +304,7 @@ export default function ProductListPage() {
                       placeholder="Tối thiểu"
                       value={minPriceInput}
                       onChange={(e) => setMinPriceInput(e.target.value)}
-                      className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 outline-none focus:border-amber-500 transition text-gray-700 dark:text-gray-300"
+                      className="w-full bg-transparent dark:bg-gray-900 text-sm border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 outline-none focus:border-amber-500 transition text-gray-700 dark:text-gray-300"
                     />
                     <span className="text-gray-400 font-medium">-</span>
                     <input
@@ -312,7 +312,7 @@ export default function ProductListPage() {
                       placeholder="Tối đa"
                       value={maxPriceInput}
                       onChange={(e) => setMaxPriceInput(e.target.value)}
-                      className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 outline-none focus:border-amber-500 transition text-gray-700 dark:text-gray-300"
+                      className="w-full bg-transparent dark:bg-gray-900 text-sm border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 outline-none focus:border-amber-500 transition text-gray-700 dark:text-gray-300"
                     />
                   </div>
                   <Button 
