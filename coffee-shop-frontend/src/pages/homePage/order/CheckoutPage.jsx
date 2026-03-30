@@ -701,9 +701,9 @@ export default function CheckoutPage() {
                           {item.toppings.map((topping) => (
                             <p
                               key={topping.topping_id}
-                              className="text-xs text-gray-500 dark:text-gray-400"
+                              className="text-xs text-gray-500 dark:text-gray-400 mt-0.5"
                             >
-                              + {topping.name} x {topping.quantity}
+                              + {topping.name}
                             </p>
                           ))}
                         </div>

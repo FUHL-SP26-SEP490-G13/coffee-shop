@@ -2,64 +2,48 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { MapPin, Phone, Mail } from "lucide-react";
 import Logo from "/logo/Logo.png";
-import appSettingService from "@/services/appSettingService";
 
 function Footer() {
   const [isOpen, setIsOpen] = useState(false);
-  const [settings, setSettings] = useState(null);
 
   useEffect(() => {
     let interval;
-    const fetchSettings = async () => {
-      try {
-        const res = await appSettingService.getSettings();
-        if (res?.data) {
-          setSettings(res.data);
-          
-          const checkOpenStatus = () => {
-            const now = new Date();
-            const day = now.getDay(); // 0 is Sunday, 1 is Monday ... 6 is Saturday
-            const currentHour = now.getHours();
-            const currentMinute = now.getMinutes();
-            const currentTime = currentHour + currentMinute / 60;
+    
+    const checkOpenStatus = () => {
+      const now = new Date();
+      const day = now.getDay(); // 0 is Sunday, 1 is Monday ... 6 is Saturday
+      const currentHour = now.getHours();
+      const currentMinute = now.getMinutes();
+      const currentTime = currentHour + currentMinute / 60;
 
-            const parseTime = (timeStr) => {
-              if (!timeStr) return 0;
-              const [h, m] = timeStr.split(":");
-              return parseInt(h) + parseInt(m) / 60;
-            };
+      const parseTime = (timeStr) => {
+        if (!timeStr) return 0;
+        const [h, m] = timeStr.split(":");
+        return parseInt(h) + parseInt(m) / 60;
+      };
 
-            let isShopOpen = false;
+      let isShopOpen = false;
 
-            // Thứ 2 - Thứ 6
-            if (day >= 1 && day <= 5) {
-              const open = parseTime(res.data.weekday_open || "07:00");
-              const close = parseTime(res.data.weekday_close || "22:30");
-              isShopOpen = currentTime >= open && currentTime < close;
-            } 
-            // Thứ 7 - Chủ Nhật
-            else {
-              const open = parseTime(res.data.weekend_open || "07:30");
-              const close = parseTime(res.data.weekend_close || "23:00");
-              isShopOpen = currentTime >= open && currentTime < close;
-            }
-
-            setIsOpen(isShopOpen);
-          };
-
-          checkOpenStatus();
-          interval = setInterval(checkOpenStatus, 60000); // Cập nhật mỗi phút
-        }
-      } catch (error) {
-        console.error("Failed to load generic settings", error);
+      // Thứ 2 - Thứ 6
+      if (day >= 1 && day <= 5) {
+        const open = parseTime("07:00");
+        const close = parseTime("22:30");
+        isShopOpen = currentTime >= open && currentTime < close;
+      } 
+      // Thứ 7 - Chủ Nhật
+      else {
+        const open = parseTime("07:30");
+        const close = parseTime("23:00");
+        isShopOpen = currentTime >= open && currentTime < close;
       }
+
+      setIsOpen(isShopOpen);
     };
 
-    fetchSettings();
+    checkOpenStatus();
+    interval = setInterval(checkOpenStatus, 60000); // Cập nhật mỗi phút
 
-    return () => {
-      if (interval) clearInterval(interval);
-    };
+    return () => clearInterval(interval);
   }, []);
 
   return (
@@ -165,13 +149,13 @@ function Footer() {
               <div className="flex justify-between border-b border-border/50 pb-2">
                 <span>Thứ 2 - Thứ 6</span>
                 <span className="font-medium text-foreground">
-                  {settings?.weekday_open || "07:00"} - {settings?.weekday_close || "22:30"}
+                  07:00 - 22:30
                 </span>
               </div>
               <div className="flex justify-between border-b border-border/50 pb-2">
                 <span>Thứ 7 - Chủ Nhật</span>
                 <span className="font-medium text-foreground">
-                  {settings?.weekend_open || "07:30"} - {settings?.weekend_close || "23:00"}
+                  07:30 - 23:00
                 </span>
               </div>
               <div className="flex justify-between pb-2">
