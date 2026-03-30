@@ -27,7 +27,9 @@ function fillMissingDates(series, days) {
   for (let i = days - 1; i >= 0; i--) {
     const d = new Date(today);
     d.setDate(today.getDate() - i);
-    const key = d.toISOString().slice(0, 10);
+    const m = d.getMonth() + 1;
+    const day = d.getDate();
+    const key = `${d.getFullYear()}-${m < 10 ? "0" + m : m}-${day < 10 ? "0" + day : day}`;
     result.push({ date: key, revenue: map.get(key) ?? 0 });
   }
   return result;
@@ -199,6 +201,7 @@ export default function AdminDB() {
                 <Line
                   type="monotone"
                   dataKey="revenue"
+                  stroke="#f59e0b"
                   strokeWidth={2}
                   dot={false}
                 />
@@ -257,7 +260,7 @@ export default function AdminDB() {
                 <XAxis dataKey="type" />
                 <YAxis />
                 <Tooltip formatter={(value) => formatMoney(value)} />
-                <Bar dataKey="revenue" />
+                <Bar dataKey="revenue" fill="#f59e0b" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>

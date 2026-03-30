@@ -45,11 +45,11 @@ class AdminDBRepository {
     // lấy từ (days-1) ngày trước đến hôm nay
     const [rows] = await pool.query(
       `
-      SELECT DATE(created_at) as date, IFNULL(SUM(total_amount),0) as revenue
+      SELECT DATE_FORMAT(created_at, '%Y-%m-%d') as date, IFNULL(SUM(total_amount),0) as revenue
       FROM orders
       WHERE is_paid = 1
         AND created_at >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
-      GROUP BY DATE(created_at)
+      GROUP BY DATE_FORMAT(created_at, '%Y-%m-%d')
       ORDER BY date ASC
       `,
       [safeDays - 1]
