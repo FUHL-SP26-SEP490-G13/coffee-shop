@@ -1131,11 +1131,15 @@ function Header() {
 
             {user && (
               <div className="flex items-center gap-1 lg:gap-2">
-                <div className="relative" ref={dropdownRef}>
+                <div 
+                  className="relative" 
+                  ref={dropdownRef}
+                  onMouseEnter={() => setOpen(true)}
+                  onMouseLeave={() => setOpen(false)}
+                >
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => setOpen(!open)}
                     className="gap-1 sm:gap-2 text-gray-700 transition p-1.5 sm:p-2"
                   >
                     <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-amber-500 flex items-center justify-center text-white text-xs font-bold">
@@ -1147,7 +1151,8 @@ function Header() {
                   </Button>
 
                   {open && (
-                    <div className="absolute right-0 mt-1 w-48 sm:w-56 bg-white shadow-xl rounded-lg sm:rounded-2xl p-1.5 sm:p-2 border border-gray-200 animate-in fade-in zoom-in-95 flex flex-col gap-0">
+                    <div className="absolute right-0 top-full pt-1 w-48 sm:w-56 z-50">
+                      <div className="bg-white shadow-xl rounded-lg sm:rounded-2xl p-1.5 sm:p-2 border border-gray-200 animate-in fade-in zoom-in-95 flex flex-col gap-0">
                       <Button
                         variant="ghost"
                         size="sm"
@@ -1204,6 +1209,7 @@ function Header() {
                         Đăng xuất
                       </button>
                     </div>
+                  </div>
                   )}
                 </div>
               </div>
