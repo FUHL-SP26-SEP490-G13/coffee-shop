@@ -2,6 +2,18 @@ const ReputationRepository = require("../repositories/ReputationRepository");
 const ErrorResponse = require("../utils/ErrorResponse");
 
 class ReputationService {
+  static MAX_SCORE = 100;
+
+  static REASON_TYPES = {
+    INITIAL_GIFT: "INITIAL_GIFT",
+    ORDER_SUCCESS: "ORDER_SUCCESS",
+    PAYOS_BONUS: "PAYOS_BONUS",
+    USER_CANCEL: "USER_CANCEL",
+    BOOM_ORDER: "BOOM_ORDER",
+    ABUSIVE_BEHAVIOR: "ABUSIVE_BEHAVIOR",
+    ADMIN_ADJUST: "ADMIN_ADJUST",
+  };
+
   normalizePhoneNumber(phoneNumber) {
     const onlyDigits = String(phoneNumber || "").replace(/\D/g, "");
     if (!onlyDigits) return "";
@@ -101,6 +113,143 @@ class ReputationService {
       updated_at: profile?.updated_at || null,
       history,
     };
+  }
+
+  normalizeReasonType(reasonType) {
+    const raw = String(reasonType || "").trim().toUpperCase();
+    if (!raw) return ReputationService.REASON_TYPES.ADMIN_ADJUST;
+
+    const validValues = new Set(Object.values(ReputationService.REASON_TYPES));
+    if (validValues.has(raw)) return raw;
+
+    if (raw.includes("SUCCESS") || raw.includes("COMPLETED")) {
+      return ReputationService.REASON_TYPES.ORDER_SUCCESS;
+    }
+
+    if (raw.includes("BOOM")) {
+      return ReputationService.REASON_TYPES.BOOM_ORDER;
+    }
+
+    if (raw.includes("USER") && raw.includes("CANCEL")) {
+      return ReputationService.REASON_TYPES.USER_CANCEL;
+    }
+
+    if (raw.includes("ABUSIVE")) {
+      return ReputationService.REASON_TYPES.ABUSIVE_BEHAVIOR;
+    }
+
+    if (raw.includes("PAYOS") || raw.includes("BONUS")) {
+      return ReputationService.REASON_TYPES.PAYOS_BONUS;
+    }
+
+    if (raw.includes("GIFT") || raw.includes("INITIAL")) {
+      return ReputationService.REASON_TYPES.INITIAL_GIFT;
+    }
+
+    return ReputationService.REASON_TYPES.ADMIN_ADJUST;
+  }
+
+  async applyScoreChangeByOrder({
+    orderId,
+    changeAmount,
+    reasonType,
+    description,
+    appliedMultiplier = 1,
+  }) {
+    const normalizedOrderId = Number(orderId || 0);
+    const numericChange = Number(changeAmount || 0);
+    const normalizedReasonType = this.normalizeReasonType(reasonType);
+
+    if (!normalizedOrderId) {
+      throw new ErrorResponse(400, "Thiếu mã đơn hàng để cập nhật điểm uy tín");
+    }
+
+    if (!Number.isFinite(numericChange) || numericChange === 0) {
+      throw new ErrorResponse(400, "Giá trị cộng trừ điểm uy tín không hợp lệ");
+    }
+
+    const connection = await ReputationRepository.getConnection();
+    try {
+      await connection.beginTransaction();
+
+      const deliveryInfo = await ReputationRepository.findDeliveryInfoByOrderId(
+        connection,
+        normalizedOrderId,
+      );
+
+      const normalizedPhone = this.normalizePhoneNumber(
+        deliveryInfo?.receiver_phone,
+      );
+
+      if (!normalizedPhone || normalizedPhone.length < 10) {
+        throw new ErrorResponse(
+          400,
+          "Không tìm thấy số điện thoại hợp lệ để cập nhật điểm uy tín",
+        );
+      }
+
+      await ReputationRepository.createReputationProfileIfNotExists(
+        connection,
+        normalizedPhone,
+      );
+
+      const profile = await ReputationRepository.findReputationProfileByPhoneForUpdate(
+        connection,
+        normalizedPhone,
+      );
+
+      const scoreBefore = Number(profile?.current_score ?? 50);
+      let scoreAfter = scoreBefore + numericChange;
+
+      if (numericChange > 0) {
+        scoreAfter = Math.min(ReputationService.MAX_SCORE, scoreAfter);
+      }
+
+      const effectiveChange = scoreAfter - scoreBefore;
+
+      const completedDelta =
+        normalizedReasonType === ReputationService.REASON_TYPES.ORDER_SUCCESS
+          ? 1
+          : 0;
+      const cancelledReasons = new Set([
+        ReputationService.REASON_TYPES.USER_CANCEL,
+        ReputationService.REASON_TYPES.BOOM_ORDER,
+        ReputationService.REASON_TYPES.ABUSIVE_BEHAVIOR,
+      ]);
+      const cancelledDelta = cancelledReasons.has(normalizedReasonType) ? 1 : 0;
+
+      await ReputationRepository.updateReputationProfileScore(connection, {
+        phoneNumber: normalizedPhone,
+        scoreAfter,
+        completedDelta,
+        cancelledDelta,
+      });
+
+      await ReputationRepository.createReputationHistory(connection, {
+        phone_number: normalizedPhone,
+        order_id: normalizedOrderId,
+        score_before: scoreBefore,
+        change_amount: effectiveChange,
+        score_after: scoreAfter,
+        applied_multiplier: Number(appliedMultiplier || 1),
+        reason_type: normalizedReasonType,
+        description,
+      });
+
+      await connection.commit();
+
+      return {
+        phone_number: normalizedPhone,
+        score_before: scoreBefore,
+        change_amount: effectiveChange,
+        score_after: scoreAfter,
+      };
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
   }
 }
 
