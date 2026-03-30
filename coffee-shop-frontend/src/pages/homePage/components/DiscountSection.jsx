@@ -37,17 +37,14 @@ export default function DiscountSection() {
       ? `Giảm ${Number(d.percentage)}%`
       : (d.max_discount_amount > 0 ? `Giảm ${Number(d.max_discount_amount).toLocaleString('vi-VN')}đ` : 'Khuyến mãi đặc biệt');
 
-    let desc = d.description;
-    if (!desc && d.min_order_amount > 0) {
-      desc = `Áp dụng cho đơn hàng từ ${Number(d.min_order_amount).toLocaleString('vi-VN')}đ`;
-    } else if (!desc) {
-      desc = `Mã ưu đãi đặc biệt`;
-    }
+    const desc = d.description || `Mã ưu đãi đặc biệt`;
+    const minOrder = d.min_order_amount > 0 ? `Đơn tối thiểu: ${Number(d.min_order_amount).toLocaleString('vi-VN')}đ` : '';
 
     return {
       id: d.id,
       title,
       description: desc,
+      minOrder,
       code: d.code
     };
   });
@@ -93,9 +90,14 @@ export default function DiscountSection() {
                       <h3 className="text-xl font-bold text-gray-900 mb-1" style={{ fontFamily: 'serif' }}>
                         {item.title}
                       </h3>
-                      <p className="text-sm text-gray-500 mb-6 min-h-[40px]">
-                        {item.description}
-                      </p>
+                      <div className="text-sm text-gray-500 mb-6 min-h-[60px] flex flex-col">
+                        <span className="line-clamp-2" title={item.description}>{item.description}</span>
+                        {item.minOrder && (
+                          <span className="mt-1.5 inline-block text-[13px] font-semibold text-amber-700 bg-amber-100/50 px-2 py-0.5 rounded-md w-fit">
+                            * {item.minOrder}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
 
