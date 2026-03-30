@@ -1,4 +1,5 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState, useEffect } from "react";
+import { ArrowUp } from "lucide-react";
 import FadeInView from "@/components/common/FadeInView";
 import useFetch from "../../hooks/useFetch";
 import productService from "@/services/productService";
@@ -21,6 +22,19 @@ import AiAssistantWidget from "@/components/layout/AiAssistantWidget";
 
 export default function HomePage() {
   const [activeBannerIndex, setActiveBannerIndex] = useState(0);
+  const [showScrollTop, setShowScrollTop] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowScrollTop(window.scrollY > 300);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   const fetchProducts = useCallback(() => {
     return productService.getBestSellers({ limit: 8 });
@@ -146,6 +160,17 @@ export default function HomePage() {
       <Footer />
       
       <AiAssistantWidget />
+
+      {/* Scroll to Top Button */}
+      <button
+        onClick={scrollToTop}
+        className={`fixed bottom-24 right-6 p-3 bg-amber-600 hover:bg-amber-700 text-white rounded-full shadow-lg shadow-amber-900/20 z-40 transition-all duration-300 ${
+          showScrollTop ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0 pointer-events-none"
+        }`}
+        title="Cuộn lên đầu trang"
+      >
+        <ArrowUp className="w-6 h-6" />
+      </button>
 
       <style>{`
         @keyframes fadeInUp {

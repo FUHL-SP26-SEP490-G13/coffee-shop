@@ -764,11 +764,18 @@ function Header() {
             <Search className="w-5 h-5" />
           </Button>
 
-          <div className="relative hidden lg:block" ref={categoryDropdownRef}>
+          <div 
+            className="relative hidden lg:block" 
+            ref={categoryDropdownRef}
+            onMouseEnter={() => setCategoryOpen(true)}
+            onMouseLeave={() => {
+              setCategoryOpen(false);
+              setHoveredCategory(null);
+            }}
+          >
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setCategoryOpen(!categoryOpen)}
               className="flex items-center gap-2 text-sm"
             >
               <Grid3X3 className="w-4 h-4" />
@@ -777,19 +784,19 @@ function Header() {
             </Button>
 
             {categoryOpen && (
-              <div 
-                className="absolute left-0 mt-2 flex bg-white border border-gray-200 rounded-2xl shadow-xl z-50 overflow-hidden"
-                onMouseLeave={() => setHoveredCategory(null)}
-              >
-                <div className="w-64 p-2 border-r border-gray-100 shrink-0">
-                  {categories.length === 0 ? (
-                    <div className="px-3 py-2 text-sm text-gray-500">
-                      Không có danh mục
-                    </div>
-                  ) : (
-                    categories.map((category) => (
-                      <button
-                        key={category.id}
+              <div className="absolute left-0 top-full pt-2 z-50">
+                <div 
+                  className="flex bg-white border border-gray-200 rounded-2xl shadow-xl overflow-hidden"
+                >
+                  <div className="w-64 p-2 border-r border-gray-100 shrink-0">
+                    {categories.length === 0 ? (
+                      <div className="px-3 py-2 text-sm text-gray-500">
+                        Không có danh mục
+                      </div>
+                    ) : (
+                      categories.map((category) => (
+                        <button
+                          key={category.id}
                         onClick={() => goToCategory(category)}
                         onMouseEnter={() => handleCategoryHover(category)}
                         className={`w-full flex items-center justify-between px-3 py-2 rounded-xl transition text-sm group ${
@@ -862,6 +869,7 @@ function Header() {
                     )}
                   </div>
                 )}
+                </div>
               </div>
             )}
           </div>
