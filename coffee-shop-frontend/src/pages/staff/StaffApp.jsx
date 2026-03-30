@@ -60,6 +60,11 @@ export function StaffApp() {
     }
   });
 
+  // Force disable dark mode for staff
+  useEffect(() => {
+    document.documentElement.classList.remove('dark');
+  }, []);
+
   const navigate = useNavigate();
   const location = useLocation();
   const notificationRef = useRef(null);

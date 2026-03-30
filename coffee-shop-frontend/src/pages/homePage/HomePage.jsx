@@ -1,4 +1,6 @@
 import { useCallback, useMemo, useState, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import confetti from "canvas-confetti";
 import { ArrowUp } from "lucide-react";
 import FadeInView from "@/components/common/FadeInView";
 import useFetch from "../../hooks/useFetch";
@@ -23,6 +25,39 @@ import AiAssistantWidget from "@/components/layout/AiAssistantWidget";
 export default function HomePage() {
   const [activeBannerIndex, setActiveBannerIndex] = useState(0);
   const [showScrollTop, setShowScrollTop] = useState(false);
+  
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (location.state?.orderSuccess) {
+      const end = Date.now() + 2 * 1000;
+      const colors = ["#f59e0b", "#d97706", "#fbbf24"];
+
+      (function frame() {
+        confetti({
+          particleCount: 5,
+          angle: 60,
+          spread: 55,
+          origin: { x: 0 },
+          colors: colors,
+        });
+        confetti({
+          particleCount: 5,
+          angle: 120,
+          spread: 55,
+          origin: { x: 1 },
+          colors: colors,
+        });
+
+        if (Date.now() < end) {
+          requestAnimationFrame(frame);
+        }
+      })();
+
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location, navigate]);
 
   useEffect(() => {
     const handleScroll = () => {

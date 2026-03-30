@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Loader2, Heart, Filter, X } from "lucide-react";
+import { Loader2, Heart, Filter, X, Star } from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import AiAssistantWidget from "@/components/layout/AiAssistantWidget";
@@ -32,6 +32,7 @@ export default function ProductListPage() {
   const filterSize = searchParams.get("size") || "";
   const filterMinPrice = searchParams.get("min_price") || "";
   const filterMaxPrice = searchParams.get("max_price") || "";
+  const filterMinRating = searchParams.get("min_rating") || "";
   const currentPage = Number(searchParams.get("page") || 1);
 
   const [categories, setCategories] = useState([]);
@@ -71,6 +72,7 @@ export default function ProductListPage() {
     if (filterSize) params.size = filterSize;
     if (filterMinPrice) params.min_price = filterMinPrice;
     if (filterMaxPrice) params.max_price = filterMaxPrice;
+    if (filterMinRating) params.min_rating = filterMinRating;
 
     if (keyword) {
       params.keyword = keyword;
@@ -82,7 +84,7 @@ export default function ProductListPage() {
     }
 
     return productService.getAll(params);
-  }, [categoryId, keyword, currentPage, sortBy, filterSize, filterMinPrice, filterMaxPrice]);
+  }, [categoryId, keyword, currentPage, sortBy, filterSize, filterMinPrice, filterMaxPrice, filterMinRating]);
 
   const { data, loading } = useFetch(fetchProducts);
 
@@ -249,7 +251,7 @@ export default function ProductListPage() {
                 <select
                   value={sortBy}
                   onChange={(e) => handleSortChange(e.target.value)}
-                  className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-amber-500"
+                  className="w-full bg-transparent dark:bg-gray-900 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-700 rounded-xl px-4 py-3 focus:outline-none focus:border-amber-500"
                 >
                   <option value="">Sắp xếp mặc định</option>
                   <option value="name_asc">A - Z</option>
@@ -304,7 +306,7 @@ export default function ProductListPage() {
                       placeholder="Tối thiểu"
                       value={minPriceInput}
                       onChange={(e) => setMinPriceInput(e.target.value)}
-                      className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 outline-none focus:border-amber-500 transition text-gray-700 dark:text-gray-300"
+                      className="w-full bg-transparent dark:bg-gray-900 text-sm border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 outline-none focus:border-amber-500 transition text-gray-700 dark:text-gray-300"
                     />
                     <span className="text-gray-400 font-medium">-</span>
                     <input
@@ -312,7 +314,7 @@ export default function ProductListPage() {
                       placeholder="Tối đa"
                       value={maxPriceInput}
                       onChange={(e) => setMaxPriceInput(e.target.value)}
-                      className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 outline-none focus:border-amber-500 transition text-gray-700 dark:text-gray-300"
+                      className="w-full bg-transparent dark:bg-gray-900 text-sm border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 outline-none focus:border-amber-500 transition text-gray-700 dark:text-gray-300"
                     />
                   </div>
                   <Button 
@@ -339,10 +341,51 @@ export default function ProductListPage() {
                   </div>
                 </div>
 
+                <div>
+                  <h3 className="text-base font-bold text-gray-900 dark:text-gray-100 mb-4 uppercase tracking-wider">Đánh giá</h3>
+                  <div className="space-y-3">
+                    {[
+                      { value: "4.5", label: "4.5 sao trở lên", stars: 4.5 },
+                      { value: "4", label: "4 sao trở lên", stars: 4 },
+                      { value: "3.5", label: "3.5 sao trở lên", stars: 3.5 },
+                    ].map((option) => (
+                      <label key={option.value} className="flex items-center gap-3 cursor-pointer group">
+                        <div className="relative flex items-center justify-center w-5 h-5">
+                          <input
+                            type="radio"
+                            name="rating_filter"
+                            value={option.value}
+                            checked={filterMinRating === option.value}
+                            onChange={(e) => updateQuery({ min_rating: e.target.value, page: 1 })}
+                            className="peer appearance-none w-5 h-5 border-2 border-gray-300 dark:border-gray-600 rounded-full checked:border-amber-500 dark:checked:border-amber-500 checked:bg-transparent transition-colors cursor-pointer"
+                          />
+                          <div className="absolute w-2.5 h-2.5 rounded-full bg-amber-500 scale-0 peer-checked:scale-100 transition-transform pointer-events-none"></div>
+                        </div>
+                        <span className="text-gray-700 dark:text-gray-300 group-hover:text-amber-600 transition-colors cursor-pointer select-none text-sm">{option.label}</span>
+                        <div className="flex text-amber-500 gap-0.5 ml-auto">
+                          {Array.from({ length: 5 }).map((_, idx) => {
+                            const fillPercentage = option.stars - idx;
+                            return (
+                              <div key={idx} className="relative w-4 h-4">
+                                <Star className="w-4 h-4 text-gray-300 dark:text-gray-600 stroke-1" />
+                                {fillPercentage > 0 && (
+                                  <div className="absolute top-0 left-0 overflow-hidden" style={{ width: fillPercentage >= 1 ? '100%' : `${fillPercentage * 100}%` }}>
+                                    <Star className="w-4 h-4 fill-amber-500 text-amber-500 stroke-1" />
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
                 <Button
                   variant="outline"
                   className="w-full border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
-                  onClick={() => updateQuery({ category: "", min_price: "", max_price: "", size: "", page: 1, keyword: "" })}
+                  onClick={() => updateQuery({ category: "", min_price: "", max_price: "", size: "", min_rating: "", page: 1, keyword: "" })}
                 >
                   Xóa bộ lọc
                 </Button>

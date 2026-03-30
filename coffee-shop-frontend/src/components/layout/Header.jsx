@@ -93,6 +93,7 @@ function Header() {
 
   const [categories, setCategories] = useState([]);
   const [categoryOpen, setCategoryOpen] = useState(false);
+  const [infoOpen, setInfoOpen] = useState(false);
   const [mobileCategoryOpen, setMobileCategoryOpen] = useState(false);
   const [hoveredCategory, setHoveredCategory] = useState(null);
   const [categoryProductsMap, setCategoryProductsMap] = useState({});
@@ -114,6 +115,13 @@ function Header() {
   const [focusedResultIndex, setFocusedResultIndex] = useState(-1);
   const [mobileResultOpen, setMobileResultOpen] = useState(false);
   const [cartCount, setCartCount] = useState(0);
+  const [authDialogOpen, setAuthDialogOpen] = useState(false);
+  const [authMode, setAuthMode] = useState("login");
+  const [cartBump, setCartBump] = useState(false);
+
+  // Thêm hook debounce value
+  const [debouncedKeyword, setDebouncedKeyword] = useState(keyword);
+
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
 
   const [notifications, setNotifications] = useState([]);
@@ -132,9 +140,11 @@ function Header() {
   const toggleDarkMode = () => {
     if (isDarkMode) {
       document.documentElement.classList.remove("dark");
+      localStorage.setItem("theme", "light");
       setIsDarkMode(false);
     } else {
       document.documentElement.classList.add("dark");
+      localStorage.setItem("theme", "dark");
       setIsDarkMode(true);
     }
   };
@@ -236,9 +246,16 @@ function Header() {
     window.addEventListener("storage", loadCartItems);
     window.addEventListener("cartUpdated", loadCartItems);
 
+    const handleCartBump = () => {
+      setCartBump(true);
+      setTimeout(() => setCartBump(false), 600);
+    };
+    window.addEventListener("cartUpdated", handleCartBump);
+
     return () => {
       window.removeEventListener("storage", loadCartItems);
       window.removeEventListener("cartUpdated", loadCartItems);
+      window.removeEventListener("cartUpdated", handleCartBump);
     };
   }, [loadCartItems]);
 
@@ -891,25 +908,41 @@ function Header() {
             )}
           </div>
 
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate("/stores")}
-            className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm hidden lg:flex"
+          <div 
+            className="relative hidden lg:block"
+            onMouseEnter={() => setInfoOpen(true)}
+            onMouseLeave={() => setInfoOpen(false)}
           >
-            <MapPin className="w-4 h-4" />
-            <span>Cửa hàng</span>
-          </Button>
-
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate("/news")}
-            className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm hidden lg:flex"
-          >
-            <Newspaper className="w-4 h-4" />
-            <span>Tin tức</span>
-          </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm"
+            >
+              <span>Khám phá</span>
+              <ChevronDown className="w-3.5 h-3.5" />
+            </Button>
+            
+            {infoOpen && (
+              <div className="absolute left-1/2 -translate-x-1/2 top-full pt-2 z-50">
+                <div className="bg-white dark:bg-gray-900 dark:border-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl overflow-hidden min-w-[150px] p-1.5">
+                  <button
+                    onClick={() => { navigate("/stores"); setInfoOpen(false); }}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-amber-50 dark:hover:bg-amber-900/20 hover:text-amber-700 rounded-lg transition-colors text-left"
+                  >
+                    <MapPin className="w-4 h-4 shrink-0" /> 
+                    <span className="font-medium">Cửa hàng</span>
+                  </button>
+                  <button
+                    onClick={() => { navigate("/news"); setInfoOpen(false); }}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-amber-50 dark:hover:bg-amber-900/20 hover:text-amber-700 rounded-lg transition-colors text-left"
+                  >
+                    <Newspaper className="w-4 h-4 shrink-0" /> 
+                    <span className="font-medium">Tin tức</span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
 
           <Button
             variant="ghost"
@@ -933,7 +966,9 @@ function Header() {
               <Button
                 onClick={() => navigate("/cart")}
                 size="sm"
-                className="relative gap-1 sm:gap-2 text-xs sm:text-sm"
+                className={`relative gap-1 sm:gap-2 text-xs sm:text-sm ${
+                  cartBump ? "animate-bounce ring-4 ring-amber-500/50" : "transition-all duration-300"
+                }`}
               >
                 <ShoppingCart className="w-4 h-4" />
                 <span className="hidden sm:inline">Giỏ hàng</span>
