@@ -37,6 +37,9 @@ import {
 import { toast } from "sonner";
 import flashSaleService from "@/services/flashSaleService";
 import appSettingService from "@/services/appSettingService";
+import { geocodeAddress, getDrivingDistance, calculateShippingFee } from "@/utils/distanceCalculator";
+import { Loader2 } from "lucide-react";
+
 const DELIVERY_SHIPPING_FEE = 20000;
 
 export default function CheckoutPage() {
@@ -73,6 +76,11 @@ export default function CheckoutPage() {
     discount_code: "",
   });
   const [activeSale, setActiveSale] = useState(null);
+
+  const [storeAddress, setStoreAddress] = useState("");
+  const [shippingFee, setShippingFee] = useState(DELIVERY_SHIPPING_FEE);
+  const [deliveryDistanceKm, setDeliveryDistanceKm] = useState(null);
+  const [isShippingCalculating, setIsShippingCalculating] = useState(false);
 
   useEffect(() => {
     flashSaleService
@@ -113,6 +121,10 @@ export default function CheckoutPage() {
                setReputationRules(parsed);
             }
           } catch (e) { console.error("Error parsing rules:", e) }
+        }
+
+        if (settingsRes?.data?.address) {
+          setStoreAddress(settingsRes.data.address);
         }
 
         const user = profileRes?.data;
@@ -197,6 +209,43 @@ export default function CheckoutPage() {
     return () => clearTimeout(timeoutId);
   }, [form.receiver_phone]);
 
+  // Handle dynamic distance and shipping fee
+  useEffect(() => {
+    if (form.order_type !== "delivery" || !form.address || form.address.trim().length < 5 || !storeAddress) {
+      setShippingFee(form.order_type === "delivery" ? DELIVERY_SHIPPING_FEE : 0);
+      setDeliveryDistanceKm(null);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setIsShippingCalculating(true);
+      try {
+        const [storeCoords, customerCoords] = await Promise.all([
+          geocodeAddress(storeAddress),
+          geocodeAddress(form.address)
+        ]);
+
+        if (storeCoords && customerCoords) {
+          const distMeters = await getDrivingDistance(storeCoords, customerCoords);
+          const fee = calculateShippingFee(distMeters);
+          setShippingFee(fee);
+          setDeliveryDistanceKm((distMeters / 1000).toFixed(1));
+        } else {
+          // Fallback if address not found
+          setShippingFee(DELIVERY_SHIPPING_FEE);
+          setDeliveryDistanceKm(null);
+        }
+      } catch (error) {
+         setShippingFee(DELIVERY_SHIPPING_FEE);
+         setDeliveryDistanceKm(null);
+      } finally {
+        setIsShippingCalculating(false);
+      }
+    }, 1500);
+
+    return () => clearTimeout(timer);
+  }, [form.address, form.order_type, storeAddress]);
+
   const getAddressTypeLabel = (type) => {
     if (type === "work") return "Văn phòng";
     if (type === "other") return "Khác";
@@ -267,7 +316,6 @@ export default function CheckoutPage() {
   }, [cart, activeSale]);
 
   const discountAmount = Number(appliedDiscount?.discount_amount || 0);
-  const shippingFee = form.order_type === "delivery" ? DELIVERY_SHIPPING_FEE : 0;
   const totalAmount = subtotalAmount - discountAmount + shippingFee;
 
   // Validate payment permissions khi điểm uy tín thay đổi
@@ -792,7 +840,12 @@ export default function CheckoutPage() {
 
               {shippingFee > 0 ? (
                 <div className="flex justify-between text-sm text-gray-700 dark:text-gray-300">
-                  <span>Phí vận chuyển</span>
+                  <span className="flex items-center gap-2">
+                    Phí vận chuyển {deliveryDistanceKm ? `(${deliveryDistanceKm} km)` : ""}
+                    {isShippingCalculating && (
+                      <Loader2 className="w-3 h-3 animate-spin text-amber-600" />
+                    )}
+                  </span>
                   <span>+ {shippingFee.toLocaleString("vi-VN")}đ</span>
                 </div>
               ) : null}
@@ -809,6 +862,8 @@ export default function CheckoutPage() {
               form={form}
               cart={cart}
               totalAmount={totalAmount}
+              shippingFee={shippingFee}
+              disabled={isShippingCalculating}
               onValidateError={(errs) => setErrors(errs)}
               onSuccess={() => navigate("/", { state: { orderSuccess: true } })}
             />
