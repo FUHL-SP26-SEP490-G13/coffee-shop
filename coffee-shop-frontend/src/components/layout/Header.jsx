@@ -14,6 +14,7 @@ import {
   Loader2,
   Bell,
   Heart,
+  MapPin,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -873,6 +874,16 @@ function Header() {
               </div>
             )}
           </div>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate("/stores")}
+            className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm hidden lg:flex"
+          >
+            <MapPin className="w-4 h-4" />
+            <span>Cửa hàng</span>
+          </Button>
 
           <Button
             variant="ghost"
