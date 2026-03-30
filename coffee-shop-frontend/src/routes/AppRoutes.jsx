@@ -65,7 +65,7 @@ import TakeawayPOS from '../pages/staff/TakeawayPOS'
 import { OrderDelivery } from '@/pages/staff/StaffOrderList';
 import { StaffDashboard } from "@/pages/staff/StaffDashboard";
 import StaffPayOSReturn from "@/pages/staff/StaffPayOSReturn";
-import StoreLocatorPage from "@/pages/common/StoreLocatorPage";
+import StoreInfoPage from "@/pages/common/StoreInfoPage";
 
 const getStoredValue = (key) =>
   localStorage.getItem(key) || sessionStorage.getItem(key);
@@ -220,7 +220,7 @@ const AppRoutes = () => {
       </Route>
       <Route path="/news/:slug" element={<NewsDetailPage />} />
       <Route path="/news" element={<NewsListPage />} />
-      <Route path="/stores" element={<StoreLocatorPage />} />
+      <Route path="/store" element={<StoreInfoPage />} />
       <Route path="/customer/profile" element={<UserProfile />} />
       {/* Only allow customers to access favorites */}
       <Route

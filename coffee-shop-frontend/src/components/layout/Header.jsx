@@ -926,7 +926,7 @@ function Header() {
               <div className="absolute left-1/2 -translate-x-1/2 top-full pt-2 z-50">
                 <div className="bg-white dark:bg-gray-900 dark:border-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl overflow-hidden min-w-[150px] p-1.5">
                   <button
-                    onClick={() => { navigate("/stores"); setInfoOpen(false); }}
+                    onClick={() => { navigate("/store"); setInfoOpen(false); }}
                     className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-amber-50 dark:hover:bg-amber-900/20 hover:text-amber-700 rounded-lg transition-colors text-left"
                   >
                     <MapPin className="w-4 h-4 shrink-0" /> 
