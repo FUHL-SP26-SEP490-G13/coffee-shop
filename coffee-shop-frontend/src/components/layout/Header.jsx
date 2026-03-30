@@ -114,6 +114,13 @@ function Header() {
   const [focusedResultIndex, setFocusedResultIndex] = useState(-1);
   const [mobileResultOpen, setMobileResultOpen] = useState(false);
   const [cartCount, setCartCount] = useState(0);
+  const [authDialogOpen, setAuthDialogOpen] = useState(false);
+  const [authMode, setAuthMode] = useState("login");
+  const [cartBump, setCartBump] = useState(false);
+
+  // Thêm hook debounce value
+  const [debouncedKeyword, setDebouncedKeyword] = useState(keyword);
+
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
 
   const [notifications, setNotifications] = useState([]);
@@ -238,9 +245,16 @@ function Header() {
     window.addEventListener("storage", loadCartItems);
     window.addEventListener("cartUpdated", loadCartItems);
 
+    const handleCartBump = () => {
+      setCartBump(true);
+      setTimeout(() => setCartBump(false), 600);
+    };
+    window.addEventListener("cartUpdated", handleCartBump);
+
     return () => {
       window.removeEventListener("storage", loadCartItems);
       window.removeEventListener("cartUpdated", loadCartItems);
+      window.removeEventListener("cartUpdated", handleCartBump);
     };
   }, [loadCartItems]);
 
@@ -935,7 +949,9 @@ function Header() {
               <Button
                 onClick={() => navigate("/cart")}
                 size="sm"
-                className="relative gap-1 sm:gap-2 text-xs sm:text-sm"
+                className={`relative gap-1 sm:gap-2 text-xs sm:text-sm ${
+                  cartBump ? "animate-bounce ring-4 ring-amber-500/50" : "transition-all duration-300"
+                }`}
               >
                 <ShoppingCart className="w-4 h-4" />
                 <span className="hidden sm:inline">Giỏ hàng</span>

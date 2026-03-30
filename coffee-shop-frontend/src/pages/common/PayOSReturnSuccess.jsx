@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import confetti from "canvas-confetti";
 import { useSearchParams, useNavigate, Link } from "react-router-dom";
 import { CheckCircle2, XCircle, Clock, ShoppingBag, Home, ReceiptText } from "lucide-react";
 import Header from "@/components/layout/Header";
@@ -48,6 +49,32 @@ export default function PayOSReturnSuccess() {
   // Tự động điều hướng sau 8s nếu thành công
   useEffect(() => {
     if (!isSuccess) return;
+
+    // Trigger confetti
+    const end = Date.now() + 2 * 1000;
+    const colors = ['#f59e0b', '#d97706', '#fbbf24'];
+
+    (function frame() {
+      confetti({
+        particleCount: 4,
+        angle: 60,
+        spread: 55,
+        origin: { x: 0 },
+        colors: colors
+      });
+      confetti({
+        particleCount: 4,
+        angle: 120,
+        spread: 55,
+        origin: { x: 1 },
+        colors: colors
+      });
+
+      if (Date.now() < end) {
+        requestAnimationFrame(frame);
+      }
+    }());
+
     const timer = setInterval(() => {
       setCountdown((prev) => {
         if (prev <= 1) {

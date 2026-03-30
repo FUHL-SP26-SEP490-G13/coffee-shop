@@ -783,7 +783,7 @@ export default function CheckoutPage() {
               cart={cart}
               totalAmount={totalAmount}
               onValidateError={(errs) => setErrors(errs)}
-              onSuccess={() => navigate("/")}
+              onSuccess={() => navigate("/", { state: { orderSuccess: true } })}
             />
           </div>
         </div>
