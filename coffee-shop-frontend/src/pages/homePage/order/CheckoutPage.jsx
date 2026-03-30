@@ -60,6 +60,7 @@ export default function CheckoutPage() {
   const [reputationFrozen, setReputationFrozen] = useState(false);
   const [reputationRules, setReputationRules] = useState([]);
   const [isReputationLoading, setIsReputationLoading] = useState(false);
+  const [fetchedPhone, setFetchedPhone] = useState("");
   const [paymentValidation, setPaymentValidation] = useState(null);
   const [form, setForm] = useState({
     order_type: "delivery",
@@ -101,7 +102,16 @@ export default function CheckoutPage() {
         
         if (settingsRes?.data?.reputation_rules) {
           try {
-            setReputationRules(JSON.parse(settingsRes.data.reputation_rules));
+            let parsed = settingsRes.data.reputation_rules;
+            if (typeof parsed === 'string') {
+               parsed = JSON.parse(parsed);
+            }
+            if (typeof parsed === 'string') {
+               parsed = JSON.parse(parsed);
+            }
+            if (Array.isArray(parsed)) {
+               setReputationRules(parsed);
+            }
           } catch (e) { console.error("Error parsing rules:", e) }
         }
 
@@ -156,6 +166,7 @@ export default function CheckoutPage() {
       setReputationTier("SILVER");
       setReputationFrozen(false);
       setIsReputationLoading(false);
+      setFetchedPhone(normalizedPhone);
       return;
     }
 
@@ -179,6 +190,7 @@ export default function CheckoutPage() {
         setReputationFrozen(false);
       } finally {
         setIsReputationLoading(false);
+        setFetchedPhone(normalizedPhone);
       }
     }, 450);
 
@@ -260,6 +272,12 @@ export default function CheckoutPage() {
 
   // Validate payment permissions khi điểm uy tín thay đổi
   useEffect(() => {
+    const currentPhone = normalizePhoneNumber(form.receiver_phone);
+    // Không ép phương thức nếu vẫn đang trong quá trình lấy điểm của SĐT hiện tại
+    if (currentPhone !== fetchedPhone || isReputationLoading) {
+       return;
+    }
+
     try {
       const validation = validateOrderPermissions(
         reputationScore,
@@ -284,7 +302,7 @@ export default function CheckoutPage() {
       toast.error(error.message, { duration: 5000 });
       setPaymentValidation(null);
     }
-  }, [reputationScore, reputationFrozen, totalAmount, form.payment_method, reputationRules]);
+  }, [reputationScore, reputationFrozen, totalAmount, form.payment_method, reputationRules, fetchedPhone, form.receiver_phone, isReputationLoading]);
 
   const handleApplyDiscount = async () => {
     const code = discountCode.trim();

@@ -3,11 +3,15 @@ import { API_ENDPOINTS } from "../constants";
 
 const appSettingService = {
   getSettings: () => {
-    return axiosClient.get(API_ENDPOINTS.APP_SETTINGS.BASE);
+    return axiosClient.get(API_ENDPOINTS.RECEIPT_SETTINGS.BASE);
   },
   
   upsertSettings: (data) => {
-    return axiosClient.put(API_ENDPOINTS.APP_SETTINGS.ADMIN, data);
+    const formData = new FormData();
+    if (data.reputation_rules !== undefined) {
+      formData.append("reputation_rules", data.reputation_rules);
+    }
+    return axiosClient.put(API_ENDPOINTS.RECEIPT_SETTINGS.ADMIN, formData);
   }
 };
 

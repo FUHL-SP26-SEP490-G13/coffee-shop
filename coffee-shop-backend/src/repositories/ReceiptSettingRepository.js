@@ -16,8 +16,8 @@ class ReceiptSettingRepository {
     async create(data) {
         const sql = `
             INSERT INTO receipt_settings
-            (store_name, address, phone, header_lines, footer_lines, logo_url, is_active, open_time, close_time)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (store_name, address, phone, header_lines, footer_lines, logo_url, is_active, open_time, close_time, reputation_rules)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `;
 
         const [result] = await db.query(sql, [
@@ -30,6 +30,9 @@ class ReceiptSettingRepository {
             typeof data.is_active === "boolean" ? data.is_active : true,
             data.open_time ?? "07:00",
             data.close_time ?? "22:30",
+            data.reputation_rules 
+                ? (typeof data.reputation_rules === "string" ? data.reputation_rules : JSON.stringify(data.reputation_rules)) 
+                : null,
         ]);
 
         return this.findById(result.insertId);
@@ -82,6 +85,13 @@ class ReceiptSettingRepository {
         if (data.close_time !== undefined) {
             fields.push("close_time = ?");
             values.push(data.close_time);
+        }
+
+        if (data.reputation_rules !== undefined) {
+            fields.push("reputation_rules = ?");
+            values.push(data.reputation_rules 
+                ? (typeof data.reputation_rules === "string" ? data.reputation_rules : JSON.stringify(data.reputation_rules)) 
+                : null);
         }
 
         if (fields.length === 0) {

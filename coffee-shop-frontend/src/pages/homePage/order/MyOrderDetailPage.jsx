@@ -6,6 +6,7 @@ import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
 import orderService from "@/services/orderOnlineService";
 import { handleBuyAgain } from "@/utils/handleBuyAgain";
+import { useStoreHours } from "@/hooks/useStoreHours";
 
 const defaultProductImage =
   "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085";
@@ -19,6 +20,7 @@ export default function MyOrderDetailPage() {
   const [loading, setLoading] = useState(true);
   const [buyAgainLoading, setBuyAgainLoading] = useState(false);
   const [cancelLoading, setCancelLoading] = useState(false);
+  const { isOpen } = useStoreHours();
 
   const fetchOrderDetail = useCallback(async () => {
     try {
@@ -415,8 +417,9 @@ export default function MyOrderDetailPage() {
 
               <Button
                 onClick={onBuyAgain}
-                disabled={buyAgainLoading}
-                className="bg-amber-600 hover:bg-amber-700 text-white"
+                disabled={buyAgainLoading || !isOpen}
+                className={`text-white ${!isOpen ? "bg-gray-400 cursor-not-allowed" : "bg-amber-600 hover:bg-amber-700"}`}
+                title={!isOpen ? "Cửa hàng đang đóng cửa" : ""}
               >
                 {buyAgainLoading ? (
                   <>
@@ -426,7 +429,7 @@ export default function MyOrderDetailPage() {
                 ) : (
                   <>
                     <RotateCcw className="w-4 h-4 mr-2" />
-                    Mua lại đơn này
+                    {isOpen ? "Mua lại đơn này" : "Đã đóng cửa"}
                   </>
                 )}
               </Button>

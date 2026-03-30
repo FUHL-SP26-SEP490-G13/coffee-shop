@@ -76,8 +76,17 @@ export default function AdminReputation() {
       let parsedRules = [];
       if (res?.data?.reputation_rules) {
         try {
-          parsedRules = JSON.parse(res.data.reputation_rules);
-        } catch(e) {}
+          let parsed = res.data.reputation_rules;
+          if (typeof parsed === 'string') {
+             parsed = JSON.parse(parsed);
+          }
+          if (typeof parsed === 'string') {
+             parsed = JSON.parse(parsed);
+          }
+          if (Array.isArray(parsed)) {
+             parsedRules = parsed;
+          }
+        } catch(e) { console.error("Error parsing rules admin:", e) }
       }
       
       if (!Array.isArray(parsedRules) || parsedRules.length === 0) {

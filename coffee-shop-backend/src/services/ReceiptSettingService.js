@@ -12,6 +12,7 @@ class ReceiptSettingService {
       is_active: data.is_active,
       open_time: data.open_time,
       close_time: data.close_time,
+      reputation_rules: data.reputation_rules,
     };
   }
 
@@ -28,6 +29,10 @@ class ReceiptSettingService {
         typeof setting.footer_lines === "string"
           ? JSON.parse(setting.footer_lines || "[]")
           : setting.footer_lines || [],
+      reputation_rules:
+        typeof setting.reputation_rules === "string"
+          ? setting.reputation_rules
+          : JSON.stringify(setting.reputation_rules || []),
     };
   }
 

@@ -27,6 +27,7 @@ const upsertReceiptSettingSchema = Joi.object({
   is_active: Joi.boolean().default(true),
   open_time: Joi.string().trim().max(10).allow("", null),
   close_time: Joi.string().trim().max(10).allow("", null),
+  reputation_rules: Joi.string().allow("", null),
 });
 
 module.exports = {
