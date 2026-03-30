@@ -101,6 +101,14 @@ function Header() {
   const [searchLoading, setSearchLoading] = useState(false);
   const [mobileSearchLoading, setMobileSearchLoading] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [recentSearches, setRecentSearches] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem("recent_searches")) || [];
+    } catch {
+      return [];
+    }
+  });
+  const [focusedResultIndex, setFocusedResultIndex] = useState(-1);
   const [mobileResultOpen, setMobileResultOpen] = useState(false);
   const [cartCount, setCartCount] = useState(0);
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
@@ -321,6 +329,20 @@ function Header() {
     };
   }, [loadFavorites]);
 
+  useEffect(() => {
+    const handleGlobalKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        if (searchRef.current) {
+          const input = searchRef.current.querySelector('input');
+          if(input) input.focus();
+        }
+      }
+    };
+    window.addEventListener("keydown", handleGlobalKeyDown);
+    return () => window.removeEventListener("keydown", handleGlobalKeyDown);
+  }, []);
+
   const goToCategory = (category) => {
     navigate(`/products?category=${category.id}`);
     setCategoryOpen(false);
@@ -416,10 +438,49 @@ function Header() {
     return () => clearTimeout(timer);
   }, [mobileKeyword, searchProducts]);
 
+  const saveRecentSearch = (kw) => {
+    const trimmed = kw.trim();
+    if (!trimmed) return;
+    setRecentSearches((prev) => {
+      const filtered = prev.filter((s) => s.toLowerCase() !== trimmed.toLowerCase());
+      const updated = [trimmed, ...filtered].slice(0, 5);
+      localStorage.setItem("recent_searches", JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const handleSearchKeyDown = (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      if (focusedResultIndex >= 0 && keyword && searchResults.length > 0) {
+        if (focusedResultIndex < searchResults.length) {
+          goToProductDetail(searchResults[focusedResultIndex].id, false, keyword);
+        } else {
+          goToSearchPage(keyword);
+        }
+      } else if (focusedResultIndex >= 0 && !keyword && recentSearches.length > 0) {
+        goToSearchPage(recentSearches[focusedResultIndex]);
+      } else {
+        goToSearchPage(keyword);
+      }
+    } else if (e.key === "ArrowDown") {
+      e.preventDefault();
+      const maxIndex = keyword ? searchResults.length : recentSearches.length - 1;
+      setFocusedResultIndex((prev) => Math.min(prev + 1, maxIndex));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setFocusedResultIndex((prev) => Math.max(prev - 1, -1));
+    } else if (e.key === "Escape") {
+      setSearchOpen(false);
+      setFocusedResultIndex(-1);
+    }
+  };
+
   const goToSearchPage = (value, isMobile = false) => {
     const trimmed = value.trim();
     if (!trimmed) return;
-
+    
+    saveRecentSearch(trimmed);
     navigate(`/products?keyword=${encodeURIComponent(trimmed)}`);
 
     if (isMobile) {
@@ -431,7 +492,8 @@ function Header() {
     }
   };
 
-  const goToProductDetail = (productId, isMobile = false) => {
+  const goToProductDetail = (productId, isMobile = false, searchKw = "") => {
+    if (searchKw) saveRecentSearch(searchKw);
     navigate(`/products/${productId}`);
     if (isMobile) {
       setMobileResultOpen(false);
@@ -523,7 +585,20 @@ function Header() {
     }
   };
 
-  const renderSearchItem = (item, isMobile = false) => {
+  const highlightText = (text, highlight) => {
+    if (!highlight || !highlight.trim()) return <span>{text}</span>;
+    const regex = new RegExp(`(${highlight})`, 'gi');
+    const parts = text.split(regex);
+    return (
+      <span>
+        {parts.map((part, i) => 
+          regex.test(part) ? <span key={i} className="text-amber-600 font-bold bg-amber-50 rounded px-0.5">{part}</span> : <span key={i}>{part}</span>
+        )}
+      </span>
+    );
+  };
+
+  const renderSearchItem = (item, isMobile = false, kw = "", isFocused = false) => {
     const itemImages = Array.isArray(item.images) ? item.images : [];
     const itemSizes = Array.isArray(item.sizes) ? item.sizes : [];
 
@@ -537,8 +612,9 @@ function Header() {
       <button
         key={item.id}
         type="button"
-        onClick={() => goToProductDetail(item.id, isMobile)}
-        className="w-full flex items-center gap-3 px-3 py-3 hover:bg-amber-50 transition text-left"
+        onMouseEnter={() => !isMobile && setFocusedResultIndex(-1)}
+        onClick={() => goToProductDetail(item.id, isMobile, kw)}
+        className={`w-full flex items-center gap-3 px-3 py-3 transition text-left ${isFocused ? 'bg-amber-50 rounded-lg mx-2 w-[calc(100%-16px)] my-1' : 'hover:bg-amber-50 rounded-lg mx-2 w-[calc(100%-16px)] my-1'}`}
       >
         <img
           src={image}
@@ -548,7 +624,7 @@ function Header() {
 
         <div className="min-w-0 flex-1">
           <p className="text-sm font-medium text-gray-900 line-clamp-2">
-            {item.name}
+            {highlightText(item.name, kw)}
           </p>
           <p className="text-xs text-gray-500 mt-1">
             {item.category_name || "Danh mục"}
@@ -579,33 +655,79 @@ function Header() {
 
         <div className="flex-1 mx-2 sm:mx-4 lg:mx-8 hidden md:flex">
           <div className="w-full relative" ref={searchRef}>
-            <Input
-              type="text"
-              value={keyword}
-              onChange={(e) => setKeyword(e.target.value)}
-              onFocus={() => {
-                if (searchResults.length > 0) setSearchOpen(true);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  goToSearchPage(keyword);
-                }
-              }}
-              placeholder={text || "Tìm kiếm sản phẩm..."}
-              className="w-full rounded-full py-2 pl-4 pr-12 bg-gray-50 border border-gray-200 focus:border-amber-500 focus:bg-white transition"
-            />
+            <div className="relative">
+              <Input
+                type="text"
+                value={keyword}
+                onChange={(e) => {
+                  setKeyword(e.target.value);
+                  setFocusedResultIndex(-1);
+                }}
+                onFocus={() => {
+                  setSearchOpen(true);
+                  if (keyword && searchResults.length > 0) setFocusedResultIndex(-1);
+                }}
+                onKeyDown={handleSearchKeyDown}
+                placeholder={text || "Tìm kiếm sản phẩm..."}
+                className="w-full rounded-full py-2 pl-4 pr-24 bg-gray-50 border border-gray-200 focus:border-amber-500 focus:bg-white transition"
+              />
 
-            <button
-              type="button"
-              onClick={() => goToSearchPage(keyword)}
-              className="absolute right-2 top-1/2 -translate-y-1/2 bg-primary text-white p-2 rounded-full hover:bg-primary/90 transition"
-            >
-              <Search className="w-4 h-4" />
-            </button>
+              {!keyword && (
+                <div className="absolute right-12 top-1/2 -translate-y-1/2 pointer-events-none hidden lg:flex space-x-1 items-center bg-gray-200 px-1.5 py-0.5 rounded text-[10px] font-medium text-gray-500">
+                  <span>Ctrl</span><span>K</span>
+                </div>
+              )}
+
+              {keyword && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setKeyword("");
+                    setFocusedResultIndex(-1);
+                    const input = searchRef.current?.querySelector('input');
+                    if(input) input.focus();
+                  }}
+                  className="absolute right-12 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={() => goToSearchPage(keyword)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 bg-primary text-white p-2 rounded-full hover:bg-primary/90 transition"
+              >
+                <Search className="w-4 h-4" />
+              </button>
+            </div>
 
             {searchOpen && (
               <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-2xl shadow-xl overflow-hidden z-50">
-                {searchLoading ? (
+                {!keyword ? (
+                  recentSearches.length > 0 ? (
+                    <div className="py-2">
+                       <div className="flex justify-between items-center px-4 py-2 border-b border-gray-50">
+                          <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Tìm kiếm gần đây</span>
+                          <button onClick={() => setRecentSearches([])} className="text-xs text-amber-600 hover:text-amber-700">Xóa</button>
+                       </div>
+                       <ul className="py-1">
+                         {recentSearches.map((kw, idx) => (
+                           <li key={idx}>
+                             <button
+                               onClick={() => goToSearchPage(kw)}
+                               onMouseEnter={() => setFocusedResultIndex(-1)}
+                               className={`w-[calc(100%-16px)] mx-2 rounded-lg text-left px-4 py-2.5 text-sm flex items-center gap-2 transition ${focusedResultIndex === idx ? 'bg-amber-50' : 'hover:bg-amber-50'}`}
+                             >
+                               <Search className="w-3.5 h-3.5 text-gray-400" />
+                               <span className="text-gray-700">{kw}</span>
+                             </button>
+                           </li>
+                         ))}
+                       </ul>
+                    </div>
+                  ) : null
+                ) : searchLoading ? (
                   <div className="flex items-center justify-center py-6 text-gray-500">
                     <Loader2 className="w-5 h-5 animate-spin mr-2" />
                     Đang tìm kiếm...
@@ -615,16 +737,17 @@ function Header() {
                     Không tìm thấy sản phẩm phù hợp
                   </div>
                 ) : (
-                  <>
-                    {searchResults.map((item) => renderSearchItem(item))}
+                  <div className="py-2">
+                    {searchResults.map((item, idx) => renderSearchItem(item, false, keyword, idx === focusedResultIndex))}
                     <button
                       type="button"
+                      onMouseEnter={() => setFocusedResultIndex(-1)}
                       onClick={() => goToSearchPage(keyword)}
-                      className="w-full px-4 py-3 text-sm text-center text-amber-600 border-t border-gray-100 hover:bg-amber-50"
+                      className={`w-[calc(100%-16px)] mx-2 mt-1 rounded-lg px-4 py-3 text-sm text-center transition ${focusedResultIndex === searchResults.length ? 'bg-amber-50 text-amber-700 font-semibold border-transparent' : 'border border-gray-100 text-amber-600 hover:bg-amber-50'}`}
                     >
                       Xem tất cả kết quả cho "{keyword.trim()}"
                     </button>
-                  </>
+                  </div>
                 )}
               </div>
             )}
