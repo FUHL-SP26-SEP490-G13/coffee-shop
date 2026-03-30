@@ -1,0 +1,38 @@
+[
+  {
+    "Field": "id",
+    "Type": "int"
+  },
+  {
+    "Field": "store_name",
+    "Type": "varchar(255)"
+  },
+  {
+    "Field": "address",
+    "Type": "varchar(255)"
+  },
+  {
+    "Field": "phone",
+    "Type": "varchar(50)"
+  },
+  {
+    "Field": "header_lines",
+    "Type": "json"
+  },
+  {
+    "Field": "footer_lines",
+    "Type": "json"
+  },
+  {
+    "Field": "logo_url",
+    "Type": "varchar(255)"
+  },
+  {
+    "Field": "is_active",
+    "Type": "tinyint(1)"
+  },
+  {
+    "Field": "updated_at",
+    "Type": "timestamp"
+  }
+]

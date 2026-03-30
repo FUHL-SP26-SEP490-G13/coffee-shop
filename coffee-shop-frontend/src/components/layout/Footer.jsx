@@ -5,7 +5,7 @@ import Logo from "/logo/Logo.png";
 import { useStoreHours } from "@/hooks/useStoreHours";
 
 function Footer() {
-  const { isOpen } = useStoreHours();
+  const { isOpen, storeSchedule } = useStoreHours();
 
   return (
     <footer className="mt-20 border-t border-border bg-card">
@@ -108,15 +108,9 @@ function Footer() {
             </h4>
             <div className="mt-4 space-y-3 text-sm text-muted-foreground dark:text-gray-400">
               <div className="flex justify-between border-b border-border/50 pb-2">
-                <span>Thứ 2 - Thứ 6</span>
+                <span>Trực truyến hàng ngày</span>
                 <span className="font-medium text-foreground">
-                  07:00 - 22:30
-                </span>
-              </div>
-              <div className="flex justify-between border-b border-border/50 pb-2">
-                <span>Thứ 7 - Chủ Nhật</span>
-                <span className="font-medium text-foreground">
-                  07:30 - 23:00
+                  {storeSchedule?.open || "07:00"} - {storeSchedule?.close || "22:30"}
                 </span>
               </div>
               <div className="flex justify-between pb-2">

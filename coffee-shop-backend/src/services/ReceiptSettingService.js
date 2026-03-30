@@ -10,6 +10,8 @@ class ReceiptSettingService {
       footer_lines: Array.isArray(data.footer_lines) ? data.footer_lines : [],
       logo_url: data.logo_url,
       is_active: data.is_active,
+      open_time: data.open_time,
+      close_time: data.close_time,
     };
   }
 

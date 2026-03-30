@@ -1,10 +1,34 @@
 import { useState, useEffect } from "react";
+import receiptSettingService from "../services/receiptSettingService";
 
 export function useStoreHours() {
   const [status, setStatus] = useState({
     isOpen: false,
     nextOpenMessage: "",
   });
+
+  const [storeSchedule, setStoreSchedule] = useState({
+    open: "07:00",
+    close: "22:30",
+  });
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const res = await receiptSettingService.getActive();
+        const data = res?.data;
+        if (data && data.open_time && data.close_time) {
+          setStoreSchedule({
+            open: data.open_time,
+            close: data.close_time,
+          });
+        }
+      } catch (error) {
+        console.error("Lỗi lấy giờ hoạt động:", error);
+      }
+    };
+    fetchSettings();
+  }, []);
 
   useEffect(() => {
     const parseTime = (timeStr) => {
@@ -13,25 +37,14 @@ export function useStoreHours() {
       return parseInt(h) + parseInt(m) / 60;
     };
 
-    const getDaySchedule = (dayIndex) => {
-      // 0 is Sunday, 1-5 is Mon-Fri, 6 is Saturday
-      if (dayIndex >= 1 && dayIndex <= 5) {
-        return { open: "07:00", close: "22:30" };
-      } else {
-        return { open: "07:30", close: "23:00" };
-      }
-    };
-
     const checkOpenStatus = () => {
       const now = new Date();
-      const day = now.getDay();
       const currentHour = now.getHours();
       const currentMinute = now.getMinutes();
       const currentTime = currentHour + currentMinute / 60;
 
-      const todaySchedule = getDaySchedule(day);
-      const openTime = parseTime(todaySchedule.open);
-      const closeTime = parseTime(todaySchedule.close);
+      const openTime = parseTime(storeSchedule.open);
+      const closeTime = parseTime(storeSchedule.close);
 
       let isShopOpen = false;
       let nextOpenMessage = "";
@@ -41,12 +54,9 @@ export function useStoreHours() {
       } else {
         isShopOpen = false;
         if (currentTime < openTime) {
-          nextOpenMessage = `Mở cửa hôm nay từ ${todaySchedule.open}`;
+          nextOpenMessage = `Mở cửa hôm nay từ ${storeSchedule.open}`;
         } else {
-          // It's past closing time, get tomorrow's schedule
-          const tomorrowDay = (day + 1) % 7;
-          const tomorrowSchedule = getDaySchedule(tomorrowDay);
-          nextOpenMessage = `Mở cửa ngày mai từ ${tomorrowSchedule.open}`;
+          nextOpenMessage = `Mở cửa ngày mai từ ${storeSchedule.open}`;
         }
       }
 
@@ -57,7 +67,7 @@ export function useStoreHours() {
     const interval = setInterval(checkOpenStatus, 60000); // Check every minute
 
     return () => clearInterval(interval);
-  }, []);
+  }, [storeSchedule]);
 
-  return status;
+  return { ...status, storeSchedule };
 }
