@@ -202,7 +202,9 @@ function Header() {
     try {
       const res = await categoryService.getAll({ with_count: true });
       const list = Array.isArray(res?.data) ? res.data : [];
-      setCategories(list);
+      // Lọc bỏ những danh mục không có sản phẩm (chỉ áp dụng trên thanh hiển thị)
+      const validCategories = list.filter(c => c.product_count === undefined || Number(c.product_count) > 0);
+      setCategories(validCategories);
     } catch (error) {
       console.error("Lỗi lấy danh mục:", error);
     }

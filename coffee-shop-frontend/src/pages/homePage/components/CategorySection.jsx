@@ -11,7 +11,8 @@ export default function CategorySection() {
       try {
         const res = await categoryService.getAll({ with_count: true });
         const list = Array.isArray(res?.data) ? res.data : [];
-        setCategories(list);
+        const validCategories = list.filter(c => c.product_count === undefined || Number(c.product_count) > 0);
+        setCategories(validCategories);
       } catch (error) {
         console.error("Lỗi tải danh mục:", error);
       }
