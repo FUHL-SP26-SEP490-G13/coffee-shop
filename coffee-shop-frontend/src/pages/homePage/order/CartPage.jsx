@@ -261,7 +261,7 @@ export default function CartPage() {
                                       className="flex items-center justify-between gap-3 text-sm text-gray-500 dark:text-gray-400"
                                     >
                                       <span className="break-words">
-                                        - {topping.name} x {topping.quantity} (
+                                        - {topping.name} (
                                         {Number(topping.price).toLocaleString(
                                           "vi-VN"
                                         )}
@@ -408,46 +408,6 @@ export default function CartPage() {
                                         </p>
                                       </div>
                                     </label>
-
-                                    {checked && (
-                                      <div className="flex items-center gap-2 shrink-0">
-                                        <button
-                                          type="button"
-                                          onClick={() =>
-                                            updateToppingQuantityForItem(
-                                              item,
-                                              topping.id,
-                                              Number(
-                                                selectedTopping?.quantity || 1
-                                              ) - 1
-                                            )
-                                          }
-                                          className="w-8 h-8 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 dark:bg-gray-950"
-                                        >
-                                          -
-                                        </button>
-
-                                        <span className="min-w-[24px] text-center font-medium">
-                                          {selectedTopping?.quantity || 1}
-                                        </span>
-
-                                        <button
-                                          type="button"
-                                          onClick={() =>
-                                            updateToppingQuantityForItem(
-                                              item,
-                                              topping.id,
-                                              Number(
-                                                selectedTopping?.quantity || 1
-                                              ) + 1
-                                            )
-                                          }
-                                          className="w-8 h-8 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 dark:bg-gray-950"
-                                        >
-                                          +
-                                        </button>
-                                      </div>
-                                    )}
                                   </div>
                                 </div>
                               );

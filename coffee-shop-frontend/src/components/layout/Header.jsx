@@ -1055,7 +1055,7 @@ function Header() {
                                         key={topping.topping_id}
                                         className="text-[11px] text-gray-500 dark:text-gray-500"
                                       >
-                                        + {topping.name} x {topping.quantity}
+                                        + {topping.name}
                                       </p>
                                     ))}
                                   </div>

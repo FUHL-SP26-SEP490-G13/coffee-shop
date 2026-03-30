@@ -366,10 +366,9 @@ export default function MyOrderDetailPage() {
                                       key={topping.id || topping.topping_id}
                                       className="text-sm text-gray-600 dark:text-gray-400"
                                     >
-                                      + {topping.name} x {Number(topping.quantity || 0) * getItemQuantity(item)} (
+                                      + {topping.name} x {getItemQuantity(item)} (
                                       {(
                                         Number(topping.price || 0) *
-                                        Number(topping.quantity || 0) *
                                         getItemQuantity(item)
                                       ).toLocaleString("vi-VN")}
                                       đ)

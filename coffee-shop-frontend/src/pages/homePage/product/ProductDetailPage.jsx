@@ -770,44 +770,6 @@ export default function ProductDetailPage() {
                                 </p>
                               </div>
                             </label>
-
-                            {checked && (
-                              <div className="flex items-center gap-2 shrink-0">
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    updateToppingQuantity(
-                                      topping.id,
-                                      Math.max(
-                                        1,
-                                        Number(selectedTopping?.quantity || 1) -
-                                          1
-                                      )
-                                    )
-                                  }
-                                  className="w-8 h-8 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 dark:bg-gray-950"
-                                >
-                                  -
-                                </button>
-
-                                <span className="min-w-[24px] text-center font-medium">
-                                  {selectedTopping?.quantity || 1}
-                                </span>
-
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    updateToppingQuantity(
-                                      topping.id,
-                                      Number(selectedTopping?.quantity || 1) + 1
-                                    )
-                                  }
-                                  className="w-8 h-8 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 dark:bg-gray-950"
-                                >
-                                  +
-                                </button>
-                              </div>
-                            )}
                           </div>
                         </div>
                       );
@@ -827,15 +789,9 @@ export default function ProductDetailPage() {
                           key={item.topping_id}
                           className="flex items-center justify-between gap-3"
                         >
-                          <span>
-                            {item.name} x {item.quantity}
-                          </span>
+                          <span>{item.name}</span>
                           <span className="font-medium text-amber-600">
-                            +
-                            {(
-                              Number(item.price) * Number(item.quantity)
-                            ).toLocaleString("vi-VN")}
-                            đ
+                            +{Number(item.price).toLocaleString("vi-VN")}đ
                           </span>
                         </div>
                       ))}
