@@ -1,4 +1,6 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState, useEffect } from "react";
+import { ArrowUp } from "lucide-react";
+import FadeInView from "@/components/common/FadeInView";
 import useFetch from "../../hooks/useFetch";
 import productService from "@/services/productService";
 import bannerService from "../../services/bannerService";
@@ -10,6 +12,7 @@ import CategorySection from "./components/CategorySection";
 import BestSellerSection from "./components/BestSellerSection";
 import IntroVideoSection from "./components/IntroVideoSection";
 import ReviewSection from "./components/ReviewSection";
+import InstagramFeedSection from "./components/InstagramFeedSection";
 import "swiper/css";
 import "swiper/css/pagination";
 import "swiper/css/navigation";
@@ -19,6 +22,19 @@ import AiAssistantWidget from "@/components/layout/AiAssistantWidget";
 
 export default function HomePage() {
   const [activeBannerIndex, setActiveBannerIndex] = useState(0);
+  const [showScrollTop, setShowScrollTop] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowScrollTop(window.scrollY > 300);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   const fetchProducts = useCallback(() => {
     return productService.getBestSellers({ limit: 8 });
@@ -29,6 +45,8 @@ export default function HomePage() {
   const products = useMemo(() => {
     return Array.isArray(data?.data) ? data.data : [];
   }, [data]);
+
+
 
   const fetchBanners = useCallback(() => {
     return bannerService.getActiveList();
@@ -82,43 +100,77 @@ export default function HomePage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-white">
+    <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900 dark:border-gray-800">
       <Header />
 
-      <HomeBanner
-        banners={banners}
-        activeBannerIndex={activeBannerIndex}
-        setActiveBannerIndex={setActiveBannerIndex}
-        defaultImage={defaultImage}
-      />
+      <FadeInView delay={0} duration={1200}>
+        <HomeBanner
+          banners={banners}
+          activeBannerIndex={activeBannerIndex}
+          setActiveBannerIndex={setActiveBannerIndex}
+          defaultImage={defaultImage}
+        />
+      </FadeInView>
 
-      <FlashSaleSection 
-        products={products}
-        getThumbnail={getThumbnail}
-        getDefaultCartSize={getDefaultCartSize}
-      />
+      <FadeInView>
+        <FlashSaleSection 
+          products={products}
+          getThumbnail={getThumbnail}
+          getDefaultCartSize={getDefaultCartSize}
+        />
+      </FadeInView>
 
-      <DiscountSection />
+      <FadeInView>
+        <DiscountSection />
+      </FadeInView>
 
-      <BestSellerSection
-        loading={loading}
-        products={products}
-        getThumbnail={getThumbnail}
-        getDisplayPrice={getDisplayPrice}
-      />
+      <FadeInView>
+        <BestSellerSection
+          loading={loading}
+          products={products}
+          getThumbnail={getThumbnail}
+          getDisplayPrice={getDisplayPrice}
+        />
+      </FadeInView>
 
-      <div className="w-full h-px bg-gradient-to-r from-transparent via-amber-300 to-transparent" />
+      <FadeInView delay={200}>
+        <div className="w-full h-px bg-gradient-to-r from-transparent via-amber-300 to-transparent" />
+      </FadeInView>
 
-      <IntroVideoSection videoId="eDyD7y3M_c0" />
+      <FadeInView>
+        <IntroVideoSection videoId="eDyD7y3M_c0" />
+      </FadeInView>
 
-      <CategorySection />
+      <FadeInView>
+        <CategorySection />
+      </FadeInView>
 
-      <ReviewSection />
+      <FadeInView>
+        <ReviewSection />
+      </FadeInView>
 
-      <FeaturedNews />
+      <FadeInView>
+        <FeaturedNews />
+      </FadeInView>
+      
+      <FadeInView>
+        <InstagramFeedSection />
+      </FadeInView>
+      
       <Footer />
       
       <AiAssistantWidget />
+
+      {/* Scroll to Top Button */}
+      <button
+        onClick={scrollToTop}
+        className={`fixed bottom-24 right-6 p-3 bg-amber-600 hover:bg-amber-700 text-white rounded-full shadow-lg shadow-amber-900/20 z-40 transition-all duration-300 ${
+          showScrollTop ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0 pointer-events-none"
+        }`}
+        title="Cuộn lên đầu trang"
+      >
+        <ArrowUp className="w-6 h-6" />
+      </button>
 
       <style>{`
         @keyframes fadeInUp {

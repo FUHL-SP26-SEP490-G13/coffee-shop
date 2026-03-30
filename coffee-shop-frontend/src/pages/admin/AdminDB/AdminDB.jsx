@@ -169,12 +169,6 @@ export default function AdminDB() {
           </p>
         </Card>
 
-        <Card className="p-6">
-          <h3 className="text-sm text-muted-foreground">Email đăng ký</h3>
-          <p className="text-2xl font-bold text-purple-600">
-            {overview.totalNewsletterSubscribers}
-          </p>
-        </Card>
       </div>
 
       {/* Chart + Top products */}

@@ -136,6 +136,10 @@ export const API_ENDPOINTS = {
     SCHEDULE: '/shifts/schedule',
     MY_SCHEDULE: '/shifts/schedule/me',
   },
+  APP_SETTINGS: {
+    BASE: '/settings',
+    ADMIN: '/settings/admin'
+  }
 };
 
 // Các hằng số khác

@@ -31,16 +31,16 @@ export default function CategorySection() {
   if (categories.length === 0) return null;
 
   return (
-    <section className="py-16 bg-[#F8F5F0]">
+    <section className="py-16 bg-[#F8F5F0] dark:bg-[#1a1614]">
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
         <div className="flex flex-col sm:flex-row justify-between items-center mb-10 md:mb-12 gap-4">
-          <h5 className="text-xl md:text-3xl font-semibold text-gray-900" style={{ fontFamily: 'serif' }}>
+          <h5 className="text-xl md:text-3xl font-semibold text-gray-900 dark:text-gray-100" style={{ fontFamily: 'serif' }}>
             Danh mục sản  phẩm
           </h5>
           {categories.length > 8 && (
             <Link
               to="/products"
-              className="text-amber-700 hover:text-amber-800 font-medium text-sm border-b border-amber-700/30 hover:border-amber-700 transition-colors pb-0.5"
+              className="text-amber-700 dark:text-amber-300 hover:text-amber-800 dark:text-amber-400 font-medium text-sm border-b border-amber-700/30 hover:border-amber-700 transition-colors pb-0.5"
             >
               Xem tất cả danh mục &rarr;
             </Link>
@@ -55,9 +55,9 @@ export default function CategorySection() {
               <Link
                 to={`/products?category=${category.id}`}
                 key={category.id}
-                className="group bg-[#FAF9F6] rounded-2xl p-6 text-center shadow-sm hover:shadow-md transition-all duration-300 border border-transparent hover:border-amber-200"
+                className="group bg-[#FAF9F6] dark:bg-[#252220] rounded-2xl p-6 text-center shadow-sm hover:shadow-md transition-all duration-300 border border-transparent hover:border-amber-200"
               >
-                <div className="mx-auto w-16 h-16 bg-[#F2EDE4] rounded-full flex items-center justify-center mb-4 group-hover:bg-[#E8DFD3] transition-colors overflow-hidden">
+                <div className="mx-auto w-16 h-16 bg-[#F2EDE4] dark:bg-[#322d2b] rounded-full flex items-center justify-center mb-4 group-hover:bg-[#E8DFD3] dark:hover:bg-[#453e3b] transition-colors overflow-hidden">
                   {category.image_url ? (
                     <img 
                       src={category.image_url} 
@@ -73,14 +73,14 @@ export default function CategorySection() {
                   ) : null}
                   
                   <Icon 
-                    className={`w-8 h-8 text-[#5C3D2E] ${category.image_url ? 'hidden' : 'block'}`} 
+                    className={`w-8 h-8 text-[#5C3D2E] dark:text-[#E2C3A5] ${category.image_url ? 'hidden' : 'block'}`} 
                     strokeWidth={1.5} 
                   />
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2" style={{ fontFamily: 'serif' }}>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2" style={{ fontFamily: 'serif' }}>
                   {category.name}
                 </h3>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-gray-500 dark:text-gray-400">
                   {category.product_count || 0} sản phẩm
                 </p>
               </Link>
@@ -92,7 +92,7 @@ export default function CategorySection() {
           <div className="mt-10 text-center sm:hidden">
             <Link
               to="/products"
-              className="inline-block px-6 py-3 bg-amber-100 text-amber-800 rounded-full font-medium text-sm active:bg-amber-200 transition-colors"
+              className="inline-block px-6 py-3 bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-400 rounded-full font-medium text-sm active:bg-amber-200 transition-colors"
             >
               Xem tất cả danh mục
             </Link>

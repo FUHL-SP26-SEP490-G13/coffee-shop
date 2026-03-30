@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 
 function CartBar({ count, onClick }) {
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-20 bg-white/95 border-t shadow-lg px-4 py-3 flex items-center justify-between max-w-lg mx-auto w-full">
+    <div className="fixed bottom-0 left-0 right-0 z-20 bg-white dark:bg-gray-900/95 border-t shadow-lg px-4 py-3 flex items-center justify-between max-w-lg mx-auto w-full">
       <div className="flex items-center gap-2">
         <span className="inline-flex items-center justify-center rounded-full bg-primary text-white w-8 h-8 text-lg font-bold">
           🛒
@@ -85,15 +85,15 @@ export default function OrderQRMenu() {
   };
 
   return (
-    <div className="max-w-lg mx-auto min-h-screen bg-white flex flex-col pb-24">
+    <div className="max-w-lg mx-auto min-h-screen bg-white dark:bg-gray-900 flex flex-col pb-24">
       {/* HEADER + CATEGORY */}
-      <header className="sticky top-0 z-10 bg-white border-b py-4 px-4 shadow-sm">
+      <header className="sticky top-0 z-10 bg-white dark:bg-gray-900 border-b py-4 px-4 shadow-sm">
         <h1 className="text-xl font-bold text-center mb-2">Menu bàn {tableId}</h1>
         {/* CATEGORY SCROLL */}
         <div className="overflow-x-auto hide-scrollbar -mx-4 px-4 pb-1">
           <div className="flex gap-2 w-max">
             <button
-              className={`px-4 py-2 rounded-full border font-semibold whitespace-nowrap transition ${selectedCategory === 'all' ? 'bg-primary text-white border-primary' : 'bg-gray-100 text-gray-700 border-gray-200 hover:bg-primary/10'}`}
+              className={`px-4 py-2 rounded-full border font-semibold whitespace-nowrap transition ${selectedCategory === 'all' ? 'bg-primary text-white border-primary' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:bg-primary/10'}`}
               onClick={() => setSelectedCategory('all')}
             >
               Tất cả
@@ -101,7 +101,7 @@ export default function OrderQRMenu() {
             {categories.map(cat => (
               <button
                 key={cat.id || cat._id}
-                className={`px-4 py-2 rounded-full border font-semibold whitespace-nowrap transition ${selectedCategory === (cat.id || cat._id) ? 'bg-primary text-white border-primary' : 'bg-gray-100 text-gray-700 border-gray-200 hover:bg-primary/10'}`}
+                className={`px-4 py-2 rounded-full border font-semibold whitespace-nowrap transition ${selectedCategory === (cat.id || cat._id) ? 'bg-primary text-white border-primary' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:bg-primary/10'}`}
                 onClick={() => setSelectedCategory(cat.id || cat._id)}
               >
                 {cat.name}
@@ -179,7 +179,7 @@ export default function OrderQRMenu() {
       {/* CART MODAL */}
       {showCart && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="bg-white w-full max-w-lg mx-auto rounded-2xl shadow-2xl border border-gray-200 p-6 animate-in slide-in-from-bottom-10 fade-in relative">
+          <div className="bg-white dark:bg-gray-900 w-full max-w-lg mx-auto rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 p-6 animate-in slide-in-from-bottom-10 fade-in relative">
             <button onClick={() => setShowCart(false)} className="absolute top-3 right-3 text-2xl text-gray-400 hover:text-red-500 transition">&times;</button>
             <h2 className="font-bold text-xl mb-4 text-center tracking-tight">🛒 Giỏ hàng</h2>
             <div className="divide-y divide-gray-200 max-h-[60vh] overflow-y-auto mb-4">
@@ -203,7 +203,7 @@ export default function OrderQRMenu() {
                             sel.map((s, i) => i === idx ? { ...s, size } : s)
                           );
                         }}
-                        className="block w-full border border-gray-300 rounded-lg px-3 py-2 my-2 focus:outline-none focus:ring-2 focus:ring-primary"
+                        className="block w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 my-2 focus:outline-none focus:ring-2 focus:ring-primary"
                       >
                         <option value="" disabled>Chọn size</option>
                         {sizes.map(sz => (
@@ -221,7 +221,7 @@ export default function OrderQRMenu() {
                           return (
                             <label
                               key={tp.id}
-                              className="flex items-center gap-2 text-sm border rounded-lg px-2 py-1 cursor-pointer hover:bg-gray-50 box-border w-full"
+                              className="flex items-center gap-2 text-sm border rounded-lg px-2 py-1 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 dark:bg-gray-950 box-border w-full"
                               style={{ minWidth: 0 }}
                             >
                               <input
@@ -259,7 +259,7 @@ export default function OrderQRMenu() {
                           sel.map((s, i) => i === idx ? { ...s, note: e.target.value } : s)
                         );
                       }}
-                      className="block w-full border border-gray-300 rounded-lg px-3 py-2 my-2 focus:outline-none focus:ring-2 focus:ring-primary"
+                      className="block w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 my-2 focus:outline-none focus:ring-2 focus:ring-primary"
                     />
                   </div>
                 );
@@ -314,14 +314,14 @@ export default function OrderQRMenu() {
       {/* WARNING MODAL */}
       {warningMessage && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
-          <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl p-6 text-center animate-in zoom-in-95">
+          <div className="bg-white dark:bg-gray-900 w-full max-w-sm rounded-2xl shadow-2xl p-6 text-center animate-in zoom-in-95">
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-100 mb-4">
               <svg className="h-10 w-10 text-red-500" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
               </svg>
             </div>
-            <h3 className="text-xl font-bold text-gray-900 mb-2">Chú ý</h3>
-            <p className="text-gray-600 mb-6">{warningMessage}</p>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">Chú ý</h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">{warningMessage}</p>
             <Button 
               className="w-full py-3 rounded-full text-base font-bold bg-primary text-white hover:bg-primary/90" 
               onClick={() => setWarningMessage("")}

@@ -137,6 +137,34 @@ class ProductRepository extends BaseRepository {
     }));
   }
 
+  buildAdvancedCondition(options) {
+    let sql = "";
+    const params = [];
+    const { min_price, max_price, size } = options || {};
+
+    if (min_price !== undefined || max_price !== undefined || size !== undefined) {
+      sql += ` AND EXISTS (
+        SELECT 1 FROM product_sizes ps
+        WHERE ps.product_id = p.id
+          AND ps.is_deleted = 0`;
+      
+      if (size !== undefined && size !== "") {
+        sql += ` AND ps.size = ?`;
+        params.push(size);
+      }
+      if (min_price !== undefined && min_price !== "") {
+        sql += ` AND ps.price >= ?`;
+        params.push(parseInt(min_price));
+      }
+      if (max_price !== undefined && max_price !== "") {
+        sql += ` AND ps.price <= ?`;
+        params.push(parseInt(max_price));
+      }
+      sql += `)`;
+    }
+    return { sql, params };
+  }
+
   async findAllWithDetails(conditions = {}, options = {}) {
     const { limit, offset, sort } = options;
 
@@ -155,6 +183,10 @@ class ProductRepository extends BaseRepository {
       query += ` AND p.${key} = ?`;
       params.push(conditions[key]);
     });
+
+    const advanced = this.buildAdvancedCondition(options);
+    query += advanced.sql;
+    params.push(...advanced.params);
 
     query += ` ${this.buildSortClause(sort)}`;
 
@@ -183,6 +215,10 @@ class ProductRepository extends BaseRepository {
 
     const params = [categoryId, status];
 
+    const advanced = this.buildAdvancedCondition(options);
+    query += advanced.sql;
+    params.push(...advanced.params);
+
     query += ` ${this.buildSortClause(sort)}`;
 
     if (limit) {
@@ -194,8 +230,10 @@ class ProductRepository extends BaseRepository {
     return this.attachSizesAndImages(products);
   }
 
-  async countByCategory(categoryId, status = "available") {
-    const query = `
+  async countByCategory(categoryId, options = {}) {
+    const { status = "available" } = options;
+
+    let query = `
       SELECT COUNT(*) as total 
       FROM products p
       WHERE p.category_id = ?
@@ -203,7 +241,13 @@ class ProductRepository extends BaseRepository {
         AND p.is_deleted = 0
     `;
 
-    const [rows] = await db.query(query, [categoryId, status]);
+    const params = [categoryId, status];
+
+    const advanced = this.buildAdvancedCondition(options);
+    query += advanced.sql;
+    params.push(...advanced.params);
+
+    const [rows] = await db.query(query, params);
     return rows[0].total;
   }
 
@@ -231,6 +275,10 @@ class ProductRepository extends BaseRepository {
       query += ` AND p.status = ?`;
       params.push(status);
     }
+
+    const advanced = this.buildAdvancedCondition(options);
+    query += advanced.sql;
+    params.push(...advanced.params);
 
     query += ` ${this.buildSortClause(sort)} LIMIT ? OFFSET ?`;
     params.push(parseInt(limit), parseInt(offset));
@@ -261,11 +309,15 @@ class ProductRepository extends BaseRepository {
       params.push(status);
     }
 
+    const advanced = this.buildAdvancedCondition(options);
+    query += advanced.sql;
+    params.push(...advanced.params);
+
     const [rows] = await db.query(query, params);
     return rows[0].total;
   }
 
-  async countAll(conditions = {}) {
+  async countAll(conditions = {}, options = {}) {
     let query = `
       SELECT COUNT(*) as total
       FROM products p
@@ -278,6 +330,10 @@ class ProductRepository extends BaseRepository {
       query += ` AND p.${key} = ?`;
       params.push(conditions[key]);
     });
+
+    const advanced = this.buildAdvancedCondition(options);
+    query += advanced.sql;
+    params.push(...advanced.params);
 
     const [rows] = await db.query(query, params);
     return rows[0].total;

@@ -96,11 +96,11 @@ export default function AiAssistantWidget() {
     <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
       {/* Chat Window */}
       {isOpen && (
-        <div className="w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-amber-100 overflow-hidden mb-4 flex flex-col transition-all duration-300 origin-bottom-right animate-in zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:zoom-out-95">
+        <div className="w-80 sm:w-96 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-amber-100 overflow-hidden mb-4 flex flex-col transition-all duration-300 origin-bottom-right animate-in zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:zoom-out-95">
           {/* Header */}
           <div className="bg-[#7B4B36] text-white p-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+              <div className="w-10 h-10 bg-white dark:bg-gray-900/20 rounded-full flex items-center justify-center">
                 <Bot className="w-6 h-6 text-amber-50" />
               </div>
               <div>
@@ -110,25 +110,25 @@ export default function AiAssistantWidget() {
             </div>
             <button 
               onClick={() => setIsOpen(false)}
-              className="p-2 hover:bg-white/10 rounded-full transition-colors"
+              className="p-2 hover:bg-white dark:bg-gray-900/10 rounded-full transition-colors"
             >
               <X className="w-5 h-5 text-amber-50" />
             </button>
           </div>
 
           {/* Messages Area */}
-          <div className="flex-1 p-4 overflow-y-auto max-h-[400px] min-h-[300px] bg-[#FAF9F6] custom-scrollbar">
+          <div className="flex-1 p-4 overflow-y-auto max-h-[400px] min-h-[300px] bg-[#FAF9F6] dark:bg-stone-900 custom-scrollbar">
             <div className="flex flex-col gap-4">
               {messages.map((msg) => (
                 <div 
                   key={msg.id} 
                   className={`flex items-start gap-2 max-w-[85%] ${msg.role === 'user' ? 'self-end flex-row-reverse' : 'self-start'}`}
                 >
-                  <div className={`w-8 h-8 rounded-full flex shrink-0 items-center justify-center ${msg.role === 'user' ? 'bg-amber-100/50' : 'bg-[#7B4B36]/10'}`}>
+                  <div className={`w-8 h-8 rounded-full flex shrink-0 items-center justify-center ${msg.role === 'user' ? 'bg-amber-100 dark:bg-amber-900/30/50' : 'bg-[#7B4B36]/10'}`}>
                     {msg.role === 'user' ? (
-                      <User className="w-4 h-4 text-amber-700" />
+                      <User className="w-4 h-4 text-amber-700 dark:text-amber-300" />
                     ) : (
-                      <Bot className={`w-5 h-5 ${msg.isError ? 'text-red-500' : 'text-[#7B4B36]'} `} />
+                      <Bot className={`w-5 h-5 ${msg.isError ? 'text-red-500' : 'text-[#7B4B36] dark:text-[#E2C3A5]'} `} />
                     )}
                   </div>
                   <div className={`
@@ -137,7 +137,7 @@ export default function AiAssistantWidget() {
                       ? 'bg-[#7B4B36] text-white rounded-tr-sm' 
                       : msg.isError 
                         ? 'bg-red-50 text-red-600 rounded-tl-sm border border-red-100'
-                        : 'bg-white text-gray-800 rounded-tl-sm border border-gray-100 shadow-sm'
+                        : 'bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 rounded-tl-sm border border-gray-100 dark:border-gray-800 shadow-sm'
                     }
                   `}>
                     {msg.text}
@@ -148,9 +148,9 @@ export default function AiAssistantWidget() {
               {isLoading && (
                 <div className="flex items-start gap-2 max-w-[85%] self-start">
                   <div className="w-8 h-8 rounded-full bg-[#7B4B36]/10 flex shrink-0 items-center justify-center">
-                    <Bot className="w-5 h-5 text-[#7B4B36]" />
+                    <Bot className="w-5 h-5 text-[#7B4B36] dark:text-[#E2C3A5]" />
                   </div>
-                  <div className="px-4 py-3 bg-white text-gray-800 rounded-2xl rounded-tl-sm border border-gray-100 shadow-sm flex items-center gap-1.5">
+                  <div className="px-4 py-3 bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 rounded-2xl rounded-tl-sm border border-gray-100 dark:border-gray-800 shadow-sm flex items-center gap-1.5">
                     <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
                     <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
                     <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
@@ -163,12 +163,12 @@ export default function AiAssistantWidget() {
 
           {/* Quick Replies (Only show if last msg is from AI) */}
           {!isLoading && messages[messages.length - 1].role === 'ai' && (
-            <div className="px-4 py-2 bg-[#FAF9F6] flex flex-wrap gap-2">
+            <div className="px-4 py-2 bg-[#FAF9F6] dark:bg-stone-900 flex flex-wrap gap-2">
               {quickReplies.map((reply, i) => (
                 <button
                   key={i}
                   onClick={() => handleSend(reply)}
-                  className="px-3 py-1.5 bg-white border border-amber-200 text-[#7B4B36] text-xs rounded-full hover:bg-amber-50 active:bg-amber-100 transition-colors whitespace-nowrap shadow-sm"
+                  className="px-3 py-1.5 bg-white dark:bg-gray-900 border border-amber-200 text-[#7B4B36] dark:text-[#E2C3A5] text-xs rounded-full hover:bg-amber-50 dark:hover:bg-amber-900/20 active:bg-amber-100 dark:active:bg-amber-900/30 transition-colors whitespace-nowrap shadow-sm"
                 >
                   {reply}
                 </button>
@@ -177,23 +177,23 @@ export default function AiAssistantWidget() {
           )}
 
           {/* Input Area */}
-          <div className="p-3 bg-white border-t border-gray-100">
+          <div className="p-3 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800">
             <form 
               onSubmit={(e) => { e.preventDefault(); handleSend(); }}
-              className="flex items-center gap-2 bg-gray-50 rounded-full pr-1 pl-4 rtl:pl-1 rtl:pr-4 focus-within:ring-1 focus-within:ring-[#7B4B36] focus-within:bg-white transition-all shadow-inner"
+              className="flex items-center gap-2 bg-gray-50 dark:bg-gray-950 rounded-full pr-1 pl-4 rtl:pl-1 rtl:pr-4 focus-within:ring-1 focus-within:ring-[#7B4B36] focus-within:bg-white dark:focus-within:bg-gray-900 transition-all shadow-inner"
             >
               <input
                 type="text"
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 placeholder="Nhập tin nhắn..."
-                className="flex-1 bg-transparent py-3 text-[14.5px] outline-none text-gray-800 placeholder:text-gray-400"
+                className="flex-1 bg-transparent py-3 text-[14.5px] outline-none text-gray-800 dark:text-gray-200 placeholder:text-gray-400"
                 disabled={isLoading}
               />
               <button 
                 type="submit" 
                 disabled={!inputValue.trim() || isLoading}
-                className="p-2 w-10 h-10 flex flex-shrink-0 items-center justify-center bg-[#7B4B36] text-white rounded-full hover:bg-[#683f2d] disabled:bg-gray-300 disabled:text-gray-500 transition-colors shadow-sm"
+                className="p-2 w-10 h-10 flex flex-shrink-0 items-center justify-center bg-[#7B4B36] text-white rounded-full hover:bg-[#683f2d] disabled:bg-gray-300 disabled:text-gray-500 dark:text-gray-400 transition-colors shadow-sm"
               >
                 {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4 translate-x-[-1px] translate-y-[1px]" />}
               </button>

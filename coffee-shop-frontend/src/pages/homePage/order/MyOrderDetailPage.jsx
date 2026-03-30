@@ -85,7 +85,7 @@ export default function MyOrderDetailPage() {
       case "cancelled":
         return "bg-red-100 text-red-700";
       default:
-        return "bg-gray-100 text-gray-700";
+        return "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300";
     }
   };
 
@@ -126,7 +126,7 @@ export default function MyOrderDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col bg-white">
+      <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900">
         <Header />
         <div className="flex-1 flex items-center justify-center">
           <Loader2 className="w-8 h-8 animate-spin text-amber-600" />
@@ -138,9 +138,9 @@ export default function MyOrderDetailPage() {
 
   if (!order) {
     return (
-      <div className="min-h-screen flex flex-col bg-white">
+      <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900">
         <Header />
-        <div className="flex-1 flex items-center justify-center text-gray-600">
+        <div className="flex-1 flex items-center justify-center text-gray-600 dark:text-gray-400">
           Không tìm thấy chi tiết đơn hàng
         </div>
         <Footer />
@@ -151,7 +151,7 @@ export default function MyOrderDetailPage() {
   const items = Array.isArray(order.items) ? order.items : [];
 
   return (
-    <div className="min-h-screen flex flex-col bg-white">
+    <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900">
       <Header />
 
       <section className="flex-1 w-full px-4 sm:px-6 lg:px-8 py-10">
@@ -165,17 +165,17 @@ export default function MyOrderDetailPage() {
             Quay lại đơn hàng
           </Button>
 
-          <div className="border rounded-2xl bg-white p-6 shadow-sm">
+          <div className="border rounded-2xl bg-white dark:bg-gray-900 p-6 shadow-sm">
             <div className="flex items-start justify-between gap-4 flex-wrap">
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
                   Đơn hàng #{order.id}
                 </h1>
 
-                <div className="mt-4 space-y-2 text-sm text-gray-600">
+                <div className="mt-4 space-y-2 text-sm text-gray-600 dark:text-gray-400">
                   <p>
                     Loại đơn:{" "}
-                    <span className="font-medium text-gray-900">
+                    <span className="font-medium text-gray-900 dark:text-gray-100">
                       {getOrderTypeLabel(order.order_type)}
                     </span>
                   </p>
@@ -193,8 +193,8 @@ export default function MyOrderDetailPage() {
 
                   <p>
                     Thanh toán:{" "}
-                    <span className="font-medium text-gray-900">
-                      {isPaidOrder
+                    <span className="font-medium text-gray-900 dark:text-gray-100">
+                      {Number(order.is_paid) === 1
                         ? "Đã thanh toán"
                         : "Chưa thanh toán"}
                     </span>
@@ -202,7 +202,7 @@ export default function MyOrderDetailPage() {
 
                   <p>
                     Ngày tạo:{" "}
-                    <span className="font-medium text-gray-900">
+                    <span className="font-medium text-gray-900 dark:text-gray-100">
                       {order.created_at
                         ? new Date(order.created_at).toLocaleString("vi-VN")
                         : "--"}
@@ -212,7 +212,7 @@ export default function MyOrderDetailPage() {
                   {order.payment_method && (
                     <p>
                       Phương thức thanh toán:{" "}
-                      <span className="font-medium text-gray-900">
+                      <span className="font-medium text-gray-900 dark:text-gray-100">
                         {order.payment_method === "cash" ? "Tiền mặt" : order.payment_method === "payos" ? "Chuyển khoản bằng mã QR với dịch vụ PayOS" : order.payment_method}
                       </span>
                     </p>
@@ -221,7 +221,7 @@ export default function MyOrderDetailPage() {
               </div>
 
               <div className="text-right">
-                <p className="text-sm text-gray-500">Tổng cộng</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Tổng cộng</p>
                 <p className="text-3xl font-bold text-amber-600">
                   {Number(order.total_amount || 0).toLocaleString("vi-VN")}đ
                 </p>
@@ -234,11 +234,11 @@ export default function MyOrderDetailPage() {
               order.address ||
               order.note) && (
               <div className="mt-8 border-t pt-6">
-                <h2 className="text-xl font-semibold text-gray-900 mb-4">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
                   Thông tin nhận hàng
                 </h2>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-700">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-700 dark:text-gray-300">
                   {order.receiver_name && (
                     <p>
                       Người nhận:{" "}
@@ -281,12 +281,12 @@ export default function MyOrderDetailPage() {
             )}
 
             <div className="mt-8 border-t pt-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
                 Sản phẩm đã đặt
               </h2>
 
               {items.length === 0 ? (
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-gray-500 dark:text-gray-400">
                   Đơn hàng chưa có sản phẩm
                 </p>
               ) : (
@@ -294,22 +294,22 @@ export default function MyOrderDetailPage() {
                   {items.map((item) => (
                     <div
                       key={item.id}
-                      className="border rounded-xl p-4 bg-gray-50"
+                      className="border rounded-xl p-4 bg-gray-50 dark:bg-gray-950"
                     >
                       <div className="flex items-start justify-between gap-4 flex-wrap">
                         <div className="flex items-start gap-4">
                           <img
                             src={item.image_url || defaultProductImage}
                             alt={item.name}
-                            className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl object-cover border border-gray-200 bg-white"
+                            className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl object-cover border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900"
                           />
 
                           <div>
-                          <p className="text-lg font-semibold text-gray-900">
+                          <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                             {item.name}
                           </p>
 
-                          <div className="mt-2 space-y-1 text-sm text-gray-600">
+                          <div className="mt-2 space-y-1 text-sm text-gray-600 dark:text-gray-400">
                             <p>Size: {item.size}</p>
                             <p>Số lượng: {item.quantity}</p>
                             <p>
@@ -321,7 +321,7 @@ export default function MyOrderDetailPage() {
                           {Array.isArray(item.toppings) &&
                             item.toppings.length > 0 && (
                               <div className="mt-3">
-                                <p className="text-sm font-medium text-gray-800 mb-1">
+                                <p className="text-sm font-medium text-gray-800 dark:text-gray-200 mb-1">
                                   Topping:
                                 </p>
 
@@ -329,7 +329,7 @@ export default function MyOrderDetailPage() {
                                   {item.toppings.map((topping) => (
                                     <p
                                       key={topping.id || topping.topping_id}
-                                      className="text-sm text-gray-600"
+                                      className="text-sm text-gray-600 dark:text-gray-400"
                                     >
                                       + {topping.name} x {topping.quantity} (
                                       {Number(topping.price).toLocaleString(
@@ -345,7 +345,7 @@ export default function MyOrderDetailPage() {
                         </div>
 
                         <div className="text-right">
-                          <p className="text-sm text-gray-500">Thành tiền</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">Thành tiền</p>
                           <p className="text-lg font-bold text-amber-600">
                             {(
                               Number(item.price || 0) *

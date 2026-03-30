@@ -1,26 +1,18 @@
 const express = require("express");
 const router = express.Router();
-const controller = require("../controllers/SubscriberController");
+
+const controller = require("../controllers/AppSettingController");
 const { authenticate } = require("../middlewares/auth");
 const { authorize } = require("../middlewares/authorize");
 const { ROLES_STRING } = require("../config/constants");
 
-// PUBLIC
-router.post("/", controller.subscribe.bind(controller));
+router.get("/", controller.getAll.bind(controller));
 
-// ADMIN
-router.get(
-  "/",
+router.put(
+  "/admin",
   authenticate,
   authorize([ROLES_STRING.MANAGER]),
-  controller.getAll.bind(controller)
-);
-
-router.delete(
-  "/:id",
-  authenticate,
-  authorize([ROLES_STRING.MANAGER]),
-  controller.delete.bind(controller)
+  controller.upsert.bind(controller)
 );
 
 module.exports = router;

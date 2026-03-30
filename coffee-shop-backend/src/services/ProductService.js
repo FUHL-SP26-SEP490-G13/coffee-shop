@@ -293,13 +293,13 @@ class ProductService {
     if (filters.status) conditions.status = filters.status;
     if (filters.category_id) conditions.category_id = filters.category_id;
 
-    return ProductRepository.countAll(conditions);
+    return ProductRepository.countAll(conditions, filters);
   }
 
   async countProductsByCategory(categoryId, options = {}) {
     return ProductRepository.countByCategory(
       categoryId,
-      options.status || 'available',
+      options
     );
   }
 
@@ -308,6 +308,9 @@ class ProductService {
       return this.countProducts({
         status: options.status,
         category_id: options.category_id,
+        min_price: options.min_price,
+        max_price: options.max_price,
+        size: options.size,
       });
     }
 

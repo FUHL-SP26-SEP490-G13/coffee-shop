@@ -26,9 +26,9 @@ export default function ReviewSection() {
   if (reviews.length === 0) return null;
 
   return (
-    <section className="py-16 lg:py-24 bg-[#EFE8D8] overflow-hidden">
+    <section className="py-16 lg:py-24 bg-[#EFE8D8] dark:bg-[#1f1b1a] overflow-hidden">
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
-        <h2 className="text-xl md:text-3xl font-semibold text-center text-gray-900 mb-12" style={{ fontFamily: 'serif' }}>
+        <h2 className="text-xl md:text-3xl font-semibold text-center text-gray-900 dark:text-gray-100 mb-12" style={{ fontFamily: 'serif' }}>
           Khách hàng nói gì
         </h2>
         <div className="relative review-swiper-container">
@@ -66,7 +66,7 @@ export default function ReviewSection() {
 
               return (
                 <SwiperSlide key={review.id} className="h-auto">
-                  <div className="bg-[#FAF9F6] rounded-2xl p-8 relative shadow-sm border border-transparent hover:border-amber-200 hover:shadow-md transition-all flex flex-col h-full mx-1 mt-1">
+                  <div className="bg-[#FAF9F6] dark:bg-[#252220] rounded-2xl p-8 relative shadow-sm border border-transparent hover:border-amber-200 hover:shadow-md transition-all flex flex-col h-full mx-1 mt-1">
                     <Quote className="absolute top-6 right-6 w-10 h-10 text-amber-900/5 rotate-180" />
                     
                     <div className="flex items-center gap-4 mb-5">
@@ -74,7 +74,7 @@ export default function ReviewSection() {
                         {initials}
                       </div>
                       <div>
-                        <h3 className="font-bold text-gray-900 text-base lg:text-lg">
+                        <h3 className="font-bold text-gray-900 dark:text-gray-100 text-base lg:text-lg">
                           {review.full_name || "Khách hàng"}
                         </h3>
                         <div className="flex gap-0.5 mt-1">
@@ -88,7 +88,7 @@ export default function ReviewSection() {
                       </div>
                     </div>
 
-                    <p className="text-sm md:text-base text-gray-600 leading-relaxed font-normal">
+                    <p className="text-sm md:text-base text-gray-600 dark:text-gray-400 leading-relaxed font-normal">
                       {review.comment}
                     </p>
                   </div>
