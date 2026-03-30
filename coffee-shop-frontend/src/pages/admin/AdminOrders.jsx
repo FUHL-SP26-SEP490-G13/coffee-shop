@@ -87,11 +87,6 @@ export default function AdminOrders() {
           label: "Đang chuẩn bị",
           color: "bg-blue-100 text-blue-800 border-blue-200",
         };
-      case "ready":
-        return {
-          label: "Chờ giao/Nhận",
-          color: "bg-indigo-100 text-indigo-800 border-indigo-200",
-        };
       case "completed":
         return {
           label: "Hoàn thành",
@@ -165,7 +160,6 @@ export default function AdminOrders() {
               <SelectItem value="all">Tất cả đơn hàng</SelectItem>
               <SelectItem value="pending">Chờ xác nhận</SelectItem>
               <SelectItem value="preparing">Đang chuẩn bị</SelectItem>
-              <SelectItem value="ready">Chờ giao/Nhận</SelectItem>
               <SelectItem value="completed">Hoàn thành</SelectItem>
               <SelectItem value="cancelled">Đã hủy</SelectItem>
             </SelectContent>
@@ -407,46 +401,56 @@ export default function AdminOrders() {
 
               <div className="p-6 space-y-6">
                 {/* Info Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4">
                   {/* Customer Info */}
                   <div className="rounded-xl border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-900 dark:border-gray-800 p-4 space-y-3 shadow-sm">
                     <div className="flex items-center gap-2 text-primary font-medium border-b border-gray-50 pb-2">
                       <User className="w-4 h-4" />
-                      Thông tin khách hàng
+                      Thông tin đơn hàng
                     </div>
-                    {selectedOrder.receiver_name ||
-                    selectedOrder.receiver_phone ? (
-                      <div className="space-y-2 text-sm">
-                        {selectedOrder.receiver_name && (
-                          <div className="flex justify-between">
-                            <span className="text-gray-500">Tên:</span>
-                            <span className="font-medium text-gray-900 dark:text-gray-100">
-                              {selectedOrder.receiver_name}
-                            </span>
-                          </div>
-                        )}
-                        {selectedOrder.receiver_phone && (
-                          <div className="flex justify-between">
-                            <span className="text-gray-500">SĐT:</span>
-                            <span className="font-medium text-gray-900 dark:text-gray-100">
-                              {selectedOrder.receiver_phone}
-                            </span>
-                          </div>
-                        )}
-                        {selectedOrder.receiver_email && (
-                          <div className="flex justify-between">
-                            <span className="text-gray-500">Email:</span>
-                            <span className="font-medium text-gray-900 dark:text-gray-100">
-                              {selectedOrder.receiver_email}
-                            </span>
-                          </div>
-                        )}
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Loại đơn:</span>
+                        <span className="font-medium text-gray-900">
+                          {getOrderTypeInfo(selectedOrder.order_type).label}
+                        </span>
                       </div>
-                    ) : (
-                      <span className="text-sm text-gray-400 italic">
-                        Không có thông tin
-                      </span>
-                    )}
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Trạng thái:</span>
+                        <span className="font-medium text-gray-900">
+                          {getStatusInfo(selectedOrder.status).label}
+                        </span>
+                      </div>
+                      {(selectedOrder.receiver_name ||
+                        selectedOrder.receiver_phone ||
+                        selectedOrder.receiver_email) && (
+                        <div className="pt-2 border-t border-dashed border-gray-100" />
+                      )}
+                      {selectedOrder.receiver_name && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-500">Tên nhận:</span>
+                          <span className="font-medium text-gray-900">
+                            {selectedOrder.receiver_name}
+                          </span>
+                        </div>
+                      )}
+                      {selectedOrder.receiver_phone && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-500">SĐT:</span>
+                          <span className="font-medium text-gray-900">
+                            {selectedOrder.receiver_phone}
+                          </span>
+                        </div>
+                      )}
+                      {selectedOrder.receiver_email && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-500">Email:</span>
+                          <span className="font-medium text-gray-900">
+                            {selectedOrder.receiver_email}
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   {/* Delivery Info */}

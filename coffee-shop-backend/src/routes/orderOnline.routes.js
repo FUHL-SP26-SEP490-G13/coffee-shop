@@ -14,12 +14,6 @@ const { ROLES_STRING } = require("../config/constants");
 
 const STAFF_CONFIRM_ROLES = [ROLES_STRING.STAFF, ROLES_STRING.MANAGER];
 
-router.get(
-  "/reputation-by-phone",
-  optionalAuth,
-  AsyncMiddleware(OrderOnlineController.getReputationByPhone)
-);
-
 router.post(
   "/validate-discount",
   optionalAuth,

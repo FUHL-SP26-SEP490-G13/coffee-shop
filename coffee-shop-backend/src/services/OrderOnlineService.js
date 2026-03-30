@@ -1,7 +1,10 @@
 const OrderRepository = require("../repositories/OrderRepository");
+const ReputationService = require("./ReputationService");
 const ErrorResponse = require("../utils/ErrorResponse");
 
 class OrderOnlineService {
+  static DELIVERY_SHIPPING_FEE = 20000;
+
   createBadRequestError(message) {
     const error = new Error(message);
     error.statusCode = 400;
@@ -21,29 +24,6 @@ class OrderOnlineService {
     }
 
     return onlyDigits;
-  }
-
-  // Lấy hồ sơ uy tín theo số điện thoại, tạo mới nếu chưa tồn tại
-  async getReputationByPhone(phoneNumber) {
-    const normalizedPhone = this.normalizePhoneNumber(phoneNumber);
-
-    if (!normalizedPhone || normalizedPhone.length < 10) {
-      throw new ErrorResponse(400, "Số điện thoại không hợp lệ");
-    }
-
-    const profile = await OrderRepository.findReputationProfileByPhone(normalizedPhone);
-
-    const score = Number(profile?.current_score ?? 50);
-
-    return {
-      phone_number: normalizedPhone,
-      current_score: score,
-      total_orders_completed: Number(profile?.total_orders_completed || 0),
-      total_orders_cancelled: Number(profile?.total_orders_cancelled || 0),
-      is_frozen: Number(profile?.is_frozen || 0) === 1,
-      updated_at: profile?.updated_at || null,
-      exists: Boolean(profile),
-    };
   }
 
   async calculateCartAmounts(connection, items) {
@@ -223,6 +203,10 @@ class OrderOnlineService {
       let totalAmount = cartTotals.totalAmount;
       let regularAmount = cartTotals.regularAmount;
       const normalizedItems = cartTotals.normalizedItems;
+      const shippingFee =
+        order_type === "delivery" ? OrderOnlineService.DELIVERY_SHIPPING_FEE : 0;
+
+      totalAmount += shippingFee;
 
       let discountAmount = 0;
       let discountCodeApplied = null;
@@ -372,13 +356,7 @@ class OrderOnlineService {
 
       // Tạo hồ sơ uy tín cho số điện thoại nếu là đơn giao hàng hoặc mang đi
       if (order_type !== "dine-in") {
-        const normalizedPhone = this.normalizePhoneNumber(receiver_phone);
-        if (normalizedPhone && normalizedPhone.length >= 10) {
-          await OrderRepository.createReputationProfileIfNotExists(
-            connection,
-            normalizedPhone
-          );
-        }
+        await ReputationService.ensureProfileForPhone(connection, receiver_phone);
       }
 
       if (discountIdApplied) {
@@ -390,6 +368,7 @@ class OrderOnlineService {
       return {
         order_id: orderId,
         subtotal_amount: totalAmount,
+        shipping_fee: shippingFee,
         discount_amount: discountAmount,
         discount_code: discountCodeApplied,
         total_amount: finalAmount,
@@ -530,65 +509,125 @@ class OrderOnlineService {
     };
   }
 
-  // Xác nhận đơn hàng đang chờ xử lý bởi nhân viên (chuyển sang trạng thái preparing)
-  async confirmDeliveryPreparing(orderId) {
+  async transitionOrderStatusByStaff(orderId, targetStatus, { cash_received } = {}) {
     const order = await OrderRepository.findOrderById(orderId);
 
     if (!order) {
       throw new ErrorResponse(404, "Đơn hàng không tồn tại");
     }
 
-    if (order.order_type !== "delivery") {
-      throw new ErrorResponse(400, "Chỉ áp dụng cho đơn giao hàng");
+    const currentStatus = String(order.status || "").toLowerCase();
+    const nextStatus = String(targetStatus || "").toLowerCase();
+    const isAlreadyPaid =
+      Number(order.is_paid) === 1 ||
+      String(order.payment_status || "").toLowerCase() === "paid";
+
+    if (!["preparing", "completed", "cancelled"].includes(nextStatus)) {
+      throw new ErrorResponse(400, "Trạng thái chuyển không hợp lệ");
     }
 
-    if (order.status !== "pending") {
-      throw new ErrorResponse(400, "Chỉ xác nhận đơn đang chờ xử lý");
+    if (nextStatus === "preparing") {
+      const customerType = String(order.customer_type || "").toLowerCase();
+      const isCustomerOrder =
+        ["registered", "guest", "customer"].includes(customerType) ||
+        customerType === "";
+      const isEligibleType = ["delivery", "takeaway"].includes(order.order_type);
+
+      if (currentStatus !== "pending") {
+        throw new ErrorResponse(400, "Chỉ được chuyển từ chờ xử lý sang đang chuẩn bị");
+      }
+
+      if (!isEligibleType || !isCustomerOrder) {
+        throw new ErrorResponse(
+          400,
+          "Chỉ áp dụng cho đơn online giao hàng hoặc mang về do khách hàng đặt"
+        );
+      }
+
+      if (Number(order.is_paid) === 1 && String(order.payment_status || "").toLowerCase() !== "paid") {
+        throw new ErrorResponse(400, "Trạng thái thanh toán của đơn không hợp lệ");
+      }
+
+      await OrderRepository.updateOrderStatus(orderId, "preparing");
+
+      return {
+        order_id: orderId,
+        user_id: order.user_id,
+        status: "preparing",
+      };
     }
 
-    if (Number(order.is_paid) === 1 && order.payment_status !== "paid") {
-      throw new ErrorResponse(400, "Trạng thái thanh toán của đơn không hợp lệ");
+    if (nextStatus === "cancelled") {
+      if (!["pending", "preparing"].includes(currentStatus)) {
+        throw new ErrorResponse(
+          400,
+          "Chỉ được hủy đơn ở trạng thái chờ xử lý hoặc đang chuẩn bị"
+        );
+      }
+
+      if (isAlreadyPaid) {
+        throw new ErrorResponse(400, "Đơn đã thanh toán không thể hủy");
+      }
+
+      await OrderRepository.updateOrderStatus(orderId, "cancelled");
+      await OrderRepository.updatePaymentStatusByOrderId(orderId, "pending");
+
+      return {
+        order_id: orderId,
+        status: "cancelled",
+      };
     }
 
-    await OrderRepository.updateOrderStatus(orderId, "preparing");
+    if (currentStatus !== "preparing") {
+      throw new ErrorResponse(400, "Chỉ được xác nhận hoàn tất đơn đang chuẩn bị");
+    }
+
+    let cashReceivedAmount = null;
+    let changeAmount = 0;
+
+    if (!isAlreadyPaid) {
+      cashReceivedAmount = Number(cash_received);
+      const totalAmount = Number(order.total_amount || 0);
+
+      if (!Number.isFinite(cashReceivedAmount) || cashReceivedAmount <= 0) {
+        throw new ErrorResponse(
+          400,
+          "Vui lòng nhập số tiền khách thanh toán hợp lệ"
+        );
+      }
+
+      if (cashReceivedAmount < totalAmount) {
+        throw new ErrorResponse(
+          400,
+          "Số tiền khách thanh toán không đủ để hoàn tất đơn"
+        );
+      }
+
+      changeAmount = Math.max(0, cashReceivedAmount - totalAmount);
+
+      await OrderRepository.updateOrderPaidStatus(orderId, true);
+      await OrderRepository.updatePaymentStatusByOrderId(orderId, "paid");
+    }
+
+    await OrderRepository.updateOrderStatus(orderId, "completed");
 
     return {
       order_id: orderId,
-      user_id: order.user_id,
-      status: "preparing",
+      status: "completed",
+      is_paid: 1,
+      cash_received: cashReceivedAmount,
+      change_amount: changeAmount,
     };
   }
 
-  // Hủy đơn hàng đang chờ xử lý bởi nhân viên (chuyển sang trạng thái cancelled)
+  // Xác nhận đơn hàng đang chờ xử lý bởi nhân viên (chuyển sang trạng thái preparing)
+  async confirmDeliveryPreparing(orderId) {
+    return this.transitionOrderStatusByStaff(orderId, "preparing");
+  }
+
+  // Hủy đơn hàng bởi nhân viên (chỉ từ preparing)
   async cancelDeliveryOrderByStaff(orderId) {
-    const order = await OrderRepository.findOrderById(orderId);
-
-    if (!order) {
-      throw new ErrorResponse(404, "Đơn hàng không tồn tại");
-    }
-
-    if (order.order_type !== "delivery") {
-      throw new ErrorResponse(400, "Chỉ áp dụng cho đơn giao hàng");
-    }
-
-    if (order.status !== "pending") {
-      throw new ErrorResponse(400, "Chỉ hủy đơn đang chờ xử lý");
-    }
-
-    if (Number(order.is_paid) !== 0) {
-      throw new ErrorResponse(400, "Chỉ hủy đơn chưa thanh toán");
-    }
-
-    // chuyển trạng thái đơn hàng về cancelled
-    await OrderRepository.updateOrderStatus(orderId, "cancelled");
-
-    // Giữ payment_status ở giá trị hợp lệ của ENUM
-    await OrderRepository.updatePaymentStatusByOrderId(orderId, "pending");
-
-    return {
-      order_id: orderId,
-      status: "cancelled",
-    };
+    return this.transitionOrderStatusByStaff(orderId, "cancelled");
   }
 
   async markOrderPrintSuccess(orderId) {
@@ -653,60 +692,9 @@ class OrderOnlineService {
   }
 
   async markDeliveryCompletedByStaff(orderId, { cash_received } = {}) {
-    const order = await OrderRepository.findOrderById(orderId);
-
-    if (!order) {
-      throw new ErrorResponse(404, "Đơn hàng không tồn tại");
-    }
-
-    if (order.order_type !== "delivery") {
-      throw new ErrorResponse(400, "Chỉ áp dụng cho đơn giao hàng");
-    }
-
-    if (order.status !== "delivering") {
-      throw new ErrorResponse(400, "Chỉ xác nhận hoàn tất đơn đang giao");
-    }
-
-    const isAlreadyPaid =
-      Number(order.is_paid) === 1 ||
-      String(order.payment_status || "").toLowerCase() === "paid";
-
-    let cashReceivedAmount = null;
-    let changeAmount = 0;
-
-    if (!isAlreadyPaid) {
-      cashReceivedAmount = Number(cash_received);
-      const totalAmount = Number(order.total_amount || 0);
-
-      if (!Number.isFinite(cashReceivedAmount) || cashReceivedAmount <= 0) {
-        throw new ErrorResponse(
-          400,
-          "Vui lòng nhập số tiền khách thanh toán hợp lệ"
-        );
-      }
-
-      if (cashReceivedAmount < totalAmount) {
-        throw new ErrorResponse(
-          400,
-          "Số tiền khách thanh toán không đủ để hoàn tất đơn"
-        );
-      }
-
-      changeAmount = Math.max(0, cashReceivedAmount - totalAmount);
-
-      await OrderRepository.updateOrderPaidStatus(orderId, true);
-      await OrderRepository.updatePaymentStatusByOrderId(orderId, "paid");
-    }
-
-    await OrderRepository.updateOrderStatus(orderId, "completed");
-
-    return {
-      order_id: orderId,
-      status: "completed",
-      is_paid: 1,
-      cash_received: cashReceivedAmount,
-      change_amount: changeAmount,
-    };
+    return this.transitionOrderStatusByStaff(orderId, "completed", {
+      cash_received,
+    });
   }
 
   async getDeliveryOrderDetailForStaff(orderId) {

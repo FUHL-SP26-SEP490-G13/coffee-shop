@@ -569,15 +569,29 @@ class TakeawayService {
           : null,
         order_type: order.order_type,
         status: order.status,
-        items: items.map((item) => ({
-          product_name: item.product_name,
-          size: item.size,
-          quantity: item.quantity,
-          unit_price: Number(item.price),
-          line_total: Number(item.price) * Number(item.quantity),
-          note: item.note,
-          toppings: item.toppings,
-        })),
+        items: items.map((item) => {
+          const quantity = Number(item.quantity || 0);
+          const unitPrice = Number(item.price || 0);
+          const toppings = Array.isArray(item.toppings) ? item.toppings : [];
+          const toppingUnitTotal = toppings.reduce(
+            (sum, topping) =>
+              sum + Number(topping.price || 0) * Number(topping.quantity || 0),
+            0,
+          );
+          const baseUnitPrice = Math.max(0, unitPrice - toppingUnitTotal);
+
+          return {
+            product_name: item.product_name,
+            size: item.size,
+            quantity: item.quantity,
+            unit_price: unitPrice,
+            base_unit_price: baseUnitPrice,
+            topping_unit_total: toppingUnitTotal,
+            line_total: unitPrice * quantity,
+            note: item.note,
+            toppings,
+          };
+        }),
         subtotal_amount: subtotal,
         discount_code: order.discount_code || null,
         discount_percentage: order.discount_percentage

@@ -5,11 +5,11 @@ import {
   Truck,
   Bell,
   Printer,
-  Table,
-  Table2,
   Coffee,
+  Eye,
+  EyeOff,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,7 +23,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -41,8 +40,6 @@ import { ReceiptModal } from "./TakeAwayOrder/ReceiptModal";
 const STAFF_TAB_STATUSES = [
   "pending",
   "preparing",
-  "served",
-  "delivering",
   "completed",
   "cancelled",
 ];
@@ -50,8 +47,6 @@ const STAFF_TAB_STATUSES = [
 const statusLabelMap = {
   pending: "Đang chờ",
   preparing: "Đang chuẩn bị",
-  served: "Sẵn sàng phục vụ",
-  delivering: "Giao hàng",
   completed: "Thành công",
   cancelled: "Hủy",
 };
@@ -59,17 +54,29 @@ const statusLabelMap = {
 const statusClassMap = {
   pending: "bg-slate-100 text-slate-700",
   preparing: "bg-blue-100 text-blue-700",
-  served: "bg-amber-100 text-amber-700",
-  delivering: "bg-cyan-100 text-cyan-700",
   completed: "bg-emerald-100 text-emerald-700",
   cancelled: "bg-red-100 text-red-700",
 };
 
 const orderTypeLabelMap = {
+  all: "Tất cả",
   delivery: "Đơn giao hàng",
   "dine-in": "Tại bàn",
   takeaway: "Mang về",
 };
+
+const ORDER_TYPE_COLUMNS = [
+  { key: "delivery", label: "Đơn giao hàng", icon: Truck },
+  { key: "dine-in", label: "Đơn tại bàn", icon: Coffee },
+  { key: "takeaway", label: "Đơn mang đi", icon: ShoppingBag },
+];
+
+const STATUS_KANBAN_COLUMNS = [
+  { key: "pending", label: "Đang chờ" },
+  { key: "preparing", label: "Đang chuẩn bị" },
+  { key: "completed", label: "Hoàn thành" },
+  { key: "cancelled", label: "Hủy" },
+];
 
 const normalizeOrderType = (value) => {
   const type = String(value || "").toLowerCase();
@@ -84,6 +91,32 @@ const normalizeOrderType = (value) => {
 const getOrderTypeLabel = (value) => {
   const type = normalizeOrderType(value);
   return orderTypeLabelMap[type] || type || "--";
+};
+
+const getOrderTypeBadgeMeta = (value) => {
+  const type = normalizeOrderType(value);
+
+  if (type === "dine-in") {
+    return {
+      label: "Tại bàn",
+      icon: "🍽",
+      className: "bg-emerald-100 text-emerald-700",
+    };
+  }
+
+  if (type === "takeaway") {
+    return {
+      label: "Mang đi",
+      icon: "🥤",
+      className: "bg-amber-100 text-amber-700",
+    };
+  }
+
+  return {
+    label: "Online",
+    icon: "🚚",
+    className: "bg-blue-100 text-blue-700",
+  };
 };
 
 const isDeliveryOrder = (order) =>
@@ -109,21 +142,29 @@ const isOrderPaid = (order) => {
   );
 };
 
-const isPrintSuccess = (order) =>
-  String(order?.print_status || "").toUpperCase() === "SUCCESS";
-
-const dateTime = (value) => {
-  if (!value) return "--";
+const getElapsedMinutes = (value) => {
+  if (!value) return 0;
   const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return "--";
+  if (Number.isNaN(parsed.getTime())) return 0;
 
-  return parsed.toLocaleString("vi-VN", {
-    hour: "2-digit",
-    minute: "2-digit",
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
+  const diffMs = Date.now() - parsed.getTime();
+  return Math.max(0, Math.floor(diffMs / 60000));
+};
+
+const getRelativeTimeLabel = (value) => {
+  const minutes = getElapsedMinutes(value);
+  if (minutes <= 0) return "Vừa xong";
+  return `${minutes} phút trước`;
+};
+
+const getPaymentMethodLabel = (order) => {
+  const method = String(
+    order?.payment_method || order?.paymentMethod || order?.payment?.method || "",
+  ).toLowerCase();
+
+  if (method === "payos") return "PayOS";
+  if (method === "cash") return "Tiền mặt";
+  return "--";
 };
 
 export function OrderDelivery() {
@@ -136,15 +177,14 @@ export function OrderDelivery() {
     orderId: null,
     mode: "pending",
   });
-  const [deliveringId, setDeliveringId] = useState(null);
   const [completingId, setCompletingId] = useState(null);
-  const [pendingActionMap, setPendingActionMap] = useState({});
-  const [activeTab, setActiveTab] = useState("pending");
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
-  const [activeOrderType, setActiveOrderType] = useState("delivery");
+  const [cardPendingActions, setCardPendingActions] = useState({});
   const [newOrderCount, setNewOrderCount] = useState(0);
+  const [showCompletedColumn, setShowCompletedColumn] = useState(false);
+  const [showCancelledColumn, setShowCancelledColumn] = useState(false);
   const [viewingReceipt, setViewingReceipt] = useState(null);
   const [cashPaymentDialog, setCashPaymentDialog] = useState({
     open: false,
@@ -197,47 +237,49 @@ export function OrderDelivery() {
     loadProfile();
   }, []);
 
-  // Socket listener for new delivery orders
+  // Socket listener for new online orders (delivery + takeaway)
   useEffect(() => {
-    const handleNewDeliveryOrder = (data) => {
+    const notifyAndReload = (label, data) => {
       setNewOrderCount((prev) => prev + 1);
-      toast.success(`🔔 Có đơn giao hàng mới! (#${data.order_id})`);
-      // Auto-reload orders
+      toast.success(`🔔 Có đơn ${label} mới! (#${data.order_id})`);
       loadOrders();
     };
+
+    const handleNewDeliveryOrder = (data) =>
+      notifyAndReload("giao hàng", data);
+
+    const handleNewTakeawayOrder = (data) =>
+      notifyAndReload("mang đi", data);
 
     if (!socket.connected) {
       socket.connect();
     }
 
     socket.on("new-delivery-order", handleNewDeliveryOrder);
+    socket.on("new-takeaway-order", handleNewTakeawayOrder);
 
     return () => {
       socket.off("new-delivery-order", handleNewDeliveryOrder);
+      socket.off("new-takeaway-order", handleNewTakeawayOrder);
     };
   }, [loadOrders]);
 
   const orderTypeCounts = useMemo(() => {
     return orders.reduce(
       (acc, order) => {
+        acc.all += 1;
         const type = normalizeOrderType(order?.order_type);
         if (type in acc) {
           acc[type] += 1;
         }
         return acc;
       },
-      { delivery: 0, "dine-in": 0, takeaway: 0 },
+      { all: 0, delivery: 0, "dine-in": 0, takeaway: 0 },
     );
   }, [orders]);
 
-  const ordersByType = useMemo(() => {
-    return orders.filter(
-      (order) => normalizeOrderType(order?.order_type) === activeOrderType,
-    );
-  }, [orders, activeOrderType]);
-
   const counts = useMemo(() => {
-    return ordersByType.reduce(
+    return orders.reduce(
       (acc, order) => {
         const status = order?.status;
         if (STAFF_TAB_STATUSES.includes(status)) {
@@ -245,25 +287,46 @@ export function OrderDelivery() {
         }
         return acc;
       },
-      { pending: 0, preparing: 0, served: 0, delivering: 0, completed: 0, cancelled: 0 },
+      { pending: 0, preparing: 0, completed: 0, cancelled: 0 },
     );
-  }, [ordersByType]);
-
-  const filteredOrders = useMemo(() => {
-    return ordersByType.filter((order) => order.status === activeTab);
-  }, [ordersByType, activeTab]);
-
-  useEffect(() => {
-    setPendingActionMap((prev) => {
-      const next = {};
-      orders.forEach((order) => {
-        if (prev[order.id]) {
-          next[order.id] = prev[order.id];
-        }
-      });
-      return next;
-    });
   }, [orders]);
+
+  const delayedOrdersCount = useMemo(() => {
+    return orders.filter((order) => {
+      if (!["pending", "preparing"].includes(order?.status)) return false;
+      return getElapsedMinutes(order?.created_at) > 10;
+    }).length;
+  }, [orders]);
+
+  const groupedOrdersByStatus = useMemo(() => {
+    const grouped = orders.reduce(
+      (acc, order) => {
+        const status = order?.status;
+        if (status in acc) {
+          acc[status].push(order);
+        }
+        return acc;
+      },
+      { pending: [], preparing: [], completed: [], cancelled: [] },
+    );
+
+    const toTime = (order) => new Date(order?.created_at || 0).getTime();
+
+    grouped.pending.sort((a, b) => toTime(a) - toTime(b));
+    grouped.preparing.sort((a, b) => toTime(a) - toTime(b));
+    grouped.completed.sort((a, b) => toTime(b) - toTime(a));
+    grouped.cancelled.sort((a, b) => toTime(b) - toTime(a));
+
+    return grouped;
+  }, [orders]);
+
+  const visibleStatusColumns = useMemo(() => {
+    return STATUS_KANBAN_COLUMNS.filter((column) => {
+      if (column.key === "completed") return showCompletedColumn;
+      if (column.key === "cancelled") return showCancelledColumn;
+      return true;
+    });
+  }, [showCompletedColumn, showCancelledColumn]);
 
   const handleConfirmOrder = async (order) => {
     setConfirmingId(order.id);
@@ -281,6 +344,11 @@ export function OrderDelivery() {
       toast.error(error?.response?.data?.message || "Không thể xác nhận đơn");
     } finally {
       setConfirmingId(null);
+      setCardPendingActions((prev) => {
+        const next = { ...prev };
+        delete next[order.id];
+        return next;
+      });
     }
   };
 
@@ -294,6 +362,11 @@ export function OrderDelivery() {
       toast.error(error?.response?.data?.message || "Không thể hủy đơn");
     } finally {
       setCancelingId(null);
+      setCardPendingActions((prev) => {
+        const next = { ...prev };
+        delete next[orderId];
+        return next;
+      });
     }
   };
 
@@ -306,15 +379,10 @@ export function OrderDelivery() {
   };
 
   const handleConfirmCancelAction = async () => {
-    const { orderId, mode } = cancelConfirm;
+    const { orderId } = cancelConfirm;
     if (!orderId) return;
 
     setCancelConfirm({ open: false, orderId: null, mode: "pending" });
-
-    if (mode === "delivering") {
-      await handleCancelDeliveringOrder(orderId);
-      return;
-    }
 
     await handleCancelOrder(orderId);
   };
@@ -379,41 +447,11 @@ export function OrderDelivery() {
     }
   };
 
-  const handleMarkDelivering = async (orderId) => {
-    setDeliveringId(orderId);
-    try {
-      await orderOnlineService.markDeliveringByStaff(orderId);
-      toast.success("Đơn hàng đã chuyển sang trạng thái đang giao");
-      await loadOrders();
-    } catch (error) {
-      toast.error(
-        error?.response?.data?.message || "Không thể chuyển đơn sang đang giao",
-      );
-    } finally {
-      setDeliveringId(null);
-    }
-  };
-
-  const handleCancelDeliveringOrder = async (orderId) => {
-    setCancelingId(orderId);
-    try {
-      await orderOnlineService.cancelDeliveringByStaff(orderId);
-      toast.success("Đã hủy đơn hàng đang giao");
-      await loadOrders();
-    } catch (error) {
-      toast.error(
-        error?.response?.data?.message || "Không thể hủy đơn đang giao",
-      );
-    } finally {
-      setCancelingId(null);
-    }
-  };
-
   const handleCompleteDeliveryOrder = async (orderId) => {
     setCompletingId(orderId);
     try {
       await orderOnlineService.completeDeliveryByStaff(orderId);
-      toast.success("Đã xác nhận khách nhận đơn thành công");
+      toast.success("Đơn đã chuyển từ Đang chuẩn bị sang Hoàn thành");
       await loadOrders();
     } catch (error) {
       toast.error(
@@ -457,7 +495,7 @@ export function OrderDelivery() {
       await orderOnlineService.completeDeliveryByStaff(orderId, {
         cash_received: cashReceivedAmount,
       });
-      toast.success("Đã xác nhận khách nhận đơn thành công");
+      toast.success("Xác nhận thanh toán thành công, đơn đã chuyển sang Hoàn thành");
       closeCashPaymentDialog();
       await loadOrders();
     } catch (error) {
@@ -469,434 +507,364 @@ export function OrderDelivery() {
     }
   };
 
-  return (
-    <div className="mx-auto max-w-[1600px] space-y-6 p-4 md:p-6 pb-20">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between rounded-xl bg-white p-5 shadow-sm border border-slate-100">
-        <div className="flex items-center gap-4">
-          <div className="rounded-full bg-primary/10 p-3">
-            <ShoppingBag className="h-6 w-6 text-primary" />
-          </div>
-          <div>
-            <h2 className="text-2xl font-bold tracking-tight text-slate-900">Quản lý Đơn hàng</h2>
-            <p className="text-sm text-slate-500">Theo dõi và xử lý đơn hàng của quán</p>
-          </div>
-          {newOrderCount > 0 && (
-            <Badge variant="destructive" className="ml-2 animate-pulse px-3 py-1 text-sm font-medium shadow-sm">
-              <Bell className="mr-1.5 h-4 w-4" />
-              {newOrderCount} đơn mới
-            </Badge>
-          )}
-        </div>
+  const renderOrderCard = (order) => {
+    const paid = isOrderPaid(order);
+    const deliveryOrder = isDeliveryOrder(order);
+    const normalizedOrderType = normalizeOrderType(order?.order_type);
+    const minutesAgo = getElapsedMinutes(order?.created_at);
+    const isPending = order.status === "pending";
+    const isPreparing = order.status === "preparing";
+    const hasPrintedReceipt =
+      String(order?.print_status || "").toUpperCase() === "SUCCESS";
+    const isPendingUnpaidOnline =
+      ["delivery", "takeaway"].includes(normalizedOrderType) &&
+      isPending &&
+      !paid;
+    const selectedPendingAction = cardPendingActions[order.id] || "";
+    const orderTypeMeta = getOrderTypeBadgeMeta(order?.order_type);
+    const urgencyClass =
+      minutesAgo > 10
+        ? "border-red-300 animate-pulse"
+        : minutesAgo > 5
+          ? "border-amber-300"
+          : "border-slate-200";
 
-        <Button
-          onClick={() => {
-            setNewOrderCount(0);
-            loadOrders();
-          }}
-          disabled={loading}
-          variant="outline"
-          className="gap-2 bg-white hover:bg-slate-50 border-slate-200 shadow-sm font-medium"
-        >
-          <RefreshCw className={`h-4 w-4 text-slate-500 ${loading ? "animate-spin text-primary" : ""}`} />
-          Cập nhật
-        </Button>
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-[auto_1fr]">
-        <div className="flex flex-col gap-3 rounded-xl bg-white p-5 shadow-sm border border-slate-100">
-          <p className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Loại đơn hàng</p>
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <Button
-              variant={activeOrderType === "delivery" ? "default" : "outline"}
-              onClick={() => { setActiveOrderType("delivery"); setActiveTab("pending"); }}
-              className={`justify-start sm:w-44 transition-all ${
-                activeOrderType === "delivery" 
-                  ? "shadow-md bg-primary hover:bg-primary/90" 
-                  : "hover:bg-slate-50 border-slate-200 text-slate-700 font-medium"
-              }`}
-            >
-              <Truck className="mr-2 h-4 w-4" />
-              <span>Giao hàng</span>
-              <Badge variant={activeOrderType === "delivery" ? "secondary" : "secondary"} className="ml-auto bg-white/20 hover:bg-white/30 text-current border-none">
-                {orderTypeCounts.delivery}
-              </Badge>
-            </Button>
-            <Button
-              variant={activeOrderType === "dine-in" ? "default" : "outline"}
-              onClick={() => { setActiveOrderType("dine-in"); setActiveTab("pending"); }}
-              className={`justify-start sm:w-44 transition-all ${
-                activeOrderType === "dine-in" 
-                  ? "shadow-md bg-primary hover:bg-primary/90" 
-                  : "hover:bg-slate-50 border-slate-200 text-slate-700 font-medium"
-              }`}
-            >
-              <Coffee className="mr-2 h-4 w-4" />
-              <span>Tại bàn</span>
-              <Badge variant={activeOrderType === "dine-in" ? "secondary" : "secondary"} className="ml-auto bg-white/20 hover:bg-white/30 text-current border-none">
-                {orderTypeCounts["dine-in"]}
-              </Badge>
-            </Button>
-            <Button
-              variant={activeOrderType === "takeaway" ? "default" : "outline"}
-              onClick={() => { setActiveOrderType("takeaway"); setActiveTab("pending"); }}
-              className={`justify-start sm:w-44 transition-all ${
-                activeOrderType === "takeaway" 
-                  ? "shadow-md bg-primary hover:bg-primary/90" 
-                  : "hover:bg-slate-50 border-slate-200 text-slate-700 font-medium"
-              }`}
-            >
-              <ShoppingBag className="mr-2 h-4 w-4" />
-              <span>Mang đi</span>
-              <Badge variant={activeOrderType === "takeaway" ? "secondary" : "secondary"} className="ml-auto bg-white/20 hover:bg-white/30 text-current border-none">
-                {orderTypeCounts.takeaway}
-              </Badge>
-            </Button>
-          </div>
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-3 w-full">
-          <Card className="border-cyan-100 bg-cyan-50/50 shadow-sm transition-all hover:shadow-md hover:bg-cyan-50">
-            <CardHeader className="pb-2 pt-5">
-              <CardTitle className="text-sm font-medium text-cyan-800 flex items-center justify-between">
-                <span>Giao hàng</span>
-                <Truck className="h-4 w-4 text-cyan-600/50" />
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold text-cyan-900">{counts.served}</p>
-            </CardContent>
-          </Card>
-
-          <Card className="border-emerald-100 bg-emerald-50/50 shadow-sm transition-all hover:shadow-md hover:bg-emerald-50">
-            <CardHeader className="pb-2 pt-5">
-              <CardTitle className="text-sm font-medium text-emerald-800 flex items-center justify-between">
-                <span>Thành công</span>
-                <RefreshCw className="h-4 w-4 text-emerald-600/50" />
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold text-emerald-900">{counts.completed}</p>
-            </CardContent>
-          </Card>
-
-          <Card className="border-rose-100 bg-rose-50/50 shadow-sm transition-all hover:shadow-md hover:bg-rose-50">
-            <CardHeader className="pb-2 pt-5">
-              <CardTitle className="text-sm font-medium text-rose-800 flex items-center justify-between">
-                <span>Đã Hủy</span>
-                <ShoppingBag className="h-4 w-4 text-rose-600/50" />
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold text-rose-900">{counts.cancelled}</p>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <div className="rounded-xl bg-white p-2 shadow-sm border border-slate-100 overflow-hidden">
-          <TabsList className="flex h-auto w-full justify-start overflow-x-auto bg-transparent p-1 gap-2 hide-scrollbar">
-            <TabsTrigger value="pending" className="flex-1 whitespace-nowrap px-4 py-2.5 data-[state=active]:bg-slate-100 data-[state=active]:text-slate-900 data-[state=active]:shadow-sm rounded-lg min-w-[120px]">
-              Đang chờ <Badge variant="secondary" className="ml-2 bg-white/50">{counts.pending}</Badge>
-            </TabsTrigger>
-            <TabsTrigger value="preparing" className="flex-1 whitespace-nowrap px-4 py-2.5 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 data-[state=active]:shadow-sm rounded-lg min-w-[120px]">
-              Đang pha chế <Badge variant="secondary" className="ml-2 bg-white/50">{counts.preparing}</Badge>
-            </TabsTrigger>
-            <TabsTrigger value="served" className="flex-1 whitespace-nowrap px-4 py-2.5 data-[state=active]:bg-amber-50 data-[state=active]:text-amber-700 data-[state=active]:shadow-sm rounded-lg min-w-[140px]">
-              Sẵn sàng phục vụ <Badge variant="secondary" className="ml-2 bg-white/50">{counts.served}</Badge>
-            </TabsTrigger>
-            <TabsTrigger value="delivering" className="flex-1 whitespace-nowrap px-4 py-2.5 data-[state=active]:bg-cyan-50 data-[state=active]:text-cyan-700 data-[state=active]:shadow-sm rounded-lg min-w-[120px]">
-              Giao hàng <Badge variant="secondary" className="ml-2 bg-white/50">{counts.delivering}</Badge>
-            </TabsTrigger>
-            <TabsTrigger value="completed" className="flex-1 whitespace-nowrap px-4 py-2.5 data-[state=active]:bg-emerald-50 data-[state=active]:text-emerald-700 data-[state=active]:shadow-sm rounded-lg min-w-[120px]">
-              Thành công <Badge variant="secondary" className="ml-2 bg-white/50">{counts.completed}</Badge>
-            </TabsTrigger>
-            <TabsTrigger value="cancelled" className="flex-1 whitespace-nowrap px-4 py-2.5 data-[state=active]:bg-rose-50 data-[state=active]:text-rose-700 data-[state=active]:shadow-sm rounded-lg min-w-[120px]">
-              Đã hủy <Badge variant="secondary" className="ml-2 bg-white/50">{counts.cancelled}</Badge>
-            </TabsTrigger>
-          </TabsList>
-        </div>
-
-        <TabsContent value={activeTab} className="mt-4">
-          <div className="max-h-[calc(100vh-340px)] min-h-[260px] overflow-y-auto pr-1 md:max-h-[calc(100vh-320px)]">
-            <div className="grid grid-cols-1 gap-3 pb-1 lg:grid-cols-2 xl:grid-cols-3">
-              {filteredOrders.map((order) => {
-              const paid = isOrderPaid(order);
-              const deliveryOrder = isDeliveryOrder(order);
-              const isUnpaidPending = order.status === "pending" && !paid;
-              const isPending = order.status === "pending";
-
-              return (
-                <Card key={order.id} className="overflow-hidden border-slate-200 transition-all hover:shadow-md bg-white">
-                  <div className="border-b border-slate-100 bg-slate-50/50 p-4">
-                    <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
-                      <div className="flex items-center gap-2.5">
-                        <div className={`p-2 rounded-full ${deliveryOrder ? 'bg-blue-100 text-blue-600' : 'bg-amber-100 text-amber-600'}`}>
-                          {deliveryOrder ? (
-                            <Truck className="h-4 w-4" />
-                          ) : (
-                            <Coffee className="h-4 w-4" />
-                          )}
-                        </div>
-                        <div>
-                          <p className="font-bold tracking-tight text-slate-900">Đơn #{order.id}</p>
-                          <div className="text-xs text-slate-500 font-medium">
-                            {dateTime(order.created_at)}
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Badge variant="secondary" className="bg-slate-100/80 hover:bg-slate-200 border-none font-medium text-slate-700">
-                          {getOrderTypeLabel(order.order_type)}
-                        </Badge>
-                        <Badge className={`${statusClassMap[order.status] || ""} border-none font-medium shadow-none`}>
-                          {statusLabelMap[order.status] || order.status}
-                        </Badge>
-                        <Badge variant={paid ? "default" : "outline"} className={paid ? "bg-emerald-500 hover:bg-emerald-600 shadow-none text-white border-none" : "border-slate-300 text-slate-600"}>
-                          {paid ? "Đã thanh toán" : "Chưa thanh toán"}
-                        </Badge>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4 rounded-lg bg-white p-3 border border-slate-100 shadow-sm">
-                      <div className="flex flex-col">
-                        <span className="text-xs text-slate-500 font-medium uppercase tracking-wider mb-1">Tổng món</span>
-                        <span className="font-bold text-slate-900 text-lg">
-                          {order.itemCount || order?.items?.reduce((acc, item) => acc + (item.quantity || 1), 0) || 0}
-                        </span>
-                      </div>
-                      <div className="flex flex-col items-end">
-                        <span className="text-xs text-slate-500 font-medium uppercase tracking-wider mb-1">Tổng tiền</span>
-                        <span className="font-bold text-primary text-lg">
-                          {money(order.total_amount)}
-                        </span>
-                      </div>
-                    </div>
+    return (
+      <Card
+        key={order.id}
+        className={`overflow-hidden ${urgencyClass} transition-all hover:shadow-md bg-white`}
+      >
+        <div className="border-b border-slate-100 bg-slate-50/50 p-3">
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <div className={`rounded-full p-1.5 ${deliveryOrder ? "bg-blue-100 text-blue-600" : "bg-amber-100 text-amber-600"}`}>
+                {deliveryOrder ? ( <div>
+                  <Truck className="h-4 w-4" />
+                  <span className="sr-only">Đơn giao hàng</span>
+</div>
+                ) : (
+                  <div>
+                  <Coffee className="h-4 w-4" />
+                  <span className="sr-only">Đơn tại bàn</span>
                   </div>
+                )}
+              </div>
+              <div>
+                <p className="font-bold tracking-tight text-slate-900">Đơn #{order.id}</p>
+                <div className="text-xs text-slate-500 font-medium">
+                  {getRelativeTimeLabel(order.created_at)}
+                </div>
+              </div>
+            </div>
 
-                  <CardContent className="space-y-4 p-4">
-
-                    {/* {Array.isArray(order.items) && order.items.length > 0 ? (
-                      <div className="space-y-3">
-                        {order.items.map((item, idx) => (
-                          <div
-                            key={`${order.id}-${item.productName || item.name || idx}-${idx}`}
-                            className="flex items-start justify-between gap-3 text-sm pb-3 border-b border-slate-100 last:border-0 last:pb-0"
-                          >
-                            <div className="flex items-start gap-3">
-                              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-slate-100/80 border border-slate-200 text-xs font-semibold text-slate-700">
-                                {item.quantity}
-                              </div>
-                              <div className="space-y-1">
-                                <p className="font-semibold text-slate-900 leading-none mt-1">
-                                  {item.productName ||
-                                    item.name ||
-                                    item.product_name ||
-                                    "Sản phẩm"}
-                                </p>
-                                <div className="text-xs text-slate-500 mt-1">
-                                  <span className="font-medium text-slate-700">Size {item.size}</span>
-                                  {Array.isArray(item.toppings) && item.toppings.length > 0 && (
-                                    <span className="ml-1.5 border-l border-slate-300 pl-1.5">
-                                      + {item.toppings.map((top) => `${top.name} (x${top.quantity || 1})`).join(", ")}
-                                    </span>
-                                  )}
-                                </div>
-                                {item.note ? (
-                                  <p className="text-xs text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md w-fit mt-1 border border-amber-100 font-medium">
-                                    Ghi chú: {item.note}
-                                  </p>
-                                ) : null}
-                              </div>
-                            </div>
-                            <p className="font-medium text-slate-700 whitespace-nowrap mt-1">
-                              {money(item.price || item.total_price)}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-sm text-slate-500 italic text-center py-2">Không có thông tin sản phẩm</p>
-                    )} */}
-
-                    {deliveryOrder && isUnpaidPending ? (
-                      <div className="space-y-4 rounded-lg border border-amber-200 bg-amber-50/50 p-4">
-                        <p className="text-sm font-bold text-amber-800 flex items-center gap-2">
-                          <Bell className="h-4 w-4" /> Xử lý đơn hàng với khách
-                        </p>
-                        <div className="space-y-1 bg-white p-3 rounded-md border border-amber-100 shadow-sm">
-                          <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">
-                            Thông tin liên hệ
-                          </p>
-                          <p className="text-sm text-slate-700">
-                            Khách hàng:{" "}
-                            <span className="font-bold text-slate-900">
-                              {order.receiver_name ||
-                                order.customer_name ||
-                                "--"}
-                            </span>
-                          </p>
-                          <p className="text-xl font-black tracking-wider text-amber-600">
-                            {order.receiver_phone ||
-                              order.customer_phone ||
-                              "--"}
-                          </p>
-                        </div>
-
-                        <div className="space-y-3 pt-1">
-                          <label className="flex items-start gap-3 text-sm font-medium text-amber-900 cursor-pointer p-2 rounded hover:bg-amber-100/50 transition-colors">
-                            <input
-                              type="radio"
-                              name={`pending-action-${order.id}`}
-                              className="mt-0.5 h-4 w-4 text-amber-600 focus:ring-amber-500"
-                              checked={pendingActionMap[order.id] === "confirm"}
-                              onChange={(e) =>
-                                setPendingActionMap((prev) => ({
-                                  ...prev,
-                                  [order.id]: e.target.checked
-                                    ? "confirm"
-                                    : prev[order.id],
-                                }))
-                              }
-                            />
-                            <span>Xác nhận nhận đơn với khách hàng</span>
-                          </label>
-
-                          <label className="flex items-start gap-3 text-sm font-medium text-amber-900 cursor-pointer p-2 rounded hover:bg-amber-100/50 transition-colors">
-                            <input
-                              type="radio"
-                              name={`pending-action-${order.id}`}
-                              className="mt-0.5 h-4 w-4 text-amber-600 focus:ring-amber-500"
-                              checked={pendingActionMap[order.id] === "cancel"}
-                              onChange={(e) =>
-                                setPendingActionMap((prev) => ({
-                                  ...prev,
-                                  [order.id]: e.target.checked
-                                    ? "cancel"
-                                    : prev[order.id],
-                                }))
-                              }
-                            />
-                            <span>Hủy đơn / Gọi khách 3 lần, khách không nhấc máy</span>
-                          </label>
-                        </div>
-                      </div>
-                    ) : null}
-
-                    <div className="flex flex-wrap justify-end gap-2">
-                      <Button
-                        variant="outline"
-                        onClick={() => openDetailModal(order)}
-                      >
-                        Xem chi tiết
-                      </Button>
-
-                      {deliveryOrder && isUnpaidPending ? (
-                        <>
-                          {pendingActionMap[order.id] === "cancel" ? (
-                            <Button
-                              variant="destructive"
-                              onClick={() =>
-                                openCancelConfirm(order.id, "pending")
-                              }
-                              disabled={cancelingId === order.id}
-                            >
-                              {cancelingId === order.id ? "Đang hủy..." : "Hủy"}
-                            </Button>
-                          ) : pendingActionMap[order.id] === "confirm" ? (
-                            <Button
-                              onClick={() => handleConfirmOrder(order)}
-                              disabled={confirmingId === order.id}
-                            >
-                              {confirmingId === order.id
-                                ? "Đang xác nhận..."
-                                : "Chuẩn bị đơn"}
-                            </Button>
-                          ) : (
-                            <p className="text-xs text-muted-foreground self-center">
-                              Chọn 1 phương án để thực hiện thao tác.
-                            </p>
-                          )}
-                        </>
-                      ) : deliveryOrder && isPending ? (
-                        <Button
-                          onClick={() => handleConfirmOrder(order)}
-                          disabled={confirmingId === order.id}
-                        >
-                          {confirmingId === order.id
-                            ? "Đang xác nhận..."
-                            : "Xác nhận chuẩn bị"}
-                        </Button>
-                      ) : deliveryOrder && order.status === "served" ? (
-                        <Button
-                          onClick={() =>
-                            isPrintSuccess(order)
-                              ? handleMarkDelivering(order.id)
-                              : handlePrintReceipt(order.id)
-                          }
-                          disabled={deliveringId === order.id}
-                          className="gap-2"
-                        >
-                          {isPrintSuccess(order) ? (
-                            <Truck size={16} />
-                          ) : (
-                            <Printer size={16} />
-                          )}
-                          {isPrintSuccess(order)
-                            ? deliveringId === order.id
-                              ? "Đang chuyển..."
-                              : "Giao hàng"
-                            : "In hóa đơn"}
-                        </Button>
-                      ) : deliveryOrder && order.status === "delivering" ? (
-                        <>
-                          <Button
-                            variant="destructive"
-                            onClick={() =>
-                              openCancelConfirm(order.id, "delivering")
-                            }
-                            disabled={cancelingId === order.id}
-                          >
-                            {cancelingId === order.id ? "Đang hủy..." : "Hủy đơn"}
-                          </Button>
-                          <Button
-                            onClick={() =>
-                              isOrderPaid(order)
-                                ? handleCompleteDeliveryOrder(order.id)
-                                : openCashPaymentDialog(order)
-                            }
-                            disabled={completingId === order.id}
-                          >
-                            {completingId === order.id
-                              ? "Đang cập nhật..."
-                              : "Đã nhận đơn"}
-                          </Button>
-                        </>
-                      ) : null}
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-
-              {!loading && filteredOrders.length === 0 ? (
-                <Card className="lg:col-span-2 xl:col-span-3">
-                  <CardContent className="flex flex-col items-center justify-center gap-3 py-10 text-center">
-                    <ShoppingBag className="h-8 w-8 text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground">
-                      Không có đơn {getOrderTypeLabel(activeOrderType)} trong
-                      trạng thái đã chọn.
-                    </p>
-                  </CardContent>
-                </Card>
-              ) : null}
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge
+                variant="secondary"
+                className={`${orderTypeMeta.className} border-none font-medium`}
+              >
+                <span className="mr-1">{orderTypeMeta.icon}</span>
+                {orderTypeMeta.label}
+              </Badge>
+              <Badge className={`${statusClassMap[order.status] || ""} border-none font-medium shadow-none`}>
+                {statusLabelMap[order.status] || order.status}
+              </Badge>
+              <Badge variant={paid ? "default" : "outline"} className={paid ? "bg-emerald-500 hover:bg-emerald-600 shadow-none text-white border-none" : "border-slate-300 text-slate-600"}>
+                {paid ? "Đã thanh toán" : "Chưa thanh toán"}
+              </Badge>
             </div>
           </div>
-        </TabsContent>
-      </Tabs>
 
-      <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
+          <div className="grid grid-cols-2 gap-2 rounded-lg border border-slate-100 bg-white p-2.5 shadow-sm">
+            <div className="flex flex-col">
+              <span className="mb-0.5 text-xs font-medium uppercase tracking-wider text-slate-500">Tổng món</span>
+              <span className="font-bold text-slate-900 text-lg">
+                {order.itemCount || order?.items?.reduce((acc, item) => acc + (item.quantity || 1), 0) || 0}
+              </span>
+            </div>
+            <div className="flex flex-col items-end">
+              <span className="mb-0.5 text-xs font-medium uppercase tracking-wider text-slate-500">Tổng tiền</span>
+              <span className="font-bold text-primary text-lg">
+                {money(order.total_amount)}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <CardContent className="space-y-3 p-3">
+          {isPendingUnpaidOnline ? (
+            <div className="space-y-1.5 rounded-lg border border-amber-200 bg-amber-50/60 p-2.5">
+              <p className="text-xs font-semibold text-amber-900">
+                Xử lý đơn online chưa thanh toán
+              </p>
+
+              <div className="grid gap-1.5 sm:grid-cols-2">
+                <label className="flex items-center gap-2 text-sm text-amber-900">
+                  <input
+                    type="radio"
+                    name={`card-pending-action-${order.id}`}
+                    className="h-4 w-4"
+                    checked={selectedPendingAction === "confirm"}
+                    onChange={() =>
+                      setCardPendingActions((prev) => ({
+                        ...prev,
+                        [order.id]: "confirm",
+                      }))
+                    }
+                  />
+                  <span>Nhận đơn</span>
+                </label>
+
+                <label className="flex items-center gap-2 text-sm text-amber-900">
+                  <input
+                    type="radio"
+                    name={`card-pending-action-${order.id}`}
+                    className="h-4 w-4"
+                    checked={selectedPendingAction === "cancel"}
+                    onChange={() =>
+                      setCardPendingActions((prev) => ({
+                        ...prev,
+                        [order.id]: "cancel",
+                      }))
+                    }
+                  />
+                  <span>Hủy đơn</span>
+                </label>
+              </div>
+            </div>
+          ) : null}
+
+          <div className="flex flex-wrap justify-end gap-1.5">
+            <Button
+              variant="outline"
+              onClick={() => openDetailModal(order)}
+            >
+              Xem chi tiết
+            </Button>
+
+            {isPendingUnpaidOnline ? (
+              selectedPendingAction === "confirm" ? (
+                <Button
+                  onClick={() => handleConfirmOrder(order)}
+                  disabled={confirmingId === order.id}
+                >
+                  {confirmingId === order.id
+                    ? "Đang xác nhận..."
+                    : "Xác nhận nhận đơn"}
+                </Button>
+              ) : selectedPendingAction === "cancel" ? (
+                <Button
+                  variant="destructive"
+                  onClick={() => openCancelConfirm(order.id, "pending")}
+                  disabled={cancelingId === order.id}
+                >
+                  {cancelingId === order.id ? "Đang hủy..." : "Hủy đơn"}
+                </Button>
+              ) : null
+            ) : isPending ? (
+              <Button
+                onClick={() => handleConfirmOrder(order)}
+                disabled={confirmingId === order.id}
+              >
+                {confirmingId === order.id
+                  ? "Đang xác nhận..."
+                  : "Nhận đơn"}
+              </Button>
+            ) : isPreparing ? (
+              !hasPrintedReceipt ? (
+                <Button
+                  onClick={() => handlePrintReceipt(order.id)}
+                >
+                  In hóa đơn
+                </Button>
+              ) : (
+                <Button
+                  onClick={() =>
+                    !paid
+                      ? openCashPaymentDialog(order)
+                      : handleCompleteDeliveryOrder(order.id)
+                  }
+                  disabled={completingId === order.id}
+                >
+                  {completingId === order.id
+                    ? "Đang cập nhật..."
+                    : !paid
+                      ? "Xác nhận thanh toán"
+                      : "Hoàn thành"}
+                </Button>
+              )
+            ) : null}
+
+            {!(["completed", "cancelled"].includes(order.status) ||
+              isPendingUnpaidOnline ||
+              (isPending && paid) ||
+              (isPreparing && !hasPrintedReceipt)) ? (
+              <Button
+                variant="destructive"
+                onClick={() =>
+                  openCancelConfirm(
+                    order.id,
+                    order.status === "preparing" ? "preparing" : "pending",
+                  )
+                }
+                disabled={cancelingId === order.id}
+              >
+                {cancelingId === order.id ? "Đang hủy..." : "Hủy"}
+              </Button>
+            ) : null}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
+
+  return (
+    <div className="mx-auto max-w-[1600px] space-y-6 p-4 md:p-6">
+      <div className="rounded-xl border border-slate-200 bg-white px-4 py-4 shadow-sm md:px-5 md:py-5">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="rounded-xl bg-primary/10 p-2.5">
+              <ShoppingBag className="h-5 w-5 text-primary" />
+            </div>
+            <div className="min-w-0">
+              <h2 className="truncate text-xl font-bold tracking-tight text-slate-900 md:text-2xl">
+                Quản lý đơn hàng
+              </h2>
+              <p className="text-sm text-slate-500">
+                Theo dõi đơn theo từng loại và trạng thái xử lý
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 self-start md:self-auto">
+            {newOrderCount > 0 ? (
+              <Badge variant="destructive" className="px-2.5 py-1 text-xs font-semibold shadow-sm">
+                <Bell className="mr-1 h-3.5 w-3.5" />
+                {newOrderCount} đơn mới
+              </Badge>
+            ) : null}
+
+            <Button
+              onClick={() => {
+                setNewOrderCount(0);
+                loadOrders();
+              }}
+              disabled={loading}
+              variant="outline"
+              size="sm"
+              className="gap-2 border-slate-200 bg-white font-medium hover:bg-slate-50"
+            >
+              <RefreshCw className={`h-4 w-4 text-slate-500 ${loading ? "animate-spin text-primary" : ""}`} />
+              Cập nhật
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm md:p-4">
+        <div className="flex flex-wrap items-center gap-2">
+          {ORDER_TYPE_COLUMNS.map((column) => {
+            const Icon = column.icon;
+            const count = orderTypeCounts[column.key] || 0;
+
+            return (
+              <div
+                key={column.key}
+                className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5"
+              >
+                <Icon className="h-4 w-4 text-slate-600" />
+                <span className="text-sm text-slate-700">{column.label}</span>
+                <Badge variant="secondary" className="ml-1">{count}</Badge>
+              </div>
+            );
+          })}
+
+          <div className="inline-flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5">
+            <span className="text-sm font-medium text-blue-700">Đang chờ</span>
+            <Badge variant="secondary">{counts.pending}</Badge>
+          </div>
+
+          <div className="inline-flex items-center gap-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5">
+            <span className="text-sm font-medium text-rose-700">Trễ &gt; 10 phút</span>
+            <Badge variant="secondary">{delayedOrdersCount}</Badge>
+          </div>
+
+          <Button
+            variant={showCompletedColumn ? "default" : "outline"}
+            size="sm"
+            onClick={() => setShowCompletedColumn((prev) => !prev)}
+            className={`gap-2 ${showCompletedColumn ? "bg-emerald-600 hover:bg-emerald-700 text-white" : ""}`}
+          >
+            {showCompletedColumn ? (
+              <Eye className="h-4 w-4" />
+            ) : (
+              <EyeOff className="h-4 w-4" />
+            )}
+            Hoàn thành ({counts.completed})
+          </Button>
+
+          <Button
+            variant={showCancelledColumn ? "default" : "outline"}
+            size="sm"
+            onClick={() => setShowCancelledColumn((prev) => !prev)}
+            className={`gap-2 ${showCancelledColumn ? "bg-slate-700 hover:bg-slate-800 text-white" : ""}`}
+          >
+            {showCancelledColumn ? (
+              <Eye className="h-4 w-4" />
+            ) : (
+              <EyeOff className="h-4 w-4" />
+            )}
+            Đã hủy ({counts.cancelled})
+          </Button>
+        </div>
+      </div>
+
+      <div className="overflow-x-auto">
+        <div
+          className="grid gap-3"
+          style={{
+            gridTemplateColumns: `repeat(${visibleStatusColumns.length}, minmax(0, 1fr))`,
+          }}
+        >
+          {visibleStatusColumns.map((column) => {
+            const columnOrders = groupedOrdersByStatus[column.key] || [];
+            const isSecondaryColumn = ["completed", "cancelled"].includes(column.key);
+
+            return (
+              <div
+                key={column.key}
+                className={`rounded-xl border border-slate-200 bg-white shadow-sm ${isSecondaryColumn ? "opacity-75" : "opacity-100"}`}
+              >
+                <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50 px-3 py-2">
+                  <span className="text-sm font-semibold text-slate-800">{column.label}</span>
+                  <Badge variant="secondary">{columnOrders.length}</Badge>
+                </div>
+
+                <div className="max-h-[calc(100vh-380px)] min-h-[260px] overflow-y-auto space-y-3 p-3">
+                  {loading ? (
+                    <p className="py-8 text-center text-sm text-muted-foreground">
+                      Đang tải dữ liệu...
+                    </p>
+                  ) : columnOrders.length > 0 ? (
+                    columnOrders.map((order) => renderOrderCard(order))
+                  ) : (
+                    <div className="flex flex-col items-center justify-center gap-2 py-10 text-center">
+                      <ShoppingBag className="h-7 w-7 text-muted-foreground" />
+                      <p className="text-sm text-muted-foreground">
+                        Không có đơn trong cột này.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <Dialog
+        open={isDetailOpen}
+        onOpenChange={setIsDetailOpen}
+      >
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>
@@ -915,35 +883,31 @@ export function OrderDelivery() {
                 <p>
                   Người nhận:{" "}
                   <span className="font-medium">
-                    {selectedOrder.receiver_name || "--"}
+                    {selectedOrder.receiver_name || "Không có tên người nhận"}
                   </span>
                 </p>
                 <p>
                   Số điện thoại:{" "}
                   <span className="font-medium">
-                    {selectedOrder.receiver_phone || "--"}
+                    {selectedOrder.receiver_phone || "Không có số điện thoại"}
                   </span>
                 </p>
                 <p>
                   Email:{" "}
                   <span className="font-medium">
-                    {selectedOrder.receiver_email || "--"}
+                    {selectedOrder.receiver_email || "Không có email"}
                   </span>
                 </p>
                 <p>
                   Địa chỉ:{" "}
                   <span className="font-medium">
-                    {selectedOrder.address || "--"}
+                    {selectedOrder.address || "Không có địa chỉ"}
                   </span>
                 </p>
                 <p>
                   Phương thức thanh toán:{" "}
                   <span className="font-medium">
-                    {selectedOrder.payment_method === "payos"
-                      ? "PayOS"
-                      : selectedOrder.payment_method === "cash"
-                        ? "Tiền mặt"
-                        : "--"}
+                    {getPaymentMethodLabel(selectedOrder)}
                   </span>
                 </p>
                 <p>
@@ -1030,6 +994,7 @@ export function OrderDelivery() {
                   </span>
                 </p>
               </div>
+
             </div>
           ) : (
             <p className="text-sm text-muted-foreground">
@@ -1058,8 +1023,8 @@ export function OrderDelivery() {
           <AlertDialogHeader>
             <AlertDialogTitle>Bạn có chắc muốn hủy đơn không?</AlertDialogTitle>
             <AlertDialogDescription>
-              {cancelConfirm.mode === "delivering"
-                ? "Đơn đang trong quá trình giao. Khi hủy, trạng thái đơn sẽ chuyển sang Hủy."
+              {cancelConfirm.mode === "preparing"
+                ? "Đơn đang trong quá trình chuẩn bị. Khi hủy, trạng thái đơn sẽ chuyển sang Hủy."
                 : "Thao tác này sẽ hủy đơn hiện tại và không thể hoàn tác."}
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -1140,7 +1105,7 @@ export function OrderDelivery() {
             >
               {completingId === Number(cashPaymentDialog.order?.id || 0)
                 ? "Đang hoàn thành..."
-                : "Hoàn thành"}
+                : "Xác nhận thanh toán & Hoàn thành"}
             </Button>
           </div>
         </DialogContent>

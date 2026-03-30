@@ -57,15 +57,14 @@ import AdminDB from "@/pages/admin/AdminDB/AdminDB";
 import FavoritePage from "@/pages/homePage/favorite/FavoritePage";
 import AdminReviews from "@/pages/admin/AdminReview/AdminReview";
 import MyOrderOnlinePage from "../pages/homePage/order/MyOrderOnlinePage";
-import AdminSettings from "@/pages/admin/AdminSettings/AdminSettings";
 import MyOrderDetailPage from "../pages/homePage/order/MyOrderDetailPage";
 import AdminReceiptSettings from "@/pages/admin/AdminReceiptSettings/AdminReceiptSettings";
 import AdminFlashSales from "@/pages/admin/AdminFlashSale/AdminFlashSales";
+import AdminReputation from "@/pages/admin/AdminReputation/AdminReputation";
 import TakeawayPOS from '../pages/staff/TakeawayPOS'
 import { OrderDelivery } from '@/pages/staff/StaffOrderList';
 import { StaffDashboard } from "@/pages/staff/StaffDashboard";
 import StaffPayOSReturn from "@/pages/staff/StaffPayOSReturn";
-import StoreLocatorPage from "@/pages/common/StoreLocatorPage";
 
 const getStoredValue = (key) =>
   localStorage.getItem(key) || sessionStorage.getItem(key);
@@ -214,13 +213,12 @@ const AppRoutes = () => {
         <Route path="tables" element={<AdminTables />} />
         <Route path="toppings" element={<AdminToppings />} />
         <Route path="reviews" element={<AdminReviews />} />
+        <Route path="reputation" element={<AdminReputation />} />
         <Route path="receipt-settings" element={<AdminReceiptSettings />} />
-        <Route path="settings" element={<AdminSettings />} />
         <Route path="flash-sales" element={<AdminFlashSales />} />
       </Route>
       <Route path="/news/:slug" element={<NewsDetailPage />} />
       <Route path="/news" element={<NewsListPage />} />
-      <Route path="/stores" element={<StoreLocatorPage />} />
       <Route path="/customer/profile" element={<UserProfile />} />
       {/* Only allow customers to access favorites */}
       <Route

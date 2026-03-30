@@ -81,11 +81,14 @@ class BaristaDBRepository {
         o.is_paid,
         o.created_at,
         o.total_amount,
+        op.payment_method,
+        op.payment_status,
         odi.receiver_name,
         odi.receiver_phone,
         COUNT(od.id) AS itemCount
       FROM orders o
       LEFT JOIN order_details od ON od.order_id = o.id
+      LEFT JOIN order_payments op ON op.order_id = o.id
       LEFT JOIN order_delivery_info odi ON odi.order_id = o.id
       WHERE o.status IN (${placeholders})
       GROUP BY
@@ -96,6 +99,8 @@ class BaristaDBRepository {
         o.is_paid,
         o.created_at,
         o.total_amount,
+        op.payment_method,
+        op.payment_status,
         odi.receiver_name,
         odi.receiver_phone
       ORDER BY
