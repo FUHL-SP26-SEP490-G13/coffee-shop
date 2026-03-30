@@ -7,8 +7,13 @@ import {
   Phone,
   TrendingUp,
   TrendingDown,
+  Settings,
+  Plus,
+  Trash2,
 } from "lucide-react";
 import reputationService from "@/services/reputationService";
+import appSettingService from "@/services/appSettingService";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -56,6 +61,89 @@ export default function AdminReputation() {
   const [historyError, setHistoryError] = useState("");
   const [selectedProfile, setSelectedProfile] = useState(null);
   const [historyRows, setHistoryRows] = useState([]);
+
+  // Cấu hình luật uy tín
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [settingsLoading, setSettingsLoading] = useState(false);
+  const [settingsSaving, setSettingsSaving] = useState(false);
+  const [rules, setRules] = useState([]);
+
+  const handleOpenSettings = async () => {
+    setIsSettingsOpen(true);
+    setSettingsLoading(true);
+    try {
+      const res = await appSettingService.getSettings();
+      let parsedRules = [];
+      if (res?.data?.reputation_rules) {
+        try {
+          parsedRules = JSON.parse(res.data.reputation_rules);
+        } catch(e) {}
+      }
+      
+      if (!Array.isArray(parsedRules) || parsedRules.length === 0) {
+        parsedRules = [
+          { id: 1, minScore: 0, maxCash: 0 },
+          { id: 2, minScore: 20, maxCash: 30000 },
+          { id: 3, minScore: 40, maxCash: 50000 },
+          { id: 4, minScore: 60, maxCash: 100000 },
+          { id: 5, minScore: 80, maxCash: null }
+        ];
+      }
+      // Khôi phục ID nếu thiếu
+      setRules(parsedRules.map(r => ({ ...r, id: r.id || Math.random() })));
+    } catch (err) {
+      toast.error("Không thể tải cấu hình hạn mức");
+    } finally {
+      setSettingsLoading(false);
+    }
+  };
+
+  const handleSaveSettings = async () => {
+    try {
+      setSettingsSaving(true);
+      const cleaned = rules.map(r => ({
+        ...r,
+        minScore: Number(r.minScore) || 0,
+        maxCash: r.maxCash === null || r.maxCash === "" ? null : Number(r.maxCash)
+      }));
+
+      const sorted = [...cleaned].sort((a, b) => a.minScore - b.minScore);
+      if (sorted.length === 0 || sorted[0].minScore !== 0) {
+        toast.error("Phải có ít nhất 1 mốc bắt đầu từ 0 điểm");
+        setSettingsSaving(false);
+        return;
+      }
+      
+      const hasDupes = new Set(sorted.map(r => r.minScore)).size !== sorted.length;
+      if (hasDupes) {
+        toast.error("Các mốc điểm (Từ X điểm) không được trùng lặp");
+        setSettingsSaving(false);
+        return;
+      }
+
+      await appSettingService.upsertSettings({
+        reputation_rules: JSON.stringify(sorted.map(r => ({ minScore: r.minScore, maxCash: r.maxCash })))
+      });
+      toast.success("Lưu cấu hình thành công");
+      setIsSettingsOpen(false);
+    } catch (err) {
+      toast.error("Lỗi khi lưu cấu hình");
+    } finally {
+      setSettingsSaving(false);
+    }
+  };
+
+  const addRule = () => {
+    setRules(prev => [...prev, { id: Date.now(), minScore: 50, maxCash: 50000 }]);
+  };
+
+  const removeRule = (id) => {
+    setRules(prev => prev.filter(r => r.id !== id));
+  };
+
+  const updateRule = (id, field, value) => {
+    setRules(prev => prev.map(r => r.id === id ? { ...r, [field]: value } : r));
+  };
 
   const fetchProfiles = useCallback(async (currentPage = 1, currentKeyword = "") => {
     try {
@@ -150,10 +238,15 @@ export default function AdminReputation() {
           <div>
             <h2 className="text-2xl font-semibold">Quản lý điểm uy tín</h2>
             <p className="text-sm text-muted-foreground">
-              Theo dõi số điện thoại, điểm hiện tại và xem lịch sử cộng trừ theo đơn hàng.
+              Theo dõi số điện thoại, điểm hiện tại và thiết lập hạn mức thanh toán.
             </p>
           </div>
         </div>
+        
+        <Button onClick={handleOpenSettings}>
+          <Settings className="w-4 h-4 mr-2" />
+          Cài đặt hạn mức
+        </Button>
       </div>
 
       <div className="relative max-w-md">
@@ -350,6 +443,100 @@ export default function AdminReputation() {
                   })}
                 </TableBody>
               </Table>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Settings Modal */}
+      <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Cài đặt mốc hạn mức thanh toán</DialogTitle>
+            <DialogDescription>
+              Thiết lập các giới hạn tiền mặt tối đa dựa trên điểm uy tín của khách hàng.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 my-2">
+            {settingsLoading ? (
+              <div className="flex justify-center py-6">
+                <Loader2 className="w-6 h-6 animate-spin text-primary" />
+              </div>
+            ) : (
+              <>
+                <div className="bg-amber-50 text-amber-800 p-3 rounded-lg text-sm mb-4">
+                  <strong>Quy tắc:</strong> Hệ thống sẽ tìm Mốc có điểm yêu cầu cao nhất mà Quý khách đạt được để áp dụng. Bạn bắt buộc phải có 1 dòng quy định mức <strong>Từ 0 điểm trở lên</strong> dành cho người dùng mới. 
+                </div>
+
+                <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
+                  {rules.map((rule, idx) => (
+                    <div key={rule.id} className="flex flex-col sm:flex-row items-center gap-4 bg-gray-50 dark:bg-gray-900 border rounded-xl p-4 relative">
+                      <div className="flex-1 space-y-1 w-full">
+                        <label className="text-xs font-semibold uppercase text-muted-foreground">Điều kiện điểm</label>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium">Từ</span>
+                          <Input 
+                            type="number" 
+                            min="0" max="100" 
+                            value={rule.minScore} 
+                            onChange={(e) => updateRule(rule.id, "minScore", e.target.value)}
+                            className="w-24 bg-white dark:bg-black"
+                          />
+                          <span className="text-sm font-medium">trở lên</span>
+                        </div>
+                      </div>
+
+                      <div className="flex-1 space-y-1 w-full">
+                        <label className="text-xs font-semibold uppercase text-muted-foreground">Giới hạn COD (Tiền mặt)</label>
+                        <div className="flex items-center gap-3">
+                          <Input 
+                            type="number" 
+                            min="0"
+                            placeholder="Nhập số tiền..."
+                            value={rule.maxCash === null ? "" : rule.maxCash} 
+                            onChange={(e) => updateRule(rule.id, "maxCash", e.target.value)}
+                            disabled={rule.maxCash === null}
+                            className="bg-white dark:bg-black w-32"
+                          />
+                          <label className="flex items-center gap-2 cursor-pointer whitespace-nowrap">
+                            <input 
+                              type="checkbox" 
+                              checked={rule.maxCash === null}
+                              onChange={(e) => updateRule(rule.id, "maxCash", e.target.checked ? null : 0)}
+                              className="w-4 h-4"
+                            />
+                            <span className="text-sm text-gray-700 dark:text-gray-300">Không giới hạn</span>
+                          </label>
+                        </div>
+                      </div>
+
+                      <Button 
+                        variant="destructive" size="icon" className="shrink-0 sm:self-end" 
+                        onClick={() => removeRule(rule.id)}
+                        disabled={rules.length <= 1}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+
+                <Button variant="outline" className="w-full mt-2" onClick={addRule}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Thêm mốc điểm mới
+                </Button>
+
+                <div className="flex justify-end gap-3 mt-6">
+                  <Button variant="secondary" onClick={() => setIsSettingsOpen(false)}>
+                    Hủy bỏ
+                  </Button>
+                  <Button onClick={handleSaveSettings} disabled={settingsSaving}>
+                    {settingsSaving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                    Lưu cấu hình
+                  </Button>
+                </div>
+              </>
             )}
           </div>
         </DialogContent>

@@ -36,7 +36,7 @@ import {
 } from "@/utils/reputationValidation";
 import { toast } from "sonner";
 import flashSaleService from "@/services/flashSaleService";
-
+import appSettingService from "@/services/appSettingService";
 const DELIVERY_SHIPPING_FEE = 20000;
 
 export default function CheckoutPage() {
@@ -58,6 +58,7 @@ export default function CheckoutPage() {
   const [reputationScore, setReputationScore] = useState(50);
   const [reputationTier, setReputationTier] = useState("SILVER");
   const [reputationFrozen, setReputationFrozen] = useState(false);
+  const [reputationRules, setReputationRules] = useState([]);
   const [isReputationLoading, setIsReputationLoading] = useState(false);
   const [paymentValidation, setPaymentValidation] = useState(null);
   const [form, setForm] = useState({
@@ -92,10 +93,17 @@ export default function CheckoutPage() {
       if (!token) return;
 
       try {
-        const [profileRes, addressesRes] = await Promise.all([
+        const [profileRes, addressesRes, settingsRes] = await Promise.all([
           authenticationService.getProfile(),
           authenticationService.getMyAddresses(),
+          appSettingService.getSettings(),
         ]);
+        
+        if (settingsRes?.data?.reputation_rules) {
+          try {
+            setReputationRules(JSON.parse(settingsRes.data.reputation_rules));
+          } catch (e) { console.error("Error parsing rules:", e) }
+        }
 
         const user = profileRes?.data;
 
@@ -257,6 +265,7 @@ export default function CheckoutPage() {
         reputationScore,
         totalAmount,
         reputationFrozen,
+        reputationRules
       );
       setPaymentValidation(validation);
 
@@ -275,7 +284,7 @@ export default function CheckoutPage() {
       toast.error(error.message, { duration: 5000 });
       setPaymentValidation(null);
     }
-  }, [reputationScore, reputationFrozen, totalAmount, form.payment_method]);
+  }, [reputationScore, reputationFrozen, totalAmount, form.payment_method, reputationRules]);
 
   const handleApplyDiscount = async () => {
     const code = discountCode.trim();
@@ -851,6 +860,7 @@ export default function CheckoutPage() {
         onClose={() => setIsReputationDialogOpen(false)}
         currentScore={reputationScore}
         currentTier={normalizedReputationTier}
+        reputationRules={reputationRules}
       />
 
       <Footer />

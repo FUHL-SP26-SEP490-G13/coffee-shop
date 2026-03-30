@@ -9,61 +9,63 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-const PAYMENT_RULES = [
-  {
-    min: 0,
-    max: 19,
-    scoreRange: "< 20 điểm",
-    cashLimit: "Không cho phép",
-    paymentMethods: "Chỉ PayOS",
-    note: "Không cho phép thanh toán tiền mặt do có lịch sử giao dịch rủi ro hoặc điểm uy tín thấp",
-  },
-  {
-    min: 20,
-    max: 39,
-    scoreRange: "20 - 39 điểm",
-    cashLimit: "< 30.000đ",
-    paymentMethods: "Tiền mặt hoặc PayOS",
-    note: "Vượt hạn mức sẽ tự chuyển sang PayOS",
-  },
-  {
-    min: 40,
-    max: 60,
-    scoreRange: "40 - 60 điểm",
-    cashLimit: "< 50.000đ",
-    paymentMethods: "Tiền mặt hoặc PayOS",
-    note: "Vượt hạn mức sẽ tự chuyển sang PayOS",
-  },
-  {
-    min: 61,
-    max: 80,
-    scoreRange: "61 - 80 điểm",
-    cashLimit: "< 100.000đ",
-    paymentMethods: "Tiền mặt hoặc PayOS",
-    note: "Vượt hạn mức sẽ tự chuyển sang PayOS",
-  },
-  {
-    min: 81,
-    max: Number.POSITIVE_INFINITY,
-    scoreRange: "> 80 điểm",
-    cashLimit: "Không giới hạn",
-    paymentMethods: "Tất cả phương thức",
-    note: "Ưu tiên mức uy tín cao",
-  },
-];
-
 export default function ReputationScoreDialog({
   open,
   onClose,
   currentScore = 50,
+  reputationRules = [],
 }) {
   const safeScore = Number.isFinite(Number(currentScore))
     ? Number(currentScore)
     : 50;
 
-  const activeRule = PAYMENT_RULES.find(
+  const dynamicRules = Array.isArray(reputationRules) && reputationRules.length > 0
+    ? [...reputationRules]
+        .sort((a, b) => a.minScore - b.minScore)
+        .map((rule, index, arr) => {
+          const nextRule = arr[index + 1];
+          const isLast = index === arr.length - 1;
+          const max = isLast ? Number.POSITIVE_INFINITY : nextRule.minScore - 1;
+          const min = rule.minScore;
+
+          let scoreRange = "";
+          if (isLast) scoreRange = `Từ ${min} điểm`;
+          else scoreRange = `${min} - ${max} điểm`;
+
+          let cashLimit = "";
+          let paymentMethods = "";
+          if (rule.maxCash === 0) {
+              cashLimit = "Không cho phép (0đ)";
+              paymentMethods = "Chỉ PayOS";
+          } else if (rule.maxCash === null) {
+              cashLimit = "Không giới hạn";
+              paymentMethods = "Tiền mặt hoặc PayOS";
+          } else {
+              cashLimit = `<= ${rule.maxCash.toLocaleString("vi-VN")}đ`;
+              paymentMethods = "Tiền mặt hoặc PayOS";
+          }
+
+          let note = "";
+          if (rule.maxCash === 0) note = "Bắt buộc thanh toán trực tuyến";
+          else if (rule.maxCash === null) note = "Ưu tiên mức uy tín cao";
+          else note = "Vượt mức tự chuyển PayOS";
+
+          return { min, max, scoreRange, cashLimit, paymentMethods, note };
+        })
+    : [
+        {
+          min: 0,
+          max: Number.POSITIVE_INFINITY,
+          scoreRange: "Mọi điểm số",
+          cashLimit: "Không giới hạn",
+          paymentMethods: "Tất cả phương thức",
+          note: "Chưa cấu hình hạn mức",
+        },
+      ];
+
+  const activeRule = dynamicRules.find(
     (rule) => safeScore >= rule.min && safeScore <= rule.max,
-  );
+  ) || dynamicRules[dynamicRules.length - 1];
 
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose?.()}>
@@ -119,7 +121,7 @@ export default function ReputationScoreDialog({
                   </tr>
                 </thead>
                 <tbody>
-                  {PAYMENT_RULES.map((row, index) => {
+                  {dynamicRules.map((row, index) => {
                     const isActive =
                       safeScore >= row.min && safeScore <= row.max;
 
