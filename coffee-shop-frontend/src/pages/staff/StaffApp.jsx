@@ -15,6 +15,8 @@ import {
   Bell,
   ShoppingBag,
   LayoutDashboard,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import {
   AlertDialog,
@@ -31,12 +33,32 @@ import authenticationService from '../../services/authenticationService';
 import notificationService from '@/services/notificationService';
 import socket from '@/lib/socket';
 import { getNotificationLink } from '@/utils/getNotificationLink';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import Logo from '/logo/Logo.png';
+
+const STAFF_SIDEBAR_PREF_KEY = 'staff_sidebar_collapsed_by_page';
+const STAFF_SIDEBAR_DEFAULTS = {
+  pos: true,
+};
 
 export function StaffApp() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [sidebarCollapsedByPage, setSidebarCollapsedByPage] = useState(() => {
+    try {
+      const raw = localStorage.getItem(STAFF_SIDEBAR_PREF_KEY);
+      const parsed = raw ? JSON.parse(raw) : {};
+      return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch {
+      return {};
+    }
+  });
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -67,6 +89,10 @@ export function StaffApp() {
   };
 
   const currentPage = getCurrentPage();
+  const defaultCollapsedForPage =
+    STAFF_SIDEBAR_DEFAULTS[currentPage] ?? false;
+  const isSidebarCollapsed =
+    sidebarCollapsedByPage[currentPage] ?? defaultCollapsedForPage;
 
   const menuGroups = [
     {
@@ -96,6 +122,17 @@ export function StaffApp() {
       ],
     },
   ];
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        STAFF_SIDEBAR_PREF_KEY,
+        JSON.stringify(sidebarCollapsedByPage),
+      );
+    } catch {
+      // Ignore localStorage errors to avoid blocking UI interactions.
+    }
+  }, [sidebarCollapsedByPage]);
 
   useEffect(() => {
     const initNotifications = async () => {
@@ -252,6 +289,16 @@ export function StaffApp() {
     }
   };
 
+  const toggleSidebar = () => {
+    setSidebarCollapsedByPage((prev) => {
+      const currentValue = prev[currentPage] ?? defaultCollapsedForPage;
+      return {
+        ...prev,
+        [currentPage]: !currentValue,
+      };
+    });
+  };
+
   return (
     <div className='flex min-h-screen bg-background'>
       <button
@@ -275,7 +322,7 @@ export function StaffApp() {
       <div
         className={`
           fixed md:static inset-y-0 left-0 z-40
-          w-64 bg-card border-r border-border flex flex-col
+          w-64 ${isSidebarCollapsed ? 'md:w-20' : 'md:w-64'} bg-card border-r border-border flex flex-col
           transform transition-transform duration-300 ease-in-out
           ${mobileMenuOpen
             ? "translate-x-0"
@@ -284,69 +331,112 @@ export function StaffApp() {
         `}
       >
         <div
-          className='p-6 border-b border-border'
+          className={`p-6 border-b border-border ${isSidebarCollapsed ? 'md:px-3' : ''}`}
           style={{
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
+            position: 'relative',
           }}
         >
-          <img src={Logo} alt='Coffee Shop Logo' className='h-20 w-auto' />
-          <p className='text-sm text-muted-foreground mt-1'>Cổng Nhân viên</p>
+          <button
+            type='button'
+            onClick={toggleSidebar}
+            className='hidden md:inline-flex absolute top-3 right-3 items-center justify-center rounded-md border border-border p-1.5 text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors'
+            aria-label={isSidebarCollapsed ? 'Mở rộng sidebar' : 'Thu nhỏ sidebar'}
+            title={isSidebarCollapsed ? 'Mở rộng sidebar' : 'Thu nhỏ sidebar'}
+          >
+            {isSidebarCollapsed ? (
+              <ChevronRight className='w-4 h-4' />
+            ) : (
+              <ChevronLeft className='w-4 h-4' />
+            )}
+          </button>
+          <img
+            src={Logo}
+            alt='Coffee Shop Logo'
+            className={`w-auto ${isSidebarCollapsed ? 'h-12' : 'h-20'}`}
+          />
+          <p className={`text-sm text-muted-foreground mt-1 ${isSidebarCollapsed ? 'md:hidden' : ''}`}>
+            Cổng Nhân viên
+          </p>
         </div>
 
-        <nav className='flex-1 p-4 overflow-auto'>
-          {menuGroups.map((group) => (
-            <div key={group.title} className="mb-6">
-              <h3 className="px-4 text-[11px] font-bold text-muted-foreground uppercase tracking-wider mb-3">
-                {group.title}
-              </h3>
-              {group.items.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => {
-                      navigate(item.path);
-                      setMobileMenuOpen(false);
-                    }}
-                    className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all mb-1 ${
-                      currentPage === item.id
-                        ? 'bg-primary text-primary-foreground shadow-sm'
-                        : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-                    }`}
-                  >
-                    <Icon className='w-[18px] h-[18px] flex-shrink-0' />
-                    <span className='text-sm font-medium'>{item.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-          ))}
+        <TooltipProvider>
+          <nav className='flex-1 p-4 overflow-auto'>
+            {menuGroups.map((group) => (
+              <div key={group.title} className="mb-6">
+                <h3 className={`px-4 text-[11px] font-bold text-muted-foreground uppercase tracking-wider mb-3 ${isSidebarCollapsed ? 'md:hidden' : ''}`}>
+                  {group.title}
+                </h3>
+                {group.items.map((item) => {
+                  const Icon = item.icon;
+                  const menuButton = (
+                    <button
+                      key={item.id}
+                      onClick={() => {
+                        navigate(item.path);
+                        setMobileMenuOpen(false);
+                      }}
+                      className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all mb-1 ${isSidebarCollapsed ? 'md:justify-center md:px-2' : ''} ${
+                        currentPage === item.id
+                          ? 'bg-primary text-primary-foreground shadow-sm'
+                          : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                      }`}
+                      title={isSidebarCollapsed ? item.label : undefined}
+                    >
+                      <Icon className='w-[18px] h-[18px] flex-shrink-0' />
+                      <span className={`text-sm font-medium ${isSidebarCollapsed ? 'md:hidden' : ''}`}>
+                        {item.label}
+                      </span>
+                    </button>
+                  );
 
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <button className='w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all mb-2 text-muted-foreground hover:bg-accent hover:text-accent-foreground'>
-                <LogOut className='w-5 h-5 flex-shrink-0' />
-                <span className='text-sm'>Đăng xuất</span>
-              </button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Xác nhận đăng xuất</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Bạn có chắc chắn muốn đăng xuất khỏi hệ thống không?
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Hủy</AlertDialogCancel>
-                <AlertDialogAction onClick={handleLogout}>
-                  Đăng xuất
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </nav>
+                  if (!isSidebarCollapsed) {
+                    return menuButton;
+                  }
+
+                  return (
+                    <Tooltip key={item.id}>
+                      <TooltipTrigger asChild>{menuButton}</TooltipTrigger>
+                      <TooltipContent side='right' sideOffset={10}>
+                        {item.label}
+                      </TooltipContent>
+                    </Tooltip>
+                  );
+                })}
+              </div>
+            ))}
+
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <button
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all mb-2 text-muted-foreground hover:bg-accent hover:text-accent-foreground ${isSidebarCollapsed ? 'md:justify-center md:px-2' : ''}`}
+                  title={isSidebarCollapsed ? 'Đăng xuất' : undefined}
+                >
+                  <LogOut className='w-5 h-5 flex-shrink-0' />
+                  <span className={`text-sm ${isSidebarCollapsed ? 'md:hidden' : ''}`}>
+                    Đăng xuất
+                  </span>
+                </button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Xác nhận đăng xuất</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Bạn có chắc chắn muốn đăng xuất khỏi hệ thống không?
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Hủy</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleLogout}>
+                    Đăng xuất
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </nav>
+        </TooltipProvider>
       </div>
 
       <div className={`flex-1 w-full md:w-auto ${currentPage === 'pos' ? 'overflow-hidden flex flex-col h-screen' : 'overflow-auto'}`}>

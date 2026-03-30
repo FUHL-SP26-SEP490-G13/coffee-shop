@@ -98,7 +98,11 @@ export default function MyOrderDetailPage() {
     }
   };
 
-  const canCancelOrder = ["pending", "preparing"].includes(order?.status);
+  const isPaidOrder =
+    Number(order?.is_paid) === 1 ||
+    String(order?.payment_status || "").toLowerCase() === "paid";
+
+  const canCancelOrder = ["pending"].includes(order?.status) && !isPaidOrder;
 
   const onCancelOrder = async () => {
     if (!id || !canCancelOrder) return;
@@ -190,7 +194,7 @@ export default function MyOrderDetailPage() {
                   <p>
                     Thanh toán:{" "}
                     <span className="font-medium text-gray-900">
-                      {Number(order.is_paid) === 1
+                      {isPaidOrder
                         ? "Đã thanh toán"
                         : "Chưa thanh toán"}
                     </span>

@@ -20,8 +20,6 @@ const PAGE_SIZE = 5;
 const STATUS_TABS = [
   "pending",
   "preparing",
-  "served",
-  "delivering",
   "completed",
   "cancelled",
 ];
@@ -113,10 +111,6 @@ export default function MyOrderOnlinePage() {
         return "Chờ xác nhận";
       case "preparing":
         return "Đang chuẩn bị";
-      case "served":
-        return "Đã phục vụ";
-      case "delivering":
-        return "Đang giao";
       case "completed":
         return "Hoàn tất";
       case "cancelled":
@@ -132,10 +126,6 @@ export default function MyOrderOnlinePage() {
         return "bg-yellow-100 text-yellow-700";
       case "preparing":
         return "bg-blue-100 text-blue-700";
-      case "served":
-        return "bg-indigo-100 text-indigo-700";
-      case "delivering":
-        return "bg-cyan-100 text-cyan-700";
       case "completed":
         return "bg-green-100 text-green-700";
       case "cancelled":

@@ -337,6 +337,8 @@ class OrderRepository {
       `
       SELECT
         o.id,
+        o.user_id,
+        o.customer_type,
         o.order_type,
         o.status,
         o.is_paid,
