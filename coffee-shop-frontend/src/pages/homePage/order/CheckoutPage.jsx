@@ -36,6 +36,9 @@ import {
 } from "@/utils/reputationValidation";
 import { toast } from "sonner";
 import flashSaleService from "@/services/flashSaleService";
+import appSettingService from "@/services/appSettingService";
+import { geocodeAddress, getDrivingDistance, calculateShippingFee } from "@/utils/distanceCalculator";
+import { Loader2 } from "lucide-react";
 
 const DELIVERY_SHIPPING_FEE = 20000;
 
@@ -58,7 +61,9 @@ export default function CheckoutPage() {
   const [reputationScore, setReputationScore] = useState(50);
   const [reputationTier, setReputationTier] = useState("SILVER");
   const [reputationFrozen, setReputationFrozen] = useState(false);
+  const [reputationRules, setReputationRules] = useState([]);
   const [isReputationLoading, setIsReputationLoading] = useState(false);
+  const [fetchedPhone, setFetchedPhone] = useState("");
   const [paymentValidation, setPaymentValidation] = useState(null);
   const [form, setForm] = useState({
     order_type: "delivery",
@@ -71,6 +76,11 @@ export default function CheckoutPage() {
     discount_code: "",
   });
   const [activeSale, setActiveSale] = useState(null);
+
+  const [storeAddress, setStoreAddress] = useState("");
+  const [shippingFee, setShippingFee] = useState(DELIVERY_SHIPPING_FEE);
+  const [deliveryDistanceKm, setDeliveryDistanceKm] = useState(null);
+  const [isShippingCalculating, setIsShippingCalculating] = useState(false);
 
   useEffect(() => {
     flashSaleService
@@ -92,10 +102,30 @@ export default function CheckoutPage() {
       if (!token) return;
 
       try {
-        const [profileRes, addressesRes] = await Promise.all([
+        const [profileRes, addressesRes, settingsRes] = await Promise.all([
           authenticationService.getProfile(),
           authenticationService.getMyAddresses(),
+          appSettingService.getSettings(),
         ]);
+        
+        if (settingsRes?.data?.reputation_rules) {
+          try {
+            let parsed = settingsRes.data.reputation_rules;
+            if (typeof parsed === 'string') {
+               parsed = JSON.parse(parsed);
+            }
+            if (typeof parsed === 'string') {
+               parsed = JSON.parse(parsed);
+            }
+            if (Array.isArray(parsed)) {
+               setReputationRules(parsed);
+            }
+          } catch (e) { console.error("Error parsing rules:", e) }
+        }
+
+        if (settingsRes?.data?.address) {
+          setStoreAddress(settingsRes.data.address);
+        }
 
         const user = profileRes?.data;
 
@@ -148,6 +178,7 @@ export default function CheckoutPage() {
       setReputationTier("SILVER");
       setReputationFrozen(false);
       setIsReputationLoading(false);
+      setFetchedPhone(normalizedPhone);
       return;
     }
 
@@ -171,11 +202,49 @@ export default function CheckoutPage() {
         setReputationFrozen(false);
       } finally {
         setIsReputationLoading(false);
+        setFetchedPhone(normalizedPhone);
       }
     }, 450);
 
     return () => clearTimeout(timeoutId);
   }, [form.receiver_phone]);
+
+  // Handle dynamic distance and shipping fee
+  useEffect(() => {
+    if (form.order_type !== "delivery" || !form.address || form.address.trim().length < 5 || !storeAddress) {
+      setShippingFee(form.order_type === "delivery" ? DELIVERY_SHIPPING_FEE : 0);
+      setDeliveryDistanceKm(null);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setIsShippingCalculating(true);
+      try {
+        const [storeCoords, customerCoords] = await Promise.all([
+          geocodeAddress(storeAddress),
+          geocodeAddress(form.address)
+        ]);
+
+        if (storeCoords && customerCoords) {
+          const distMeters = await getDrivingDistance(storeCoords, customerCoords);
+          const fee = calculateShippingFee(distMeters);
+          setShippingFee(fee);
+          setDeliveryDistanceKm((distMeters / 1000).toFixed(1));
+        } else {
+          // Fallback if address not found
+          setShippingFee(DELIVERY_SHIPPING_FEE);
+          setDeliveryDistanceKm(null);
+        }
+      } catch (error) {
+         setShippingFee(DELIVERY_SHIPPING_FEE);
+         setDeliveryDistanceKm(null);
+      } finally {
+        setIsShippingCalculating(false);
+      }
+    }, 1500);
+
+    return () => clearTimeout(timer);
+  }, [form.address, form.order_type, storeAddress]);
 
   const getAddressTypeLabel = (type) => {
     if (type === "work") return "Văn phòng";
@@ -247,16 +316,22 @@ export default function CheckoutPage() {
   }, [cart, activeSale]);
 
   const discountAmount = Number(appliedDiscount?.discount_amount || 0);
-  const shippingFee = form.order_type === "delivery" ? DELIVERY_SHIPPING_FEE : 0;
   const totalAmount = subtotalAmount - discountAmount + shippingFee;
 
   // Validate payment permissions khi điểm uy tín thay đổi
   useEffect(() => {
+    const currentPhone = normalizePhoneNumber(form.receiver_phone);
+    // Không ép phương thức nếu vẫn đang trong quá trình lấy điểm của SĐT hiện tại
+    if (currentPhone !== fetchedPhone || isReputationLoading) {
+       return;
+    }
+
     try {
       const validation = validateOrderPermissions(
         reputationScore,
         totalAmount,
         reputationFrozen,
+        reputationRules
       );
       setPaymentValidation(validation);
 
@@ -275,7 +350,7 @@ export default function CheckoutPage() {
       toast.error(error.message, { duration: 5000 });
       setPaymentValidation(null);
     }
-  }, [reputationScore, reputationFrozen, totalAmount, form.payment_method]);
+  }, [reputationScore, reputationFrozen, totalAmount, form.payment_method, reputationRules, fetchedPhone, form.receiver_phone, isReputationLoading]);
 
   const handleApplyDiscount = async () => {
     const code = discountCode.trim();
@@ -765,7 +840,12 @@ export default function CheckoutPage() {
 
               {shippingFee > 0 ? (
                 <div className="flex justify-between text-sm text-gray-700 dark:text-gray-300">
-                  <span>Phí vận chuyển</span>
+                  <span className="flex items-center gap-2">
+                    Phí vận chuyển {deliveryDistanceKm ? `(${deliveryDistanceKm} km)` : ""}
+                    {isShippingCalculating && (
+                      <Loader2 className="w-3 h-3 animate-spin text-amber-600" />
+                    )}
+                  </span>
                   <span>+ {shippingFee.toLocaleString("vi-VN")}đ</span>
                 </div>
               ) : null}
@@ -782,6 +862,8 @@ export default function CheckoutPage() {
               form={form}
               cart={cart}
               totalAmount={totalAmount}
+              shippingFee={shippingFee}
+              disabled={isShippingCalculating}
               onValidateError={(errs) => setErrors(errs)}
               onSuccess={() => navigate("/", { state: { orderSuccess: true } })}
             />
@@ -851,6 +933,7 @@ export default function CheckoutPage() {
         onClose={() => setIsReputationDialogOpen(false)}
         currentScore={reputationScore}
         currentTier={normalizedReputationTier}
+        reputationRules={reputationRules}
       />
 
       <Footer />

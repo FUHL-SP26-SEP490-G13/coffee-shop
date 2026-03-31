@@ -2,49 +2,10 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { MapPin, Phone, Mail } from "lucide-react";
 import Logo from "/logo/Logo.png";
+import { useStoreHours } from "@/hooks/useStoreHours";
 
 function Footer() {
-  const [isOpen, setIsOpen] = useState(false);
-
-  useEffect(() => {
-    let interval;
-    
-    const checkOpenStatus = () => {
-      const now = new Date();
-      const day = now.getDay(); // 0 is Sunday, 1 is Monday ... 6 is Saturday
-      const currentHour = now.getHours();
-      const currentMinute = now.getMinutes();
-      const currentTime = currentHour + currentMinute / 60;
-
-      const parseTime = (timeStr) => {
-        if (!timeStr) return 0;
-        const [h, m] = timeStr.split(":");
-        return parseInt(h) + parseInt(m) / 60;
-      };
-
-      let isShopOpen = false;
-
-      // Thứ 2 - Thứ 6
-      if (day >= 1 && day <= 5) {
-        const open = parseTime("07:00");
-        const close = parseTime("22:30");
-        isShopOpen = currentTime >= open && currentTime < close;
-      } 
-      // Thứ 7 - Chủ Nhật
-      else {
-        const open = parseTime("07:30");
-        const close = parseTime("23:00");
-        isShopOpen = currentTime >= open && currentTime < close;
-      }
-
-      setIsOpen(isShopOpen);
-    };
-
-    checkOpenStatus();
-    interval = setInterval(checkOpenStatus, 60000); // Cập nhật mỗi phút
-
-    return () => clearInterval(interval);
-  }, []);
+  const { isOpen, storeSchedule } = useStoreHours();
 
   return (
     <footer className="mt-20 border-t border-border bg-card">
@@ -147,15 +108,9 @@ function Footer() {
             </h4>
             <div className="mt-4 space-y-3 text-sm text-muted-foreground dark:text-gray-400">
               <div className="flex justify-between border-b border-border/50 pb-2">
-                <span>Thứ 2 - Thứ 6</span>
+                <span>Trực truyến hàng ngày</span>
                 <span className="font-medium text-foreground">
-                  07:00 - 22:30
-                </span>
-              </div>
-              <div className="flex justify-between border-b border-border/50 pb-2">
-                <span>Thứ 7 - Chủ Nhật</span>
-                <span className="font-medium text-foreground">
-                  07:30 - 23:00
+                  {storeSchedule?.open || "07:00"} - {storeSchedule?.close || "22:30"}
                 </span>
               </div>
               <div className="flex justify-between pb-2">

@@ -5,7 +5,7 @@ import { cartService } from "@/services/cartService";
 import orderService from "@/services/orderOnlineService";
 import { validateOrderForm } from "@/utils/orderValidation";
 
-const DELIVERY_SHIPPING_FEE = 20000;
+
 
 /**
  * Nút đặt hàng tái sử dụng cho cả trang Checkout (khách) lẫn Staff.
@@ -29,6 +29,8 @@ export default function PlaceOrderButton({
   backPath = "/cart",
   backLabel = "← Quay lại giỏ hàng",
   label = "Đặt hàng",
+  shippingFee = 0,
+  disabled = false,
 }) {
   const navigate = useNavigate();
   const [submitting, setSubmitting] = useState(false);
@@ -105,11 +107,11 @@ export default function PlaceOrderButton({
           );
         });
 
-        if (form.order_type === "delivery") {
+        if (form.order_type === "delivery" && shippingFee > 0) {
           payosItems.push({
             name: "Phí vận chuyển",
             quantity: 1,
-            price: DELIVERY_SHIPPING_FEE,
+            price: shippingFee,
           });
         }
 
@@ -154,7 +156,7 @@ export default function PlaceOrderButton({
       <Button
         className="w-full mb-3"
         onClick={handleSubmit}
-        disabled={submitting}
+        disabled={submitting || disabled}
       >
         {submitting ? "Đang xử lý..." : label}
       </Button>

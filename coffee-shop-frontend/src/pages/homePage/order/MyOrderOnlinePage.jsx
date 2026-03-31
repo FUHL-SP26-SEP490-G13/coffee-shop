@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import socket from "@/lib/socket";
 import orderService from "@/services/orderOnlineService";
 import { handleBuyAgain } from "@/utils/handleBuyAgain";
+import { useStoreHours } from "@/hooks/useStoreHours";
 
 const PAGE_SIZE = 5;
 const STATUS_TABS = [
@@ -31,6 +32,7 @@ export default function MyOrderOnlinePage() {
   const [buyAgainLoadingId, setBuyAgainLoadingId] = useState(null);
   const [page, setPage] = useState(1);
   const [activeStatus, setActiveStatus] = useState(STATUS_TABS[0]);
+  const { isOpen } = useStoreHours();
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -323,8 +325,9 @@ export default function MyOrderOnlinePage() {
 
                       <Button
                         onClick={() => onBuyAgain(order.id)}
-                        disabled={buyAgainLoadingId === order.id}
-                        className="bg-amber-600 hover:bg-amber-700 text-white"
+                        disabled={buyAgainLoadingId === order.id || !isOpen}
+                        className={`text-white ${!isOpen ? "bg-gray-400 cursor-not-allowed" : "bg-amber-600 hover:bg-amber-700"}`}
+                        title={!isOpen ? "Cửa hàng đang đóng cửa" : ""}
                       >
                         {buyAgainLoadingId === order.id ? (
                           <>
@@ -334,7 +337,7 @@ export default function MyOrderOnlinePage() {
                         ) : (
                           <>
                             <RotateCcw className="w-4 h-4 mr-2" />
-                            Mua lại
+                            {isOpen ? "Mua lại" : "Đã đóng cửa"}
                           </>
                         )}
                       </Button>

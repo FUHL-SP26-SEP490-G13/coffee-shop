@@ -6,8 +6,10 @@ import flashSaleService from "@/services/flashSaleService";
 import { cartService } from "@/services/cartService";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, Navigation } from "swiper/modules";
+import { useStoreHours } from "@/hooks/useStoreHours";
 
 export default function FlashSaleSection({ products, getThumbnail, getDefaultCartSize }) {
+  const { isOpen } = useStoreHours();
   const [activeSale, setActiveSale] = useState(null);
   const [timeLeft, setTimeLeft] = useState({ hours: 0, minutes: 0, seconds: 0 });
 
@@ -52,6 +54,11 @@ export default function FlashSaleSection({ products, getThumbnail, getDefaultCar
     e.preventDefault();
     e.stopPropagation();
 
+    if (!isOpen) {
+      toast.error("Cửa hàng hiện đang đóng cửa");
+      return;
+    }
+
     const cartSize = getDefaultCartSize(product);
     if (!cartSize) {
       toast.error("Sản phẩm tạm thời không có sẵn");
@@ -78,8 +85,7 @@ export default function FlashSaleSection({ products, getThumbnail, getDefaultCar
 
   return (
     <section 
-      className="py-12 relative overflow-hidden" 
-      style={{ background: 'linear-gradient(to right, #dc2626, #ea580c, #f59e0b)' }}
+      className="py-12 relative overflow-hidden bg-gradient-to-r from-red-600 via-orange-600 to-amber-500 dark:from-red-950 dark:via-orange-950 dark:to-amber-950" 
     >
       <div className="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
       
@@ -145,7 +151,7 @@ export default function FlashSaleSection({ products, getThumbnail, getDefaultCar
               <SwiperSlide key={product.id}>
                 <Link
                   to={`/products/${product.id}`}
-                  className="block bg-white rounded-2xl p-3 shadow-lg hover:-translate-y-2 transition-transform duration-300 group border border-orange-100"
+                  className="block bg-white dark:bg-gray-900 rounded-2xl p-3 shadow-lg hover:-translate-y-2 transition-transform duration-300 group border border-orange-100 dark:border-gray-800"
                 >
                   <div className="relative aspect-square rounded-xl overflow-hidden mb-4">
                     <img
@@ -158,13 +164,13 @@ export default function FlashSaleSection({ products, getThumbnail, getDefaultCar
                     </div>
                   </div>
                   <div className="px-2 pb-2">
-                    <h3 className="font-semibold text-gray-800 line-clamp-1 mb-2 group-hover:text-red-500 transition-colors">
+                    <h3 className="font-semibold text-gray-800 dark:text-gray-100 line-clamp-1 mb-2 group-hover:text-red-500 dark:group-hover:text-red-400 transition-colors">
                       {product.name}
                     </h3>
                     <div className="flex flex-col gap-1 mb-4">
                       {originalPrice > 0 ? (
                         <>
-                          <span className="text-gray-400 text-sm line-through decoration-gray-400 decoration-1">
+                          <span className="text-gray-400 dark:text-gray-500 text-sm line-through decoration-gray-400 dark:decoration-gray-500 decoration-1">
                             {originalPrice.toLocaleString("vi-VN")}đ
                           </span>
                           <span className="text-red-600 font-bold text-lg">
@@ -178,9 +184,14 @@ export default function FlashSaleSection({ products, getThumbnail, getDefaultCar
                     {originalPrice > 0 && (
                       <button
                         onClick={(e) => handleAddToCart(e, product)}
-                        className="w-full bg-gradient-to-r from-red-500 to-orange-500 text-white font-medium py-3 rounded-xl hover:from-red-600 hover:to-orange-600 active:scale-95 transition-all shadow-md shadow-orange-500/30 flex justify-center items-center gap-2"
+                        disabled={!isOpen}
+                        className={`w-full font-medium py-3 rounded-xl transition-all shadow-md flex justify-center items-center gap-2 ${
+                          isOpen
+                            ? "bg-gradient-to-r from-red-500 to-orange-500 text-white hover:from-red-600 hover:to-orange-600 active:scale-95 shadow-orange-500/30 dark:shadow-none"
+                            : "bg-gray-300 dark:bg-gray-800 text-gray-500 dark:text-gray-500 cursor-not-allowed shadow-none"
+                        }`}
                       >
-                        <ShoppingCart className="w-5 h-5" /> Thêm Ngay
+                        <ShoppingCart className="w-5 h-5" /> {isOpen ? "Thêm Ngay" : "Đã Khóa"}
                       </button>
                     )}
                   </div>

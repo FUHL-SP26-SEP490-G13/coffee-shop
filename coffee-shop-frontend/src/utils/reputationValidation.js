@@ -34,7 +34,7 @@
  *    → Tất cả payment methods được phép
  * ─────────────────────────────────────────────────────────────────
  */
-export function validateOrderPermissions(userScore, orderTotal, isBanned = false) {
+export function validateOrderPermissions(userScore, orderTotal, isBanned = false, rules = []) {
   const DEFAULT_REPUTATION_SCORE = 50;
 
   // Ensure score is a valid number
@@ -47,77 +47,67 @@ export function validateOrderPermissions(userScore, orderTotal, isBanned = false
     );
   }
 
-  // Rule 2: Score < 20 → Only PayOS allowed
-  if (score < 20) {
+  // Fallback nếu Admin chưa cấu hình rule nào
+  if (!Array.isArray(rules) || rules.length === 0) {
+    return {
+      canUseCash: true,
+      forcePayOS: false,
+      message: '✓ Bạn có thể sử dụng đầy đủ những phương thức thanh toán.',
+      reason: `Điểm uy tín: ${score}/100 (Hệ thống chưa giới hạn)`,
+    };
+  }
+
+  // Sắp xếp rules giảm dần (từ mốc điểm cao nhất xuống thấp nhất)
+  const sortedRules = [...rules].sort((a, b) => b.minScore - a.minScore);
+  
+  // Tìm mốc phù hợp (khoảng điểm hiện tại)
+  let appliedRule = sortedRules.find(r => score >= r.minScore);
+  
+  // Nếu điểm của khách thấp hơn cả mốc thấp nhất, áp dụng luôn mốc thấp nhất đó
+  if (!appliedRule) {
+      appliedRule = sortedRules[sortedRules.length - 1]; 
+  }
+
+  const limit = appliedRule.maxCash;
+  
+  // Limit = 0 -> Cấm tiền mặt hoàn toàn (Chỉ PayOS)
+  if (limit === 0) {
     return {
       canUseCash: false,
       forcePayOS: true,
-      message: '⚠️ Do điểm uy tín thấp, bạn chỉ có thể thanh toán bằng PayOS.',
-      reason: `Điểm uy tín: ${score}/100 (dưới mức 20 điểm)`,
+      message: '⚠️ Theo hạn mức quy định tại mức điểm hiện tại, bạn chỉ có thể thanh toán qua PayOS.',
+      reason: `Điểm uy tín: ${score}/100 (Mức từ ${appliedRule.minScore} điểm - Yêu cầu Online)`,
     };
   }
-
-  // Rule 3: Score 20-39 → Cash only if orderTotal < 30,000
-  if (score >= 20 && score < 40) {
-    if (orderTotal >= 30000) {
-      return {
-        canUseCash: false,
-        forcePayOS: true,
-        message: `Tổng đơn hàng ${(orderTotal).toLocaleString('vi-VN')}đ vượt hạn mức (30,000đ). Vui lòng dùng PayOS.`,
-        reason: `Điểm uy tín: ${score}/100 - giới hạn tiền mặt: 30,000đ`,
-      };
-    }
+  
+  // Limit = null -> Không giới hạn số tiền thanh toán COD
+  if (limit === null) {
     return {
       canUseCash: true,
       forcePayOS: false,
-      message: `✓ Bạn có thể dùng tiền mặt (tối đa 30,000đ) hoặc PayOS.`,
-      reason: `Điểm uy tín: ${score}/100 - giới hạn tiền mặt: 30,000đ`,
+      message: '✓ Bạn có thể sử dụng đầy đủ các phương thức thanh toán.',
+      reason: `Điểm uy tín: ${score}/100 (Mức từ ${appliedRule.minScore} điểm - Không hạn chế COD)`,
     };
   }
-
-  // Rule 4: Score 40-60 → Cash only if orderTotal < 50,000
-  if (score >= 40 && score <= 60) {
-    if (orderTotal >= 50000) {
+  
+  // Limit > 0 -> Cho phép tiền mặt trong hạn mức
+  if (limit > 0) {
+    if (orderTotal > limit) {
       return {
         canUseCash: false,
         forcePayOS: true,
-        message: `Tổng đơn hàng ${(orderTotal).toLocaleString('vi-VN')}đ vượt hạn mức (50,000đ). Vui lòng dùng PayOS.`,
-        reason: `Điểm uy tín: ${score}/100 - giới hạn tiền mặt: 50,000đ`,
+        message: `Tổng đơn ${(orderTotal).toLocaleString('vi-VN')}đ vượt hạn mức (${limit.toLocaleString('vi-VN')}đ) của nhóm điểm bạn. Vui lòng dùng PayOS.`,
+        reason: `Điểm uy tín: ${score}/100 (Mức từ ${appliedRule.minScore} điểm - Giới hạn Tiền mặt: ${limit.toLocaleString('vi-VN')}đ)`,
       };
     }
+    
     return {
       canUseCash: true,
       forcePayOS: false,
-      message: `✓ Bạn có thể dùng tiền mặt (tối đa 50,000đ) hoặc PayOS.`,
-      reason: `Điểm uy tín: ${score}/100 - giới hạn tiền mặt: 50,000đ`,
+      message: `✓ Bạn có thể dùng tiền mặt (tối đa ${limit.toLocaleString('vi-VN')}đ) hoặc PayOS.`,
+      reason: `Điểm uy tín: ${score}/100 (Mức từ ${appliedRule.minScore} điểm - Giới hạn Tiền mặt: ${limit.toLocaleString('vi-VN')}đ)`,
     };
   }
-
-  // Rule 4: Score 60-80 → Cash only if orderTotal < 100,000
-  if (score >= 60 && score <= 80) {
-    if (orderTotal >= 100000) {
-      return {
-        canUseCash: false,
-        forcePayOS: true,
-        message: `Tổng đơn hàng ${(orderTotal).toLocaleString('vi-VN')}đ vượt hạn mức (100,000đ). Vui lòng dùng PayOS.`,
-        reason: `Điểm uy tín: ${score}/100 - giới hạn tiền mặt: 100,000đ`,
-      };
-    }
-    return {
-      canUseCash: true,
-      forcePayOS: false,
-      message: `✓ Bạn có thể dùng tiền mặt (tối đa 100,000đ) hoặc PayOS.`,
-      reason: `Điểm uy tín: ${score}/100 - giới hạn tiền mặt: 100,000đ`,
-    };
-  }
-
-  // Rule 5: Score > 80 → All methods allowed
-  return {
-    canUseCash: true,
-    forcePayOS: false,
-    message: '✓ Bạn có thể sử dụng đầy đủ những phương thức thanh toán.',
-    reason: `Điểm uy tín: ${score}/100 (cao, không hạn chế)`,
-  };
 }
 
 /**

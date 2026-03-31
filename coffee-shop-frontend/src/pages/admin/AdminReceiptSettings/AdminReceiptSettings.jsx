@@ -16,6 +16,8 @@ const DEFAULT_FORM = {
   header_text: "",
   footer_text: "",
   is_active: true,
+  open_time: "07:00",
+  close_time: "22:30",
 };
 
 const toLines = (text) =>
@@ -52,6 +54,8 @@ export default function AdminReceiptSettings() {
             header_text: fromLines(data.header_lines),
             footer_text: fromLines(data.footer_lines),
             is_active: typeof data.is_active === "boolean" ? data.is_active : Boolean(data.is_active),
+            open_time: data.open_time || "07:00",
+            close_time: data.close_time || "22:30",
           });
           setLogoPreview(data.logo_url || "");
         }
@@ -92,6 +96,8 @@ export default function AdminReceiptSettings() {
       formData.append("header_lines", JSON.stringify(toLines(form.header_text)));
       formData.append("footer_lines", JSON.stringify(toLines(form.footer_text)));
       formData.append("is_active", String(Boolean(form.is_active)));
+      formData.append("open_time", form.open_time);
+      formData.append("close_time", form.close_time);
       formData.append("type", "receipt-settings");
 
       if (logoFile) {
@@ -265,6 +271,27 @@ export default function AdminReceiptSettings() {
               onChange={(e) => handleChange("phone", e.target.value)}
               placeholder="0909123456"
             />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="open_time">Giờ mở cửa</Label>
+              <Input
+                id="open_time"
+                type="time"
+                value={form.open_time}
+                onChange={(e) => handleChange("open_time", e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="close_time">Giờ đóng cửa</Label>
+              <Input
+                id="close_time"
+                type="time"
+                value={form.close_time}
+                onChange={(e) => handleChange("close_time", e.target.value)}
+              />
+            </div>
           </div>
 
           <div className="space-y-2">

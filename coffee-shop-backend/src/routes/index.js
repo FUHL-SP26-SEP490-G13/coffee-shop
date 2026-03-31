@@ -29,9 +29,6 @@ const aiRoutes = require('./ai.routes');
 const flashSaleRoutes = require('./flashSale.routes');
 const qrOrderRoutes = require('./qrOrder.routes');
 const shiftRoutes = require('./shift.routes');
-const appSettingRoutes = require('./appSetting.routes');
-
-
 
 
 // Mount routes
@@ -58,10 +55,9 @@ router.use("/order-online", orderOnlineRoutes);
 router.use("/reputation", reputationRoutes);
 router.use("/favorites", favoriteRoutes);
 router.use("/reviews", reviewRoutes);
-router.use("/receipt-settings", receiptSettingRoutes);
-router.use("/settings", appSettingRoutes);
-router.use("/takeaway", takeawayRoutes);
-router.use("/orders", orderRoutes);
+    router.use("/receipt-settings", receiptSettingRoutes);
+    router.use("/takeaway", takeawayRoutes);
+    router.use("/orders", orderRoutes);
 router.use('/ai', aiRoutes);
 router.use('/flash-sales', flashSaleRoutes);
 router.use('/qr-order', qrOrderRoutes);

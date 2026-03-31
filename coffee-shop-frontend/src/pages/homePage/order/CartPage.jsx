@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ShoppingBag } from "lucide-react";
+import { ShoppingBag, Plus } from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { cartService } from "@/services/cartService";
 import toppingService from "@/services/toppingService";
 import productService from "@/services/productService";
 import flashSaleService from "@/services/flashSaleService";
+import { toast } from "sonner";
 
 export default function CartPage() {
   const navigate = useNavigate();
@@ -16,6 +17,7 @@ export default function CartPage() {
   const [editingIndex, setEditingIndex] = useState(null);
   const [productSizesMap, setProductSizesMap] = useState({});
   const [activeSale, setActiveSale] = useState(null);
+  const [recommendations, setRecommendations] = useState([]);
 
   const refreshCart = () => {
     setCart(cartService.getCart());
@@ -82,6 +84,24 @@ export default function CartPage() {
     
     fetchSizes();
   }, [cart]);
+
+  useEffect(() => {
+    const fetchRecommendations = async () => {
+      try {
+        const res = await productService.getBestSellers({ limit: 12 });
+        const list = Array.isArray(res?.data?.data) ? res.data.data : res?.data || [];
+        
+        // Filter out items already in cart
+        const cartProductIds = cart.map(item => Number(item.product_id || item.id)).filter(Boolean);
+        const filtered = list.filter(p => !cartProductIds.includes(Number(p.id)));
+        
+        setRecommendations(filtered.slice(0, 4));
+      } catch (error) {
+        console.error("Lỗi lấy recommendations:", error);
+      }
+    };
+    fetchRecommendations();
+  }, [cart.length]);
 
   const totalAmount = cartService.getTotalAmount();
 
@@ -160,6 +180,39 @@ export default function CartPage() {
     refreshCart();
   };
 
+  const handleFastAdd = (product) => {
+    if (!product.sizes || product.sizes.length === 0) {
+      toast.error("Sản phẩm không có size");
+      return;
+    }
+    const cartSize = product.sizes.find(s => s.size === "M") || product.sizes[0];
+    let price = Number(cartSize.price);
+    
+    if (activeSale && activeSale.product_ids?.includes(product.id)) {
+      price = Math.round(price * (1 - activeSale.discount_percent / 100));
+    }
+
+    const defaultImage = "https://png.pngtree.com/png-vector/20190820/ourmid/pngtree-no-image-vector-illustration-isolated-png-image_1694547.jpg";
+    const thumbnail = product.images?.find(img => img.isThumbnail === 1)?.image_url || product.images?.[0]?.image_url || defaultImage;
+
+    const cartItem = {
+      productSizeId: cartSize.id,
+      id: product.id,
+      product_id: product.id,
+      name: product.name,
+      image: thumbnail,
+      size: cartSize.size,
+      basePrice: price,
+      price: price,
+      quantity: 1,
+      toppings: [],
+    };
+
+    cartService.addItem(cartItem);
+    toast.success(`Đã thêm ${product.name} vào giỏ`);
+    refreshCart();
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900">
       <Header />
@@ -169,9 +222,26 @@ export default function CartPage() {
           <div className="flex items-center justify-between gap-4 mb-8 flex-wrap">
             <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Giỏ hàng</h1>
 
-            <Button variant="outline" onClick={() => navigate("/products")}>
-              Tiếp tục mua hàng
-            </Button>
+            <div className="flex gap-3">
+              {cart.length > 0 && (
+                <Button 
+                  variant="ghost" 
+                  className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
+                  onClick={() => {
+                    if (window.confirm("Bạn có chắc muốn xóa tất cả sản phẩm khỏi giỏ hàng không?")) {
+                      cartService.clearCart();
+                      refreshCart();
+                      toast.success("Đã làm trống giỏ hàng");
+                    }
+                  }}
+                >
+                  Xóa tất cả
+                </Button>
+              )}
+              <Button variant="outline" onClick={() => navigate("/products")}>
+                Tiếp tục mua hàng
+              </Button>
+            </div>
           </div>
 
           {cart.length === 0 ? (
@@ -441,6 +511,74 @@ export default function CartPage() {
               </div>
             </div>
           )}
+
+            {/* Cross-selling Section */}
+            {recommendations.length > 0 && (
+              <div className="mt-12 pt-8 border-t border-gray-200 dark:border-gray-800">
+                <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-6 flex items-center gap-2">
+                  <span className="text-red-500">❤️</span> Có thể bạn sẽ thích
+                </h3>
+                
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {recommendations.map(product => {
+                    const defaultImage = "https://png.pngtree.com/png-vector/20190820/ourmid/pngtree-no-image-vector-illustration-isolated-png-image_1694547.jpg";
+                    const thumbnail = product.images?.find(img => img.isThumbnail === 1)?.image_url || product.images?.[0]?.image_url || defaultImage;
+                    const cartSize = product.sizes?.find(s => s.size === "M") || product.sizes?.[0];
+                    const originalPrice = cartSize ? Number(cartSize.price) : 0;
+                    
+                    let salePrice = originalPrice;
+                    let isSale = activeSale && activeSale.product_ids?.includes(product.id);
+                    if (isSale) {
+                      salePrice = Math.round(originalPrice * (1 - activeSale.discount_percent / 100));
+                    }
+
+                    return (
+                      <div key={product.id} className="border border-gray-200 dark:border-gray-800 rounded-2xl p-3 bg-white dark:bg-gray-900 flex flex-col group relative overflow-hidden transition-all hover:border-amber-400">
+                        {isSale && (
+                           <div className="absolute top-2 left-2 z-10 bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded shadow-sm">
+                             GIẢM {activeSale.discount_percent}%
+                           </div>
+                        )}
+                        <img 
+                          src={thumbnail} 
+                          alt={product.name} 
+                          onClick={() => navigate(`/products/${product.id}`)}
+                          className="w-full aspect-square object-cover rounded-xl cursor-pointer hover:scale-105 transition-transform duration-300 mb-3"
+                        />
+                        <div className="flex-1 flex flex-col justify-between">
+                          <h4 
+                            onClick={() => navigate(`/products/${product.id}`)}
+                            className="font-semibold text-sm text-gray-800 dark:text-gray-200 line-clamp-2 cursor-pointer hover:text-amber-600 mb-2"
+                          >
+                            {product.name}
+                          </h4>
+                          
+                          <div className="flex items-center justify-between">
+                            <div className="flex flex-col">
+                               {isSale && originalPrice > 0 ? (
+                                  <>
+                                    <span className="text-[10px] text-gray-400 line-through decoration-gray-400">{originalPrice.toLocaleString('vi-VN')}đ</span>
+                                    <span className="text-sm font-bold text-red-600">{salePrice.toLocaleString('vi-VN')}đ</span>
+                                  </>
+                               ) : (
+                                  <span className="text-sm font-bold text-gray-900 dark:text-gray-100">{salePrice.toLocaleString('vi-VN')}đ</span>
+                               )}
+                            </div>
+                            
+                            <button 
+                              onClick={() => handleFastAdd(product)}
+                              className="w-8 h-8 rounded-full bg-amber-100 text-amber-600 dark:bg-amber-900/40 dark:text-amber-400 flex items-center justify-center hover:bg-amber-500 hover:text-white transition-colors shadow-sm"
+                            >
+                              <Plus className="w-5 h-5" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
         </div>
       </section>
 
