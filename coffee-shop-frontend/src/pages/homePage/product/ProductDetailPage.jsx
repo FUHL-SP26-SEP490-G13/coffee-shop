@@ -8,7 +8,9 @@ import {
   Heart,
   Star,
   ImagePlus,
-  X
+  X,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
@@ -100,6 +102,31 @@ export default function ProductDetailPage() {
     setSelectedSize(null);
     setSelectedToppings([]);
     setShowToppings(false);
+  }, [id]);
+
+  const [prevProduct, setPrevProduct] = useState(null);
+  const [nextProduct, setNextProduct] = useState(null);
+
+  useEffect(() => {
+    const fetchAdjacent = async () => {
+      try {
+        const res = await productService.getAll({ limit: 1000, status: "available" });
+        const items = res?.data?.items || res?.data || [];
+        if (items.length > 0) {
+          const currentIndex = items.findIndex((p) => String(p.id) === String(id));
+          if (currentIndex !== -1) {
+            setPrevProduct(currentIndex > 0 ? items[currentIndex - 1] : null);
+            setNextProduct(currentIndex < items.length - 1 ? items[currentIndex + 1] : null);
+          } else {
+            setPrevProduct(null);
+            setNextProduct(null);
+          }
+        }
+      } catch (err) {
+        console.error("Lỗi lấy sản phẩm liền kề", err);
+      }
+    };
+    fetchAdjacent();
   }, [id]);
 
   useEffect(() => {
@@ -497,8 +524,28 @@ export default function ProductDetailPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900">
+    <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900 relative">
       <Header />
+
+      {prevProduct && (
+        <button
+          onClick={() => navigate(`/products/${prevProduct.id}`)}
+          className="fixed left-2 xl:left-8 top-1/2 -translate-y-1/2 z-[100] bg-white/70 hover:bg-white dark:bg-gray-800/80 dark:hover:bg-gray-800 p-2 md:p-4 rounded-full shadow-[0_4px_20px_-4px_rgba(245,158,11,0.5)] border border-amber-200 dark:border-amber-900/50 text-amber-600 dark:text-amber-500 backdrop-blur-md transition-all hover:scale-110 flex group overflow-hidden"
+          title={`Xem sản phẩm trước: ${prevProduct.name}`}
+        >
+          <ChevronLeft className="w-6 h-6 md:w-8 md:h-8 group-hover:-translate-x-1 transition-transform" />
+        </button>
+      )}
+
+      {nextProduct && (
+        <button
+          onClick={() => navigate(`/products/${nextProduct.id}`)}
+          className="fixed right-2 xl:right-8 top-1/2 -translate-y-1/2 z-[100] bg-white/70 hover:bg-white dark:bg-gray-800/80 dark:hover:bg-gray-800 p-2 md:p-4 rounded-full shadow-[0_4px_20px_-4px_rgba(245,158,11,0.5)] border border-amber-200 dark:border-amber-900/50 text-amber-600 dark:text-amber-500 backdrop-blur-md transition-all hover:scale-110 flex group overflow-hidden"
+          title={`Xem sản phẩm tiếp theo: ${nextProduct.name}`}
+        >
+          <ChevronRight className="w-6 h-6 md:w-8 md:h-8 group-hover:translate-x-1 transition-transform" />
+        </button>
+      )}
 
       <section className="w-full px-4 sm:px-6 lg:px-8 py-14">
         <div className="max-w-7xl mx-auto">

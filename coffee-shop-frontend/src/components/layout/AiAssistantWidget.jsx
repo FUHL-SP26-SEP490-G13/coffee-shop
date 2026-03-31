@@ -101,7 +101,7 @@ export default function AiAssistantWidget() {
           <div className="bg-[#7B4B36] text-white p-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-white dark:bg-gray-900/20 rounded-full flex items-center justify-center">
-                <Bot className="w-6 h-6 text-amber-50" />
+                <Bot className="w-6 h-6 text-[#7B4B36] dark:text-amber-50" />
               </div>
               <div>
                 <h3 className="font-semibold text-sm">Trợ lý Cà Phê</h3>
