@@ -14,7 +14,6 @@ import {
 } from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
-import AiAssistantWidget from "@/components/layout/AiAssistantWidget";
 import { Button } from "@/components/ui/button";
 import productService from "@/services/productService";
 import toppingService from "@/services/toppingService";
@@ -106,6 +105,17 @@ export default function ProductDetailPage() {
 
   const [prevProduct, setPrevProduct] = useState(null);
   const [nextProduct, setNextProduct] = useState(null);
+  const [showNavArrows, setShowNavArrows] = useState(true);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const isAtBottom = window.innerHeight + window.scrollY >= document.body.offsetHeight - 250;
+      setShowNavArrows(!isAtBottom);
+    };
+    window.addEventListener("scroll", handleScroll);
+    handleScroll();
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   useEffect(() => {
     const fetchAdjacent = async () => {
@@ -530,7 +540,9 @@ export default function ProductDetailPage() {
       {prevProduct && (
         <button
           onClick={() => navigate(`/products/${prevProduct.id}`)}
-          className="fixed left-2 xl:left-8 top-1/2 -translate-y-1/2 z-[100] bg-white/70 hover:bg-white dark:bg-gray-800/80 dark:hover:bg-gray-800 p-2 md:p-4 rounded-full shadow-[0_4px_20px_-4px_rgba(245,158,11,0.5)] border border-amber-200 dark:border-amber-900/50 text-amber-600 dark:text-amber-500 backdrop-blur-md transition-all hover:scale-110 flex group overflow-hidden"
+          className={`fixed left-2 xl:left-8 top-1/2 -translate-y-1/2 z-[100] bg-white/70 hover:bg-white dark:bg-gray-800/80 dark:hover:bg-gray-800 p-2 md:p-4 rounded-full shadow-[0_4px_20px_-4px_rgba(245,158,11,0.5)] border border-amber-200 dark:border-amber-900/50 text-amber-600 dark:text-amber-500 backdrop-blur-md transition-all duration-300 flex group overflow-hidden ${
+            showNavArrows ? 'opacity-100 hover:scale-110' : 'opacity-0 pointer-events-none -translate-x-10'
+          }`}
           title={`Xem sản phẩm trước: ${prevProduct.name}`}
         >
           <ChevronLeft className="w-6 h-6 md:w-8 md:h-8 group-hover:-translate-x-1 transition-transform" />
@@ -540,7 +552,9 @@ export default function ProductDetailPage() {
       {nextProduct && (
         <button
           onClick={() => navigate(`/products/${nextProduct.id}`)}
-          className="fixed right-2 xl:right-8 top-1/2 -translate-y-1/2 z-[100] bg-white/70 hover:bg-white dark:bg-gray-800/80 dark:hover:bg-gray-800 p-2 md:p-4 rounded-full shadow-[0_4px_20px_-4px_rgba(245,158,11,0.5)] border border-amber-200 dark:border-amber-900/50 text-amber-600 dark:text-amber-500 backdrop-blur-md transition-all hover:scale-110 flex group overflow-hidden"
+          className={`fixed right-2 xl:right-8 top-1/2 -translate-y-1/2 z-[100] bg-white/70 hover:bg-white dark:bg-gray-800/80 dark:hover:bg-gray-800 p-2 md:p-4 rounded-full shadow-[0_4px_20px_-4px_rgba(245,158,11,0.5)] border border-amber-200 dark:border-amber-900/50 text-amber-600 dark:text-amber-500 backdrop-blur-md transition-all duration-300 flex group overflow-hidden ${
+            showNavArrows ? 'opacity-100 hover:scale-110' : 'opacity-0 pointer-events-none translate-x-10'
+          }`}
           title={`Xem sản phẩm tiếp theo: ${nextProduct.name}`}
         >
           <ChevronRight className="w-6 h-6 md:w-8 md:h-8 group-hover:translate-x-1 transition-transform" />
@@ -1111,7 +1125,6 @@ export default function ProductDetailPage() {
       </section>
 
       <Footer />
-      <AiAssistantWidget />
     </div>
   );
 }
