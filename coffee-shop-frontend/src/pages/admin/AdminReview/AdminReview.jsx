@@ -214,6 +214,15 @@ export default function AdminReviews() {
                       <TableCell>
                         <div className="max-w-[320px] whitespace-normal break-words text-sm text-gray-700">
                           {item.comment || "—"}
+                          {item.images && item.images.length > 0 && (
+                            <div className="flex gap-2 mt-2">
+                              {item.images.map((img, idx) => (
+                                <a key={idx} href={img.url} target="_blank" rel="noopener noreferrer" className="shrink-0 hover:opacity-80 transition-opacity">
+                                  <img src={img.url} alt="Review attachment" className="w-10 h-10 rounded border border-gray-200 object-cover" />
+                                </a>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       </TableCell>
 

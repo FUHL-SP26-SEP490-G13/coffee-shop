@@ -209,7 +209,7 @@ export default function CartPage() {
     };
 
     cartService.addItem(cartItem);
-    toast.success(`Đã thêm ${product.name} vào giỏ`);
+    toast.success(`Đã thêm ${product.name} vào giỏ hàng`);
     refreshCart();
   };
 

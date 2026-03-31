@@ -7,6 +7,8 @@ import {
   ChevronUp,
   Heart,
   Star,
+  ImagePlus,
+  X
 } from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
@@ -55,6 +57,9 @@ export default function ProductDetailPage() {
 
   const [myRating, setMyRating] = useState(0);
   const [myComment, setMyComment] = useState("");
+  const [myImages, setMyImages] = useState([]);
+  const [existingImages, setExistingImages] = useState([]);
+  const [deleteImageIds, setDeleteImageIds] = useState([]);
   const [canReview, setCanReview] = useState(false);
   const [reviewSubmitting, setReviewSubmitting] = useState(false);
 
@@ -174,11 +179,17 @@ export default function ProductDetailPage() {
         setCanReview(Boolean(result?.canReview));
         setMyRating(Number(result?.review?.rating) || 0);
         setMyComment(result?.review?.comment || "");
+        setExistingImages(result?.review?.images || []);
+        setMyImages([]);
+        setDeleteImageIds([]);
       } catch (error) {
         console.error("Lỗi lấy đánh giá của bạn:", error);
         setCanReview(false);
         setMyRating(0);
         setMyComment("");
+        setExistingImages([]);
+        setMyImages([]);
+        setDeleteImageIds([]);
       }
     };
 
@@ -202,28 +213,83 @@ export default function ProductDetailPage() {
       return;
     }
 
+    if (myImages.length > 3) {
+      alert("Bạn chỉ có thể tải lên tối đa 3 ảnh");
+      return;
+    }
+
     try {
       setReviewSubmitting(true);
 
-      const res = await reviewService.createOrUpdate({
-        product_id: product.id,
-        rating: myRating,
-        comment: myComment,
+      const formData = new FormData();
+      formData.append("product_id", product.id);
+      formData.append("rating", myRating);
+      formData.append("comment", myComment);
+
+      myImages.forEach((img) => {
+        formData.append("images", img.file);
       });
 
-      alert(res?.data?.message || "Gửi đánh giá thành công");
+      // Nếu có ảnh mới lên, tự động xóa tất cả ảnh cũ (do form giờ đã ẩn ảnh cũ)
+      if (myImages.length > 0) {
+        existingImages.forEach(img => {
+          formData.append("deleteImageIds", img.public_id);
+        });
+      } else {
+        deleteImageIds.forEach((id) => {
+          formData.append("deleteImageIds", id);
+        });
+      }
+
+      const res = await reviewService.createOrUpdate(formData);
+
+      alert(res?.data?.message || res?.message || "Gửi đánh giá thành công");
 
       const reviewRes = await reviewService.getByProductId(product.id);
-      const reviewResult = reviewRes?.data?.data || {};
+      const reviewResult = reviewRes?.data?.data || reviewRes?.data || {};
 
       setReviews(Array.isArray(reviewResult?.items) ? reviewResult.items : []);
       setAverageRating(Number(reviewResult?.averageRating) || 0);
+
+      const myRes = await reviewService.getMyReview(product.id);
+      const myResult = myRes?.data || {};
+      setExistingImages(myResult?.review?.images || []);
+      setMyImages([]);
+      setDeleteImageIds([]);
+
     } catch (error) {
       console.error("Lỗi gửi đánh giá:", error);
-      alert(error?.response?.data?.message || "Không thể gửi đánh giá");
+      alert(error?.response?.data?.message || error?.message || "Không thể gửi đánh giá");
     } finally {
       setReviewSubmitting(false);
     }
+  };
+
+  const handleAddPreviewImages = (e) => {
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
+
+    if (myImages.length + files.length > 3) {
+      alert("Bạn chỉ được tải lên tối đa 3 ảnh.");
+      return;
+    }
+
+    const newPreviewImages = files.map(file => ({
+      file,
+      url: URL.createObjectURL(file)
+    }));
+
+    setMyImages(prev => [...prev, ...newPreviewImages]);
+    e.target.value = null;
+  };
+
+  const handleRemoveExistingImage = (publicId) => {
+    setDeleteImageIds(prev => [...prev, publicId]);
+    setExistingImages(prev => prev.filter(img => img.public_id !== publicId));
+  };
+
+  const handleRemoveMyImage = (index) => {
+    setMyImages(prev => prev.filter((_, i) => i !== index));
   };
 
   const selectedSizeObj = useMemo(() => {
@@ -553,6 +619,16 @@ export default function ProductDetailPage() {
                           {item.comment}
                         </p>
                       )}
+                      
+                      {item.images && item.images.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-3">
+                          {item.images.map((img, idx) => (
+                            <a key={idx} href={img.url} target="_blank" rel="noopener noreferrer" className="block">
+                               <img src={img.url} alt="Review" className="w-16 h-16 object-cover rounded-lg border border-gray-200 cursor-zoom-in hover:brightness-90 transition-all"/>
+                            </a>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -605,7 +681,28 @@ export default function ProductDetailPage() {
                       className="w-full rounded-xl text-sm"
                     />
 
-                    <div className="mt-3">
+                    <div className="mt-3 border border-gray-200 dark:border-gray-800 rounded-xl p-3 bg-white dark:bg-gray-900 shadow-sm">
+                      <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Hình ảnh đính kèm (Tối đa 3 ảnh)</p>
+                      <div className="flex flex-wrap gap-3">
+                         {myImages.map((img, idx) => (
+                           <div key={idx} className="relative w-20 h-20 shrink-0">
+                              <img src={img.url} className="w-full h-full object-cover rounded-lg border border-gray-200" alt="Review preview" />
+                              <button type="button" onClick={() => handleRemoveMyImage(idx)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md hover:bg-red-600 transition">
+                                 <X className="w-3 h-3" />
+                              </button>
+                           </div>
+                         ))}
+                         {myImages.length < 3 && (
+                           <label className="w-20 h-20 shrink-0 flex flex-col gap-1 items-center justify-center border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-amber-500 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-gray-800 text-gray-400 transition bg-gray-50 dark:bg-gray-800">
+                              <ImagePlus className="w-6 h-6" />
+                              <span className="text-[10px] font-medium uppercase tracking-wider">Thêm ảnh</span>
+                              <input type="file" accept="image/*" multiple className="hidden" onChange={handleAddPreviewImages} />
+                           </label>
+                         )}
+                      </div>
+                    </div>
+
+                    <div className="mt-4">
                       <Button
                         onClick={handleSubmitReview}
                         disabled={reviewSubmitting}
