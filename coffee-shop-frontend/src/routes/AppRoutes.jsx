@@ -4,7 +4,7 @@ import { APP_ROUTES, STORAGE_KEYS } from "../constants";
 import LoginPage from "../pages/authentication/LoginPage";
 import RegisterPage from "../pages/authentication/RegisterPage";
 import AdminOrders from "../pages/admin/AdminOrders";
-import AdminUsers from "../pages/admin/AdminUsers";
+import AdminUsers from "../pages/admin/AdminUser/AdminUsers";
 import authenticationService from "../services/authenticationService";
 import HomePage from "@/pages/homePage/HomePage";
 import ChangePasswordPage from "../pages/authentication/ChangePasswordPage";

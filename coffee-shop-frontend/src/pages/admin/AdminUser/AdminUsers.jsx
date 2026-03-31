@@ -1,17 +1,17 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Loader2, Search, ChevronLeft, ChevronRight, Plus, Users } from 'lucide-react';
-import userService from '../../services/userService';
-import { Badge } from '../../components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
-import { Avatar, AvatarFallback } from '../../components/ui/avatar';
-import { Button } from '../../components/ui/button';
-import { Input } from '../../components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../../components/ui/dialog';
-import { Label } from '../../components/ui/label';
-import { Switch } from '../../components/ui/switch';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
-import PaginationControl from '../../components/common/PaginationControl';
+import userService from '../../../services/userService';
+import { Badge } from '../../../components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../components/ui/table';
+import { Avatar, AvatarFallback } from '../../../components/ui/avatar';
+import { Button } from '../../../components/ui/button';
+import { Input } from '../../../components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../components/ui/select';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../../../components/ui/dialog';
+import { Label } from '../../../components/ui/label';
+import { Switch } from '../../../components/ui/switch';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../components/ui/tabs';
+import PaginationControl from '../../../components/common/PaginationControl';
 
 export default function AdminUsers() {
   const [users, setUsers] = useState([]);
@@ -179,17 +179,17 @@ export default function AdminUsers() {
         selectedUser.isActive,
         password
       );
-      
+
       if (response.success) {
         // Update local state
-        setUsers(prevUsers => 
-          prevUsers.map(u => 
-            u.id === selectedUser.id 
+        setUsers(prevUsers =>
+          prevUsers.map(u =>
+            u.id === selectedUser.id
               ? { ...u, isActive: u.isActive === 1 ? 0 : 1 }
               : u
           )
         );
-        
+
         setIsPasswordOpen(false);
         setSelectedUser(null);
         setPassword('');
@@ -254,7 +254,7 @@ export default function AdminUsers() {
     result.sort((a, b) => {
       const nameA = `${a.first_name} ${a.last_name}`.toLowerCase();
       const nameB = `${b.first_name} ${b.last_name}`.toLowerCase();
-      
+
       if (sortOrder === 'asc') {
         return nameA.localeCompare(nameB, 'vi');
       } else {
@@ -336,8 +336,8 @@ export default function AdminUsers() {
                 <SelectValue placeholder="Trạng thái" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="1">Active</SelectItem>
-                <SelectItem value="0">Inactive</SelectItem>
+                <SelectItem value="1">Hoạt động</SelectItem>
+                <SelectItem value="0">Tạm khóa</SelectItem>
               </SelectContent>
             </Select>
 
@@ -354,69 +354,69 @@ export default function AdminUsers() {
           </div>
 
           <div className="bg-card rounded-xl border border-border overflow-hidden">
-        <div className="overflow-x-auto">
-          <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Người dùng</TableHead>
-              <TableHead>Tên đăng nhập</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Điện thoại</TableHead>
-              <TableHead>Vai trò</TableHead>
-              <TableHead>Trạng thái</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {paginatedUsers.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                  Không tìm thấy người dùng nào
-                </TableCell>
-              </TableRow>
-            ) : (
-              paginatedUsers.map((user) => {
-              const roleInfo = getRoleInfo(user.role_id);
-              const fullName = `${user.first_name} ${user.last_name}`;
-              
-              return (
-                <TableRow key={user.id}>
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <Avatar>
-                        <AvatarFallback>
-                          {user.last_name ? user.last_name[0].toUpperCase() : 'U'}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex flex-col">
-                        <span className="font-medium">{fullName}</span>
-                        <span className="text-xs text-muted-foreground">ID người dùng: {user.id}</span>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>{user.username}</TableCell>
-                  <TableCell className="text-muted-foreground">{user.email}</TableCell>
-                  <TableCell className="text-muted-foreground">{user.phone}</TableCell>
-                  <TableCell>
-                    <Badge
-                      variant="secondary"
-                      className={roleInfo.className}
-                    >
-                      {roleInfo.label}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Switch
-                      checked={user.isActive === 1}
-                      onCheckedChange={() => handleStatusToggle(user)}
-                    />
-                  </TableCell>
-                </TableRow>
-              );
-            })
-            )}
-          </TableBody>
-        </Table>
-        </div>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Người dùng</TableHead>
+                    <TableHead>Tên đăng nhập</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Điện thoại</TableHead>
+                    <TableHead>Vai trò</TableHead>
+                    <TableHead>Trạng thái</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {paginatedUsers.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                        Không tìm thấy người dùng nào
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    paginatedUsers.map((user) => {
+                      const roleInfo = getRoleInfo(user.role_id);
+                      const fullName = `${user.first_name} ${user.last_name}`;
+
+                      return (
+                        <TableRow key={user.id}>
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <Avatar>
+                                <AvatarFallback>
+                                  {user.last_name ? user.last_name[0].toUpperCase() : 'U'}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="flex flex-col">
+                                <span className="font-medium">{fullName}</span>
+                                <span className="text-xs text-muted-foreground">ID người dùng: {user.id}</span>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>{user.username}</TableCell>
+                          <TableCell className="text-muted-foreground">{user.email}</TableCell>
+                          <TableCell className="text-muted-foreground">{user.phone}</TableCell>
+                          <TableCell>
+                            <Badge
+                              variant="secondary"
+                              className={roleInfo.className}
+                            >
+                              {roleInfo.label}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Switch
+                              checked={user.isActive === 1}
+                              onCheckedChange={() => handleStatusToggle(user)}
+                            />
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           </div>
 
           {/* Phân trang */}
@@ -559,8 +559,8 @@ export default function AdminUsers() {
               {selectedUser && (
                 <>
                   Bạn đang thay đổi trạng thái của <strong>{selectedUser.first_name} {selectedUser.last_name}</strong> từ{' '}
-                  <strong>{selectedUser.isActive === 1 ? 'Active' : 'Inactive'}</strong> sang{' '}
-                  <strong>{selectedUser.isActive === 1 ? 'Inactive' : 'Active'}</strong>.
+                  <strong>{selectedUser.isActive === 1 ? 'Hoạt động' : 'Tạm khóa'}</strong> sang{' '}
+                  <strong>{selectedUser.isActive === 1 ? 'Tạm khóa' : 'Hoạt động'}</strong>.
                   <br />
                   Vui lòng nhập mật khẩu để xác nhận.
                 </>
@@ -592,17 +592,17 @@ export default function AdminUsers() {
           </div>
 
           <DialogFooter>
-            <Button 
-              type="button" 
-              onClick={() => setIsPasswordOpen(false)} 
+            <Button
+              type="button"
+              onClick={() => setIsPasswordOpen(false)}
               disabled={isTogglingStatus}
             >
               Hủy
             </Button>
-            <Button 
-              type="button" 
+            <Button
+              type="button"
               variant="outline"
-              onClick={handleConfirmStatusChange} 
+              onClick={handleConfirmStatusChange}
               disabled={isTogglingStatus}
             >
               {isTogglingStatus ? 'Đang xử lý...' : 'Xác nhận'}
