@@ -3,13 +3,46 @@ import { Bot, Send, X, Coffee, ShoppingBag, Sparkles, User, RefreshCw, Loader2 }
 import aiService from "@/services/aiService";
 import { cartService } from "@/services/cartService";
 
+const getGreeting = () => {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Chào buổi sáng ☀️! Mình là Trợ Lý Cà Phê.";
+  if (hour < 18) return "Chào buổi chiều ☕! Mình là Trợ Lý Cà Phê.";
+  return "Chào buổi tối 🌙! Mình là Trợ Lý Cà Phê.";
+};
+
+const MessageContent = ({ text, role, isNew }) => {
+  const [displayedText, setDisplayedText] = useState(isNew && role === "ai" ? "" : text);
+
+  useEffect(() => {
+    if (isNew && role === "ai") {
+      let i = 0;
+      const interval = setInterval(() => {
+        setDisplayedText(text.slice(0, i));
+        i++;
+        if (i > text.length) clearInterval(interval);
+      }, 15);
+      return () => clearInterval(interval);
+    } else {
+      setDisplayedText(text);
+    }
+  }, [text, isNew, role]);
+
+  const htmlText = displayedText
+    .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+    .replace(/\*(.*?)\*/g, "<em>$1</em>")
+    .replace(/\n/g, "<br/>");
+
+  return <span dangerouslySetInnerHTML={{ __html: htmlText }} />;
+};
+
 export default function AiAssistantWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([
     {
       role: 'ai',
-      text: 'Xin chào! Mình là trợ lý AI của Cà Phê. Bạn muốn gợi ý đồ uống hay đặt hàng nào?',
-      id: Date.now()
+      text: `${getGreeting()} Bạn muốn gợi ý đồ uống hay hỏi thông tin quán nào?`,
+      id: Date.now(),
+      isNew: false
     }
   ]);
   const [inputValue, setInputValue] = useState("");
@@ -17,9 +50,9 @@ export default function AiAssistantWidget() {
   const messagesEndRef = useRef(null);
 
   const quickReplies = [
-    "Gợi ý đồ uống cho tôi",
-    "Có khuyến mãi gì không?",
-    "Cho 1 ly cà phê sữa đá vào giỏ hàng"
+    "Khuyến mãi hôm nay",
+    "Các sản phẩm ở cửa hàng",
+    "Cửa hàng mở cửa từ mấy giờ?"
   ];
 
   const scrollToBottom = () => {
@@ -68,14 +101,16 @@ export default function AiAssistantWidget() {
          const systemMsg = { 
            role: 'ai', 
            text: data.text || `Đã thêm các món vào giỏ hàng!`, 
-           id: Date.now() + 1 
+           id: Date.now() + 1,
+           isNew: true
          };
          setMessages(prev => [...prev, systemMsg]);
       } else {
          const modelMsg = { 
            role: 'ai', 
            text: data?.text || "Xin lỗi, hiện tại mình đang bận, bạn vui lòng thử lại sau nhé!", 
-           id: Date.now() + 1 
+           id: Date.now() + 1,
+           isNew: true
          };
          setMessages(prev => [...prev, modelMsg]);
       }
@@ -83,9 +118,10 @@ export default function AiAssistantWidget() {
       console.error("AI Chat Error:", error);
       setMessages(prev => [...prev, {
         role: 'ai',
-        text: 'Lỗi kết nối đến Trợ lý AI. Vui lòng thử lại sau.',
+        text: 'Lỗi kết nối đến Trợ Lý Cà Phê. Vui lòng thử lại sau.',
         id: Date.now() + 1,
-        isError: true
+        isError: true,
+        isNew: true
       }]);
     } finally {
       setIsLoading(false);
@@ -137,10 +173,10 @@ export default function AiAssistantWidget() {
                       ? 'bg-[#7B4B36] text-white rounded-tr-sm' 
                       : msg.isError 
                         ? 'bg-red-50 text-red-600 rounded-tl-sm border border-red-100'
-                        : 'bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 rounded-tl-sm border border-gray-100 dark:border-gray-800 shadow-sm'
+                        : 'bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 rounded-tl-sm border border-gray-100 dark:border-gray-800 shadow-sm leading-relaxed'
                     }
                   `}>
-                    {msg.text}
+                    <MessageContent text={msg.text} role={msg.role} isNew={msg.isNew} />
                   </div>
                 </div>
               ))}

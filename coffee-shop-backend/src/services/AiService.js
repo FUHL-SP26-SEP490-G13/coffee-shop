@@ -180,7 +180,7 @@ class AiService {
         /khuyến mãi|khuyen mai|mã giảm giá|ma giam gia|voucher|coupon|ưu đãi|uu dai/.test(text),
 
       askMenu:
-        /menu|thực đơn|thuc don|đồ uống|do uong|nước uống|nuoc uong|cà phê|ca phe|trà|tra|bánh|banh|món/.test(text),
+        /menu|thực đơn|thuc don|đồ uống|do uong|nước uống|nuoc uong|cà phê|ca phe|\btrà\b|\btra\b|\bbánh\b|\bbanh\b|món|sản phẩm/.test(text),
 
       askAddToCart:
         /thêm vào giỏ|them vao gio|vào giỏ|mua luôn|đặt món|dat mon|lấy cho|lay cho|chốt món|chot mon|mua món|cho 1|cho 2|cho 3/.test(text),
@@ -190,6 +190,9 @@ class AiService {
 
       askById:
         /\[\d+\]|id\s*:?\s*\d+/.test(text),
+
+      askStore:
+        /mở cửa|mo cua|đóng cửa|dong cua|mấy giờ|may gio|thông tin quán|thong tin quan|địa chỉ|dia chi|hotline/.test(text),
 
       raw: text,
     };
@@ -281,15 +284,17 @@ class AiService {
   async handleDirectMenuIntent(sessionId, userMessage) {
     const keyword = this.extractKeywordForMenu(userMessage);
     let items = [];
+    let title = "Đây là một số món phù hợp nhé:";
 
-    if (keyword) {
+    if (keyword && keyword !== "sản phẩm" && keyword !== "các sản phẩm ở cửa hàng") {
       const result = await productService.searchProducts(keyword, { limit: 8, page: 1 });
       items = result?.data || result?.items || result || [];
     }
 
     if (!items || items.length === 0) {
-      const result = await productService.getBestSellerProducts(8);
+      const result = await productService.searchProducts("", { limit: 12, page: 1 });
       items = result?.data || result?.items || result || [];
+      title = "Danh sách các sản phẩm ở cửa hàng:";
     }
 
     const preference = this.inferPreference(userMessage);
@@ -302,7 +307,7 @@ class AiService {
 
     return {
       type: "message",
-      text: `Đây là một số món phù hợp nhé:\n${this.formatMenuItems(items)}`,
+      text: `${title}\n${this.formatMenuItems(items)}`,
     };
   }
 
@@ -405,6 +410,10 @@ class AiService {
         description: "Xem mã giảm giá hoặc khuyến mãi đang hoạt động.",
       },
       {
+        name: "get_store_info",
+        description: "Lấy thông tin chung của quán như Giờ Mở Cửa, Đóng Cửa, Hotline, Địa chỉ, Phí ship.",
+      },
+      {
         name: "add_items_to_cart",
         description: "Thêm MỘT HOẶC NHIỀU sản phẩm vào giỏ hàng khi khách yêu cầu. Có thể truyền mảng gồm nhiều món khác nhau.",
         parameters: {
@@ -434,10 +443,10 @@ class AiService {
 
   buildConfig(sessionState) {
     const stateSummary = [
-      sessionState.userPreference ? `Sở thích gần đây của khách: ${sessionState.userPreference}.` : "",
-      sessionState.pendingProduct ? `Sản phẩm khách đang quan tâm: [${sessionState.pendingProduct.id}] ${sessionState.pendingProduct.name}.` : "",
+      sessionState.userPreference ? `Sở thích gần đây: ${sessionState.userPreference}.` : "",
+      sessionState.pendingProduct ? `Đang quan tâm: [${sessionState.pendingProduct.id}] ${sessionState.pendingProduct.name}.` : "",
       sessionState.lastSuggestedProducts?.length
-        ? `Danh sách món vừa gợi ý gần đây có ${sessionState.lastSuggestedProducts.length} món.`
+        ? `Đã gợi ý ${sessionState.lastSuggestedProducts.length} món.`
         : "",
     ]
       .filter(Boolean)
@@ -447,11 +456,13 @@ class AiService {
       systemInstruction: {
         parts: [{
           text:
-            `Bạn là trợ lý AI của quán "Cà Phê Việt". ` +
-            `Luôn trả lời ngắn gọn, thân thiện, tự nhiên bằng tiếng Việt. ` +
+            `Bạn tên là "Trợ Lý Cà Phê" của hệ thống "Cà Phê Việt". ` +
+            `Tính cách: Trẻ trung, thân thiện, lịch sự, thỉnh thoảng dùng emoji 😊☕. Tuyệt đối xưng "mình" và gọi "bạn". ` +
+            `Luôn trả lời ngắn gọn, xuống dòng hợp lý dễ nhìn. ` +
+            `QUAN TRỌNG: LUÔN bôi đậm tên món ăn, giá tiền, hoặc mã đơn bằng thẻ Markdown (ví dụ: **Cà phê đen** - **30.000đ**). ` +
             `Khi khách đặt nhiều món, hãy trích xuất toàn bộ sang dạng mảng rôi gọi \`add_items_to_cart\`. ` +
-            `NẾU khách hỏi những chủ đề KHÔNG LIÊN QUAN đến đồ uống, thức ăn hay quán cà phê, xin hãy KHÉO LÉO TỪ CHỐI và mời họ quay lại trải nghiệm menu của quán. ` +
-            `Ưu tiên tận dụng ngữ cảnh đã có. ${stateSummary}`
+            `NẾU khách hỏi chủ đề KHÔNG TRỌNG TÂM, hãy khéo léo từ chối và hướng về đồ uống. ` +
+            `Ngữ cảnh của khách: ${stateSummary}`
         }],
       },
       tools: [{
@@ -481,17 +492,19 @@ class AiService {
         return response;
       } catch (error) {
         lastError = error;
-        const msg = error?.message || "";
-        // Nếu lỗi 429 (Rate Limit) hoặc 503 (Overloaded), thử model kết tiếp
+        const msg = String(error?.message || "");
         if (
           error?.status === 429 ||
           msg.includes("429") ||
           msg.includes("Quota") ||
           error?.status === 503 ||
           msg.includes("503") ||
-          msg.includes("UNAVAILABLE")
+          msg.includes("UNAVAILABLE") ||
+          error?.status === 404 ||
+          msg.includes("404") ||
+          msg.includes("not found")
         ) {
-          console.warn(`[AiService] Model ${modelName} failed (${error?.status || 'Rate Limit/Quota'}). Switching to next model...`);
+          console.warn(`[AiService] Model ${modelName} failed (${error?.status || msg}). Switching to next model...`);
           continue;
         }
         // Lỗi logic (Bad Request, v.v.) thì dừng luôn
@@ -643,13 +656,55 @@ class AiService {
           type: "add_to_cart_multiple",
           payload: payloadArray,
         },
-        text: `Mình đã gửi yêu cầu thêm: ${textNames.join(", ")} vào giỏ hàng của bạn rồi nhé!`,
+        text: `Mình đã gửi yêu cầu thêm: **${textNames.join(", ")}** vào giỏ hàng của bạn rồi nhé!`,
       };
+    }
+
+    if (call.name === "get_store_info") {
+      let storeInfo = {
+        name: "Cà Phê Việt",
+        address: "Đang cập nhật",
+        openTime: "07:00",
+        closeTime: "22:30",
+        hotline: "Đang cập nhật",
+        shippingFee: "20.000 VNĐ (Áp dụng cho mọi đơn giao hàng)",
+      };
+
+      try {
+        const receiptSettingService = require("./ReceiptSettingService");
+        const setting = await receiptSettingService.getActiveSetting();
+        if (setting) {
+          storeInfo.name = setting.store_name || storeInfo.name;
+          storeInfo.address = setting.address || storeInfo.address;
+          storeInfo.openTime = setting.open_time || storeInfo.openTime;
+          storeInfo.closeTime = setting.close_time || storeInfo.closeTime;
+          storeInfo.hotline = setting.phone || storeInfo.hotline;
+        }
+      } catch (e) {
+        console.error("Error fetching store info:", e);
+      }
+
+      chatContents.push({ role: "model", parts: [{ functionCall: call }] });
+      chatContents.push({
+        role: "user",
+        parts: [{
+          functionResponse: {
+            name: "get_store_info",
+            response: { result: storeInfo },
+          },
+        }],
+      });
+
+      const finalResponse = await this.callModel(chatContents, config);
+      if (finalResponse.functionCalls && finalResponse.functionCalls.length > 0) {
+        return this.executeFunctionCall(finalResponse.functionCalls[0], chatContents, config, sessionId);
+      }
+      return { type: "message", text: finalResponse.text };
     }
 
     return {
       type: "message",
-      text: "Mình chưa xử lý được yêu cầu đó.",
+      text: "Xin lỗi, mình chưa hỗ trợ yêu cầu này.",
     };
   }
 
@@ -675,13 +730,13 @@ class AiService {
         this.updateSessionState(sessionId, { userPreference: preference });
       }
 
-      if (intent.askDiscount && !intent.askAddToCart) {
+      if (intent.askDiscount && !intent.askAddToCart && !intent.askStore) {
         const result = await this.handleDirectDiscountIntent(sessionId);
         this.setCachedResponse(cacheKey, result);
         return result;
       }
 
-      if (intent.askMenu && !intent.askAddToCart && !intent.askByIndex && !intent.askById) {
+      if (intent.askMenu && !intent.askAddToCart && !intent.askByIndex && !intent.askById && !intent.askStore) {
         const result = await this.handleDirectMenuIntent(sessionId, safeMessage);
         this.setCachedResponse(cacheKey, result);
         return result;
