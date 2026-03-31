@@ -432,18 +432,30 @@ class OrderService {
     };
   }
 
-  async savePayosReturn({ orderCode, payosId, status }) {
+  async savePayosReturn({ orderCode, payosId, status, cancel }) {
     if (!orderCode) throw new ErrorResponse(400, "Thiếu orderCode");
 
-    const isPaid = status === "PAID";
-    const paymentStatus = isPaid ? "paid" : "pending";
+    const order = await OrderRepository.findOrderById(orderCode);
+    const currentOrderStatus = String(order?.status || "").toLowerCase();
+
+    const normalizedStatus = String(status || "").toUpperCase();
+    const isCancelled =
+      currentOrderStatus === "cancelled" ||
+      normalizedStatus === "CANCELLED" ||
+      String(cancel || "").toLowerCase() === "true" ||
+      String(cancel || "") === "1";
+    const isPaid = !isCancelled && normalizedStatus === "PAID";
+    const paymentStatus = isCancelled ? "cancelled" : isPaid ? "paid" : "pending";
 
     await OrderRepository.updatePaymentByOrderCode(orderCode, {
       transaction_id: payosId || null,
       payment_status: paymentStatus,
     });
 
-    if (isPaid) {
+    if (isCancelled) {
+      await OrderRepository.updateOrderStatus(orderCode, "cancelled");
+      await OrderRepository.updateOrderPaidStatus(orderCode, false);
+    } else if (isPaid) {
       await OrderRepository.updateOrderPaidStatus(orderCode, true);
     }
 

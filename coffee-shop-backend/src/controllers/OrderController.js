@@ -66,8 +66,8 @@ class OrderController {
 
   async payosReturn(req, res, next) {
     try {
-      const { orderCode, payosId, status } = req.body;
-      const result = await OrderService.savePayosReturn({ orderCode, payosId, status });
+      const { orderCode, payosId, status, cancel } = req.body;
+      const result = await OrderService.savePayosReturn({ orderCode, payosId, status, cancel });
       return res.json({ success: true, data: result });
     } catch (error) {
       next(error);

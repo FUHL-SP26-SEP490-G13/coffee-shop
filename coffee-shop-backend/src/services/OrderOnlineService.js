@@ -160,7 +160,7 @@ class OrderOnlineService {
 
       const userId = user?.id || null;
 
-      if (order_type !== "dine-in") {
+      if (order_type !== "dine-in" && payment_method === "cash") {
         const normalizedReceiverPhone = this.normalizePhoneNumber(receiver_phone);
 
         if (!normalizedReceiverPhone || normalizedReceiverPhone.length < 10) {
@@ -180,7 +180,7 @@ class OrderOnlineService {
         if (pendingUnpaidCount >= 2) {
           throw new ErrorResponse(
             400,
-            "Bạn đang có 2 đơn hàng chờ thanh toán. Vui lòng thanh toán hoặc hủy bớt đơn trước khi đặt thêm."
+            "Bạn đang có 2 đơn tiền mặt chưa thanh toán. Vui lòng thanh toán hoặc hủy bớt đơn cash, hoặc chọn PayOS cho đơn mới."
           );
         }
       }
@@ -738,20 +738,30 @@ class OrderOnlineService {
     };
   }
 
-  async savePayosReturn({ orderCode, payosId, status }) {
+  async savePayosReturn({ orderCode, payosId, status, cancel }) {
     if (!orderCode) throw new ErrorResponse(400, "Thiếu orderCode");
 
     const order = await OrderRepository.findOrderById(orderCode);
-    
-    const isPaid = status === "PAID";
-    const paymentStatus = isPaid ? "paid" : "pending";
+    const currentOrderStatus = String(order?.status || "").toLowerCase();
+
+    const normalizedStatus = String(status || "").toUpperCase();
+    const isCancelled =
+      currentOrderStatus === "cancelled" ||
+      normalizedStatus === "CANCELLED" ||
+      String(cancel || "").toLowerCase() === "true" ||
+      String(cancel || "") === "1";
+    const isPaid = !isCancelled && normalizedStatus === "PAID";
+    const paymentStatus = isCancelled ? "cancelled" : isPaid ? "paid" : "pending";
 
     await OrderRepository.updatePaymentByOrderCode(orderCode, {
       transaction_id: payosId || null,
       payment_status: paymentStatus,
     });
 
-    if (isPaid) {
+    if (isCancelled) {
+      await OrderRepository.updateOrderStatus(orderCode, "cancelled");
+      await OrderRepository.updateOrderPaidStatus(orderCode, false);
+    } else if (isPaid) {
       await OrderRepository.updateOrderPaidStatus(orderCode, true);
     }
 
@@ -759,6 +769,7 @@ class OrderOnlineService {
       saved: true,
       order_id: orderCode,
       user_id: order?.user_id,
+      order_status: isCancelled ? "cancelled" : order?.status,
       payment_status: paymentStatus,
       is_paid: isPaid ? 1 : 0,
     };
