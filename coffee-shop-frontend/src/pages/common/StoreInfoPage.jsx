@@ -51,7 +51,7 @@ export default function StoreInfoPage() {
             {/* Store Information */}
             <div className="space-y-8 animate-in slide-in-from-bottom-5 duration-700">
               <div>
-                <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100 tracking-tight leading-tight">
+                <h1 className="text-3xl md:text-4xl text-gray-900 dark:text-gray-100 tracking-tight leading-tight">
                   Chào mừng bạn đến với <span className="text-amber-600">{storeInfo.name}</span>
                 </h1>
                 <p className="mt-4 text-lg text-gray-600 dark:text-gray-400">
