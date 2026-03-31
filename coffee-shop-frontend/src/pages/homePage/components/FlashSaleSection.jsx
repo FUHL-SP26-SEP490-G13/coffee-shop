@@ -6,8 +6,10 @@ import flashSaleService from "@/services/flashSaleService";
 import { cartService } from "@/services/cartService";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, Navigation } from "swiper/modules";
+import { useStoreHours } from "@/hooks/useStoreHours";
 
 export default function FlashSaleSection({ products, getThumbnail, getDefaultCartSize }) {
+  const { isOpen } = useStoreHours();
   const [activeSale, setActiveSale] = useState(null);
   const [timeLeft, setTimeLeft] = useState({ hours: 0, minutes: 0, seconds: 0 });
 
@@ -51,6 +53,11 @@ export default function FlashSaleSection({ products, getThumbnail, getDefaultCar
   const handleAddToCart = (e, product) => {
     e.preventDefault();
     e.stopPropagation();
+
+    if (!isOpen) {
+      toast.error("Cửa hàng hiện đang đóng cửa");
+      return;
+    }
 
     const cartSize = getDefaultCartSize(product);
     if (!cartSize) {
@@ -178,9 +185,14 @@ export default function FlashSaleSection({ products, getThumbnail, getDefaultCar
                     {originalPrice > 0 && (
                       <button
                         onClick={(e) => handleAddToCart(e, product)}
-                        className="w-full bg-gradient-to-r from-red-500 to-orange-500 text-white font-medium py-3 rounded-xl hover:from-red-600 hover:to-orange-600 active:scale-95 transition-all shadow-md shadow-orange-500/30 flex justify-center items-center gap-2"
+                        disabled={!isOpen}
+                        className={`w-full font-medium py-3 rounded-xl transition-all shadow-md flex justify-center items-center gap-2 ${
+                          isOpen
+                            ? "bg-gradient-to-r from-red-500 to-orange-500 text-white hover:from-red-600 hover:to-orange-600 active:scale-95 shadow-orange-500/30"
+                            : "bg-gray-300 text-gray-500 cursor-not-allowed shadow-none"
+                        }`}
                       >
-                        <ShoppingCart className="w-5 h-5" /> Thêm Ngay
+                        <ShoppingCart className="w-5 h-5" /> {isOpen ? "Thêm Ngay" : "Đã Khóa"}
                       </button>
                     )}
                   </div>
