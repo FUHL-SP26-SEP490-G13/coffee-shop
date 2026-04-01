@@ -154,7 +154,8 @@ const AppRoutes = () => {
 
         <Route path="takeaway" element={<TakeawayPOS />} />
         <Route path="payment-result" element={<StaffPayOSReturn />} />
-        <Route path="orders" element={<OrderDelivery />} />
+        <Route path="orders" element={<Navigate to="pending" replace />} />
+        <Route path="orders/:status" element={<OrderDelivery />} />
         <Route path="attendance" element={<StaffAttendance />} />
         <Route path="inventory" element={<StaffInventory />} />
         <Route path="kitchen" element={<StaffKitchen />} />

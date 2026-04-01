@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+﻿import { useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import {
   RefreshCw,
   ShoppingBag,
@@ -6,8 +7,6 @@ import {
   Bell,
   Printer,
   Coffee,
-  Eye,
-  EyeOff,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -37,45 +36,26 @@ import authenticationService from "@/services/authenticationService";
 import takeawayService from "@/services/takeAwayService";
 import { ReceiptModal } from "./TakeAwayOrder/ReceiptModal";
 
-const STAFF_TAB_STATUSES = [
-  "pending",
-  "preparing",
-  "completed",
-  "cancelled",
-];
+const STAFF_TAB_STATUSES = ["pending", "preparing", "completed", "cancelled"];
 
 const statusLabelMap = {
   pending: "Đang chờ",
   preparing: "Đang chuẩn bị",
-  completed: "Thành công",
-  cancelled: "Hủy",
-};
-
-const statusClassMap = {
-  pending: "bg-slate-100 text-slate-700",
-  preparing: "bg-blue-100 text-blue-700",
-  completed: "bg-emerald-100 text-emerald-700",
-  cancelled: "bg-red-100 text-red-700",
+  completed: "Hoàn thành",
+  cancelled: "Đã hủy",
 };
 
 const orderTypeLabelMap = {
   all: "Tất cả",
-  delivery: "Đơn giao hàng",
+  delivery: "Giao hàng",
   "dine-in": "Tại bàn",
   takeaway: "Mang về",
 };
 
 const ORDER_TYPE_COLUMNS = [
-  { key: "delivery", label: "Đơn giao hàng", icon: Truck },
-  { key: "dine-in", label: "Đơn tại bàn", icon: Coffee },
-  { key: "takeaway", label: "Đơn mang đi", icon: ShoppingBag },
-];
-
-const STATUS_KANBAN_COLUMNS = [
-  { key: "pending", label: "Đang chờ" },
-  { key: "preparing", label: "Đang chuẩn bị" },
-  { key: "completed", label: "Hoàn thành" },
-  { key: "cancelled", label: "Hủy" },
+  { key: "delivery", label: "Giao hàng", icon: Truck },
+  { key: "dine-in", label: "Tại bàn", icon: Coffee },
+  { key: "takeaway", label: "Mang về", icon: ShoppingBag },
 ];
 
 const normalizeOrderType = (value) => {
@@ -91,32 +71,6 @@ const normalizeOrderType = (value) => {
 const getOrderTypeLabel = (value) => {
   const type = normalizeOrderType(value);
   return orderTypeLabelMap[type] || type || "--";
-};
-
-const getOrderTypeBadgeMeta = (value) => {
-  const type = normalizeOrderType(value);
-
-  if (type === "dine-in") {
-    return {
-      label: "Tại bàn",
-      icon: "🍽",
-      className: "bg-emerald-100 text-emerald-700",
-    };
-  }
-
-  if (type === "takeaway") {
-    return {
-      label: "Mang đi",
-      icon: "🥤",
-      className: "bg-amber-100 text-amber-700",
-    };
-  }
-
-  return {
-    label: "Online",
-    icon: "🚚",
-    className: "bg-blue-100 text-blue-700",
-  };
 };
 
 const isDeliveryOrder = (order) =>
@@ -159,7 +113,10 @@ const getRelativeTimeLabel = (value) => {
 
 const getPaymentMethodLabel = (order) => {
   const method = String(
-    order?.payment_method || order?.paymentMethod || order?.payment?.method || "",
+    order?.payment_method ||
+      order?.paymentMethod ||
+      order?.payment?.method ||
+      "",
   ).toLowerCase();
 
   if (method === "payos") return "PayOS";
@@ -167,7 +124,27 @@ const getPaymentMethodLabel = (order) => {
   return "--";
 };
 
+const sortOrdersByStatus = (status, list) => {
+  const sorted = [...list];
+  const toTime = (order) => new Date(order?.created_at || 0).getTime();
+
+  if (status === "completed" || status === "cancelled") {
+    sorted.sort((a, b) => toTime(b) - toTime(a));
+  } else {
+    sorted.sort((a, b) => toTime(a) - toTime(b));
+  }
+
+  return sorted;
+};
+
 export function OrderDelivery() {
+  const navigate = useNavigate();
+  const { status: routeStatus } = useParams();
+
+  const activeStatus = STAFF_TAB_STATUSES.includes(routeStatus)
+    ? routeStatus
+    : "pending";
+
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
   const [confirmingId, setConfirmingId] = useState(null);
@@ -181,10 +158,9 @@ export function OrderDelivery() {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
-  const [cardPendingActions, setCardPendingActions] = useState({});
+  const [detailPendingAction, setDetailPendingAction] = useState("");
   const [newOrderCount, setNewOrderCount] = useState(0);
-  const [showCompletedColumn, setShowCompletedColumn] = useState(false);
-  const [showCancelledColumn, setShowCancelledColumn] = useState(false);
+  const [selectedOrderType, setSelectedOrderType] = useState("all");
   const [viewingReceipt, setViewingReceipt] = useState(null);
   const [cashPaymentDialog, setCashPaymentDialog] = useState({
     open: false,
@@ -192,6 +168,16 @@ export function OrderDelivery() {
     cashReceived: "",
   });
   const [printerName, setPrinterName] = useState("Nhân viên");
+
+  useEffect(() => {
+    if (!STAFF_TAB_STATUSES.includes(routeStatus)) {
+      navigate("/staff/orders/pending", { replace: true });
+    }
+  }, [navigate, routeStatus]);
+
+  useEffect(() => {
+    setSelectedOrderType("all");
+  }, [activeStatus]);
 
   const loadOrders = useCallback(async () => {
     setLoading(true);
@@ -212,7 +198,7 @@ export function OrderDelivery() {
 
       setOrders(activeOrders);
     } catch (error) {
-      toast.error("Không tải được danh sách Order List");
+      toast.error("Không tải được danh sách đơn hàng");
       console.error("Load order list failed:", error);
     } finally {
       setLoading(false);
@@ -237,19 +223,16 @@ export function OrderDelivery() {
     loadProfile();
   }, []);
 
-  // Socket listener for new online orders (delivery + takeaway)
   useEffect(() => {
     const notifyAndReload = (label, data) => {
       setNewOrderCount((prev) => prev + 1);
-      toast.success(`🔔 Có đơn ${label} mới! (#${data.order_id})`);
+      toast.success(`Có đơn ${label} mới! (#${data.order_id})`);
       loadOrders();
     };
 
-    const handleNewDeliveryOrder = (data) =>
-      notifyAndReload("giao hàng", data);
+    const handleNewDeliveryOrder = (data) => notifyAndReload("giao hàng", data);
 
-    const handleNewTakeawayOrder = (data) =>
-      notifyAndReload("mang đi", data);
+    const handleNewTakeawayOrder = (data) => notifyAndReload("mang về", data);
 
     if (!socket.connected) {
       socket.connect();
@@ -264,8 +247,20 @@ export function OrderDelivery() {
     };
   }, [loadOrders]);
 
+  const activeStatusOrders = useMemo(() => {
+    const list = orders.filter((order) => order?.status === activeStatus);
+    return sortOrdersByStatus(activeStatus, list);
+  }, [activeStatus, orders]);
+
+  const delayedOrdersCount = useMemo(() => {
+    if (!["pending", "preparing"].includes(activeStatus)) return 0;
+    return activeStatusOrders.filter((order) => {
+      return getElapsedMinutes(order?.created_at) > 10;
+    }).length;
+  }, [activeStatus, activeStatusOrders]);
+
   const orderTypeCounts = useMemo(() => {
-    return orders.reduce(
+    return activeStatusOrders.reduce(
       (acc, order) => {
         acc.all += 1;
         const type = normalizeOrderType(order?.order_type);
@@ -276,98 +271,72 @@ export function OrderDelivery() {
       },
       { all: 0, delivery: 0, "dine-in": 0, takeaway: 0 },
     );
-  }, [orders]);
+  }, [activeStatusOrders]);
 
-  const counts = useMemo(() => {
-    return orders.reduce(
-      (acc, order) => {
-        const status = order?.status;
-        if (STAFF_TAB_STATUSES.includes(status)) {
-          acc[status] += 1;
-        }
-        return acc;
-      },
-      { pending: 0, preparing: 0, completed: 0, cancelled: 0 },
-    );
-  }, [orders]);
+  const groupedOrdersByType = useMemo(() => {
+    const grouped = {
+      delivery: [],
+      "dine-in": [],
+      takeaway: [],
+    };
 
-  const delayedOrdersCount = useMemo(() => {
-    return orders.filter((order) => {
-      if (!["pending", "preparing"].includes(order?.status)) return false;
-      return getElapsedMinutes(order?.created_at) > 10;
-    }).length;
-  }, [orders]);
-
-  const groupedOrdersByStatus = useMemo(() => {
-    const grouped = orders.reduce(
-      (acc, order) => {
-        const status = order?.status;
-        if (status in acc) {
-          acc[status].push(order);
-        }
-        return acc;
-      },
-      { pending: [], preparing: [], completed: [], cancelled: [] },
-    );
-
-    const toTime = (order) => new Date(order?.created_at || 0).getTime();
-
-    grouped.pending.sort((a, b) => toTime(a) - toTime(b));
-    grouped.preparing.sort((a, b) => toTime(a) - toTime(b));
-    grouped.completed.sort((a, b) => toTime(b) - toTime(a));
-    grouped.cancelled.sort((a, b) => toTime(b) - toTime(a));
+    activeStatusOrders.forEach((order) => {
+      const type = normalizeOrderType(order?.order_type);
+      if (type in grouped) {
+        grouped[type].push(order);
+      }
+    });
 
     return grouped;
-  }, [orders]);
+  }, [activeStatusOrders]);
 
-  const visibleStatusColumns = useMemo(() => {
-    return STATUS_KANBAN_COLUMNS.filter((column) => {
-      if (column.key === "completed") return showCompletedColumn;
-      if (column.key === "cancelled") return showCancelledColumn;
-      return true;
-    });
-  }, [showCompletedColumn, showCancelledColumn]);
+  const visibleOrderTypeColumns = useMemo(() => {
+    if (selectedOrderType === "all") {
+      return ORDER_TYPE_COLUMNS;
+    }
+    return ORDER_TYPE_COLUMNS.filter(
+      (column) => column.key === selectedOrderType,
+    );
+  }, [selectedOrderType]);
 
   const handleConfirmOrder = async (order) => {
     setConfirmingId(order.id);
+    let success = false;
+
     try {
       await orderOnlineService.confirmPreparing(order.id);
-      if (Number(order.is_paid) === 0) {
-        toast.success(
-          "Đã xác nhận với khách hàng, chuyển đơn sang đang chuẩn bị",
-        );
+      if (!isOrderPaid(order)) {
+        toast.success("Đã xác nhận với khách hàng, đơn chuyển sang Preparing");
       } else {
-        toast.success("Đã chuyển đơn sang trạng thái đang chuẩn bị");
+        toast.success("Đơn đã chuyển sang Preparing");
       }
       await loadOrders();
+      success = true;
     } catch (error) {
       toast.error(error?.response?.data?.message || "Không thể xác nhận đơn");
     } finally {
       setConfirmingId(null);
-      setCardPendingActions((prev) => {
-        const next = { ...prev };
-        delete next[order.id];
-        return next;
-      });
     }
+
+    return success;
   };
 
   const handleCancelOrder = async (orderId) => {
     setCancelingId(orderId);
+    let success = false;
+
     try {
       await orderOnlineService.cancelByStaff(orderId);
-      toast.success("Đã hủy đơn giao hàng");
+      toast.success("Đã hủy đơn hàng");
       await loadOrders();
+      success = true;
     } catch (error) {
       toast.error(error?.response?.data?.message || "Không thể hủy đơn");
     } finally {
       setCancelingId(null);
-      setCardPendingActions((prev) => {
-        const next = { ...prev };
-        delete next[orderId];
-        return next;
-      });
     }
+
+    return success;
   };
 
   const openCancelConfirm = (orderId, mode = "pending") => {
@@ -383,12 +352,15 @@ export function OrderDelivery() {
     if (!orderId) return;
 
     setCancelConfirm({ open: false, orderId: null, mode: "pending" });
-
-    await handleCancelOrder(orderId);
+    const success = await handleCancelOrder(orderId);
+    if (success) {
+      setIsDetailOpen(false);
+    }
   };
 
   const openDetailModal = async (order) => {
     setIsDetailOpen(true);
+    setDetailPendingAction("");
 
     if (!isDeliveryOrder(order)) {
       setDetailLoading(false);
@@ -399,9 +371,10 @@ export function OrderDelivery() {
     setDetailLoading(true);
     try {
       const res = await orderOnlineService.getStaffOrderDetail(order.id);
-      setSelectedOrder(res?.data?.data || res?.data || null);
+      const detail = res?.data?.data || res?.data || null;
+      setSelectedOrder(detail ? { ...order, ...detail } : order);
     } catch (error) {
-      setSelectedOrder(null);
+      setSelectedOrder(order);
       toast.error(
         error?.response?.data?.message || "Không tải được chi tiết đơn giao",
       );
@@ -435,24 +408,40 @@ export function OrderDelivery() {
       throw new Error("Order ID is required");
     }
 
+    setSelectedOrder((prev) =>
+      Number(prev?.id || 0) === orderId
+        ? { ...prev, print_status: "SUCCESS" }
+        : prev,
+    );
+    setOrders((prev) =>
+      prev.map((item) =>
+        Number(item?.id || 0) === orderId
+          ? { ...item, print_status: "SUCCESS" }
+          : item,
+      ),
+    );
+
     try {
       await orderOnlineService.markPrintSuccess(orderId);
-      await loadOrders();
     } catch (error) {
       toast.error(
         error?.response?.data?.message ||
           "Không thể cập nhật trạng thái in hóa đơn",
       );
+      await loadOrders();
       throw error;
     }
   };
 
   const handleCompleteDeliveryOrder = async (orderId) => {
     setCompletingId(orderId);
+    let success = false;
+
     try {
       await orderOnlineService.completeDeliveryByStaff(orderId);
-      toast.success("Đơn đã chuyển từ Đang chuẩn bị sang Hoàn thành");
+      toast.success("Đơn đã chuyển sang Completed");
       await loadOrders();
+      success = true;
     } catch (error) {
       toast.error(
         error?.response?.data?.message || "Không thể cập nhật đơn đã nhận",
@@ -460,6 +449,8 @@ export function OrderDelivery() {
     } finally {
       setCompletingId(null);
     }
+
+    return success;
   };
 
   const openCashPaymentDialog = (order) => {
@@ -495,8 +486,11 @@ export function OrderDelivery() {
       await orderOnlineService.completeDeliveryByStaff(orderId, {
         cash_received: cashReceivedAmount,
       });
-      toast.success("Xác nhận thanh toán thành công, đơn đã chuyển sang Hoàn thành");
+      toast.success(
+        "Xác nhận thanh toán thành công, đơn đã chuyển sang Completed",
+      );
       closeCashPaymentDialog();
+      setIsDetailOpen(false);
       await loadOrders();
     } catch (error) {
       toast.error(
@@ -507,210 +501,153 @@ export function OrderDelivery() {
     }
   };
 
-  const renderOrderCard = (order) => {
+  const selectedOrderIsPending = selectedOrder?.status === "pending";
+  const selectedOrderIsPreparing = selectedOrder?.status === "preparing";
+  const selectedOrderPaid = isOrderPaid(selectedOrder);
+  const selectedOrderIsPendingUnpaidDelivery =
+    selectedOrderIsPending &&
+    isDeliveryOrder(selectedOrder) &&
+    !selectedOrderPaid;
+  const selectedOrderHasPrintedReceipt =
+    String(selectedOrder?.print_status || "").toUpperCase() === "SUCCESS";
+
+  const handleConfirmFromDetail = async () => {
+    if (!selectedOrder) return;
+    const success = await handleConfirmOrder(selectedOrder);
+    if (success) {
+      setIsDetailOpen(false);
+      setDetailPendingAction("");
+    }
+  };
+
+  const handleCompleteFromDetail = async () => {
+    if (!selectedOrder) return;
+    const success = await handleCompleteDeliveryOrder(selectedOrder.id);
+    if (success) {
+      setIsDetailOpen(false);
+    }
+  };
+
+  const renderDetailActionButtons = () => {
+    if (detailLoading || !selectedOrder) return null;
+
+    if (selectedOrderIsPendingUnpaidDelivery) {
+      if (detailPendingAction === "confirm") {
+        return (
+          <Button
+            onClick={handleConfirmFromDetail}
+            disabled={confirmingId === selectedOrder.id}
+          >
+            {confirmingId === selectedOrder.id
+              ? "Đang nhận đơn..."
+              : "Nhận đơn"}
+          </Button>
+        );
+      }
+
+      if (detailPendingAction === "cancel") {
+        return (
+          <Button
+            variant="destructive"
+            onClick={() => openCancelConfirm(selectedOrder.id, "pending")}
+            disabled={cancelingId === selectedOrder.id}
+          >
+            {cancelingId === selectedOrder.id ? "Đang hủy..." : "Hủy đơn"}
+          </Button>
+        );
+      }
+
+      return null;
+    }
+
+    if (selectedOrderIsPending) {
+      return (
+        <Button
+          onClick={handleConfirmFromDetail}
+          disabled={confirmingId === selectedOrder.id}
+        >
+          {confirmingId === selectedOrder.id ? "Đang nhận đơn..." : "Nhận đơn"}
+        </Button>
+      );
+    }
+
+    if (selectedOrderIsPreparing) {
+      if (!selectedOrderHasPrintedReceipt) {
+        return (
+          <Button onClick={() => handlePrintReceipt(selectedOrder.id)}>
+            In hóa đơn
+          </Button>
+        );
+      }
+
+      return (
+        <>
+          <Button
+            onClick={() =>
+              !selectedOrderPaid
+                ? openCashPaymentDialog(selectedOrder)
+                : handleCompleteFromDetail()
+            }
+            disabled={completingId === selectedOrder.id}
+          >
+            {completingId === selectedOrder.id
+              ? "Đang cập nhật..."
+              : "Thành công"}
+          </Button>
+
+          <Button
+            variant="destructive"
+            onClick={() => openCancelConfirm(selectedOrder.id, "preparing")}
+            disabled={cancelingId === selectedOrder.id}
+          >
+            {cancelingId === selectedOrder.id ? "Đang hủy..." : "Hủy đơn"}
+          </Button>
+        </>
+      );
+    }
+
+    return null;
+  };
+
+  const renderCompactOrderCard = (order) => {
     const paid = isOrderPaid(order);
-    const deliveryOrder = isDeliveryOrder(order);
-    const normalizedOrderType = normalizeOrderType(order?.order_type);
-    const minutesAgo = getElapsedMinutes(order?.created_at);
-    const isPending = order.status === "pending";
-    const isPreparing = order.status === "preparing";
-    const hasPrintedReceipt =
-      String(order?.print_status || "").toUpperCase() === "SUCCESS";
-    const isPendingUnpaidOnline =
-      ["delivery", "takeaway"].includes(normalizedOrderType) &&
-      isPending &&
-      !paid;
-    const selectedPendingAction = cardPendingActions[order.id] || "";
-    const orderTypeMeta = getOrderTypeBadgeMeta(order?.order_type);
-    const urgencyClass =
-      minutesAgo > 10
-        ? "border-red-300 animate-pulse"
-        : minutesAgo > 5
-          ? "border-amber-300"
-          : "border-slate-200";
 
     return (
-      <Card
-        key={order.id}
-        className={`overflow-hidden ${urgencyClass} transition-all hover:shadow-md bg-white`}
-      >
-        <div className="border-b border-slate-100 bg-slate-50/50 p-3">
-          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <div className={`rounded-full p-1.5 ${deliveryOrder ? "bg-blue-100 text-blue-600" : "bg-amber-100 text-amber-600"}`}>
-                {deliveryOrder ? ( <div>
-                  <Truck className="h-4 w-4" />
-                  <span className="sr-only">Đơn giao hàng</span>
-</div>
-                ) : (
-                  <div>
-                  <Coffee className="h-4 w-4" />
-                  <span className="sr-only">Đơn tại bàn</span>
-                  </div>
-                )}
-              </div>
-              <div>
-                <p className="font-bold tracking-tight text-slate-900">Đơn #{order.id}</p>
-                <div className="text-xs text-slate-500 font-medium">
-                  {getRelativeTimeLabel(order.created_at)}
-                </div>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge
-                variant="secondary"
-                className={`${orderTypeMeta.className} border-none font-medium`}
-              >
-                <span className="mr-1">{orderTypeMeta.icon}</span>
-                {orderTypeMeta.label}
-              </Badge>
-              <Badge className={`${statusClassMap[order.status] || ""} border-none font-medium shadow-none`}>
-                {statusLabelMap[order.status] || order.status}
-              </Badge>
-              <Badge variant={paid ? "default" : "outline"} className={paid ? "bg-emerald-500 hover:bg-emerald-600 shadow-none text-white border-none" : "border-slate-300 text-slate-600"}>
-                {paid ? "Đã thanh toán" : "Chưa thanh toán"}
-              </Badge>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2 rounded-lg border border-slate-100 bg-white p-2.5 shadow-sm">
-            <div className="flex flex-col">
-              <span className="mb-0.5 text-xs font-medium uppercase tracking-wider text-slate-500">Tổng món</span>
-              <span className="font-bold text-slate-900 text-lg">
-                {order.itemCount || order?.items?.reduce((acc, item) => acc + (item.quantity || 1), 0) || 0}
-              </span>
-            </div>
-            <div className="flex flex-col items-end">
-              <span className="mb-0.5 text-xs font-medium uppercase tracking-wider text-slate-500">Tổng tiền</span>
-              <span className="font-bold text-primary text-lg">
-                {money(order.total_amount)}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <CardContent className="space-y-3 p-3">
-          {isPendingUnpaidOnline ? (
-            <div className="space-y-1.5 rounded-lg border border-amber-200 bg-amber-50/60 p-2.5">
-              <p className="text-xs font-semibold text-amber-900">
-                Xử lý đơn online chưa thanh toán
+      <Card key={order.id} className="border-slate-200 bg-white shadow-sm">
+        <CardContent className="p-2.5">
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <p className="text-sm font-semibold leading-none text-slate-900">
+                Đơn #{order.id}
               </p>
-
-              <div className="grid gap-1.5 sm:grid-cols-2">
-                <label className="flex items-center gap-2 text-sm text-amber-900">
-                  <input
-                    type="radio"
-                    name={`card-pending-action-${order.id}`}
-                    className="h-4 w-4"
-                    checked={selectedPendingAction === "confirm"}
-                    onChange={() =>
-                      setCardPendingActions((prev) => ({
-                        ...prev,
-                        [order.id]: "confirm",
-                      }))
-                    }
-                  />
-                  <span>Nhận đơn</span>
-                </label>
-
-                <label className="flex items-center gap-2 text-sm text-amber-900">
-                  <input
-                    type="radio"
-                    name={`card-pending-action-${order.id}`}
-                    className="h-4 w-4"
-                    checked={selectedPendingAction === "cancel"}
-                    onChange={() =>
-                      setCardPendingActions((prev) => ({
-                        ...prev,
-                        [order.id]: "cancel",
-                      }))
-                    }
-                  />
-                  <span>Hủy đơn</span>
-                </label>
-              </div>
+              <p className="mt-1 text-xs text-slate-500">
+                {getRelativeTimeLabel(order.created_at)}
+              </p>
             </div>
-          ) : null}
+            <Badge
+              variant={paid ? "default" : "outline"}
+              className={`h-6 px-2 text-[11px] font-medium ${
+                paid
+                  ? "bg-emerald-500 text-white hover:bg-emerald-500"
+                  : "border-slate-300 text-slate-600"
+              }`}
+            >
+              {paid ? "Đã thanh toán" : "Chưa thanh toán"}
+            </Badge>
+          </div>
 
-          <div className="flex flex-wrap justify-end gap-1.5">
+          <div className="mt-2 flex items-end justify-between gap-2">
+            <p className="text-base font-semibold leading-none text-slate-900">
+              {money(order.total_amount)}
+            </p>
             <Button
-              variant="outline"
+              size="sm"
+              className="h-7 px-2.5 text-xs"
+              variant={activeStatus === "pending" ? "default" : "outline"}
               onClick={() => openDetailModal(order)}
             >
-              Xem chi tiết
+              {activeStatus === "pending" ? "Xác nhận" : "Xem chi tiết"}
             </Button>
-
-            {isPendingUnpaidOnline ? (
-              selectedPendingAction === "confirm" ? (
-                <Button
-                  onClick={() => handleConfirmOrder(order)}
-                  disabled={confirmingId === order.id}
-                >
-                  {confirmingId === order.id
-                    ? "Đang xác nhận..."
-                    : "Xác nhận nhận đơn"}
-                </Button>
-              ) : selectedPendingAction === "cancel" ? (
-                <Button
-                  variant="destructive"
-                  onClick={() => openCancelConfirm(order.id, "pending")}
-                  disabled={cancelingId === order.id}
-                >
-                  {cancelingId === order.id ? "Đang hủy..." : "Hủy đơn"}
-                </Button>
-              ) : null
-            ) : isPending ? (
-              <Button
-                onClick={() => handleConfirmOrder(order)}
-                disabled={confirmingId === order.id}
-              >
-                {confirmingId === order.id
-                  ? "Đang xác nhận..."
-                  : "Nhận đơn"}
-              </Button>
-            ) : isPreparing ? (
-              !hasPrintedReceipt ? (
-                <Button
-                  onClick={() => handlePrintReceipt(order.id)}
-                >
-                  In hóa đơn
-                </Button>
-              ) : (
-                <Button
-                  onClick={() =>
-                    !paid
-                      ? openCashPaymentDialog(order)
-                      : handleCompleteDeliveryOrder(order.id)
-                  }
-                  disabled={completingId === order.id}
-                >
-                  {completingId === order.id
-                    ? "Đang cập nhật..."
-                    : !paid
-                      ? "Xác nhận thanh toán"
-                      : "Hoàn thành"}
-                </Button>
-              )
-            ) : null}
-
-            {!(["completed", "cancelled"].includes(order.status) ||
-              isPendingUnpaidOnline ||
-              (isPending && paid) ||
-              (isPreparing && !hasPrintedReceipt)) ? (
-              <Button
-                variant="destructive"
-                onClick={() =>
-                  openCancelConfirm(
-                    order.id,
-                    order.status === "preparing" ? "preparing" : "pending",
-                  )
-                }
-                disabled={cancelingId === order.id}
-              >
-                {cancelingId === order.id ? "Đang hủy..." : "Hủy"}
-              </Button>
-            ) : null}
           </div>
         </CardContent>
       </Card>
@@ -718,26 +655,24 @@ export function OrderDelivery() {
   };
 
   return (
-    <div className="mx-auto max-w-[1600px] space-y-6 p-4 md:p-6">
-      <div className="rounded-xl border border-slate-200 bg-white px-4 py-4 shadow-sm md:px-5 md:py-5">
+    <div className="mx-auto max-w-[1600px] space-y-4 p-4 md:p-6">
+      <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm md:px-5 md:py-4">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div className="flex min-w-0 items-center gap-3">
-            <div className="rounded-xl bg-primary/10 p-2.5">
-              <ShoppingBag className="h-5 w-5 text-primary" />
-            </div>
-            <div className="min-w-0">
-              <h2 className="truncate text-xl font-bold tracking-tight text-slate-900 md:text-2xl">
-                Quản lý đơn hàng
-              </h2>
-              <p className="text-sm text-slate-500">
-                Theo dõi đơn theo từng loại và trạng thái xử lý
-              </p>
-            </div>
+          <div className="min-w-0">
+            <h2 className="truncate text-xl font-bold tracking-tight text-slate-900 md:text-2xl">
+              Danh sách đơn hàng
+            </h2>
+            <p className="text-sm text-slate-500">
+              Trạng thái hiện tại: {statusLabelMap[activeStatus]}
+            </p>
           </div>
 
           <div className="flex items-center gap-2 self-start md:self-auto">
             {newOrderCount > 0 ? (
-              <Badge variant="destructive" className="px-2.5 py-1 text-xs font-semibold shadow-sm">
+              <Badge
+                variant="destructive"
+                className="px-2.5 py-1 text-xs font-semibold shadow-sm"
+              >
                 <Bell className="mr-1 h-3.5 w-3.5" />
                 {newOrderCount} đơn mới
               </Badge>
@@ -751,70 +686,42 @@ export function OrderDelivery() {
               disabled={loading}
               variant="outline"
               size="sm"
-              className="gap-2 border-slate-200 bg-white font-medium hover:bg-slate-50"
+              className="h-8 gap-1.5 border-slate-200 bg-white px-2.5 text-xs font-medium hover:bg-slate-50"
             >
-              <RefreshCw className={`h-4 w-4 text-slate-500 ${loading ? "animate-spin text-primary" : ""}`} />
+              <RefreshCw
+                className={`h-4 w-4 ${loading ? "animate-spin text-primary" : "text-slate-500"}`}
+              />
               Cập nhật
             </Button>
           </div>
         </div>
-      </div>
 
-      <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm md:p-4">
-        <div className="flex flex-wrap items-center gap-2">
-          {ORDER_TYPE_COLUMNS.map((column) => {
-            const Icon = column.icon;
-            const count = orderTypeCounts[column.key] || 0;
+        <div className="mt-3 flex flex-wrap items-center gap-1.5 border-t border-slate-100 pt-3">
+          {Object.entries(orderTypeLabelMap).map(([typeKey, label]) => (
+            <Button
+              key={typeKey}
+              size="sm"
+              variant={selectedOrderType === typeKey ? "default" : "outline"}
+              onClick={() => setSelectedOrderType(typeKey)}
+              className="h-8 gap-1.5 px-2.5 text-xs"
+            >
+              {label}
+              <Badge variant="secondary" className="ml-0.5 h-5 px-1.5 text-[11px]">
+                {orderTypeCounts[typeKey] || 0}
+              </Badge>
+            </Button>
+          ))}
 
-            return (
-              <div
-                key={column.key}
-                className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5"
-              >
-                <Icon className="h-4 w-4 text-slate-600" />
-                <span className="text-sm text-slate-700">{column.label}</span>
-                <Badge variant="secondary" className="ml-1">{count}</Badge>
-              </div>
-            );
-          })}
-
-          <div className="inline-flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5">
-            <span className="text-sm font-medium text-blue-700">Đang chờ</span>
-            <Badge variant="secondary">{counts.pending}</Badge>
-          </div>
-
-          <div className="inline-flex items-center gap-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5">
-            <span className="text-sm font-medium text-rose-700">Trễ &gt; 10 phút</span>
-            <Badge variant="secondary">{delayedOrdersCount}</Badge>
-          </div>
-
-          <Button
-            variant={showCompletedColumn ? "default" : "outline"}
-            size="sm"
-            onClick={() => setShowCompletedColumn((prev) => !prev)}
-            className={`gap-2 ${showCompletedColumn ? "bg-emerald-600 hover:bg-emerald-700 text-white" : ""}`}
-          >
-            {showCompletedColumn ? (
-              <Eye className="h-4 w-4" />
-            ) : (
-              <EyeOff className="h-4 w-4" />
-            )}
-            Hoàn thành ({counts.completed})
-          </Button>
-
-          <Button
-            variant={showCancelledColumn ? "default" : "outline"}
-            size="sm"
-            onClick={() => setShowCancelledColumn((prev) => !prev)}
-            className={`gap-2 ${showCancelledColumn ? "bg-slate-700 hover:bg-slate-800 text-white" : ""}`}
-          >
-            {showCancelledColumn ? (
-              <Eye className="h-4 w-4" />
-            ) : (
-              <EyeOff className="h-4 w-4" />
-            )}
-            Đã hủy ({counts.cancelled})
-          </Button>
+          {["pending", "preparing"].includes(activeStatus) ? (
+            <div className="ml-auto inline-flex h-8 items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-2.5">
+              <span className="text-xs font-medium text-rose-700">
+                Trễ &gt; 10 phút
+              </span>
+              <Badge variant="secondary" className="h-5 px-1.5 text-[11px]">
+                {delayedOrdersCount}
+              </Badge>
+            </div>
+          ) : null}
         </div>
       </div>
 
@@ -822,30 +729,35 @@ export function OrderDelivery() {
         <div
           className="grid gap-3"
           style={{
-            gridTemplateColumns: `repeat(${visibleStatusColumns.length}, minmax(0, 1fr))`,
+            gridTemplateColumns: `repeat(${visibleOrderTypeColumns.length}, minmax(0, 1fr))`,
           }}
         >
-          {visibleStatusColumns.map((column) => {
-            const columnOrders = groupedOrdersByStatus[column.key] || [];
-            const isSecondaryColumn = ["completed", "cancelled"].includes(column.key);
+          {visibleOrderTypeColumns.map((column) => {
+            const Icon = column.icon;
+            const columnOrders = groupedOrdersByType[column.key] || [];
 
             return (
               <div
                 key={column.key}
-                className={`rounded-xl border border-slate-200 bg-white shadow-sm ${isSecondaryColumn ? "opacity-75" : "opacity-100"}`}
+                className="rounded-xl border border-slate-200 bg-white shadow-sm"
               >
                 <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50 px-3 py-2">
-                  <span className="text-sm font-semibold text-slate-800">{column.label}</span>
+                  <div className="flex items-center gap-2">
+                    <Icon className="h-4 w-4 text-slate-600" />
+                    <span className="text-sm font-semibold text-slate-800">
+                      {column.label}
+                    </span>
+                  </div>
                   <Badge variant="secondary">{columnOrders.length}</Badge>
                 </div>
 
-                <div className="max-h-[calc(100vh-380px)] min-h-[260px] overflow-y-auto space-y-3 p-3">
+                <div className="max-h-[calc(100vh-360px)] min-h-[260px] space-y-2 overflow-y-auto p-3">
                   {loading ? (
                     <p className="py-8 text-center text-sm text-muted-foreground">
                       Đang tải dữ liệu...
                     </p>
                   ) : columnOrders.length > 0 ? (
-                    columnOrders.map((order) => renderOrderCard(order))
+                    columnOrders.map((order) => renderCompactOrderCard(order))
                   ) : (
                     <div className="flex flex-col items-center justify-center gap-2 py-10 text-center">
                       <ShoppingBag className="h-7 w-7 text-muted-foreground" />
@@ -863,7 +775,12 @@ export function OrderDelivery() {
 
       <Dialog
         open={isDetailOpen}
-        onOpenChange={setIsDetailOpen}
+        onOpenChange={(open) => {
+          setIsDetailOpen(open);
+          if (!open) {
+            setDetailPendingAction("");
+          }
+        }}
       >
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
@@ -913,9 +830,7 @@ export function OrderDelivery() {
                 <p>
                   Trạng thái thanh toán:{" "}
                   <span className="font-medium">
-                    {isOrderPaid(selectedOrder)
-                      ? "Đã thanh toán"
-                      : "Chưa thanh toán"}
+                    {selectedOrderPaid ? "Đã thanh toán" : "Chưa thanh toán"}
                   </span>
                 </p>
                 {selectedOrder.note ? (
@@ -924,18 +839,52 @@ export function OrderDelivery() {
                     <span className="font-medium">{selectedOrder.note}</span>
                   </p>
                 ) : null}
-                {isDeliveryOrder(selectedOrder) &&
-                  selectedOrder.receiver_name && (
-                    <div className="sm:col-span-2 border-t pt-3 mt-3">
-                      <button
-                        onClick={() => handlePrintReceipt(selectedOrder.id)}
-                        className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm font-medium"
-                      >
-                        <Printer size={16} />
-                        In hóa đơn
-                      </button>
+
+                {selectedOrderIsPendingUnpaidDelivery ? (
+                  <div className="sm:col-span-2 mt-2 rounded-md border border-amber-200 bg-amber-50 p-3">
+                    <p className="mb-2 text-sm font-semibold text-amber-900">
+                      Xử lý đơn giao hàng chưa thanh toán
+                    </p>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      <label className="flex items-center gap-2 text-sm text-amber-900">
+                        <input
+                          type="radio"
+                          name="modal-pending-action"
+                          className="h-4 w-4"
+                          checked={detailPendingAction === "confirm"}
+                          onChange={() => setDetailPendingAction("confirm")}
+                        />
+                        <span>Nhận đơn</span>
+                      </label>
+
+                      <label className="flex items-center gap-2 text-sm text-amber-900">
+                        <input
+                          type="radio"
+                          name="modal-pending-action"
+                          className="h-4 w-4"
+                          checked={detailPendingAction === "cancel"}
+                          onChange={() => setDetailPendingAction("cancel")}
+                        />
+                        <span>Hủy đơn</span>
+                      </label>
                     </div>
-                  )}
+                  </div>
+                ) : null}
+
+                {isDeliveryOrder(selectedOrder) &&
+                selectedOrder.receiver_name &&
+                selectedOrderIsPreparing &&
+                !selectedOrderHasPrintedReceipt ? (
+                  <div className="sm:col-span-2 border-t pt-3 mt-3">
+                    <button
+                      onClick={() => handlePrintReceipt(selectedOrder.id)}
+                      className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600"
+                    >
+                      <Printer size={16} />
+                      In hóa đơn
+                    </button>
+                  </div>
+                ) : null}
               </div>
 
               <div className="space-y-2 rounded-md border p-3">
@@ -995,6 +944,15 @@ export function OrderDelivery() {
                 </p>
               </div>
 
+              <div className="flex flex-wrap justify-end gap-2 border-t pt-3">
+                <Button
+                  variant="outline"
+                  onClick={() => setIsDetailOpen(false)}
+                >
+                  Đóng
+                </Button>
+                {renderDetailActionButtons()}
+              </div>
             </div>
           ) : (
             <p className="text-sm text-muted-foreground">
@@ -1015,16 +973,14 @@ export function OrderDelivery() {
 
       <AlertDialog
         open={cancelConfirm.open}
-        onOpenChange={(open) =>
-          setCancelConfirm((prev) => ({ ...prev, open }))
-        }
+        onOpenChange={(open) => setCancelConfirm((prev) => ({ ...prev, open }))}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Bạn có chắc muốn hủy đơn không?</AlertDialogTitle>
             <AlertDialogDescription>
               {cancelConfirm.mode === "preparing"
-                ? "Đơn đang trong quá trình chuẩn bị. Khi hủy, trạng thái đơn sẽ chuyển sang Hủy."
+                ? "Đơn đang trong quá trình chuẩn bị. Khi hủy, trạng thái đơn sẽ chuyển sang Cancelled."
                 : "Thao tác này sẽ hủy đơn hiện tại và không thể hoàn tác."}
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -1087,7 +1043,8 @@ export function OrderDelivery() {
 
             {isCashInputValid ? (
               <p className="text-sm text-emerald-700">
-                Tiền thừa trả khách: <span className="font-semibold">{money(changeAmount)}</span>
+                Tiền thừa trả khách:{" "}
+                <span className="font-semibold">{money(changeAmount)}</span>
               </p>
             ) : null}
           </div>

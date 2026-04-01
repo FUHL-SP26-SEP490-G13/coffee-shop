@@ -145,7 +145,7 @@ export function PrintableReceipt({ order, onDone, onPrintSuccess }) {
 
       try {
         if (typeof onPrintSuccess === 'function') {
-          await onPrintSuccess(order);
+          Promise.resolve(onPrintSuccess(order)).catch(() => {});
         }
       } finally {
         if (typeof onDone === 'function') {

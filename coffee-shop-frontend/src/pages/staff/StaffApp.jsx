@@ -48,6 +48,7 @@ const STAFF_SIDEBAR_DEFAULTS = {
 
 export function StaffApp() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isSidebarHovered, setIsSidebarHovered] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [sidebarCollapsedByPage, setSidebarCollapsedByPage] = useState(() => {
@@ -80,6 +81,10 @@ export function StaffApp() {
 
   const getCurrentPage = () => {
     const path = location.pathname;
+    if (path.includes('orders/pending')) return 'orders-pending';
+    if (path.includes('orders/preparing')) return 'orders-preparing';
+    if (path.includes('orders/completed')) return 'orders-completed';
+    if (path.includes('orders/cancelled')) return 'orders-cancelled';
     if (path.includes('takeaway')) return 'takeaway'; 
     if(path.includes('orders')) return 'orders';
     if (path.includes('kitchen')) return 'kitchen';
@@ -98,6 +103,8 @@ export function StaffApp() {
     STAFF_SIDEBAR_DEFAULTS[currentPage] ?? false;
   const isSidebarCollapsed =
     sidebarCollapsedByPage[currentPage] ?? defaultCollapsedForPage;
+  const isSidebarExpanded = !isSidebarCollapsed || isSidebarHovered;
+  const isSidebarCompact = !isSidebarExpanded;
 
   const menuGroups = [
     {
@@ -106,7 +113,10 @@ export function StaffApp() {
         { id: 'dashboard', icon: LayoutDashboard, label: 'Tổng quan', path: '/staff/dashboard' },
         { id: 'tables', icon: Users, label: 'Phòng bàn', path: '/staff/tables' },
         { id: 'takeaway', icon: ShoppingBag, label: 'Đặt mang đi', path: '/staff/takeaway' },
-        { id: 'orders', icon: ShoppingBag, label: 'Danh sách đơn hàng', path: '/staff/orders' },
+        { id: 'orders-pending', icon: ShoppingBag, label: 'Đơn Đang chờ', path: '/staff/orders/pending' },
+        { id: 'orders-preparing', icon: ShoppingBag, label: 'Đơn Đang chuẩn bị', path: '/staff/orders/preparing' },
+        { id: 'orders-completed', icon: ShoppingBag, label: 'Đơn Hoàn thành', path: '/staff/orders/completed' },
+        { id: 'orders-cancelled', icon: ShoppingBag, label: 'Đơn Đã hủy', path: '/staff/orders/cancelled' },
         { id: 'kitchen', icon: ChefHat, label: 'Bếp', path: '/staff/kitchen' },
 
       ],
@@ -325,9 +335,11 @@ export function StaffApp() {
       )}
 
       <div
+        onMouseEnter={() => setIsSidebarHovered(true)}
+        onMouseLeave={() => setIsSidebarHovered(false)}
         className={`
           fixed md:static inset-y-0 left-0 z-40
-          w-64 ${isSidebarCollapsed ? 'md:w-20' : 'md:w-64'} bg-card border-r border-border flex flex-col
+          w-64 ${isSidebarCompact ? 'md:w-20' : 'md:w-64'} bg-card border-r border-border flex flex-col
           transform transition-transform duration-300 ease-in-out
           ${mobileMenuOpen
             ? "translate-x-0"
@@ -336,7 +348,7 @@ export function StaffApp() {
         `}
       >
         <div
-          className={`p-6 border-b border-border ${isSidebarCollapsed ? 'md:px-3' : ''}`}
+          className={`p-6 border-b border-border ${isSidebarCompact ? 'md:px-3' : ''}`}
           style={{
             display: 'flex',
             flexDirection: 'column',
@@ -360,9 +372,9 @@ export function StaffApp() {
           <img
             src={Logo}
             alt='Coffee Shop Logo'
-            className={`w-auto ${isSidebarCollapsed ? 'h-12' : 'h-20'}`}
+            className={`w-auto ${isSidebarCompact ? 'h-12' : 'h-20'}`}
           />
-          <p className={`text-sm text-muted-foreground mt-1 ${isSidebarCollapsed ? 'md:hidden' : ''}`}>
+          <p className={`text-sm text-muted-foreground mt-1 ${isSidebarCompact ? 'md:hidden' : ''}`}>
             Cổng Nhân viên
           </p>
         </div>
@@ -371,7 +383,7 @@ export function StaffApp() {
           <nav className='flex-1 p-4 overflow-auto'>
             {menuGroups.map((group) => (
               <div key={group.title} className="mb-6">
-                <h3 className={`px-4 text-[11px] font-bold text-muted-foreground uppercase tracking-wider mb-3 ${isSidebarCollapsed ? 'md:hidden' : ''}`}>
+                <h3 className={`px-4 text-[11px] font-bold text-muted-foreground uppercase tracking-wider mb-3 ${isSidebarCompact ? 'md:hidden' : ''}`}>
                   {group.title}
                 </h3>
                 {group.items.map((item) => {
@@ -383,21 +395,21 @@ export function StaffApp() {
                         navigate(item.path);
                         setMobileMenuOpen(false);
                       }}
-                      className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all mb-1 ${isSidebarCollapsed ? 'md:justify-center md:px-2' : ''} ${
+                      className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all mb-1 ${isSidebarCompact ? 'md:justify-center md:px-2' : ''} ${
                         currentPage === item.id
                           ? 'bg-primary text-primary-foreground shadow-sm'
                           : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
                       }`}
-                      title={isSidebarCollapsed ? item.label : undefined}
+                      title={isSidebarCompact ? item.label : undefined}
                     >
                       <Icon className='w-[18px] h-[18px] flex-shrink-0' />
-                      <span className={`text-sm font-medium ${isSidebarCollapsed ? 'md:hidden' : ''}`}>
+                      <span className={`text-sm font-medium ${isSidebarCompact ? 'md:hidden' : ''}`}>
                         {item.label}
                       </span>
                     </button>
                   );
 
-                  if (!isSidebarCollapsed) {
+                  if (!isSidebarCompact) {
                     return menuButton;
                   }
 
@@ -416,11 +428,11 @@ export function StaffApp() {
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <button
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all mb-2 text-muted-foreground hover:bg-accent hover:text-accent-foreground ${isSidebarCollapsed ? 'md:justify-center md:px-2' : ''}`}
-                  title={isSidebarCollapsed ? 'Đăng xuất' : undefined}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all mb-2 text-muted-foreground hover:bg-accent hover:text-accent-foreground ${isSidebarCompact ? 'md:justify-center md:px-2' : ''}`}
+                  title={isSidebarCompact ? 'Đăng xuất' : undefined}
                 >
                   <LogOut className='w-5 h-5 flex-shrink-0' />
-                  <span className={`text-sm ${isSidebarCollapsed ? 'md:hidden' : ''}`}>
+                  <span className={`text-sm ${isSidebarCompact ? 'md:hidden' : ''}`}>
                     Đăng xuất
                   </span>
                 </button>
