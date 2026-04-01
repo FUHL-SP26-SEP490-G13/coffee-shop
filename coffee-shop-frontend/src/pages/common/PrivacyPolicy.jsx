@@ -18,19 +18,19 @@ function PrivacyPolicy() {
     <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900">
       <Header />
 
-      <div className="text-center space-y-3 mt-10">
-        <h1 className="text-2xl md:text-3xl text-primary font-bold">
-          Chính sách bảo mật
-        </h1>
-        <p className="text-gray-600 dark:text-gray-400 text-sm">
-          Cam kết minh bạch trong việc thu thập, sử dụng và bảo vệ thông tin cá
-          nhân.
-        </p>
-      </div>
+      <div className="flex-1 w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-10 mb-10">
+        <div className="text-center space-y-3 mt-4 mb-10">
+          <h1 className="text-2xl md:text-3xl text-primary font-bold">
+            Chính sách bảo mật
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400 text-sm">
+            Cam kết minh bạch trong việc thu thập, sử dụng và bảo vệ thông tin cá
+            nhân.
+          </p>
+        </div>
 
-      {/* ===== CONTENT ===== */}
-      <section className="w-full px-4 sm:px-6 lg:px-8 py-16 sm:py-20">
-        <div className="max-w-6xl mx-auto grid gap-8 md:grid-cols-2">
+        {/* ===== CONTENT ===== */}
+        <div className="w-full grid gap-8 md:grid-cols-2">
           <PolicyCard icon={<Database />} title="Thu thập thông tin">
             Chúng tôi thu thập họ tên, email, số điện thoại, địa chỉ giao hàng
             và lịch sử đơn hàng nhằm phục vụ hoạt động kinh doanh.
@@ -61,7 +61,7 @@ function PrivacyPolicy() {
             khoản không còn hoạt động.
           </PolicyCard>
         </div>
-      </section>
+      </div>
 
       <div className="w-full h-px bg-gradient-to-r from-transparent via-amber-300 to-transparent" />
 

@@ -6,18 +6,28 @@ import ProductDetailPage from "../homePage/product/ProductDetailPage";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 
+export const slugCache = {};
+
 export default function GenericSlugResolver() {
   const { slug } = useParams();
-  const [data, setData] = useState(null);
-  const [type, setType] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState(slugCache[slug]?.data || null);
+  const [type, setType] = useState(slugCache[slug]?.type || null);
+  const [loading, setLoading] = useState(!slugCache[slug]);
 
   useEffect(() => {
+    if (slugCache[slug]) {
+       setData(slugCache[slug].data);
+       setType(slugCache[slug].type);
+       setLoading(false);
+       return;
+    }
+
     setLoading(true);
     fetch(`http://localhost:5000/api/public/slugs/${slug}`)
       .then(res => res.json())
       .then(json => {
          if(json.success) {
+            slugCache[slug] = { data: json.data, type: json.type };
             setData(json.data);
             setType(json.type);
          } else {

@@ -11,6 +11,7 @@ import useFetch from "@/hooks/useFetch";
 import flashSaleService from "@/services/flashSaleService";
 import { STORAGE_KEYS } from "@/constants";
 import { useStoreHours } from "@/hooks/useStoreHours";
+import { slugCache } from "@/pages/common/GenericSlugResolver";
 
 const PAGE_SIZE = 9;
 
@@ -48,7 +49,15 @@ export default function ProductListPage({ categoryIdOverride, categoryName, cate
 
   useEffect(() => {
     categoryService.getAll().then((res) => {
-      setCategories(res?.data || []);
+      const fetchedCategories = res?.data || [];
+      setCategories(fetchedCategories);
+      
+      // Khởi tạo sẵn cache để tránh bị unmount (load chớp màn hình)
+      fetchedCategories.forEach(cat => {
+        if (cat.slug && !slugCache[cat.slug]) {
+          slugCache[cat.slug] = { data: cat, type: 'category' };
+        }
+      });
     }).catch(() => { });
   }, []);
 
@@ -302,9 +311,9 @@ export default function ProductListPage({ categoryIdOverride, categoryName, cate
                     {categories.map((cat) => (
                       <label key={cat.id} className="flex items-center gap-3 cursor-pointer group">
                         <div className="relative flex items-center justify-center">
-                          <input type="radio" name="category" checked={categoryId === String(cat.id)} onChange={() => handleCategoryChange(cat)} className="peer sr-only" />
+                          <input type="radio" name="category" checked={String(categoryId) === String(cat.id)} onChange={() => handleCategoryChange(cat)} className="peer sr-only" />
                           <div className="w-5 h-5 rounded border border-gray-300 peer-checked:bg-amber-600 peer-checked:border-amber-600 transition flex items-center justify-center">
-                            {(categoryId === String(cat.id)) && <div className="w-2.5 h-2.5 rounded-sm bg-white dark:bg-gray-900" />}
+                            {(String(categoryId) === String(cat.id)) && <div className="w-2.5 h-2.5 rounded-sm bg-white dark:bg-gray-900" />}
                           </div>
                         </div>
                         <span className="text-gray-700 dark:text-gray-300 group-hover:text-amber-600 transition">{cat.name}</span>

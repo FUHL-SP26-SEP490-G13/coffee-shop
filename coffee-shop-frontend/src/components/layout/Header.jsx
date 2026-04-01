@@ -813,7 +813,12 @@ function Header() {
         </div>
 
         <div className="flex items-center gap-1 sm:gap-2 lg:gap-4">
-          <div className="hidden lg:flex items-center relative" ref={exploreDropdownRef}>
+          <div 
+            className="hidden lg:flex items-center relative h-full" 
+            ref={exploreDropdownRef}
+            onMouseEnter={() => setExploreOpen(true)}
+            onMouseLeave={() => setExploreOpen(false)}
+          >
             <button
                onClick={() => setExploreOpen(!exploreOpen)}
                className={`flex items-center gap-1.5 font-bold px-3 py-2 rounded-xl transition-all border ${
@@ -826,27 +831,29 @@ function Header() {
                <ChevronDown className="w-4 h-4" />
             </button>
             {exploreOpen && (
-              <div className="absolute top-[calc(100%+8px)] right-0 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-xl w-[200px] py-2 z-[100]">
-                <button
-                  onClick={() => {
-                     setExploreOpen(false);
-                     navigate("/store");
-                  }}
-                  className="w-full flex items-center gap-3 px-4 py-2 hover:bg-amber-50 dark:hover:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 transition hover:text-amber-600"
-                >
-                  <MapPin className="w-4 h-4" />
-                  <span>Cửa hàng</span>
-                </button>
-                <button
-                  onClick={() => {
-                     setExploreOpen(false);
-                     navigate("/news");
-                  }}
-                  className="w-full flex items-center gap-3 px-4 py-2 hover:bg-amber-50 dark:hover:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 transition hover:text-amber-600"
-                >
-                  <Newspaper className="w-4 h-4" />
-                  <span>Tin tức</span>
-                </button>
+              <div className="absolute top-full right-0 pt-2 z-[100]">
+                <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-xl w-[200px] py-2">
+                  <button
+                    onClick={() => {
+                       setExploreOpen(false);
+                       navigate("/store");
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-2 hover:bg-amber-50 dark:hover:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 transition hover:text-amber-600"
+                  >
+                    <MapPin className="w-4 h-4" />
+                    <span>Cửa hàng</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                       setExploreOpen(false);
+                       navigate("/news");
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-2 hover:bg-amber-50 dark:hover:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 transition hover:text-amber-600"
+                  >
+                    <Newspaper className="w-4 h-4" />
+                    <span>Tin tức</span>
+                  </button>
+                </div>
               </div>
             )}
           </div>

@@ -14,7 +14,7 @@ class NewsRepository extends BaseRepository {
     const sql = `
     SELECT *
     FROM news
-    ORDER BY created_at DESC
+    ORDER BY views DESC, created_at DESC
     LIMIT ?
   `;
 
