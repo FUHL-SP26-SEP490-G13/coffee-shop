@@ -20,7 +20,6 @@ import "swiper/css/pagination";
 import "swiper/css/navigation";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
-import AiAssistantWidget from "@/components/layout/AiAssistantWidget";
 
 export default function HomePage() {
   const [activeBannerIndex, setActiveBannerIndex] = useState(0);
@@ -193,8 +192,6 @@ export default function HomePage() {
       </FadeInView>
       
       <Footer />
-      
-      <AiAssistantWidget />
 
       {/* Scroll to Top Button */}
       <button

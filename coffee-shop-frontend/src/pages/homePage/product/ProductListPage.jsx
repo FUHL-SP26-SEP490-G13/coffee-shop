@@ -3,7 +3,6 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { Loader2, Heart, Filter, X, Star } from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
-import AiAssistantWidget from "@/components/layout/AiAssistantWidget";
 import { Button } from "@/components/ui/button";
 import productService from "@/services/productService";
 import favoriteService from "@/services/favoriteService";
@@ -587,7 +586,6 @@ export default function ProductListPage() {
       </section>
 
       <Footer />
-      <AiAssistantWidget />
     </div>
   );
 }

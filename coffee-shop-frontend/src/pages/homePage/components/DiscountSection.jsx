@@ -60,7 +60,7 @@ export default function DiscountSection() {
             Ưu đãi
           </div>
           <h5 className="text-xl md:text-3xl font-semibold text-gray-900 dark:text-gray-100" style={{ fontFamily: 'serif' }}>
-            khuyến mãi hôm nay
+            Khuyến mãi hôm nay
           </h5>
         </div>
 
