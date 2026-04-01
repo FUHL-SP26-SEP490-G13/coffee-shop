@@ -130,7 +130,7 @@ export default function AdminFlashSales() {
         <table className="w-full text-left text-sm text-gray-600 dark:text-gray-300">
           <thead className="bg-gray-50 dark:bg-gray-800/50 text-gray-700 dark:text-gray-200 font-medium">
             <tr>
-              <th className="py-4 px-6 border-b border-gray-100 dark:border-gray-700">ID</th>
+              <th className="py-4 px-6 border-b border-gray-100 dark:border-gray-700">STT</th>
               <th className="py-4 px-6 border-b border-gray-100 dark:border-gray-700">Chiến dịch</th>
               <th className="py-4 px-6 border-b border-gray-100 dark:border-gray-700">Thời gian</th>
               <th className="py-4 px-6 border-b border-gray-100 dark:border-gray-700">Khuyến mãi</th>
@@ -148,9 +148,9 @@ export default function AdminFlashSales() {
                 <td colSpan="6" className="py-8 text-center text-gray-400">Chưa có chiến dịch Flash Sale nào</td>
               </tr>
             ) : (
-              sales.map((sale) => (
+              sales.map((sale, index) => (
                 <tr key={sale.id} className="border-b border-gray-50 hover:bg-gray-50 dark:hover:bg-gray-800 dark:bg-gray-800/50 transition-colors">
-                  <td className="py-4 px-6">#{sale.id}</td>
+                  <td className="py-4 px-6">{index + 1}</td>
                   <td className="py-4 px-6 font-medium text-gray-900 dark:text-gray-100">{sale.title}</td>
                   <td className="py-4 px-6 text-xs text-gray-500">
                     <div className="flex flex-col gap-1">
