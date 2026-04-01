@@ -24,7 +24,7 @@ import Footer from "@/components/layout/Footer";
 export default function HomePage() {
   const [activeBannerIndex, setActiveBannerIndex] = useState(0);
   const [showScrollTop, setShowScrollTop] = useState(false);
-  
+
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -84,7 +84,7 @@ export default function HomePage() {
     return categoryService.getAll({ page: 1, limit: 100 });
   }, []);
   const { data: catData } = useFetch(fetchCategories);
-  
+
   const categories = useMemo(() => {
     return Array.isArray(catData?.data) ? catData.data : [];
   }, [catData]);
@@ -147,19 +147,19 @@ export default function HomePage() {
       <FadeInView delay={0} duration={1200}>
         <div className="w-full bg-[#fcfaf9] dark:bg-gray-950 border-b border-gray-100 dark:border-gray-900 pb-0">
           <div className="max-w-[1440px] w-full mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 relative flex items-stretch">
-            
+
             {/* STATIC CATEGORY SIDEBAR */}
             <div className="hidden lg:flex w-[250px] shrink-0 flex-col bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-xl rounded-b-2xl z-20 pb-3">
               <div className="h-[480px] overflow-y-auto px-1 pt-1 customized-scrollbar">
                 {categories.length === 0 ? (
-                   <div className="text-center py-6 text-sm text-gray-500">Đang tải...</div>
+                  <div className="text-center py-6 text-sm text-gray-500">Đang tải...</div>
                 ) : (
                   categories.map((category) => (
-                      <button
-                        key={category.id}
-                        onClick={() => navigate(`/${category.slug || 'products?category=' + category.id}`)}
-                        className="w-full flex items-center justify-between px-5 py-3.5 transition text-[13px] font-bold text-gray-700 dark:text-gray-300 border-b border-dashed border-gray-100 dark:border-gray-800 last:border-0 hover:bg-amber-50 hover:text-amber-600 group"
-                      >
+                    <button
+                      key={category.id}
+                      onClick={() => navigate(`/${category.slug || 'products?category=' + category.id}`)}
+                      className="w-full flex items-center justify-between px-5 py-3.5 transition text-[13px] font-bold text-gray-700 dark:text-gray-300 border-b border-dashed border-gray-100 dark:border-gray-800 last:border-0 hover:bg-amber-50 hover:text-amber-600 group"
+                    >
                       <div className="flex items-center gap-3">
                         <div className="w-1.5 h-1.5 rounded-full bg-gray-300 group-hover:bg-amber-500 transition-colors"></div>
                         <span className="uppercase tracking-wide">{category.name}</span>
@@ -184,7 +184,7 @@ export default function HomePage() {
       </FadeInView>
 
       <FadeInView>
-        <FlashSaleSection 
+        <FlashSaleSection
           products={products}
           getThumbnail={getThumbnail}
           getDefaultCartSize={getDefaultCartSize}
@@ -219,19 +219,18 @@ export default function HomePage() {
       <FadeInView>
         <FeaturedNews />
       </FadeInView>
-      
+
       <FadeInView>
         <InstagramFeedSection />
       </FadeInView>
-      
+
       <Footer />
 
       {/* Scroll to Top Button */}
       <button
         onClick={scrollToTop}
-        className={`fixed bottom-24 right-6 p-3 bg-amber-600 hover:bg-amber-700 text-white rounded-full shadow-lg shadow-amber-900/20 z-40 transition-all duration-300 ${
-          showScrollTop ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0 pointer-events-none"
-        }`}
+        className={`fixed bottom-24 right-6 p-3 bg-amber-600 hover:bg-amber-700 text-white rounded-full shadow-lg shadow-amber-900/20 z-40 transition-all duration-300 ${showScrollTop ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0 pointer-events-none"
+          }`}
         title="Cuộn lên đầu trang"
       >
         <ArrowUp className="w-6 h-6" />

@@ -811,9 +811,9 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
                 <p className="text-sm uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">
                   {product.category_name || "Danh mục"}
                 </p>
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+                <h5 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                   {product.name}
-                </h1>
+                </h5>
               </div>
 
               <div className="flex gap-2 shrink-0">
@@ -987,7 +987,7 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
               <div className="flex flex-col">
                 {isFlashSale && originalDisplayPrice ? (
                   <div className="flex items-center gap-3">
-                    <p className="text-4xl font-bold text-red-600">
+                    <p className="text-3xl font-semibold text-red-600">
                       {selectedSizeObj
                         ? `${displayPrice.toLocaleString("vi-VN")}đ`
                         : "Liên hệ"}
@@ -997,7 +997,7 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
                     </span>
                   </div>
                 ) : (
-                  <p className="text-4xl font-bold text-amber-600">
+                  <p className="text-3xl font-semibold text-amber-600">
                     {selectedSizeObj
                       ? `${displayPrice.toLocaleString("vi-VN")}đ`
                       : "Liên hệ"}
