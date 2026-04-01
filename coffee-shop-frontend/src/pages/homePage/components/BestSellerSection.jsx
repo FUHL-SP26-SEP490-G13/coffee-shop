@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Loader2, ArrowRight, Heart } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 import favoriteService from "@/services/favoriteService";
 import flashSaleService from "@/services/flashSaleService";
 import { STORAGE_KEYS } from "@/constants";
@@ -129,15 +130,14 @@ export default function BestSellerSection({
             </p>
           </div>
 
-          <Link
-            to="/products"
-            className="group flex shrink-0 items-center gap-2 rounded-full border border-primary/30 px-5 py-2.5 text-sm font-semibold text-primary transition-all hover:bg-primary hover:text-primary-foreground active:scale-[0.97]"
-          >
-            Xem tất cả
-            <ArrowRight
-              size={16}
-              className="transition-transform group-hover:translate-x-0.5"
-            />
+          <Link to="/products">
+            <Button
+              variant="outline"
+              className="gap-2 hover:gap-3 transition-all shadow-sm hover:shadow-md border-primary/20 hover:border-primary hover:bg-primary/5 group hover:text-primary"
+            >
+              <span className="font-semibold">Xem tất cả</span>
+              <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+            </Button>
           </Link>
         </div>
 

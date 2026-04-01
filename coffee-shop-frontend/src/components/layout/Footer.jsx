@@ -17,11 +17,13 @@ function Footer() {
       <div className="max-w-[1440px] mx-auto w-full px-6 py-12 lg:px-8 lg:py-16 xl:px-12">
         <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-4">
           <div>
-            <img
-              src={Logo}
-              alt="Coffee Shop Logo"
-              className="h-16 w-auto mb-4"
-            />
+            <Link to="/" className="inline-block mb-4">
+              <img
+                src={Logo}
+                alt="Coffee Shop Logo"
+                className="h-16 w-auto hover:opacity-80 transition-opacity"
+              />
+            </Link>
 
             <p className="mt-4 text-sm leading-relaxed text-muted-foreground dark:text-gray-400">
               Hương vị cà phê chuẩn vị, phục vụ mỗi ngày.

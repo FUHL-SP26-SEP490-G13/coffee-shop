@@ -47,16 +47,14 @@ export default function NewsListPage() {
     <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900">
       <Header />
 
-      {/* Breadcrumb section */}
-      <div className="bg-gray-50 dark:bg-gray-950 py-3 px-4 sm:px-6 lg:px-8 xl:px-12 border-b border-gray-200 dark:border-gray-800">
-         <div className="max-w-[1440px] w-full mx-auto flex items-center text-sm text-gray-500 dark:text-gray-400 space-x-2">
-            <Link to="/" className="hover:text-amber-600 transition-colors">Trang chủ</Link>
-            <span>/</span>
-            <span className="text-gray-900 dark:text-gray-100 font-medium cursor-default">Tin tức</span>
-         </div>
-      </div>
-
       <main className="flex-1 w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-8 md:py-12 mb-10">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+          <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center space-x-2">
+            <Link to="/" className="cursor-pointer hover:text-amber-600 transition-colors">Trang chủ</Link>
+            <span className="text-gray-400">/</span>
+            <span className="text-amber-600 font-medium">Tin tức</span>
+          </div>
+        </div>
         
         <div className="flex flex-col lg:flex-row gap-10">
           

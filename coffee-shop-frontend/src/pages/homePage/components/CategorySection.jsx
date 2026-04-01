@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { Coffee, Leaf, CupSoda, UtensilsCrossed, GlassWater } from "lucide-react";
+import { Coffee, Leaf, CupSoda, UtensilsCrossed, GlassWater, ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 import categoryService from "@/services/categoryService";
 
 export default function CategorySection() {
@@ -39,11 +40,14 @@ export default function CategorySection() {
             Danh mục sản  phẩm
           </h3>
           {categories.length > 8 && (
-            <Link
-              to="/products"
-              className="text-amber-700 dark:text-amber-300 hover:text-amber-800 dark:text-amber-400 font-medium text-sm border-b border-amber-700/30 hover:border-amber-700 transition-colors pb-0.5"
-            >
-              Xem tất cả danh mục &rarr;
+            <Link to="/products" className="hidden sm:inline-block">
+              <Button
+                variant="outline"
+                className="gap-2 hover:gap-3 transition-all shadow-sm hover:shadow-md border-primary/20 hover:border-primary hover:bg-primary/5 group hover:text-primary"
+              >
+                <span className="font-semibold">Xem tất cả</span>
+                <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+              </Button>
             </Link>
           )}
         </div>
@@ -90,12 +94,15 @@ export default function CategorySection() {
         </div>
 
         {categories.length > 8 && (
-          <div className="mt-10 text-center sm:hidden">
-            <Link
-              to="/products"
-              className="inline-block px-6 py-3 bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-400 rounded-full font-medium text-sm active:bg-amber-200 transition-colors"
-            >
-              Xem tất cả danh mục
+          <div className="mt-10 flex justify-center sm:hidden">
+            <Link to="/products">
+              <Button
+                variant="outline"
+                className="gap-2 hover:gap-3 transition-all shadow-sm hover:shadow-md border-primary/20 hover:border-primary hover:bg-primary/5 group hover:text-primary"
+              >
+                <span className="font-semibold">Xem tất cả</span>
+                <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+              </Button>
             </Link>
           </div>
         )}
