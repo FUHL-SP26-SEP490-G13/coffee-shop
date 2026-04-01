@@ -410,7 +410,7 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
           }
         }
 
-        
+
       }
 
       if (notifyBarista) {
@@ -908,15 +908,13 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
                 <Clock3 className="w-4 h-4 mr-1.5" />
                 Thanh toán sau
               </Button>
-              {table?.status !== 'occupied' && (
-                <Button
-                  onClick={handleConfirmPayment}
-                  disabled={isSubmittingOrder}
-                  className="rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold"
-                >
-                  {isSubmittingOrder ? 'Đang xử lý...' : 'Xác nhận thanh toán'}
-                </Button>
-              )}
+              <Button
+                onClick={handleConfirmPayment}
+                disabled={isSubmittingOrder}
+                className="rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold"
+              >
+                {isSubmittingOrder ? 'Đang xử lý...' : 'Xác nhận thanh toán'}
+              </Button>
             </div>
           </div>
         </DialogContent>

@@ -2,6 +2,7 @@ const ReputationRepository = require("../repositories/ReputationRepository");
 const ErrorResponse = require("../utils/ErrorResponse");
 
 class ReputationService {
+  static MIN_SCORE = 0;
   static MAX_SCORE = 100;
 
   static REASON_TYPES = {
@@ -203,6 +204,10 @@ class ReputationService {
 
       if (numericChange > 0) {
         scoreAfter = Math.min(ReputationService.MAX_SCORE, scoreAfter);
+      }
+
+      if (numericChange < 0) {
+        scoreAfter = Math.max(ReputationService.MIN_SCORE, scoreAfter);
       }
 
       const effectiveChange = scoreAfter - scoreBefore;
