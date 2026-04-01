@@ -80,7 +80,7 @@ export default function NewsDetailPage() {
                 className="mt-4 hover:bg-primary/5 hover:text-primary"
               >
                 <ChevronLeft className="h-4 w-4 mr-2" />
-                Quay lại danh sách
+                Danh sách
               </Button>
             </div>
           </div>
@@ -95,27 +95,25 @@ export default function NewsDetailPage() {
       <Header />
 
       <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/20">
-        {/* Breadcrumb & Back Button */}
-        <div className="border-b bg-muted/30">
-          <div className="max-w-5xl mx-auto py-6 px-4 md:px-6">
-            <Button
-              variant="ghost"
-              onClick={handleBack}
-              className="gap-2 hover:gap-3 transition-all -ml-2 hover:bg-background hover:text-primary"
-            >
-              <ChevronLeft className="h-4 w-4" />
-              <span className="font-medium">Quay lại danh sách</span>
-            </Button>
-          </div>
-        </div>
 
-        <div className="max-w-5xl mx-auto py-8 md:py-12 px-4 md:px-6">
+
+        <div className="max-w-[1440px] w-full mx-auto py-8 md:py-12 px-4 sm:px-6 lg:px-8 xl:px-12">
           <article className="space-y-8">
             {/* Article Header */}
             <div className="space-y-6">
-              <h1 className="text-1xl md:text-2xl lg:text-3xl font-bold leading-tight tracking-tight">
+              <div>
+                <Button
+                  variant="ghost"
+                  onClick={handleBack}
+                  className="gap-2 hover:gap-3 transition-all -ml-3 hover:bg-background hover:text-primary text-base md:text-lg px-2"
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                  <span className="font-semibold">Danh sách</span>
+                </Button>
+              </div>
+              <h4 className="text-1xl md:text-1xl lg:text-2xl leading-tight tracking-tight">
                 {news.title}
-              </h1>
+              </h4>
 
               {/* Meta Information */}
               <div className="flex flex-wrap items-center gap-4 text-sm">
@@ -138,20 +136,12 @@ export default function NewsDetailPage() {
                 )}
               </div>
 
-              {/* Summary/Lead */}
-              {news.summary && (
-                <div className="relative pl-6 py-4 border-l-4 border-primary bg-gradient-to-r from-primary/5 to-transparent rounded-r-lg">
-                  <p className="text-lg md:text-xl text-muted-foreground leading-relaxed font-medium italic">
-                    {news.summary}
-                  </p>
-                </div>
-              )}
             </div>
 
             {/* Featured Image */}
             {news.thumbnail && (
-              <div className="relative w-full rounded-2xl overflow-hidden shadow-2xl border border-border bg-muted">
-                <div className="aspect-[16/9] md:aspect-[21/9]">
+              <div className="relative max-w-4xl mx-auto rounded-2xl overflow-hidden shadow-xl border border-border bg-muted">
+                <div className="aspect-video md:aspect-[16/7]">
                   <img
                     src={news.thumbnail}
                     alt={news.title}
@@ -159,6 +149,15 @@ export default function NewsDetailPage() {
                   />
                 </div>
                 <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
+              </div>
+            )}
+
+            {/* Summary/Lead */}
+            {news.summary && (
+              <div className="relative pl-6 py-4 border-l-4 border-primary bg-gradient-to-r from-primary/5 to-transparent rounded-r-lg">
+                <p className="text-base md:text-lg text-muted-foreground leading-relaxed font-medium italic">
+                  {news.summary}
+                </p>
               </div>
             )}
 

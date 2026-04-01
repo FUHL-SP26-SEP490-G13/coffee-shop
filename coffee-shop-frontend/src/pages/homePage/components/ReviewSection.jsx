@@ -28,7 +28,7 @@ export default function ReviewSection() {
 
   const renderReviewContent = (review) => {
     const nameParts = (review.full_name || "Khách Hàng").trim().split(' ');
-    const initials = nameParts.length > 1 
+    const initials = nameParts.length > 1
       ? `${nameParts[0][0]}${nameParts[nameParts.length - 1][0]}`.toUpperCase()
       : (review.full_name.substring(0, 2) || "KH").toUpperCase();
 
@@ -36,13 +36,13 @@ export default function ReviewSection() {
     const avatarColor = colors[(review.id || 0) % colors.length];
 
     const cmt = review.comment ? review.comment : "Khách hàng đã mua";
-    
+
     const imgs = typeof review.images === 'string' ? JSON.parse(review.images || "[]") : (review.images || []);
 
     return (
       <div className="bg-[#FAF9F6] dark:bg-[#252220] rounded-2xl p-8 relative shadow-sm border border-transparent hover:border-amber-200 hover:shadow-md transition-all flex flex-col h-full mx-1 mt-1">
         <Quote className="absolute top-6 right-6 w-10 h-10 text-amber-900/5 rotate-180" />
-        
+
         <div className="flex items-center gap-4 mb-5">
           <div className={`w-12 h-12 ${avatarColor} text-white rounded-full flex items-center justify-center font-bold text-lg shrink-0 shadow-sm`}>
             {initials}
@@ -53,9 +53,9 @@ export default function ReviewSection() {
             </h3>
             <div className="flex gap-0.5 mt-1">
               {[...Array(5)].map((_, i) => (
-                <Star 
-                  key={i} 
-                  className={`w-4 h-4 ${i < (review.rating || 5) ? "fill-[#F59E0B] text-[#F59E0B]" : "fill-gray-200 text-gray-200"}`} 
+                <Star
+                  key={i}
+                  className={`w-4 h-4 ${i < (review.rating || 5) ? "fill-[#F59E0B] text-[#F59E0B]" : "fill-gray-200 text-gray-200"}`}
                 />
               ))}
             </div>
@@ -70,12 +70,12 @@ export default function ReviewSection() {
           {imgs && imgs.length > 0 ? (
             imgs.map((img, idx) => (
               <a key={idx} href={img.url} target="_blank" rel="noopener noreferrer" className="flex-1 rounded-xl overflow-hidden shadow-sm border border-amber-100 block hover:opacity-90 transition-opacity">
-                 <img src={img.url} alt={`Review ${idx}`} className="w-full h-full object-cover" loading="lazy" />
+                <img src={img.url} alt={`Review ${idx}`} className="w-full h-full object-cover" loading="lazy" />
               </a>
             ))
           ) : (
             <div className="w-full h-full rounded-xl overflow-hidden shadow-sm border border-amber-100">
-               <img src="https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=500&q=80" alt="Review default" className="w-full h-full object-cover opacity-80 filter brightness-90" loading="lazy" />
+              <img src="https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=500&q=80" alt="Review default" className="w-full h-full object-cover opacity-80 filter brightness-90" loading="lazy" />
             </div>
           )}
         </div>
@@ -85,10 +85,10 @@ export default function ReviewSection() {
 
   return (
     <section className="py-16 lg:py-24 bg-[#EFE8D8] dark:bg-[#1f1b1a] overflow-hidden">
-      <div className="mx-auto max-w-7xl px-6 lg:px-8">
-        <h2 className="text-xl md:text-3xl font-semibold text-center text-gray-900 dark:text-gray-100 mb-12" style={{ fontFamily: 'serif' }}>
+      <div className="max-w-[1440px] mx-auto w-full px-4 sm:px-6 lg:px-8 xl:px-12">
+        <h3 className="text-xl md:text-3xl font-semibold text-center text-gray-900 dark:text-gray-100 mb-12" style={{ fontFamily: 'serif' }}>
           Khách hàng nói gì
-        </h2>
+        </h3>
         <div className="relative review-swiper-container">
           <Swiper
             modules={[Pagination, Navigation, Autoplay]}
@@ -115,7 +115,7 @@ export default function ReviewSection() {
           >
             {reviews.slice(0, 6).map((review) => (
               <SwiperSlide key={review.id} className="h-auto">
-                 {renderReviewContent(review)}
+                {renderReviewContent(review)}
               </SwiperSlide>
             ))}
           </Swiper>
@@ -123,8 +123,8 @@ export default function ReviewSection() {
 
         {reviews.length > 6 && (
           <div className="text-center mt-6">
-            <button 
-              onClick={() => setShowAll(true)} 
+            <button
+              onClick={() => setShowAll(true)}
               className="px-8 py-3 bg-white dark:bg-gray-800 border border-amber-600/30 text-amber-700 dark:text-amber-500 rounded-full font-semibold hover:bg-amber-600 hover:text-white dark:hover:bg-amber-600 dark:hover:text-white transition-all shadow-sm"
             >
               Xem tất cả đánh giá ({reviews.length})
@@ -137,13 +137,13 @@ export default function ReviewSection() {
             <div className="bg-[#EFE8D8] dark:bg-[#1f1b1a] w-full max-w-6xl max-h-[90vh] rounded-3xl flex flex-col overflow-hidden shadow-2xl relative">
               <div className="p-5 border-b border-amber-900/10 dark:border-gray-800 flex justify-between items-center bg-white/50 dark:bg-black/20">
                 <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100" style={{ fontFamily: 'serif' }}>
-                   Tất cả đánh giá ({reviews.length})
+                  Tất cả đánh giá ({reviews.length})
                 </h3>
-                <button 
-                  onClick={() => setShowAll(false)} 
+                <button
+                  onClick={() => setShowAll(false)}
                   className="p-2 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-full hover:bg-red-500 hover:text-white dark:hover:bg-red-500 dark:hover:text-white transition-all shadow-sm"
                 >
-                  <X className="w-5 h-5"/>
+                  <X className="w-5 h-5" />
                 </button>
               </div>
               <div className="p-6 overflow-y-auto flex-1 custom-scrollbar">

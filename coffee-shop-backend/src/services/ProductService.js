@@ -4,6 +4,7 @@ const ProductImageRepository = require('../repositories/ProductImageRepository')
 const CategoryRepository = require('../repositories/CategoryRepository');
 const cloudinary = require('../config/cloudinary');
 const ErrorResponse = require('../utils/ErrorResponse');
+const slugify = require('slugify');
 
 class ProductService {
   extractPublicId(url) {
@@ -78,6 +79,14 @@ class ProductService {
       throw new ErrorResponse(400, 'Tối đa chỉ được upload 3 ảnh');
     }
 
+    let baseSlug = slugify(data.name, { lower: true, strict: true });
+    let slug = baseSlug;
+    let counter = 1;
+    while (await ProductRepository.findBySlug(slug)) {
+      slug = `${baseSlug}-${counter}`;
+      counter++;
+    }
+
     // Create product (KHÔNG có sizes)
     const product = await ProductRepository.create({
       name: data.name.trim(),
@@ -85,6 +94,7 @@ class ProductService {
       category_id: data.category_id,
       status: data.status || 'available',
       description: data.description || null,
+      slug: slug,
     });
 
     // Create product images
@@ -124,6 +134,21 @@ class ProductService {
         throw new ErrorResponse(409, 'Tên sản phẩm đã tồn tại');
       }
       updateData.name = data.name.trim();
+
+      let baseSlug = slugify(data.name, { lower: true, strict: true });
+      let slug = baseSlug;
+      let counter = 1;
+      let isUnique = false;
+      while (!isUnique) {
+        const checkSlug = await ProductRepository.findBySlug(slug);
+        if (!checkSlug || checkSlug.id === parseInt(id)) {
+          isUnique = true;
+        } else {
+          slug = `${baseSlug}-${counter}`;
+          counter++;
+        }
+      }
+      updateData.slug = slug;
     }
 
     if (data.code !== undefined) {

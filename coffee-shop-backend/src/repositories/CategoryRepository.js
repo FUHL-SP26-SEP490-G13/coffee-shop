@@ -42,6 +42,10 @@ class CategoryRepository extends BaseRepository {
     return this.findOne({ code, is_deleted: 0 });
   }
 
+  async findBySlug(slug) {
+    return this.findOne({ slug, is_deleted: 0 });
+  }
+
   /**
    * Check if category has products
    */

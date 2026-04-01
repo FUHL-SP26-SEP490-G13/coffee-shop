@@ -150,7 +150,7 @@ export default function FlashSaleSection({ products, getThumbnail, getDefaultCar
             return (
               <SwiperSlide key={product.id}>
                 <Link
-                  to={`/products/${product.id}`}
+                  to={`/${product.slug || 'products/' + product.id}`}
                   className="block bg-white dark:bg-gray-900 rounded-2xl p-3 shadow-lg hover:-translate-y-2 transition-transform duration-300 group border border-orange-100 dark:border-gray-800"
                 >
                   <div className="relative aspect-square rounded-xl overflow-hidden mb-4">

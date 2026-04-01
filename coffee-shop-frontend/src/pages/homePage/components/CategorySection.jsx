@@ -33,11 +33,11 @@ export default function CategorySection() {
 
   return (
     <section className="py-16 bg-[#F8F5F0] dark:bg-[#1a1614]">
-      <div className="mx-auto max-w-7xl px-6 lg:px-8">
+      <div className="max-w-[1440px] mx-auto w-full px-4 sm:px-6 lg:px-8 xl:px-12">
         <div className="flex flex-col sm:flex-row justify-between items-center mb-10 md:mb-12 gap-4">
-          <h5 className="text-xl md:text-3xl font-semibold text-gray-900 dark:text-gray-100" style={{ fontFamily: 'serif' }}>
+          <h3 className="text-xl md:text-3xl font-semibold text-gray-900 dark:text-gray-100 mb-12" style={{ fontFamily: 'serif' }}>
             Danh mục sản  phẩm
-          </h5>
+          </h3>
           {categories.length > 8 && (
             <Link
               to="/products"
@@ -54,15 +54,15 @@ export default function CategorySection() {
 
             return (
               <Link
-                to={`/products?category=${category.id}`}
+                to={`/${category.slug || 'products?category=' + category.id}`}
                 key={category.id}
                 className="group bg-[#FAF9F6] dark:bg-[#252220] rounded-2xl p-6 text-center shadow-sm hover:shadow-md transition-all duration-300 border border-transparent hover:border-amber-200"
               >
                 <div className="mx-auto w-16 h-16 bg-[#F2EDE4] dark:bg-[#322d2b] rounded-full flex items-center justify-center mb-4 group-hover:bg-[#E8DFD3] dark:hover:bg-[#453e3b] transition-colors overflow-hidden">
                   {category.image_url ? (
-                    <img 
-                      src={category.image_url} 
-                      alt={category.name} 
+                    <img
+                      src={category.image_url}
+                      alt={category.name}
                       className="w-10 h-10 object-contain drop-shadow-sm group-hover:scale-110 transition-transform duration-300"
                       onError={(e) => {
                         e.currentTarget.style.display = 'none';
@@ -72,10 +72,10 @@ export default function CategorySection() {
                       }}
                     />
                   ) : null}
-                  
-                  <Icon 
-                    className={`w-8 h-8 text-[#5C3D2E] dark:text-[#E2C3A5] ${category.image_url ? 'hidden' : 'block'}`} 
-                    strokeWidth={1.5} 
+
+                  <Icon
+                    className={`w-8 h-8 text-[#5C3D2E] dark:text-[#E2C3A5] ${category.image_url ? 'hidden' : 'block'}`}
+                    strokeWidth={1.5}
                   />
                 </div>
                 <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2" style={{ fontFamily: 'serif' }}>

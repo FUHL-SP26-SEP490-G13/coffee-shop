@@ -56,6 +56,7 @@ function Header() {
   const navigate = useNavigate();
   const dropdownRef = useRef(null);
   const categoryDropdownRef = useRef(null);
+  const exploreDropdownRef = useRef(null);
   const searchRef = useRef(null);
   const notificationRef = useRef(null);
 
@@ -93,6 +94,7 @@ function Header() {
 
   const [categories, setCategories] = useState([]);
   const [categoryOpen, setCategoryOpen] = useState(false);
+  const [exploreOpen, setExploreOpen] = useState(false);
   const [infoOpen, setInfoOpen] = useState(false);
   const [mobileCategoryOpen, setMobileCategoryOpen] = useState(false);
   const [hoveredCategory, setHoveredCategory] = useState(null);
@@ -198,6 +200,18 @@ function Header() {
     }, 0);
   };
 
+  const handleRemoveFromCart = (indexToRemove) => {
+    try {
+      const cart = JSON.parse(localStorage.getItem(CART_KEY) || "[]");
+      if (!Array.isArray(cart)) return;
+      const newCart = cart.filter((_, idx) => idx !== indexToRemove);
+      localStorage.setItem(CART_KEY, JSON.stringify(newCart));
+      window.dispatchEvent(new Event("cartUpdated"));
+    } catch (e) {
+      console.error("Lỗi xóa sản phẩm header preview:", e);
+    }
+  };
+
   const fetchCategories = useCallback(async () => {
     try {
       const res = await categoryService.getAll({ with_count: true });
@@ -291,6 +305,13 @@ function Header() {
         setCategoryOpen(false);
       }
 
+      if (
+        exploreDropdownRef.current &&
+        !exploreDropdownRef.current.contains(e.target)
+      ) {
+        setExploreOpen(false);
+      }
+
       if (searchRef.current && !searchRef.current.contains(e.target)) {
         setSearchOpen(false);
         setMobileResultOpen(false);
@@ -380,7 +401,7 @@ function Header() {
   }, []);
 
   const goToCategory = (category) => {
-    navigate(`/products?category=${category.id}`);
+    navigate(`/${category.slug || 'products?category=' + category.id}`);
     setCategoryOpen(false);
     setMobileCategoryOpen(false);
     setMobileMenuOpen(false);
@@ -490,7 +511,7 @@ function Header() {
       e.preventDefault();
       if (focusedResultIndex >= 0 && keyword && searchResults.length > 0) {
         if (focusedResultIndex < searchResults.length) {
-          goToProductDetail(searchResults[focusedResultIndex].id, false, keyword);
+          goToProductDetail(searchResults[focusedResultIndex], false, keyword);
         } else {
           goToSearchPage(keyword);
         }
@@ -528,9 +549,9 @@ function Header() {
     }
   };
 
-  const goToProductDetail = (productId, isMobile = false, searchKw = "") => {
+  const goToProductDetail = (product, isMobile = false, searchKw = "") => {
     if (searchKw) saveRecentSearch(searchKw);
-    navigate(`/products/${productId}`);
+    navigate(`/${product.slug || 'products/' + product.id}`);
     if (isMobile) {
       setMobileResultOpen(false);
       setMobileSearchOpen(false);
@@ -649,7 +670,7 @@ function Header() {
         key={item.id}
         type="button"
         onMouseEnter={() => !isMobile && setFocusedResultIndex(-1)}
-        onClick={() => goToProductDetail(item.id, isMobile, kw)}
+        onClick={() => goToProductDetail(item, isMobile, kw)}
         className={`w-full flex items-center gap-3 px-3 py-3 transition text-left ${isFocused ? 'bg-amber-50 dark:bg-amber-900/20 rounded-lg mx-2 w-[calc(100%-16px)] my-1' : 'hover:bg-amber-50 dark:bg-amber-900/20 rounded-lg mx-2 w-[calc(100%-16px)] my-1'}`}
       >
         <img
@@ -676,8 +697,9 @@ function Header() {
   };
 
   return (
-    <header className="border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:border-gray-800 sticky top-0 z-50 shadow-sm">
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-3 sm:py-4 flex justify-between items-center gap-2 sm:gap-3 lg:gap-4">
+    <>
+    <header className="flex flex-col border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:border-gray-800 sticky top-0 z-50 shadow-sm transition-all duration-300">
+      <div className="max-w-[1440px] mx-auto w-full px-4 sm:px-6 lg:px-8 py-3 sm:py-4 flex justify-between items-center gap-2 sm:gap-3 lg:gap-4">
         <div
           className="flex-shrink-0 cursor-pointer"
           onClick={() => navigate("/")}
@@ -791,6 +813,44 @@ function Header() {
         </div>
 
         <div className="flex items-center gap-1 sm:gap-2 lg:gap-4">
+          <div className="hidden lg:flex items-center relative" ref={exploreDropdownRef}>
+            <button
+               onClick={() => setExploreOpen(!exploreOpen)}
+               className={`flex items-center gap-1.5 font-bold px-3 py-2 rounded-xl transition-all border ${
+                  exploreOpen
+                     ? "bg-amber-50 dark:bg-amber-900/20 text-amber-600 border-amber-200 dark:border-amber-800"
+                     : "text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 border-transparent hover:border-gray-200 dark:hover:border-gray-700"
+               }`}
+            >
+               <span className="text-[13px] uppercase tracking-wide">Khám phá</span>
+               <ChevronDown className="w-4 h-4" />
+            </button>
+            {exploreOpen && (
+              <div className="absolute top-[calc(100%+8px)] right-0 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-xl w-[200px] py-2 z-[100]">
+                <button
+                  onClick={() => {
+                     setExploreOpen(false);
+                     navigate("/store");
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-2 hover:bg-amber-50 dark:hover:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 transition hover:text-amber-600"
+                >
+                  <MapPin className="w-4 h-4" />
+                  <span>Cửa hàng</span>
+                </button>
+                <button
+                  onClick={() => {
+                     setExploreOpen(false);
+                     navigate("/news");
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-2 hover:bg-amber-50 dark:hover:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 transition hover:text-amber-600"
+                >
+                  <Newspaper className="w-4 h-4" />
+                  <span>Tin tức</span>
+                </button>
+              </div>
+            )}
+          </div>
+
           <Button
             variant="ghost"
             size="icon"
@@ -799,152 +859,6 @@ function Header() {
           >
             <Search className="w-5 h-5" />
           </Button>
-
-          <div 
-            className="relative hidden lg:block" 
-            ref={categoryDropdownRef}
-            onMouseEnter={() => setCategoryOpen(true)}
-            onMouseLeave={() => {
-              setCategoryOpen(false);
-              setHoveredCategory(null);
-            }}
-          >
-            <Button
-              variant="ghost"
-              size="sm"
-              className="flex items-center gap-2 text-sm"
-            >
-              <Grid3X3 className="w-4 h-4" />
-              <span>Danh mục sản phẩm</span>
-              <ChevronDown className="w-4 h-4" />
-            </Button>
-
-            {categoryOpen && (
-              <div className="absolute left-0 top-full pt-2 z-50">
-                <div 
-                  className="flex bg-white dark:bg-gray-900 dark:border-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-xl overflow-hidden"
-                >
-                  <div className="w-64 p-2 border-r border-gray-100 dark:border-gray-800 shrink-0">
-                    {categories.length === 0 ? (
-                      <div className="px-3 py-2 text-sm text-gray-500 dark:text-gray-500">
-                        Không có danh mục
-                      </div>
-                    ) : (
-                      categories.map((category) => (
-                        <button
-                          key={category.id}
-                        onClick={() => goToCategory(category)}
-                        onMouseEnter={() => handleCategoryHover(category)}
-                        className={`w-full flex items-center justify-between px-3 py-2 rounded-xl transition text-sm group ${
-                          hoveredCategory === category.id 
-                            ? "bg-amber-50 dark:bg-amber-900/20 text-amber-700" 
-                            : "hover:bg-amber-50 dark:bg-amber-900/20 hover:text-amber-700"
-                        }`}
-                      >
-                        <span>{category.name}</span>
-                        {category.product_count !== undefined && (
-                          <span className={`text-xs px-2 py-0.5 rounded-full transition-colors ${
-                            hoveredCategory === category.id 
-                              ? "bg-amber-200 text-amber-700" 
-                              : "text-gray-500 dark:text-gray-500 bg-gray-100 dark:bg-gray-800 group-hover:bg-amber-200 group-hover:text-amber-700"
-                          }`}>
-                            {category.product_count}
-                          </span>
-                        )}
-                      </button>
-                    ))
-                  )}
-                </div>
-
-                {hoveredCategory && (
-                  <div className="w-[380px] p-4 bg-gray-50 dark:bg-gray-950 hidden md:block">
-                    <div className="flex justify-between items-center mb-3">
-                      <h4 className="font-semibold text-gray-800 dark:text-gray-200">Sản phẩm nổi bật</h4>
-                      <button 
-                        onClick={() => {
-                          const cat = categories.find(c => c.id === hoveredCategory);
-                          if(cat) goToCategory(cat);
-                        }}
-                        className="text-amber-600 text-xs hover:underline"
-                      >
-                        Xem tất cả
-                      </button>
-                    </div>
-                    
-                    {!categoryProductsMap[hoveredCategory] ? (
-                       <div className="flex items-center justify-center py-10">
-                         <Loader2 className="w-5 h-5 animate-spin text-amber-600" />
-                       </div>
-                    ) : categoryProductsMap[hoveredCategory].length === 0 ? (
-                       <div className="text-gray-500 dark:text-gray-500 text-sm py-4 text-center">Chưa có sản phẩm</div>
-                    ) : (
-                       <div className="grid grid-cols-2 gap-3">
-                         {categoryProductsMap[hoveredCategory].slice(0, 4).map(prod => {
-                            const image = Array.isArray(prod.images) && prod.images[0] ? prod.images[0].image_url : defaultImage;
-                            const minPrice = Array.isArray(prod.sizes) && prod.sizes.length > 0 
-                               ? Math.min(...prod.sizes.map(s => Number(s.price))) 
-                               : null;
-                               
-                            return (
-                              <div key={prod.id} 
-                                onClick={() => {
-                                  navigate(`/products/${prod.id}`);
-                                  setCategoryOpen(false);
-                                }}
-                                className="bg-white dark:bg-gray-900 dark:border-gray-800 border border-gray-100 dark:border-gray-800 rounded-xl p-2 cursor-pointer hover:border-amber-300 hover:shadow-md transition"
-                              >
-                                <img src={image} alt={prod.name} className="w-full h-24 object-cover rounded-lg mb-2" />
-                                <p className="text-xs font-medium text-gray-900 dark:text-gray-100 line-clamp-2" title={prod.name}>{prod.name}</p>
-                                <p className="text-xs text-amber-600 font-semibold mt-1">
-                                  {minPrice ? `${minPrice.toLocaleString("vi-VN")}đ` : "Liên hệ"}
-                                </p>
-                              </div>
-                            );
-                         })}
-                       </div>
-                    )}
-                  </div>
-                )}
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div 
-            className="relative hidden lg:block"
-            onMouseEnter={() => setInfoOpen(true)}
-            onMouseLeave={() => setInfoOpen(false)}
-          >
-            <Button
-              variant="ghost"
-              size="sm"
-              className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm"
-            >
-              <span>Khám phá</span>
-              <ChevronDown className="w-3.5 h-3.5" />
-            </Button>
-            
-            {infoOpen && (
-              <div className="absolute left-1/2 -translate-x-1/2 top-full pt-2 z-50">
-                <div className="bg-white dark:bg-gray-900 dark:border-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl overflow-hidden min-w-[150px] p-1.5">
-                  <button
-                    onClick={() => { navigate("/store"); setInfoOpen(false); }}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-amber-50 dark:hover:bg-amber-900/20 hover:text-amber-700 rounded-lg transition-colors text-left"
-                  >
-                    <MapPin className="w-4 h-4 shrink-0" /> 
-                    <span className="font-medium">Cửa hàng</span>
-                  </button>
-                  <button
-                    onClick={() => { navigate("/news"); setInfoOpen(false); }}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-amber-50 dark:hover:bg-amber-900/20 hover:text-amber-700 rounded-lg transition-colors text-left"
-                  >
-                    <Newspaper className="w-4 h-4 shrink-0" /> 
-                    <span className="font-medium">Tin tức</span>
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
 
           <Button
             variant="ghost"
@@ -1022,16 +936,23 @@ function Header() {
 
                         return (
                           <div
-                            key={`${item.product_id || item.id}-${
-                              item.size || idx
-                            }`}
+                            key={`${item.product_id || item.id}-${item.size || idx}`}
                             onClick={() =>
-                              navigate(
-                                `/products/${item.product_id || item.id}`
-                              )
+                              navigate(`/products/${item.product_id || item.id}`)
                             }
-                            className="flex gap-3 p-3 border-b last:border-b-0 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 dark:bg-gray-950"
+                            className="group flex gap-3 p-3 border-b last:border-b-0 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 dark:bg-gray-950 relative pr-10"
                           >
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRemoveFromCart(idx);
+                              }}
+                              className="absolute right-2 top-2 lg:opacity-0 group-hover:opacity-100 transition-opacity p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md"
+                              title="Xóa khỏi giỏ hàng"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+
                             <img
                               src={image}
                               alt={item.name}
@@ -1302,8 +1223,9 @@ function Header() {
               <Menu className="w-5 h-5" />
             )}
           </Button>
-        </div>
+          </div>
       </div>
+    </header>
 
       {mobileSearchOpen && (
         <div className="md:hidden px-3 pb-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-950">
@@ -1531,7 +1453,7 @@ function Header() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </header>
+    </>
   );
 }
 

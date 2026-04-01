@@ -41,25 +41,9 @@ export default function NewsListPage() {
       <Header />
 
       <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/20">
-        {/* Hero Section */}
-        <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-background border-b">
-          <div className="max-w-7xl mx-auto py-16 md:py-20 px-4 md:px-6">
-            <div className="text-center space-y-4">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
-                <Newspaper className="h-8 w-8 text-primary" />
-              </div>
-              <h1 className="text-1xl md:text-2xl lg:text-2xl bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
-                Tin tức cà phê
-              </h1>
-              <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
-                Khám phá những câu chuyện thú vị và cập nhật tin tức mới nhất từ
-                chúng tôi
-              </p>
-            </div>
-          </div>
-        </div>
 
-        <div className="max-w-7xl mx-auto py-12 md:py-16 px-4 md:px-6">
+
+        <div className="max-w-[1440px] w-full mx-auto py-12 md:py-16 px-4 sm:px-6 lg:px-8 xl:px-12">
           {loading && (
             <div className="flex items-center justify-center py-32">
               <div className="text-center space-y-4">
