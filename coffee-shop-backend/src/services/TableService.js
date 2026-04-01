@@ -154,7 +154,7 @@ class TableService {
     }
     return table;
   }
-
+  // timc cac order chua thanh toan cua ban theo session_id hien tai
   async getUnpaidOrders(tableId) {
     const table = await TableRepository.findById(tableId);
     if (!table || !table.current_session_id) {
@@ -494,7 +494,7 @@ class TableService {
         );
       }
 
-      // Reset table status to available after full payment
+      // Reset trang thai ban cong no sau khi thanh toan
       await this.checkAndResetTableStatus(connection, tableId, table.current_session_id);
 
       await connection.commit();
@@ -517,7 +517,7 @@ class TableService {
   /**
    * Merge active orders from source table into destination table.
    */
-  async mergeOrders(fromTableId, toTableId) {
+  async mergeOrder(fromTableId, toTableId) {
     if (Number(fromTableId) === Number(toTableId)) {
       throw new ErrorResponse(400, 'Không thể gộp order vào chính nó');
     }

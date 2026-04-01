@@ -41,7 +41,7 @@ export default function PayOSReturnSuccess() {
   useEffect(() => {
     if (!orderCode) return;
     orderService
-      .savePayosReturn({ orderCode, payosId, status })
+      .savePayosReturn({ orderCode, payosId, status, cancel })
       .catch((err) => console.error("Lưu mã giao dịch thất bại:", err));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

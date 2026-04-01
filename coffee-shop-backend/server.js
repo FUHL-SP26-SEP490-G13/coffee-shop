@@ -4,6 +4,7 @@ const { Server } = require("socket.io");
 const app = require("./src/app");
 const env = require("./src/config/env");
 const { payOS } = require("./src/config/payos");
+const { startPayosPendingTimeoutJob } = require("./src/jobs/payosPendingTimeoutJob");
 
 const PORT = env.PORT || 5000;
 
@@ -18,6 +19,14 @@ const io = new Server(server, {
 });
 
 app.set("io", io);
+
+let stopPayosPendingTimeoutJob = null;
+if (env.NODE_ENV !== "test") {
+  stopPayosPendingTimeoutJob = startPayosPendingTimeoutJob({
+    timeoutMinutes: 5,
+    intervalMs: 60 * 1000,
+  });
+}
 
 io.on("connection", (socket) => {
   console.log("Client connected:", socket.id);
@@ -49,6 +58,10 @@ server.listen(PORT, () => {
 
 const gracefulShutdown = (signal) => {
   console.log(`${signal} received. Starting graceful shutdown...`);
+
+  if (typeof stopPayosPendingTimeoutJob === "function") {
+    stopPayosPendingTimeoutJob();
+  }
 
   server.close(() => {
     console.log("Server closed. Exiting process...");

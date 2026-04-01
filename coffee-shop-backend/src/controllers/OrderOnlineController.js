@@ -327,8 +327,8 @@ class OrderOnlineController {
 
   async payosReturn(req, res, next) {
     try {
-      const { orderCode, payosId, status } = req.body;
-      const result = await OrderOnlineService.savePayosReturn({ orderCode, payosId, status });
+      const { orderCode, payosId, status, cancel } = req.body;
+      const result = await OrderOnlineService.savePayosReturn({ orderCode, payosId, status, cancel });
 
       // Emit socket event to customer when payment is completed
       const io = req.app.get("io");

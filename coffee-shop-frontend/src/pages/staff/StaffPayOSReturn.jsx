@@ -147,10 +147,10 @@ export default function StaffPayOSReturn() {
     if (!orderCode || hasSaved || debtPay) return;
     
     // Save transaction result to backend just like online orders
-    orderService.savePayosReturn({ orderCode, payosId, status })
+    orderService.savePayosReturn({ orderCode, payosId, status, cancel })
       .then(() => setHasSaved(true))
       .catch((err) => console.error("Lưu mã giao dịch thất bại:", err));
-  }, [orderCode, payosId, status, hasSaved, debtPay]);
+  }, [orderCode, payosId, status, cancel, hasSaved, debtPay]);
 
   useEffect(() => {
     if (!debtPay || !isSuccess || hasSettledDebt || !tableId) return;
