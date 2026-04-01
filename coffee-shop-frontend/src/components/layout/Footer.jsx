@@ -3,9 +3,14 @@ import { Link } from "react-router-dom";
 import { MapPin, Phone, Mail } from "lucide-react";
 import Logo from "/logo/Logo.png";
 import { useStoreHours } from "@/hooks/useStoreHours";
+import { STORAGE_KEYS } from "@/constants";
 
 function Footer() {
   const { isOpen, storeSchedule } = useStoreHours();
+  const token =
+    localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN) ||
+    sessionStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
+  const isLoggedIn = !!token;
 
   return (
     <footer className="mt-20 border-t border-border bg-card">
@@ -77,20 +82,22 @@ function Footer() {
             <ul className="mt-4 space-y-2.5">
               <li>
                 <Link
-                  to="/login"
+                  to={isLoggedIn ? "/customer/profile" : "/login"}
                   className="text-sm text-muted-foreground dark:text-gray-400 transition-colors hover:text-primary"
                 >
-                  Đăng nhập
+                  {isLoggedIn ? "Hồ sơ cá nhân" : "Đăng nhập"}
                 </Link>
               </li>
-              <li>
-                <Link
-                  to="/register"
-                  className="text-sm text-muted-foreground dark:text-gray-400 transition-colors hover:text-primary"
-                >
-                  Đăng ký
-                </Link>
-              </li>
+              {!isLoggedIn && (
+                <li>
+                  <Link
+                    to="/register"
+                    className="text-sm text-muted-foreground dark:text-gray-400 transition-colors hover:text-primary"
+                  >
+                    Đăng ký
+                  </Link>
+                </li>
+              )}
               <li>
                 <Link
                   to="/cart"

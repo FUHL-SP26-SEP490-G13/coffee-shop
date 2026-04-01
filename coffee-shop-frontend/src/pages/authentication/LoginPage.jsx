@@ -24,6 +24,16 @@ export default function LoginPage() {
 	const [errorMessage, setErrorMessage] = useState("");
 	const [showPassword, setShowPassword] = useState(false);
 
+	// Redirect if already logged in
+	useEffect(() => {
+		const token =
+			localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN) ||
+			sessionStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
+		if (token) {
+			navigate("/customer/profile", { replace: true });
+		}
+	}, [navigate]);
+
 	// Load saved credentials on component mount
 	useEffect(() => {
 		const savedIdentifier = localStorage.getItem(REMEMBER_ME_KEYS.IDENTIFIER);
