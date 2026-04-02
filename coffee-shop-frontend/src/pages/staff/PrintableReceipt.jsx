@@ -110,9 +110,10 @@ export function PrintableReceipt({ order, onDone, onPrintSuccess }) {
   const storeAddress = setting?.address || '';
   const storePhone = setting?.phone || '';
 
-  const orderCode =
-    order.order_code ||
-    `HD${String(order.order_id || order.id || '').padStart(4, '0')}`;
+  const orderId = Number(order.order_id || order.id || 0);
+  const orderCode = `#${String(
+    Number.isFinite(orderId) && orderId > 0 ? orderId : 0
+  ).padStart(5, '0')}`;
   const subtotal = calcSubtotal(order);
   const totalAmount = Number(order.total_amount || 0);
   const computedDiscount = Math.max(0, subtotal - totalAmount);
@@ -371,7 +372,7 @@ export function PrintableReceipt({ order, onDone, onPrintSuccess }) {
         <div className="receipt-section">
           <div className="receipt-item">
             <span>Mã đơn:</span>
-            <span className="receipt-code">#{orderCode}</span>
+            <span className="receipt-code">{orderCode}</span>
           </div>
           <div className="receipt-item">
             <span>Ngày:</span>

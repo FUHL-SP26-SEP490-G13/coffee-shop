@@ -1,256 +1,113 @@
 import { Coffee, Printer } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import authenticationService from '@/services/authenticationService';
+import orderOnlineService from '@/services/orderOnlineService';
 import { PrintableReceipt } from '../PrintableReceipt';
 
-const fmt = (n) => Number(n).toLocaleString('vi-VN') + 'đ';
-const DELIVERY_FEE = 20000;
-
-const isOrderPaid = (order) => {
-  const paymentStatus = String(
-    order?.payment_status || order?.payment?.status || '',
-  ).toLowerCase();
-  if (paymentStatus === 'paid') return true;
-
-  return (
-    order?.is_paid === true || order?.is_paid === 1 || order?.is_paid === '1'
-  );
+const formatOrderCode = (order) => {
+  const id = Number(order?.order_id || order?.id || 0);
+  return `#${String(Number.isFinite(id) && id > 0 ? id : 0).padStart(6, '0')}`;
 };
 
-const getItemQuantity = (item) => Math.max(1, Number(item?.quantity) || 1);
-
-const getItemLineTotal = (item) => {
-  const lineTotal = Number(item?.line_total);
-  if (Number.isFinite(lineTotal) && lineTotal >= 0) return lineTotal;
-  return Number(item?.unit_price ?? item?.price ?? 0) * getItemQuantity(item);
-};
-
-const getToppingUnitTotal = (item) =>
-  (item?.toppings || []).reduce(
-    (sum, topping) =>
-      sum + Number(topping?.price || 0) * Number(topping?.quantity || 0),
-    0,
-  );
-
-const getBaseUnitPrice = (item) => {
-  const fromApi = Number(item?.base_unit_price);
-  if (Number.isFinite(fromApi) && fromApi >= 0) return fromApi;
-
-  const unitPrice = getItemLineTotal(item) / getItemQuantity(item);
-  return Math.max(0, unitPrice - getToppingUnitTotal(item));
-};
-
-const calcSubtotal = (order) =>
-  (order.items || []).reduce((sum, item) => sum + getItemLineTotal(item), 0);
-
-const getOrderTypeLabel = (orderType) => {
-  switch (String(orderType || '').toLowerCase()) {
-    case 'delivery':
-      return 'Giao hàng';
-    case 'takeaway':
-      return 'Mang đi';
-    case 'dine-in':
-      return 'Tại quán';
-    default:
-      return 'Khác';
-  }
+const getDisplayName = (user) => {
+  const firstName = String(user?.first_name || '').trim();
+  const lastName = String(user?.last_name || '').trim();
+  const fullName = `${firstName} ${lastName}`.trim();
+  return fullName || user?.username || user?.email || 'Nhân viên';
 };
 
 /**
  * @param {{ order: Object, onClose: Function, onPrint?: Function }} props
  */
 export function ReceiptModal({ order, onClose, onPrint, autoPrint = false }) {
+  const defaultPrinterName = String(order?.printed_by || order?.staff || '').trim();
   const [isPrinting, setIsPrinting] = useState(autoPrint);
   const [isPreparingPrint, setIsPreparingPrint] = useState(false);
-  const subtotal = calcSubtotal(order);
-  const totalAmount = Number(order.total_amount || 0);
-  const computedDiscount = Math.max(0, subtotal - totalAmount);
-  const normalizedOrderType = String(order?.order_type || '').toLowerCase();
-  const isDeliveryOrder = normalizedOrderType === 'delivery';
-  const hasReceiverInfo = Boolean(
-    order?.receiver_name || order?.receiver_phone || order?.address || order?.receiver_email
-  );
-  const shouldShowDeliveryInfo = isDeliveryOrder && hasReceiverInfo;
+  const [printerName, setPrinterName] = useState(defaultPrinterName || 'Nhân viên');
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadCurrentStaff = async () => {
+      try {
+        const res = await authenticationService.getProfile();
+        const user = res?.data?.id ? res.data : res?.data?.data || res?.data;
+        const displayName = getDisplayName(user);
+        if (isMounted && displayName) {
+          setPrinterName(displayName);
+        }
+      } catch {
+        if (isMounted && !defaultPrinterName) {
+          setPrinterName('Nhân viên');
+        }
+      }
+    };
+
+    loadCurrentStaff();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [defaultPrinterName]);
 
   const handlePrint = () => {
     if (isPreparingPrint || isPrinting) return;
+
     setIsPreparingPrint(true);
     setIsPrinting(true);
   };
 
+  const handlePrintSuccess = async (printedOrder) => {
+    if (typeof onPrint === 'function') {
+      await onPrint(printedOrder);
+      return;
+    }
+
+    const orderId = Number(printedOrder?.order_id || printedOrder?.id || 0);
+    if (!orderId) return;
+
+    try {
+      await orderOnlineService.markPrintSuccess(orderId);
+    } catch {
+      // Keep modal flow smooth even if print status update fails.
+    }
+  };
+
   if (isPrinting) {
-    return <PrintableReceipt order={order} onPrintSuccess={onPrint} onDone={onClose} />;
+    const nameToPrint = String(printerName || '').trim() || 'Nhân viên';
+    return (
+      <PrintableReceipt
+        order={{
+          ...order,
+          printed_by: nameToPrint,
+        }}
+        onPrintSuccess={handlePrintSuccess}
+        onDone={onClose}
+      />
+    );
   }
+
   return (
     <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4'>
       <div className='bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95'>
-        {/* Header */}
         <div className='bg-gray-800 text-white p-5 text-center'>
           <Coffee size={28} className='mx-auto mb-2 text-amber-400' />
           <p className='text-xs text-gray-400 uppercase tracking-widest'>
             Hóa đơn
           </p>
-          <h3 className='font-bold text-xl mt-1'>
-            {order.order_code ||
-              `TW-${String(order.order_id).padStart(6, '0')}`}
-          </h3>
+          <h3 className='font-bold text-xl mt-1'>{formatOrderCode(order)}</h3>
         </div>
 
-        {/* Body */}
         <div className='p-5 space-y-3'>
-          <div className='flex justify-between text-sm text-gray-500'>
-            <span>Nhân viên</span>
-            <span className='font-medium text-gray-800'>
-              {order.staff || '—'}
-            </span>
+          <div className='rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5'>
+            <p className='text-xs text-gray-500'>Nhân viên in hóa đơn</p>
+            <p className='mt-1 text-sm font-semibold text-gray-900'>{printerName}</p>
+            <p className='mt-1 text-xs text-gray-500'>
+              Tên được lấy tự động từ tài khoản staff đang đăng nhập.
+            </p>
           </div>
-
-          <div className='flex justify-between text-sm text-gray-500'>
-            <span>Người in</span>
-            <span className='font-medium text-gray-800'>
-              {order.printed_by || order.staff || '—'}
-            </span>
-          </div>
-
-          <div className="flex justify-between text-sm text-gray-500">
-            <span>Loại đơn</span>
-            <span className="font-medium text-gray-800">{getOrderTypeLabel(order.order_type)}</span>
-          </div>
-
-          {order.barista && (
-            <div className='flex justify-between text-sm text-gray-500'>
-              <span>Barista</span>
-              <span className='font-medium text-gray-800'>{order.barista}</span>
-            </div>
-          )}
-
-          {/* Delivery Info */}
-          {shouldShowDeliveryInfo && (
-            <div className="border-t border-dashed border-gray-200 pt-3 space-y-1">
-              {order.receiver_name && (
-                <div className="flex justify-between text-sm text-gray-500">
-                  <span>Người nhận</span>
-                  <span className="font-medium text-gray-800 text-right">{order.receiver_name}</span>
-                </div>
-              )}
-              {order.receiver_phone && (
-                <div className="flex justify-between text-sm text-gray-500">
-                  <span>Số điện thoại</span>
-                  <span className="font-medium text-gray-800 text-right">{order.receiver_phone}</span>
-                </div>
-              )}
-              {order.receiver_email && (
-                <div className="flex justify-between text-sm text-gray-500">
-                  <span>Email</span>
-                  <span className="font-medium text-gray-800 text-right break-all max-w-[60%]">{order.receiver_email}</span>
-                </div>
-              )}
-              {order.address && (
-                <div className="flex justify-between text-sm text-gray-500">
-                  <span>Địa chỉ</span>
-                  <span className="font-medium text-gray-800 text-right max-w-[200px] break-words">{order.address}</span>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Items */}
-          <div className='border-t border-dashed border-gray-200 pt-3 space-y-2'>
-            {(order.items || []).map((item, i) => (
-              <div key={i}>
-                <div className='flex justify-between text-sm'>
-                  <span className='text-gray-700'>
-                    {item.product_name} ({item.size}) × {item.quantity}
-                  </span>
-                  <span className='font-medium'>
-                    {fmt(getBaseUnitPrice(item) * getItemQuantity(item))}
-                  </span>
-                </div>
-                {item.toppings?.map((t, j) => (
-                  <div
-                    key={j}
-                    className='flex justify-between text-xs text-gray-400 pl-3'
-                  >
-                    <span>
-                      + {t.name} × {Number(t.quantity || 0) * getItemQuantity(item)}
-                    </span>
-                    <span>
-                      +
-                      {fmt(
-                        Number(t.price || 0) *
-                          Number(t.quantity || 0) *
-                          getItemQuantity(item),
-                      )}
-                    </span>
-                  </div>
-                ))}
-                {item.note && (
-                  <p className='text-xs text-amber-500 italic pl-3'>
-                    "{item.note}"
-                  </p>
-                )}
-              </div>
-            ))}
-          </div>
-
-          {computedDiscount > 0 && (
-            <div className='flex justify-between text-sm border-t border-dashed border-gray-200 pt-3'>
-              <span className='text-green-600'>
-                Giảm giá{order.discount_code ? ` (${order.discount_code})` : ''}
-              </span>
-              <span className='text-green-600'>-{fmt(computedDiscount)}</span>
-            </div>
-          )}
-
-          {isDeliveryOrder && (
-            <div className='flex justify-between text-sm border-t border-dashed border-gray-200 pt-3'>
-              <span className='text-gray-600'>Phí vận chuyển</span>
-              <span className='font-medium'>{fmt(DELIVERY_FEE)}</span>
-            </div>
-          )}
-
-          {/* Total */}
-          <div className='flex justify-between text-base font-bold border-t-2 border-gray-800 pt-3'>
-            <span>TỔNG CỘNG</span>
-            <span className='text-amber-600'>{fmt(order.total_amount)}</span>
-          </div>
-
-          {/* Payment status */}
-          <div className="border-t border-dashed border-gray-200 pt-3 space-y-1">
-            <div className="flex justify-between text-sm text-gray-500">
-              <span>Phương thức thanh toán</span>
-              <span className="font-medium text-gray-800">
-                {(order.payment_method || order.payment?.method) === 'cash'
-                  ? 'Tiền mặt'
-                  : 'PayOS'}
-              </span>
-            </div>
-            <div className="flex justify-between text-sm text-gray-500">
-              <span>Trạng thái thanh toán</span>
-              <span className={`font-medium ${isOrderPaid(order) ? 'text-green-600' : 'text-amber-600'}`}>
-                {isOrderPaid(order) ? 'Đã thanh toán' : 'Chờ thanh toán'}
-              </span>
-            </div>
-          </div>
-
-          {order.payment?.cash_received > 0 && (
-            <>
-              <div className='flex justify-between text-sm'>
-                <span className='text-gray-500'>Khách đưa</span>
-                <span className='font-medium'>
-                  {fmt(order.payment.cash_received)}
-                </span>
-              </div>
-              <div className='flex justify-between text-sm'>
-                <span className='text-gray-500'>Tiền thừa</span>
-                <span className='font-medium text-blue-600'>
-                  {fmt(order.payment.change_amount)}
-                </span>
-              </div>
-            </>
-          )}
         </div>
 
-        {/* Footer */}
         <div className='p-4 border-t border-gray-100 flex gap-2'>
           <button
             onClick={handlePrint}
