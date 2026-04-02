@@ -1,9 +1,19 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { MapPin, Phone, Mail, Facebook, Youtube, Instagram, ShieldCheck, CheckCircle2 } from "lucide-react";
+import {
+  MapPin,
+  Phone,
+  Mail,
+  Facebook,
+  Youtube,
+  Instagram,
+  ShieldCheck,
+  CheckCircle2,
+} from "lucide-react";
 import Logo from "/logo/Logo.png";
 import { useStoreHours } from "@/hooks/useStoreHours";
 import { STORAGE_KEYS } from "@/constants";
+import PayOSLogo from "/logo/payOS.svg";
 
 function Footer() {
   const { isOpen, storeSchedule } = useStoreHours();
@@ -16,7 +26,6 @@ function Footer() {
     <footer className="mt-20 border-t border-border bg-card">
       <div className="max-w-[1440px] mx-auto w-full px-6 py-12 lg:px-8 lg:py-16 xl:px-12">
         <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-4">
-          
           {/* Cột 1: Thông tin liên hệ & Mạng xã hội */}
           <div className="space-y-8 lg:pr-4">
             <div>
@@ -51,16 +60,36 @@ function Footer() {
                 Kết nối với chúng tôi
               </h4>
               <div className="mt-4 flex flex-wrap gap-3">
-                <a href="#" className="w-9 h-9 rounded-full bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center transition-all hover:-translate-y-1 shadow-md" aria-label="Facebook">
-                  <Facebook size={18} fill="currentColor" className="text-white" />
+                <a
+                  href="#"
+                  className="w-9 h-9 rounded-full bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center transition-all hover:-translate-y-1 shadow-md"
+                  aria-label="Facebook"
+                >
+                  <Facebook
+                    size={18}
+                    fill="currentColor"
+                    className="text-white"
+                  />
                 </a>
-                <a href="#" className="w-9 h-9 rounded-full bg-blue-500 hover:bg-blue-600 text-white flex items-center justify-center transition-all hover:-translate-y-1 shadow-md font-bold text-[11px]" aria-label="Zalo">
+                <a
+                  href="#"
+                  className="w-9 h-9 rounded-full bg-blue-500 hover:bg-blue-600 text-white flex items-center justify-center transition-all hover:-translate-y-1 shadow-md font-bold text-[11px]"
+                  aria-label="Zalo"
+                >
                   Zalo
                 </a>
-                <a href="#" className="w-9 h-9 rounded-full bg-red-600 hover:bg-red-700 text-white flex items-center justify-center transition-all hover:-translate-y-1 shadow-md" aria-label="Youtube">
+                <a
+                  href="#"
+                  className="w-9 h-9 rounded-full bg-red-600 hover:bg-red-700 text-white flex items-center justify-center transition-all hover:-translate-y-1 shadow-md"
+                  aria-label="Youtube"
+                >
                   <Youtube size={18} />
                 </a>
-                <a href="#" className="w-9 h-9 rounded-full bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-600 hover:opacity-90 text-white flex items-center justify-center transition-all hover:-translate-y-1 shadow-md" aria-label="Instagram">
+                <a
+                  href="#"
+                  className="w-9 h-9 rounded-full bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-600 hover:opacity-90 text-white flex items-center justify-center transition-all hover:-translate-y-1 shadow-md"
+                  aria-label="Instagram"
+                >
                   <Instagram size={18} />
                 </a>
               </div>
@@ -146,7 +175,8 @@ function Footer() {
                 <div className="flex flex-col gap-1 border-b border-border/50 pb-2">
                   <span>Trực truyến hàng ngày</span>
                   <span className="font-medium text-foreground">
-                    {storeSchedule?.open || "07:00"} - {storeSchedule?.close || "22:30"}
+                    {storeSchedule?.open || "07:00"} -{" "}
+                    {storeSchedule?.close || "22:30"}
                   </span>
                 </div>
                 <div className="flex justify-between items-center pb-2">
@@ -176,18 +206,26 @@ function Footer() {
                 Chứng nhận
               </h4>
               <div className="mt-4 flex flex-col gap-3">
-                 <div className="border bg-gray-50 dark:bg-background/50 rounded flex items-center gap-3 p-2 h-11 transition-colors hover:bg-gray-100 w-full">
-                   <ShieldCheck className="text-gray-800 dark:text-gray-200 w-6 h-6 flex-shrink-0 ml-1" />
-                   <div className="text-[9px] min-[1100px]:text-[10px] font-bold leading-tight text-gray-800 dark:text-gray-200 text-left uppercase overflow-hidden text-ellipsis whitespace-nowrap">
-                     Protected by<br/><span className="text-[11px] min-[1100px]:text-[12px]">DMCA</span>
-                   </div>
-                 </div>
-                 <div className="border bg-gray-50 dark:bg-background/50 rounded flex items-center gap-3 p-2 h-11 transition-colors hover:bg-gray-100 w-full">
-                   <CheckCircle2 className="text-[#0d5cb6] w-6 h-6 flex-shrink-0 ml-1" />
-                   <div className="text-[8px] min-[1100px]:text-[9px] font-bold leading-tight text-[#0d5cb6] uppercase text-left overflow-hidden text-ellipsis whitespace-nowrap">
-                     Đã thông báo<br/><span className="text-[10px] min-[1100px]:text-[11px]">Bộ Công Thương</span>
-                   </div>
-                 </div>
+                <div className="border bg-gray-50 dark:bg-background/50 rounded flex items-center gap-3 p-2 h-11 transition-colors hover:bg-gray-100 w-full">
+                  <ShieldCheck className="text-gray-800 dark:text-gray-200 w-6 h-6 flex-shrink-0 ml-1" />
+                  <div className="text-[9px] min-[1100px]:text-[10px] font-bold leading-tight text-gray-800 dark:text-gray-200 text-left uppercase overflow-hidden text-ellipsis whitespace-nowrap">
+                    Protected by
+                    <br />
+                    <span className="text-[11px] min-[1100px]:text-[12px]">
+                      DMCA
+                    </span>
+                  </div>
+                </div>
+                <div className="border bg-gray-50 dark:bg-background/50 rounded flex items-center gap-3 p-2 h-11 transition-colors hover:bg-gray-100 w-full">
+                  <CheckCircle2 className="text-[#0d5cb6] w-6 h-6 flex-shrink-0 ml-1" />
+                  <div className="text-[8px] min-[1100px]:text-[9px] font-bold leading-tight text-[#0d5cb6] uppercase text-left overflow-hidden text-ellipsis whitespace-nowrap">
+                    Đã thông báo
+                    <br />
+                    <span className="text-[10px] min-[1100px]:text-[11px]">
+                      Bộ Công Thương
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -198,41 +236,24 @@ function Footer() {
               <h4 className="text-sm font-semibold uppercase tracking-wider text-foreground">
                 Hỗ trợ thanh toán
               </h4>
-              <div className="mt-4 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-3 gap-2">
-                <div className="bg-white border rounded shadow-sm px-1 py-1.5 flex items-center justify-center h-9 group hover:border-blue-500 transition-colors">
-                  <span className="text-[#1a1f71] font-bold text-[13px] italic tracking-tighter">VISA</span>
-                </div>
-                <div className="bg-white border rounded shadow-sm px-1 py-1.5 flex items-center justify-center overflow-hidden h-9 group hover:border-red-500 transition-colors">
-                  <div className="flex relative items-center justify-center w-7 h-5">
-                    <div className="w-5 h-5 rounded-full bg-red-500/90 absolute left-0 z-10 mix-blend-multiply"></div>
-                    <div className="w-5 h-5 rounded-full bg-yellow-500/90 absolute right-0 z-0"></div>
+              <div className="mt-4 flex items-center gap-3">
+                <a
+                  href="https://payos.vn/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2"
+                >
+                  <div className="bg-white border rounded shadow-sm px-1 py-1.5 flex items-center justify-center h-9 group hover:border-gray-800 transition-colors">
+                    <img
+                      src={PayOSLogo}
+                      alt="PayOS"
+                      className="w-16 h-auto object-contain"
+                    />
                   </div>
-                </div>
-                <div className="bg-white border rounded shadow-sm px-1 py-1.5 flex items-center justify-center h-9 group hover:border-blue-600 transition-colors">
-                  <span className="text-blue-700 font-bold text-[11px]">JCB</span>
-                </div>
-                <div className="bg-white border rounded shadow-sm px-1 py-1.5 flex items-center justify-center h-9 group hover:border-cyan-500 transition-colors">
-                  <span className="text-blue-500 font-bold text-[11px]">AMEX</span>
-                </div>
-                <div className="bg-white border rounded shadow-sm px-1 py-1.5 flex items-center justify-center h-9 group hover:border-red-500 transition-colors">
-                  <span className="text-red-600 font-black text-[10px] tracking-tighter">VNPAY<sup className="text-blue-600 font-bold text-[7px]">QR</sup></span>
-                </div>
-                <div className="bg-white border rounded shadow-sm px-1 py-1.5 flex items-center justify-center h-9 group hover:border-green-500 transition-colors">
-                  <span className="text-emerald-500 font-bold text-[11px]">ZaloPay</span>
-                </div>
-                <div className="bg-white border rounded shadow-sm px-1 py-1.5 flex items-center justify-center h-9 group hover:border-pink-500 transition-colors">
-                  <span className="text-pink-600 font-bold text-[11px] tracking-tight">momo</span>
-                </div>
-                <div className="bg-white border rounded shadow-sm px-1 py-1.5 flex items-center justify-center h-9 group hover:border-gray-800 transition-colors">
-                  <span className="text-gray-900 font-bold text-[10px] flex items-center gap-0.5"><span className="text-[14px] mb-0.5"></span>Pay</span>
-                </div>
-                <div className="bg-white border rounded shadow-sm px-1 py-1.5 flex items-center justify-center h-9 group hover:border-blue-700 transition-colors bg-gradient-to-r from-blue-600 to-indigo-700">
-                  <span className="text-white font-black text-[11px] italic tracking-tighter">payOS</span>
-                </div>
+                </a>
               </div>
             </div>
           </div>
-
         </div>
       </div>
 
