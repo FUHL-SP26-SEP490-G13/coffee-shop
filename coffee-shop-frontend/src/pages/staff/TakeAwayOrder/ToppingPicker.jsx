@@ -18,11 +18,11 @@ export function ToppingPicker({ selected, onChange, toppings = [] }) {
         return (
           <div
             key={t.id}
-            className="flex items-center justify-between p-2 rounded-lg bg-gray-50 border border-gray-100"
+            className="flex items-center justify-between p-2 rounded-lg bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800"
           >
             <div>
-              <p className="text-sm font-medium text-gray-800">{t.name}</p>
-              <p className="text-xs text-amber-600">+{fmt(t.price)}</p>
+              <p className="text-sm font-medium text-gray-800 dark:text-gray-200">{t.name}</p>
+              <p className="text-xs text-amber-600 dark:text-amber-400">+{fmt(t.price)}</p>
             </div>
 
             {found ? (
@@ -41,7 +41,7 @@ export function ToppingPicker({ selected, onChange, toppings = [] }) {
                         ),
                     )
                   }
-                  className="w-6 h-6 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center text-xs font-bold hover:bg-amber-200"
+                  className="w-6 h-6 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 flex items-center justify-center text-xs font-bold hover:bg-amber-200"
                 >
                   −
                 </button>
@@ -66,7 +66,7 @@ export function ToppingPicker({ selected, onChange, toppings = [] }) {
                   onClick={() =>
                     onChange(selected.filter((s) => s.topping_id !== t.id))
                   }
-                  className="w-5 h-5 rounded-full bg-red-100 text-red-500 flex items-center justify-center ml-1 hover:bg-red-200"
+                  className="w-5 h-5 rounded-full bg-red-100 dark:bg-red-900/40 text-red-500 flex items-center justify-center ml-1 hover:bg-red-200"
                 >
                   <X size={10} />
                 </button>

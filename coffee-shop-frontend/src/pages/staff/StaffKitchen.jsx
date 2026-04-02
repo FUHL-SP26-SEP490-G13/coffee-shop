@@ -23,7 +23,7 @@ export function StaffKitchen() {
         {activeOrders.map((order) => (
           <div
             key={order.id}
-            className="bg-card rounded-xl p-4 border-2 border-border shadow-lg"
+            className="bg-card rounded-xl p-4 border-2 border-border shadow-lg dark:shadow-none"
           >
             <div className="flex items-start justify-between mb-4">
               <div>

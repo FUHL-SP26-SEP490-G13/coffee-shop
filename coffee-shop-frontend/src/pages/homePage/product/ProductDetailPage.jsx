@@ -1065,9 +1065,9 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
       <section className="w-full px-4 sm:px-6 lg:px-8 pb-14">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+            <h3 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
               Món liên quan
-            </h2>
+            </h3>
 
             <Button
               variant="ghost"

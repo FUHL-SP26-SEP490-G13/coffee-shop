@@ -12,7 +12,7 @@ export function ProductModal({ product, toppings = [], initialItem = null, onClo
   if (!product.sizes || product.sizes.length === 0) {
     return (
       <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4'>
-        <div className='bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden'>
+        <div className='bg-white dark:bg-gray-900 rounded-2xl shadow-2xl dark:shadow-none w-full max-w-sm overflow-hidden'>
           <div className='bg-gradient-to-r from-amber-500 to-orange-500 p-5 text-white flex justify-between items-start'>
             <div>
               <h3 className='font-bold text-lg'>{product.name}</h3>
@@ -20,20 +20,20 @@ export function ProductModal({ product, toppings = [], initialItem = null, onClo
             </div>
             <button
               onClick={onClose}
-              className='w-8 h-8 rounded-full bg-white/20 flex items-center justify-center hover:bg-white/30'
+              className='w-8 h-8 rounded-full bg-white dark:bg-gray-900/20 flex items-center justify-center hover:bg-white dark:bg-gray-900/30'
             >
               <X size={16} />
             </button>
           </div>
           <div className='p-6 text-center'>
-            <p className='text-gray-500 text-sm'>
+            <p className='text-gray-500 dark:text-gray-400 text-sm'>
               Sản phẩm này chưa có size, không thể đặt.
             </p>
           </div>
           <div className='px-5 pb-5'>
             <button
               onClick={onClose}
-              className='w-full py-2.5 rounded-xl bg-gray-100 text-gray-700 text-sm font-semibold hover:bg-gray-200'
+              className='w-full py-2.5 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-semibold hover:bg-gray-200 dark:bg-gray-700'
             >
               Đóng
             </button>
@@ -97,7 +97,7 @@ function ProductModalInner({ product, toppings, initialItem, onClose, onAdd }) {
 
   return (
     <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4'>
-      <div className='bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200'>
+      <div className='bg-white dark:bg-gray-900 rounded-2xl shadow-2xl dark:shadow-none w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200'>
         {/* Header */}
         <div className='bg-gradient-to-r from-amber-500 to-orange-500 p-5 text-white'>
           <div className='flex justify-between items-start'>
@@ -107,7 +107,7 @@ function ProductModalInner({ product, toppings, initialItem, onClose, onAdd }) {
             </div>
             <button
               onClick={onClose}
-              className='w-8 h-8 rounded-full bg-white/20 flex items-center justify-center hover:bg-white/30'
+              className='w-8 h-8 rounded-full bg-white dark:bg-gray-900/20 flex items-center justify-center hover:bg-white dark:bg-gray-900/30'
             >
               <X size={16} />
             </button>
@@ -118,7 +118,7 @@ function ProductModalInner({ product, toppings, initialItem, onClose, onAdd }) {
         <div className='p-5 space-y-4 max-h-[60vh] overflow-y-auto'>
           {/* Size */}
           <div>
-            <p className='text-xs font-semibold text-gray-500 uppercase mb-2'>
+            <p className='text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2'>
               Chọn size
             </p>
             <div className='flex gap-2'>
@@ -128,8 +128,8 @@ function ProductModalInner({ product, toppings, initialItem, onClose, onAdd }) {
                   onClick={() => setSelectedSize(s)}
                   className={`flex-1 py-2.5 rounded-xl border-2 text-sm font-semibold transition-all ${
                     selectedSize.id === s.id
-                      ? 'border-amber-500 bg-amber-50 text-amber-700'
-                      : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                      ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'
+                      : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:border-gray-600'
                   }`}
                 >
                   <div>{s.size}</div>
@@ -141,7 +141,7 @@ function ProductModalInner({ product, toppings, initialItem, onClose, onAdd }) {
 
           {/* Toppings */}
           <div>
-            <p className='text-xs font-semibold text-gray-500 uppercase mb-2'>
+            <p className='text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2'>
               Topping
             </p>
             <ToppingPicker
@@ -153,14 +153,14 @@ function ProductModalInner({ product, toppings, initialItem, onClose, onAdd }) {
 
           {/* Note */}
           <div>
-            <p className='text-xs font-semibold text-gray-500 uppercase mb-2'>
+            <p className='text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2'>
               Ghi chú
             </p>
             <input
               value={note}
               onChange={(e) => setNote(e.target.value)}
               placeholder='Ít đường, nhiều đá...'
-              className='w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100'
+              className='w-full border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100'
             />
           </div>
         </div>
@@ -169,7 +169,7 @@ function ProductModalInner({ product, toppings, initialItem, onClose, onAdd }) {
         <div className='p-5 border-t flex gap-3'>
           <button
             onClick={onClose}
-            className='flex-1 py-3 rounded-xl border-2 border-gray-200 text-gray-600 font-semibold text-sm hover:bg-gray-50'
+            className='flex-1 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 font-semibold text-sm hover:bg-gray-50 dark:hover:bg-gray-800/50 dark:bg-gray-800/50'
           >
             Huỷ
           </button>

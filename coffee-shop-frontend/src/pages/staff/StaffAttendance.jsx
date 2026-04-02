@@ -48,7 +48,7 @@ export function StaffAttendance() {
 
         {isCheckedIn && (
           <div className="mt-4 text-center">
-            <Badge variant="secondary" className="bg-green-500/10 text-green-700">
+            <Badge variant="secondary" className="bg-green-500/10 text-green-700 dark:text-green-400">
               Currently Checked In • 5h 45m
             </Badge>
           </div>
@@ -79,7 +79,7 @@ export function StaffAttendance() {
                   <Badge
                     className={
                       record.status === 'present'
-                        ? 'bg-green-500/10 text-green-700'
+                        ? 'bg-green-500/10 text-green-700 dark:text-green-400'
                         : record.status === 'late'
                         ? 'bg-yellow-500/10 text-yellow-700'
                         : 'bg-red-500/10 text-red-700'

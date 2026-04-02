@@ -117,7 +117,7 @@ export function SplitBillModal({ isOpen, onClose, table, activeOrder, onSplitSuc
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="!max-w-[1400px] !w-[95vw] h-[85vh] flex flex-col p-4 bg-white">
+      <DialogContent className="!max-w-[1400px] !w-[95vw] h-[85vh] flex flex-col p-4 bg-white dark:bg-gray-900">
         <DialogHeader className="flex-shrink-0">
           <DialogTitle className="text-xl">
             Tách đơn hàng - Bàn {table?.code}
@@ -126,7 +126,7 @@ export function SplitBillModal({ isOpen, onClose, table, activeOrder, onSplitSuc
 
         <div className="flex-1 flex gap-4 min-h-0 mt-4 overflow-hidden">
           {/* Original Bill */}
-          <div className="w-1/3 flex flex-col bg-card border rounded-xl shadow-sm overflow-hidden flex-shrink-0">
+          <div className="w-1/3 flex flex-col bg-card border rounded-xl shadow-sm dark:shadow-none overflow-hidden flex-shrink-0">
             <div className="bg-muted p-3 border-b border-border">
               <h3 className="font-bold text-base text-foreground">Đơn gốc</h3>
               <p className="text-xs text-muted-foreground">Nhấn vào món để chuyển sang đơn mới</p>
@@ -166,10 +166,10 @@ export function SplitBillModal({ isOpen, onClose, table, activeOrder, onSplitSuc
             {splitBills.map(bill => (
               <div 
                 key={bill.id} 
-                className={`w-64 max-h-full flex flex-col bg-card border rounded-xl overflow-hidden flex-shrink-0 transition-all ${activeBillId === bill.id ? 'ring-2 ring-amber-500 shadow-md transform scale-[1.02]' : 'opacity-80 hover:opacity-100 hover:shadow-sm cursor-pointer'}`}
+                className={`w-64 max-h-full flex flex-col bg-card border rounded-xl overflow-hidden flex-shrink-0 transition-all ${activeBillId === bill.id ? 'ring-2 ring-amber-500 shadow-md dark:shadow-none transform scale-[1.02]' : 'opacity-80 hover:opacity-100 hover:shadow-sm dark:shadow-none cursor-pointer'}`}
                 onClick={() => setActiveBillId(bill.id)}
               >
-                <div className={`p-3 border-b border-border flex justify-between items-center ${activeBillId === bill.id ? 'bg-amber-100' : 'bg-muted'}`}>
+                <div className={`p-3 border-b border-border flex justify-between items-center ${activeBillId === bill.id ? 'bg-amber-100 dark:bg-amber-900/40' : 'bg-muted'}`}>
                   <h3 className={`font-bold text-sm ${activeBillId === bill.id ? 'text-amber-800' : 'text-foreground'}`}>{bill.name}</h3>
                   <button 
                     onClick={(e) => { e.stopPropagation(); removeTargetBill(bill.id); }}
@@ -188,13 +188,13 @@ export function SplitBillModal({ isOpen, onClose, table, activeOrder, onSplitSuc
                       <div 
                         key={item.id}
                         onClick={(e) => { e.stopPropagation(); handleMoveToOriginal(bill.id, item); }}
-                        className="p-2 border border-amber-200 rounded-lg bg-background hover:bg-amber-50 cursor-pointer transition-colors flex items-center justify-between group shadow-sm"
+                        className="p-2 border border-amber-200 dark:border-amber-800/50 rounded-lg bg-background hover:bg-amber-50 dark:bg-amber-900/30 cursor-pointer transition-colors flex items-center justify-between group shadow-sm dark:shadow-none"
                       >
                         <ChevronLeft className="w-3 h-3 text-muted-foreground group-hover:text-red-400 transition-colors" />
                         <div className="flex-1 min-w-0 px-2 text-right">
                           <p className="font-semibold text-xs truncate">{item.name}</p>
                         </div>
-                        <span className="font-bold bg-amber-100 text-amber-700 px-2 py-0.5 rounded text-xs flex-shrink-0">
+                        <span className="font-bold bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 px-2 py-0.5 rounded text-xs flex-shrink-0">
                           {bill.items[item.id]}
                         </span>
                       </div>
@@ -206,7 +206,7 @@ export function SplitBillModal({ isOpen, onClose, table, activeOrder, onSplitSuc
             
             <button
               onClick={addTargetBill}
-              className="w-16 h-24 mt-0 rounded-xl border-2 border-dashed border-muted hover:border-amber-400 hover:bg-amber-50 flex items-center justify-center flex-shrink-0 transition-all text-muted-foreground hover:text-amber-500 shadow-sm"
+              className="w-16 h-24 mt-0 rounded-xl border-2 border-dashed border-muted hover:border-amber-400 hover:bg-amber-50 dark:bg-amber-900/30 flex items-center justify-center flex-shrink-0 transition-all text-muted-foreground hover:text-amber-500 shadow-sm dark:shadow-none"
             >
               <Plus className="w-6 h-6" />
             </button>
