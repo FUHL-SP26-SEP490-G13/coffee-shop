@@ -504,7 +504,7 @@ export default function CheckoutPage() {
       <section className="flex-1 w-full px-4 sm:px-6 lg:px-8 py-10">
         <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 border rounded-2xl p-6 bg-white dark:bg-gray-900">
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-6">
+            <h1 className="text-xl md:text-xl font-semibold text-amber-900 dark:text-amber-500 mb-4" style={{ fontFamily: 'serif' }}>
               Thanh toán
             </h1>
 
@@ -847,7 +847,7 @@ export default function CheckoutPage() {
           </div>
 
           <div className="border rounded-2xl p-5 bg-gray-50 dark:bg-gray-950 h-fit">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Đơn hàng</h2>
+            <h2 className="text-xl md:text-xl font-semibold text-amber-900 dark:text-amber-500 mb-4" style={{ fontFamily: 'serif' }}>Đơn hàng</h2>
 
             <div className="space-y-3 mb-5">
               {cart.map((item) => (
@@ -997,7 +997,10 @@ export default function CheckoutPage() {
               ) : null}
 
               <div className="flex justify-between text-base font-bold">
-                <span>Tổng cộng</span>
+                <div className="flex flex-col">
+                  <span>Tổng cộng</span>
+                  <span className="text-xs font-normal text-gray-500 mt-0.5">(Đã bao gồm VAT nếu có)</span>
+                </div>
                 <span className="text-amber-600">
                   {totalAmount.toLocaleString("vi-VN")}đ
                 </span>

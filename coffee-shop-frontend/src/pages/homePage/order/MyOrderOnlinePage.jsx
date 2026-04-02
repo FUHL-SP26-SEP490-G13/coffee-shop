@@ -170,11 +170,10 @@ export default function MyOrderOnlinePage() {
             key={item}
             type="button"
             onClick={() => setPage(item)}
-            className={`min-w-10 h-10 px-3 rounded-lg border text-sm font-medium transition ${
-              page === item
+            className={`min-w-10 h-10 px-3 rounded-lg border text-sm font-medium transition ${page === item
                 ? "bg-amber-600 text-white border-amber-600"
                 : "bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-amber-500"
-            }`}
+              }`}
           >
             {item}
           </button>
@@ -199,9 +198,10 @@ export default function MyOrderOnlinePage() {
       <section className="flex-1 w-full px-4 sm:px-6 lg:px-8 py-10">
         <div className="max-w-6xl mx-auto">
           <div className="flex items-center justify-between gap-4 mb-8 flex-wrap">
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-              Đơn hàng của tôi
-            </h1>
+            <div className="flex items-center gap-2 text-xl font-bold text-gray-900 dark:text-gray-100">
+              <ShoppingBag className="w-5 h-5 text-amber-600" />
+              <span>Đơn hàng của tôi</span>
+            </div>
 
             <Button variant="outline" onClick={() => navigate("/products")}>
               Tiếp tục mua hàng
@@ -230,11 +230,10 @@ export default function MyOrderOnlinePage() {
                         key={status}
                         type="button"
                         onClick={() => setActiveStatus(status)}
-                        className={`px-4 py-2 rounded-full border text-sm font-medium transition whitespace-nowrap ${
-                          isActive
+                        className={`px-4 py-2 rounded-full border text-sm font-medium transition whitespace-nowrap ${isActive
                             ? "bg-amber-600 text-white border-amber-600"
                             : "bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-amber-500"
-                        }`}
+                          }`}
                       >
                         {getStatusLabel(status)} ({statusCountMap[status] || 0})
                       </button>
@@ -250,101 +249,101 @@ export default function MyOrderOnlinePage() {
                   </p>
                 </div>
               ) : (
-              <div className="space-y-4">
-                {paginatedOrders.map((order) => (
-                  <div
-                    key={order.id}
-                    className="border border-gray-200 dark:border-gray-700 rounded-2xl p-5 bg-white dark:bg-gray-900"
-                  >
-                    <div className="flex items-start justify-between gap-4 flex-wrap">
-                      <div>
-                        <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                          Đơn hàng #{order.id}
-                        </p>
-
-                        <div className="mt-2 space-y-1 text-sm text-gray-500 dark:text-gray-400">
-                          <p>
-                            Loại đơn:{" "}
-                            <span className="text-gray-800 dark:text-gray-200 font-medium">
-                              {order.order_type === "delivery"
-                                ? "Giao hàng"
-                                : order.order_type === "takeaway"
-                                ? "Mang đi"
-                                : "Tại bàn"}
-                            </span>
+                <div className="space-y-4">
+                  {paginatedOrders.map((order) => (
+                    <div
+                      key={order.id}
+                      className="border border-gray-200 dark:border-gray-700 rounded-2xl p-5 bg-white dark:bg-gray-900"
+                    >
+                      <div className="flex items-start justify-between gap-4 flex-wrap">
+                        <div>
+                          <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                            Đơn hàng #{order.id}
                           </p>
 
-                          <p>
-                            Thanh toán:{" "}
-                            <span className="text-gray-800 dark:text-gray-200 font-medium">
-                              {Number(order.is_paid) === 1
-                                ? "Đã thanh toán"
-                                : "Chưa thanh toán"}
-                            </span>
-                          </p>
+                          <div className="mt-2 space-y-1 text-sm text-gray-500 dark:text-gray-400">
+                            <p>
+                              Loại đơn:{" "}
+                              <span className="text-gray-800 dark:text-gray-200 font-medium">
+                                {order.order_type === "delivery"
+                                  ? "Giao hàng"
+                                  : order.order_type === "takeaway"
+                                    ? "Mang đi"
+                                    : "Tại bàn"}
+                              </span>
+                            </p>
 
-                          <p>
-                            Ngày tạo:{" "}
-                            <span className="text-gray-800 dark:text-gray-200 font-medium">
-                              {order.created_at
-                                ? new Date(order.created_at).toLocaleString(
+                            <p>
+                              Thanh toán:{" "}
+                              <span className="text-gray-800 dark:text-gray-200 font-medium">
+                                {Number(order.is_paid) === 1
+                                  ? "Đã thanh toán"
+                                  : "Chưa thanh toán"}
+                              </span>
+                            </p>
+
+                            <p>
+                              Ngày tạo:{" "}
+                              <span className="text-gray-800 dark:text-gray-200 font-medium">
+                                {order.created_at
+                                  ? new Date(order.created_at).toLocaleString(
                                     "vi-VN"
                                   )
-                                : "--"}
-                            </span>
+                                  : "--"}
+                              </span>
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="text-right">
+                          <span
+                            className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold ${getStatusClass(
+                              order.status
+                            )}`}
+                          >
+                            {getStatusLabel(order.status)}
+                          </span>
+
+                          <p className="mt-3 text-xl font-bold text-amber-600">
+                            {Number(order.total_amount || 0).toLocaleString(
+                              "vi-VN"
+                            )}
+                            đ
                           </p>
                         </div>
                       </div>
 
-                      <div className="text-right">
-                        <span
-                          className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold ${getStatusClass(
-                            order.status
-                          )}`}
+                      <div className="mt-5 flex gap-3 flex-wrap">
+                        <Button
+                          variant="outline"
+                          onClick={() => navigate(`/my-orders/${order.id}`)}
                         >
-                          {getStatusLabel(order.status)}
-                        </span>
+                          <Eye className="w-4 h-4 mr-2" />
+                          Xem chi tiết
+                        </Button>
 
-                        <p className="mt-3 text-xl font-bold text-amber-600">
-                          {Number(order.total_amount || 0).toLocaleString(
-                            "vi-VN"
+                        <Button
+                          onClick={() => onBuyAgain(order.id)}
+                          disabled={buyAgainLoadingId === order.id || !isOpen}
+                          className={`text-white ${!isOpen ? "bg-gray-400 cursor-not-allowed" : "bg-amber-600 hover:bg-amber-700"}`}
+                          title={!isOpen ? "Cửa hàng đang đóng cửa" : ""}
+                        >
+                          {buyAgainLoadingId === order.id ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Đang thêm...
+                            </>
+                          ) : (
+                            <>
+                              <RotateCcw className="w-4 h-4 mr-2" />
+                              {isOpen ? "Mua lại" : "Đã đóng cửa"}
+                            </>
                           )}
-                          đ
-                        </p>
+                        </Button>
                       </div>
                     </div>
-
-                    <div className="mt-5 flex gap-3 flex-wrap">
-                      <Button
-                        variant="outline"
-                        onClick={() => navigate(`/my-orders/${order.id}`)}
-                      >
-                        <Eye className="w-4 h-4 mr-2" />
-                        Xem chi tiết
-                      </Button>
-
-                      <Button
-                        onClick={() => onBuyAgain(order.id)}
-                        disabled={buyAgainLoadingId === order.id || !isOpen}
-                        className={`text-white ${!isOpen ? "bg-gray-400 cursor-not-allowed" : "bg-amber-600 hover:bg-amber-700"}`}
-                        title={!isOpen ? "Cửa hàng đang đóng cửa" : ""}
-                      >
-                        {buyAgainLoadingId === order.id ? (
-                          <>
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            Đang thêm...
-                          </>
-                        ) : (
-                          <>
-                            <RotateCcw className="w-4 h-4 mr-2" />
-                            {isOpen ? "Mua lại" : "Đã đóng cửa"}
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
               )}
 
               {renderPagination()}

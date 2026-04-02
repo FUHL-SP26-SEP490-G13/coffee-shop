@@ -199,7 +199,7 @@ export default function MyOrderDetailPage() {
           <div className="border rounded-2xl bg-white dark:bg-gray-900 p-6 shadow-sm">
             <div className="flex items-start justify-between gap-4 flex-wrap">
               <div>
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+                <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">
                   Đơn hàng #{order.id}
                 </h1>
 

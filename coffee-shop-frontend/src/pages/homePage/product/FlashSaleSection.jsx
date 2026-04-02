@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Zap, Clock, ShoppingCart } from "lucide-react";
+import { Zap, Clock, ShoppingCart, Star } from "lucide-react";
 import { toast } from "sonner";
 import flashSaleService from "@/services/flashSaleService";
 import { cartService } from "@/services/cartService";
@@ -172,53 +172,80 @@ export default function FlashSaleSection({ products, getThumbnail, getDefaultCar
 
             return (
               <SwiperSlide key={product.id}>
-                <Link
-                  to={`/${product.slug || 'products/' + product.id}`}
-                  className="block bg-white dark:bg-gray-900 rounded-2xl p-3 shadow-lg hover:-translate-y-2 transition-transform duration-300 group border border-orange-100 dark:border-gray-800"
+                <div
+                  className="group h-full pb-4 px-2 pt-2"
                 >
-                  <div className="relative aspect-square rounded-xl overflow-hidden mb-4">
-                    <img
-                      src={getThumbnail(product)}
-                      alt={product.name}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                    />
-                    <div className="absolute top-2 left-2 bg-red-600 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-md flex items-center gap-1">
-                      <Zap className="w-3 h-3 fill-white" /> Giảm {activeSale.discount_percent}%
+                  <div className="flex h-full flex-col overflow-hidden rounded-[24px] bg-[#FCFAF8] dark:bg-gray-900 border border-transparent hover:border-[#E8DFD5] dark:hover:border-gray-800 transition-all duration-300 hover:-translate-y-1 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] hover:shadow-lg p-5">
+                    <div className="relative">
+                      {/* Badges */}
+                      <div className="absolute top-0 left-0 z-10 flex flex-col gap-2">
+                        <span className="bg-red-500 text-white text-[10px] uppercase font-bold px-3 py-1 rounded-full shadow-sm flex items-center gap-1">
+                          <Zap className="w-3 h-3 fill-white" /> Giảm {activeSale.discount_percent}%
+                        </span>
+                      </div>
+
+                      <Link to={`/${product.slug || 'products/' + product.id}`} className="block mt-6 mb-2">
+                        <div className="relative h-44 w-full flex items-center justify-center">
+                          <img
+                            src={getThumbnail(product)}
+                            alt={product.name}
+                            className="h-[85%] w-[85%] object-contain transition duration-500 group-hover:scale-[1.08] mix-blend-multiply dark:mix-blend-normal drop-shadow-sm"
+                            onError={(e) => {
+                              e.currentTarget.src =
+                                "https://images.unsplash.com/photo-1509042239860-f550ce710b93";
+                            }}
+                          />
+                        </div>
+                      </Link>
+                    </div>
+
+                    <div className="flex flex-col flex-grow mt-2">
+                      <p className="text-[11px] font-medium text-gray-400 uppercase mb-1">
+                        {product.category_name || "Thức uống"}
+                      </p>
+
+                      <Link to={`/${product.slug || 'products/' + product.id}`}>
+                        <h3 className="line-clamp-1 text-base font-bold text-[#4A3219] dark:text-gray-100 transition hover:text-[#8B5A2B] mb-1.5" style={{fontFamily: 'serif'}}>
+                          {product.name}
+                        </h3>
+                      </Link>
+
+                      <div className="flex items-center gap-1.5 mb-5 h-[20px]">
+                        <Star className="w-3.5 h-3.5 fill-[#F59E0B] text-[#F59E0B]" />
+                        <span className="text-xs font-bold text-gray-700 dark:text-gray-200">
+                          {Number(product.rating) > 0 ? Number(product.rating).toFixed(1) : "Chưa có đánh giá"}
+                        </span>
+                      </div>
+
+                      <div className="mt-auto flex items-end justify-between border-t border-transparent pt-1">
+                        <div className="min-w-0">
+                          {originalPrice > 0 ? (
+                            <div className="flex flex-col">
+                              <span className="text-[11px] line-through text-gray-400">{originalPrice.toLocaleString("vi-VN")}đ</span>
+                              <p className="break-words text-[17px] font-bold leading-tight text-[#8B5A2B] dark:text-amber-500">
+                                {salePrice.toLocaleString("vi-VN")}đ
+                              </p>
+                            </div>
+                          ) : (
+                            <p className="break-words text-[17px] font-bold leading-tight text-[#8B5A2B] dark:text-amber-500">
+                              Liên hệ
+                            </p>
+                          )}
+                        </div>
+                        
+                        {originalPrice > 0 && (
+                          <button
+                            onClick={(e) => handleAddToCart(e, product)}
+                            disabled={!isOpen}
+                            className={`w-8 h-8 rounded-md flex items-center justify-center shrink-0 transition-colors shadow-sm ${isOpen ? "bg-[#8B5A2B] hover:bg-[#69421c] text-white" : "bg-gray-300 dark:bg-gray-800 text-gray-500 dark:text-gray-500 cursor-not-allowed"}`}
+                          >
+                            <ShoppingCart className="w-[15px] h-[15px] xl:ml-[-1px]" />
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
-                  <div className="px-2 pb-2">
-                    <h3 className="font-semibold text-gray-800 dark:text-gray-100 line-clamp-1 mb-2 group-hover:text-red-500 dark:group-hover:text-red-400 transition-colors">
-                      {product.name}
-                    </h3>
-                    <div className="flex flex-col gap-1 mb-4">
-                      {originalPrice > 0 ? (
-                        <>
-                          <span className="text-gray-400 dark:text-gray-500 text-sm line-through decoration-gray-400 dark:decoration-gray-500 decoration-1">
-                            {originalPrice.toLocaleString("vi-VN")}đ
-                          </span>
-                          <span className="text-red-600 font-bold text-lg">
-                            {salePrice.toLocaleString("vi-VN")}đ
-                          </span>
-                        </>
-                      ) : (
-                        <span className="text-red-600 font-bold text-lg">Liên hệ</span>
-                      )}
-                    </div>
-                    {originalPrice > 0 && (
-                      <button
-                        onClick={(e) => handleAddToCart(e, product)}
-                        disabled={!isOpen}
-                        className={`w-full font-medium py-3 rounded-xl transition-all shadow-md flex justify-center items-center gap-2 ${
-                          isOpen
-                            ? "bg-gradient-to-r from-red-500 to-orange-500 text-white hover:from-red-600 hover:to-orange-600 active:scale-95 shadow-orange-500/30 dark:shadow-none"
-                            : "bg-gray-300 dark:bg-gray-800 text-gray-500 dark:text-gray-500 cursor-not-allowed shadow-none"
-                        }`}
-                      >
-                        <ShoppingCart className="w-5 h-5" /> {isOpen ? "Thêm Ngay" : "Đã Khóa"}
-                      </button>
-                    )}
-                  </div>
-                </Link>
+                </div>
               </SwiperSlide>
             );
           })}

@@ -5,6 +5,8 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
 import productService from "@/services/productService";
+import { cartService } from "@/services/cartService";
+import { toast } from "sonner";
 import favoriteService from "@/services/favoriteService";
 import categoryService from "@/services/categoryService";
 import useFetch from "@/hooks/useFetch";
@@ -21,6 +23,60 @@ export default function ProductListPage({ categoryIdOverride, categoryName, cate
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { isOpen: isStoreOpen, nextOpenMessage } = useStoreHours();
+
+  const handleFastAdd = (e, product) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!isStoreOpen) {
+      toast.error("Cửa hàng hiện đang đóng cửa");
+      return;
+    }
+
+    if (!product.sizes || product.sizes.length === 0) {
+      toast.error("Sản phẩm không có size");
+      return;
+    }
+
+    let cartSize = null;
+    const sizeS = product.sizes.find(
+      (size) => String(size?.size).trim().toUpperCase() === "S"
+    );
+
+    if (sizeS && Number(sizeS?.price) > 0) {
+      cartSize = sizeS;
+    } else {
+      const validSizes = product.sizes
+        .filter((size) => Number(size?.price) > 0)
+        .sort((a, b) => Number(a.price) - Number(b.price));
+      cartSize = validSizes[0] || product.sizes[0];
+    }
+
+    let price = Number(cartSize.price);
+    if (activeSale && activeSale.product_ids?.includes(product.id)) {
+      price = Math.round(price * (1 - activeSale.discount_percent / 100));
+    }
+
+    const defaultImage = "https://png.pngtree.com/png-vector/20190820/ourmid/pngtree-no-image-vector-illustration-isolated-png-image_1694547.jpg";
+    const thumbnail = Array.isArray(product.images) ? (product.images.find(img => img.isThumbnail === 1)?.image_url || product.images[0]?.image_url || defaultImage) : defaultImage;
+
+    const cartItem = {
+      productSizeId: cartSize.id,
+      id: product.id,
+      product_id: product.id,
+      name: product.name,
+      image: thumbnail,
+      size: cartSize.size,
+      basePrice: price,
+      price: price,
+      quantity: 1,
+      toppings: [],
+    };
+
+    cartService.addItem(cartItem);
+    toast.success(`Đã thêm ${product.name} vào giỏ`);
+    window.dispatchEvent(new Event("cartUpdated"));
+  };
 
   const token =
     localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN) ||
@@ -510,11 +566,18 @@ export default function ProductListPage({ categoryIdOverride, categoryName, cate
                               {item.category_name || "Danh mục"}
                             </p>
 
-                            <h3 className="font-semibold text-gray-900 dark:text-gray-100 line-clamp-2 min-h-[48px]">
+                            <h3 className="font-semibold text-gray-900 dark:text-gray-100 line-clamp-2 min-h-[40px] mb-1.5">
                               {item.name}
                             </h3>
 
-                            <div className="flex items-center justify-between mt-4 gap-3">
+                            <div className="flex items-center gap-1 mb-2">
+                              <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
+                              <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                                {Number(item.rating) > 0 ? Number(item.rating).toFixed(1) : "Chưa có đánh giá"}
+                              </span>
+                            </div>
+
+                            <div className="flex items-center justify-between gap-3">
                               <div>
                                 {(() => {
                                   const isFlashSale = activeSale && activeSale.product_ids?.includes(item.id);
@@ -553,8 +616,7 @@ export default function ProductListPage({ categoryIdOverride, categoryName, cate
                                 disabled={!isStoreOpen}
                                 className="bg-amber-600 hover:bg-amber-700 text-white disabled:bg-gray-400 disabled:opacity-100"
                                 onClick={(e) => {
-                                  e.stopPropagation();
-                                  if (isStoreOpen) navigate(`/${item.slug || 'products/' + item.id}`);
+                                  if (isStoreOpen) handleFastAdd(e, item);
                                 }}
                               >
                                 {isStoreOpen ? "Thêm" : "Đóng cửa"}

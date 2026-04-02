@@ -6,6 +6,9 @@ import favoriteService from "@/services/favoriteService";
 import flashSaleService from "@/services/flashSaleService";
 import productService from "@/services/productService";
 import { STORAGE_KEYS } from "@/constants";
+import { cartService } from "@/services/cartService";
+import { toast } from "sonner";
+import { useStoreHours } from "@/hooks/useStoreHours";
 
 export default function BestSellerSection({
   loading,
@@ -14,6 +17,7 @@ export default function BestSellerSection({
   getDisplayPrice,
 }) {
   const navigate = useNavigate();
+  const { isOpen } = useStoreHours();
 
   const token =
     localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN) ||
@@ -28,6 +32,62 @@ export default function BestSellerSection({
   const [activeTab, setActiveTab] = useState("Bán chạy");
   const [tabData, setTabData] = useState({ "Bán chạy": [], "Mới nhất": [], "Được yêu thích": [] });
   const [tabLoading, setTabLoading] = useState(false);
+
+  const handleFastAdd = (e, product) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!isOpen) {
+      toast.error("Cửa hàng hiện đang đóng cửa");
+      return;
+    }
+
+    if (!product.sizes || product.sizes.length === 0) {
+      toast.error("Sản phẩm không có size");
+      return;
+    }
+
+    let cartSize = null;
+    const sizeS = product.sizes.find(
+      (size) => String(size?.size).trim().toUpperCase() === "S"
+    );
+
+    if (sizeS && Number(sizeS?.price) > 0) {
+      cartSize = sizeS;
+    } else {
+      const validSizes = product.sizes
+        .filter((size) => Number(size?.price) > 0)
+        .sort((a, b) => Number(a.price) - Number(b.price));
+      cartSize = validSizes[0] || product.sizes[0];
+    }
+
+    let price = Number(cartSize.price);
+    if (activeSale && activeSale.product_ids?.includes(product.id)) {
+      price = Math.round(price * (1 - activeSale.discount_percent / 100));
+    }
+
+    let thumbnail = "https://png.pngtree.com/png-vector/20190820/ourmid/pngtree-no-image-vector-illustration-isolated-png-image_1694547.jpg";
+    if (typeof getThumbnail === 'function') {
+      thumbnail = getThumbnail(product) || thumbnail;
+    }
+
+    const cartItem = {
+      productSizeId: cartSize.id,
+      id: product.id,
+      product_id: product.id,
+      name: product.name,
+      image: thumbnail,
+      size: cartSize.size,
+      basePrice: price,
+      price: price,
+      quantity: 1,
+      toppings: [],
+    };
+
+    cartService.addItem(cartItem);
+    toast.success(`Đã thêm ${product.name} vào giỏ`);
+    window.dispatchEvent(new Event("cartUpdated"));
+  };
 
   useEffect(() => {
     if (products.length > 0) {
@@ -276,16 +336,12 @@ export default function BestSellerSection({
                         </h3>
                       </Link>
 
-                      {Number(product.rating) > 0 ? (
-                        <div className="flex items-center gap-1.5 mb-5 h-[20px]">
-                          <Star className="w-3.5 h-3.5 fill-[#F59E0B] text-[#F59E0B]" />
-                          <span className="text-xs font-bold text-gray-700 dark:text-gray-200">
-                            {Number(product.rating).toFixed(1)}
-                          </span>
-                        </div>
-                      ) : (
-                        <div className="mb-5 h-[20px]"></div>
-                      )}
+                      <div className="flex items-center gap-1.5 mb-5 h-[20px]">
+                        <Star className="w-3.5 h-3.5 fill-[#F59E0B] text-[#F59E0B]" />
+                        <span className="text-xs font-bold text-gray-700 dark:text-gray-200">
+                          {Number(product.rating) > 0 ? Number(product.rating).toFixed(1) : "Chưa có đánh giá"}
+                        </span>
+                      </div>
 
                       <div className="mt-auto flex items-end justify-between border-t border-transparent pt-1">
                         <div className="min-w-0">
@@ -317,11 +373,9 @@ export default function BestSellerSection({
                         </div>
                         
                         <button
-                          onClick={(e) => {
-                            e.preventDefault();
-                            navigate(`/${product.slug || 'products/' + product.id}`);
-                          }}
-                          className="bg-[#8B5A2B] hover:bg-[#69421c] text-white w-8 h-8 rounded-md flex items-center justify-center shrink-0 transition-colors shadow-sm"
+                          onClick={(e) => handleFastAdd(e, product)}
+                          disabled={!isOpen}
+                          className={`w-8 h-8 rounded-md flex items-center justify-center shrink-0 transition-colors shadow-sm ${isOpen ? "bg-[#8B5A2B] hover:bg-[#69421c] text-white" : "bg-gray-300 dark:bg-gray-800 text-gray-400 dark:text-gray-500 cursor-not-allowed"}`}
                         >
                           <ShoppingCart className="w-[15px] h-[15px] xl:ml-[-1px]" />
                         </button>

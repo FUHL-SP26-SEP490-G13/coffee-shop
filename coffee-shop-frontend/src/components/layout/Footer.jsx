@@ -61,7 +61,9 @@ function Footer() {
               </h4>
               <div className="mt-4 flex flex-wrap gap-3">
                 <a
-                  href="#"
+                  href="https://facebook.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="w-9 h-9 rounded-full bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center transition-all hover:-translate-y-1 shadow-md"
                   aria-label="Facebook"
                 >
@@ -72,21 +74,27 @@ function Footer() {
                   />
                 </a>
                 <a
-                  href="#"
+                  href="https://zalo.me"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="w-9 h-9 rounded-full bg-blue-500 hover:bg-blue-600 text-white flex items-center justify-center transition-all hover:-translate-y-1 shadow-md font-bold text-[11px]"
                   aria-label="Zalo"
                 >
                   Zalo
                 </a>
                 <a
-                  href="#"
+                  href="https://youtube.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="w-9 h-9 rounded-full bg-red-600 hover:bg-red-700 text-white flex items-center justify-center transition-all hover:-translate-y-1 shadow-md"
                   aria-label="Youtube"
                 >
                   <Youtube size={18} />
                 </a>
                 <a
-                  href="#"
+                  href="https://instagram.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="w-9 h-9 rounded-full bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-600 hover:opacity-90 text-white flex items-center justify-center transition-all hover:-translate-y-1 shadow-md"
                   aria-label="Instagram"
                 >

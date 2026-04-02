@@ -277,8 +277,6 @@ export function UserProfile() {
 
       <div className="flex-1 flex items-start justify-center p-4 sm:p-8">
         <div className="w-full max-w-4xl">
-          <h1 className="text-2xl sm:text-3xl font-semibold mb-6">Thông tin của tôi</h1>
-
           <div className="grid gap-6 lg:grid-cols-2">
             <Card className="h-fit">
             <CardHeader>

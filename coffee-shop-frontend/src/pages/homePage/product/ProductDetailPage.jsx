@@ -104,41 +104,7 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
     setShowToppings(false);
   }, [productId]);
 
-  const [prevProduct, setPrevProduct] = useState(null);
-  const [nextProduct, setNextProduct] = useState(null);
-  const [showNavArrows, setShowNavArrows] = useState(true);
 
-  useEffect(() => {
-    const handleScroll = () => {
-      const isAtBottom = window.innerHeight + window.scrollY >= document.body.offsetHeight - 250;
-      setShowNavArrows(!isAtBottom);
-    };
-    window.addEventListener("scroll", handleScroll);
-    handleScroll();
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  useEffect(() => {
-    const fetchAdjacent = async () => {
-      try {
-        const res = await productService.getAll({ limit: 1000, status: "available" });
-        const items = res?.data?.items || res?.data || [];
-        if (items.length > 0) {
-          const currentIndex = items.findIndex((p) => String(p.id) === String(id));
-          if (currentIndex !== -1) {
-            setPrevProduct(currentIndex > 0 ? items[currentIndex - 1] : null);
-            setNextProduct(currentIndex < items.length - 1 ? items[currentIndex + 1] : null);
-          } else {
-            setPrevProduct(null);
-            setNextProduct(null);
-          }
-        }
-      } catch (err) {
-        console.error("Lỗi lấy sản phẩm liền kề", err);
-      }
-    };
-    fetchAdjacent();
-  }, [productId]);
 
   useEffect(() => {
     const fetchToppings = async () => {
@@ -561,27 +527,7 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
         </div>
       </div>
 
-      {prevProduct && (
-        <button
-          onClick={() => navigate(`/${prevProduct.slug || 'products/' + prevProduct.id}`)}
-          className={`fixed left-2 xl:left-8 top-1/2 -translate-y-1/2 z-[100] bg-white/70 hover:bg-white dark:bg-gray-800/80 dark:hover:bg-gray-800 p-2 md:p-4 rounded-full shadow-[0_4px_20px_-4px_rgba(245,158,11,0.5)] border border-amber-200 dark:border-amber-900/50 text-amber-600 dark:text-amber-500 backdrop-blur-md transition-all duration-300 flex group overflow-hidden ${showNavArrows ? 'opacity-100 hover:scale-110' : 'opacity-0 pointer-events-none -translate-x-10'
-            }`}
-          title={`Xem sản phẩm trước: ${prevProduct.name}`}
-        >
-          <ChevronLeft className="w-6 h-6 md:w-8 md:h-8 group-hover:-translate-x-1 transition-transform" />
-        </button>
-      )}
 
-      {nextProduct && (
-        <button
-          onClick={() => navigate(`/${nextProduct.slug || 'products/' + nextProduct.id}`)}
-          className={`fixed right-2 xl:right-8 top-1/2 -translate-y-1/2 z-[100] bg-white/70 hover:bg-white dark:bg-gray-800/80 dark:hover:bg-gray-800 p-2 md:p-4 rounded-full shadow-[0_4px_20px_-4px_rgba(245,158,11,0.5)] border border-amber-200 dark:border-amber-900/50 text-amber-600 dark:text-amber-500 backdrop-blur-md transition-all duration-300 flex group overflow-hidden ${showNavArrows ? 'opacity-100 hover:scale-110' : 'opacity-0 pointer-events-none translate-x-10'
-            }`}
-          title={`Xem sản phẩm tiếp theo: ${nextProduct.name}`}
-        >
-          <ChevronRight className="w-6 h-6 md:w-8 md:h-8 group-hover:translate-x-1 transition-transform" />
-        </button>
-      )}
 
       <section className="w-full px-4 sm:px-6 lg:px-8 py-14">
 
@@ -1065,7 +1011,7 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
       <section className="w-full px-4 sm:px-6 lg:px-8 pb-14">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
               Sản phẩm liên quan
             </h3>
 
@@ -1119,9 +1065,16 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
                         {item.category_name || "Danh mục"}
                       </p>
 
-                      <h3 className="font-semibold text-gray-900 dark:text-gray-100 line-clamp-2 min-h-[48px]">
+                      <h3 className="font-semibold text-gray-900 dark:text-gray-100 line-clamp-2 min-h-[40px] mb-1.5">
                         {item.name}
                       </h3>
+
+                      <div className="flex items-center gap-1 mb-1">
+                        <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
+                        <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                          {Number(item.rating) > 0 ? Number(item.rating).toFixed(1) : "Chưa có đánh giá"}
+                        </span>
+                      </div>
 
                       <p className="text-amber-600 font-bold text-lg mt-3">
                         {minPrice !== null

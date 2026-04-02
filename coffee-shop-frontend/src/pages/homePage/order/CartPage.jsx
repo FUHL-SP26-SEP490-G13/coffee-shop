@@ -1,9 +1,15 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ShoppingBag, Plus } from "lucide-react";
+import { ShoppingBag, Plus, Star } from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { cartService } from "@/services/cartService";
 import toppingService from "@/services/toppingService";
 import productService from "@/services/productService";
@@ -18,6 +24,10 @@ export default function CartPage() {
   const [productSizesMap, setProductSizesMap] = useState({});
   const [activeSale, setActiveSale] = useState(null);
   const [recommendations, setRecommendations] = useState([]);
+
+  const [quickAddProduct, setQuickAddProduct] = useState(null);
+  const [quickAddSize, setQuickAddSize] = useState(null);
+  const [quickAddToppings, setQuickAddToppings] = useState([]);
 
   const refreshCart = () => {
     setCart(cartService.getCart());
@@ -185,9 +195,22 @@ export default function CartPage() {
       toast.error("Sản phẩm không có size");
       return;
     }
-    const cartSize = product.sizes.find(s => s.size === "M") || product.sizes[0];
-    let price = Number(cartSize.price);
     
+    let cartSize = null;
+    const sizeS = product.sizes.find(
+      (size) => String(size?.size).trim().toUpperCase() === "S"
+    );
+
+    if (sizeS && Number(sizeS?.price) > 0) {
+      cartSize = sizeS;
+    } else {
+      const validSizes = product.sizes
+        .filter((size) => Number(size?.price) > 0)
+        .sort((a, b) => Number(a.price) - Number(b.price));
+      cartSize = validSizes[0] || product.sizes[0];
+    }
+
+    let price = Number(cartSize.price);
     if (activeSale && activeSale.product_ids?.includes(product.id)) {
       price = Math.round(price * (1 - activeSale.discount_percent / 100));
     }
@@ -220,7 +243,7 @@ export default function CartPage() {
       <section className="flex-1 w-full px-4 sm:px-6 lg:px-8 py-10">
         <div className="max-w-6xl mx-auto">
           <div className="flex items-center justify-between gap-4 mb-8 flex-wrap">
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Giỏ hàng</h1>
+            <h1 className="text-2xl md:text-2xl font-semibold text-amber-900 dark:text-amber-500" style={{ fontFamily: 'serif' }}>Giỏ hàng</h1>
 
             <div className="flex gap-3">
               {cart.length > 0 && (
@@ -248,9 +271,6 @@ export default function CartPage() {
             <div className="text-center py-16 border rounded-2xl bg-gray-50 dark:bg-gray-950">
               <ShoppingBag className="w-10 h-10 mx-auto text-gray-400 mb-3" />
               <p className="text-gray-500 dark:text-gray-400 mb-4">Giỏ hàng của bạn đang trống</p>
-              <Button onClick={() => navigate("/products")}>
-                Tiếp tục mua hàng
-              </Button>
             </div>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -548,10 +568,17 @@ export default function CartPage() {
                         <div className="flex-1 flex flex-col justify-between">
                           <h4 
                             onClick={() => navigate(`/${product.slug || 'products/' + product.id}`)}
-                            className="font-semibold text-sm text-gray-800 dark:text-gray-200 line-clamp-2 cursor-pointer hover:text-amber-600 mb-2"
+                            className="font-semibold text-sm text-gray-800 dark:text-gray-200 line-clamp-2 cursor-pointer hover:text-amber-600 mb-1.5"
                           >
                             {product.name}
                           </h4>
+
+                          <div className="flex items-center gap-1 mb-2">
+                            <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
+                            <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                              {Number(product.rating) > 0 ? Number(product.rating).toFixed(1) : "Chưa có đánh giá"}
+                            </span>
+                          </div>
                           
                           <div className="flex items-center justify-between">
                             <div className="flex flex-col">
@@ -581,6 +608,8 @@ export default function CartPage() {
             )}
         </div>
       </section>
+
+
 
       <Footer />
     </div>
