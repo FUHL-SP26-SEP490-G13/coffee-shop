@@ -96,6 +96,10 @@ export const API_ENDPOINTS = {
   LOYALTY: {
     ME: '/loyalty/me',
     MY_TRANSACTIONS: '/loyalty/me/transactions',
+    ADMIN_CUSTOMERS: '/loyalty/admin/customers',
+    ADMIN_USER_DETAIL: (userId) => `/loyalty/admin/users/${userId}`,
+    ADMIN_USER_TRANSACTIONS: (userId) => `/loyalty/admin/users/${userId}/transactions`,
+    ADMIN_USER_ADJUST: (userId) => `/loyalty/admin/users/${userId}/adjust`,
   },
   ORDER_ONLINES: '/order-online',
   TOPPINGS: '/toppings',

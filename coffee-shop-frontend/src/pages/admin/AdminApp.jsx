@@ -22,6 +22,7 @@ import {
   Settings,
   MessageSquare,
   Shield,
+  Coins,
   Zap,
   Clock,
   Moon,
@@ -460,6 +461,18 @@ export default function AdminApp() {
                 >
                   <Shield className="w-4 h-4" />
                   <span className="text-sm tracking-wide">Điểm uy tín</span>
+                </NavLink>
+                <NavLink
+                  to="/admin/loyalty"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={({ isActive }) =>
+                    `w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                      isActive ? "bg-primary text-white" : "text-muted-foreground hover:bg-secondary"
+                    }`
+                  }
+                >
+                  <Coins className="w-4 h-4" />
+                  <span className="text-sm tracking-wide">Điểm loyalty</span>
                 </NavLink>
                 <NavLink
                   to="/admin/flash-sales"
