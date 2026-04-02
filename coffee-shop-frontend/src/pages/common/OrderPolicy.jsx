@@ -53,23 +53,20 @@ function OrderPolicy() {
 
           {/* 3 */}
           <PolicyCard icon={<XCircle />} title="3. Chính sách hủy đơn">
-            <span>
-              Quý khách có thể yêu cầu hủy đơn hàng khi đơn ở trạng thái Chờ xử
-              lý hoặc Đang chuẩn bị. Chính sách hoàn tiền đối với các đơn đã
-              thanh toán trước được áp dụng như sau:{" "}
-            </span>
-            <ul className="space-y-2 my-4">
+            <ul className="space-y-2">
               <li>
-                • Hoàn <strong>100% </strong> giá trị đơn hàng: Nếu đơn hàng chưa được xác nhận hoặc
-                chưa bắt đầu chế biến.{" "}
+                • Khách hàng được hủy đơn khi đơn đang ở trạng thái <strong>Chờ xác nhận (pending)</strong> hoặc <strong>Đang chuẩn bị (preparing)</strong>.
               </li>
               <li>
-                • Hoàn <strong>50% </strong> giá trị đơn hàng: Nếu đơn hàng đã chuyển sang trạng
-                thái Đang chuẩn bị (nhằm bù đắp chi phí nguyên liệu và công vận
-                hành đã phát sinh).
+                • Khi đơn đã chuyển sang các trạng thái khác (ví dụ: đang giao, hoàn tất), hệ thống sẽ không cho hủy từ phía khách hàng.
+              </li>
+              <li>
+                • Với thanh toán PayOS, đơn ở trạng thái chờ thanh toán có thể được hệ thống tự động hủy sau khoảng <strong>5 phút</strong> nếu chưa thanh toán thành công.
+              </li>
+              <li>
+                • Khi đơn bị hủy, hệ thống sẽ đồng bộ lại điểm loyalty (nếu đơn có sử dụng điểm) và có thể bị mất 20 điểm uy tín cho mỗi đơn nếu lý do hủy là do khách hàng.
               </li>
             </ul>
-            <span>Trường hợp hoàn tiền hãy liên hệ với chúng tôi qua số điện thoại hoặc Zalo trong vòng 24 giờ kể từ khi nhận được đơn hàng.</span>
           </PolicyCard>
 
           {/* 4 */}
@@ -99,6 +96,30 @@ function OrderPolicy() {
               <li>• Kiểm tra sản phẩm khi nhận.</li>
             </ul>
           </PolicyCard>
+
+          {/* 7 */}
+          <PolicyCard icon={<RefreshCcw />} title="7. Chính sách tích và đổi điểm loyalty">
+            <ul className="space-y-2">
+              <li>
+                • <strong>Tích điểm:</strong> Khi đơn hàng hoàn tất, hệ thống cộng điểm theo công thức <strong>1 điểm cho mỗi 10.000đ</strong> giá trị đơn.
+              </li>
+              <li>
+                • <strong>Đổi điểm:</strong> Tại bước thanh toán, khách hàng có thể dùng điểm để giảm giá với tỷ lệ <strong>1 điểm = 100đ</strong>.
+              </li>
+              <li>
+                • Chỉ tài khoản đã đăng nhập mới được sử dụng điểm loyalty.
+              </li>
+              <li>
+                • Số điểm sử dụng phải là số nguyên không âm, không vượt quá số điểm hiện có và không vượt quá giá trị đơn hàng cần thanh toán.
+              </li>
+              <li>
+                • <strong>Hoàn điểm khi hủy đơn:</strong> Nếu đơn đã dùng điểm và bị hủy, hệ thống sẽ hoàn lại số điểm đã trừ vào ví loyalty của khách hàng.
+              </li>
+              <li>
+                • Lịch sử điểm được ghi nhận minh bạch theo các loại giao dịch: cộng điểm, trừ điểm, hoàn điểm, điều chỉnh.
+              </li>
+            </ul>
+          </PolicyCard>
         </div>
       </div>
 
@@ -115,7 +136,9 @@ function PolicyCard({ icon, title, children }) {
   return (
     <Card className="rounded-3xl shadow-xl border border-gray-200 dark:border-gray-800 hover:border-amber-300 dark:hover:border-amber-500 transition-all duration-300 p-8 bg-white dark:bg-gray-950">
       <div className="flex items-center gap-4 mb-6">
-        <div className="p-3 bg-amber-100 dark:bg-amber-900/40 rounded-xl text-amber-600 dark:text-amber-500">{icon}</div>
+        <div className="p-3 bg-amber-100 dark:bg-amber-900/40 rounded-xl text-amber-600 dark:text-amber-500">
+          {icon}
+        </div>
         <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100">
           {title}
         </h2>
