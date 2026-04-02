@@ -59,9 +59,9 @@ export default function DiscountSection() {
             <Sparkles className="w-4 h-4" />
             Ưu đãi
           </div>
-          <h5 className="text-xl md:text-3xl font-semibold text-gray-900 dark:text-gray-100" style={{ fontFamily: 'serif' }}>
+          <h2 className="text-lg md:text-2xl font-bold tracking-[0.15em] text-primary">
             Khuyến mãi hôm nay
-          </h5>
+          </h2>
         </div>
 
         <div className="relative discount-swiper-container px-2">

@@ -41,9 +41,9 @@ export default function FeaturedNews() {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-6 mb-12">
           <div className="space-y-3">
             <div className="inline-block">
-              <h3 className="text-xl md:text-3xl font-semibold text-center text-gray-900 dark:text-gray-100 mb-12" style={{ fontFamily: 'serif' }}>
+              <h2 className="text-lg pb-8 md:text-2xl font-bold tracking-[0.15em] text-primary">
                 Tin tức cà phê
-              </h3>
+              </h2>
               <div className="h-1 w-20 bg-gradient-to-r from-primary to-primary/50 rounded-full mt-2" />
             </div>
             <p className="text-muted-foreground text-lg">

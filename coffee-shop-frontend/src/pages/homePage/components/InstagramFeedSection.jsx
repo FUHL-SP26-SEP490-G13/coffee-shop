@@ -49,9 +49,9 @@ export default function InstagramFeedSection() {
   return (
     <section className="w-full bg-white dark:bg-gray-900 py-16">
       <div className="max-w-[1440px] mx-auto w-full px-4 sm:px-6 lg:px-8 xl:px-12 text-center mb-10">
-        <h3 className="text-xl md:text-3xl font-semibold text-center text-gray-900 dark:text-gray-100 mb-12" style={{ fontFamily: 'serif' }}>
+        <h2 className="text-lg pb-8 text-center md:text-2xl font-bold tracking-[0.15em] text-primary">
           Theo dõi chúng tôi
-        </h3>
+        </h2>
         <div className="flex items-center justify-center gap-2 text-primary hover:opacity-80 transition-opacity cursor-pointer mx-auto" onClick={handleImageClick}>
           <Instagram className="w-5 h-5" />
           <span className="font-medium text-lg tracking-wide">@coffeeshop_vn</span>

@@ -36,9 +36,9 @@ export default function CategorySection() {
     <section className="py-16 bg-[#F8F5F0] dark:bg-[#1a1614]">
       <div className="max-w-[1440px] mx-auto w-full px-4 sm:px-6 lg:px-8 xl:px-12">
         <div className="flex flex-col sm:flex-row justify-between items-center mb-10 md:mb-12 gap-4">
-          <h3 className="text-xl md:text-3xl font-semibold text-gray-900 dark:text-gray-100 mb-12" style={{ fontFamily: 'serif' }}>
-            Danh mục sản  phẩm
-          </h3>
+          <h2 className="text-lg md:text-2xl font-bold tracking-[0.15em] text-primary">
+            Khám phá thực đơn
+          </h2>
           {categories.length > 8 && (
             <Link to="/products" className="hidden sm:inline-block">
               <Button

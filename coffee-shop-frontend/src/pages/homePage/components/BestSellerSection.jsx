@@ -122,7 +122,7 @@ export default function BestSellerSection({
         <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end">
           <div>
             <h2 className="text-lg md:text-2xl font-bold tracking-[0.15em] text-primary">
-              Sản phẩm bán chạy
+              Menu khách yêu thích
             </h2>
             <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
               Những thức uống và món ăn được yêu thích nhất, được chọn lọc bởi
