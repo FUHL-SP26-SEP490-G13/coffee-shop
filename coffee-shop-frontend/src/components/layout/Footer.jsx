@@ -37,7 +37,7 @@ function Footer() {
                 />
               </Link>
               <p className="mt-4 text-sm leading-relaxed text-muted-foreground dark:text-gray-400">
-                Hương vị cà phê chuẩn vị, phục vụ mỗi ngày.
+                Hương vị cà phê chuẩn vị, phục vụ mỗi ngày
               </p>
               <div className="mt-5 space-y-3 text-sm text-muted-foreground dark:text-gray-400">
                 <p className="flex items-center gap-2">

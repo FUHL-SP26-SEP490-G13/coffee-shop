@@ -86,9 +86,14 @@ export default function ReviewSection() {
   return (
     <section className="py-16 lg:py-24 bg-[#EFE8D8] dark:bg-[#1f1b1a] overflow-hidden">
       <div className="max-w-[1440px] mx-auto w-full px-4 sm:px-6 lg:px-8 xl:px-12">
-        <h2 className="text-lg pb-8 md:text-2xl text-center font-bold tracking-[0.15em] text-primary">
-          Khách hàng nói gì
-        </h2>
+        <div className="text-center pb-8">
+          <h2 className="text-lg md:text-2xl font-bold tracking-[0.15em] text-primary mb-2">
+            Khách hàng nói gì
+          </h2>
+          <p className="text-gray-600 dark:text-gray-400 text-sm md:text-base">
+            Hàng nghìn khách hàng tin tưởng Coffee Shop
+          </p>
+        </div>
         <div className="relative review-swiper-container">
           <Swiper
             modules={[Pagination, Navigation, Autoplay]}

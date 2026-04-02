@@ -22,6 +22,7 @@ import NewsDetailPage from "@/pages/homePage/news/NewsDetailPage";
 import AdminEditNewsPage from "@/pages/admin/AdminNew/AdminEditNewsPage";
 import AdminNewsDetailPage from "@/pages/admin/AdminNew/AdminNewsDetailPage";
 import NewsListPage from "@/pages/homePage/news/NewsListPage";
+import DiscountListPage from "@/pages/homePage/discount/DiscountListPage";
 import AdminDiscounts from "@/pages/admin/AdminDiscount/AdminDiscounts";
 import AdminDiscountCreate from "@/pages/admin/AdminDiscount/AdminDiscountCreate";
 import AdminDiscountEdit from "@/pages/admin/AdminDiscount/AdminDiscountEdit";
@@ -224,6 +225,7 @@ const AppRoutes = () => {
       </Route>
       <Route path="/news/:slug" element={<NewsDetailPage />} />
       <Route path="/news" element={<NewsListPage />} />
+      <Route path="/discounts" element={<DiscountListPage />} />
       <Route path="/store" element={<StoreInfoPage />} />
       <Route path="/customer/profile" element={<UserProfile />} />
       {/* Only allow customers to access favorites */}

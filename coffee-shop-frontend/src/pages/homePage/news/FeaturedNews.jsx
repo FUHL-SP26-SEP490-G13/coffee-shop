@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 
 export default function FeaturedNews() {
   const fetchNews = useCallback(() => {
-    return newsService.getFeatured();
+    return newsService.getFeatured({ limit: 6 });
   }, []);
 
   const { data: newsData, loading } = useFetch(fetchNews);

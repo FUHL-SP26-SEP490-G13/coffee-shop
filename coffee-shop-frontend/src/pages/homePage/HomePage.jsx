@@ -8,13 +8,14 @@ import productService from "@/services/productService";
 import bannerService from "../../services/bannerService";
 import categoryService from "../../services/categoryService";
 import FeaturedNews from "@/pages/homePage/news/FeaturedNews";
-import HomeBanner from "./components/HomeBanner";
-import FlashSaleSection from "./components/FlashSaleSection";
-import DiscountSection from "./components/DiscountSection";
-import CategorySection from "./components/CategorySection";
-import BestSellerSection from "./components/BestSellerSection";
-import ReviewSection from "./components/ReviewSection";
-import InstagramFeedSection from "./components/InstagramFeedSection";
+import HomeBanner from "./banner/HomeBanner";
+import FlashSaleSection from "./product/FlashSaleSection";
+import DiscountSection from "./discount/DiscountSection";
+import CategorySection from "./product/CategorySection";
+import BestSellerSection from "./product/BestSellerSection";
+import ReviewSection from "./review/ReviewSection";
+import OrderGuideSection from "./order/OrderGuideSection";
+import InstagramFeedSection from "./follow/InstagramFeedSection";
 import "swiper/css";
 import "swiper/css/pagination";
 import "swiper/css/navigation";
@@ -299,6 +300,10 @@ export default function HomePage() {
 
       <FadeInView>
         <FeaturedNews />
+      </FadeInView>
+
+      <FadeInView>
+        <OrderGuideSection />
       </FadeInView>
 
       <FadeInView>

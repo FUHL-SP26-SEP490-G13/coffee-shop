@@ -18,6 +18,7 @@ import {
   Moon,
   Sun,
   Coins,
+  Ticket,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -878,6 +879,16 @@ function Header() {
                     <Newspaper className="w-4 h-4" />
                     <span>Tin tức</span>
                   </button>
+                  <button
+                    onClick={() => {
+                       setExploreOpen(false);
+                       navigate("/discounts");
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-2 hover:bg-amber-50 dark:hover:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 transition hover:text-amber-600"
+                  >
+                    <Ticket className="w-4 h-4" />
+                    <span>Khuyến mãi</span>
+                  </button>
                 </div>
               </div>
             )}
@@ -1486,6 +1497,19 @@ function Header() {
             >
               <Newspaper className="w-4 h-4 mr-2" />
               Tin tức
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                navigate("/discounts");
+                setMobileMenuOpen(false);
+              }}
+              className="w-full justify-start text-gray-700 dark:text-gray-300 text-xs"
+            >
+              <Ticket className="w-4 h-4 mr-2" />
+              Mã khuyến mãi
             </Button>
           </div>
         </div>
