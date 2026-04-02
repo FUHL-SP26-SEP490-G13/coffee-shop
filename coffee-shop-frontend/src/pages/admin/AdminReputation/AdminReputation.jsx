@@ -12,7 +12,7 @@ import {
   Trash2,
 } from "lucide-react";
 import reputationService from "@/services/reputationService";
-import appSettingService from "@/services/appSettingService";
+import receiptSettingService from "@/services/receiptSettingService";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -72,7 +72,7 @@ export default function AdminReputation() {
     setIsSettingsOpen(true);
     setSettingsLoading(true);
     try {
-      const res = await appSettingService.getSettings();
+      const res = await receiptSettingService.getSettings();
       let parsedRules = [];
       if (res?.data?.reputation_rules) {
         try {
@@ -130,7 +130,7 @@ export default function AdminReputation() {
         return;
       }
 
-      await appSettingService.upsertSettings({
+      await receiptSettingService.upsertSettings({
         reputation_rules: JSON.stringify(sorted.map(r => ({ minScore: r.minScore, maxCash: r.maxCash })))
       });
       toast.success("Lưu cấu hình thành công");

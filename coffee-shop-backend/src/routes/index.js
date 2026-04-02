@@ -32,6 +32,7 @@ const loyaltyRoutes = require('./loyalty.routes');
 
 const CategoryRepository = require('../repositories/CategoryRepository');
 const ProductRepository = require('../repositories/ProductRepository');
+const aiRoutes = require('./ai.routes');
 
 router.get('/public/slugs/:slug', async (req, res) => {
   try {
@@ -82,6 +83,7 @@ router.use('/flash-sales', flashSaleRoutes);
 router.use('/qr-order', qrOrderRoutes);
 router.use('/shifts', shiftRoutes);
 router.use('/loyalty', loyaltyRoutes);
+router.use('/ai', aiRoutes);
 
 // Health check endpoint
 router.get("/health", (req, res) => {
