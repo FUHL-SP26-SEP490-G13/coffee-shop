@@ -62,7 +62,8 @@ class NewsController {
 
   async getFeatured(req, res, next) {
     try {
-      const news = await NewsService.getFeatured(3);
+      const limit = parseInt(req.query.limit) || 5;
+      const news = await NewsService.getFeatured(limit);
       return response.success(res, news);
     } catch (error) {
       next(error);

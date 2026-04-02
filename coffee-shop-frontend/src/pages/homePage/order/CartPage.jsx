@@ -270,7 +270,7 @@ export default function CartPage() {
                         <img
                           src={item.image}
                           alt={item.name}
-                          onClick={() => navigate(`/products/${item.product_id || item.id}`)}
+                          onClick={() => navigate(`/${item.slug || 'products/' + (item.product_id || item.id)}`)}
                           className="w-24 h-24 text-gray-900 dark:text-gray-100 rounded-xl object-cover border cursor-pointer hover:opacity-80 transition-opacity"
                         />
 
@@ -279,7 +279,7 @@ export default function CartPage() {
                             <div>
                               <h3
                                 className="text-lg font-semibold cursor-pointer hover:text-amber-600 transition-colors"
-                                onClick={() => navigate(`/products/${item.product_id || item.id}`)}
+                                onClick={() => navigate(`/${item.slug || 'products/' + (item.product_id || item.id)}`)}
                               >
                                 {item.name}
                               </h3>
@@ -542,12 +542,12 @@ export default function CartPage() {
                         <img 
                           src={thumbnail} 
                           alt={product.name} 
-                          onClick={() => navigate(`/products/${product.id}`)}
+                          onClick={() => navigate(`/${product.slug || 'products/' + product.id}`)}
                           className="w-full aspect-square object-cover rounded-xl cursor-pointer hover:scale-105 transition-transform duration-300 mb-3"
                         />
                         <div className="flex-1 flex flex-col justify-between">
                           <h4 
-                            onClick={() => navigate(`/products/${product.id}`)}
+                            onClick={() => navigate(`/${product.slug || 'products/' + product.id}`)}
                             className="font-semibold text-sm text-gray-800 dark:text-gray-200 line-clamp-2 cursor-pointer hover:text-amber-600 mb-2"
                           >
                             {product.name}

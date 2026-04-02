@@ -18,7 +18,7 @@ export default function FeaturedNews() {
   if (loading) {
     return (
       <div className="bg-gradient-to-b from-background to-muted/30 py-16 md:py-20">
-        <div className="max-w-7xl mx-auto px-4 md:px-6">
+        <div className="max-w-[1440px] w-full mx-auto px-4 sm:px-6 lg:px-8 xl:px-12">
           <div className="flex items-center justify-center py-12">
             <div className="text-center space-y-4">
               <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto" />
@@ -36,12 +36,12 @@ export default function FeaturedNews() {
     <div className="relative bg-gradient-to-b from-background via-muted/20 to-background py-16 md:py-24 overflow-hidden">
       {/* Decorative Background Elements */}
       <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-primary/5 pointer-events-none" />
-      
-      <div className="relative max-w-7xl mx-auto px-4 md:px-6">
+
+      <div className="relative max-w-[1440px] w-full mx-auto px-4 sm:px-6 lg:px-8 xl:px-12">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-6 mb-12">
           <div className="space-y-3">
             <div className="inline-block">
-              <h3 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+              <h3 className="text-xl md:text-3xl font-semibold text-center text-gray-900 dark:text-gray-100 mb-12" style={{ fontFamily: 'serif' }}>
                 Tin tức cà phê
               </h3>
               <div className="h-1 w-20 bg-gradient-to-r from-primary to-primary/50 rounded-full mt-2" />
@@ -52,8 +52,8 @@ export default function FeaturedNews() {
           </div>
 
           <Link to="/news">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               className="gap-2 hover:gap-3 transition-all shadow-sm hover:shadow-md border-primary/20 hover:border-primary hover:bg-primary/5 group hover:text-primary"
             >
               <span className="font-semibold">Xem tất cả</span>
@@ -64,8 +64,8 @@ export default function FeaturedNews() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
           {featuredNews.map((item, index) => (
-            <Link 
-              key={item.id} 
+            <Link
+              key={item.id}
               to={`/news/${item.slug}`}
               className="group"
               style={{ animationDelay: `${index * 100}ms` }}
@@ -77,12 +77,12 @@ export default function FeaturedNews() {
                     alt={item.title}
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                     onError={(e) =>
-                      (e.target.src =
-                        "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085")
+                    (e.target.src =
+                      "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085")
                     }
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/0 to-black/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                  
+
                   {/* Featured Badge */}
                   <div className="absolute top-4 right-4">
                     <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-primary text-primary-foreground shadow-lg">

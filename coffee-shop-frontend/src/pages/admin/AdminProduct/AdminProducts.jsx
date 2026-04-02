@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Plus, Search, Edit, Trash2 } from 'lucide-react';
 
 import productService from '../../../services/productService';
@@ -28,7 +28,17 @@ const PAGE_SIZE = 8;
 
 export default function AdminProducts() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
   const [page, setPage] = useState(1);
+
+  // Debounce search query
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedQuery(searchQuery);
+      setPage(1); // Reset page to 1 simultaneously
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
 
   const [modal, setModal] = useState({
     type: null,
@@ -44,11 +54,18 @@ export default function AdminProducts() {
   };
 
   const fetchProducts = useCallback(() => {
+    if (debouncedQuery.trim()) {
+      return productService.search({
+        keyword: debouncedQuery.trim(),
+        page,
+        limit: PAGE_SIZE,
+      });
+    }
     return productService.getAll({
       page,
       limit: PAGE_SIZE,
     });
-  }, [page]);
+  }, [page, debouncedQuery]);
 
   const {
     data: response,
@@ -75,13 +92,7 @@ export default function AdminProducts() {
     ? categoryResponse.data
     : [];
 
-  const filteredProducts = useMemo(() => {
-    if (!Array.isArray(products)) return [];
-
-    return products.filter((p) =>
-      p.name?.toLowerCase().includes(searchQuery.toLowerCase()),
-    );
-  }, [products, searchQuery]);
+  const filteredProducts = products;
 
   const getThumbnail = (product) => {
     if (!product.images || product.images.length === 0) {

@@ -53,14 +53,14 @@ export default function DiscountSection() {
 
   return (
     <section className="py-16 bg-[#F8F5F0] dark:bg-[#1a1614]">
-      <div className="mx-auto max-w-7xl px-6 lg:px-8">
+      <div className="max-w-[1440px] mx-auto w-full px-4 sm:px-6 lg:px-8 xl:px-12">
         <div className="text-center mb-12">
           <div className="inline-flex items-center gap-2 text-amber-600 font-semibold mb-3 tracking-widest text-sm uppercase">
             <Sparkles className="w-4 h-4" />
             Ưu đãi
           </div>
           <h5 className="text-xl md:text-3xl font-semibold text-gray-900 dark:text-gray-100" style={{ fontFamily: 'serif' }}>
-            khuyến mãi hôm nay
+            Khuyến mãi hôm nay
           </h5>
         </div>
 

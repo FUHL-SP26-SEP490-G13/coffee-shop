@@ -31,8 +31,9 @@ import reviewService from "@/services/reviewService";
 import { Textarea } from "@/components/ui/textarea";
 import { useStoreHours } from "@/hooks/useStoreHours";
 
-export default function ProductDetailPage() {
+export default function ProductDetailPage({ productIdOverride, productData }) {
   const { id } = useParams();
+  const productId = productIdOverride || id;
   const navigate = useNavigate();
   const { isOpen: isStoreOpen, nextOpenMessage } = useStoreHours();
 
@@ -73,8 +74,8 @@ export default function ProductDetailPage() {
   }, []);
 
   const fetchProduct = useCallback(() => {
-    return productService.getById(id);
-  }, [id]);
+    return productService.getById(productId);
+  }, [productId]);
 
   const { data, loading } = useFetch(fetchProduct);
 
@@ -101,7 +102,7 @@ export default function ProductDetailPage() {
     setSelectedSize(null);
     setSelectedToppings([]);
     setShowToppings(false);
-  }, [id]);
+  }, [productId]);
 
   const [prevProduct, setPrevProduct] = useState(null);
   const [nextProduct, setNextProduct] = useState(null);
@@ -137,7 +138,7 @@ export default function ProductDetailPage() {
       }
     };
     fetchAdjacent();
-  }, [id]);
+  }, [productId]);
 
   useEffect(() => {
     const fetchToppings = async () => {
@@ -537,9 +538,32 @@ export default function ProductDetailPage() {
     <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900 relative">
       <Header />
 
+      <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 pt-6">
+        <div className="text-sm text-gray-500 dark:text-gray-400 mb-2 flex items-center space-x-2">
+          <span className="cursor-pointer hover:text-amber-600 transition-colors" onClick={() => navigate("/")}>Trang chủ</span>
+          {productData?.category_name && (
+            <>
+              <span className="text-gray-400">/</span>
+              <span 
+                className="cursor-pointer hover:text-amber-600 transition-colors"
+                onClick={() => navigate(`/${productData.category_slug}`)}
+              >
+                {productData.category_name}
+              </span>
+            </>
+          )}
+          {productData?.name && (
+            <>
+               <span className="text-gray-400">/</span>
+               <span className="text-amber-600 font-medium">{productData.name}</span>
+            </>
+          )}
+        </div>
+      </div>
+
       {prevProduct && (
         <button
-          onClick={() => navigate(`/products/${prevProduct.id}`)}
+          onClick={() => navigate(`/${prevProduct.slug || 'products/' + prevProduct.id}`)}
           className={`fixed left-2 xl:left-8 top-1/2 -translate-y-1/2 z-[100] bg-white/70 hover:bg-white dark:bg-gray-800/80 dark:hover:bg-gray-800 p-2 md:p-4 rounded-full shadow-[0_4px_20px_-4px_rgba(245,158,11,0.5)] border border-amber-200 dark:border-amber-900/50 text-amber-600 dark:text-amber-500 backdrop-blur-md transition-all duration-300 flex group overflow-hidden ${
             showNavArrows ? 'opacity-100 hover:scale-110' : 'opacity-0 pointer-events-none -translate-x-10'
           }`}
@@ -551,7 +575,7 @@ export default function ProductDetailPage() {
 
       {nextProduct && (
         <button
-          onClick={() => navigate(`/products/${nextProduct.id}`)}
+          onClick={() => navigate(`/${nextProduct.slug || 'products/' + nextProduct.id}`)}
           className={`fixed right-2 xl:right-8 top-1/2 -translate-y-1/2 z-[100] bg-white/70 hover:bg-white dark:bg-gray-800/80 dark:hover:bg-gray-800 p-2 md:p-4 rounded-full shadow-[0_4px_20px_-4px_rgba(245,158,11,0.5)] border border-amber-200 dark:border-amber-900/50 text-amber-600 dark:text-amber-500 backdrop-blur-md transition-all duration-300 flex group overflow-hidden ${
             showNavArrows ? 'opacity-100 hover:scale-110' : 'opacity-0 pointer-events-none translate-x-10'
           }`}
@@ -562,11 +586,7 @@ export default function ProductDetailPage() {
       )}
 
       <section className="w-full px-4 sm:px-6 lg:px-8 py-14">
-        <div className="max-w-7xl mx-auto">
-          <Button variant="ghost" onClick={() => navigate(-1)} className="mb-4">
-            ← Quay lại
-          </Button>
-        </div>
+
 
         <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
           <div>
@@ -791,9 +811,9 @@ export default function ProductDetailPage() {
                 <p className="text-sm uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">
                   {product.category_name || "Danh mục"}
                 </p>
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+                <h5 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                   {product.name}
-                </h1>
+                </h5>
               </div>
 
               <div className="flex gap-2 shrink-0">
@@ -967,7 +987,7 @@ export default function ProductDetailPage() {
               <div className="flex flex-col">
                 {isFlashSale && originalDisplayPrice ? (
                   <div className="flex items-center gap-3">
-                    <p className="text-4xl font-bold text-red-600">
+                    <p className="text-3xl font-semibold text-red-600">
                       {selectedSizeObj
                         ? `${displayPrice.toLocaleString("vi-VN")}đ`
                         : "Liên hệ"}
@@ -977,7 +997,7 @@ export default function ProductDetailPage() {
                     </span>
                   </div>
                 ) : (
-                  <p className="text-4xl font-bold text-amber-600">
+                  <p className="text-3xl font-semibold text-amber-600">
                     {selectedSizeObj
                       ? `${displayPrice.toLocaleString("vi-VN")}đ`
                       : "Liên hệ"}
@@ -1090,7 +1110,7 @@ export default function ProductDetailPage() {
                 return (
                   <div
                     key={item.id}
-                    onClick={() => navigate(`/products/${item.id}`)}
+                    onClick={() => navigate(`/${item.slug || 'products/' + item.id}`)}
                     className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200  overflow-hidden cursor-pointer hover:shadow-lg transition"
                   >
                     <div className="h-56 bg-gray-100 dark:bg-gray-800">

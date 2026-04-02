@@ -48,17 +48,17 @@ export default function InstagramFeedSection() {
 
   return (
     <section className="w-full bg-white dark:bg-gray-900 py-16">
-      <div className="mx-auto max-w-7xl px-4 text-center mb-10">
-        <h2 className="text-3xl font-bold text-gray-900 dark:text-gray-100 font-serif mb-3">
-          Follow Us
-        </h2>
+      <div className="max-w-[1440px] mx-auto w-full px-4 sm:px-6 lg:px-8 xl:px-12 text-center mb-10">
+        <h3 className="text-xl md:text-3xl font-semibold text-center text-gray-900 dark:text-gray-100 mb-12" style={{ fontFamily: 'serif' }}>
+          Theo dõi chúng tôi
+        </h3>
         <div className="flex items-center justify-center gap-2 text-primary hover:opacity-80 transition-opacity cursor-pointer mx-auto" onClick={handleImageClick}>
           <Instagram className="w-5 h-5" />
           <span className="font-medium text-lg tracking-wide">@coffeeshop_vn</span>
         </div>
       </div>
 
-      <div className="mx-auto max-w-7xl px-4">
+      <div className="max-w-[1440px] mx-auto w-full px-4 sm:px-6 lg:px-8 xl:px-12">
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 w-full gap-2 lg:gap-3 rounded-2xl overflow-hidden shadow-sm">
           {images.map((img) => (
             <div
@@ -66,32 +66,32 @@ export default function InstagramFeedSection() {
               className="group relative aspect-square w-full cursor-pointer overflow-hidden rounded-xl"
               onClick={handleImageClick}
             >
-            {/* Background Image */}
-            <img
-              src={img.url}
-              alt="Instagram Feed Snapshot"
-              className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
-              loading="lazy"
-            />
+              {/* Background Image */}
+              <img
+                src={img.url}
+                alt="Instagram Feed Snapshot"
+                className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
+                loading="lazy"
+              />
 
-            {/* Overlay Effect */}
-            <div className="absolute inset-0 bg-black/40 opacity-0 transition-opacity duration-300 group-hover:opacity-100 flex items-center justify-center backdrop-blur-[2px]">
-              <div className="flex items-center gap-6 text-white transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
-                <div className="flex items-center gap-1.5 font-semibold text-lg drop-shadow-md">
-                  <Heart className="w-6 h-6 fill-white" />
-                  <span>{img.likes}</span>
-                </div>
-                <div className="flex items-center gap-1.5 font-semibold text-lg drop-shadow-md">
-                  <MessageCircle className="w-6 h-6 fill-white" />
-                  <span>{img.comments}</span>
+              {/* Overlay Effect */}
+              <div className="absolute inset-0 bg-black/40 opacity-0 transition-opacity duration-300 group-hover:opacity-100 flex items-center justify-center backdrop-blur-[2px]">
+                <div className="flex items-center gap-6 text-white transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
+                  <div className="flex items-center gap-1.5 font-semibold text-lg drop-shadow-md">
+                    <Heart className="w-6 h-6 fill-white" />
+                    <span>{img.likes}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 font-semibold text-lg drop-shadow-md">
+                    <MessageCircle className="w-6 h-6 fill-white" />
+                    <span>{img.comments}</span>
+                  </div>
                 </div>
               </div>
-            </div>
-            
-            {/* Instagram Icon Badge */}
-            <div className="absolute top-4 right-4 bg-white dark:bg-gray-900/20 p-2 rounded-full backdrop-blur-md opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-               <Instagram className="w-4 h-4 text-white" />
-            </div>
+
+              {/* Instagram Icon Badge */}
+              <div className="absolute top-4 right-4 bg-white dark:bg-gray-900/20 p-2 rounded-full backdrop-blur-md opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                <Instagram className="w-4 h-4 text-white" />
+              </div>
             </div>
           ))}
         </div>

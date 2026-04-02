@@ -7,6 +7,7 @@ import { cartService } from "@/services/cartService";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, Navigation } from "swiper/modules";
 import { useStoreHours } from "@/hooks/useStoreHours";
+import productService from "@/services/productService";
 
 export default function FlashSaleSection({ products, getThumbnail, getDefaultCartSize }) {
   const { isOpen } = useStoreHours();
@@ -26,6 +27,22 @@ export default function FlashSaleSection({ products, getThumbnail, getDefaultCar
     };
     fetchFlashSale();
   }, []);
+
+  const [flashProducts, setFlashProducts] = useState(products || []);
+
+  useEffect(() => {
+    const fetchFlashProducts = async () => {
+      if (!activeSale) return;
+      try {
+        const res = await productService.getAll({ limit: 200 });
+        const list = Array.isArray(res?.data) ? res.data : (res?.data?.items || []);
+        if (list.length > 0) setFlashProducts(list);
+      } catch (error) {
+        console.error("Failed to fetch products for flash sale", error);
+      }
+    };
+    fetchFlashProducts();
+  }, [activeSale]);
 
   useEffect(() => {
     if (!activeSale) return;
@@ -48,7 +65,7 @@ export default function FlashSaleSection({ products, getThumbnail, getDefaultCar
     return () => clearInterval(timer);
   }, [activeSale]);
 
-  if (!activeSale || !products || products.length === 0) return null;
+  if (!activeSale || !flashProducts || flashProducts.length === 0) return null;
 
   const handleAddToCart = (e, product) => {
     e.preventDefault();
@@ -84,24 +101,24 @@ export default function FlashSaleSection({ products, getThumbnail, getDefaultCar
   };
 
   return (
-    <section 
-      className="py-12 relative overflow-hidden bg-gradient-to-r from-red-600 via-orange-600 to-amber-500 dark:from-red-950 dark:via-orange-950 dark:to-amber-950" 
-    >
-      <div className="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
-      
-      <div className="max-w-[1200px] mx-auto px-4 sm:px-6 relative z-10">
-        <div className="flex flex-col md:flex-row items-center justify-between mb-8 gap-6">
+    <section className="py-6 sm:py-8 lg:py-12">
+      <div className="max-w-[1440px] w-full mx-auto px-4 sm:px-6 lg:px-8 xl:px-12">
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-red-600 via-orange-600 to-amber-500 dark:from-red-950 dark:via-orange-950 dark:to-amber-950 px-5 py-8 sm:px-8 lg:px-12 shadow-2xl">
+          <div className="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 pointer-events-none"></div>
+          
+          <div className="relative z-10">
+            <div className="flex flex-col md:flex-row items-center justify-between mb-8 gap-6">
           <div className="flex items-center gap-4 text-white">
             <div className="bg-white/20 p-3 rounded-2xl backdrop-blur-md border border-white/20">
               <Zap className="w-8 h-8 text-yellow-300 animate-pulse" />
             </div>
             <div>
-              <h2 className="text-3xl md:text-4xl font-black italic tracking-wider flex items-center gap-2 drop-shadow-md text-white">
+              <h4 className="text-2xl md:text-3xl font-black italic tracking-wider flex items-center gap-2 drop-shadow-md text-white">
                 FLASH SALE
                 <span className="bg-red-800 text-white text-base md:text-lg px-3 py-1 rounded-full font-bold ml-2 shadow-inner">
                   -{activeSale.discount_percent}%
                 </span>
-              </h2>
+              </h4>
               <p className="text-white/90 font-medium text-sm md:text-base mt-1 drop-shadow-sm">{activeSale.title}</p>
             </div>
           </div>
@@ -139,8 +156,15 @@ export default function FlashSaleSection({ products, getThumbnail, getDefaultCar
           }}
           className="flash-sale-swiper !pb-8"
         >
-          {products
-            .filter((p) => activeSale.product_ids?.includes(p.id))
+          {flashProducts
+            .filter((p) => {
+              if (!activeSale.product_ids) return false;
+              let ids = activeSale.product_ids;
+              if (typeof ids === 'string') {
+                try { ids = JSON.parse(ids); } catch(e) { return false; }
+              }
+              return Array.isArray(ids) && ids.some(id => String(id) === String(p.id));
+            })
             .slice(0, 5)
             .map((product) => {
             const cartSize = getDefaultCartSize(product);
@@ -150,7 +174,7 @@ export default function FlashSaleSection({ products, getThumbnail, getDefaultCar
             return (
               <SwiperSlide key={product.id}>
                 <Link
-                  to={`/products/${product.id}`}
+                  to={`/${product.slug || 'products/' + product.id}`}
                   className="block bg-white dark:bg-gray-900 rounded-2xl p-3 shadow-lg hover:-translate-y-2 transition-transform duration-300 group border border-orange-100 dark:border-gray-800"
                 >
                   <div className="relative aspect-square rounded-xl overflow-hidden mb-4">
@@ -200,6 +224,8 @@ export default function FlashSaleSection({ products, getThumbnail, getDefaultCar
             );
           })}
         </Swiper>
+          </div>
+        </div>
       </div>
 
       <style>{`

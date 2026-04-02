@@ -134,7 +134,7 @@ export default function FavoritePage() {
                     >
                       <div
                         className="h-56 bg-gray-100 dark:bg-gray-800 cursor-pointer"
-                        onClick={() => navigate(`/products/${item.product_id}`)}
+                        onClick={() => navigate(`/${item.slug || 'products/' + item.product_id}`)}
                       >
                         <img
                           src={image}
@@ -151,7 +151,7 @@ export default function FavoritePage() {
                         <h3
                           className="font-semibold text-gray-900 dark:text-gray-100 line-clamp-2 min-h-[48px] cursor-pointer"
                           onClick={() =>
-                            navigate(`/products/${item.product_id}`)
+                            navigate(`/${item.slug || 'products/' + item.product_id}`)
                           }
                         >
                           {item.name}

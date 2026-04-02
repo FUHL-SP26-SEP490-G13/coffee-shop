@@ -14,6 +14,64 @@ class ProductRepository extends BaseRepository {
     return this.findOne({ code, is_deleted: 0 });
   }
 
+  async findBySlug(slug) {
+    return this.findOne({ slug, is_deleted: 0 });
+  }
+
+  async findBySlugWithDetails(slug) {
+    const [products] = await db.query(
+      `
+      SELECT 
+        p.id,
+        p.name,
+        p.code,
+        p.slug,
+        p.description,
+        p.status,
+        p.category_id,
+        p.is_deleted,
+        c.name AS category_name,
+        c.slug AS category_slug
+      FROM products p
+      LEFT JOIN category c ON p.category_id = c.id
+      WHERE p.slug = ? AND p.is_deleted = 0
+      LIMIT 1
+      `,
+      [slug]
+    );
+
+    if (products.length === 0) return null;
+
+    const product = products[0];
+    const id = product.id;
+
+    const [images] = await db.query(
+      `
+      SELECT id, product_id, image_url, isThumbnail
+      FROM product_images
+      WHERE product_id = ? AND is_deleted = 0
+      ORDER BY isThumbnail DESC, id ASC
+      `,
+      [id]
+    );
+
+    const [sizes] = await db.query(
+      `
+      SELECT id, product_id, size, price
+      FROM product_sizes
+      WHERE product_id = ? AND is_deleted = 0
+      ORDER BY FIELD(size, 'S', 'M', 'L')
+      `,
+      [id]
+    );
+
+    return {
+      ...product,
+      images,
+      sizes,
+    };
+  }
+
   async findByIdWithDetails(id) {
     const [products] = await db.query(
       `
@@ -25,7 +83,8 @@ class ProductRepository extends BaseRepository {
         p.status,
         p.category_id,
         p.is_deleted,
-        c.name AS category_name
+        c.name AS category_name,
+        c.slug AS category_slug
       FROM products p
       LEFT JOIN category c ON p.category_id = c.id
       WHERE p.id = ? AND p.is_deleted = 0

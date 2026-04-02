@@ -66,6 +66,7 @@ import { OrderDelivery } from '@/pages/staff/StaffOrderList';
 import { StaffDashboard } from "@/pages/staff/StaffDashboard";
 import StaffPayOSReturn from "@/pages/staff/StaffPayOSReturn";
 import StoreInfoPage from "@/pages/common/StoreInfoPage";
+import GenericSlugResolver from "../pages/common/GenericSlugResolver";
 
 const getStoredValue = (key) =>
   localStorage.getItem(key) || sessionStorage.getItem(key);
@@ -258,6 +259,9 @@ const AppRoutes = () => {
 
       <Route path="/order" element={<OrderQRMenu />} />
       <Route path="/order/confirm" element={<MyOrderQRDetail />} />
+
+      {/* SEO Slug Resolver */}
+      <Route path="/:slug" element={<GenericSlugResolver />} />
 
       {/* 404 */}
       <Route

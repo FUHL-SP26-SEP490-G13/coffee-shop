@@ -20,19 +20,19 @@ function OrderPolicy() {
     <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900">
       <Header />
 
-      <div className="text-center space-y-3 mt-10">
-        <h1 className="text-2xl md:text-3xl text-primary font-bold">
-          Chính sách đặt hàng
-        </h1>
-        <p className="text-gray-600 dark:text-gray-400 text-sm">
-          Thông tin chi tiết về quy trình đặt hàng, thanh toán và hỗ trợ khách
-          hàng.
-        </p>
-      </div>
+      <div className="flex-1 w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-10 mb-10">
+        <div className="text-center space-y-3 mt-4 mb-10">
+          <h1 className="text-2xl md:text-3xl text-primary font-bold">
+            Chính sách đặt hàng
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400 text-sm">
+            Thông tin chi tiết về quy trình đặt hàng, thanh toán và hỗ trợ khách
+            hàng.
+          </p>
+        </div>
 
-      {/* ===== CONTENT ===== */}
-      <section className="w-full px-4 sm:px-6 lg:px-8 py-16 sm:py-20">
-        <div className="max-w-6xl mx-auto space-y-10">
+        {/* ===== CONTENT ===== */}
+        <div className="w-full space-y-10">
           {/* 1 */}
           <PolicyCard icon={<ShoppingBag />} title="1. Hình thức đặt hàng">
             <ul className="space-y-2">
@@ -100,7 +100,7 @@ function OrderPolicy() {
             </ul>
           </PolicyCard>
         </div>
-      </section>
+      </div>
 
       {/* Divider giống Home */}
       <div className="w-full h-px bg-gradient-to-r from-transparent via-amber-300 to-transparent" />

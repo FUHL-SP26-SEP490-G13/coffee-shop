@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Loader2, ArrowRight, Heart } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 import favoriteService from "@/services/favoriteService";
 import flashSaleService from "@/services/flashSaleService";
 import { STORAGE_KEYS } from "@/constants";
@@ -117,30 +118,26 @@ export default function BestSellerSection({
 
   return (
     <section className="py-16 lg:py-24">
-      <div className="mx-auto max-w-7xl px-6 lg:px-8">
+      <div className="max-w-[1440px] mx-auto w-full px-4 sm:px-6 lg:px-8 xl:px-12">
         <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end">
           <div>
-            <span className="text-sm font-semibold uppercase tracking-[0.2em] text-primary">
-              Menu Đặc Sắc
-            </span>
-            <h4 className="mt-2 text-xl font-semibold text-foreground sm:text-2xl">
+            <h2 className="text-lg md:text-2xl font-bold tracking-[0.15em] text-primary">
               Sản phẩm bán chạy
-            </h4>
+            </h2>
             <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
               Những thức uống và món ăn được yêu thích nhất, được chọn lọc bởi
-              hàng ngàn khách hàng.
+              hàng ngàn khách hàng
             </p>
           </div>
 
-          <Link
-            to="/products"
-            className="group flex shrink-0 items-center gap-2 rounded-full border border-primary/30 px-5 py-2.5 text-sm font-semibold text-primary transition-all hover:bg-primary hover:text-primary-foreground active:scale-[0.97]"
-          >
-            Xem tất cả
-            <ArrowRight
-              size={16}
-              className="transition-transform group-hover:translate-x-0.5"
-            />
+          <Link to="/products">
+            <Button
+              variant="outline"
+              className="gap-2 hover:gap-3 transition-all shadow-sm hover:shadow-md border-primary/20 hover:border-primary hover:bg-primary/5 group hover:text-primary"
+            >
+              <span className="font-semibold">Xem tất cả</span>
+              <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+            </Button>
           </Link>
         </div>
 
@@ -169,7 +166,7 @@ export default function BestSellerSection({
                 >
                   <div className="flex h-full flex-col overflow-hidden rounded-3xl border border-border/50 bg-card shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
                     <div className="relative">
-                      <Link to={`/products/${product.id}`} className="block">
+                      <Link to={`/${product.slug || 'products/' + product.id}`} className="block">
                         <div className="relative h-60 overflow-hidden bg-secondary/40">
                           <img
                             src={getThumbnail(product)}
@@ -219,7 +216,7 @@ export default function BestSellerSection({
                         {product.category_name || "Danh mục"}
                       </p>
 
-                      <Link to={`/products/${product.id}`}>
+                      <Link to={`/${product.slug || 'products/' + product.id}`}>
                         <h3 className="mt-2 line-clamp-2 text-lg font-bold text-foreground transition hover:text-primary">
                           {product.name}
                         </h3>

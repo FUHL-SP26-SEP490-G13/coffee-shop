@@ -41,20 +41,20 @@ export default function StoreInfoPage() {
     <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900 transition-colors">
       <Header />
 
-      <main className="flex-1 w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-16">
+      <main className="flex-1 w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 pt-6 pb-10 md:pb-16 mb-10 mt-10">
         {loading ? (
           <div className="flex items-center justify-center py-20">
             <Loader2 className="w-8 h-8 animate-spin text-amber-600" />
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
             {/* Store Information */}
             <div className="space-y-8 animate-in slide-in-from-bottom-5 duration-700">
               <div>
-                <h1 className="text-3xl md:text-4xl text-gray-900 dark:text-gray-100 tracking-tight leading-tight">
+                <h1 className="text-2xl md:text-3xl text-gray-900 dark:text-gray-100 tracking-tight leading-tight font-bold">
                   Chào mừng bạn đến với <span className="text-amber-600">{storeInfo.name}</span>
                 </h1>
-                <p className="mt-4 text-lg text-gray-600 dark:text-gray-400">
+                <p className="mt-4 text-base md:text-lg text-gray-600 dark:text-gray-400">
                   Nơi thưởng thức cà phê và đồ uống tuyệt hảo với không gian thoải mái, ấm cúng dành cho mọi đối tượng.
                 </p>
               </div>

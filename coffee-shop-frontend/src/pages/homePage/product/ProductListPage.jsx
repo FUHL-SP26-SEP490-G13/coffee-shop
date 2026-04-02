@@ -3,7 +3,6 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { Loader2, Heart, Filter, X, Star } from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
-import AiAssistantWidget from "@/components/layout/AiAssistantWidget";
 import { Button } from "@/components/ui/button";
 import productService from "@/services/productService";
 import favoriteService from "@/services/favoriteService";
@@ -12,12 +11,13 @@ import useFetch from "@/hooks/useFetch";
 import flashSaleService from "@/services/flashSaleService";
 import { STORAGE_KEYS } from "@/constants";
 import { useStoreHours } from "@/hooks/useStoreHours";
+import { slugCache } from "@/pages/common/GenericSlugResolver";
 
 const PAGE_SIZE = 9;
 
 const SIZES = ["S", "M", "L"];
 
-export default function ProductListPage() {
+export default function ProductListPage({ categoryIdOverride, categoryName, categorySlug }) {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { isOpen: isStoreOpen, nextOpenMessage } = useStoreHours();
@@ -28,7 +28,7 @@ export default function ProductListPage() {
 
   const isLoggedIn = !!token;
 
-  const categoryId = searchParams.get("category") || "";
+  const categoryId = categoryIdOverride || searchParams.get("category") || "";
   const keyword = searchParams.get("keyword") || "";
   const sortBy = searchParams.get("sort") || "";
   const filterSize = searchParams.get("size") || "";
@@ -49,7 +49,15 @@ export default function ProductListPage() {
 
   useEffect(() => {
     categoryService.getAll().then((res) => {
-      setCategories(res?.data || []);
+      const fetchedCategories = res?.data || [];
+      setCategories(fetchedCategories);
+      
+      // Khởi tạo sẵn cache để tránh bị unmount (load chớp màn hình)
+      fetchedCategories.forEach(cat => {
+        if (cat.slug && !slugCache[cat.slug]) {
+          slugCache[cat.slug] = { data: cat, type: 'category' };
+        }
+      });
     }).catch(() => { });
   }, []);
 
@@ -162,6 +170,23 @@ export default function ProductListPage() {
     setSearchParams(nextParams);
   };
 
+  const handleCategoryChange = (cat) => {
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete('category');
+    nextParams.delete('page'); // reset page when changing category
+
+    const searchString = nextParams.toString();
+
+    if (!cat) {
+       navigate(`/products${searchString ? '?' + searchString : ''}`);
+    } else if (cat.slug) {
+       navigate(`/${cat.slug}${searchString ? '?' + searchString : ''}`);
+    } else {
+       nextParams.set('category', cat.id);
+       navigate(`/products?${nextParams.toString()}`);
+    }
+  };
+
   const handleSortChange = (value) => {
     updateQuery({
       sort: value || "",
@@ -227,19 +252,16 @@ export default function ProductListPage() {
       <section className="w-full px-4 sm:px-6 lg:px-8 py-10">
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-                Danh sách sản phẩm
-              </h1>
-              <p className="text-gray-500 dark:text-gray-400 mt-1">
-                {keyword
-                  ? `Kết quả tìm kiếm cho "${keyword}"`
-                  : categoryId
-                    ? "Sản phẩm theo danh mục"
-                    : "Tất cả sản phẩm"}
-              </p>
+            <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center space-x-2">
+              <span className="cursor-pointer hover:text-amber-600 transition-colors" onClick={() => navigate("/")}>Trang chủ</span>
+              {categoryName && (
+                 <>
+                   <span className="text-gray-400">/</span>
+                   <span className="text-amber-600 font-medium">{categoryName}</span>
+                 </>
+              )}
             </div>
-
+            
             <div className="flex items-center gap-3 w-full sm:w-auto">
               <Button
                 variant="outline"
@@ -279,7 +301,7 @@ export default function ProductListPage() {
                   <div className="space-y-3">
                     <label className="flex items-center gap-3 cursor-pointer group">
                       <div className="relative flex items-center justify-center">
-                        <input type="radio" name="category" checked={!categoryId} onChange={() => updateQuery({ category: "", page: 1 })} className="peer sr-only" />
+                        <input type="radio" name="category" checked={!categoryId} onChange={() => handleCategoryChange(null)} className="peer sr-only" />
                         <div className="w-5 h-5 rounded border border-gray-300 peer-checked:bg-amber-600 peer-checked:border-amber-600 transition flex items-center justify-center">
                           {(!categoryId) && <div className="w-2.5 h-2.5 rounded-sm bg-white dark:bg-gray-900" />}
                         </div>
@@ -289,9 +311,9 @@ export default function ProductListPage() {
                     {categories.map((cat) => (
                       <label key={cat.id} className="flex items-center gap-3 cursor-pointer group">
                         <div className="relative flex items-center justify-center">
-                          <input type="radio" name="category" checked={categoryId === String(cat.id)} onChange={() => updateQuery({ category: cat.id, page: 1 })} className="peer sr-only" />
+                          <input type="radio" name="category" checked={String(categoryId) === String(cat.id)} onChange={() => handleCategoryChange(cat)} className="peer sr-only" />
                           <div className="w-5 h-5 rounded border border-gray-300 peer-checked:bg-amber-600 peer-checked:border-amber-600 transition flex items-center justify-center">
-                            {(categoryId === String(cat.id)) && <div className="w-2.5 h-2.5 rounded-sm bg-white dark:bg-gray-900" />}
+                            {(String(categoryId) === String(cat.id)) && <div className="w-2.5 h-2.5 rounded-sm bg-white dark:bg-gray-900" />}
                           </div>
                         </div>
                         <span className="text-gray-700 dark:text-gray-300 group-hover:text-amber-600 transition">{cat.name}</span>
@@ -434,7 +456,7 @@ export default function ProductListPage() {
                       return (
                         <div
                           key={item.id}
-                          onClick={() => navigate(`/products/${item.id}`)}
+                          onClick={() => navigate(`/${item.slug || 'products/' + item.id}`)}
                           className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200  overflow-hidden cursor-pointer hover:shadow-lg transition"
                         >
                           <div className="relative h-56 bg-gray-100 dark:bg-gray-800">
@@ -532,7 +554,7 @@ export default function ProductListPage() {
                                 className="bg-amber-600 hover:bg-amber-700 text-white disabled:bg-gray-400 disabled:opacity-100"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  if (isStoreOpen) navigate(`/products/${item.id}`);
+                                  if (isStoreOpen) navigate(`/${item.slug || 'products/' + item.id}`);
                                 }}
                               >
                                 {isStoreOpen ? "Thêm" : "Đóng cửa"}
@@ -587,7 +609,6 @@ export default function ProductListPage() {
       </section>
 
       <Footer />
-      <AiAssistantWidget />
     </div>
   );
 }
