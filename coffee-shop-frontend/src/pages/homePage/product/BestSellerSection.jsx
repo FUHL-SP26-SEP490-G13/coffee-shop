@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { Loader2, ArrowRight, Heart } from "lucide-react";
+import { Loader2, ArrowRight, Heart, Star, ShoppingCart } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import favoriteService from "@/services/favoriteService";
 import flashSaleService from "@/services/flashSaleService";
+import productService from "@/services/productService";
 import { STORAGE_KEYS } from "@/constants";
 
 export default function BestSellerSection({
@@ -23,6 +24,45 @@ export default function BestSellerSection({
   const [favoriteMap, setFavoriteMap] = useState({});
   const [favoriteLoadingMap, setFavoriteLoadingMap] = useState({});
   const [activeSale, setActiveSale] = useState(null);
+
+  const [activeTab, setActiveTab] = useState("Bán chạy");
+  const [tabData, setTabData] = useState({ "Bán chạy": [], "Mới nhất": [], "Được yêu thích": [] });
+  const [tabLoading, setTabLoading] = useState(false);
+
+  useEffect(() => {
+    if (products.length > 0) {
+      setTabData(prev => ({ ...prev, "Bán chạy": products }));
+    }
+  }, [products]);
+
+  const handleTabChange = async (tab) => {
+    if (activeTab === tab) return;
+    setActiveTab(tab);
+
+    if (tabData[tab].length === 0) {
+      setTabLoading(true);
+      try {
+        let res;
+        if (tab === "Mới nhất") {
+          res = await productService.getAll({ sort: "newest", limit: 8 });
+        } else if (tab === "Được yêu thích") {
+          res = await productService.getAll({ sort: "rating_desc", limit: 8, min_rating: 1 });
+        }
+        
+        if (res && (res.data?.data || Array.isArray(res.data))) {
+            const items = Array.isArray(res.data?.data) ? res.data.data : res.data;
+            setTabData(prev => ({ ...prev, [tab]: items.slice(0, 8) }));
+        }
+      } catch (error) {
+        console.error("Lỗi lấy dữ liệu tab:", error);
+      } finally {
+        setTabLoading(false);
+      }
+    }
+  };
+
+  const displayProducts = activeTab === "Bán chạy" ? tabData["Bán chạy"].length > 0 ? tabData["Bán chạy"] : products : tabData[activeTab];
+  const isCurrentlyLoading = activeTab === "Bán chạy" ? loading : tabLoading;
 
   useEffect(() => {
     flashSaleService.getCurrentActive()
@@ -117,42 +157,45 @@ export default function BestSellerSection({
   };
 
   return (
-    <section className="py-16 lg:py-24">
+    <section className="py-16 lg:py-24 bg-white dark:bg-[#1a1614]">
       <div className="max-w-[1440px] mx-auto w-full px-4 sm:px-6 lg:px-8 xl:px-12">
-        <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end">
-          <div>
-            <h2 className="text-lg md:text-2xl font-bold tracking-[0.15em] text-primary">
-              Menu khách yêu thích
-            </h2>
-            <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-              Những thức uống và món ăn được yêu thích nhất, được chọn lọc bởi
-              hàng ngàn khách hàng
-            </p>
-          </div>
-
-          <Link to="/products">
-            <Button
-              variant="outline"
-              className="gap-2 hover:gap-3 transition-all shadow-sm hover:shadow-md border-primary/20 hover:border-primary hover:bg-primary/5 group hover:text-primary"
-            >
-              <span className="font-semibold">Xem tất cả</span>
-              <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
-            </Button>
-          </Link>
+        <div className="flex flex-col items-center text-center justify-center gap-2 mb-8">
+          <h2 className="text-3xl md:text-4xl font-bold text-[#4A3219] dark:text-amber-500 mb-2" style={{ fontFamily: 'serif' }}>
+            Sản phẩm nổi bật
+          </h2>
+          <p className="max-w-2xl text-sm md:text-base text-gray-500 dark:text-gray-400">
+            Những thức uống được yêu thích nhất tại CaféHouse
+          </p>
         </div>
 
-        {loading && (
+        <div className="flex flex-wrap justify-center gap-3 mb-12">
+          {["Bán chạy", "Mới nhất", "Được yêu thích"].map((tab) => (
+            <button
+              key={tab}
+              onClick={() => handleTabChange(tab)}
+              className={`px-5 py-2 rounded-full text-sm font-semibold transition-colors ${
+                activeTab === tab
+                  ? "bg-[#8B5A2B] text-white shadow-sm"
+                  : "bg-[#F3EBE1] text-[#8B5A2B] hover:bg-[#EAE0D3] dark:bg-[#3E2723] dark:text-amber-200 dark:hover:bg-[#4E342E]"
+              }`}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
+
+        {isCurrentlyLoading && (
           <div className="flex items-center justify-center py-20">
             <div className="flex flex-col items-center gap-4">
-              <Loader2 className="h-10 w-10 animate-spin text-primary" />
+              <Loader2 className="h-10 w-10 animate-spin text-[#8B5A2B]" />
               <p className="text-muted-foreground">Đang tải sản phẩm...</p>
             </div>
           </div>
         )}
 
-        {!loading && products.length > 0 && (
+        {!isCurrentlyLoading && displayProducts.length > 0 && (
           <div className="mt-10 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {products.map((product, index) => {
+            {displayProducts.map((product, index) => {
               const isFavorite = Boolean(favoriteMap[product.id]);
               const isFavoriteLoading = Boolean(favoriteLoadingMap[product.id]);
 
@@ -164,35 +207,30 @@ export default function BestSellerSection({
                     animation: `fadeInUp 0.6s ease-out ${index * 0.08}s both`,
                   }}
                 >
-                  <div className="flex h-full flex-col overflow-hidden rounded-3xl border border-border/50 bg-card shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
+                  <div className="flex h-full flex-col overflow-hidden rounded-[24px] bg-[#FCFAF8] dark:bg-gray-900 border border-transparent hover:border-[#E8DFD5] dark:hover:border-gray-800 transition-all duration-300 hover:-translate-y-1 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] hover:shadow-lg p-5">
                     <div className="relative">
-                      <Link to={`/${product.slug || 'products/' + product.id}`} className="block">
-                        <div className="relative h-60 overflow-hidden bg-secondary/40">
-                          <img
-                            src={getThumbnail(product)}
-                            alt={product.name}
-                            className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                            onError={(e) => {
-                              e.currentTarget.src =
-                                "https://images.unsplash.com/photo-1509042239860-f550ce710b93";
-                            }}
-                          />
-                        </div>
-                      </Link>
-                      
-                      {activeSale && activeSale.product_ids?.includes(product.id) && (
-                        <div className="absolute top-4 left-4 z-10 bg-red-600 text-white text-xs font-bold px-2.5 py-1 rounded-md shadow-sm flex items-center gap-1 animate-pulse">
-                          ⚡ Flash Sale
-                        </div>
-                      )}
+                      {/* Badges */}
+                      <div className="absolute top-0 left-0 z-10 flex flex-col gap-2">
+                        {activeSale && activeSale.product_ids?.includes(product.id) ? (
+                          <span className="bg-red-500 text-white text-[10px] uppercase font-bold px-3 py-1 rounded-full shadow-sm">
+                            Flash Sale
+                          </span>
+                        ) : (
+                          <span className={`text-white text-[10px] font-bold px-3 py-1 rounded-full shadow-sm ${
+                            index % 3 === 0 ? "bg-[#F59E0B]" : index % 3 === 1 ? "bg-red-500" : "bg-green-500"
+                          }`}>
+                            {index % 3 === 0 ? "Best Seller" : index % 3 === 1 ? "Hot" : "Mới"}
+                          </span>
+                        )}
+                      </div>
 
                       <button
                         type="button"
                         onClick={(e) => handleToggleFavorite(e, product.id)}
                         disabled={isFavoriteLoading}
-                        className={`absolute right-4 top-4 z-10 flex h-10 w-10 items-center justify-center rounded-full border shadow-sm transition ${isFavorite
-                            ? "border-red-500 bg-red-50 text-red-500"
-                            : "border-border bg-white/90 text-muted-foreground hover:border-red-400 hover:text-red-500"
+                        className={`absolute right-0 top-0 z-10 flex items-center justify-center transition-all ${isFavorite
+                            ? "text-red-500 drop-shadow-sm"
+                            : "text-[#DCD5CD] hover:text-red-400 dark:text-gray-600"
                           }`}
                         title={
                           isFavorite
@@ -201,29 +239,55 @@ export default function BestSellerSection({
                         }
                       >
                         {isFavoriteLoading ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
+                          <Loader2 className="h-5 w-5 animate-spin" />
                         ) : (
                           <Heart
                             className={`h-5 w-5 ${isFavorite ? "fill-current" : ""
                               }`}
+                            strokeWidth={1.5}
                           />
                         )}
                       </button>
+
+                      <Link to={`/${product.slug || 'products/' + product.id}`} className="block mt-6 mb-2">
+                        <div className="relative h-44 w-full flex items-center justify-center">
+                          <img
+                            src={getThumbnail(product)}
+                            alt={product.name}
+                            className="h-[85%] w-[85%] object-contain transition duration-500 group-hover:scale-[1.08] mix-blend-multiply dark:mix-blend-normal drop-shadow-sm"
+                            onError={(e) => {
+                              e.currentTarget.src =
+                                "https://images.unsplash.com/photo-1509042239860-f550ce710b93";
+                            }}
+                          />
+                        </div>
+                      </Link>
                     </div>
 
-                    <div className="flex flex-grow flex-col p-5">
-                      <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
-                        {product.category_name || "Danh mục"}
+                    <div className="flex flex-col flex-grow mt-2">
+                      <p className="text-[11px] font-medium text-gray-400 uppercase mb-1">
+                        {product.category_name || "Thức uống"}
                       </p>
 
                       <Link to={`/${product.slug || 'products/' + product.id}`}>
-                        <h3 className="mt-2 line-clamp-2 text-lg font-bold text-foreground transition hover:text-primary">
+                        <h3 className="line-clamp-1 text-base font-bold text-[#4A3219] dark:text-gray-100 transition hover:text-[#8B5A2B] mb-1.5" style={{fontFamily: 'serif'}}>
                           {product.name}
                         </h3>
                       </Link>
 
-                      <div className="mt-5 flex items-end justify-between gap-3 border-t border-border/60 pt-4">
-                        <div className="min-w-0 flex-1">
+                      {Number(product.rating) > 0 ? (
+                        <div className="flex items-center gap-1.5 mb-5 h-[20px]">
+                          <Star className="w-3.5 h-3.5 fill-[#F59E0B] text-[#F59E0B]" />
+                          <span className="text-xs font-bold text-gray-700 dark:text-gray-200">
+                            {Number(product.rating).toFixed(1)}
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="mb-5 h-[20px]"></div>
+                      )}
+
+                      <div className="mt-auto flex items-end justify-between border-t border-transparent pt-1">
+                        <div className="min-w-0">
                           {(() => {
                             const isFlashSale = activeSale && activeSale.product_ids?.includes(product.id);
                             const originalPriceText = getDisplayPrice(product);
@@ -234,8 +298,8 @@ export default function BestSellerSection({
                                 const salePriceNum = Math.round(originalPriceNum * (1 - (activeSale.discount_percent || 0) / 100));
                                 return (
                                   <div className="flex flex-col">
-                                    <span className="text-sm line-through text-gray-400">{originalPriceText}</span>
-                                    <p className="break-words text-xl font-bold leading-tight text-red-600">
+                                    <span className="text-[11px] line-through text-gray-400">{originalPriceText}</span>
+                                    <p className="break-words text-[17px] font-bold leading-tight text-[#8B5A2B] dark:text-amber-500">
                                       {salePriceNum.toLocaleString("vi-VN")}đ
                                     </p>
                                   </div>
@@ -244,12 +308,22 @@ export default function BestSellerSection({
                             }
                             
                             return (
-                              <p className="break-words text-xl font-bold leading-tight text-primary">
+                              <p className="break-words text-[17px] font-bold leading-tight text-[#8B5A2B] dark:text-amber-500">
                                 {originalPriceText}
                               </p>
                             );
                           })()}
                         </div>
+                        
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            navigate(`/${product.slug || 'products/' + product.id}`);
+                          }}
+                          className="bg-[#8B5A2B] hover:bg-[#69421c] text-white w-8 h-8 rounded-md flex items-center justify-center shrink-0 transition-colors shadow-sm"
+                        >
+                          <ShoppingCart className="w-[15px] h-[15px] xl:ml-[-1px]" />
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -259,10 +333,10 @@ export default function BestSellerSection({
           </div>
         )}
 
-        {!loading && products.length === 0 && (
+        {!isCurrentlyLoading && displayProducts.length === 0 && (
           <div className="py-20 text-center">
-            <p className="text-lg text-muted-foreground">
-              Hiện chưa có sản phẩm. Vui lòng quay lại sau!
+            <p className="text-lg text-gray-500">
+              Hiện chưa có sản phẩm nào trong danh mục này.
             </p>
           </div>
         )}
