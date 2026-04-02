@@ -389,7 +389,6 @@ export default function AdminUsers() {
                               </Avatar>
                               <div className="flex flex-col">
                                 <span className="font-medium">{fullName}</span>
-                                <span className="text-xs text-muted-foreground">ID người dùng: {user.id}</span>
                               </div>
                             </div>
                           </TableCell>
