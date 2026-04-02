@@ -54,6 +54,7 @@ export default function PlaceOrderButton({
         address: form.address.trim(),
         note: form.note.trim(),
         discount_code: (form.discount_code || "").trim(),
+        used_points: Math.max(0, Number(form.used_points) || 0),
         items: cart.map((item) => ({
           product_size_id: item.productSizeId || item.product_size_id,
           quantity: Number(item.quantity),

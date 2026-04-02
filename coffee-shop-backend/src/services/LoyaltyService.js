@@ -4,7 +4,7 @@ const LoyaltyRepository = require("../repositories/LoyaltyRepository");
 const UserRepository = require("../repositories/UserRepository");
 
 class LoyaltyService {
-  static MONEY_PER_POINT = 500;
+  static MONEY_PER_POINT = 100;
 
   static EARN_PER_VND = 10000;
 

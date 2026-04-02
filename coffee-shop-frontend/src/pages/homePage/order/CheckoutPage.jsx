@@ -25,12 +25,12 @@ import authenticationService from "@/services/authenticationService";
 import PlaceOrderButton from "@/components/order/PlaceOrderButton";
 import ReputationScoreDialog from "@/components/order/ReputationScoreDialog";
 import orderService from "@/services/orderOnlineService";
+import loyaltyService from "@/services/loyaltyService";
 import { STORAGE_KEYS } from "@/constants";
 import { validateOrderField } from "@/utils/orderValidation";
 import PayOSLogo from "/logo/payOS.svg";
 import reputationService from "@/services/reputationService";
 import {
-  getReputationColor,
   getReputationTierLabel,
   validateOrderPermissions,
 } from "@/utils/reputationValidation";
@@ -41,6 +41,7 @@ import { geocodeAddress, getDrivingDistance, calculateShippingFee } from "@/util
 import { Loader2 } from "lucide-react";
 
 const DELIVERY_SHIPPING_FEE = 20000;
+const LOYALTY_MONEY_PER_POINT = 100;
 
 export default function CheckoutPage() {
   const navigate = useNavigate();
@@ -65,6 +66,9 @@ export default function CheckoutPage() {
   const [isReputationLoading, setIsReputationLoading] = useState(false);
   const [fetchedPhone, setFetchedPhone] = useState("");
   const [paymentValidation, setPaymentValidation] = useState(null);
+  const [loyaltyWalletPoints, setLoyaltyWalletPoints] = useState(0);
+  const [isLoyaltyLoading, setIsLoyaltyLoading] = useState(false);
+  const [usedPointsInput, setUsedPointsInput] = useState("0");
   const [form, setForm] = useState({
     order_type: "delivery",
     payment_method: "cash",
@@ -74,6 +78,7 @@ export default function CheckoutPage() {
     address: "",
     note: "",
     discount_code: "",
+    used_points: 0,
   });
   const [activeSale, setActiveSale] = useState(null);
 
@@ -170,6 +175,60 @@ export default function CheckoutPage() {
     return digits;
   };
 
+  const unwrapApiResponse = (response) => {
+    if (!response) return {};
+    if (
+      typeof response === "object" &&
+      response !== null &&
+      "data" in response &&
+      !("success" in response) &&
+      !("message" in response)
+    ) {
+      return response.data || {};
+    }
+    return response;
+  };
+
+  useEffect(() => {
+    if (!token) {
+      setLoyaltyWalletPoints(0);
+      setUsedPointsInput("0");
+      setForm((prev) => ({ ...prev, used_points: 0 }));
+      return;
+    }
+
+    let mounted = true;
+
+    const loadMyLoyalty = async () => {
+      try {
+        setIsLoyaltyLoading(true);
+        const res = await loyaltyService.getMyLoyalty();
+        const payload = unwrapApiResponse(res);
+        const wallet = payload?.data || payload;
+        const points = Number(wallet?.total_points || 0);
+
+        if (mounted) {
+          setLoyaltyWalletPoints(Number.isFinite(points) ? points : 0);
+        }
+      } catch (error) {
+        console.error("Lỗi tải điểm loyalty:", error);
+        if (mounted) {
+          setLoyaltyWalletPoints(0);
+        }
+      } finally {
+        if (mounted) {
+          setIsLoyaltyLoading(false);
+        }
+      }
+    };
+
+    loadMyLoyalty();
+
+    return () => {
+      mounted = false;
+    };
+  }, [token]);
+
   useEffect(() => {
     const normalizedPhone = normalizePhoneNumber(form.receiver_phone);
 
@@ -235,7 +294,7 @@ export default function CheckoutPage() {
           setShippingFee(DELIVERY_SHIPPING_FEE);
           setDeliveryDistanceKm(null);
         }
-      } catch (error) {
+      } catch {
          setShippingFee(DELIVERY_SHIPPING_FEE);
          setDeliveryDistanceKm(null);
       } finally {
@@ -286,16 +345,6 @@ export default function CheckoutPage() {
     return getReputationTierLabel(reputationScore);
   }, [reputationTier, reputationScore]);
 
-  const reputationTierText = useMemo(() => {
-    const map = {
-      BRONZE: "Đồng",
-      SILVER: "Bạc",
-      GOLD: "Vàng",
-      DIAMOND: "Kim cương",
-    };
-    return map[normalizedReputationTier] || normalizedReputationTier;
-  }, [normalizedReputationTier]);
-
   const subtotalAmount = useMemo(() => {
     return cart.reduce(
       (sum, item) => sum + cartService.getItemSubtotal(item),
@@ -316,7 +365,36 @@ export default function CheckoutPage() {
   }, [cart, activeSale]);
 
   const discountAmount = Number(appliedDiscount?.discount_amount || 0);
-  const totalAmount = subtotalAmount - discountAmount + shippingFee;
+  const amountAfterDiscount = Math.max(
+    0,
+    subtotalAmount - discountAmount + shippingFee,
+  );
+
+  const parsedUsedPoints = Math.max(0, Math.floor(Number(usedPointsInput) || 0));
+  const maxRedeemablePointsByWallet = Math.max(0, Number(loyaltyWalletPoints || 0));
+  const maxRedeemablePointsByAmount = Math.floor(
+    amountAfterDiscount / LOYALTY_MONEY_PER_POINT,
+  );
+  const maxRedeemablePoints = Math.max(
+    0,
+    Math.min(maxRedeemablePointsByWallet, maxRedeemablePointsByAmount),
+  );
+  const usedPoints = Math.min(parsedUsedPoints, maxRedeemablePoints);
+  const loyaltyDiscountAmount = usedPoints * LOYALTY_MONEY_PER_POINT;
+  const totalAmount = Math.max(0, amountAfterDiscount - loyaltyDiscountAmount);
+  const isPointsInputExceeded = parsedUsedPoints > maxRedeemablePoints;
+
+  useEffect(() => {
+    setForm((prev) => {
+      if (Number(prev.used_points || 0) === usedPoints) {
+        return prev;
+      }
+      return {
+        ...prev,
+        used_points: usedPoints,
+      };
+    });
+  }, [usedPoints]);
 
   // Validate payment permissions khi điểm uy tín thay đổi
   useEffect(() => {
@@ -404,6 +482,19 @@ export default function CheckoutPage() {
     } finally {
       setIsApplyingDiscount(false);
     }
+  };
+
+  const handleUsedPointsChange = (value) => {
+    const digitsOnly = String(value || "").replace(/\D/g, "");
+    setUsedPointsInput(digitsOnly);
+  };
+
+  const handleUseAllPoints = () => {
+    setUsedPointsInput(String(maxRedeemablePoints));
+  };
+
+  const handleClampUsedPoints = () => {
+    setUsedPointsInput(String(usedPoints));
   };
 
   return (
@@ -827,6 +918,54 @@ export default function CheckoutPage() {
               )}
             </div>
 
+            {token ? (
+              <div className="mb-5 rounded-xl border border-amber-200 bg-amber-50 p-3 dark:bg-amber-900/10 dark:border-amber-900/30">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                      Đổi điểm loyalty để giảm giá
+                    </p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                      1 điểm = 100đ. Bạn đang có {Number(loyaltyWalletPoints || 0).toLocaleString("vi-VN")} điểm.
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleUseAllPoints}
+                    disabled={isLoyaltyLoading || maxRedeemablePoints <= 0}
+                  >
+                    Dùng tối đa
+                  </Button>
+                </div>
+
+                <div className="mt-3 flex items-center gap-2">
+                  <Input
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="Nhập số điểm muốn dùng"
+                    value={usedPointsInput}
+                    onChange={(e) => handleUsedPointsChange(e.target.value)}
+                    onBlur={handleClampUsedPoints}
+                    disabled={isLoyaltyLoading || maxRedeemablePoints <= 0}
+                  />
+                </div>
+
+                <p className="mt-2 text-xs text-gray-600 dark:text-gray-400">
+                  Tối đa có thể dùng: {maxRedeemablePoints.toLocaleString("vi-VN")} điểm
+                  {" "}(={" "}
+                  {(maxRedeemablePoints * LOYALTY_MONEY_PER_POINT).toLocaleString("vi-VN")}đ)
+                </p>
+
+                {isPointsInputExceeded && (
+                  <p className="mt-1 text-xs text-red-600">
+                    Số điểm nhập vượt quá mức cho phép, hệ thống sẽ tự giới hạn khi đặt hàng.
+                  </p>
+                )}
+              </div>
+            ) : null}
+
             <div className="space-y-3 border-t pt-4 mb-4">
               <div className="flex justify-between text-sm text-gray-700 dark:text-gray-300">
                 <span>Tạm tính</span>
@@ -837,6 +976,13 @@ export default function CheckoutPage() {
                 <span>Giảm giá</span>
                 <span>- {discountAmount.toLocaleString("vi-VN")}đ</span>
               </div>
+
+              {loyaltyDiscountAmount > 0 ? (
+                <div className="flex justify-between text-sm text-gray-700 dark:text-gray-300">
+                  <span>Giảm từ điểm loyalty ({usedPoints.toLocaleString("vi-VN")} điểm)</span>
+                  <span>- {loyaltyDiscountAmount.toLocaleString("vi-VN")}đ</span>
+                </div>
+              ) : null}
 
               {shippingFee > 0 ? (
                 <div className="flex justify-between text-sm text-gray-700 dark:text-gray-300">

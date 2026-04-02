@@ -365,7 +365,7 @@ export default function AdminLoyalty() {
               Lịch sử loyalty - {selectedCustomer?.phone || selectedCustomer?.username || "--"}
             </DialogTitle>
             <DialogDescription>
-              Điểm hiện tại: <strong>{formatPoints(selectedCustomer?.total_points)}</strong> ({formatPoints(Number(selectedCustomer?.total_points || 0) * 500)} VND)
+              Điểm hiện tại: <strong>{formatPoints(selectedCustomer?.total_points)}</strong> ({formatPoints(Number(selectedCustomer?.total_points || 0) * 100)} VND)
             </DialogDescription>
           </DialogHeader>
 
