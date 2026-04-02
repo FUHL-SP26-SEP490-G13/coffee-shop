@@ -28,6 +28,7 @@ const takeawayRoutes = require("./takeaway.routes");
 const flashSaleRoutes = require('./flashSale.routes');
 const qrOrderRoutes = require('./qrOrder.routes');
 const shiftRoutes = require('./shift.routes');
+const loyaltyRoutes = require('./loyalty.routes');
 
 const CategoryRepository = require('../repositories/CategoryRepository');
 const ProductRepository = require('../repositories/ProductRepository');
@@ -80,6 +81,7 @@ router.use("/orders", orderRoutes);
 router.use('/flash-sales', flashSaleRoutes);
 router.use('/qr-order', qrOrderRoutes);
 router.use('/shifts', shiftRoutes);
+router.use('/loyalty', loyaltyRoutes);
 
 // Health check endpoint
 router.get("/health", (req, res) => {

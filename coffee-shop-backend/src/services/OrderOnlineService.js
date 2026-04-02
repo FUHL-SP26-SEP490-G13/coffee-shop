@@ -1,5 +1,6 @@
 const OrderRepository = require("../repositories/OrderRepository");
 const ReputationService = require("./ReputationService");
+const LoyaltyService = require("./LoyaltyService");
 const ErrorResponse = require("../utils/ErrorResponse");
 
 class OrderOnlineService {
@@ -130,6 +131,7 @@ class OrderOnlineService {
       address,
       note,
       discount_code,
+      used_points,
       items,
     } = payload;
 
@@ -159,6 +161,15 @@ class OrderOnlineService {
       await connection.beginTransaction();
 
       const userId = user?.id || null;
+      const normalizedUsedPoints = Math.max(0, Number(used_points) || 0);
+
+      if (!Number.isInteger(normalizedUsedPoints) || normalizedUsedPoints < 0) {
+        throw new ErrorResponse(400, "Điểm sử dụng không hợp lệ");
+      }
+
+      if (normalizedUsedPoints > 0 && !userId) {
+        throw new ErrorResponse(401, "Bạn cần đăng nhập để sử dụng điểm loyalty");
+      }
 
       if (order_type !== "dine-in" && payment_method === "cash") {
         const normalizedReceiverPhone = this.normalizePhoneNumber(receiver_phone);
@@ -196,6 +207,13 @@ class OrderOnlineService {
         if (activeOrder) {
           activeOrderId = activeOrder.id;
           existingOrderAmount = Number(activeOrder.total_amount);
+
+          if (normalizedUsedPoints > 0) {
+            throw new ErrorResponse(
+              400,
+              "Không thể dùng điểm khi đang gộp thêm món vào đơn bàn hiện tại"
+            );
+          }
         }
       }
 
@@ -211,6 +229,7 @@ class OrderOnlineService {
       let discountAmount = 0;
       let discountCodeApplied = null;
       let discountIdApplied = null;
+      let loyaltyDiscountAmount = 0;
 
       const normalizedDiscountCode = String(discount_code || "").trim();
       if (normalizedDiscountCode) {
@@ -274,7 +293,20 @@ class OrderOnlineService {
         discountIdApplied = discount.id;
       }
 
-      const finalAmount = Math.max(0, totalAmount - discountAmount);
+      const amountAfterVoucher = Math.max(0, totalAmount - discountAmount);
+
+      if (normalizedUsedPoints > 0) {
+        loyaltyDiscountAmount = await LoyaltyService.getRedeemDiscountForCheckout(
+          connection,
+          {
+            userId,
+            usedPoints: normalizedUsedPoints,
+            orderAmount: amountAfterVoucher,
+          }
+        );
+      }
+
+      const finalAmount = Math.max(0, amountAfterVoucher - loyaltyDiscountAmount);
 
       let orderId = activeOrderId;
       if (!orderId) {
@@ -284,7 +316,9 @@ class OrderOnlineService {
           customer_type: user ? "registered" : "guest",
           order_type,
           table_id: order_type === "dine-in" ? payload.table_id : null,
+          status: "pending",
           total_amount: finalAmount,
+          used_points: normalizedUsedPoints,
         });
 
         if (order_type === "dine-in") {
@@ -363,6 +397,14 @@ class OrderOnlineService {
         await OrderRepository.incrementDiscountUsedCount(connection, discountIdApplied);
       }
 
+      if (normalizedUsedPoints > 0) {
+        await LoyaltyService.applyRedeemForOrder(connection, {
+          userId,
+          orderId,
+          usedPoints: normalizedUsedPoints,
+        });
+      }
+
       await connection.commit();
 
       return {
@@ -370,7 +412,9 @@ class OrderOnlineService {
         subtotal_amount: totalAmount,
         shipping_fee: shippingFee,
         discount_amount: discountAmount,
+        loyalty_discount_amount: loyaltyDiscountAmount,
         discount_code: discountCodeApplied,
+        used_points: normalizedUsedPoints,
         total_amount: finalAmount,
       };
     } catch (error) {
@@ -502,6 +546,7 @@ class OrderOnlineService {
     }
 
     await OrderRepository.cancelOrderByUser(orderId, userId);
+    await LoyaltyService.syncOrderLoyaltyByOrderId(orderId);
 
     return {
       order_id: orderId,
@@ -571,6 +616,7 @@ class OrderOnlineService {
 
       await OrderRepository.updateOrderStatus(orderId, "cancelled");
       await OrderRepository.updatePaymentStatusByOrderId(orderId, "pending");
+      await LoyaltyService.syncOrderLoyaltyByOrderId(orderId);
 
       // Delivery: preparing -> cancelled (khách không nhận) => -20 điểm uy tín
       if (order.order_type === "delivery" && currentStatus === "preparing") {
@@ -621,6 +667,7 @@ class OrderOnlineService {
     }
 
     await OrderRepository.updateOrderStatus(orderId, "completed");
+    await LoyaltyService.syncOrderLoyaltyByOrderId(orderId);
 
     // Delivery: preparing -> completed (khách nhận thành công) => +10 điểm uy tín
     if (order.order_type === "delivery" && currentStatus === "preparing") {
@@ -706,6 +753,7 @@ class OrderOnlineService {
     }
 
     await OrderRepository.updateOrderStatus(orderId, "cancelled");
+    await LoyaltyService.syncOrderLoyaltyByOrderId(orderId);
 
     return {
       order_id: orderId,
@@ -761,6 +809,7 @@ class OrderOnlineService {
     if (isCancelled) {
       await OrderRepository.updateOrderStatus(orderCode, "cancelled");
       await OrderRepository.updateOrderPaidStatus(orderCode, false);
+      await LoyaltyService.syncOrderLoyaltyByOrderId(orderCode);
     } else if (isPaid) {
       await OrderRepository.updateOrderPaidStatus(orderCode, true);
     }

@@ -65,6 +65,9 @@ class OrderRepository {
   }
 
   async createOrder(connection, data) {
+    const safeStatus = data.status || "pending";
+    const safeUsedPoints = Math.max(0, Number(data.used_points) || 0);
+
     const [result] = await connection.query(
       `
       INSERT INTO orders (
@@ -76,9 +79,10 @@ class OrderRepository {
         status,
         is_paid,
         total_amount,
+        used_points,
         session_id
       )
-      VALUES (?, ?, ?, ?, ?, 'pending', 0, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?)
       `,
       [
         data.user_id,
@@ -86,7 +90,9 @@ class OrderRepository {
         data.customer_type,
         data.order_type,
         data.table_id || null,
+        safeStatus,
         data.total_amount,
+        safeUsedPoints,
         data.session_id || null,
       ]
     );
@@ -276,6 +282,7 @@ class OrderRepository {
         status,
         is_paid,
         total_amount,
+        used_points,
         created_at,
         paid_at
       FROM orders
@@ -299,6 +306,7 @@ class OrderRepository {
         o.print_status,
         o.is_paid,
         o.total_amount,
+        o.used_points,
         o.created_at,
         o.paid_at,
         odi.receiver_name,
@@ -332,6 +340,7 @@ class OrderRepository {
         o.status,
         o.is_paid,
         o.total_amount,
+        o.used_points,
         o.created_at,
         op.payment_method,
         op.payment_status
@@ -356,6 +365,7 @@ class OrderRepository {
         o.status,
         o.is_paid,
         o.total_amount,
+        o.used_points,
         o.created_at,
         o.paid_at,
         odi.receiver_name,
@@ -521,6 +531,7 @@ class OrderRepository {
         o.status,
         o.is_paid,
         o.total_amount,
+        o.used_points,
         o.created_at,
         o.paid_at,
         t.code as table_code,

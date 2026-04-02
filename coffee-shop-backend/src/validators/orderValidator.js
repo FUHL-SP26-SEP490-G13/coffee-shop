@@ -122,6 +122,12 @@ const checkoutOrderSchema = Joi.object({
     "string.max": "Mã giảm giá không được vượt quá 50 ký tự",
   }),
 
+  used_points: Joi.number().integer().min(0).optional().messages({
+    "number.base": "Điểm sử dụng không hợp lệ",
+    "number.integer": "Điểm sử dụng phải là số nguyên",
+    "number.min": "Điểm sử dụng không được âm",
+  }),
+
   items: itemsSchema,
 });
 

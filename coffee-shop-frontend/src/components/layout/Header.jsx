@@ -17,6 +17,7 @@ import {
   MapPin,
   Moon,
   Sun,
+  Coins,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,6 +43,8 @@ import notificationService from "@/services/notificationService";
 import socket from "@/lib/socket";
 import { getNotificationLink } from "@/utils/getNotificationLink";
 import favoriteService from "@/services/favoriteService";
+import loyaltyService from "@/services/loyaltyService";
+import LoyaltyHistoryModal from "@/components/loyalty/LoyaltyHistoryModal";
 
 const placeholders = [
   "Xin chào, bạn cần gì hôm nay?",
@@ -131,6 +134,8 @@ function Header() {
 
   const [favoriteCount, setFavoriteCount] = useState(0);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
+  const [loyaltyPoints, setLoyaltyPoints] = useState(0);
+  const [loyaltyModalOpen, setLoyaltyModalOpen] = useState(false);
 
   const [cartItems, setCartItems] = useState([]);
   const [showCartPreview, setShowCartPreview] = useState(false);
@@ -249,6 +254,22 @@ function Header() {
       setFavoriteCount(0);
     } finally {
       setFavoriteLoading(false);
+    }
+  }, [user?.id]);
+
+  const loadLoyalty = useCallback(async () => {
+    if (!user?.id) {
+      setLoyaltyPoints(0);
+      return;
+    }
+
+    try {
+      const res = await loyaltyService.getMyLoyalty();
+      const points = Number(res?.data?.total_points ?? 0);
+      setLoyaltyPoints(Number.isFinite(points) ? points : 0);
+    } catch (error) {
+      console.error("Lỗi lấy điểm loyalty:", error);
+      setLoyaltyPoints(0);
     }
   }, [user?.id]);
 
@@ -385,6 +406,10 @@ function Header() {
       window.removeEventListener("favoriteUpdated", loadFavorites);
     };
   }, [loadFavorites]);
+
+  useEffect(() => {
+    loadLoyalty();
+  }, [loadLoyalty]);
 
   useEffect(() => {
     const handleGlobalKeyDown = (e) => {
@@ -1200,6 +1225,32 @@ function Header() {
                         <span>Hồ sơ cá nhân</span>
                       </Button>
 
+                      <div className="mx-2 my-1 rounded-xl border border-amber-200/70 bg-gradient-to-r from-amber-50 to-orange-50 px-3 py-2 text-amber-900 dark:border-amber-900/40 dark:from-amber-900/20 dark:to-orange-900/10 dark:text-amber-100">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-2">
+                            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-amber-100 text-amber-700 dark:bg-amber-800/40 dark:text-amber-200">
+                              <Coins className="h-4 w-4" />
+                            </span>
+                            <span className="text-[11px] font-medium uppercase tracking-wide text-amber-700/90 dark:text-amber-300">
+                              Điểm thưởng
+                            </span>
+                          </div>
+                          <span className="text-sm font-bold tabular-nums">
+                            {Number(loyaltyPoints || 0).toLocaleString("vi-VN")}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setOpen(false);
+                            setLoyaltyModalOpen(true);
+                          }}
+                          className="mt-2 w-full rounded-md border border-amber-300/60 bg-white/70 px-2.5 py-1.5 text-center text-[11px] font-semibold text-amber-700 transition hover:bg-white dark:border-amber-700/40 dark:bg-amber-950/30 dark:text-amber-200"
+                        >
+                          Xem biểu đồ lịch sử điểm
+                        </button>
+                      </div>
+
                       <div className="my-0.5 border-t border-gray-200 dark:border-gray-700" />
 
                       <button
@@ -1460,6 +1511,12 @@ function Header() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <LoyaltyHistoryModal
+        open={loyaltyModalOpen}
+        onOpenChange={setLoyaltyModalOpen}
+        loyaltyPoints={loyaltyPoints}
+      />
     </>
   );
 }

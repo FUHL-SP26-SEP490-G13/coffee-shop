@@ -249,8 +249,6 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
     return orderService.checkout(payload);
   };
 
-
-
   const handleSaveForLaterPayment = async () => {
     if (!table) {
       toast.error('Không tìm thấy thông tin bàn');

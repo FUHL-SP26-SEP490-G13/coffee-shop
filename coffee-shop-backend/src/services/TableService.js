@@ -2,6 +2,7 @@ const TableRepository = require("../repositories/TableRepository");
 const AreaRepository = require("../repositories/AreaRepository");
 const generateQrCode = require('../utils/generateQrCode');
 const ErrorResponse = require('../utils/ErrorResponse');
+const LoyaltyService = require("./LoyaltyService");
 
 class TableService {
   /**
@@ -235,11 +236,26 @@ class TableService {
 
     if (data.status === 'available') {
       data.current_session_id = null;
+
+      const [affectedOrders] = await TableRepository.db.query(
+        `
+        SELECT id
+        FROM orders
+        WHERE table_id = ?
+          AND status IN ('pending', 'processing')
+        `,
+        [id]
+      );
+
       // Mark all pending/processing orders for this table as completed
       await TableRepository.db.query(
         "UPDATE orders SET status = 'completed' WHERE table_id = ? AND status IN ('pending', 'processing')",
         [id]
       );
+
+      for (const order of affectedOrders) {
+        await LoyaltyService.syncOrderLoyaltyByOrderId(order.id);
+      }
     }
 
     return await TableRepository.update(id, data);

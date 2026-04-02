@@ -93,6 +93,10 @@ export const API_ENDPOINTS = {
     CHECK: (productId) => `/favorites/check/${productId}`,
     REMOVE: (productId) => `/favorites/${productId}`,
   },
+  LOYALTY: {
+    ME: '/loyalty/me',
+    MY_TRANSACTIONS: '/loyalty/me/transactions',
+  },
   ORDER_ONLINES: '/order-online',
   TOPPINGS: '/toppings',
   TOPPINGS_ADMIN: '/admin/toppings',

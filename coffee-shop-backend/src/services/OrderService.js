@@ -1,4 +1,5 @@
 const OrderRepository = require("../repositories/OrderRepository");
+const LoyaltyService = require("./LoyaltyService");
 const ErrorResponse = require("../utils/ErrorResponse");
 
 class OrderService {
@@ -19,6 +20,7 @@ class OrderService {
       address,
       note,
       discount_code,
+      used_points,
       items,
     } = payload;
 
@@ -42,6 +44,17 @@ class OrderService {
 
     try {
       await connection.beginTransaction();
+
+      const userId = user?.id || null;
+      const normalizedUsedPoints = Math.max(0, Number(used_points) || 0);
+
+      if (!Number.isInteger(normalizedUsedPoints) || normalizedUsedPoints < 0) {
+        throw new ErrorResponse(400, "Điểm sử dụng không hợp lệ");
+      }
+
+      if (normalizedUsedPoints > 0 && !userId) {
+        throw new ErrorResponse(401, "Bạn cần đăng nhập để sử dụng điểm loyalty");
+      }
 
       let sessionId = null;
       if (order_type === "dine-in") {
@@ -129,6 +142,7 @@ class OrderService {
       let discountAmount = 0;
       let discountCodeApplied = null;
       let discountIdApplied = null;
+      let loyaltyDiscountAmount = 0;
 
       const normalizedDiscountCode = String(discount_code || "").trim();
       if (normalizedDiscountCode) {
@@ -187,9 +201,20 @@ class OrderService {
         discountIdApplied = discount.id;
       }
 
-      const finalAmount = Math.max(0, totalAmount - discountAmount);
-      const userId = user?.id || null;
-      const status = order_type === "dine-in" ? "preparing" : "pending";
+      const amountAfterVoucher = Math.max(0, totalAmount - discountAmount);
+
+      if (normalizedUsedPoints > 0) {
+        loyaltyDiscountAmount = await LoyaltyService.getRedeemDiscountForCheckout(
+          connection,
+          {
+            userId,
+            usedPoints: normalizedUsedPoints,
+            orderAmount: amountAfterVoucher,
+          }
+        );
+      }
+
+      const finalAmount = Math.max(0, amountAfterVoucher - loyaltyDiscountAmount);
 
       const orderId = await OrderRepository.createOrder(connection, {
         user_id: userId,
@@ -202,6 +227,7 @@ class OrderService {
         order_type,
         table_id: order_type === "dine-in" ? payload.table_id : null,
         total_amount: finalAmount,
+        used_points: normalizedUsedPoints,
         session_id: sessionId
       });
 
@@ -302,13 +328,23 @@ class OrderService {
         await OrderRepository.incrementDiscountUsedCount(connection, discountIdApplied);
       }
 
+      if (normalizedUsedPoints > 0) {
+        await LoyaltyService.applyRedeemForOrder(connection, {
+          userId,
+          orderId,
+          usedPoints: normalizedUsedPoints,
+        });
+      }
+
       await connection.commit();
 
       return {
         order_id: orderId,
         subtotal_amount: totalAmount,
         discount_amount: discountAmount,
+        loyalty_discount_amount: loyaltyDiscountAmount,
         discount_code: discountCodeApplied,
+        used_points: normalizedUsedPoints,
         total_amount: finalAmount,
       };
     } catch (error) {
@@ -455,6 +491,7 @@ class OrderService {
     if (isCancelled) {
       await OrderRepository.updateOrderStatus(orderCode, "cancelled");
       await OrderRepository.updateOrderPaidStatus(orderCode, false);
+      await LoyaltyService.syncOrderLoyaltyByOrderId(orderCode);
     } else if (isPaid) {
       await OrderRepository.updateOrderPaidStatus(orderCode, true);
     }
