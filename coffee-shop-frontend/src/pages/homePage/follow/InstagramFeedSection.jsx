@@ -47,19 +47,20 @@ export default function InstagramFeedSection() {
   };
 
   return (
-    <section className="w-full bg-white dark:bg-gray-900 py-16">
-      <div className="max-w-[1440px] mx-auto w-full px-4 sm:px-6 lg:px-8 xl:px-12 text-center mb-10">
-        <h2 className="text-lg pb-8 text-center md:text-2xl font-bold tracking-[0.15em] text-primary">
-          Theo dõi chúng tôi
-        </h2>
-        <div className="flex items-center justify-center gap-2 text-primary hover:opacity-80 transition-opacity cursor-pointer mx-auto" onClick={handleImageClick}>
-          <Instagram className="w-5 h-5" />
-          <span className="font-medium text-lg tracking-wide">@coffeeshop_vn</span>
-        </div>
-      </div>
+    <section className="py-8 md:py-12 bg-white dark:bg-gray-950">
+      <div className="w-full px-4 lg:px-6 xl:px-8">
+        <div className="bg-white dark:bg-gray-900 rounded-none sm:rounded-3xl py-12 md:py-16 px-4 sm:px-8 lg:px-12 w-full">
+          <div className="text-center mb-10">
+            <h2 className="text-2xl md:text-3xl font-semibold text-amber-900 dark:text-amber-500" style={{ fontFamily: 'serif' }}>
+              Theo dõi chúng tôi
+            </h2>
+            <div className="flex items-center justify-center gap-2 text-primary hover:opacity-80 transition-opacity cursor-pointer mx-auto mt-4" onClick={handleImageClick}>
+              <Instagram className="w-5 h-5" />
+              <span className="font-medium text-lg tracking-wide">@coffeeshop_vn</span>
+            </div>
+          </div>
 
-      <div className="max-w-[1440px] mx-auto w-full px-4 sm:px-6 lg:px-8 xl:px-12">
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 w-full gap-2 lg:gap-3 rounded-2xl overflow-hidden shadow-sm">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 w-full gap-2 lg:gap-3 rounded-2xl overflow-hidden shadow-sm">
           {images.map((img) => (
             <div
               key={img.id}
@@ -94,6 +95,7 @@ export default function InstagramFeedSection() {
               </div>
             </div>
           ))}
+          </div>
         </div>
       </div>
     </section>

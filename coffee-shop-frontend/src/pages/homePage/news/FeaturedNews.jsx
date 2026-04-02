@@ -33,15 +33,15 @@ export default function FeaturedNews() {
   if (!featuredNews.length) return null;
 
   return (
-    <div className="relative bg-gradient-to-b from-background via-muted/20 to-background py-16 md:py-24 overflow-hidden">
-      {/* Decorative Background Elements */}
-      <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-primary/5 pointer-events-none" />
-
-      <div className="relative max-w-[1440px] w-full mx-auto px-4 sm:px-6 lg:px-8 xl:px-12">
+    <div className="py-8 md:py-12 bg-white dark:bg-gray-950 overflow-hidden">
+      <div className="w-full px-4 lg:px-6 xl:px-8">
+        <div className="relative bg-gradient-to-b from-background via-muted/20 to-background rounded-none sm:rounded-3xl py-12 md:py-16 px-4 sm:px-8 lg:px-12 w-full">
+          {/* Decorative Background Elements */}
+          <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-primary/5 pointer-events-none sm:rounded-3xl" />
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-6 mb-12">
           <div className="space-y-3">
             <div className="inline-block">
-              <h2 className="text-lg pb-8 md:text-2xl font-bold tracking-[0.15em] text-primary">
+              <h2 className="text-2xl md:text-3xl font-semibold text-amber-900 dark:text-amber-500" style={{ fontFamily: 'serif' }}>
                 Tin tức cà phê
               </h2>
               <div className="h-1 w-20 bg-gradient-to-r from-primary to-primary/50 rounded-full mt-2" />
@@ -123,6 +123,7 @@ export default function FeaturedNews() {
               </Card>
             </Link>
           ))}
+        </div>
         </div>
       </div>
     </div>

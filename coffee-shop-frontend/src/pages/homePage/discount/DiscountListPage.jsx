@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { Sparkles, Copy, CheckCircle2, Tag } from "lucide-react";
+import { Sparkles, Copy, CheckCircle2, Tag, LogIn } from "lucide-react";
 import { Link } from "react-router-dom";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import discountService from "@/services/discountService";
 import PaginationControl from "@/components/common/PaginationControl";
+import { Button } from "@/components/ui/button";
+import { STORAGE_KEYS } from "@/constants";
 
 export default function DiscountListPage() {
   const [discounts, setDiscounts] = useState([]);
@@ -12,6 +14,9 @@ export default function DiscountListPage() {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const pageSize = 6;
+
+  const token = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN) || sessionStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
+  const isLoggedIn = !!token;
 
   useEffect(() => {
     const fetchDiscounts = async () => {
@@ -85,10 +90,10 @@ export default function DiscountListPage() {
         </div>
 
         <div className="text-center mb-12 animate-in slide-in-from-bottom-5 duration-700">
-          <h1 className="text-primary text-xl md:text-2xl font-semibold tracking-[0.05em] text-gray-900 dark:text-gray-100 mb-4" style={{ fontFamily: 'serif' }}>
+          <h1 className="text-2xl md:text-3xl font-semibold text-amber-900 dark:text-amber-500" style={{ fontFamily: 'serif' }}>
             Tất cả ưu đãi dành cho bạn
           </h1>
-          <p className="text-gray-500 dark:text-gray-400 max-w-2xl mx-auto">
+          <p className="text-gray-500 dark:text-gray-400 max-w-2xl mx-auto mt-4">
             Hãy lưu lại hoặc sao chép mã để sử dụng khi thanh toán nhé
           </p>
         </div>
@@ -164,6 +169,23 @@ export default function DiscountListPage() {
                   onPageChange={setPage}
                   minPage={1}
                 />
+              </div>
+            )}
+            
+            {!isLoggedIn && (
+              <div className={`bg-[#FAF9F6] dark:bg-[#252220] rounded-2xl p-8 md:p-12 shadow-sm text-center flex flex-col items-center w-full border border-amber-900/5 dark:border-amber-700/10 mt-12`}>
+                <LogIn className="w-12 h-12 text-amber-900 dark:text-amber-500 mb-4" strokeWidth={1.5} />
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-3" style={{ fontFamily: 'serif' }}>
+                  Đăng nhập để nhận ưu đãi riêng
+                </h3>
+                <p className="text-gray-500 dark:text-gray-400 mb-8 max-w-lg">
+                  Lưu địa chỉ giao hàng, xem sản phẩm yêu thích, nhận mã giảm giá dành riêng cho bạn
+                </p>
+                <Link to="/login">
+                  <Button className="bg-[#8c5226] hover:bg-[#70421e] text-white rounded-md px-8 py-2 font-medium">
+                    Đăng nhập ngay
+                  </Button>
+                </Link>
               </div>
             )}
           </>

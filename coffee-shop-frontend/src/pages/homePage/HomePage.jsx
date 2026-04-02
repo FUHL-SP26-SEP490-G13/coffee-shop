@@ -168,8 +168,7 @@ export default function HomePage() {
 
       <FadeInView delay={0} duration={1200}>
         <div className="w-full bg-[#fcfaf9] dark:bg-gray-950 border-b border-gray-100 dark:border-gray-900 pb-0">
-          <div className="max-w-[1440px] w-full mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 relative flex items-stretch">
-
+          <div className="w-full px-4 lg:px-6 xl:px-8 relative flex items-stretch">
             {/* STATIC CATEGORY SIDEBAR */}
             <div
               className="hidden lg:flex w-[250px] shrink-0 flex-col bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-xl rounded-b-2xl z-20 pb-3 relative"
@@ -252,7 +251,7 @@ export default function HomePage() {
               )}
             </div>
 
-            {/* BANNER (Pushed right with padding) */}
+            {/* BANNER */}
             <div className="flex-1 w-full lg:pl-6 overflow-hidden">
               <HomeBanner
                 banners={banners}

@@ -33,11 +33,12 @@ export default function CategorySection() {
   if (categories.length === 0) return null;
 
   return (
-    <section className="py-16 bg-[#F8F5F0] dark:bg-[#1a1614]">
-      <div className="max-w-[1440px] mx-auto w-full px-4 sm:px-6 lg:px-8 xl:px-12">
+    <section className="py-8 md:py-12 bg-white dark:bg-gray-950">
+      <div className="w-full px-4 lg:px-6 xl:px-8">
+        <div className="bg-[#F8F5F0] dark:bg-[#1a1614] rounded-none sm:rounded-3xl py-12 md:py-16 px-4 sm:px-8 lg:px-12 w-full">
         <div className="flex flex-col sm:flex-row justify-between items-center mb-10 md:mb-12 gap-4">
-          <h2 className="text-lg md:text-2xl font-bold tracking-[0.15em] text-primary">
-            Khám phá thực đơn
+          <h2 className="text-2xl md:text-3xl font-semibold text-amber-900 dark:text-amber-500" style={{ fontFamily: 'serif' }}>
+            Danh mục sản phẩm
           </h2>
           {categories.length > 8 && (
             <Link to="/products" className="hidden sm:inline-block">
@@ -106,6 +107,7 @@ export default function CategorySection() {
             </Link>
           </div>
         )}
+        </div>
       </div>
     </section>
   );

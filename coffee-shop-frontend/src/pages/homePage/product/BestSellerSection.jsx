@@ -157,14 +157,15 @@ export default function BestSellerSection({
   };
 
   return (
-    <section className="py-16 lg:py-24 bg-white dark:bg-[#1a1614]">
-      <div className="max-w-[1440px] mx-auto w-full px-4 sm:px-6 lg:px-8 xl:px-12">
+    <section className="py-8 md:py-12 bg-white dark:bg-gray-950">
+      <div className="w-full px-4 lg:px-6 xl:px-8">
+        <div className="bg-[#FAF9F6] dark:bg-[#1a1614] rounded-none sm:rounded-3xl py-12 md:py-16 px-4 sm:px-8 lg:px-12 w-full">
         <div className="flex flex-col items-center text-center justify-center gap-2 mb-8">
-          <h2 className="text-3xl md:text-4xl font-bold text-[#4A3219] dark:text-amber-500 mb-2" style={{ fontFamily: 'serif' }}>
+          <h2 className="text-2xl md:text-3xl font-semibold text-amber-900 dark:text-amber-500" style={{ fontFamily: 'serif' }}>
             Sản phẩm nổi bật
           </h2>
           <p className="max-w-2xl text-sm md:text-base text-gray-500 dark:text-gray-400">
-            Những thức uống được yêu thích nhất tại CaféHouse
+            Những thức uống được yêu thích nhất tại Coffee Shop
           </p>
         </div>
 
@@ -216,10 +217,10 @@ export default function BestSellerSection({
                             Flash Sale
                           </span>
                         ) : (
-                          <span className={`text-white text-[10px] font-bold px-3 py-1 rounded-full shadow-sm ${
-                            index % 3 === 0 ? "bg-[#F59E0B]" : index % 3 === 1 ? "bg-red-500" : "bg-green-500"
+                          <span className={`text-white text-[10px] font-bold px-3 py-1 rounded-full shadow-sm uppercase ${
+                            activeTab === "Bán chạy" ? "bg-[#F59E0B]" : activeTab === "Mới nhất" ? "bg-green-500" : "bg-red-500"
                           }`}>
-                            {index % 3 === 0 ? "Best Seller" : index % 3 === 1 ? "Hot" : "Mới"}
+                            {activeTab === "Bán chạy" ? "Best Seller" : activeTab === "Mới nhất" ? "Mới" : "Hot"}
                           </span>
                         )}
                       </div>
@@ -340,6 +341,7 @@ export default function BestSellerSection({
             </p>
           </div>
         )}
+        </div>
       </div>
     </section>
   );

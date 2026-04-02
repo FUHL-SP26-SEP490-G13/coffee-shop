@@ -615,7 +615,7 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
 
             <div className="mt-6">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                Mô tả món
+                Mô tả sản phẩm
               </h3>
               {description ? (
                 hasRichDescription ? (
@@ -1066,7 +1066,7 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
-              Món liên quan
+              Sản phẩm liên quan
             </h3>
 
             <Button
