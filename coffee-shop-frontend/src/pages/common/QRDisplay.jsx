@@ -21,8 +21,8 @@ function QRDisplay({ url,qrString  }) {
 
   if (!qrSrc)
     return (
-      <div className='w-52 h-52 rounded-2xl border-2 border-gray-100 bg-gray-50 flex items-center justify-center'>
-        <Loader2 size={24} className='animate-spin text-gray-300' />
+      <div className='w-52 h-52 rounded-2xl border-2 border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 flex items-center justify-center'>
+        <Loader2 size={24} className='animate-spin text-gray-300 dark:text-gray-600' />
       </div>
     );
 
@@ -30,7 +30,7 @@ function QRDisplay({ url,qrString  }) {
     <img
       src={qrSrc}
       alt='QR thanh toán'
-      className='w-52 h-52 rounded-2xl border-2 border-gray-100 shadow-sm'
+      className='w-52 h-52 rounded-2xl border-2 border-gray-100 dark:border-gray-800 shadow-sm dark:shadow-none'
     />
   );
 }

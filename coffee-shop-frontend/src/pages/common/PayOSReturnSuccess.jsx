@@ -15,9 +15,9 @@ import orderService from "@/services/orderOnlineService";
 // status=PAID | CANCELLED | PENDING
 // orderCode, id
 const STATUS_MAP = {
-  PAID: { label: "Đã thanh toán", color: "bg-green-100 text-green-700" },
-  CANCELLED: { label: "Đã huỷ", color: "bg-red-100 text-red-700" },
-  PENDING: { label: "Đang chờ xử lý", color: "bg-yellow-100 text-yellow-700" },
+  PAID: { label: "Đã thanh toán", color: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" },
+  CANCELLED: { label: "Đã huỷ", color: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" },
+  PENDING: { label: "Đang chờ xử lý", color: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400" },
 };
 
 export default function PayOSReturnSuccess() {
@@ -89,7 +89,7 @@ export default function PayOSReturnSuccess() {
   }, [isSuccess, navigate]);
 
   return (
-    <div className="min-h-screen flex flex-col bg-white">
+    <div className="min-h-screen flex flex-col bg-white dark:bg-gray-950 transition-colors duration-300">
       <Header />
 
       <main className="flex-1 flex items-center justify-center px-4 py-16">
@@ -107,22 +107,22 @@ export default function PayOSReturnSuccess() {
               <Clock className="w-16 h-16 text-yellow-500" strokeWidth={1.5} />
             )}
 
-            <h1 className="text-2xl font-semibold text-gray-800">
+            <h1 className="text-2xl font-semibold text-gray-800 dark:text-gray-100">
               {isSuccess  && "Thanh toán thành công!"}
               {isCancelled && "Thanh toán đã bị huỷ"}
               {isPending  && "Đang chờ xác nhận thanh toán"}
             </h1>
 
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-gray-500 dark:text-gray-400">
               {isSuccess  && "Hệ thống đã ghi nhận giao dịch của bạn. Cảm ơn bạn đã tin tưởng chúng tôi!"}
               {isCancelled && "Bạn đã huỷ giao dịch thanh toán. Nếu có vấn đề, vui lòng liên hệ hỗ trợ."}
               {isPending  && "Giao dịch của bạn đang được xử lý. Vui lòng chờ trong giây lát."}
             </p>
           </div>
 
-          {/* Thông tin giao dịch */}
+        {/* Thông tin giao dịch */}
           {(orderCode || payosId || status) && (
-            <div className="rounded-lg bg-gray-50 border border-gray-100 divide-y divide-gray-100 text-sm">
+            <div className="rounded-lg bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800/50 divide-y divide-gray-100 dark:divide-gray-800/50 text-sm">
               {orderCode && (
                 <InfoRow label="Mã đơn hàng" value={`#${orderCode}`} />
               )}
@@ -131,11 +131,11 @@ export default function PayOSReturnSuccess() {
               )}
               {status && (
                 <div className="flex items-center justify-between px-4 py-3">
-                  <span className="text-gray-500">Trạng thái</span>
+                  <span className="text-gray-500 dark:text-gray-400">Trạng thái</span>
                   <Badge
                     className={
                       STATUS_MAP[status]?.color ||
-                      "bg-gray-100 text-gray-600"
+                      "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400"
                     }
                   >
                     {STATUS_MAP[status]?.label || status}
@@ -199,9 +199,9 @@ function InfoRow({ label, value, copy = false }) {
 
   return (
     <div className="flex items-center justify-between px-4 py-3">
-      <span className="text-gray-500">{label}</span>
+      <span className="text-gray-500 dark:text-gray-400">{label}</span>
       <div className="flex items-center gap-2">
-        <span className="font-medium text-gray-800">{value}</span>
+        <span className="font-medium text-gray-800 dark:text-gray-200">{value}</span>
         {copy && (
           <button
             onClick={handleCopy}

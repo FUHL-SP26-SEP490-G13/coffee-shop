@@ -305,23 +305,23 @@ function TakeawayPOS() {
   return (
     <div className='flex h-screen gap-0 -m-4 md:-m-8 -mt-2'>
       {/*  CỘT TRÁI — Menu */}
-      <div className='flex flex-col w-0 flex-[5] min-w-0 border-r border-gray-100'>
+      <div className='flex flex-col w-0 flex-[5] min-w-0 border-r border-gray-100 dark:border-gray-800'>
         {/* Header */}
-        <div className='px-5 pt-5 pb-3 border-b border-gray-100 shrink-0'>
+        <div className='px-5 pt-5 pb-3 border-b border-gray-100 dark:border-gray-800 shrink-0'>
           <div className='flex items-center gap-2'>
             <ShoppingBag size={20} className='text-amber-500' />
-            <h2 className='font-bold text-gray-800 text-lg'>Đặt đồ mang đi</h2>
+            <h2 className='font-bold text-gray-800 dark:text-gray-200 text-lg'>Đặt đồ mang đi</h2>
           </div>
         </div>
 
         {/* Category tabs */}
-        <div className='flex gap-2 px-5 py-3 overflow-x-auto shrink-0 scrollbar-none border-b border-gray-100'>
+        <div className='flex gap-2 px-5 py-3 overflow-x-auto shrink-0 scrollbar-none border-b border-gray-100 dark:border-gray-800'>
           <button
             onClick={() => setActiveCategory('all')}
             className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
               activeCategory === 'all'
-                ? 'bg-amber-500 text-white shadow-sm'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                ? 'bg-amber-500 text-white shadow-sm dark:shadow-none'
+                : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:bg-gray-700'
             }`}
           >
             Tất cả
@@ -330,7 +330,7 @@ function TakeawayPOS() {
             ? [1, 2, 3].map((i) => (
                 <div
                   key={i}
-                  className='h-7 w-16 rounded-full bg-gray-100 animate-pulse shrink-0'
+                  className='h-7 w-16 rounded-full bg-gray-100 dark:bg-gray-800 animate-pulse shrink-0'
                 />
               ))
             : categories.map((cat) => (
@@ -339,8 +339,8 @@ function TakeawayPOS() {
                   onClick={() => setActiveCategory(cat.id)}
                   className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
                     activeCategory === cat.id
-                      ? 'bg-amber-500 text-white shadow-sm'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      ? 'bg-amber-500 text-white shadow-sm dark:shadow-none'
+                      : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:bg-gray-700'
                   }`}
                 >
                   {cat.name}
@@ -358,9 +358,9 @@ function TakeawayPOS() {
       </div>
 
       {/*  CỘT GIỮA — Giỏ hàng */}
-      <div className='flex flex-col w-0 flex-[3] min-w-0 min-h-0 border-r border-gray-100 bg-gray-50'>
-        <div className='px-4 pt-5 pb-3 border-b border-gray-100 bg-white shrink-0'>
-          <h3 className='font-bold text-gray-800 flex items-center gap-2'>
+      <div className='flex flex-col w-0 flex-[3] min-w-0 min-h-0 border-r border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50'>
+        <div className='px-4 pt-5 pb-3 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 shrink-0'>
+          <h3 className='font-bold text-gray-800 dark:text-gray-200 flex items-center gap-2'>
             <ShoppingBag size={16} className='text-amber-500' />
             Giỏ hàng
             {cart.length > 0 && (
@@ -384,18 +384,18 @@ function TakeawayPOS() {
             cart.map((item) => (
               <div
                 key={item._uid}
-                className='bg-white rounded-xl p-3 border border-gray-100 shadow-sm'
+                className='bg-white dark:bg-gray-900 rounded-xl p-3 border border-gray-100 dark:border-gray-800 shadow-sm dark:shadow-none'
               >
                 <div className='flex justify-between items-start gap-2'>
                   <div className='flex-1 min-w-0'>
-                    <p className='text-sm font-semibold text-gray-800 truncate'>
+                    <p className='text-sm font-semibold text-gray-800 dark:text-gray-200 truncate'>
                       {item.productName}
                     </p>
                     <p className='text-xs text-gray-400'>
                       Size {item.size} · {fmt(item.price)}
                     </p>
                     {item.toppings.length > 0 && (
-                      <p className='text-xs text-amber-600 truncate'>
+                      <p className='text-xs text-amber-600 dark:text-amber-400 truncate'>
                         +
                         {item.toppings
                           .map((t) => `${t.name}×${t.quantity}`)
@@ -410,7 +410,7 @@ function TakeawayPOS() {
                   </div>
                   <button
                     onClick={() => removeFromCart(item._uid)}
-                    className='w-6 h-6 rounded-full bg-red-50 text-red-400 flex items-center justify-center hover:bg-red-100 shrink-0'
+                    className='w-6 h-6 rounded-full bg-red-50 dark:bg-red-900/30 text-red-400 flex items-center justify-center hover:bg-red-100 dark:bg-red-900/40 shrink-0'
                   >
                     <X size={11} />
                   </button>
@@ -419,7 +419,7 @@ function TakeawayPOS() {
                   <div className='flex items-center gap-2'>
                     <button
                       onClick={() => updateQty(item._uid, -1)}
-                      className='w-7 h-7 rounded-full border-2 border-gray-200 flex items-center justify-center hover:border-gray-300 text-gray-600'
+                      className='w-7 h-7 rounded-full border-2 border-gray-200 dark:border-gray-700 flex items-center justify-center hover:border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400'
                     >
                       <Minus size={12} />
                     </button>
@@ -433,7 +433,7 @@ function TakeawayPOS() {
                       <Plus size={12} />
                     </button>
                   </div>
-                  <span className='text-sm font-bold text-amber-600'>
+                  <span className='text-sm font-bold text-amber-600 dark:text-amber-400'>
                     {fmt(
                       (item.price +
                         item.toppings.reduce(
@@ -449,17 +449,17 @@ function TakeawayPOS() {
           )}
         </div>
 
-        <div className='p-4 border-t border-gray-200 bg-white shrink-0 space-y-3'>
+        <div className='p-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shrink-0 space-y-3'>
           <div className='flex justify-between items-center'>
-            <span className='text-sm text-gray-500'>Tạm tính</span>
-            <span className='font-bold text-gray-800 text-base'>
+            <span className='text-sm text-gray-500 dark:text-gray-400'>Tạm tính</span>
+            <span className='font-bold text-gray-800 dark:text-gray-200 text-base'>
               {fmt(subtotal)}
             </span>
           </div>
           <button
             onClick={() => setShowCheckout(true)}
             disabled={cart.length === 0}
-            className='w-full py-3.5 rounded-xl bg-amber-500 text-white font-bold text-sm hover:bg-amber-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 shadow-lg shadow-amber-200'
+            className='w-full py-3.5 rounded-xl bg-amber-500 text-white font-bold text-sm hover:bg-amber-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 shadow-lg dark:shadow-none shadow-amber-200'
           >
             <Banknote size={16} /> Thanh toán · {fmt(subtotal)}
           </button>
@@ -513,14 +513,14 @@ function TakeawayPOS() {
       {/* PayOS QR */}
       {/* {checkoutResult && (
         <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4'>
-          <div className='bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center animate-in fade-in zoom-in-95'>
-            <div className='w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center mx-auto mb-4'>
-              <CreditCard size={28} className='text-blue-600' />
+          <div className='bg-white dark:bg-gray-900 rounded-2xl shadow-2xl dark:shadow-none w-full max-w-sm p-6 text-center animate-in fade-in zoom-in-95'>
+            <div className='w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center mx-auto mb-4'>
+              <CreditCard size={28} className='text-blue-600 dark:text-blue-400' />
             </div>
-            <h3 className='font-bold text-lg text-gray-800'>
+            <h3 className='font-bold text-lg text-gray-800 dark:text-gray-200'>
               Quét QR để thanh toán
             </h3>
-            <p className='text-sm text-gray-500 mt-1'>
+            <p className='text-sm text-gray-500 dark:text-gray-400 mt-1'>
               Đơn #{checkoutResult.order_id} ·{' '}
               {fmt(checkoutResult.total_amount)}
             </p>
@@ -537,7 +537,7 @@ function TakeawayPOS() {
               href={checkoutResult.checkout_url}
               target='_blank'
               rel='noreferrer'
-              className='mt-2 text-xs text-blue-500 hover:underline block'
+              className='mt-2 text-xs text-blue-500 dark:text-blue-400 hover:underline block'
             >
               Hoặc mở link thanh toán →
             </a>

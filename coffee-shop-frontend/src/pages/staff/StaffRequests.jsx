@@ -63,7 +63,7 @@ export function StaffRequests() {
       case 'pending':
         return 'bg-yellow-500/10 text-yellow-700 border-transparent';
       case 'approved':
-        return 'bg-green-500/10 text-green-700 border-transparent';
+        return 'bg-green-500/10 text-green-700 dark:text-green-400 border-transparent';
       case 'rejected':
         return '';
       default:

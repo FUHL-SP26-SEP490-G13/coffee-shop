@@ -81,7 +81,7 @@ function TableCard({
   return (
     <Card
       onClick={() => onOpenPOS(table)}
-      className="relative group p-5 flex flex-col items-center justify-center gap-3 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl bg-card border-border/50 hover:border-primary/50 cursor-pointer overflow-hidden"
+      className="relative group p-5 flex flex-col items-center justify-center gap-3 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl dark:shadow-none bg-card border-border/50 hover:border-primary/50 cursor-pointer overflow-hidden"
     >
       {table.status === "occupied" && (
         <div className="absolute top-2 right-2 flex items-center gap-1 z-20">
@@ -90,7 +90,7 @@ function TableCard({
             className="p-1.5 rounded-full hover:bg-black/5 text-muted-foreground transition-colors"
             title="Xem đơn hàng"
           >
-            <ReceiptText className="w-4 h-4 text-blue-600" />
+            <ReceiptText className="w-4 h-4 text-blue-600 dark:text-blue-400" />
           </button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -157,18 +157,18 @@ function TableCard({
       {/* Table Number Badge */}
       <div
         className={`min-w-[4rem] h-14 px-4 rounded-2xl flex flex-col items-center justify-center transition-colors duration-300 ${table.status === "available"
-          ? "bg-green-50"
+          ? "bg-green-50 dark:bg-green-900/30"
           : table.status === "occupied"
-            ? "bg-blue-50"
-            : "bg-amber-50"
+            ? "bg-blue-50 dark:bg-blue-900/30"
+            : "bg-amber-50 dark:bg-amber-900/30"
           }`}
       >
         <span
           className={`text-xl font-black tracking-tighter whitespace-nowrap ${table.status === "available"
-            ? "text-green-700"
+            ? "text-green-700 dark:text-green-400"
             : table.status === "occupied"
-              ? "text-blue-700"
-              : "text-amber-700"
+              ? "text-blue-700 dark:text-blue-400"
+              : "text-amber-700 dark:text-amber-400"
             }`}
         >
           {table.code?.replace("TB-", "")}
@@ -181,7 +181,7 @@ function TableCard({
           {table.area_name}
         </p>
         {table.status === "occupied" && (
-          <p className="text-[10px] font-medium text-blue-700 flex items-center justify-center gap-1 pt-0.5">
+          <p className="text-[10px] font-medium text-blue-700 dark:text-blue-400 flex items-center justify-center gap-1 pt-0.5">
             <Clock3 className="w-3 h-3" />
             Order: {formatOrderTime(activeOrderMeta?.created_at || table.updated_at)}
           </p>
@@ -191,10 +191,10 @@ function TableCard({
       {/* Status Badge */}
       <div
         className={`flex items-center gap-1.5 px-3 py-1 rounded-full border text-[10px] font-bold uppercase tracking-wider ${table.status === "available"
-          ? "bg-green-50 text-green-700 border-green-200"
+          ? "bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 border-green-200"
           : table.status === "occupied"
-            ? "bg-blue-50 text-blue-700 border-blue-200"
-            : "bg-amber-50 text-amber-700 border-amber-200"
+            ? "bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border-blue-200"
+            : "bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800/50"
           }`}
       >
         <span
@@ -215,12 +215,12 @@ function TableCard({
       {(paymentRequested || debtAmount > 0) && (
         <div className="w-full space-y-1.5">
           {paymentRequested && (
-            <div className="text-[10px] font-semibold text-amber-700 bg-amber-100/80 px-2.5 py-1 rounded-full border border-amber-200 text-center">
+            <div className="text-[10px] font-semibold text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/40/80 px-2.5 py-1 rounded-full border border-amber-200 dark:border-amber-800/50 text-center">
               Khách yêu cầu thanh toán
             </div>
           )}
           {debtAmount > 0 && (
-            <div className="text-[10px] font-semibold text-red-700 bg-red-50 px-2.5 py-1 rounded-full border border-red-200 text-center">
+            <div className="text-[10px] font-semibold text-red-700 bg-red-50 dark:bg-red-900/30 px-2.5 py-1 rounded-full border border-red-200 dark:border-red-800/50 text-center">
               Khách phải trả: {formatVND(debtAmount)}
             </div>
           )}
@@ -874,19 +874,19 @@ export function StaffTables() {
 
       {/* FILTERS & STATS */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        <Card className="p-4 lg:col-span-3 flex flex-col md:flex-row gap-4 items-center bg-white/50 backdrop-blur-sm">
+        <Card className="p-4 lg:col-span-3 flex flex-col md:flex-row gap-4 items-center bg-white dark:bg-gray-900/50 backdrop-blur-sm">
           <div className="relative flex-1 w-full">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
             <Input
               placeholder="Tìm theo mã bàn (VD: TB-01)..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 h-10 w-full bg-white/50"
+              className="pl-10 h-10 w-full bg-white dark:bg-gray-900/50"
             />
           </div>
 
           <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-            <SelectTrigger className="h-10 w-full md:w-64 bg-white/50">
+            <SelectTrigger className="h-10 w-full md:w-64 bg-white dark:bg-gray-900/50">
               <SelectValue placeholder="Chọn trạng thái" />
             </SelectTrigger>
             <SelectContent>
@@ -911,7 +911,7 @@ export function StaffTables() {
             <span className="text-muted-foreground font-medium">
               Đang trống:
             </span>
-            <span className="font-bold text-green-600">
+            <span className="font-bold text-green-600 dark:text-green-400">
               {filteredTables.filter((t) => t.status === "available").length}
             </span>
           </div>
@@ -978,7 +978,7 @@ export function StaffTables() {
                   return (
                     <div key={area.id}>
                       {/* Area Header */}
-                      <div className="flex items-center justify-between bg-card border rounded-xl px-4 py-3 mb-4 shadow-sm">
+                      <div className="flex items-center justify-between bg-card border rounded-xl px-4 py-3 mb-4 shadow-sm dark:shadow-none">
                         <div className="flex items-center gap-3">
                           <div className="w-9 h-9 rounded-lg overflow-hidden bg-muted border flex-shrink-0 flex items-center justify-center">
                             {area.image ? (
@@ -997,11 +997,11 @@ export function StaffTables() {
                           </div>
                         </div>
                         <div className="flex items-center gap-3 text-xs font-medium">
-                          <span className="flex items-center gap-1.5 bg-green-50 text-green-700 border border-green-200 rounded-full px-3 py-1">
+                          <span className="flex items-center gap-1.5 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 border border-green-200 rounded-full px-3 py-1">
                             <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" />
                             {availableCount} trống
                           </span>
-                          <span className="flex items-center gap-1.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-full px-3 py-1">
+                          <span className="flex items-center gap-1.5 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border border-blue-200 rounded-full px-3 py-1">
                             <span className="w-1.5 h-1.5 rounded-full bg-blue-500 inline-block" />
                             {occupiedCount} có khách
                           </span>
@@ -1036,7 +1036,7 @@ export function StaffTables() {
             <div className="space-y-6">
               {/* Area Info Banner */}
               {currentAreaObj && (
-                <div className="flex items-center justify-between bg-card border rounded-xl p-4 mb-6 shadow-sm">
+                <div className="flex items-center justify-between bg-card border rounded-xl p-4 mb-6 shadow-sm dark:shadow-none">
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 rounded-lg overflow-hidden bg-muted border flex-shrink-0 flex items-center justify-center">
                       {currentAreaObj.image ? (
@@ -1057,11 +1057,11 @@ export function StaffTables() {
                     </div>
                   </div>
                   <div className="flex items-center gap-3 text-xs font-medium">
-                    <span className="flex items-center gap-1.5 bg-green-50 text-green-700 border border-green-200 rounded-full px-3 py-1">
+                    <span className="flex items-center gap-1.5 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 border border-green-200 rounded-full px-3 py-1">
                       <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" />
                       {filteredTables.filter((t) => t.status === "available").length} trống
                     </span>
-                    <span className="flex items-center gap-1.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-full px-3 py-1">
+                    <span className="flex items-center gap-1.5 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border border-blue-200 rounded-full px-3 py-1">
                       <span className="w-1.5 h-1.5 rounded-full bg-blue-500 inline-block" />
                       {filteredTables.filter((t) => t.status === "occupied").length} có khách
                     </span>
@@ -1172,7 +1172,7 @@ export function StaffTables() {
           <div className="space-y-4">
             {/* From table info */}
             <div className="flex items-center gap-3 bg-muted/50 rounded-lg px-4 py-3">
-              <div className="bg-blue-100 text-blue-700 font-bold text-sm rounded-lg px-3 py-2">
+              <div className="bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400 font-bold text-sm rounded-lg px-3 py-2">
                 {tableToTransfer?.code}
               </div>
               <div>
@@ -1378,9 +1378,9 @@ export function StaffTables() {
           </DialogHeader>
 
           <div className="space-y-5">
-            <div className="bg-gray-50 rounded-xl p-4">
+            <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4">
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-500">Khách cần trả ()</span>
+                <span className="text-sm text-gray-500 dark:text-gray-400">Khách cần trả ()</span>
                 <span className="text-xl font-bold text-orange-500">{formatVND(debtPaymentDialog.debtAmount)}</span>
               </div>
             </div>
@@ -1391,8 +1391,8 @@ export function StaffTables() {
                 <button
                   onClick={() => setDebtPaymentDialog((prev) => ({ ...prev, method: "cash" }))}
                   className={`flex items-center justify-center gap-2 p-3 rounded-xl border-2 font-medium transition-all ${debtPaymentDialog.method === "cash"
-                    ? "border-green-500 text-green-600 bg-green-50/50"
-                    : "border-gray-200 text-gray-600"
+                    ? "border-green-500 text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30/50"
+                    : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400"
                     }`}
                 >
                   <Wallet className="w-4 h-4" /> Tiền mặt
@@ -1400,8 +1400,8 @@ export function StaffTables() {
                 <button
                   onClick={() => setDebtPaymentDialog((prev) => ({ ...prev, method: "payos" }))}
                   className={`flex items-center justify-center gap-2 p-3 rounded-xl border-2 font-medium transition-all ${debtPaymentDialog.method === "payos"
-                    ? "border-green-500 text-green-600 bg-green-50/50"
-                    : "border-gray-200 text-gray-600"
+                    ? "border-green-500 text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30/50"
+                    : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400"
                     }`}
                 >
                   <img src={PayOSLogo} alt="PayOS" className="h-8 w-8" />
@@ -1419,7 +1419,7 @@ export function StaffTables() {
                   onChange={(e) =>
                     setDebtPaymentDialog((prev) => ({ ...prev, cashReceived: e.target.value }))
                   }
-                  className="bg-gray-50 border-gray-200 text-lg font-bold"
+                  className="bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 text-lg font-bold"
                 />
                 <div className="flex gap-2 mt-3">
                   {debtCashSuggestions.map((val) => {
@@ -1434,8 +1434,8 @@ export function StaffTables() {
                           }))
                         }
                         className={`flex-1 p-2 rounded-full border text-sm font-medium transition-all ${selected
-                          ? "border-green-500 text-green-600 bg-green-50"
-                          : "border-gray-200 text-gray-600 hover:bg-gray-50"
+                          ? "border-green-500 text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30"
+                          : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 dark:bg-gray-800/50"
                           }`}
                       >
                         {formatVND(val).replace(/\s?₫/, "").trim()}
@@ -1443,7 +1443,7 @@ export function StaffTables() {
                     );
                   })}
                 </div>
-                <div className="mt-2 text-sm text-blue-700 bg-blue-50 rounded-lg px-3 py-2 flex justify-between items-center">
+                <div className="mt-2 text-sm text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 rounded-lg px-3 py-2 flex justify-between items-center">
                   <span>Tiền thừa trả khách</span>
                   <span className="font-bold">
                     {formatVND(

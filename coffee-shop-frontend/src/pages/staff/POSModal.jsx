@@ -496,10 +496,10 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
       <div className="fixed inset-0 z-50 flex flex-col bg-background animate-in fade-in duration-200">
         {/* Top Bar */}
         <div
-          className={`bg-gradient-to-r ${statusColor} text-white px-6 py-3 flex items-center justify-between shadow-lg flex-shrink-0`}
+          className={`bg-gradient-to-r ${statusColor} text-white px-6 py-3 flex items-center justify-between shadow-lg dark:shadow-none flex-shrink-0`}
         >
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
+            <div className="w-9 h-9 rounded-xl bg-white dark:bg-gray-900/20 flex items-center justify-center">
               <Coffee className="w-5 h-5" />
             </div>
             <div>
@@ -510,12 +510,12 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-sm bg-white/20 px-3 py-1 rounded-full font-medium">
+            <span className="text-sm bg-white dark:bg-gray-900/20 px-3 py-1 rounded-full font-medium">
               {cart.length > 0 ? `${cart.reduce((a, i) => a + i.quantity, 0)} món` : 'Chưa chọn món'}
             </span>
             <button
               onClick={onClose}
-              className="w-9 h-9 rounded-xl bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
+              className="w-9 h-9 rounded-xl bg-white dark:bg-gray-900/20 hover:bg-white dark:bg-gray-900/30 flex items-center justify-center transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
@@ -541,7 +541,7 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
                 <button
                   onClick={() => setActiveCategory('all')}
                   className={`px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all flex-shrink-0 ${activeCategory === 'all'
-                    ? 'bg-amber-500 text-white shadow-sm'
+                    ? 'bg-amber-500 text-white shadow-sm dark:shadow-none'
                     : 'bg-muted text-muted-foreground hover:bg-muted/80'
                     }`}
                 >
@@ -552,7 +552,7 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
                     key={cat.id}
                     onClick={() => setActiveCategory(cat.id)}
                     className={`px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all flex-shrink-0 ${activeCategory === cat.id
-                      ? 'bg-amber-500 text-white shadow-sm'
+                      ? 'bg-amber-500 text-white shadow-sm dark:shadow-none'
                       : 'bg-muted text-muted-foreground hover:bg-muted/80'
                       }`}
                   >
@@ -581,7 +581,7 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
                     <button
                       key={product.id}
                       onClick={() => setSelectedProduct(product)}
-                      className="group bg-card rounded-xl p-2 border border-border hover:border-amber-400/60 hover:shadow-md transition-all text-left relative overflow-hidden"
+                      className="group bg-card rounded-xl p-2 border border-border hover:border-amber-400/60 hover:shadow-md dark:shadow-none transition-all text-left relative overflow-hidden"
                     >
                       <div className="aspect-square bg-muted rounded-lg mb-2 overflow-hidden">
                         {getProductImage(product) ? (
@@ -599,7 +599,7 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
                       <h3 className="text-xs font-semibold line-clamp-2 leading-tight mb-1 text-foreground">
                         {product.name}
                       </h3>
-                      <p className="text-[11px] font-bold text-amber-600">
+                      <p className="text-[11px] font-bold text-amber-600 dark:text-amber-400">
                         {formatVND(getProductPrice(product, 'M'))}
                       </p>
                       {/* Hover overlay */}
@@ -618,7 +618,7 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
               <ShoppingCart className="w-4 h-4 text-muted-foreground" />
               <span className="font-semibold text-sm">Giỏ hàng</span>
               {cart.length > 0 && (
-                <span className="ml-auto text-xs bg-amber-100 text-amber-700 rounded-full px-2 py-0.5 font-semibold">
+                <span className="ml-auto text-xs bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 rounded-full px-2 py-0.5 font-semibold">
                   {cart.reduce((a, i) => a + i.quantity, 0)} món
                 </span>
               )}
@@ -660,7 +660,7 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
                           {item.size}
                         </span>
                         {item.toppings?.length > 0 && (
-                          <span className="text-amber-600 truncate">
+                          <span className="text-amber-600 dark:text-amber-400 truncate">
                             +{item.toppings.map((t) => t.name).join(', ')}
                           </span>
                         )}
@@ -694,7 +694,7 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
                             <Plus className="w-3 h-3" />
                           </button>
                         </div>
-                        <span className="text-sm font-bold text-amber-600">
+                        <span className="text-sm font-bold text-amber-600 dark:text-amber-400">
                           {formatVND(
                             (Number(item.price || getProductPrice(item.product, item.size) || 0) +
                               (item.toppings || []).reduce(
@@ -728,7 +728,7 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
             <div className="p-3 border-t border-border flex-shrink-0 space-y-3">
               <div className="flex justify-between items-center px-1">
                 <span className="text-sm text-muted-foreground">Tổng cộng</span>
-                <span className="text-xl font-black text-amber-600">{formatVND(total)}</span>
+                <span className="text-xl font-black text-amber-600 dark:text-amber-400">{formatVND(total)}</span>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <Button
@@ -782,14 +782,14 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
       <Dialog open={isPaymentModalOpen} onOpenChange={setIsPaymentModalOpen}>
         <DialogContent className="sm:max-w-md p-6 z-[60]">
           <DialogHeader>
-            <DialogTitle className="text-gray-800 text-lg font-bold">
+            <DialogTitle className="text-gray-800 dark:text-gray-200 text-lg font-bold">
               Thanh toán — Bàn {table?.code}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-5">
             {/* Order Summary */}
-            <div className="bg-gray-50 rounded-xl p-4 space-y-2">
-              <div className="flex justify-between text-gray-500 text-sm">
+            <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 space-y-2">
+              <div className="flex justify-between text-gray-500 dark:text-gray-400 text-sm">
                 <span>Tổng tiền hàng</span>
                 <span>{formatVND(total)}</span>
               </div>
@@ -815,7 +815,7 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
                   placeholder="Nhập mã giảm giá"
                   value={discountCode}
                   onChange={(e) => setDiscountCode(e.target.value)}
-                  className="bg-gray-50 border-gray-200"
+                  className="bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700"
                 />
                 <Button
                   onClick={handleApplyDiscount}
@@ -836,8 +836,8 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
                 <button
                   onClick={() => setPaymentMethod('cash')}
                   className={`flex items-center justify-center gap-2 p-3 rounded-xl border-2 font-medium transition-all ${paymentMethod === 'cash'
-                    ? 'border-green-500 text-green-600 bg-green-50/50'
-                    : 'border-gray-200 text-gray-600'
+                    ? 'border-green-500 text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30/50'
+                    : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400'
                     }`}
                 >
                   <span className="text-lg">💵</span> Tiền mặt
@@ -845,8 +845,8 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
                 <button
                   onClick={() => setPaymentMethod('payos')}
                   className={`flex items-center justify-center gap-2 p-3 rounded-xl border-2 font-medium transition-all ${paymentMethod === 'payos'
-                    ? 'border-green-500 text-green-600 bg-green-50/50'
-                    : 'border-gray-200 text-gray-600'
+                    ? 'border-green-500 text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30/50'
+                    : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400'
                     }`}
                 >
                   <img src={PayOSLogo} alt="PayOS" className="h-10 w-10" />
@@ -866,7 +866,7 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
                     type="number"
                     value={customerCash || ''}
                     onChange={(e) => setCustomerCash(Number(e.target.value))}
-                    className="bg-gray-50 border-gray-200 text-lg font-bold"
+                    className="bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 text-lg font-bold"
                   />
                 </div>
                 <div className="flex gap-2">
@@ -875,17 +875,17 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
                       key={val}
                       onClick={() => setCustomerCash(val)}
                       className={`flex-1 p-2 rounded-full border text-sm font-medium transition-all ${customerCash === val
-                        ? 'border-green-500 text-green-600 bg-green-50'
-                        : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                        ? 'border-green-500 text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30'
+                        : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 dark:bg-gray-800/50'
                         }`}
                     >
                       {formatVND(val).replace(' ₫', '').trim()}
                     </button>
                   ))}
                 </div>
-                <div className="bg-blue-50/50 rounded-xl p-3 flex justify-between items-center">
-                  <span className="text-gray-500 text-sm">Tiền thừa trả khách</span>
-                  <span className="text-blue-600 font-bold text-lg">
+                <div className="bg-blue-50 dark:bg-blue-900/30/50 rounded-xl p-3 flex justify-between items-center">
+                  <span className="text-gray-500 dark:text-gray-400 text-sm">Tiền thừa trả khách</span>
+                  <span className="text-blue-600 dark:text-blue-400 font-bold text-lg">
                     {formatVND(
                       Math.max(0, customerCash - Math.max(0, total - discountAmount))
                     )}
@@ -900,7 +900,7 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
                 variant="outline"
                 onClick={() => setIsPaymentModalOpen(false)}
                 disabled={isSubmittingOrder}
-                className="rounded-xl border-gray-200"
+                className="rounded-xl border-gray-200 dark:border-gray-700"
               >
                 Huỷ
               </Button>
@@ -908,7 +908,7 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
                 onClick={handlePayLater}
                 disabled={isSubmittingOrder}
                 variant="outline"
-                className="rounded-xl border-amber-200 text-amber-700 hover:bg-amber-50"
+                className="rounded-xl border-amber-200 dark:border-amber-800/50 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:bg-amber-900/30"
               >
                 <Clock3 className="w-4 h-4 mr-1.5" />
                 Thanh toán sau

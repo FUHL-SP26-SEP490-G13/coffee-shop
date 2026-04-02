@@ -38,8 +38,8 @@ export function StaffDashboard() {
       description: "Chờ xử lý",
       value: "N/A",
       icon: ShoppingBag,
-      color: "text-amber-600",
-      bg: "bg-amber-100/50",
+      color: "text-amber-600 dark:text-amber-400",
+      bg: "bg-amber-100 dark:bg-amber-900/40/50",
       link: "/staff/takeaway",
     },
     {
@@ -47,8 +47,8 @@ export function StaffDashboard() {
       description: "Đang chờ giao",
       value: "N/A",
       icon: Package,
-      color: "text-blue-600",
-      bg: "bg-blue-100/50",
+      color: "text-blue-600 dark:text-blue-400",
+      bg: "bg-blue-100 dark:bg-blue-900/40/50",
       link: "/staff/delivery",
     },
     {
@@ -57,7 +57,7 @@ export function StaffDashboard() {
       value: "N/A",
       icon: ChefHat,
       color: "text-red-600",
-      bg: "bg-red-100/50",
+      bg: "bg-red-100 dark:bg-red-900/40/50",
       link: "/staff/kitchen",
     },
     {
@@ -65,8 +65,8 @@ export function StaffDashboard() {
       description: "Hôm nay",
       value: "Sẵn sàng",
       icon: Clock,
-      color: "text-green-600",
-      bg: "bg-green-100/50",
+      color: "text-green-600 dark:text-green-400",
+      bg: "bg-green-100 dark:bg-green-900/40/50",
       link: "/staff/attendance",
     },
   ];
@@ -82,19 +82,19 @@ export function StaffDashboard() {
       label: "Lịch làm việc",
       icon: Calendar,
       path: "/staff/schedule",
-      color: "bg-white border text-foreground hover:bg-accent",
+      color: "bg-white dark:bg-gray-900 border text-foreground hover:bg-accent",
     },
     {
       label: "Kiểm kho",
       icon: ClipboardList,
       path: "/staff/inventory",
-      color: "bg-white border text-foreground hover:bg-accent",
+      color: "bg-white dark:bg-gray-900 border text-foreground hover:bg-accent",
     },
     {
       label: "Danh sách Bàn",
       icon: Users,
       path: "/staff/tables",
-      color: "bg-white border text-foreground hover:bg-accent",
+      color: "bg-white dark:bg-gray-900 border text-foreground hover:bg-accent",
     },
   ];
 
@@ -120,7 +120,7 @@ export function StaffDashboard() {
           const Icon = stat.icon;
           return (
             <Link key={index} to={stat.link}>
-              <Card className="p-6 transition-all hover:shadow-md hover:border-primary/50 cursor-pointer h-full border-border/60">
+              <Card className="p-6 transition-all hover:shadow-md dark:shadow-none hover:border-primary/50 cursor-pointer h-full border-border/60">
                 <div className="flex items-start justify-between">
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">
@@ -150,7 +150,7 @@ export function StaffDashboard() {
               <button
                 key={idx}
                 onClick={() => navigate(action.path)}
-                className={`flex flex-col items-center justify-center gap-3 p-6 rounded-2xl transition-all shadow-sm ${action.color}`}
+                className={`flex flex-col items-center justify-center gap-3 p-6 rounded-2xl transition-all shadow-sm dark:shadow-none ${action.color}`}
               >
                 <Icon className="w-6 h-6" />
                 <span className="font-medium text-sm">{action.label}</span>
