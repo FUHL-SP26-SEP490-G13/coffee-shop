@@ -306,7 +306,7 @@ export default function ProductListPage({ categoryIdOverride, categoryName, cate
                           {(!categoryId) && <div className="w-2.5 h-2.5 rounded-sm bg-white dark:bg-gray-900" />}
                         </div>
                       </div>
-                      <span className="text-gray-700 dark:text-gray-300 group-hover:text-amber-600 transition">Tất cả menu</span>
+                      <span className="text-gray-700 dark:text-gray-300 group-hover:text-amber-600 transition">Thực đơn menu</span>
                     </label>
                     {categories.map((cat) => (
                       <label key={cat.id} className="flex items-center gap-3 cursor-pointer group">

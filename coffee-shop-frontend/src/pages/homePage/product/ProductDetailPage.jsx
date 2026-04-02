@@ -70,7 +70,7 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
   useEffect(() => {
     flashSaleService.getCurrentActive()
       .then((res) => setActiveSale(res?.data || null))
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   const fetchProduct = useCallback(() => {
@@ -147,8 +147,8 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
         const list = Array.isArray(res?.data?.data)
           ? res.data.data
           : Array.isArray(res?.data)
-          ? res.data
-          : [];
+            ? res.data
+            : [];
         setToppings(list);
       } catch (error) {
         console.error("Lỗi lấy danh sách topping:", error);
@@ -434,9 +434,9 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
 
       alert(
         res?.message ||
-          (!isFavorite
-            ? "Đã thêm sản phẩm vào yêu thích"
-            : "Đã bỏ sản phẩm khỏi yêu thích")
+        (!isFavorite
+          ? "Đã thêm sản phẩm vào yêu thích"
+          : "Đã bỏ sản phẩm khỏi yêu thích")
       );
     } catch (error) {
       console.error("Lỗi cập nhật yêu thích:", error);
@@ -451,9 +451,9 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
       prev.map((item) =>
         Number(item.topping_id) === Number(toppingId)
           ? {
-              ...item,
-              quantity: Math.max(1, Number(nextQuantity) || 1),
-            }
+            ...item,
+            quantity: Math.max(1, Number(nextQuantity) || 1),
+          }
           : item
       )
     );
@@ -544,7 +544,7 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
           {productData?.category_name && (
             <>
               <span className="text-gray-400">/</span>
-              <span 
+              <span
                 className="cursor-pointer hover:text-amber-600 transition-colors"
                 onClick={() => navigate(`/${productData.category_slug}`)}
               >
@@ -554,8 +554,8 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
           )}
           {productData?.name && (
             <>
-               <span className="text-gray-400">/</span>
-               <span className="text-amber-600 font-medium">{productData.name}</span>
+              <span className="text-gray-400">/</span>
+              <span className="text-amber-600 font-medium">{productData.name}</span>
             </>
           )}
         </div>
@@ -564,9 +564,8 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
       {prevProduct && (
         <button
           onClick={() => navigate(`/${prevProduct.slug || 'products/' + prevProduct.id}`)}
-          className={`fixed left-2 xl:left-8 top-1/2 -translate-y-1/2 z-[100] bg-white/70 hover:bg-white dark:bg-gray-800/80 dark:hover:bg-gray-800 p-2 md:p-4 rounded-full shadow-[0_4px_20px_-4px_rgba(245,158,11,0.5)] border border-amber-200 dark:border-amber-900/50 text-amber-600 dark:text-amber-500 backdrop-blur-md transition-all duration-300 flex group overflow-hidden ${
-            showNavArrows ? 'opacity-100 hover:scale-110' : 'opacity-0 pointer-events-none -translate-x-10'
-          }`}
+          className={`fixed left-2 xl:left-8 top-1/2 -translate-y-1/2 z-[100] bg-white/70 hover:bg-white dark:bg-gray-800/80 dark:hover:bg-gray-800 p-2 md:p-4 rounded-full shadow-[0_4px_20px_-4px_rgba(245,158,11,0.5)] border border-amber-200 dark:border-amber-900/50 text-amber-600 dark:text-amber-500 backdrop-blur-md transition-all duration-300 flex group overflow-hidden ${showNavArrows ? 'opacity-100 hover:scale-110' : 'opacity-0 pointer-events-none -translate-x-10'
+            }`}
           title={`Xem sản phẩm trước: ${prevProduct.name}`}
         >
           <ChevronLeft className="w-6 h-6 md:w-8 md:h-8 group-hover:-translate-x-1 transition-transform" />
@@ -576,9 +575,8 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
       {nextProduct && (
         <button
           onClick={() => navigate(`/${nextProduct.slug || 'products/' + nextProduct.id}`)}
-          className={`fixed right-2 xl:right-8 top-1/2 -translate-y-1/2 z-[100] bg-white/70 hover:bg-white dark:bg-gray-800/80 dark:hover:bg-gray-800 p-2 md:p-4 rounded-full shadow-[0_4px_20px_-4px_rgba(245,158,11,0.5)] border border-amber-200 dark:border-amber-900/50 text-amber-600 dark:text-amber-500 backdrop-blur-md transition-all duration-300 flex group overflow-hidden ${
-            showNavArrows ? 'opacity-100 hover:scale-110' : 'opacity-0 pointer-events-none translate-x-10'
-          }`}
+          className={`fixed right-2 xl:right-8 top-1/2 -translate-y-1/2 z-[100] bg-white/70 hover:bg-white dark:bg-gray-800/80 dark:hover:bg-gray-800 p-2 md:p-4 rounded-full shadow-[0_4px_20px_-4px_rgba(245,158,11,0.5)] border border-amber-200 dark:border-amber-900/50 text-amber-600 dark:text-amber-500 backdrop-blur-md transition-all duration-300 flex group overflow-hidden ${showNavArrows ? 'opacity-100 hover:scale-110' : 'opacity-0 pointer-events-none translate-x-10'
+            }`}
           title={`Xem sản phẩm tiếp theo: ${nextProduct.name}`}
         >
           <ChevronRight className="w-6 h-6 md:w-8 md:h-8 group-hover:translate-x-1 transition-transform" />
@@ -617,9 +615,8 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
 
             <div className="mt-6">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                Mô tả sản phẩm
+                Mô tả món
               </h3>
-
               {description ? (
                 hasRichDescription ? (
                   <div
@@ -674,8 +671,8 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
                           <p className="text-xs text-gray-400 mt-1">
                             {item.created_at
                               ? new Date(item.created_at).toLocaleDateString(
-                                  "vi-VN"
-                                )
+                                "vi-VN"
+                              )
                               : ""}
                             {item.is_edited ? " • Đã chỉnh sửa" : ""}
                           </p>
@@ -685,11 +682,10 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
                           {Array.from({ length: 5 }).map((_, index) => (
                             <Star
                               key={index}
-                              className={`w-4 h-4 ${
-                                index < Number(item.rating)
+                              className={`w-4 h-4 ${index < Number(item.rating)
                                   ? "fill-current"
                                   : "text-gray-300"
-                              }`}
+                                }`}
                             />
                           ))}
                         </div>
@@ -700,12 +696,12 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
                           {item.comment}
                         </p>
                       )}
-                      
+
                       {item.images && item.images.length > 0 && (
                         <div className="flex flex-wrap gap-2 mt-3">
                           {item.images.map((img, idx) => (
                             <a key={idx} href={img.url} target="_blank" rel="noopener noreferrer" className="block">
-                               <img src={img.url} alt="Review" className="w-16 h-16 object-cover rounded-lg border border-gray-200 cursor-zoom-in hover:brightness-90 transition-all"/>
+                              <img src={img.url} alt="Review" className="w-16 h-16 object-cover rounded-lg border border-gray-200 cursor-zoom-in hover:brightness-90 transition-all" />
                             </a>
                           ))}
                         </div>
@@ -743,11 +739,10 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
                             className="transition"
                           >
                             <Star
-                              className={`w-6 h-6 ${
-                                starValue <= myRating
+                              className={`w-6 h-6 ${starValue <= myRating
                                   ? "text-amber-500 fill-current"
                                   : "text-gray-300"
-                              }`}
+                                }`}
                             />
                           </button>
                         );
@@ -765,21 +760,21 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
                     <div className="mt-3 border border-gray-200 dark:border-gray-800 rounded-xl p-3 bg-white dark:bg-gray-900 shadow-sm">
                       <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Hình ảnh đính kèm (Tối đa 3 ảnh)</p>
                       <div className="flex flex-wrap gap-3">
-                         {myImages.map((img, idx) => (
-                           <div key={idx} className="relative w-20 h-20 shrink-0">
-                              <img src={img.url} className="w-full h-full object-cover rounded-lg border border-gray-200" alt="Review preview" />
-                              <button type="button" onClick={() => handleRemoveMyImage(idx)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md hover:bg-red-600 transition">
-                                 <X className="w-3 h-3" />
-                              </button>
-                           </div>
-                         ))}
-                         {myImages.length < 3 && (
-                           <label className="w-20 h-20 shrink-0 flex flex-col gap-1 items-center justify-center border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-amber-500 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-gray-800 text-gray-400 transition bg-gray-50 dark:bg-gray-800">
-                              <ImagePlus className="w-6 h-6" />
-                              <span className="text-[10px] font-medium uppercase tracking-wider">Thêm ảnh</span>
-                              <input type="file" accept="image/*" multiple className="hidden" onChange={handleAddPreviewImages} />
-                           </label>
-                         )}
+                        {myImages.map((img, idx) => (
+                          <div key={idx} className="relative w-20 h-20 shrink-0">
+                            <img src={img.url} className="w-full h-full object-cover rounded-lg border border-gray-200" alt="Review preview" />
+                            <button type="button" onClick={() => handleRemoveMyImage(idx)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md hover:bg-red-600 transition">
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ))}
+                        {myImages.length < 3 && (
+                          <label className="w-20 h-20 shrink-0 flex flex-col gap-1 items-center justify-center border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-amber-500 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-gray-800 text-gray-400 transition bg-gray-50 dark:bg-gray-800">
+                            <ImagePlus className="w-6 h-6" />
+                            <span className="text-[10px] font-medium uppercase tracking-wider">Thêm ảnh</span>
+                            <input type="file" accept="image/*" multiple className="hidden" onChange={handleAddPreviewImages} />
+                          </label>
+                        )}
                       </div>
                     </div>
 
@@ -828,7 +823,7 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
                   title="Chia sẻ lên Facebook"
                 >
                   <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
-                    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.469h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.469h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
                   </svg>
                 </button>
 
@@ -843,7 +838,7 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
                   title="Chia sẻ lên X (Twitter)"
                 >
                   <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
                   </svg>
                 </button>
 
@@ -851,11 +846,10 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
                   type="button"
                   onClick={handleToggleFavorite}
                   disabled={favoriteLoading}
-                  className={`w-12 h-12 rounded-full border flex items-center justify-center transition ${
-                    isFavorite
+                  className={`w-12 h-12 rounded-full border flex items-center justify-center transition ${isFavorite
                       ? "bg-red-50 border-red-500 text-red-500"
                       : "bg-white dark:bg-gray-900 border-gray-300 text-gray-500 dark:text-gray-400 hover:border-red-400 hover:text-red-500 hover:bg-red-50"
-                  }`}
+                    }`}
                   title={isFavorite ? "Bỏ yêu thích" : "Thêm vào yêu thích"}
                 >
                   {favoriteLoading ? (
@@ -879,11 +873,10 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
                       key={size.id}
                       type="button"
                       onClick={() => setSelectedSize(size.size)}
-                      className={`px-4 py-2 rounded-full border font-medium ${
-                        selectedSize === size.size
+                      className={`px-4 py-2 rounded-full border font-medium ${selectedSize === size.size
                           ? "bg-amber-600 text-white border-amber-600"
                           : "bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 border-gray-300"
-                      }`}
+                        }`}
                     >
                       {size.size}
                     </button>
@@ -983,7 +976,7 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
 
             <div className="mb-8 p-4 rounded-2xl bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800">
               <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Tổng tiền tạm tính</p>
-              
+
               <div className="flex flex-col">
                 {isFlashSale && originalDisplayPrice ? (
                   <div className="flex items-center gap-3">
@@ -1010,8 +1003,8 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
                   <div className="flex justify-between items-center">
                     <span>Giá size {selectedSizeObj?.size || ""}:</span>
                     <span className="font-medium">
-                      {isFlashSale 
-                        ? (Number(selectedSizeObj?.price || 0) * (1 - flashSaleDiscount/100)).toLocaleString("vi-VN")
+                      {isFlashSale
+                        ? (Number(selectedSizeObj?.price || 0) * (1 - flashSaleDiscount / 100)).toLocaleString("vi-VN")
                         : Number(selectedSizeObj?.price || 0).toLocaleString("vi-VN")
                       }đ
                     </span>
@@ -1073,7 +1066,7 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-              Sản phẩm liên quan
+              Món liên quan
             </h2>
 
             <Button
