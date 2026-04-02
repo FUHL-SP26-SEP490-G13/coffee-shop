@@ -45,7 +45,7 @@ function OrderPolicy() {
           {/* 2 */}
           <PolicyCard icon={<Clock />} title="2. Thời gian xử lý">
             <ul className="space-y-2">
-              <li>• Xác nhận đơn trong 5–15 phút.</li>
+              <li>• Xác nhận đơn trong 5–15 phút hoặc có thể trong vòng 24 giờ nếu quý khách đặt đơn ngoài giờ làm việc của quán.</li>
               <li>• Giao hàng phụ thuộc khu vực.</li>
               <li>• Giờ cao điểm có thể chậm hơn.</li>
             </ul>
@@ -55,13 +55,13 @@ function OrderPolicy() {
           <PolicyCard icon={<XCircle />} title="3. Chính sách hủy đơn">
             <ul className="space-y-2">
               <li>
-                • Khách hàng được hủy đơn khi đơn đang ở trạng thái <strong>Chờ xác nhận (pending)</strong> hoặc <strong>Đang chuẩn bị (preparing)</strong>.
+                • Khách hàng được hủy đơn khi đơn đang ở trạng thái <strong>Chờ xác nhận</strong> và có sử dụng phương thức thanh toán <strong>tiền mặt</strong>.
               </li>
               <li>
-                • Khi đơn đã chuyển sang các trạng thái khác (ví dụ: đang giao, hoàn tất), hệ thống sẽ không cho hủy từ phía khách hàng.
+                • Khi đơn đã chuyển sang các trạng thái Đang chuẩn bị hoặc đơn đã thanh toán bằng phương thức PayOS thành công, hệ thống sẽ không cho hủy từ phía khách hàng.
               </li>
               <li>
-                • Với thanh toán PayOS, đơn ở trạng thái chờ thanh toán có thể được hệ thống tự động hủy sau khoảng <strong>5 phút</strong> nếu chưa thanh toán thành công.
+                • Với đơn hàng có sử dụng phương thức thanh toán PayOS, đơn ở trạng thái chờ thanh toán có thể được hệ thống tự động hủy sau khoảng <strong>5 phút</strong> nếu chưa thanh toán thành công.
               </li>
               <li>
                 • Khi đơn bị hủy, hệ thống sẽ đồng bộ lại điểm loyalty (nếu đơn có sử dụng điểm) và có thể bị mất 20 điểm uy tín cho mỗi đơn nếu lý do hủy là do khách hàng.
@@ -81,11 +81,12 @@ function OrderPolicy() {
           {/* 5 */}
           <PolicyCard icon={<CreditCard />} title="5. Thanh toán">
             <ul className="space-y-2">
-              <li>• Tiền mặt tại quầy.</li>
+              <li>• Tiền mặt tại quầy hoặc ngay khi nhận hàng.</li>
               <li>
-                • QR / chuyển khoản trực tuyến thông qua hệ thống thanh toán
+                • Chuyển khoản trực tuyến thông qua hệ thống thanh toán
                 PayOS
               </li>
+              <li><strong>• Lưu ý: Chúng tôi không chịu trách nhiệm cho các giao dịch thanh toán không thành công do lỗi của ngân hàng hoặc nhà cung cấp dịch vụ thanh toán.</strong></li>
             </ul>
           </PolicyCard>
 
