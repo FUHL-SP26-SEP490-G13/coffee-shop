@@ -32,6 +32,12 @@ const getProductImage = (product) => {
   return thumbnail ? thumbnail.image_url : null;
 };
 
+const isProductAvailable = (product) => {
+  const status = String(product?.status || '').trim().toLowerCase();
+  if (!status) return true;
+  return status !== 'unavailable';
+};
+
 const CASH_SUGGESTIONS = [10000, 20000, 50000, 100000, 200000, 500000];
 
 const formatVND = (amount) =>
@@ -462,9 +468,10 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
 
   const filteredProducts = useMemo(() => {
     return products.filter((p) => {
+      const isAvailable = isProductAvailable(p);
       const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesCategory = activeCategory === 'all' || p.category_id === activeCategory;
-      return matchesSearch && matchesCategory;
+      return isAvailable && matchesSearch && matchesCategory;
     });
   }, [products, searchQuery, activeCategory]);
 
