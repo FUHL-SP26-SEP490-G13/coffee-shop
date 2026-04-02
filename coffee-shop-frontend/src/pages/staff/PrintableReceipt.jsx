@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import receiptSettingService from '@/services/receiptSettingService';
 
 const fmt = (n) => Number(n).toLocaleString('vi-VN') + ' đ';
+const DELIVERY_FEE = 20000;
 
 const isOrderPaid = (order) => {
   const paymentStatus = String(
@@ -116,10 +117,11 @@ export function PrintableReceipt({ order, onDone, onPrintSuccess }) {
   const totalAmount = Number(order.total_amount || 0);
   const computedDiscount = Math.max(0, subtotal - totalAmount);
   const normalizedOrderType = String(order?.order_type || '').toLowerCase();
+  const isDeliveryOrder = normalizedOrderType === 'delivery';
   const hasReceiverInfo = Boolean(
     order?.receiver_name || order?.receiver_phone || order?.address || order?.receiver_email
   );
-  const shouldShowDeliveryInfo = normalizedOrderType === 'delivery' && hasReceiverInfo;
+  const shouldShowDeliveryInfo = isDeliveryOrder && hasReceiverInfo;
   const orderDate = new Date(order.created_at || printedAt).toLocaleString(
     'vi-VN',
     {
@@ -478,6 +480,15 @@ export function PrintableReceipt({ order, onDone, onPrintSuccess }) {
             <div className="receipt-item">
               <span>Ghi chú:</span>
               <span>{order.note}</span>
+            </div>
+          </div>
+        )}
+
+        {isDeliveryOrder && (
+          <div className="receipt-section">
+            <div className="receipt-item">
+              <span>Phí vận chuyển</span>
+              <span>{fmt(DELIVERY_FEE)}</span>
             </div>
           </div>
         )}

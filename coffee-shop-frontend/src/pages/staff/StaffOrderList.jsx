@@ -58,6 +58,8 @@ const ORDER_TYPE_COLUMNS = [
   { key: "takeaway", label: "Mang về", icon: ShoppingBag },
 ];
 
+const DELIVERY_FEE = 20000;
+
 const normalizeOrderType = (value) => {
   const type = String(value || "").toLowerCase();
   if (type === "dinein") return "dine-in";
@@ -388,7 +390,13 @@ export function OrderDelivery() {
       toast.info("Đang lấy dữ liệu hóa đơn...");
       const res = await takeawayService.getReceipt(orderId);
       if (res.data?.receipt) {
+        const sourceOrder =
+          Number(selectedOrder?.id || 0) === Number(orderId)
+            ? selectedOrder
+            : orders.find((item) => Number(item?.id || 0) === Number(orderId));
+
         setViewingReceipt({
+          ...sourceOrder,
           ...res.data.receipt,
           printed_by: printerName,
           autoPrint: true,
@@ -575,6 +583,7 @@ export function OrderDelivery() {
       if (!selectedOrderHasPrintedReceipt) {
         return (
           <Button onClick={() => handlePrintReceipt(selectedOrder.id)}>
+            <Printer size={16} />
             In hóa đơn
           </Button>
         );
@@ -614,7 +623,7 @@ export function OrderDelivery() {
 
     return (
       <Card key={order.id} className="border-slate-200 bg-white shadow-sm">
-        <CardContent className="p-2.5">
+        <CardContent className="p-3 md:p-2.5">
           <div className="flex items-start justify-between gap-2">
             <div>
               <p className="text-sm font-semibold leading-none text-slate-900">
@@ -636,13 +645,13 @@ export function OrderDelivery() {
             </Badge>
           </div>
 
-          <div className="mt-2 flex items-end justify-between gap-2">
-            <p className="text-base font-semibold leading-none text-slate-900">
+          <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <p className="text-base font-bold color-green-500 leading-none text-slate-900 ">
               {money(order.total_amount)}
             </p>
             <Button
               size="sm"
-              className="h-7 px-2.5 text-xs"
+              className="h-9 w-full px-3 text-sm sm:h-7 sm:w-auto sm:px-2.5 sm:text-xs"
               variant={activeStatus === "pending" ? "default" : "outline"}
               onClick={() => openDetailModal(order)}
             >
@@ -655,19 +664,19 @@ export function OrderDelivery() {
   };
 
   return (
-    <div className="mx-auto max-w-[1600px] space-y-4 p-4 md:p-6">
-      <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm md:px-5 md:py-4">
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+    <div className="mx-auto max-w-[1600px] space-y-3 px-4 pb-1 pt-1 md:px-6 md:pb-3 md:pt-2">
+      <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm md:px-4 md:py-2.5">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
-            <h2 className="truncate text-xl font-bold tracking-tight text-slate-900 md:text-2xl">
+            <h2 className="truncate text-lg font-bold tracking-tight text-slate-900 md:text-xl">
               Danh sách đơn hàng
             </h2>
-            <p className="text-sm text-slate-500">
+            <p className="text-xs text-slate-500 md:text-sm">
               Trạng thái hiện tại: {statusLabelMap[activeStatus]}
             </p>
           </div>
 
-          <div className="flex items-center gap-2 self-start md:self-auto">
+          <div className="flex items-center gap-2 self-start sm:self-auto">
             {newOrderCount > 0 ? (
               <Badge
                 variant="destructive"
@@ -686,7 +695,7 @@ export function OrderDelivery() {
               disabled={loading}
               variant="outline"
               size="sm"
-              className="h-8 gap-1.5 border-slate-200 bg-white px-2.5 text-xs font-medium hover:bg-slate-50"
+              className="h-9 gap-1.5 border-slate-200 bg-white px-3 text-xs font-medium hover:bg-slate-50 md:h-8 md:px-2.5"
             >
               <RefreshCw
                 className={`h-4 w-4 ${loading ? "animate-spin text-primary" : "text-slate-500"}`}
@@ -696,24 +705,27 @@ export function OrderDelivery() {
           </div>
         </div>
 
-        <div className="mt-3 flex flex-wrap items-center gap-1.5 border-t border-slate-100 pt-3">
+        <div className="mt-2.5 flex items-center gap-1.5 overflow-x-auto border-t border-slate-100 pb-0.5 pt-2.5 md:flex-wrap md:overflow-visible md:pb-0">
           {Object.entries(orderTypeLabelMap).map(([typeKey, label]) => (
             <Button
               key={typeKey}
               size="sm"
               variant={selectedOrderType === typeKey ? "default" : "outline"}
               onClick={() => setSelectedOrderType(typeKey)}
-              className="h-8 gap-1.5 px-2.5 text-xs"
+              className="h-9 shrink-0 gap-1.5 px-2.5 text-xs md:h-8"
             >
               {label}
-              <Badge variant="secondary" className="ml-0.5 h-5 px-1.5 text-[11px]">
+              <Badge
+                variant="secondary"
+                className="ml-0.5 h-5 px-1.5 text-[11px]"
+              >
                 {orderTypeCounts[typeKey] || 0}
               </Badge>
             </Button>
           ))}
 
           {["pending", "preparing"].includes(activeStatus) ? (
-            <div className="ml-auto inline-flex h-8 items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-2.5">
+            <div className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-2.5 md:ml-auto md:h-8">
               <span className="text-xs font-medium text-rose-700">
                 Trễ &gt; 10 phút
               </span>
@@ -727,10 +739,7 @@ export function OrderDelivery() {
 
       <div className="overflow-x-auto">
         <div
-          className="grid gap-3"
-          style={{
-            gridTemplateColumns: `repeat(${visibleOrderTypeColumns.length}, minmax(0, 1fr))`,
-          }}
+          className={`grid gap-3 ${selectedOrderType === "all" ? "grid-cols-1 md:grid-cols-3" : "grid-cols-1"}`}
         >
           {visibleOrderTypeColumns.map((column) => {
             const Icon = column.icon;
@@ -751,7 +760,7 @@ export function OrderDelivery() {
                   <Badge variant="secondary">{columnOrders.length}</Badge>
                 </div>
 
-                <div className="max-h-[calc(100vh-360px)] min-h-[260px] space-y-2 overflow-y-auto p-3">
+                <div className="max-h-none min-h-[220px] space-y-2 overflow-visible p-3 md:max-h-[calc(100vh-300px)] md:min-h-[400px] md:overflow-y-auto">
                   {loading ? (
                     <p className="py-8 text-center text-sm text-muted-foreground">
                       Đang tải dữ liệu...
@@ -870,21 +879,6 @@ export function OrderDelivery() {
                     </div>
                   </div>
                 ) : null}
-
-                {isDeliveryOrder(selectedOrder) &&
-                selectedOrder.receiver_name &&
-                selectedOrderIsPreparing &&
-                !selectedOrderHasPrintedReceipt ? (
-                  <div className="sm:col-span-2 border-t pt-3 mt-3">
-                    <button
-                      onClick={() => handlePrintReceipt(selectedOrder.id)}
-                      className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600"
-                    >
-                      <Printer size={16} />
-                      In hóa đơn
-                    </button>
-                  </div>
-                ) : null}
               </div>
 
               <div className="space-y-2 rounded-md border p-3">
@@ -935,7 +929,13 @@ export function OrderDelivery() {
                 )}
               </div>
 
-              <div className="flex justify-end">
+              <div className="flex flex-col items-end gap-1">
+                {isDeliveryOrder(selectedOrder) ? (
+                  <p className="text-sm text-slate-600">
+                    Phí vận chuyển:{" "}
+                    <span className="font-medium">{money(DELIVERY_FEE)}</span>
+                  </p>
+                ) : null}
                 <p className="text-sm">
                   Tổng tiền:{" "}
                   <span className="font-semibold">

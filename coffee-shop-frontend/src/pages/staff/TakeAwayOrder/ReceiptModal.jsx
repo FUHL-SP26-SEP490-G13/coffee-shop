@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { PrintableReceipt } from '../PrintableReceipt';
 
 const fmt = (n) => Number(n).toLocaleString('vi-VN') + 'đ';
+const DELIVERY_FEE = 20000;
 
 const isOrderPaid = (order) => {
   const paymentStatus = String(
@@ -64,10 +65,11 @@ export function ReceiptModal({ order, onClose, onPrint, autoPrint = false }) {
   const totalAmount = Number(order.total_amount || 0);
   const computedDiscount = Math.max(0, subtotal - totalAmount);
   const normalizedOrderType = String(order?.order_type || '').toLowerCase();
+  const isDeliveryOrder = normalizedOrderType === 'delivery';
   const hasReceiverInfo = Boolean(
     order?.receiver_name || order?.receiver_phone || order?.address || order?.receiver_email
   );
-  const shouldShowDeliveryInfo = normalizedOrderType === 'delivery' && hasReceiverInfo;
+  const shouldShowDeliveryInfo = isDeliveryOrder && hasReceiverInfo;
 
   const handlePrint = () => {
     if (isPreparingPrint || isPrinting) return;
@@ -196,6 +198,13 @@ export function ReceiptModal({ order, onClose, onPrint, autoPrint = false }) {
                 Giảm giá{order.discount_code ? ` (${order.discount_code})` : ''}
               </span>
               <span className='text-green-600'>-{fmt(computedDiscount)}</span>
+            </div>
+          )}
+
+          {isDeliveryOrder && (
+            <div className='flex justify-between text-sm border-t border-dashed border-gray-200 pt-3'>
+              <span className='text-gray-600'>Phí vận chuyển</span>
+              <span className='font-medium'>{fmt(DELIVERY_FEE)}</span>
             </div>
           )}
 
