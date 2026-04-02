@@ -165,7 +165,6 @@ export default function FlashSaleSection({ products, getThumbnail, getDefaultCar
               }
               return Array.isArray(ids) && ids.some(id => String(id) === String(p.id));
             })
-            .slice(0, 5)
             .map((product) => {
             const cartSize = getDefaultCartSize(product);
             const originalPrice = cartSize ? Number(cartSize.price) : 0;
