@@ -36,7 +36,7 @@ import {
 } from "@/utils/reputationValidation";
 import { toast } from "sonner";
 import flashSaleService from "@/services/flashSaleService";
-import appSettingService from "@/services/appSettingService";
+import receiptSettingService from "@/services/receiptSettingService";
 import { geocodeAddress, getDrivingDistance, calculateShippingFee } from "@/utils/distanceCalculator";
 import { Loader2 } from "lucide-react";
 
@@ -105,7 +105,7 @@ export default function CheckoutPage() {
         const [profileRes, addressesRes, settingsRes] = await Promise.all([
           authenticationService.getProfile(),
           authenticationService.getMyAddresses(),
-          appSettingService.getSettings(),
+          receiptSettingService.getSettings(),
         ]);
         
         if (settingsRes?.data?.reputation_rules) {

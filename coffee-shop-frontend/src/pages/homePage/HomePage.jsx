@@ -20,6 +20,7 @@ import "swiper/css/pagination";
 import "swiper/css/navigation";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import AiAssistantWidget from "@/components/layout/AiAssistantWidget";
 
 export default function HomePage() {
   const [activeBannerIndex, setActiveBannerIndex] = useState(0);
@@ -169,7 +170,7 @@ export default function HomePage() {
           <div className="max-w-[1440px] w-full mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 relative flex items-stretch">
 
             {/* STATIC CATEGORY SIDEBAR */}
-            <div 
+            <div
               className="hidden lg:flex w-[250px] shrink-0 flex-col bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-xl rounded-b-2xl z-20 pb-3 relative"
               onMouseLeave={() => setHoveredCategory(null)}
             >
@@ -195,7 +196,7 @@ export default function HomePage() {
 
               {/* POPOVER MENU FOR PRODUCTS */}
               {hoveredCategory && (
-                <div 
+                <div
                   className="absolute left-[100%] top-0 min-h-[480px] w-[500px] xl:w-[600px] bg-white dark:bg-gray-900 shadow-[20px_10px_30px_rgba(0,0,0,0.1)] border border-gray-100 dark:border-gray-800 rounded-r-2xl p-6 flex flex-col z-50 ml-0 transition-opacity"
                 >
                   <div className="flex justify-between items-center mb-6 border-b border-gray-100 dark:border-gray-800 pb-3">
@@ -225,14 +226,14 @@ export default function HomePage() {
                     ) : (
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
                         {categoryProducts[hoveredCategory].slice(0, 9).map(product => (
-                          <div 
-                            key={product.id} 
+                          <div
+                            key={product.id}
                             className="flex flex-col items-center gap-3 cursor-pointer group"
                             onClick={() => navigate(`/${product.slug || 'products/' + product.id}`)}
                           >
                             <div className="w-[100px] h-[100px] rounded-full bg-[#FAF9F6] dark:bg-gray-800 p-2 flex items-center justify-center shadow-sm group-hover:shadow-md transition-all border border-transparent group-hover:border-amber-200">
-                              <img 
-                                src={getThumbnail(product)} 
+                              <img
+                                src={getThumbnail(product)}
                                 alt={product.name}
                                 className="w-full h-full object-contain mix-blend-multiply dark:mix-blend-normal group-hover:scale-110 transition-transform duration-300"
                                 onError={(e) => { e.currentTarget.style.display = 'none'; }}
@@ -303,6 +304,8 @@ export default function HomePage() {
       <FadeInView>
         <InstagramFeedSection />
       </FadeInView>
+
+      <AiAssistantWidget />
 
       <Footer />
 

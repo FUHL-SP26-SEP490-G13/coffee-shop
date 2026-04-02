@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Loader2, MapPin, Phone, Clock, Mail } from "lucide-react";
-import appSettingService from "@/services/appSettingService";
+import receiptSettingService from "@/services/receiptSettingService";
 
 export default function StoreInfoPage() {
   const [storeInfo, setStoreInfo] = useState({
@@ -17,7 +17,7 @@ export default function StoreInfoPage() {
   useEffect(() => {
     const fetchSettings = async () => {
       try {
-        const res = await appSettingService.getSettings();
+        const res = await receiptSettingService.getSettings();
         const data = res?.data || {};
         
         setStoreInfo({
