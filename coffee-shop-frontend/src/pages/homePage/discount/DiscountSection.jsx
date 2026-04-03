@@ -117,22 +117,22 @@ export default function DiscountSection() {
                     </div>
 
                     <div className="flex items-center gap-2 mt-auto">
-                      <div className="flex-1 bg-[#F2F0E9] dark:bg-gray-800 rounded-lg px-4 py-2.5 text-center font-bold text-sm tracking-widest text-gray-800 dark:text-gray-200 truncate">
+                      <div className="flex-1 bg-[#F2F0E9] dark:bg-gray-800 rounded-lg px-3 py-2 text-center font-bold text-sm tracking-widest text-gray-800 dark:text-gray-200 truncate flex items-center justify-center min-h-[36px]">
                         {item.code}
                       </div>
                       <button
                         onClick={() => handleCopy(item.code)}
-                        className="flex items-center gap-2 bg-[#8c5226] hover:bg-[#70421e] text-white px-4 py-2.5 rounded-lg transition-colors shadow-sm shrink-0 font-medium"
+                        className="flex items-center justify-center gap-1.5 bg-[#8c5226] hover:bg-[#70421e] text-white px-3 py-2 rounded-lg transition-colors shadow-sm shrink-0 min-h-[36px]"
                       >
                         {copiedCode === item.code ? (
                           <>
-                            <CheckCircle2 className="w-4 h-4" />
-                            <span className="text-sm">Đã chép</span>
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            <span className="text-[13px] font-medium">Đã chép</span>
                           </>
                         ) : (
                           <>
-                            <Copy className="w-4 h-4" />
-                            <span className="text-sm">Sao chép</span>
+                            <Copy className="w-3.5 h-3.5" />
+                            <span className="text-[13px] font-medium">Sao chép</span>
                           </>
                         )}
                       </button>
