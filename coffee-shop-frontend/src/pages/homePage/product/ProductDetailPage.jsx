@@ -10,7 +10,9 @@ import {
   ImagePlus,
   X,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Zap,
+  Clock
 } from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
@@ -66,12 +68,34 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
   const [reviewSubmitting, setReviewSubmitting] = useState(false);
 
   const [activeSale, setActiveSale] = useState(null);
+  const [timeLeft, setTimeLeft] = useState({ hours: 0, minutes: 0, seconds: 0 });
 
   useEffect(() => {
     flashSaleService.getCurrentActive()
       .then((res) => setActiveSale(res?.data || null))
       .catch(() => { });
   }, []);
+
+  useEffect(() => {
+    if (!activeSale) return;
+
+    const calculateTimeLeft = () => {
+      const difference = new Date(activeSale.end_time) - new Date();
+      if (difference > 0) {
+        setTimeLeft({
+          hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
+          minutes: Math.floor((difference / 1000 / 60) % 60),
+          seconds: Math.floor((difference / 1000) % 60)
+        });
+      } else {
+        setActiveSale(null);
+      }
+    };
+
+    const timer = setInterval(calculateTimeLeft, 1000);
+    calculateTimeLeft();
+    return () => clearInterval(timer);
+  }, [activeSale]);
 
   const fetchProduct = useCallback(() => {
     return productService.getById(productId);
@@ -629,8 +653,8 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
                             <Star
                               key={index}
                               className={`w-4 h-4 ${index < Number(item.rating)
-                                  ? "fill-current"
-                                  : "text-gray-300"
+                                ? "fill-current"
+                                : "text-gray-300"
                                 }`}
                             />
                           ))}
@@ -686,8 +710,8 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
                           >
                             <Star
                               className={`w-6 h-6 ${starValue <= myRating
-                                  ? "text-amber-500 fill-current"
-                                  : "text-gray-300"
+                                ? "text-amber-500 fill-current"
+                                : "text-gray-300"
                                 }`}
                             />
                           </button>
@@ -793,8 +817,8 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
                   onClick={handleToggleFavorite}
                   disabled={favoriteLoading}
                   className={`w-12 h-12 rounded-full border flex items-center justify-center transition ${isFavorite
-                      ? "bg-red-50 border-red-500 text-red-500"
-                      : "bg-white dark:bg-gray-900 border-gray-300 text-gray-500 dark:text-gray-400 hover:border-red-400 hover:text-red-500 hover:bg-red-50"
+                    ? "bg-red-50 border-red-500 text-red-500"
+                    : "bg-white dark:bg-gray-900 border-gray-300 text-gray-500 dark:text-gray-400 hover:border-red-400 hover:text-red-500 hover:bg-red-50"
                     }`}
                   title={isFavorite ? "Bỏ yêu thích" : "Thêm vào yêu thích"}
                 >
@@ -820,8 +844,8 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
                       type="button"
                       onClick={() => setSelectedSize(size.size)}
                       className={`px-4 py-2 rounded-full border font-medium ${selectedSize === size.size
-                          ? "bg-amber-600 text-white border-amber-600"
-                          : "bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 border-gray-300"
+                        ? "bg-amber-600 text-white border-amber-600"
+                        : "bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 border-gray-300"
                         }`}
                     >
                       {size.size}
@@ -917,6 +941,31 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
                     </div>
                   </div>
                 )}
+              </div>
+            )}
+
+            {isFlashSale && (
+              <div className="mb-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex items-start gap-3">
+                  <div className="bg-white dark:bg-gray-800 p-2 rounded-full shadow-sm shrink-0">
+                    <Zap className="w-5 h-5 text-red-600 animate-pulse" />
+                  </div>
+                  <div>
+                    <h5 className="font-bold text-red-600 dark:text-red-400 text-sm mb-1 uppercase tracking-wider">Flash sale</h5>
+                    <p className="text-xs text-red-500/80 dark:text-red-300">Sản phẩm sẽ tự động trở về giá gốc khi hết thời gian</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 bg-white dark:bg-gray-800 p-2.5 rounded-xl shadow-sm border border-red-100 dark:border-red-900/40 shrink-0">
+                  <Clock className="w-5 h-5 text-red-500 shrink-0" />
+                  <div className="flex items-center gap-1 text-[15px] font-bold text-red-600 dark:text-red-400">
+                    <div className="w-7 h-7 flex items-center justify-center bg-red-50 dark:bg-red-900/30 rounded">{String(timeLeft.hours).padStart(2, '0')}</div>
+                    <span>:</span>
+                    <div className="w-7 h-7 flex items-center justify-center bg-red-50 dark:bg-red-900/30 rounded">{String(timeLeft.minutes).padStart(2, '0')}</div>
+                    <span>:</span>
+                    <div className="w-7 h-7 flex items-center justify-center bg-red-50 dark:bg-red-900/30 rounded">{String(timeLeft.seconds).padStart(2, '0')}</div>
+                  </div>
+                </div>
               </div>
             )}
 
