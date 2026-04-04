@@ -18,7 +18,7 @@ export default function BestSellerSection({
   getDisplayPrice,
 }) {
   const navigate = useNavigate();
-  const { isOpen } = useStoreHours();
+  const { isOpen, storeSchedule } = useStoreHours();
 
   const token =
     localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN) ||
@@ -395,13 +395,18 @@ export default function BestSellerSection({
                           })()}
                         </div>
                         
-                        <button
-                          onClick={(e) => handleFastAdd(e, product)}
-                          disabled={!isOpen}
-                          className={`w-8 h-8 rounded-md flex items-center justify-center shrink-0 transition-colors shadow-sm ${isOpen ? "bg-[#8B5A2B] hover:bg-[#69421c] text-white" : "bg-gray-300 dark:bg-gray-800 text-gray-400 dark:text-gray-500 cursor-not-allowed"}`}
-                        >
-                          <ShoppingCart className="w-[15px] h-[15px] xl:ml-[-1px]" />
-                        </button>
+                        {isOpen ? (
+                          <button
+                            onClick={(e) => handleFastAdd(e, product)}
+                            className="w-8 h-8 rounded-md flex items-center justify-center shrink-0 transition-colors shadow-sm bg-[#8B5A2B] hover:bg-[#69421c] text-white"
+                          >
+                            <ShoppingCart className="w-[15px] h-[15px] xl:ml-[-1px]" />
+                          </button>
+                        ) : (
+                          <div className="flex items-center text-[11px] font-bold text-rose-600 bg-rose-50 px-2 py-1.5 rounded-lg border border-rose-100 whitespace-nowrap shadow-sm">
+                            Mở cửa từ {storeSchedule?.open || '07:00'}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
