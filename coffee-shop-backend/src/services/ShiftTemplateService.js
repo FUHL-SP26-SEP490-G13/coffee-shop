@@ -55,7 +55,7 @@ class ShiftTemplateService {
             throw new ErrorResponse(400, `Khung giờ bị trùng với ca khác`);
 
         return ShiftRepository.createTemplate({
-            name: name.trim(),
+            name: name.trim().toUpperCase(),
             start_time,
             end_time,
             color: color || 'blue',
@@ -103,7 +103,7 @@ class ShiftTemplateService {
             throw new ErrorResponse(400, `Khung giờ bị trùng với ca khác`);
 
         return ShiftRepository.updateTemplate(id, {
-            name: name?.trim() ?? template.name,
+            name: name?.trim().toUpperCase() ?? template.name.toUpperCase(),
             start_time: finalStart,
             end_time: finalEnd,
             color: color ?? template.color,

@@ -28,6 +28,7 @@ const takeawayRoutes = require("./takeaway.routes");
 const flashSaleRoutes = require('./flashSale.routes');
 const qrOrderRoutes = require('./qrOrder.routes');
 const shiftRoutes = require('./shift.routes');
+const swapRequestRoutes = require('./swapRequest.routes');
 const loyaltyRoutes = require('./loyalty.routes');
 
 const CategoryRepository = require('../repositories/CategoryRepository');
@@ -82,6 +83,7 @@ router.use("/orders", orderRoutes);
 router.use('/flash-sales', flashSaleRoutes);
 router.use('/qr-order', qrOrderRoutes);
 router.use('/shifts', shiftRoutes);
+router.use('/swap-requests', swapRequestRoutes);
 router.use('/loyalty', loyaltyRoutes);
 router.use('/ai', aiRoutes);
 
