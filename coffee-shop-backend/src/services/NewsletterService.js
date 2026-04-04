@@ -25,7 +25,20 @@ class NewsletterService {
       );
 
       if (existing.length > 0) {
-        throw new ErrorResponse(400, 'Email này đã đăng ký nhận tin rồi');
+        if (existing[0].is_active === 1) {
+          throw new ErrorResponse(400, 'Email này đã đăng ký nhận tin rồi');
+        } else {
+          // Khôi phục đăng ký
+          await pool.query('UPDATE newsletters SET is_active = 1 WHERE email = ?', [email]);
+          
+          EmailService.sendNewsletterWelcomeEmail(email).catch(err => {
+            console.error('Failed to send newsletter welcome email:', err);
+          });
+          
+          return {
+            message: 'Đăng ký nhận tin lại thành công'
+          };
+        }
       }
 
       // Insert new subscriber
@@ -108,14 +121,17 @@ class NewsletterService {
       }
 
       const activeState = existing[0].is_active;
-      const newState = activeState === 1 ? 0 : 1;
+      
+      if (activeState === 0) {
+        throw new ErrorResponse(403, 'Khách đã tự hủy nhận tin. Tính năng Bật lại bằng tay bị khóa để tránh làm phiền khách. Khách có thể tự đăng ký lại trên web.');
+      }
 
-      await pool.query('UPDATE newsletters SET is_active = ? WHERE id = ?', [newState, id]);
+      await pool.query('UPDATE newsletters SET is_active = 0 WHERE id = ?', [id]);
 
       return {
         id,
-        is_active: newState,
-        message: newState === 1 ? 'Đã bật lại gửi tin' : 'Đã dừng gửi tin'
+        is_active: 0,
+        message: 'Đã dừng gửi tin'
       };
     } catch (error) {
       if (error instanceof ErrorResponse) throw error;
@@ -156,20 +172,11 @@ class NewsletterService {
     try {
       // Lấy toàn bộ email đang active
       const [subscribers] = await pool.query('SELECT email FROM newsletters WHERE is_active = 1');
-      
+
       if (subscribers.length === 0) {
         return { message: 'Không có người đăng ký nào đang kích hoạt để gửi' };
       }
 
-      // Thông báo hệ thống cho Customers trước
-      NotificationService.createForCustomers({
-        type: "system_update",
-        title: subject,
-        message: 'Có một thông báo qua Email mới vừa được gửi tới hộp thư của bạn. Hãy kiểm tra nhé!',
-        link: "/",
-        entity_type: "newsletter",
-        entity_id: 0,
-      }).catch(err => console.error('Gửi in-app notification lỗi:', err));
 
       // Thực thi gửi mail bất đồng bộ (tránh block request)
       // Lưu ý: Đối với hệ thống thật sự lớn cần dùng queue (ví dụ agenda, bullmq) và chia lô. Ở đây dùng vòng lặp bất đồng bộ cơ bản.
@@ -179,18 +186,18 @@ class NewsletterService {
       (async () => {
         let successCount = 0;
         let failCount = 0;
-        
+
         // Chia batch gửi để tránh dội server (ví dụ 20 mail / loạt)
         const batchSize = 20;
         for (let i = 0; i < emails.length; i += batchSize) {
           const batch = emails.slice(i, i + batchSize);
-          
-          const promises = batch.map(email => 
+
+          const promises = batch.map(email =>
             EmailService.sendBroadcastEmail(email, subject, content)
           );
-          
+
           const results = await Promise.allSettled(promises);
-          
+
           results.forEach(r => {
             if (r.status === 'fulfilled' && r.value.success) successCount++;
             else failCount++;

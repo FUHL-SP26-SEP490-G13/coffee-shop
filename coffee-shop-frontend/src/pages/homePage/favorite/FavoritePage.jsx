@@ -8,31 +8,22 @@ import productService from "@/services/productService";
 import { cartService } from "@/services/cartService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useStoreHours } from "@/hooks/useStoreHours";
 
 const PAGE_SIZE = 8;
 
 export default function FavoritePage() {
   const navigate = useNavigate();
+  const { isOpen: isStoreOpen, nextOpenMessage } = useStoreHours();
 
   const [favorites, setFavorites] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [keyword, setKeyword] = useState("");
-  const [debouncedKeyword, setDebouncedKeyword] = useState("");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [initialized, setInitialized] = useState(false);
 
   const defaultImage =
     "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085";
-
-  // debounce keyword
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedKeyword(keyword);
-    }, 500);
-
-    return () => clearTimeout(timer);
-  }, [keyword]);
 
   const fetchFavorites = async () => {
     try {
@@ -43,7 +34,7 @@ export default function FavoritePage() {
       const res = await favoriteService.getMyFavorites({
         page,
         limit: PAGE_SIZE,
-        keyword: debouncedKeyword.trim(),
+        keyword: "",
       });
 
       const result = res?.data || {};
@@ -62,9 +53,14 @@ export default function FavoritePage() {
 
   useEffect(() => {
     fetchFavorites();
-  }, [page, debouncedKeyword]);
+  }, [page]);
 
   const handleAddToCart = async (item) => {
+    if (!isStoreOpen) {
+      alert("Cửa hàng hiện đang đóng cửa");
+      return;
+    }
+
     try {
       const res = await productService.getById(item.product_id);
       const product = res?.data || null;
@@ -159,19 +155,7 @@ export default function FavoritePage() {
             <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">Danh sách yêu thích</h1>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-4 mb-8 justify-between items-center">
-            <div className="flex-1 w-full relative sm:max-w-md">
-              <Input
-                value={keyword}
-                onChange={(e) => {
-                  setKeyword(e.target.value);
-                  setPage(1);
-                }}
-                placeholder="Tìm theo tên sản phẩm..."
-                className="pr-12 border-amber-200 focus-visible:ring-amber-500 rounded-full bg-amber-50/30"
-              />
-              <Search className="w-5 h-5 text-amber-600 absolute right-4 top-1/2 -translate-y-1/2" />
-            </div>
+          <div className="flex justify-end mb-8">
 
             {favorites.length > 0 && (
               <Button 
@@ -195,12 +179,10 @@ export default function FavoritePage() {
                 <Coffee className="w-12 h-12 text-amber-500" strokeWidth={1.5} />
               </div>
               <h3 className="text-xl font-semibold text-gray-600 dark:text-gray-100 mb-5">
-                {keyword ? "Không có sản phẩm nào" : "Bộ sưu tập trống trơn"}
+                Bộ sưu tập trống trơn
               </h3>
               <p className="text-gray-500 dark:text-gray-400 mb-8 max-w-sm">
-                {keyword 
-                  ? `Không tìm thấy món nào tên "${keyword}" trong danh sách yêu thích của bạn.`
-                  : "Danh sách yêu thích đang buồn hiu hà. Đi dạo một vòng xem có món nước nào hợp gu để thả tim không nhé!"}
+                Danh sách yêu thích đang buồn hiu hà. Đi dạo một vòng xem có món nước nào hợp gu để thả tim không nhé!
               </p>
               <Button 
                 onClick={() => navigate("/products")}
@@ -244,6 +226,14 @@ export default function FavoritePage() {
                         >
                           <Heart className="w-5 h-5 text-red-500 fill-red-500 group-hover/btn:scale-110 transition-transform" />
                         </button>
+                        
+                        {!isStoreOpen && (
+                          <div className="absolute inset-x-0 bottom-0 z-[15] bg-white/90 dark:bg-gray-900/90 py-1.5 px-3 flex justify-center border-t dark:border-gray-800 shadow-sm">
+                            <span className="text-xs font-semibold text-gray-800 dark:text-gray-200">
+                              {nextOpenMessage}
+                            </span>
+                          </div>
+                        )}
                       </div>
 
                       <div className="p-5">
@@ -269,11 +259,20 @@ export default function FavoritePage() {
                         </div>
 
                         <Button
-                          className="w-full mt-5 bg-gray-900 hover:bg-amber-600 text-white rounded-xl transition-colors duration-300 shadow-sm hover:shadow-amber-600/30 font-semibold"
-                          onClick={() => handleAddToCart(item)}
+                          disabled={!isStoreOpen}
+                          className="w-full mt-5 bg-gray-900 hover:bg-amber-600 text-white rounded-xl transition-colors duration-300 shadow-sm hover:shadow-amber-600/30 font-semibold disabled:bg-gray-400 disabled:opacity-100 disabled:cursor-not-allowed"
+                          onClick={() => {
+                            if (isStoreOpen) handleAddToCart(item);
+                          }}
                         >
-                          <ShoppingBag className="w-4 h-4 mr-2" />
-                          Thêm Ngay
+                          {isStoreOpen ? (
+                            <>
+                              <ShoppingBag className="w-4 h-4 mr-2" />
+                              Thêm Ngay
+                            </>
+                          ) : (
+                            nextOpenMessage || "Đóng cửa"
+                          )}
                         </Button>
                       </div>
                     </div>

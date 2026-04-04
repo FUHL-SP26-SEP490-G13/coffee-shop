@@ -192,16 +192,21 @@ function AdminNewsletterPage() {
                       {new Date(item.created_at).toLocaleString("vi-VN")}
                     </td>
                     <td className="px-6 py-4">
-                      <button
-                        onClick={() => handleToggleActive(item.id, item.is_active)}
-                        className={`text-sm tracking-wide font-medium \${
-                          item.is_active 
-                          ? "text-red-600 hover:text-red-800" 
-                          : "text-amber-600 hover:text-amber-800"
-                        }`}
-                      >
-                        {item.is_active ? "Dừng gửi" : "Mở lại"}
-                      </button>
+                      {item.is_active ? (
+                        <button
+                          onClick={() => handleToggleActive(item.id, item.is_active)}
+                          className="text-sm tracking-wide font-medium text-red-600 hover:text-red-800"
+                        >
+                          Dừng gửi
+                        </button>
+                      ) : (
+                        <span 
+                          className="text-sm tracking-wide font-medium text-gray-400 cursor-not-allowed"
+                          title="Khách hàng đã hủy nhận tin. Không thể chủ động bật lại."
+                        >
+                          Đã khóa
+                        </span>
+                      )}
                     </td>
                   </tr>
                   );
