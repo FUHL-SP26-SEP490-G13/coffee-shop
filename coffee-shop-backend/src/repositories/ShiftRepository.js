@@ -35,6 +35,21 @@ class ShiftRepository {
         return row || null;
     }
 
+    async findOverlappingTemplate(startTime, endTime, excludeId = null) {
+        const query = excludeId
+            ? `SELECT id, name, start_time, end_time FROM shift_templates
+               WHERE start_time < ? AND end_time > ? AND id != ?
+               LIMIT 1`
+            : `SELECT id, name, start_time, end_time FROM shift_templates
+               WHERE start_time < ? AND end_time > ?
+               LIMIT 1`;
+        const params = excludeId
+            ? [endTime, startTime, excludeId]
+            : [endTime, startTime];
+        const [[row]] = await pool.query(query, params);
+        return row || null;
+    }
+
     async createTemplate({ name, start_time, end_time, color }) {
         const [result] = await pool.query(
             `INSERT INTO shift_templates (name, start_time, end_time, color) VALUES (?, ?, ?, ?)`,
