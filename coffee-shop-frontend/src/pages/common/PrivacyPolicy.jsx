@@ -20,7 +20,7 @@ function PrivacyPolicy() {
 
       <div className="flex-1 w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-10 mb-10">
         <div className="text-center space-y-3 mt-4 mb-10">
-          <h1 className="flex items-center text-primary justify-center gap-2 text-xl font-bold text-gray-900 dark:text-gray-100">
+          <h1 className="text-2xl md:text-3xl font-semibold text-amber-900 dark:text-amber-500" style={{ fontFamily: 'serif' }}>
             Chính sách bảo mật
           </h1>
           <p className="text-gray-600 dark:text-gray-400 text-sm">
@@ -74,15 +74,19 @@ function PrivacyPolicy() {
 function PolicyCard({ icon, title, children }) {
   return (
     <Card className="rounded-3xl shadow-xl border border-gray-200 dark:border-gray-800 hover:border-amber-300 dark:hover:border-amber-500 transition-all duration-300 p-8 bg-white dark:bg-gray-950">
-      <div className="flex items-center gap-4 mb-4">
-        <div className="p-3 bg-amber-100 dark:bg-amber-900/40 rounded-xl text-amber-600 dark:text-amber-500">{icon}</div>
-        <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100">
-          {title}
-        </h3>
+      <div className="flex items-start gap-4 mb-2">
+        <div className="mt-0.5 p-2 bg-amber-100 dark:bg-amber-900/40 rounded-xl text-amber-600 dark:text-amber-500 shrink-0 [&>svg]:w-5 [&>svg]:h-5">
+          {icon}
+        </div>
+        <div>
+          <h3 className="font-semibold text-base mb-1.5 text-gray-900 dark:text-gray-100">
+            {title}
+          </h3>
+          <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+            {children}
+          </p>
+        </div>
       </div>
-      <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 leading-relaxed">
-        {children}
-      </p>
     </Card>
   );
 }

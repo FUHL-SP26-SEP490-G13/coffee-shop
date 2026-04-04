@@ -10,7 +10,7 @@ export default function PaymentPolicyPage() {
       <div className="flex-1 w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-10 mb-10">
         {/* Title */}
         <div className="text-center space-y-3 mt-4 mb-10">
-          <h1 className="flex items-center text-primary justify-center gap-2 text-xl font-bold text-gray-900 dark:text-gray-100">
+          <h1 className="text-2xl md:text-3xl font-semibold text-amber-900 dark:text-amber-500" style={{ fontFamily: 'serif' }}>
             Chính sách thanh toán
           </h1>
           <p className="text-gray-600 dark:text-gray-400 text-sm">
@@ -22,7 +22,7 @@ export default function PaymentPolicyPage() {
         <div className="w-full">
           <Card className="p-6 md:p-8 space-y-8 border-border">
             <div className="flex gap-4">
-              <CreditCard className="text-primary mt-1" />
+              <CreditCard className="w-5 h-5 text-primary mt-0.5 shrink-0" />
               <div>
                 <h2 className="font-semibold text-base mb-2 text-gray-900 dark:text-gray-100">
                   1. Phương thức thanh toán
@@ -34,7 +34,7 @@ export default function PaymentPolicyPage() {
             </div>
 
             <div className="flex gap-4">
-              <ShieldCheck className="text-primary mt-1" />
+              <ShieldCheck className="w-5 h-5 text-primary mt-0.5 shrink-0" />
               <div>
                 <h2 className="font-semibold text-base mb-2 text-gray-900 dark:text-gray-100">
                   2. Bảo mật thông tin
@@ -47,7 +47,7 @@ export default function PaymentPolicyPage() {
             </div>
 
             <div className="flex gap-4">
-              <Clock className="text-primary mt-1" />
+              <Clock className="w-5 h-5 text-primary mt-0.5 shrink-0" />
               <div>
                 <h2 className="font-semibold text-base mb-2 text-gray-900 dark:text-gray-100">
                   3. Thời gian xử lý

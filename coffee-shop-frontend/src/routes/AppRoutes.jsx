@@ -6,7 +6,7 @@ import RegisterPage from "../pages/authentication/RegisterPage";
 import AdminOrders from "../pages/admin/AdminOrders";
 import AdminUsers from "../pages/admin/AdminUser/AdminUsers";
 import authenticationService from "../services/authenticationService";
-import HomePage from "@/pages/homePage/HomePage";
+import HomePage from "@/pages/homePage/home/HomePage";
 import ChangePasswordPage from "../pages/authentication/ChangePasswordPage";
 import ForgotPasswordPage from "../pages/authentication/ForgotPasswordPage";
 import AdminIngredients from "../pages/admin/AdminIngredient/AdminIngredients";
