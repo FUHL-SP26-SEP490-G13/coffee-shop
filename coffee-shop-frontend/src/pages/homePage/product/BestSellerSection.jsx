@@ -9,6 +9,7 @@ import { STORAGE_KEYS } from "@/constants";
 import { cartService } from "@/services/cartService";
 import { toast } from "sonner";
 import { useStoreHours } from "@/hooks/useStoreHours";
+import receiptSettingService from "@/services/receiptSettingService";
 
 export default function BestSellerSection({
   loading,
@@ -32,6 +33,28 @@ export default function BestSellerSection({
   const [activeTab, setActiveTab] = useState("Bán chạy");
   const [tabData, setTabData] = useState({ "Bán chạy": [], "Mới nhất": [], "Được yêu thích": [] });
   const [tabLoading, setTabLoading] = useState(false);
+  const [storeName, setStoreName] = useState("Coffee Shop");
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const res = await receiptSettingService.getActive();
+        const data = res?.data || null;
+        if (data && data.store_name) {
+          setStoreName(data.store_name);
+        }
+      } catch (error) {
+        console.error("Lỗi lấy cấu hình cửa hàng:", error);
+      }
+    };
+    fetchSettings();
+
+    const handleReceiptUpdate = () => {
+      fetchSettings();
+    };
+    window.addEventListener("receiptSettingsUpdated", handleReceiptUpdate);
+    return () => window.removeEventListener("receiptSettingsUpdated", handleReceiptUpdate);
+  }, []);
 
   const handleFastAdd = (e, product) => {
     e.preventDefault();
@@ -225,7 +248,7 @@ export default function BestSellerSection({
             Sản phẩm nổi bật
           </h2>
           <p className="max-w-2xl text-sm md:text-base text-gray-500 dark:text-gray-400">
-            Những thức uống được yêu thích nhất tại Coffee Shop
+            Những thức uống được yêu thích nhất tại {storeName}
           </p>
         </div>
 

@@ -22,6 +22,7 @@ import "swiper/css/navigation";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import AiAssistantWidget from "@/components/layout/AiAssistantWidget";
+import BrandStorySection from "./brand/BrandStorySection";
 
 export default function HomePage() {
   const [activeBannerIndex, setActiveBannerIndex] = useState(0);
@@ -291,6 +292,10 @@ export default function HomePage() {
 
       <FadeInView>
         <CategorySection />
+      </FadeInView>
+
+      <FadeInView>
+        <BrandStorySection />
       </FadeInView>
 
       <FadeInView>

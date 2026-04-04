@@ -114,6 +114,7 @@ export default function AdminReceiptSettings() {
       setLogoFile(null);
 
       toast.success("Lưu cấu hình hóa đơn thành công");
+      window.dispatchEvent(new CustomEvent("receiptSettingsUpdated"));
     } catch (error) {
       console.error("Lỗi lưu cấu hình hóa đơn:", error);
       toast.error(error?.response?.data?.message || "Không thể lưu cấu hình hóa đơn");
@@ -378,7 +379,7 @@ export default function AdminReceiptSettings() {
                 <img
                   src={displayLogo}
                   alt="Receipt Logo"
-                  className="h-14 object-contain"
+                  className="h-14 object-contain rounded-md"
                   onError={(e) => {
                     e.currentTarget.style.display = "none";
                   }}

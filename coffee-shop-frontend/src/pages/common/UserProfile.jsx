@@ -565,7 +565,7 @@ export function UserProfile() {
 
           <div className="space-y-4">
             <div>
-              <Label htmlFor="receiver_name">Tên người nhận</Label>
+              <Label htmlFor="receiver_name" className="mb-2">Tên người nhận</Label>
               <Input
                 id="receiver_name"
                 value={addressForm.receiver_name}
@@ -580,7 +580,7 @@ export function UserProfile() {
             </div>
 
             <div>
-              <Label htmlFor="receiver_phone">Số điện thoại nhận hàng</Label>
+              <Label htmlFor="receiver_phone" className="mb-2">Số điện thoại nhận hàng</Label>
               <Input
                 id="receiver_phone"
                 value={addressForm.receiver_phone}
@@ -595,7 +595,7 @@ export function UserProfile() {
             </div>
 
             <div>
-              <Label htmlFor="address_type">Loại địa chỉ</Label>
+              <Label htmlFor="address_type" className="mb-2">Loại địa chỉ</Label>
               <div className="flex flex-wrap gap-2 mt-1">
                 <Button
                   type="button"
@@ -631,7 +631,7 @@ export function UserProfile() {
             </div>
 
             <div>
-              <Label htmlFor="shipping_address">Địa chỉ nhận hàng</Label>
+              <Label htmlFor="shipping_address" className="mb-2">Địa chỉ nhận hàng</Label>
               <Input
                 id="shipping_address"
                 value={addressForm.address}

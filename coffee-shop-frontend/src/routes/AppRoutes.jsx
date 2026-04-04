@@ -69,6 +69,7 @@ import { StaffDashboard } from "@/pages/staff/StaffDashboard";
 import StaffPayOSReturn from "@/pages/staff/StaffPayOSReturn";
 import StoreInfoPage from "@/pages/common/StoreInfoPage";
 import GenericSlugResolver from "../pages/common/GenericSlugResolver";
+import AboutUsPage from "@/pages/common/AboutUsPage";
 
 const getStoredValue = (key) =>
   localStorage.getItem(key) || sessionStorage.getItem(key);
@@ -227,6 +228,7 @@ const AppRoutes = () => {
       <Route path="/news" element={<NewsListPage />} />
       <Route path="/discounts" element={<DiscountListPage />} />
       <Route path="/store" element={<StoreInfoPage />} />
+      <Route path="/about-us" element={<AboutUsPage />} />
       <Route path="/customer/profile" element={<UserProfile />} />
       {/* Only allow customers to access favorites */}
       <Route

@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 import {
   MapPin,
   Phone,
-  Mail,
   Facebook,
   Youtube,
   Instagram,
@@ -11,6 +10,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import Logo from "/logo/Logo.png";
+import receiptSettingService from "@/services/receiptSettingService";
 import { useStoreHours } from "@/hooks/useStoreHours";
 import { STORAGE_KEYS } from "@/constants";
 import PayOSLogo from "/logo/payOS.svg";
@@ -22,6 +22,48 @@ function Footer() {
     sessionStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
   const isLoggedIn = !!token;
 
+  const [storeLogo, setStoreLogo] = useState(() => {
+    return localStorage.getItem("cached_store_logo") || Logo;
+  });
+  const [storeAddress, setStoreAddress] = useState("");
+  const [storePhone, setStorePhone] = useState("");
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const res = await receiptSettingService.getActive();
+        const data = res?.data || null;
+        if (data) {
+          if (data.logo_url) {
+            setStoreLogo(data.logo_url);
+            localStorage.setItem("cached_store_logo", data.logo_url);
+          } else {
+            setStoreLogo(Logo);
+            localStorage.removeItem("cached_store_logo");
+          }
+          if (data.address) setStoreAddress(data.address);
+          if (data.phone) setStorePhone(data.phone);
+        } else {
+          setStoreLogo(Logo);
+          localStorage.removeItem("cached_store_logo");
+        }
+      } catch (error) {
+        setStoreLogo(Logo);
+        localStorage.removeItem("cached_store_logo");
+      }
+    };
+    fetchSettings();
+
+    const handleReceiptUpdate = () => {
+      fetchSettings();
+    };
+
+    window.addEventListener("receiptSettingsUpdated", handleReceiptUpdate);
+    return () => {
+      window.removeEventListener("receiptSettingsUpdated", handleReceiptUpdate);
+    };
+  }, []);
+
   return (
     <footer className="mt-20 border-t border-border bg-card">
       <div className="max-w-[1440px] mx-auto w-full px-6 py-12 lg:px-8 lg:py-16 xl:px-12">
@@ -31,9 +73,10 @@ function Footer() {
             <div>
               <Link to="/" className="inline-block mb-4">
                 <img
-                  src={Logo}
+                  src={storeLogo}
+                  onError={(e) => { e.currentTarget.src = Logo; }}
                   alt="Coffee Shop Logo"
-                  className="h-16 w-auto hover:opacity-80 transition-opacity"
+                  className="h-16 w-auto hover:opacity-80 transition-opacity object-contain rounded-xl"
                 />
               </Link>
               <p className="mt-4 text-sm leading-relaxed text-muted-foreground dark:text-gray-400">
@@ -42,15 +85,11 @@ function Footer() {
               <div className="mt-5 space-y-3 text-sm text-muted-foreground dark:text-gray-400">
                 <p className="flex items-center gap-2">
                   <MapPin size={16} className="shrink-0 text-primary" />
-                  TP. Hà Nội
+                  {storeAddress || "TP. Hà Nội"}
                 </p>
                 <p className="flex items-center gap-2">
                   <Phone size={16} className="shrink-0 text-primary" />
-                  0123 456 789
-                </p>
-                <p className="flex items-center gap-2 break-all">
-                  <Mail size={16} className="shrink-0 text-primary" />
-                  contact@coffeeshop.vn
+                  {storePhone || "0123 456 789"}
                 </p>
               </div>
             </div>
@@ -111,6 +150,14 @@ function Footer() {
                 Chính sách
               </h4>
               <ul className="mt-4 space-y-3">
+                <li>
+                  <Link
+                    to="/about-us"
+                    className="text-sm text-muted-foreground dark:text-gray-400 transition-colors hover:text-primary hover:underline hover:underline-offset-4"
+                  >
+                    Về chúng tôi
+                  </Link>
+                </li>
                 <li>
                   <Link
                     to="/order-policy"

@@ -10,7 +10,7 @@ export default function PaymentPolicyPage() {
       <div className="flex-1 w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-10 mb-10">
         {/* Title */}
         <div className="text-center space-y-3 mt-4 mb-10">
-          <h1 className="text-2xl md:text-3xl text-primary font-bold">
+          <h1 className="flex items-center text-primary justify-center gap-2 text-xl font-bold text-gray-900 dark:text-gray-100">
             Chính sách thanh toán
           </h1>
           <p className="text-gray-600 dark:text-gray-400 text-sm">

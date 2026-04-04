@@ -17,8 +17,9 @@ import {
   MapPin,
   Moon,
   Sun,
-  Coins,
   Ticket,
+  LayoutList,
+  Info,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -46,6 +47,7 @@ import { getNotificationLink } from "@/utils/getNotificationLink";
 import favoriteService from "@/services/favoriteService";
 import loyaltyService from "@/services/loyaltyService";
 import LoyaltyHistoryModal from "@/components/loyalty/LoyaltyHistoryModal";
+import receiptSettingService from "@/services/receiptSettingService";
 
 const placeholders = [
   "Xin chào, bạn cần gì hôm nay?",
@@ -128,6 +130,7 @@ function Header() {
   // Thêm hook debounce value
   const [debouncedKeyword, setDebouncedKeyword] = useState(keyword);
 
+  const [searchViewMode, setSearchViewMode] = useState("list");
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
 
   const [notifications, setNotifications] = useState([]);
@@ -160,6 +163,39 @@ function Header() {
   const unreadCount = notifications.filter(
     (item) => Number(item.is_read) === 0
   ).length;
+
+  const [storeLogo, setStoreLogo] = useState(() => {
+    return localStorage.getItem("cached_store_logo") || Logo;
+  });
+
+  useEffect(() => {
+    const fetchLogo = async () => {
+      try {
+        const res = await receiptSettingService.getActive();
+        const data = res?.data || null;
+        if (data && data.logo_url) {
+          setStoreLogo(data.logo_url);
+          localStorage.setItem("cached_store_logo", data.logo_url);
+        } else {
+          setStoreLogo(Logo);
+          localStorage.removeItem("cached_store_logo");
+        }
+      } catch (error) {
+        setStoreLogo(Logo);
+        localStorage.removeItem("cached_store_logo");
+      }
+    };
+    fetchLogo();
+
+    const handleReceiptUpdate = () => {
+      fetchLogo();
+    };
+
+    window.addEventListener("receiptSettingsUpdated", handleReceiptUpdate);
+    return () => {
+      window.removeEventListener("receiptSettingsUpdated", handleReceiptUpdate);
+    };
+  }, []);
 
   const defaultImage =
     "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085";
@@ -674,8 +710,14 @@ function Header() {
     const parts = text.split(regex);
     return (
       <span>
-        {parts.map((part, i) => 
-          regex.test(part) ? <span key={i} className="text-amber-600 font-bold bg-amber-50 dark:bg-amber-900/20 rounded px-0.5">{part}</span> : <span key={i}>{part}</span>
+        {parts.map((part, i) =>
+          regex.test(part) ? (
+            <span key={i} className="text-red-500 font-bold bg-gray-100 dark:bg-gray-800/50 rounded px-0.5">
+              {part}
+            </span>
+          ) : (
+            <span key={i}>{part}</span>
+          )
         )}
       </span>
     );
@@ -697,22 +739,57 @@ function Header() {
         type="button"
         onMouseEnter={() => !isMobile && setFocusedResultIndex(-1)}
         onClick={() => goToProductDetail(item, isMobile, kw)}
-        className={`w-full flex items-center gap-3 px-3 py-3 transition text-left ${isFocused ? 'bg-amber-50 dark:bg-amber-900/20 rounded-lg mx-2 w-[calc(100%-16px)] my-1' : 'hover:bg-amber-50 dark:bg-amber-900/20 rounded-lg mx-2 w-[calc(100%-16px)] my-1'}`}
+        className={`w-full flex items-center gap-4 px-4 py-3 transition text-left border-b border-gray-100 dark:border-gray-800 last:border-b-0 ${isFocused ? 'bg-amber-50 dark:bg-amber-900/20 ring-1 ring-inset ring-amber-500/30' : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'}`}
       >
         <img
           src={image}
           alt={item.name}
-          className="w-14 h-14 rounded-lg object-cover border border-gray-200 dark:border-gray-700 flex-shrink-0"
+          className="w-16 h-16 object-cover flex-shrink-0"
         />
 
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium text-gray-900 dark:text-gray-100 line-clamp-2">
+          <p className="text-base font-semibold text-gray-800 dark:text-gray-200 line-clamp-2">
             {highlightText(item.name, kw)}
           </p>
-          <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-            {item.category_name || "Danh mục"}
+          <p className="text-sm font-semibold text-red-500 mt-1">
+            {minPrice !== null
+              ? `${minPrice.toLocaleString("vi-VN")}đ`
+              : "Liên hệ"}
           </p>
-          <p className="text-sm font-semibold text-amber-600 mt-1">
+        </div>
+      </button>
+    );
+  };
+
+  const renderSearchItemGrid = (item, isMobile = false, kw = "", isFocused = false) => {
+    const itemImages = Array.isArray(item.images) ? item.images : [];
+    const itemSizes = Array.isArray(item.sizes) ? item.sizes : [];
+
+    const image = itemImages[0]?.image_url || defaultImage;
+    const minPrice =
+      itemSizes.length > 0
+        ? Math.min(...itemSizes.map((s) => Number(s.price)))
+        : null;
+
+    return (
+      <button
+        key={item.id}
+        type="button"
+        onMouseEnter={() => !isMobile && setFocusedResultIndex(-1)}
+        onClick={() => goToProductDetail(item, isMobile, kw)}
+        className={`w-full flex flex-col items-center gap-2 p-3 transition text-center border border-gray-100 dark:border-gray-800 rounded-xl ${isFocused ? 'bg-amber-50 dark:bg-amber-900/20 ring-1 ring-amber-500/30' : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'}`}
+      >
+        <img
+          src={image}
+          alt={item.name}
+          className="w-24 h-24 object-cover rounded-lg flex-shrink-0 border border-gray-100 dark:border-gray-800"
+        />
+
+        <div className="min-w-0 flex-1 mt-1 w-full flex flex-col items-center">
+          <p className="text-[14px] font-semibold text-gray-800 dark:text-gray-200 line-clamp-2 leading-tight">
+            {highlightText(item.name, kw)}
+          </p>
+          <p className="text-[13px] font-semibold text-red-500 mt-1">
             {minPrice !== null
               ? `${minPrice.toLocaleString("vi-VN")}đ`
               : "Liên hệ"}
@@ -731,9 +808,10 @@ function Header() {
           onClick={() => navigate("/")}
         >
           <img
-            src={Logo}
+            src={storeLogo}
+            onError={(e) => { e.currentTarget.src = Logo; }}
             alt="Coffee Shop Logo"
-            className="h-10 sm:h-12 w-auto hover:opacity-80 transition-opacity duration-300"
+            className="h-10 sm:h-12 w-auto hover:opacity-80 transition-opacity duration-300 object-contain rounded-xl"
           />
         </div>
 
@@ -787,11 +865,11 @@ function Header() {
             </div>
 
             {searchOpen && (
-              <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-gray-900 dark:border-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-xl overflow-hidden z-50">
+              <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-gray-900 dark:border-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl overflow-hidden z-50">
                 {!keyword ? (
                   recentSearches.length > 0 ? (
                     <div className="py-2">
-                       <div className="flex justify-between items-center px-4 py-2 border-b border-gray-50">
+                       <div className="flex justify-between items-center px-4 py-2 border-b border-gray-50 dark:border-gray-800">
                           <span className="text-xs font-semibold text-gray-500 dark:text-gray-500 uppercase tracking-wider">Tìm kiếm gần đây</span>
                           <button onClick={() => setRecentSearches([])} className="text-xs text-amber-600 hover:text-amber-700">Xóa</button>
                        </div>
@@ -821,15 +899,44 @@ function Header() {
                     Không tìm thấy sản phẩm phù hợp
                   </div>
                 ) : (
-                  <div className="py-2">
-                    {searchResults.map((item, idx) => renderSearchItem(item, false, keyword, idx === focusedResultIndex))}
+                  <div className="flex flex-col">
+                    <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 relative z-10 shadow-[0_4px_6px_-1px_rgba(0,0,0,0.05)]">
+                      <div className="flex items-center justify-between mb-4">
+                        <span className="text-[17px] font-bold text-gray-500 dark:text-gray-400">
+                          Kết quả tìm kiếm cho <span className="text-red-500">{keyword}</span>
+                        </span>
+                        <div className="flex items-center gap-2">
+                           <LayoutList 
+                               onClick={() => setSearchViewMode("list")} 
+                               className={`w-6 h-6 p-0.5 rounded-sm cursor-pointer border ${searchViewMode === 'list' ? 'text-gray-800 dark:text-gray-200 border-gray-800 dark:border-gray-200 bg-gray-100 dark:bg-gray-800' : 'text-gray-400 dark:text-gray-500 border-gray-300 dark:border-gray-600'}`}/>
+                           <Grid3X3 
+                               onClick={() => setSearchViewMode("grid")}
+                               className={`w-6 h-6 p-0.5 rounded-sm cursor-pointer border ${searchViewMode === 'grid' ? 'text-gray-800 dark:text-gray-200 border-gray-800 dark:border-gray-200 bg-gray-100 dark:bg-gray-800' : 'text-gray-400 dark:text-gray-500 border-gray-300 dark:border-gray-600'}`}/>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="font-bold text-gray-900 dark:text-gray-100 text-[15px]">Hiển thị kết quả theo:</span>
+                        <button className="bg-gray-400 text-white px-4 py-1.5 rounded-full text-[15px] font-medium hover:bg-gray-500 transition shadow-sm">Sản phẩm</button>
+                      </div>
+                    </div>
+                    
+                    <div className="max-h-[360px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100 dark:scrollbar-thumb-gray-600 dark:scrollbar-track-gray-800">
+                      {searchViewMode === 'list' ? (
+                         searchResults.map((item, idx) => renderSearchItem(item, false, keyword, idx === focusedResultIndex))
+                      ) : (
+                         <div className="grid grid-cols-2 gap-3 p-4">
+                           {searchResults.map((item, idx) => renderSearchItemGrid(item, false, keyword, idx === focusedResultIndex))}
+                         </div>
+                      )}
+                    </div>
+
                     <button
                       type="button"
                       onMouseEnter={() => setFocusedResultIndex(-1)}
                       onClick={() => goToSearchPage(keyword)}
-                      className={`w-[calc(100%-16px)] mx-2 mt-1 rounded-lg px-4 py-3 text-sm text-center transition ${focusedResultIndex === searchResults.length ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 font-semibold border-transparent' : 'border border-gray-100 dark:border-gray-800 text-amber-600 hover:bg-amber-50 dark:bg-amber-900/20'}`}
+                      className={`w-full py-4 text-[15px] text-center border-t border-gray-200 dark:border-gray-700 transition relative z-10 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] ${focusedResultIndex === searchResults.length ? 'bg-amber-50 dark:bg-amber-900/20 text-gray-800 dark:text-gray-200' : 'bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800'}`}
                     >
-                      Xem tất cả kết quả cho "{keyword.trim()}"
+                      Xem thêm sản phẩm có chứa <span className="text-red-500">{keyword}</span>
                     </button>
                   </div>
                 )}
@@ -888,6 +995,16 @@ function Header() {
                   >
                     <Ticket className="w-4 h-4" />
                     <span>Khuyến mãi</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                       setExploreOpen(false);
+                       navigate("/about-us");
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-2 hover:bg-amber-50 dark:hover:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 transition hover:text-amber-600"
+                  >
+                    <Info className="w-4 h-4" />
+                    <span>Về chúng tôi</span>
                   </button>
                 </div>
               </div>
@@ -1350,18 +1467,47 @@ function Header() {
                     Không tìm thấy sản phẩm phù hợp
                   </div>
                 ) : (
-                  <>
-                    {mobileSearchResults.map((item) =>
-                      renderSearchItem(item, true)
-                    )}
+                  <div className="flex flex-col">
+                    <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 relative z-10 shadow-[0_4px_6px_-1px_rgba(0,0,0,0.05)]">
+                      <div className="flex items-center justify-between mb-4">
+                        <span className="text-[15px] font-bold text-gray-500 dark:text-gray-400">
+                          Kết quả tìm kiếm cho <span className="text-red-500">{mobileKeyword}</span>
+                        </span>
+                        <div className="flex items-center gap-2">
+                           <LayoutList 
+                               onClick={() => setSearchViewMode("list")} 
+                               className={`w-5 h-5 p-0.5 rounded-sm cursor-pointer border ${searchViewMode === 'list' ? 'text-gray-800 dark:text-gray-200 border-gray-800 dark:border-gray-200 bg-gray-100 dark:bg-gray-800' : 'text-gray-400 dark:text-gray-500 border-gray-300 dark:border-gray-600'}`}/>
+                           <Grid3X3 
+                               onClick={() => setSearchViewMode("grid")}
+                               className={`w-5 h-5 p-0.5 rounded-sm cursor-pointer border ${searchViewMode === 'grid' ? 'text-gray-800 dark:text-gray-200 border-gray-800 dark:border-gray-200 bg-gray-100 dark:bg-gray-800' : 'text-gray-400 dark:text-gray-500 border-gray-300 dark:border-gray-600'}`}/>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-gray-900 dark:text-gray-100 text-[14px]">Hiển thị kết quả theo:</span>
+                        <button className="bg-gray-400 text-white px-3 py-1 rounded-full text-[14px] font-medium hover:bg-gray-500 transition shadow-sm">Sản phẩm</button>
+                      </div>
+                    </div>
+                    
+                    <div className="max-h-[300px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100 dark:scrollbar-thumb-gray-600 dark:scrollbar-track-gray-800">
+                      {searchViewMode === 'list' ? (
+                        mobileSearchResults.map((item) =>
+                          renderSearchItem(item, true, mobileKeyword)
+                        )
+                      ) : (
+                        <div className="grid grid-cols-2 gap-3 p-3">
+                           {mobileSearchResults.map((item) => renderSearchItemGrid(item, true, mobileKeyword))}
+                        </div>
+                      )}
+                    </div>
+                    
                     <button
                       type="button"
                       onClick={() => goToSearchPage(mobileKeyword, true)}
-                      className="w-full px-4 py-3 text-sm text-center text-amber-600 border-t border-gray-100 dark:border-gray-800 hover:bg-amber-50 dark:bg-amber-900/20"
+                      className="w-full py-4 text-[15px] text-center border-t border-gray-200 dark:border-gray-700 transition relative z-10 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800"
                     >
-                      Xem tất cả kết quả cho "{mobileKeyword.trim()}"
+                      Xem thêm sản phẩm có chứa <span className="text-red-500">{mobileKeyword}</span>
                     </button>
-                  </>
+                  </div>
                 )}
               </div>
             )}

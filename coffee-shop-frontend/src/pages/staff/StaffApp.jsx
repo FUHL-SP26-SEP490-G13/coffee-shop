@@ -42,6 +42,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import Logo from '/logo/Logo.png';
+import receiptSettingService from "@/services/receiptSettingService";
 
 const STAFF_SIDEBAR_PREF_KEY = 'staff_sidebar_collapsed_by_page';
 const STAFF_SIDEBAR_DEFAULTS = {
@@ -62,6 +63,39 @@ export function StaffApp() {
       return {};
     }
   });
+
+  const [storeLogo, setStoreLogo] = useState(() => {
+    return localStorage.getItem("cached_store_logo") || Logo;
+  });
+
+  useEffect(() => {
+    const fetchLogo = async () => {
+      try {
+        const res = await receiptSettingService.getActive();
+        const data = res?.data || null;
+        if (data && data.logo_url) {
+          setStoreLogo(data.logo_url);
+          localStorage.setItem("cached_store_logo", data.logo_url);
+        } else {
+          setStoreLogo(Logo);
+          localStorage.removeItem("cached_store_logo");
+        }
+      } catch (error) {
+        setStoreLogo(Logo);
+        localStorage.removeItem("cached_store_logo");
+      }
+    };
+    fetchLogo();
+
+    const handleReceiptUpdate = () => {
+      fetchLogo();
+    };
+
+    window.addEventListener("receiptSettingsUpdated", handleReceiptUpdate);
+    return () => {
+      window.removeEventListener("receiptSettingsUpdated", handleReceiptUpdate);
+    };
+  }, []);
 
   // Quản lý Dark Mode thay cho force disable
   const [isDarkMode, setIsDarkMode] = useState(() => {
@@ -384,9 +418,10 @@ export function StaffApp() {
             )}
           </button>
           <img
-            src={Logo}
+            src={storeLogo}
+            onError={(e) => { e.currentTarget.src = Logo; }}
             alt='Coffee Shop Logo'
-            className={`w-auto ${isSidebarCompact ? 'h-12' : 'h-20'}`}
+            className={`w-auto object-contain rounded-2xl ${isSidebarCompact ? 'h-12' : 'h-20'}`}
           />
           <p className={`text-sm text-muted-foreground mt-1 ${isSidebarCompact ? 'md:hidden' : ''}`}>
             Cổng Nhân viên

@@ -30,11 +30,45 @@ import notificationService from "@/services/notificationService";
 import socket from "@/lib/socket";
 import { getNotificationLink } from "@/utils/getNotificationLink";
 import Logo from "/logo/Logo.png";
+import receiptSettingService from "@/services/receiptSettingService";
 
 export function BaristaApp() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
+
+  const [storeLogo, setStoreLogo] = useState(() => {
+    return localStorage.getItem("cached_store_logo") || Logo;
+  });
+
+  useEffect(() => {
+    const fetchLogo = async () => {
+      try {
+        const res = await receiptSettingService.getActive();
+        const data = res?.data || null;
+        if (data && data.logo_url) {
+          setStoreLogo(data.logo_url);
+          localStorage.setItem("cached_store_logo", data.logo_url);
+        } else {
+          setStoreLogo(Logo);
+          localStorage.removeItem("cached_store_logo");
+        }
+      } catch (error) {
+        setStoreLogo(Logo);
+        localStorage.removeItem("cached_store_logo");
+      }
+    };
+    fetchLogo();
+
+    const handleReceiptUpdate = () => {
+      fetchLogo();
+    };
+
+    window.addEventListener("receiptSettingsUpdated", handleReceiptUpdate);
+    return () => {
+      window.removeEventListener("receiptSettingsUpdated", handleReceiptUpdate);
+    };
+  }, []);
 
   // Quản lý Dark Mode thay cho force disable
   const [isDarkMode, setIsDarkMode] = useState(() => {
@@ -308,7 +342,7 @@ export function BaristaApp() {
             alignItems: "center",
           }}
         >
-          <img src={Logo} alt="Coffee Shop Logo" className="h-20 w-auto" />
+          <img src={storeLogo} onError={(e) => { e.currentTarget.src = Logo; }} alt="Coffee Shop Logo" className="h-20 w-auto object-contain rounded-2xl" />
           <p className="text-sm text-muted-foreground mt-1">Cổng Pha chế</p>
         </div>
 

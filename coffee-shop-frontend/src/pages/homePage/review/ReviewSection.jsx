@@ -5,11 +5,14 @@ import { Pagination, Navigation, Autoplay } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/pagination";
 import "swiper/css/navigation";
+import "swiper/css/navigation";
 import reviewService from "@/services/reviewService";
+import receiptSettingService from "@/services/receiptSettingService";
 
 export default function ReviewSection() {
   const [reviews, setReviews] = useState([]);
   const [showAll, setShowAll] = useState(false);
+  const [storeName, setStoreName] = useState("Coffee Shop");
 
   useEffect(() => {
     const fetchReviews = async () => {
@@ -22,6 +25,19 @@ export default function ReviewSection() {
       }
     };
     fetchReviews();
+
+    const fetchSettings = async () => {
+      try {
+        const res = await receiptSettingService.getActive();
+        const data = res?.data || null;
+        if (data && data.store_name) {
+          setStoreName(data.store_name);
+        }
+      } catch (error) {
+        console.error("Lỗi lấy cấu hình cửa hàng:", error);
+      }
+    };
+    fetchSettings();
   }, []);
 
   if (reviews.length === 0) return null;
@@ -92,7 +108,7 @@ export default function ReviewSection() {
             Khách hàng nói gì
           </h2>
           <p className="text-gray-600 dark:text-gray-400 text-sm md:text-base mt-4">
-            Hàng nghìn khách hàng tin tưởng Coffee Shop
+            Hàng nghìn khách hàng tin tưởng {storeName}
           </p>
         </div>
         <div className="relative review-swiper-container">

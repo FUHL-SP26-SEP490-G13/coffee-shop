@@ -45,6 +45,7 @@ import Logo from "/logo/Logo.png";
 import notificationService from "@/services/notificationService";
 import socket from "@/lib/socket";
 import { getNotificationLink } from "@/utils/getNotificationLink";
+import receiptSettingService from "@/services/receiptSettingService";
 
 export default function AdminApp() {
    const [openMenu, setOpenMenu] = useState(false);
@@ -54,6 +55,39 @@ export default function AdminApp() {
    const [showNotifications, setShowNotifications] = useState(false);
    const notificationRef = useRef(null);
    const navigate = useNavigate();
+
+   const [storeLogo, setStoreLogo] = useState(() => {
+     return localStorage.getItem("cached_store_logo") || Logo;
+   });
+
+   useEffect(() => {
+     const fetchLogo = async () => {
+       try {
+         const res = await receiptSettingService.getActive();
+         const data = res?.data || null;
+         if (data && data.logo_url) {
+           setStoreLogo(data.logo_url);
+           localStorage.setItem("cached_store_logo", data.logo_url);
+         } else {
+           setStoreLogo(Logo);
+           localStorage.removeItem("cached_store_logo");
+         }
+       } catch (error) {
+         setStoreLogo(Logo);
+         localStorage.removeItem("cached_store_logo");
+       }
+     };
+     fetchLogo();
+
+     const handleReceiptUpdate = () => {
+       fetchLogo();
+     };
+
+     window.addEventListener("receiptSettingsUpdated", handleReceiptUpdate);
+     return () => {
+       window.removeEventListener("receiptSettingsUpdated", handleReceiptUpdate);
+     };
+   }, []);
 
    const [isDarkMode, setIsDarkMode] = useState(() => {
      return document.documentElement.classList.contains("dark");
@@ -274,7 +308,7 @@ export default function AdminApp() {
             alignItems: "center",
           }}
         >
-          <img src={Logo} alt="Coffee Shop Logo" className="h-20 w-auto" />
+          <img src={storeLogo} onError={(e) => { e.currentTarget.src = Logo; }} alt="Coffee Shop Logo" className="h-20 w-auto object-contain rounded-2xl" />
           <p className="text-sm text-muted-foreground">Cổng Quản lý</p>
         </div>
 
