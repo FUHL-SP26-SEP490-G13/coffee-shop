@@ -1,8 +1,10 @@
 const UserRepository = require('../repositories/UserRepository');
+const ShiftRepository = require('../repositories/ShiftRepository');
 const { hashPassword, generateStrongPassword, comparePassword } = require('../utils/helpers');
 const EmailService = require('./EmailService');
 const { ROLES } = require('../config/constants');
 const ErrorResponse = require('../utils/ErrorResponse');
+const formatDateStr = require('../helpers/formatDateStr');
 
 class UserService {
   /**
@@ -242,7 +244,11 @@ class UserService {
       throw new ErrorResponse(500, 'Vô hiệu hóa user thất bại');
     }
 
-    return true;
+    // Tự động hủy tất cả ca làm việc từ hôm nay trở đi
+    const today = formatDateStr(new Date());
+    const cancelledShifts = await ShiftRepository.cancelFutureRegistrations(id, today);
+
+    return { cancelledShifts };
   }
 
   /**

@@ -1,7 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
-import { ChevronLeft, ChevronRight, UserPlus, Users } from 'lucide-react';
+import { ChevronLeft, ChevronRight, UserPlus, Users, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '../../../../components/ui/button';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '../../../../components/ui/alert-dialog';
 import shiftService from '../../../../services/shiftService';
 import AssignSingleModal from './action/AssignSingleModal';
 import AssignBulkModal from './action/AssignBulkModal';
@@ -57,20 +61,42 @@ function Avatar({ name, size = 'sm' }) {
 }
 
 // ─── Shift chip ──────────────────────────────────────────────────────────────
-function ShiftChip({ shift, compact = false }) {
+function ShiftChip({ shift, compact = false, onRemove }) {
   const c = getColor(shift.color);
   if (compact) {
     return (
-      <div className={`rounded px-1.5 py-0.5 text-[11px] font-medium leading-tight ${c.bg} ${c.text}`}>
-        <div className="font-semibold truncate">{shift.template_name}</div>
+      <div className={`group/chip relative rounded px-1.5 py-0.5 text-[11px] font-medium leading-tight ${c.bg} ${c.text}`}>
+        <div className="font-semibold truncate pr-4">{shift.template_name}</div>
         <div className="opacity-75">{fmtTime(shift.start_time)} – {fmtTime(shift.end_time)}</div>
+        {onRemove && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onRemove(shift); }}
+            className={`absolute top-0.5 right-0.5 w-4 h-4 rounded-full flex items-center justify-center
+              opacity-0 group-hover/chip:opacity-100 transition-opacity
+              bg-white/80 hover:bg-red-100 text-red-500 hover:text-red-700`}
+            title="Xóa khỏi ca"
+          >
+            <X className="w-2.5 h-2.5" />
+          </button>
+        )}
       </div>
     );
   }
   return (
-    <div className={`rounded-lg px-2.5 py-1.5 text-xs font-medium ${c.bg} ${c.text}`}>
+    <div className={`group/chip relative rounded-lg px-2.5 py-1.5 text-xs font-medium ${c.bg} ${c.text}`}>
       <div className="font-semibold">{shift.template_name}</div>
       <div className="opacity-75">{fmtTime(shift.start_time)} – {fmtTime(shift.end_time)}</div>
+      {onRemove && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onRemove(shift); }}
+          className={`absolute top-1 right-1 w-5 h-5 rounded-full flex items-center justify-center
+            opacity-0 group-hover/chip:opacity-100 transition-opacity
+            bg-white/80 hover:bg-red-100 text-red-500 hover:text-red-700`}
+          title="Xóa khỏi ca"
+        >
+          <X className="w-3 h-3" />
+        </button>
+      )}
     </div>
   );
 }
@@ -78,7 +104,7 @@ function ShiftChip({ shift, compact = false }) {
 // ════════════════════════════════════════════════════════════════════════════
 // VIEW: NGÀY
 // ════════════════════════════════════════════════════════════════════════════
-function DayView({ date, employees }) {
+function DayView({ date, employees, onRemove }) {
   if (!employees.length) {
     return (
       <div className="text-center py-16 text-muted-foreground text-sm">
@@ -128,15 +154,31 @@ function DayView({ date, employees }) {
                 </span>
               </div>
               <div className="flex flex-wrap gap-2">
-                {ca.employees.map((emp) => (
-                  <div key={emp.user_id} className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${c.bg} border-current/20`}>
-                    <Avatar name={emp.name} />
-                    <div>
-                      <p className={`text-xs font-semibold ${c.text}`}>{emp.name}</p>
-                      <p className="text-[11px] text-muted-foreground">{emp.role}</p>
+                {ca.employees.map((emp) => {
+                  // Tìm registration_id từ schedule data
+                  const empShifts = emp.schedule[toStr(date)] || [];
+                  const matchedShift = empShifts.find(s => s.template_id === ca.template_id);
+                  return (
+                    <div key={emp.user_id} className={`group/emp relative flex items-center gap-2 px-3 py-2 rounded-lg border ${c.bg} border-current/20`}>
+                      <Avatar name={emp.name} />
+                      <div>
+                        <p className={`text-xs font-semibold ${c.text}`}>{emp.name}</p>
+                        <p className="text-[11px] text-muted-foreground">{emp.role}</p>
+                      </div>
+                      {onRemove && matchedShift && (
+                        <button
+                          onClick={() => onRemove({ ...matchedShift, empName: emp.name })}
+                          className={`absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full flex items-center justify-center
+                            opacity-0 group-hover/emp:opacity-100 transition-opacity shadow-sm
+                            bg-white hover:bg-red-50 text-red-400 hover:text-red-600 border border-red-200`}
+                          title={`Xóa ${emp.name} khỏi ca`}
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      )}
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           );
@@ -149,7 +191,7 @@ function DayView({ date, employees }) {
 // ════════════════════════════════════════════════════════════════════════════
 // VIEW: TUẦN
 // ════════════════════════════════════════════════════════════════════════════
-function WeekView({ weekStart, employees }) {
+function WeekView({ weekStart, employees, onRemove }) {
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   const todayStr = toStr(new Date());
 
@@ -204,7 +246,7 @@ function WeekView({ weekStart, employees }) {
                         <span className="flex justify-center text-muted-foreground/20 text-lg">–</span>
                       ) : (
                         <div className="space-y-1">
-                          {shifts.map((s) => <ShiftChip key={s.registration_id} shift={s} compact />)}
+                          {shifts.map((s) => <ShiftChip key={s.registration_id} shift={s} compact onRemove={onRemove ? (shift) => onRemove({ ...shift, empName: emp.name }) : undefined} />)}
                         </div>
                       )}
                     </td>
@@ -222,13 +264,13 @@ function WeekView({ weekStart, employees }) {
 // ════════════════════════════════════════════════════════════════════════════
 // VIEW: THÁNG
 // ════════════════════════════════════════════════════════════════════════════
-function MonthView({ year, month, employees }) {
+function MonthView({ year, month, employees, onRemove }) {
+  const [selectedDate, setSelectedDate] = useState(null);
   const todayStr = toStr(new Date());
 
   // Tạo grid ngày trong tháng
   const firstDay = new Date(year, month, 1);
   const lastDay = new Date(year, month + 1, 0);
-  // Bắt đầu từ T2 của tuần chứa ngày đầu tháng
   const startGrid = getMonday(firstDay);
   const cells = [];
   let cur = new Date(startGrid);
@@ -238,63 +280,192 @@ function MonthView({ year, month, employees }) {
     if (cells.length > 42) break;
   }
 
-  // Build shift map: dateStr → [{ empName, shift }]
-  const dayShiftMap = {};
+  // Build per-day → per-template grouped data
+  // dayData[dateStr] = { totalPeople, templates: [{ template_id, template_name, color, start_time, end_time, employees: [{ empName, registration_id, ... }] }] }
+  const dayData = {};
   employees.forEach((emp) => {
     Object.entries(emp.schedule).forEach(([dateStr, shifts]) => {
-      if (!dayShiftMap[dateStr]) dayShiftMap[dateStr] = [];
-      shifts.forEach((s) => dayShiftMap[dateStr].push({ empName: emp.name, shift: s }));
+      if (!dayData[dateStr]) dayData[dateStr] = { totalPeople: new Set(), templates: {} };
+      dayData[dateStr].totalPeople.add(emp.user_id);
+      shifts.forEach((s) => {
+        if (!dayData[dateStr].templates[s.template_id]) {
+          dayData[dateStr].templates[s.template_id] = {
+            template_id: s.template_id,
+            template_name: s.template_name,
+            color: s.color,
+            start_time: s.start_time,
+            end_time: s.end_time,
+            employees: [],
+          };
+        }
+        dayData[dateStr].templates[s.template_id].employees.push({
+          empName: emp.name,
+          role: emp.role,
+          registration_id: s.registration_id,
+          ...s,
+        });
+      });
     });
   });
 
-  return (
-    <div className="rounded-xl border overflow-hidden">
-      {/* Header T2→CN */}
-      <div className="grid grid-cols-7 bg-muted/50 border-b">
-        {DAY_LABELS.map((l) => (
-          <div key={l} className="text-center py-2 text-xs font-medium text-muted-foreground">{l}</div>
-        ))}
-      </div>
-      <div className="grid grid-cols-7">
-        {cells.map((d, i) => {
-          const str = toStr(d);
-          const inMonth = d.getMonth() === month;
-          const isToday = str === todayStr;
-          const dayShifts = dayShiftMap[str] || [];
-          const showShifts = dayShifts.slice(0, 3);
-          const extra = dayShifts.length - 3;
+  // Selected day detail data
+  const selectedDayInfo = selectedDate ? dayData[selectedDate] : null;
+  const selectedTemplates = selectedDayInfo
+    ? Object.values(selectedDayInfo.templates).sort((a, b) => a.start_time.localeCompare(b.start_time))
+    : [];
 
-          return (
-            <div
-              key={i}
-              className={[
-                'min-h-[90px] p-1.5 border-b border-r last:border-r-0 text-xs',
-                i % 7 === 6 ? 'border-r-0' : '',
-                !inMonth ? 'bg-muted/20' : '',
-                isToday ? 'bg-primary/5 ring-2 ring-inset ring-primary/30' : '',
-              ].join(' ')}
-            >
-              <div className={`font-semibold mb-1 w-6 h-6 flex items-center justify-center rounded-full
-                ${isToday ? 'bg-primary text-white' : inMonth ? '' : 'text-muted-foreground/40'}`}>
-                {d.getDate()}
+  return (
+    <div className="space-y-4">
+      <div className="rounded-xl border overflow-hidden">
+        {/* Header T2→CN */}
+        <div className="grid grid-cols-7 bg-muted/50 border-b">
+          {DAY_LABELS.map((l) => (
+            <div key={l} className="text-center py-2.5 text-xs font-semibold text-muted-foreground tracking-wide">{l}</div>
+          ))}
+        </div>
+
+        {/* Calendar grid */}
+        <div className="grid grid-cols-7">
+          {cells.map((d, i) => {
+            const str = toStr(d);
+            const inMonth = d.getMonth() === month;
+            const isToday = str === todayStr;
+            const isSelected = str === selectedDate;
+            const info = dayData[str];
+            const totalPeople = info ? info.totalPeople.size : 0;
+            const templates = info ? Object.values(info.templates).sort((a, b) => a.start_time.localeCompare(b.start_time)) : [];
+
+            return (
+              <div
+                key={i}
+                onClick={() => inMonth && setSelectedDate(isSelected ? null : str)}
+                className={[
+                  'min-h-[100px] p-1.5 border-b border-r text-xs transition-colors',
+                  i % 7 === 6 ? 'border-r-0' : '',
+                  !inMonth ? 'bg-muted/20 opacity-40' : 'cursor-pointer hover:bg-muted/30',
+                  isToday && !isSelected ? 'bg-primary/5' : '',
+                  isSelected ? 'bg-primary/10 ring-2 ring-inset ring-primary/40' : '',
+                ].join(' ')}
+              >
+                {/* Date header */}
+                <div className="flex items-center justify-between mb-1.5">
+                  <div className={`w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold
+                    ${isToday ? 'bg-primary text-white' : inMonth ? 'text-foreground' : 'text-muted-foreground/40'}`}>
+                    {d.getDate()}
+                  </div>
+                  {totalPeople > 0 && inMonth && (
+                    <span className="text-[10px] font-semibold text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">
+                      {totalPeople} người
+                    </span>
+                  )}
+                </div>
+
+                {/* Shift template summary rows */}
+                <div className="space-y-0.5">
+                  {templates.slice(0, 4).map((tpl) => {
+                    const c = getColor(tpl.color);
+                    return (
+                      <div key={tpl.template_id} className="flex items-center gap-1">
+                        <span className={`w-2 h-2 rounded-full flex-shrink-0 ${c.dot}`} />
+                        <span className={`truncate text-[10px] font-medium ${c.text}`}>
+                          {tpl.template_name}
+                        </span>
+                        <span className={`text-[10px] font-bold ${c.text} ml-auto flex-shrink-0`}>
+                          ×{tpl.employees.length}
+                        </span>
+                      </div>
+                    );
+                  })}
+                  {templates.length > 4 && (
+                    <div className="text-[10px] text-muted-foreground pl-3">+{templates.length - 4} ca</div>
+                  )}
+                </div>
               </div>
-              <div className="space-y-0.5">
-                {showShifts.map((item, si) => {
-                  const c = getColor(item.shift.color);
-                  return (
-                    <div key={si} className={`truncate rounded px-1 py-0.5 text-[10px] font-medium ${c.bg} ${c.text}`}>
-                      {item.shift.template_name}
-                    </div>
-                  );
-                })}
-                {extra > 0 && (
-                  <div className="text-[10px] text-muted-foreground pl-1">+{extra} khác</div>
-                )}
-              </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
+
+      {/* Selected day detail panel */}
+      {selectedDate && (
+        <div className="rounded-xl border bg-card p-5 space-y-4 animate-in slide-in-from-top-2 duration-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-bold text-base">
+                {(() => {
+                  const [y, m, d] = selectedDate.split('-').map(Number);
+                  const date = new Date(y, m - 1, d);
+                  return date.toLocaleDateString('vi-VN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+                })()}
+              </h3>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                {selectedDayInfo ? `${selectedDayInfo.totalPeople.size} nhân viên · ${selectedTemplates.length} ca` : 'Không có ca nào'}
+              </p>
+            </div>
+            <button
+              onClick={() => setSelectedDate(null)}
+              className="p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          {selectedTemplates.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground text-sm">
+              Không có ca nào được phân trong ngày này.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {selectedTemplates.map((tpl) => {
+                const c = getColor(tpl.color);
+                return (
+                  <div key={tpl.template_id} className="rounded-xl border p-4 space-y-3">
+                    {/* Template header */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <div className={`w-9 h-9 rounded-lg ${c.bg} flex items-center justify-center`}>
+                          <span className={`w-3 h-3 rounded-full ${c.dot}`} />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-sm">{tpl.template_name}</p>
+                          <p className="text-xs text-muted-foreground">{fmtTime(tpl.start_time)} – {fmtTime(tpl.end_time)}</p>
+                        </div>
+                      </div>
+                      <span className="text-xs font-medium text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
+                        {tpl.employees.length} người
+                      </span>
+                    </div>
+
+                    {/* Employee list */}
+                    <div className="space-y-1.5">
+                      {tpl.employees.map((emp) => (
+                        <div key={emp.registration_id} className={`group/emp relative flex items-center gap-2 px-3 py-2 rounded-lg ${c.bg}`}>
+                          <Avatar name={emp.empName} />
+                          <div className="min-w-0 flex-1">
+                            <p className={`text-xs font-semibold truncate ${c.text}`}>{emp.empName}</p>
+                            <p className="text-[11px] text-muted-foreground">{emp.role}</p>
+                          </div>
+                          {onRemove && (
+                            <button
+                              onClick={() => onRemove({ ...emp, empName: emp.empName })}
+                              className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0
+                                opacity-0 group-hover/emp:opacity-100 transition-opacity
+                                bg-white/80 hover:bg-red-100 text-red-400 hover:text-red-600`}
+                              title={`Xóa ${emp.empName} khỏi ca`}
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -309,6 +480,8 @@ export default function WorkSchedulePage() {
   const [loading, setLoading] = useState(false);
   const [showSingle, setShowSingle] = useState(false);
   const [showBulk, setShowBulk] = useState(false);
+  const [removeTarget, setRemoveTarget] = useState(null); // shift to remove
+  const [removing, setRemoving] = useState(false);
 
   // Tính [start_date, end_date] theo viewMode
   const getRange = useCallback(() => {
@@ -432,10 +605,10 @@ export default function WorkSchedulePage() {
         </div>
       ) : (
         <>
-          {viewMode === 'day' && <DayView date={cursor} employees={employees} />}
-          {viewMode === 'week' && <WeekView weekStart={getMonday(cursor)} employees={employees} />}
+          {viewMode === 'day' && <DayView date={cursor} employees={employees} onRemove={setRemoveTarget} />}
+          {viewMode === 'week' && <WeekView weekStart={getMonday(cursor)} employees={employees} onRemove={setRemoveTarget} />}
           {viewMode === 'month' && (
-            <MonthView year={cursor.getFullYear()} month={cursor.getMonth()} employees={employees} />
+            <MonthView year={cursor.getFullYear()} month={cursor.getMonth()} employees={employees} onRemove={setRemoveTarget} />
           )}
         </>
       )}
@@ -459,6 +632,45 @@ export default function WorkSchedulePage() {
         onClose={() => setShowBulk(false)}
         onSuccess={fetchSchedule}
       />
+
+      {/* Remove confirmation dialog */}
+      <AlertDialog open={!!removeTarget} onOpenChange={(o) => !o && setRemoveTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Xóa nhân viên khỏi ca</AlertDialogTitle>
+            <AlertDialogDescription>
+              {removeTarget?.empName ? (
+                <>Bạn có chắc muốn xóa <strong>{removeTarget.empName}</strong> khỏi ca <strong>{removeTarget.template_name}</strong>?</>
+              ) : (
+                <>Bạn có chắc muốn xóa ca <strong>{removeTarget?.template_name}</strong> này?</>
+              )}
+              {' '}Hành động này có thể hoàn tác bằng cách gán lại.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={removing}>Hủy</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={removing}
+              className="bg-red-600 hover:bg-red-700"
+              onClick={async () => {
+                try {
+                  setRemoving(true);
+                  await shiftService.removeRegistration(removeTarget.registration_id);
+                  toast.success('Đã xóa nhân viên khỏi ca');
+                  setRemoveTarget(null);
+                  fetchSchedule();
+                } catch (err) {
+                  toast.error(err?.response?.data?.message || 'Không thể xóa');
+                } finally {
+                  setRemoving(false);
+                }
+              }}
+            >
+              {removing ? 'Đang xóa...' : 'Xóa'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

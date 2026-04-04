@@ -187,6 +187,20 @@ class ShiftRepository {
         );
     }
 
+    // Hủy tất cả ca từ ngày fromDate trở đi cho 1 user
+    async cancelFutureRegistrations(userId, fromDate) {
+        const [result] = await pool.query(
+            `UPDATE shift_registrations sr
+             JOIN shifts s ON sr.shift_id = s.id
+             SET sr.status = 'cancelled'
+             WHERE sr.user_id = ?
+               AND s.shift_date >= ?
+               AND sr.status NOT IN ('cancelled')`,
+            [userId, fromDate],
+        );
+        return result.affectedRows;
+    }
+
     // =============================================
     // SCHEDULE (lịch tổng quan)
     // Query join đầy đủ để render calendar
