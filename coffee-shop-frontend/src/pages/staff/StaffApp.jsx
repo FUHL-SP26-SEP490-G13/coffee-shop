@@ -8,6 +8,7 @@ import {
   Clock,
   ClipboardList,
   FileText,
+  ArrowLeftRight,
   User,
   LogOut,
   Menu,
@@ -139,7 +140,7 @@ export function StaffApp() {
       title: 'Vận Hành',
       items: [
         { id: 'inventory', icon: ClipboardList, label: 'Kho hàng', path: '/staff/inventory' },
-        { id: 'requests', icon: FileText, label: 'Yêu cầu', path: '/staff/requests' },
+        { id: 'requests', icon: ArrowLeftRight, label: 'Đổi ca', path: '/staff/requests' },
       ],
     },
     {
