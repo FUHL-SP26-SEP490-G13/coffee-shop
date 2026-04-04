@@ -519,7 +519,7 @@ export default function AdminApp() {
                   }
                 >
                   <Zap className="w-4 h-4 text-amber-500" />
-                  <span className="text-sm tracking-wide">Flash Sales</span>
+                  <span className="text-sm tracking-wide">Flash sale</span>
                 </NavLink>
                 <NavLink
                   to="/admin/banners"

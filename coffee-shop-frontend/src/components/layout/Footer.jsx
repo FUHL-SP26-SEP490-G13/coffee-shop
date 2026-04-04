@@ -345,7 +345,7 @@ function Footer() {
                 Đăng ký nhận tin
               </h4>
               <p className="mt-2 text-[13px] text-muted-foreground dark:text-gray-400">
-                Nhận thông tin ưu đãi và sản phẩm mới sớm nhất.
+                Nhận thông tin ưu đãi và sản phẩm mới sớm nhất
               </p>
               <form onSubmit={handleSubscribeNewsletter} className="mt-3 flex">
                 <input

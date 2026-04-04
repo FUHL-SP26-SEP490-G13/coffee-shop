@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Badge } from "../../components/ui/badge";
+import { Badge } from "../../../components/ui/badge";
 import {
   Table,
   TableBody,
@@ -7,14 +7,14 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "../../components/ui/table";
+} from "../../../components/ui/table";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "../../components/ui/select";
+} from "../../../components/ui/select";
 import {
   ShoppingBag,
   Loader2,
@@ -25,17 +25,17 @@ import {
   MapPin,
   ReceiptText,
 } from "lucide-react";
-import orderService from "../../services/orderService";
+import orderService from "../../../services/orderService";
 import { toast } from "sonner";
-import { Button } from "../../components/ui/button";
+import { Button } from "../../../components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from "../../components/ui/dialog";
-import PaginationControl from "../../components/common/PaginationControl";
+} from "../../../components/ui/dialog";
+import PaginationControl from "../../../components/common/PaginationControl";
 
 export default function AdminOrders() {
   const [orders, setOrders] = useState([]);
@@ -136,16 +136,10 @@ export default function AdminOrders() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="space-y-1">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-primary/10 rounded-xl">
-              <ShoppingBag className="w-6 h-6 text-primary" />
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100">
+            <h1 className="text-xl font-semibold">
               Quản lý Đơn hàng
             </h1>
           </div>
-          <p className="text-sm text-muted-foreground dark:text-gray-400 ml-[52px]">
-            Theo dõi và cập nhật trạng thái các đơn hàng trong hệ thống
-          </p>
         </div>
 
         <div className="flex items-center gap-3 w-full sm:w-auto bg-white dark:bg-gray-900 dark:border-gray-800 p-1 rounded-xl border shadow-sm">
@@ -424,8 +418,8 @@ export default function AdminOrders() {
                       {(selectedOrder.receiver_name ||
                         selectedOrder.receiver_phone ||
                         selectedOrder.receiver_email) && (
-                        <div className="pt-2 border-t border-dashed border-gray-100" />
-                      )}
+                          <div className="pt-2 border-t border-dashed border-gray-100" />
+                        )}
                       {selectedOrder.receiver_name && (
                         <div className="flex justify-between">
                           <span className="text-gray-500">Tên nhận:</span>
@@ -603,18 +597,18 @@ export default function AdminOrders() {
                   </div>
                   {Number(calculateSubtotal(selectedOrder)) >
                     Number(selectedOrder.total_amount) && (
-                    <div className="flex justify-between text-sm text-emerald-600">
-                      <span>Giảm giá</span>
-                      <span>
-                        -
-                        {Number(
-                          calculateSubtotal(selectedOrder) -
+                      <div className="flex justify-between text-sm text-emerald-600">
+                        <span>Giảm giá</span>
+                        <span>
+                          -
+                          {Number(
+                            calculateSubtotal(selectedOrder) -
                             selectedOrder.total_amount,
-                        ).toLocaleString("vi-VN")}
-                        đ
-                      </span>
-                    </div>
-                  )}
+                          ).toLocaleString("vi-VN")}
+                          đ
+                        </span>
+                      </div>
+                    )}
                   <div className="flex justify-between text-base font-bold text-gray-900 dark:text-gray-100 pt-2 border-t border-gray-200 dark:border-gray-700">
                     <span>Tổng thanh toán</span>
                     <span className="text-primary">
@@ -636,8 +630,8 @@ export default function AdminOrders() {
                       </span>
                     </span>
                     {selectedOrder.is_paid ||
-                    selectedOrder.payment?.status === "paid" ||
-                    selectedOrder.payment?.status === "success" ? (
+                      selectedOrder.payment?.status === "paid" ||
+                      selectedOrder.payment?.status === "success" ? (
                       <span className="text-emerald-600 font-medium flex items-center gap-1">
                         Đã thanh toán
                       </span>

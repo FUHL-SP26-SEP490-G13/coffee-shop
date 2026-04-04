@@ -212,16 +212,6 @@ export default function AdminNewsList() {
 
                       <TableCell>
                         <div className="flex items-center justify-center gap-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() =>
-                              navigate(`/admin/news-detail/${item.slug}`)
-                            }
-                            title="Xem chi tiết"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
 
                           <Button
                             variant="ghost"

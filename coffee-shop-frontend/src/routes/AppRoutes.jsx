@@ -3,7 +3,7 @@ import { Navigate, Routes, Route } from "react-router-dom";
 import { APP_ROUTES, STORAGE_KEYS } from "../constants";
 import LoginPage from "../pages/authentication/LoginPage";
 import RegisterPage from "../pages/authentication/RegisterPage";
-import AdminOrders from "../pages/admin/AdminOrders";
+import AdminOrders from "../pages/admin/AdminOrder/AdminOrders";
 import AdminUsers from "../pages/admin/AdminUser/AdminUsers";
 import authenticationService from "../services/authenticationService";
 import HomePage from "@/pages/homePage/home/HomePage";
@@ -20,7 +20,6 @@ import AdminProducts from "@/pages/admin/AdminProduct/AdminProducts";
 import AdminCategories from "@/pages/admin/AdminCategory/AdminCategories";
 import NewsDetailPage from "@/pages/homePage/news/NewsDetailPage";
 import AdminEditNewsPage from "@/pages/admin/AdminNew/AdminEditNewsPage";
-import AdminNewsDetailPage from "@/pages/admin/AdminNew/AdminNewsDetailPage";
 import NewsListPage from "@/pages/homePage/news/NewsListPage";
 import DiscountListPage from "@/pages/homePage/discount/DiscountListPage";
 import AdminDiscounts from "@/pages/admin/AdminDiscount/AdminDiscounts";
@@ -212,7 +211,6 @@ const AppRoutes = () => {
         <Route path="profile" element={<UserProfile />} />
         <Route path="news-list" element={<AdminNewsList />} />
         <Route path="edit-news/:id" element={<AdminEditNewsPage />} />
-        <Route path="news-detail/:slug" element={<AdminNewsDetailPage />} />
         <Route path="discounts" element={<AdminDiscounts />} />
         <Route path="discounts/create" element={<AdminDiscountCreate />} />
         <Route path="discounts/edit/:id" element={<AdminDiscountEdit />} />

@@ -157,20 +157,12 @@ export default function AdminEditNewsPage() {
     <div className="p-6">
       <div className="w-full">
         <div className="mb-6">
-          <Button
-            variant="ghost"
-            size="sm"
+          <div 
+            className="inline-flex items-center gap-1 cursor-pointer text-gray-800 dark:text-gray-200 hover:text-primary transition-colors"
             onClick={() => navigate("/admin/news-list")}
-            className="mb-4"
           >
-            <ChevronLeft className="h-4 w-4 mr-1" />
-            Quay lại
-          </Button>
-
-          <div className="flex items-center gap-3">
-            <div>
-              <span className="text-md">Chỉnh sửa bài viết</span>
-            </div>
+            <ChevronLeft className="h-6 w-6" />
+            <h1 className="text-lg font-semibold">Chỉnh sửa bài viết</h1>
           </div>
         </div>
 
@@ -262,7 +254,7 @@ export default function AdminEditNewsPage() {
                 <div className="flex justify-center">
                   <img
                     src={newPreview}
-                    className="w-64 h-40 object-cover rounded-lg border"
+                    className="max-h-72 max-w-xl w-full object-cover rounded-xl border border-border shadow-sm"
                     alt="new-thumbnail"
                   />
                 </div>
@@ -275,7 +267,7 @@ export default function AdminEditNewsPage() {
                 <div className="flex justify-center">
                   <img
                     src={form.thumbnail}
-                    className="w-64 h-40 object-cover rounded-lg border"
+                    className="max-h-72 max-w-xl w-full object-cover rounded-xl border border-border shadow-sm"
                     alt="thumbnail"
                   />
                 </div>

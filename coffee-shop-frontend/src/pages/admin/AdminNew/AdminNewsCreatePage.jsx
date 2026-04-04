@@ -273,20 +273,12 @@ export default function AdminNewsCreatePage() {
     <div className="p-6">
       <div className="w-full">
         <div className="mb-6">
-          <Button
-            variant="ghost"
-            size="sm"
+          <div 
+            className="inline-flex items-center gap-1 cursor-pointer text-gray-800 dark:text-gray-200 hover:text-primary transition-colors"
             onClick={() => navigate("/admin/news-list")}
-            className="mb-4"
           >
-            <ChevronLeft className="h-4 w-4 mr-1" />
-            Quay lại
-          </Button>
-
-          <div className="flex items-center gap-3">
-            <div>
-              <span className="text-md">Tạo bài viết mới</span>
-            </div>
+            <ChevronLeft className="h-6 w-6" />
+            <h1 className="text-lg font-semibold">Tạo bài viết mới</h1>
           </div>
         </div>
 
@@ -370,7 +362,7 @@ export default function AdminNewsCreatePage() {
               <div className="mt-4 flex justify-center">
                 <img
                   src={preview}
-                  className="max-h-48 w-auto object-contain rounded-lg border"
+                  className="max-h-72 max-w-xl w-full object-cover rounded-xl border border-border shadow-sm"
                   alt="Preview"
                 />
               </div>
