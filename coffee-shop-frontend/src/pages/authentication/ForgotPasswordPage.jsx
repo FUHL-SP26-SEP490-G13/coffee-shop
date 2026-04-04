@@ -217,11 +217,11 @@ export default function ForgotPasswordPage() {
 					<div className="hidden lg:flex relative items-center justify-center overflow-hidden p-10">
 						<div className="absolute inset-0">
 							<img 
-								src="https://images.unsplash.com/photo-1497935586351-b67a49e012bf?auto=format&fit=crop&w=1200&q=80" 
+								src="https://images.unsplash.com/photo-1442512595331-e89e73853f31?auto=format&fit=crop&w=1920&q=80" 
 								alt="Coffee Shop Background" 
-								className="h-full w-full object-cover"
+								className="h-full w-full object-cover dark:opacity-70 opacity-90"
 							/>
-							<div className="absolute inset-0 bg-black/60 backdrop-blur-[2px]" />
+							<div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" />
 						</div>
 						
 						<div className="relative z-10 max-w-md space-y-6">

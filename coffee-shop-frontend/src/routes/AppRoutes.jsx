@@ -14,17 +14,13 @@ import AdminSchedulePage from "../pages/admin/AdminSchedule/AdminSchedulePage";
 import ShiftTemplatePage from "../pages/admin/AdminSchedule/ShiftTemplate/ShiftTemplatePage";
 import WorkSchedulePage from "../pages/admin/AdminSchedule/WorkSchedule/WorkSchedulePage";
 import { UserProfile } from "../pages/common/UserProfile";
-import AdminNewsCreatePage from "../pages/admin/AdminNew/AdminNewsCreatePage";
 import AdminNewsList from "../pages/admin/AdminNew/AdminNewsList";
 import AdminProducts from "@/pages/admin/AdminProduct/AdminProducts";
 import AdminCategories from "@/pages/admin/AdminCategory/AdminCategories";
 import NewsDetailPage from "@/pages/homePage/news/NewsDetailPage";
-import AdminEditNewsPage from "@/pages/admin/AdminNew/AdminEditNewsPage";
 import NewsListPage from "@/pages/homePage/news/NewsListPage";
 import DiscountListPage from "@/pages/homePage/discount/DiscountListPage";
 import AdminDiscounts from "@/pages/admin/AdminDiscount/AdminDiscounts";
-import AdminDiscountCreate from "@/pages/admin/AdminDiscount/AdminDiscountCreate";
-import AdminDiscountEdit from "@/pages/admin/AdminDiscount/AdminDiscountEdit";
 import OrderPolicy from "@/pages/common/OrderPolicy";
 import PrivacyPolicy from "@/pages/common/PrivacyPolicy";
 import AdminApp from "../pages/admin/AdminApp";
@@ -207,13 +203,9 @@ const AppRoutes = () => {
           <Route path="list" element={<WorkSchedulePage />} />
         </Route>
         <Route path="inventory" element={<AdminIngredients />} />
-        <Route path="create-news" element={<AdminNewsCreatePage />} />
         <Route path="profile" element={<UserProfile />} />
         <Route path="news-list" element={<AdminNewsList />} />
-        <Route path="edit-news/:id" element={<AdminEditNewsPage />} />
         <Route path="discounts" element={<AdminDiscounts />} />
-        <Route path="discounts/create" element={<AdminDiscountCreate />} />
-        <Route path="discounts/edit/:id" element={<AdminDiscountEdit />} />
         <Route path="banners" element={<AdminBanner />} />
         <Route path="tables" element={<AdminTables />} />
         <Route path="toppings" element={<AdminToppings />} />

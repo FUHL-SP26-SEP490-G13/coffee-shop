@@ -181,14 +181,7 @@ function Footer() {
                 Chính sách
               </h4>
               <ul className="mt-4 space-y-3">
-                <li>
-                  <Link
-                    to="/about-us"
-                    className="text-sm text-muted-foreground dark:text-gray-400 transition-colors hover:text-primary hover:underline hover:underline-offset-4"
-                  >
-                    Về chúng tôi
-                  </Link>
-                </li>
+
                 <li>
                   <Link
                     to="/order-policy"

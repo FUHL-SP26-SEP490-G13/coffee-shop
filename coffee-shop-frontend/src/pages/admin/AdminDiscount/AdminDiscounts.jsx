@@ -24,6 +24,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import PaginationControl from "@/components/common/PaginationControl";
+import AdminDiscountModal from "./AdminDiscountModal";
 
 export default function AdminDiscounts() {
   const [data, setData] = useState([]);
@@ -36,9 +37,10 @@ export default function AdminDiscounts() {
 
   const [keyword, setKeyword] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedDiscountId, setSelectedDiscountId] = useState(null);
 
   const abortRef = useRef(null);
-  const navigate = useNavigate();
 
   const PAGE_SIZE = 7;
 
@@ -176,7 +178,10 @@ export default function AdminDiscounts() {
             </div>
           </div>
 
-          <Button onClick={() => navigate("/admin/discounts/create")}>
+          <Button onClick={() => {
+            setSelectedDiscountId(null);
+            setIsModalOpen(true);
+          }}>
             <Plus className="w-4 h-4 mr-2" />
             Thêm Mới
           </Button>
@@ -302,9 +307,10 @@ export default function AdminDiscounts() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() =>
-                              navigate(`/admin/discounts/edit/${item.id}`)
-                            }
+                            onClick={() => {
+                              setSelectedDiscountId(item.id);
+                              setIsModalOpen(true);
+                            }}
                             title="Chỉnh sửa"
                           >
                             <Edit className="h-4 w-4" />
@@ -346,6 +352,16 @@ export default function AdminDiscounts() {
           itemName="mã giảm giá"
         />
       )}
+
+      <AdminDiscountModal
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false);
+          setSelectedDiscountId(null);
+        }}
+        discountId={selectedDiscountId}
+        onSuccess={() => fetchDiscounts(page, keyword, statusFilter)}
+      />
     </div>
   );
 }

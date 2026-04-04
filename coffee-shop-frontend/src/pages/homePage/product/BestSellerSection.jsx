@@ -242,7 +242,7 @@ export default function BestSellerSection({
   return (
     <section className="py-8 md:py-12 bg-white dark:bg-gray-950">
       <div className="w-full px-4 lg:px-6 xl:px-8">
-        <div className="bg-[#FAF9F6] dark:bg-[#1a1614] rounded-none sm:rounded-3xl py-12 md:py-16 px-4 sm:px-8 lg:px-12 w-full">
+        <div className="bg-[#FAFAFA] dark:bg-gray-900/50 rounded-none sm:rounded-3xl py-12 md:py-16 px-4 sm:px-8 lg:px-12 w-full">
         <div className="flex flex-col items-center text-center justify-center gap-2 mb-8">
           <h2 className="text-2xl md:text-3xl font-semibold text-amber-900 dark:text-amber-500" style={{ fontFamily: 'serif' }}>
             Sản phẩm nổi bật

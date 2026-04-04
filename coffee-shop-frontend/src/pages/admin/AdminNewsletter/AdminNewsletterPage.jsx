@@ -111,12 +111,12 @@ function AdminNewsletterPage() {
       </div>
 
       {/* Filter and Search */}
-      <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col sm:flex-row justify-between gap-4">
+      <div className="bg-white dark:bg-card p-4 rounded-xl shadow-sm border border-gray-100 dark:border-border flex flex-col sm:flex-row justify-between gap-4">
         <form onSubmit={handleSearch} className="flex-1 max-w-md relative">
           <input
             type="text"
             placeholder="Tìm kiếm bằng email..."
-            className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
+            className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-200 dark:border-border dark:bg-background dark:text-foreground focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
             value={filters.keyword}
             onChange={(e) => setFilters({ ...filters, keyword: e.target.value })}
           />
@@ -125,7 +125,7 @@ function AdminNewsletterPage() {
         <div className="flex items-center gap-2">
           <Filter className="h-4 w-4 text-gray-400" />
           <select
-            className="px-3 py-2 border rounded-lg focus:outline-none focus:border-amber-500"
+            className="px-3 py-2 border dark:border-border dark:bg-background dark:text-foreground rounded-lg focus:outline-none focus:border-amber-500"
             value={filters.status}
             onChange={(e) => setFilters({ ...filters, status: e.target.value })}
           >
@@ -137,11 +137,11 @@ function AdminNewsletterPage() {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white dark:bg-card rounded-xl shadow-sm border border-gray-100 dark:border-border overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-gray-50 text-gray-500 text-sm border-b">
+              <tr className="bg-gray-50 dark:bg-muted/50 text-gray-500 dark:text-muted-foreground text-sm border-b dark:border-border">
                 <th className="px-6 py-4 font-medium text-center">STT</th>
                 <th className="px-6 py-4 font-medium">Email</th>
                 <th className="px-6 py-4 font-medium">Tình trạng</th>
@@ -152,14 +152,14 @@ function AdminNewsletterPage() {
             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
               {isLoading ? (
                 <tr>
-                  <td colSpan="5" className="px-6 py-8 text-center text-gray-500">
+                  <td colSpan="5" className="px-6 py-8 text-center text-gray-500 dark:text-muted-foreground">
                     <RefreshCw className="h-5 w-5 animate-spin mx-auto mb-2" />
                     Đang tải dữ liệu...
                   </td>
                 </tr>
               ) : subscribers.length === 0 ? (
                 <tr>
-                  <td colSpan="5" className="px-6 py-8 text-center text-gray-500">
+                  <td colSpan="5" className="px-6 py-8 text-center text-gray-500 dark:text-muted-foreground">
                     Không có dữ liệu đăng ký nào.
                   </td>
                 </tr>
@@ -169,12 +169,12 @@ function AdminNewsletterPage() {
                   return (
                   <tr
                     key={item.id}
-                    className="hover:bg-gray-50 transition-colors"
+                    className="hover:bg-gray-50 dark:hover:bg-muted/50 transition-colors"
                   >
-                    <td className="px-6 py-4 text-sm text-gray-600 text-center">
+                    <td className="px-6 py-4 text-sm text-gray-600 dark:text-muted-foreground text-center">
                       {stt}
                     </td>
-                    <td className="px-6 py-4 font-medium text-gray-900">
+                    <td className="px-6 py-4 font-medium text-gray-900 dark:text-card-foreground">
                       {item.email}
                     </td>
                     <td className="px-6 py-4">
@@ -188,7 +188,7 @@ function AdminNewsletterPage() {
                         </span>
                       )}
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-500">
+                    <td className="px-6 py-4 text-sm text-gray-500 dark:text-muted-foreground">
                       {new Date(item.created_at).toLocaleString("vi-VN")}
                     </td>
                     <td className="px-6 py-4">
@@ -213,8 +213,8 @@ function AdminNewsletterPage() {
 
         {/* Pagination */}
         {!isLoading && pagination.totalPages > 1 && (
-          <div className="flex items-center justify-between px-6 py-3 border-t">
-            <span className="text-sm text-gray-500">
+          <div className="flex items-center justify-between px-6 py-3 border-t dark:border-border">
+            <span className="text-sm text-gray-500 dark:text-muted-foreground">
               Hiển thị {(pagination.page - 1) * pagination.limit + 1} -{" "}
               {Math.min(
                 pagination.page * pagination.limit,
@@ -226,14 +226,14 @@ function AdminNewsletterPage() {
               <button
                 disabled={pagination.page === 1}
                 onClick={() => handlePageChange(pagination.page - 1)}
-                className="px-3 py-1 border rounded hover:bg-gray-50 disabled:opacity-50"
+                className="px-3 py-1 border dark:border-border rounded hover:bg-gray-50 dark:hover:bg-muted/50 disabled:opacity-50"
               >
                 Trước
               </button>
               <button
                 disabled={pagination.page === pagination.totalPages}
                 onClick={() => handlePageChange(pagination.page + 1)}
-                className="px-3 py-1 border rounded hover:bg-gray-50 disabled:opacity-50"
+                className="px-3 py-1 border dark:border-border rounded hover:bg-gray-50 dark:hover:bg-muted/50 disabled:opacity-50"
               >
                 Sau
               </button>

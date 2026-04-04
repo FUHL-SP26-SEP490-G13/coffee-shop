@@ -24,6 +24,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import PaginationControl from "@/components/common/PaginationControl";
+import AdminNewsModal from "./AdminNewsModal";
 
 const PAGE_SIZE = 7;
 
@@ -36,7 +37,8 @@ export default function AdminNewsList() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [keyword, setKeyword] = useState("");
-  const navigate = useNavigate();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedNewsId, setSelectedNewsId] = useState(null);
 
   const fetchNews = async (currentPage = 1, search = "") => {
     try {
@@ -121,7 +123,10 @@ export default function AdminNewsList() {
             </div>
           </div>
 
-          <Button onClick={() => navigate("/admin/create-news")}>
+          <Button onClick={() => {
+            setSelectedNewsId(null);
+            setIsModalOpen(true);
+          }}>
             <Plus className="w-4 h-4 mr-2" />
             Thêm Mới
           </Button>
@@ -216,9 +221,10 @@ export default function AdminNewsList() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() =>
-                              navigate(`/admin/edit-news/${item.id}`)
-                            }
+                            onClick={() => {
+                              setSelectedNewsId(item.id);
+                              setIsModalOpen(true);
+                            }}
                             title="Chỉnh sửa"
                           >
                             <Edit className="h-4 w-4" />
@@ -259,6 +265,16 @@ export default function AdminNewsList() {
           itemName="bài viết"
         />
       )}
+
+      <AdminNewsModal
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false);
+          setSelectedNewsId(null);
+        }}
+        newsId={selectedNewsId}
+        onSuccess={() => fetchNews(page, keyword)}
+      />
     </div>
   );
 }

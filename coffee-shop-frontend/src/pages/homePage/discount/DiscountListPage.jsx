@@ -175,7 +175,7 @@ export default function DiscountListPage() {
             {!isLoggedIn && (
               <div className={`bg-[#FAF9F6] dark:bg-[#252220] rounded-2xl p-8 md:p-12 shadow-sm text-center flex flex-col items-center w-full border border-amber-900/5 dark:border-amber-700/10 mt-12`}>
                 <LogIn className="w-12 h-12 text-amber-900 dark:text-amber-500 mb-4" strokeWidth={1.5} />
-                <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-3" style={{ fontFamily: 'serif' }}>
+                <h3 className="text-xl md:text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-3" style={{ fontFamily: 'serif' }}>
                   Đăng nhập để nhận ưu đãi riêng
                 </h3>
                 <p className="text-gray-500 dark:text-gray-400 mb-8 max-w-lg">
