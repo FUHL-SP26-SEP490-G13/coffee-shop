@@ -308,9 +308,6 @@ export function UserProfile() {
                 </Avatar>
                 <div>
                     <h3 className="text-xl font-semibold">{displayName || '...'}</h3>
-                    <p className="text-sm text-muted-foreground capitalize">
-                      {roleLabel}
-                    </p>
                 </div>
               </div>
 

@@ -17,6 +17,7 @@ import {
   MapPin,
   Moon,
   Sun,
+  Coins,
   Ticket,
   LayoutList,
   Info,
