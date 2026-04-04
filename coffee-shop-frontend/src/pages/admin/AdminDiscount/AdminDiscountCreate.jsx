@@ -136,15 +136,8 @@ export default function AdminDiscountCreate() {
         </Button>
 
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-primary/10 rounded-lg">
-            <Ticket className="h-6 w-6 text-primary" />
-          </div>
-
           <div>
-            <span className="text-lg mb-1">Tạo mã giảm giá mới</span>
-            <p className="text-sm text-muted-foreground mt-1">
-              Thêm mã giảm giá để áp dụng cho đơn hàng
-            </p>
+            <h1 className="text-md">Tạo mã giảm giá mới</h1>
           </div>
         </div>
       </div>

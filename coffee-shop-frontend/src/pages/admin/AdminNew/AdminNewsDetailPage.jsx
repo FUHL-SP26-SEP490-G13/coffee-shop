@@ -51,7 +51,7 @@ export default function AdminNewsDetailPage() {
   return (
     <div className="p-6">
       {/* Top action */}
-      <div className="max-w-5xl mx-auto flex items-center justify-between mb-6">
+      <div className="w-full flex items-center justify-between mb-6">
         <Button
           variant="outline"
           onClick={() => navigate(-1)}
@@ -71,12 +71,12 @@ export default function AdminNewsDetailPage() {
       </div>
 
       {/* Main card */}
-      <div className="max-w-5xl mx-auto bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
+      <div className="w-full bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
         {/* Header */}
         <div className="p-6 md:p-8 border-b border-border bg-muted/30">
           <div className="flex items-center gap-2 text-primary mb-3">
             <FileText className="h-5 w-5" />
-            <span className="text-xl font-medium">Chi tiết bài viết</span>
+            <span className="text-md font-medium">Chi tiết bài viết</span>
           </div>
 
           <h1 className="text-1lg md:text-1lg leading-tight text-foreground mb-4 break-words">

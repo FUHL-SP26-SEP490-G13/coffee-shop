@@ -236,14 +236,8 @@ export default function AdminLoyalty() {
     <div className="space-y-6 p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="rounded-lg bg-amber-100 p-2 text-amber-700">
-            <Coins className="h-6 w-6" />
-          </div>
           <div>
-            <h2 className="text-2xl font-semibold">Quản lý điểm loyalty</h2>
-            <p className="text-sm text-muted-foreground">
-              Theo dõi điểm hiện tại, lịch sử giao dịch và điều chỉnh điểm cho khách hàng.
-            </p>
+            <h2 className="text-xl font-semibold">Quản lý điểm loyalty</h2>
           </div>
         </div>
       </div>
@@ -460,13 +454,12 @@ export default function AdminLoyalty() {
                           {row.reference_id ? `#${row.reference_id}` : "--"}
                         </TableCell>
                         <TableCell
-                          className={`text-right font-semibold ${
-                            isPlus
+                          className={`text-right font-semibold ${isPlus
                               ? "text-emerald-600"
                               : isMinus
                                 ? "text-red-600"
                                 : "text-slate-600"
-                          }`}
+                            }`}
                         >
                           {isPlus ? "+" : ""}
                           {formatPoints(change)}

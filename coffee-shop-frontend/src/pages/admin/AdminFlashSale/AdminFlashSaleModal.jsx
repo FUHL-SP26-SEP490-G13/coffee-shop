@@ -85,9 +85,10 @@ export default function AdminFlashSaleModal({ isOpen, onClose, saleData, onSucce
       return toast.error("Vui lòng chọn ít nhất 1 sản phẩm tham gia Flash Sale!");
     }
 
+    let loadingToastId = null;
     try {
       setLoading(true);
-      toast.loading("Đang lưu...");
+      loadingToastId = toast.loading("Đang lưu...");
       
       const payload = {
         ...formData,
@@ -97,17 +98,16 @@ export default function AdminFlashSaleModal({ isOpen, onClose, saleData, onSucce
 
       if (saleData?.id) {
         await adminFlashSaleService.update(saleData.id, payload);
-        toast.success("Cập nhật thành công!");
+        toast.success("Cập nhật thành công!", { id: loadingToastId });
       } else {
         await adminFlashSaleService.create(payload);
-        toast.success("Tạo mới thành công!");
+        toast.success("Tạo mới thành công!", { id: loadingToastId });
       }
       onSuccess();
       onClose();
     } catch (error) {
-      toast.error(error?.response?.data?.message || "Có lỗi xảy ra, vui lòng thử lại!");
+      toast.error(error?.response?.data?.message || "Có lỗi xảy ra, vui lòng thử lại!", { id: loadingToastId });
     } finally {
-      toast.dismiss();
       setLoading(false);
     }
   };
@@ -116,7 +116,7 @@ export default function AdminFlashSaleModal({ isOpen, onClose, saleData, onSucce
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
       <div className="bg-white dark:bg-gray-900 dark:border-gray-800 w-full max-w-4xl rounded-2xl shadow-xl flex flex-col max-h-[90vh]">
         <div className="flex items-center justify-between px-6 py-4 border-b">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+          <h2 className="text-xl font-semibold">
             {saleData ? "Chỉnh sửa Flash Sale" : "Tạo mới Flash Sale"}
           </h2>
           <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:bg-gray-800 rounded-full transition-colors">

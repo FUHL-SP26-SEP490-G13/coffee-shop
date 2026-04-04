@@ -270,8 +270,8 @@ export default function AdminNewsCreatePage() {
   };
 
   return (
-    <div className="p-6 flex justify-center">
-      <div className="w-full max-w-4xl">
+    <div className="p-6">
+      <div className="w-full">
         <div className="mb-6">
           <Button
             variant="ghost"
@@ -284,19 +284,13 @@ export default function AdminNewsCreatePage() {
           </Button>
 
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-primary/10 rounded-lg">
-              <Newspaper className="h-6 w-6 text-primary" />
-            </div>
             <div>
-              <span className="text-lg mb-1">Tạo bài viết mới</span>
-              <p className="text-sm text-muted-foreground mt-1">
-                Chia sẻ thông tin hữu ích cho mọi người
-              </p>
+              <span className="text-md">Tạo bài viết mới</span>
             </div>
           </div>
         </div>
 
-        <div className="bg-card rounded-xl border border-border p-6 max-w-4xl">
+        <div className="bg-card rounded-xl border border-border p-6 w-full">
           <div className="space-y-6">
             <div className="space-y-2">
               <div className="flex items-center justify-between gap-3">

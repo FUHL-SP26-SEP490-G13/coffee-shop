@@ -63,6 +63,7 @@ import AdminReceiptSettings from "@/pages/admin/AdminReceiptSettings/AdminReceip
 import AdminFlashSales from "@/pages/admin/AdminFlashSale/AdminFlashSales";
 import AdminReputation from "@/pages/admin/AdminReputation/AdminReputation";
 import AdminLoyalty from "@/pages/admin/AdminLoyalty/AdminLoyalty";
+import AdminNewsletterPage from "@/pages/admin/AdminNewsletter/AdminNewsletterPage";
 import TakeawayPOS from '../pages/staff/TakeawayPOS'
 import { OrderDelivery } from '@/pages/staff/StaffOrderList';
 import { StaffDashboard } from "@/pages/staff/StaffDashboard";
@@ -223,6 +224,7 @@ const AppRoutes = () => {
         <Route path="loyalty" element={<AdminLoyalty />} />
         <Route path="receipt-settings" element={<AdminReceiptSettings />} />
         <Route path="flash-sales" element={<AdminFlashSales />} />
+        <Route path="newsletters" element={<AdminNewsletterPage />} />
       </Route>
       <Route path="/news/:slug" element={<NewsDetailPage />} />
       <Route path="/news" element={<NewsListPage />} />

@@ -216,15 +216,8 @@ export default function AdminDiscountEdit() {
         </Button>
 
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-primary/10 rounded-lg">
-            <Ticket className="h-6 w-6 text-primary" />
-          </div>
-
           <div>
-            <span className="text-lg mb-1">Chỉnh sửa mã giảm giá</span>
-            <p className="text-sm text-muted-foreground mt-1">
-              Cập nhật thông tin mã giảm giá
-            </p>
+            <h1 className="text-md">Chỉnh sửa mã giảm giá</h1>
           </div>
         </div>
       </div>

@@ -27,6 +27,7 @@ import {
   Clock,
   Moon,
   Sun,
+  Mailbox,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import authenticationService from '../../services/authenticationService';
@@ -543,6 +544,18 @@ export default function AdminApp() {
                 >
                   <ClipboardList className="w-4 h-4" />
                   <span className="text-sm tracking-wide">Bài viết</span>
+                </NavLink>
+                <NavLink
+                  to="/admin/newsletters"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={({ isActive }) =>
+                    `w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                      isActive ? "bg-primary text-white" : "text-muted-foreground hover:bg-secondary"
+                    }`
+                  }
+                >
+                  <Mailbox className="w-4 h-4" />
+                  <span className="text-sm tracking-wide">Email</span>
                 </NavLink>
               </div>
             </div>

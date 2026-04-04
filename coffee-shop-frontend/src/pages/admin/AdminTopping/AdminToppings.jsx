@@ -51,8 +51,7 @@ export default function AdminToppings() {
       {/* ===== HEADER ===== */}
       <div className='flex items-center justify-between mb-6'>
         <div>
-          <h2 className='text-2xl mb-1'>Topping</h2>
-          <p className='text-sm text-muted-foreground'>Quản lý topping quán cà phê</p>
+          <h2 className="text-xl font-semibold">Topping</h2>
         </div>
         <Button onClick={() => openModal('create')} className='cursor-pointer'>
           <Plus className='w-4 h-4 mr-2' />

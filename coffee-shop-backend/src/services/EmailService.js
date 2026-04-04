@@ -249,6 +249,47 @@ class EmailService {
   }
 
   /**
+   * Send Newsletter Welcome Email
+   */
+  async sendNewsletterWelcomeEmail(to) {
+    const mailOptions = {
+      from: `"Coffee Shop" <${env.SMTP_USER}>`,
+      to: to,
+      subject: 'Đăng ký nhận thông báo thành công!',
+      html: this.getNewsletterWelcomeEmailTemplate(to),
+    };
+
+    try {
+      const info = await this.transporter.sendMail(mailOptions);
+      console.log('Newsletter welcome email sent: %s', info.messageId);
+      return { success: true, messageId: info.messageId };
+    } catch (error) {
+      console.error('Error sending newsletter welcome email:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Send Broadcast Campaign Email
+   */
+  async sendBroadcastEmail(to, subject, content) {
+    const mailOptions = {
+      from: `"Coffee Shop" <${env.SMTP_USER}>`,
+      to: to, 
+      subject: subject,
+      html: this.getBroadcastEmailTemplate(subject, content, to),
+    };
+
+    try {
+      const info = await this.transporter.sendMail(mailOptions);
+      return { success: true, messageId: info.messageId };
+    } catch (error) {
+      console.error('Error sending broadcast email to ' + to + ':', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
    * Send staff account credentials email
    */
   async sendStaffAccountEmail(to, userName, tempPassword, roleLabel) {
@@ -427,6 +468,245 @@ class EmailService {
       <p>Email: support@coffeeshop.com | Hotline: 1900-xxxx</p>
       <p style="margin-top: 15px; font-size: 12px; color: #bbbbbb;">
         © ${new Date().getFullYear()} Coffee Shop. All rights reserved.
+      </p>
+    </div>
+  </div>
+</body>
+</html>
+    `;
+  }
+
+  /**
+   * Newsletter Welcome Email Template
+   */
+  getNewsletterWelcomeEmailTemplate(userEmail = '') {
+    const unsubscribeLink = userEmail 
+      ? `${env.API_URL}/api/newsletters/unsubscribe?email=${encodeURIComponent(userEmail)}` 
+      : '#';
+
+    return `
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cảm ơn bạn đã đăng ký!</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f4f4f4;
+      margin: 0;
+      padding: 0;
+    }
+    .email-container {
+      max-width: 600px;
+      margin: 40px auto;
+      background-color: #ffffff;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    .header {
+      background: linear-gradient(135deg, #6B4423 0%, #8B5E34 100%);
+      color: #ffffff;
+      padding: 40px 20px;
+      text-align: center;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 32px;
+      font-weight: 600;
+      line-height: 1.2;
+    }
+    .content {
+      padding: 40px 30px;
+    }
+    .greeting {
+      font-size: 22px;
+      color: #333333;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    .message {
+      font-size: 16px;
+      color: #666666;
+      line-height: 1.8;
+      margin-bottom: 25px;
+    }
+    .highlight-box {
+      background-color: #fff9f0;
+      border: 1px solid #fbd38d;
+      border-radius: 8px;
+      padding: 25px;
+      margin: 30px 0;
+      text-align: center;
+    }
+    .coupon-code {
+      font-size: 28px;
+      font-weight: 900;
+      color: #d97706;
+      letter-spacing: 2px;
+      margin: 15px 0;
+      display: inline-block;
+      padding: 10px 20px;
+      border: 2px dashed #d97706;
+      border-radius: 8px;
+    }
+    .cta-button {
+      display: inline-block;
+      background: linear-gradient(135deg, #6B4423 0%, #8B5E34 100%);
+      color: #ffffff;
+      padding: 15px 40px;
+      text-decoration: none;
+      border-radius: 25px;
+      font-weight: 700;
+      margin: 20px 0;
+      text-align: center;
+      box-shadow: 0 4px 15px rgba(107, 68, 35, 0.3);
+    }
+    .footer {
+      background-color: #f9f9f9;
+      padding: 25px 30px;
+      text-align: center;
+      border-top: 1px solid #eeeeee;
+    }
+    .footer p {
+      margin: 5px 0;
+      font-size: 13px;
+      color: #999999;
+    }
+  </style>
+</head>
+<body>
+  <div class="email-container">
+    <div class="header">
+      <h1>☕ Cảm ơn bạn<br>đã đăng ký nhận tin!</h1>
+    </div>
+    
+    <div class="content">
+      <div class="greeting">
+        Đăng ký nhận bản tin thành công! 🎉
+      </div>
+      
+      <div class="message">
+        Cảm ơn bạn đã quan tâm! Bạn đã gửi yêu cầu và chính thức nằm trong danh sách nhận thông báo ưu tiên của hệ thống.
+        Từ bây giờ, hệ thống sẽ tự động cập nhật ngay lập tức đến hộp thư của bạn mỗi khi cửa hàng ra mắt Món nước mới, Khuyến mãi đặc biệt, hay Flash sale giới hạn!
+      </div>
+      
+      <div style="text-align: center;">
+        <a href="${env.CLIENT_URL}" class="cta-button">🛒 Trải nghiệm ngay</a>
+      </div>
+      
+      <div class="message" style="margin-top: 30px; font-size: 14px; text-align: center; font-style: italic;">
+        Hẹn gặp bạn tại cửa hàng nhé!
+      </div>
+    </div>
+    
+    <div class="footer">
+      <p><strong>Coffee Shop Management System</strong></p>
+      <p>Email: support@coffeeshop.com | Hotline: 1900-xxxx</p>
+      <p style="margin-top: 15px; font-size: 12px; color: #bbbbbb;">
+        © ${new Date().getFullYear()} Coffee Shop. All rights reserved.
+      </p>
+      <p style="margin-top: 10px; font-size: 11px; color: #cccccc;">
+        Nếu bạn không muốn nhận email nữa, <a href="${unsubscribeLink}" style="color: #6B4423; text-decoration: underline;">nhấn vào đây để hủy đăng ký hoàn toàn tự động</a>.
+      </p>
+    </div>
+  </div>
+</body>
+</html>
+    `;
+  }
+
+  /**
+   * Broadcast Email Template
+   */
+  getBroadcastEmailTemplate(subject, customContent, userEmail = '') {
+    const unsubscribeLink = userEmail 
+      ? `${env.API_URL}/api/newsletters/unsubscribe?email=${encodeURIComponent(userEmail)}` 
+      : '#';
+      
+    return `
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${subject}</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f4f4f4;
+      margin: 0;
+      padding: 0;
+      color: #333;
+    }
+    .email-container {
+      max-width: 600px;
+      margin: 40px auto;
+      background-color: #ffffff;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    .header {
+      background: linear-gradient(135deg, #6B4423 0%, #8B5E34 100%);
+      color: #ffffff;
+      padding: 30px 20px;
+      text-align: center;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 24px;
+      font-weight: 600;
+      line-height: 1.4;
+    }
+    .content {
+      padding: 40px 30px;
+      font-size: 15px;
+      line-height: 1.6;
+      color: #444;
+    }
+    .content img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+    .content h2, .content h3 {
+      color: #7b4e28;
+    }
+    .footer {
+      background-color: #f9f9f9;
+      padding: 25px 30px;
+      text-align: center;
+      border-top: 1px solid #eeeeee;
+    }
+    .footer p {
+      margin: 5px 0;
+      font-size: 13px;
+      color: #999999;
+    }
+  </style>
+</head>
+<body>
+  <div class="email-container">
+    <div class="header">
+      <h1>${subject}</h1>
+    </div>
+    
+    <div class="content">
+      ${customContent}
+    </div>
+    
+    <div class="footer">
+      <p><strong>Coffee Shop Management System</strong></p>
+      <p>Email: support@coffeeshop.com | Hotline: 1900-xxxx</p>
+      <p style="margin-top: 15px; font-size: 12px; color: #bbbbbb;">
+        © ${new Date().getFullYear()} Coffee Shop. All rights reserved.
+      </p>
+      <p style="margin-top: 10px; font-size: 11px; color: #cccccc;">
+        Nếu bạn không muốn nhận email nữa, <a href="${unsubscribeLink}" style="color: #6B4423; text-decoration: underline;">nhấn vào đây để hủy đăng ký</a>.
       </p>
     </div>
   </div>

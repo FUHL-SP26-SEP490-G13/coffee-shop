@@ -241,14 +241,8 @@ export default function AdminReputation() {
     <div className="space-y-6 p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="rounded-lg bg-primary/10 p-2">
-            <ShieldCheck className="h-6 w-6 text-primary" />
-          </div>
           <div>
-            <h2 className="text-2xl font-semibold">Quản lý điểm uy tín</h2>
-            <p className="text-sm text-muted-foreground">
-              Theo dõi số điện thoại, điểm hiện tại và thiết lập hạn mức thanh toán.
-            </p>
+            <h2 className="text-xl font-semibold">Quản lý điểm uy tín</h2>
           </div>
         </div>
         

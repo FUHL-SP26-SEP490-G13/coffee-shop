@@ -169,16 +169,10 @@ export default function AdminDiscounts() {
       <div className="mb-6">
         <div className="flex justify-between items-start mb-6 gap-4">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-primary/10 rounded-lg">
-              <Ticket className="h-6 w-6 text-primary" />
-            </div>
             <div>
-              <h2 className="text-2xl font-semibold mb-1">
+              <h2 className="text-xl font-semibold">
                 Quản lý mã giảm giá
               </h2>
-              <p className="text-sm text-muted-foreground">
-                Tạo và quản lý mã giảm giá của bạn
-              </p>
             </div>
           </div>
 
