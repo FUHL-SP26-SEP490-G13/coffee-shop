@@ -43,13 +43,22 @@ class ShiftService {
 
         // Kiểm tra nhân viên đã được gán ca này chưa
         const existing = await ShiftRepository.findRegistration(user_id, shift.id);
+
+        if (existing && existing.status === 'swapped_out') {
+            // Ca đã được nhường đi (có người swapped_in) → không cho gán lại thủ công
+            throw new ErrorResponse(
+                400,
+                `Ca này đã được ${user.first_name} ${user.last_name} nhường cho người khác, không thể gán lại thủ công`,
+            );
+        }
+
         if (existing && existing.status !== 'cancelled')
             throw new ErrorResponse(
                 400,
                 `${user.first_name} ${user.last_name} đã được phân vào ${template.name} ngày ${date}`,
             );
 
-        // Nếu đã có nhưng bị cancelled --> reactivate
+        // Nếu đã có nhưng bị cancelled thủ công → reactivate
         let registration;
         if (existing && existing.status === 'cancelled') {
             registration = await ShiftRepository.reactivateRegistration(existing.id);
@@ -215,6 +224,14 @@ class ShiftService {
                     shift.id,
                 );
 
+                if (existing && existing.status === 'swapped_out') {
+                    // Ca đã được nhường đi → không cho gán lại thủ công
+                    throw new ErrorResponse(
+                        400,
+                        `Ca này đã được ${user.first_name} ${user.last_name} nhường cho người khác, không thể gán lại thủ công`,
+                    );
+                }
+
                 if (existing && existing.status !== 'cancelled') {
                     throw new ErrorResponse(
                         400,
@@ -222,7 +239,7 @@ class ShiftService {
                     );
                 }
 
-                // 4) Nếu trước đó bị cancelled thì khôi phục, không thì tạo mới
+                // 4) Nếu trước đó bị cancelled thủ công thì khôi phục, không thì tạo mới
                 let registration;
                 if (existing && existing.status === 'cancelled') {
                     registration = await ShiftRepository.reactivateRegistration(existing.id);

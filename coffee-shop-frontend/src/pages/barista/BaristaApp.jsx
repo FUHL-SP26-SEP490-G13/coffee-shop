@@ -13,6 +13,7 @@ import {
   Bell,
   Sun,
   Moon,
+  ArrowLeftRight,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -139,8 +140,8 @@ export function BaristaApp() {
     },
     {
       id: "requests",
-      icon: FileText,
-      label: "Yêu cầu",
+      icon: ArrowLeftRight,
+      label: "Đổi ca",
       path: "/barista/requests",
     },
     {
