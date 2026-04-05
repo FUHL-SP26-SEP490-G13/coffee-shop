@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import bannerService from "@/services/bannerService";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Megaphone } from "lucide-react";
+import { Megaphone, Plus } from "lucide-react";
 import { validateBannerForm } from "@/utils/bannerValidation";
 
 import BannerFilters from "./components/BannerFilters";
@@ -278,18 +278,13 @@ export default function AdminBanner() {
     <div className="p-4 sm:p-6">
       <div className="mb-4 sm:mb-6 flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-primary/10 rounded-lg">
-            <Megaphone className="h-6 w-6 text-primary" />
-          </div>
           <div>
-            <h2 className="text-2xl font-semibold mb-1">Quản lý quảng cáo</h2>
-            <p className="text-sm text-muted-foreground">
-              Truyền bá cửa hàng của bạn nào
-            </p>
+            <h2 className="text-xl font-semibold">Quản lý quảng cáo</h2>
           </div>
         </div>
 
         <Button className="gap-2 w-full sm:w-auto" onClick={handleCreate}>
+          <Plus className="w-4 h-4 mr-2" /> 
           Tạo mới
         </Button>
       </div>

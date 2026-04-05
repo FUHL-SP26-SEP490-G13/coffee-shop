@@ -3,10 +3,10 @@ import { Navigate, Routes, Route } from "react-router-dom";
 import { APP_ROUTES, STORAGE_KEYS } from "../constants";
 import LoginPage from "../pages/authentication/LoginPage";
 import RegisterPage from "../pages/authentication/RegisterPage";
-import AdminOrders from "../pages/admin/AdminOrders";
+import AdminOrders from "../pages/admin/AdminOrder/AdminOrders";
 import AdminUsers from "../pages/admin/AdminUser/AdminUsers";
 import authenticationService from "../services/authenticationService";
-import HomePage from "@/pages/homePage/HomePage";
+import HomePage from "@/pages/homePage/home/HomePage";
 import ChangePasswordPage from "../pages/authentication/ChangePasswordPage";
 import ForgotPasswordPage from "../pages/authentication/ForgotPasswordPage";
 import AdminIngredients from "../pages/admin/AdminIngredient/AdminIngredients";
@@ -14,18 +14,13 @@ import AdminSchedulePage from "../pages/admin/AdminSchedule/AdminSchedulePage";
 import ShiftTemplatePage from "../pages/admin/AdminSchedule/ShiftTemplate/ShiftTemplatePage";
 import WorkSchedulePage from "../pages/admin/AdminSchedule/WorkSchedule/WorkSchedulePage";
 import { UserProfile } from "../pages/common/UserProfile";
-import AdminNewsCreatePage from "../pages/admin/AdminNew/AdminNewsCreatePage";
 import AdminNewsList from "../pages/admin/AdminNew/AdminNewsList";
 import AdminProducts from "@/pages/admin/AdminProduct/AdminProducts";
 import AdminCategories from "@/pages/admin/AdminCategory/AdminCategories";
 import NewsDetailPage from "@/pages/homePage/news/NewsDetailPage";
-import AdminEditNewsPage from "@/pages/admin/AdminNew/AdminEditNewsPage";
-import AdminNewsDetailPage from "@/pages/admin/AdminNew/AdminNewsDetailPage";
 import NewsListPage from "@/pages/homePage/news/NewsListPage";
 import DiscountListPage from "@/pages/homePage/discount/DiscountListPage";
 import AdminDiscounts from "@/pages/admin/AdminDiscount/AdminDiscounts";
-import AdminDiscountCreate from "@/pages/admin/AdminDiscount/AdminDiscountCreate";
-import AdminDiscountEdit from "@/pages/admin/AdminDiscount/AdminDiscountEdit";
 import OrderPolicy from "@/pages/common/OrderPolicy";
 import PrivacyPolicy from "@/pages/common/PrivacyPolicy";
 import AdminApp from "../pages/admin/AdminApp";
@@ -63,6 +58,7 @@ import AdminReceiptSettings from "@/pages/admin/AdminReceiptSettings/AdminReceip
 import AdminFlashSales from "@/pages/admin/AdminFlashSale/AdminFlashSales";
 import AdminReputation from "@/pages/admin/AdminReputation/AdminReputation";
 import AdminLoyalty from "@/pages/admin/AdminLoyalty/AdminLoyalty";
+import AdminNewsletterPage from "@/pages/admin/AdminNewsletter/AdminNewsletterPage";
 import TakeawayPOS from '../pages/staff/TakeawayPOS'
 import { OrderDelivery } from '@/pages/staff/StaffOrderList';
 import { StaffDashboard } from "@/pages/staff/StaffDashboard";
@@ -207,14 +203,9 @@ const AppRoutes = () => {
           <Route path="list" element={<WorkSchedulePage />} />
         </Route>
         <Route path="inventory" element={<AdminIngredients />} />
-        <Route path="create-news" element={<AdminNewsCreatePage />} />
         <Route path="profile" element={<UserProfile />} />
         <Route path="news-list" element={<AdminNewsList />} />
-        <Route path="edit-news/:id" element={<AdminEditNewsPage />} />
-        <Route path="news-detail/:slug" element={<AdminNewsDetailPage />} />
         <Route path="discounts" element={<AdminDiscounts />} />
-        <Route path="discounts/create" element={<AdminDiscountCreate />} />
-        <Route path="discounts/edit/:id" element={<AdminDiscountEdit />} />
         <Route path="banners" element={<AdminBanner />} />
         <Route path="tables" element={<AdminTables />} />
         <Route path="toppings" element={<AdminToppings />} />
@@ -223,6 +214,7 @@ const AppRoutes = () => {
         <Route path="loyalty" element={<AdminLoyalty />} />
         <Route path="receipt-settings" element={<AdminReceiptSettings />} />
         <Route path="flash-sales" element={<AdminFlashSales />} />
+        <Route path="newsletters" element={<AdminNewsletterPage />} />
       </Route>
       <Route path="/news/:slug" element={<NewsDetailPage />} />
       <Route path="/news" element={<NewsListPage />} />

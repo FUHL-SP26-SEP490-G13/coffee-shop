@@ -1,23 +1,22 @@
-import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useEffect, useRef, useState } from "react";
 import {
-  Loader2,
-  ChevronLeft,
-  Upload,
-  Newspaper,
-  Sparkles,
-} from "lucide-react";
-import newsService from "@/services/newsService";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Loader2, Upload, Newspaper, Sparkles } from "lucide-react";
 import RichTextEditor from "../../../components/RichTextEditor/RichTextEditor";
-import { validateNewsForm } from "@/utils/newsValidation";
 import { toast } from "sonner";
+import newsService from "@/services/newsService";
+import { validateNewsForm } from "@/utils/newsValidation";
 
-export default function AdminNewsCreatePage() {
-  const navigate = useNavigate();
+export default function AdminNewsModal({ isOpen, onClose, newsId, onSuccess }) {
+  const isEditing = !!newsId;
 
   const [form, setForm] = useState({
     title: "",
@@ -25,26 +24,75 @@ export default function AdminNewsCreatePage() {
     content: "",
     tag: "",
     thumbnail: null,
+    views: 0,
   });
 
-  const [preview, setPreview] = useState(null);
+  const [preview, setPreview] = useState(null); // For new uploaded file
+  const [existingThumbnail, setExistingThumbnail] = useState(null); // For edit mode existing file
   const [submitting, setSubmitting] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [aiLoadingTitle, setAiLoadingTitle] = useState(false);
   const [aiLoadingSummary, setAiLoadingSummary] = useState(false);
+  const [isLoadingData, setIsLoadingData] = useState(false);
   const [errors, setErrors] = useState({});
 
   const titleDebounceRef = useRef(null);
   const summaryDebounceRef = useRef(null);
 
+  useEffect(() => {
+    if (isOpen) {
+      if (isEditing) {
+        fetchDetail();
+      } else {
+        setForm({
+          title: "",
+          summary: "",
+          content: "",
+          tag: "",
+          thumbnail: null,
+          views: 0,
+        });
+        setPreview(null);
+        setExistingThumbnail(null);
+        setErrors({});
+        setUploadProgress(0);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, isEditing, newsId]);
+
+  const fetchDetail = async () => {
+    try {
+      setIsLoadingData(true);
+      const res = await newsService.getById(newsId);
+      const data = res.data?.data || res.data;
+
+      setForm({
+        title: data.title || "",
+        summary: data.summary || "",
+        content: data.content || "",
+        tag: data.tag || "",
+        thumbnail: data.thumbnail || "", // backend url
+        views: data.views ?? 0,
+      });
+      setExistingThumbnail(data.thumbnail || null);
+      setPreview(null);
+      setErrors({});
+    } catch (error) {
+      console.error("Lỗi load bài:", error);
+      toast.error("Không tải được chi tiết bài viết");
+      onClose();
+    } finally {
+      setIsLoadingData(false);
+    }
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
-
     setForm((prev) => ({
       ...prev,
       [name]: value,
     }));
-
     setErrors((prev) => ({
       ...prev,
       [name]: "",
@@ -60,7 +108,6 @@ export default function AdminNewsCreatePage() {
       ...prev,
       thumbnail: file,
     }));
-
     setPreview(URL.createObjectURL(file));
 
     setErrors((prev) => ({
@@ -68,14 +115,12 @@ export default function AdminNewsCreatePage() {
       thumbnail: "",
       server: "",
     }));
-
-    e.target.value = null;
+    e.target.value = null; // reset input
   };
 
   const fetchAISuggestionByTitle = async (title) => {
     try {
       setAiLoadingTitle(true);
-
       const res = await newsService.suggestByTitle({ title });
       const data = res.data?.data || res.data;
 
@@ -103,7 +148,6 @@ export default function AdminNewsCreatePage() {
   ) => {
     try {
       setAiLoadingSummary(true);
-
       const res = await newsService.suggestBySummary({ title, summary });
       const data = res.data?.data || res.data;
 
@@ -129,83 +173,62 @@ export default function AdminNewsCreatePage() {
     return () => {
       if (titleDebounceRef.current) clearTimeout(titleDebounceRef.current);
       if (summaryDebounceRef.current) clearTimeout(summaryDebounceRef.current);
-      if (preview) URL.revokeObjectURL(preview);
+      if (preview) URL.revokeObjectURL(preview); // cleanup URL on unmount
     };
   }, [preview]);
 
   useEffect(() => {
-    if (titleDebounceRef.current) {
-      clearTimeout(titleDebounceRef.current);
-    }
-
+    if (!isOpen) return;
+    if (titleDebounceRef.current) clearTimeout(titleDebounceRef.current);
     const title = form.title.trim();
-
     if (title.length < 10) return;
 
     titleDebounceRef.current = setTimeout(() => {
       const shouldSuggest =
         !form.tag.trim() || !form.summary.trim() || !form.content.trim();
-
       if (shouldSuggest) {
         fetchAISuggestionByTitle(title);
       }
     }, 900);
-
-    return () => {
-      if (titleDebounceRef.current) clearTimeout(titleDebounceRef.current);
-    };
-  }, [form.title]); // eslint-disable-line react-hooks/exhaustive-deps
+    return () => clearTimeout(titleDebounceRef.current);
+  }, [form.title, isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (summaryDebounceRef.current) {
-      clearTimeout(summaryDebounceRef.current);
-    }
-
+    if (!isOpen) return;
+    if (summaryDebounceRef.current) clearTimeout(summaryDebounceRef.current);
     const title = form.title.trim();
     const summary = form.summary.trim();
 
     if (title.length < 10 || summary.length < 10) return;
-    if (form.content.trim()) return;
+    if (form.content.trim()) return; // Don't overwrite if content exists
 
     summaryDebounceRef.current = setTimeout(() => {
       fetchAIContentBySummary(title, summary);
     }, 900);
-
-    return () => {
-      if (summaryDebounceRef.current) clearTimeout(summaryDebounceRef.current);
-    };
-  }, [form.summary, form.title]); // eslint-disable-line react-hooks/exhaustive-deps
+    return () => clearTimeout(summaryDebounceRef.current);
+  }, [form.summary, form.title, isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSuggestAgain = async () => {
     const title = form.title.trim();
     const summary = form.summary.trim();
 
     if (title.length < 10) {
-      setErrors((prev) => ({
-        ...prev,
-        title: "Tiêu đề phải có ít nhất 10 ký tự",
-      }));
+      setErrors((prev) => ({ ...prev, title: "Tiêu đề phải có ít nhất 10 ký tự" }));
       return;
     }
-
     if (summary.length < 10) {
-      setErrors((prev) => ({
-        ...prev,
-        summary: "Tóm tắt phải có ít nhất 10 ký tự",
-      }));
+      setErrors((prev) => ({ ...prev, summary: "Tóm tắt phải có ít nhất 10 ký tự" }));
       return;
     }
-
     await fetchAIContentBySummary(title, summary, true);
   };
 
-  const handleSubmit = async () => {
-    const newErrors = validateNewsForm(form, { requireThumbnail: true });
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const newErrors = validateNewsForm(form, { requireThumbnail: !isEditing });
     setErrors(newErrors);
 
-    if (Object.keys(newErrors).length > 0) {
-      return;
-    }
+    if (Object.keys(newErrors).length > 0) return;
 
     setSubmitting(true);
     setUploadProgress(0);
@@ -215,52 +238,55 @@ export default function AdminNewsCreatePage() {
       formData.append("title", form.title.trim());
       formData.append("summary", form.summary.trim());
       formData.append("content", form.content);
-      formData.append("type", "news");
       formData.append("tag", form.tag.trim().toLowerCase());
-      formData.append("thumbnail", form.thumbnail);
+
+      // Only append type when creating
+      if (!isEditing) {
+        formData.append("type", "news");
+      }
+
+      // If user uploaded a new file, it will be a File object
+      // If editing and no new file, form.thumbnail is string (URL), no need to append
+      if (form.thumbnail instanceof File) {
+        formData.append("thumbnail", form.thumbnail);
+      }
 
       const config = {
         onUploadProgress: (progressEvent) => {
           const total = progressEvent.total || 0;
           if (!total) return;
-
           const percent = Math.round((progressEvent.loaded * 100) / total);
           setUploadProgress(percent);
         },
       };
 
-      //await new Promise((resolve) => setTimeout(resolve, 800));
-      await newsService.create(formData, config);
+      if (isEditing) {
+        await newsService.update(newsId, formData, config);
+        toast.success("Cập nhật bài viết thành công");
+      } else {
+        await newsService.create(formData, config);
+        toast.success("Tạo bài viết thành công");
+      }
 
-      toast.success("Tạo bài viết thành công");
-      navigate("/admin/news-list");
+      onSuccess();
+      onClose();
     } catch (error) {
-      if (error.response?.data?.errors) {
+      const res = error.response?.data;
+      if (res?.errors) {
         const backendErrors = {};
-        error.response.data.errors.forEach((err) => {
+        res.errors.forEach((err) => {
           backendErrors[err.field] = err.message;
         });
-
         setErrors(backendErrors);
 
-        const duplicatedTitleError = error.response.data.errors.find(
-          (err) =>
-            err.field === "title" &&
-            err.message === "Tiêu đề bài viết đã tồn tại"
+        const duplicatedTitleError = res.errors.find(
+          (err) => err.field === "title" && err.message === "Tiêu đề bài viết đã tồn tại"
         );
-
-        if (duplicatedTitleError) {
-          toast.error("Tiêu đề bài viết đã tồn tại");
-        }
-      } else if (error.response?.data?.message) {
-        setErrors((prev) => ({
-          ...prev,
-          server: error.response.data.message,
-        }));
+        if (duplicatedTitleError) toast.error("Tiêu đề bài viết đã tồn tại");
       } else {
         setErrors((prev) => ({
           ...prev,
-          server: "Có lỗi xảy ra!",
+          server: res?.message || "Có lỗi xảy ra!",
         }));
       }
     } finally {
@@ -270,34 +296,21 @@ export default function AdminNewsCreatePage() {
   };
 
   return (
-    <div className="p-6 flex justify-center">
-      <div className="w-full max-w-4xl">
-        <div className="mb-6">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate("/admin/news-list")}
-            className="mb-4"
-          >
-            <ChevronLeft className="h-4 w-4 mr-1" />
-            Quay lại
-          </Button>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto w-[90vw]">
+        <DialogHeader>
+          <DialogTitle className="text-xl flex items-center gap-2">
+            <Newspaper className="w-5 h-5 text-primary" />
+            {isEditing ? "Chỉnh sửa bài viết" : "Tạo bài viết mới"}
+          </DialogTitle>
+        </DialogHeader>
 
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-primary/10 rounded-lg">
-              <Newspaper className="h-6 w-6 text-primary" />
-            </div>
-            <div>
-              <span className="text-lg mb-1">Tạo bài viết mới</span>
-              <p className="text-sm text-muted-foreground mt-1">
-                Chia sẻ thông tin hữu ích cho mọi người
-              </p>
-            </div>
+        {isLoadingData ? (
+          <div className="flex items-center justify-center p-12">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
-        </div>
-
-        <div className="bg-card rounded-xl border border-border p-6 max-w-4xl">
-          <div className="space-y-6">
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-6 pt-2">
             <div className="space-y-2">
               <div className="flex items-center justify-between gap-3">
                 <Label htmlFor="title">Tiêu đề *</Label>
@@ -308,7 +321,6 @@ export default function AdminNewsCreatePage() {
                   </span>
                 )}
               </div>
-
               <Input
                 id="title"
                 name="title"
@@ -316,10 +328,7 @@ export default function AdminNewsCreatePage() {
                 onChange={handleChange}
                 placeholder="Nhập tiêu đề bài viết..."
               />
-
-              {errors.title && (
-                <p className="text-sm text-red-500">{errors.title}</p>
-              )}
+              {errors.title && <p className="text-sm text-red-500">{errors.title}</p>}
             </div>
 
             <div className="space-y-2">
@@ -331,26 +340,27 @@ export default function AdminNewsCreatePage() {
                 onChange={handleChange}
                 placeholder="Ví dụ: #vanct"
               />
-
-              {errors.tag && (
-                <p className="text-sm text-red-500">{errors.tag}</p>
-              )}
+              {errors.tag && <p className="text-sm text-red-500">{errors.tag}</p>}
             </div>
 
             {form.tag && (
-              <div className="pt-1">
-                <span className="text-xs text-muted-foreground mr-2">
-                  Preview:
-                </span>
-                <span className="px-2 py-1 text-xs rounded bg-secondary">
+              <div className="pt-0.5">
+                <span className="text-xs text-muted-foreground mr-2">Preview:</span>
+                <span className="px-2 py-1 text-xs rounded bg-secondary capitalize">
                   {form.tag}
                 </span>
               </div>
             )}
 
-            <div className="space-y-2">
-              <Label htmlFor="thumbnail">Hình ảnh bài viết *</Label>
+            {isEditing && (
+              <div className="space-y-2">
+                <Label htmlFor="views">Lượt xem</Label>
+                <Input id="views" name="views" value={form.views ?? 0} disabled />
+              </div>
+            )}
 
+            <div className="space-y-2">
+              <Label htmlFor="thumbnail">Hình ảnh bài viết {!isEditing && "*"}</Label>
               <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary transition cursor-pointer relative">
                 <input
                   id="thumbnail"
@@ -359,26 +369,36 @@ export default function AdminNewsCreatePage() {
                   onChange={handleThumbnailChange}
                   className="absolute inset-0 opacity-0 cursor-pointer"
                 />
-
                 <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
                 <p className="text-sm font-medium">Chọn hình ảnh để tải lên</p>
-                <p className="text-xs text-muted-foreground">
-                  Hỗ trợ JPG, PNG, WebP
-                </p>
+                <p className="text-xs text-muted-foreground">Hỗ trợ JPG, PNG, WebP</p>
               </div>
-
-              {errors.thumbnail && (
-                <p className="text-sm text-red-500">{errors.thumbnail}</p>
-              )}
+              {errors.thumbnail && <p className="text-sm text-red-500">{errors.thumbnail}</p>}
             </div>
 
             {preview && (
-              <div className="mt-4 flex justify-center">
-                <img
-                  src={preview}
-                  className="max-h-48 w-auto object-contain rounded-lg border"
-                  alt="Preview"
-                />
+              <div className="mt-4 space-y-2">
+                <p className="text-sm font-medium">Ảnh mới:</p>
+                <div className="flex justify-center">
+                  <img
+                    src={preview}
+                    className="max-h-72 max-w-xl w-full object-cover rounded-xl border border-border shadow-sm"
+                    alt="Preview"
+                  />
+                </div>
+              </div>
+            )}
+
+            {isEditing && existingThumbnail && !preview && (
+              <div className="mt-4 space-y-2">
+                <p className="text-sm font-medium">Ảnh hiện tại:</p>
+                <div className="flex justify-center">
+                  <img
+                    src={existingThumbnail}
+                    className="max-h-72 max-w-xl w-full object-cover rounded-xl border border-border shadow-sm"
+                    alt="Current Thumbnail"
+                  />
+                </div>
               </div>
             )}
 
@@ -392,7 +412,6 @@ export default function AdminNewsCreatePage() {
                   </span>
                 )}
               </div>
-
               <Textarea
                 id="summary"
                 name="summary"
@@ -401,16 +420,12 @@ export default function AdminNewsCreatePage() {
                 placeholder="Nhập tóm tắt bài viết..."
                 rows={3}
               />
-
-              {errors.summary && (
-                <p className="text-sm text-red-500">{errors.summary}</p>
-              )}
+              {errors.summary && <p className="text-sm text-red-500">{errors.summary}</p>}
             </div>
 
             <div className="space-y-2">
               <div className="flex items-center justify-between gap-3">
                 <Label>Nội dung *</Label>
-
                 <Button
                   type="button"
                   variant="outline"
@@ -430,79 +445,55 @@ export default function AdminNewsCreatePage() {
                   Gợi ý lại bằng AI
                 </Button>
               </div>
-
               <div className="border border-border rounded-lg overflow-hidden">
                 <RichTextEditor
                   value={form.content}
                   onChange={(value) => {
-                    setForm((prev) => ({
-                      ...prev,
-                      content: value,
-                    }));
-
-                    setErrors((prev) => ({
-                      ...prev,
-                      content: "",
-                      server: "",
-                    }));
+                    setForm((prev) => ({ ...prev, content: value }));
+                    setErrors((prev) => ({ ...prev, content: "", server: "" }));
                   }}
                 />
               </div>
-
-              {errors.content && (
-                <p className="text-sm text-red-500">{errors.content}</p>
-              )}
+              {errors.content && <p className="text-sm text-red-500">{errors.content}</p>}
             </div>
 
-            {errors.server && (
-              <p className="text-sm text-red-500">{errors.server}</p>
-            )}
+            {errors.server && <p className="text-sm text-red-500">{errors.server}</p>}
 
             {submitting && (
               <div className="space-y-2">
                 <div className="flex justify-between text-sm text-muted-foreground">
-                  <span>
-                    {uploadProgress > 0
-                      ? "Đang tải ảnh..."
-                      : "Đang lưu dữ liệu..."}
-                  </span>
-                  <span>
-                    {uploadProgress > 0 ? `${uploadProgress}%` : "Vui lòng chờ"}
-                  </span>
+                  <span>{uploadProgress > 0 ? "Đang tải ảnh..." : "Đang lưu dữ liệu..."}</span>
+                  <span>{uploadProgress > 0 ? `${uploadProgress}%` : "Vui lòng chờ"}</span>
                 </div>
-
                 <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
                   <div
                     className="h-full bg-primary transition-all duration-200"
-                    style={{
-                      width: uploadProgress > 0 ? `${uploadProgress}%` : "50%",
-                    }}
+                    style={{ width: uploadProgress > 0 ? `${uploadProgress}%` : "50%" }}
                   />
                 </div>
               </div>
             )}
 
-            <div className="flex gap-3 pt-4">
-              <Button
-                onClick={handleSubmit}
-                disabled={submitting}
-                className="gap-2"
-              >
-                {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-                {submitting ? "Đang lưu..." : "Đăng bài"}
-              </Button>
-
-              <Button
-                variant="outline"
-                onClick={() => navigate("/admin/news-list")}
-                disabled={submitting}
-              >
+            <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4">
+              <Button type="button" variant="outline" onClick={onClose} disabled={submitting}>
                 Hủy
               </Button>
+              <Button type="submit" disabled={submitting}>
+                {submitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Đang lưu...
+                  </>
+                ) : isEditing ? (
+                  "Cập nhật"
+                ) : (
+                  "Đăng bài"
+                )}
+              </Button>
             </div>
-          </div>
-        </div>
-      </div>
-    </div>
+          </form>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }

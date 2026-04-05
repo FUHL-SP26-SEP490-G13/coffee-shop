@@ -4,6 +4,7 @@ module.exports = {
   // Server
   NODE_ENV: process.env.NODE_ENV || 'development',
   PORT: process.env.PORT || 5000,
+  API_URL: process.env.API_URL || `http://localhost:${process.env.PORT || 5000}`,
 
   // Database
   DB_HOST: process.env.DB_HOST || 'localhost',

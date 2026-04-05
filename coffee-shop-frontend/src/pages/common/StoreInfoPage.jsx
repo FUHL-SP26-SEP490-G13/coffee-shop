@@ -51,16 +51,16 @@ export default function StoreInfoPage() {
             {/* Store Information */}
             <div className="space-y-8 animate-in slide-in-from-bottom-5 duration-700">
               <div>
-                <h1 className="text-2xl md:text-3xl text-gray-900 dark:text-gray-100 tracking-tight leading-tight font-bold">
+                <h1 className="text-2xl md:text-3xl font-semibold text-amber-900 dark:text-amber-500" style={{ fontFamily: 'serif' }}>
                   Chào mừng bạn đến với <span className="text-amber-600">{storeInfo.name}</span>
                 </h1>
-                <p className="mt-4 text-base md:text-lg text-gray-600 dark:text-gray-400">
+                <p className="mt-4 text-base md:text-base text-gray-500 dark:text-gray-400">
                   Nơi thưởng thức cà phê và đồ uống tuyệt hảo với không gian thoải mái, ấm cúng dành cho mọi đối tượng.
                 </p>
               </div>
 
               <div className="space-y-6 bg-amber-50 dark:bg-amber-900/10 p-6 md:p-8 rounded-3xl border border-amber-100 dark:border-amber-900/30">
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">Thông tin liên hệ</h2>
+                <h2 className="text-xl font-semibold text-gray-600 dark:text-gray-100 mb-6">Thông tin liên hệ</h2>
                 
                 <div className="flex items-start gap-4">
                   <div className="w-12 h-12 shrink-0 rounded-2xl bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center text-amber-600 dark:text-amber-500">

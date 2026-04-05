@@ -102,11 +102,7 @@ export default function AdminCategories() {
 
       <div className='flex items-center justify-between mb-6'>
         <div>
-          <h2 className='text-2xl font-semibold mb-1'>Danh mục</h2>
-
-          <p className='text-sm text-muted-foreground'>
-            Quản lý danh mục sản phẩm
-          </p>
+          <h2 className="text-xl font-semibold">Danh mục</h2>
         </div>
 
         <Button

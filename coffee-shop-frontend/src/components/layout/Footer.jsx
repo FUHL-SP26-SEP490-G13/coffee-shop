@@ -8,12 +8,16 @@ import {
   Instagram,
   ShieldCheck,
   CheckCircle2,
+  Send,
+  Loader2,
 } from "lucide-react";
 import Logo from "/logo/Logo.png";
 import receiptSettingService from "@/services/receiptSettingService";
 import { useStoreHours } from "@/hooks/useStoreHours";
 import { STORAGE_KEYS } from "@/constants";
 import PayOSLogo from "/logo/payOS.svg";
+import axiosClient from "@/services/axiosClient";
+import { toast } from "sonner";
 
 function Footer() {
   const { isOpen, storeSchedule } = useStoreHours();
@@ -27,6 +31,28 @@ function Footer() {
   });
   const [storeAddress, setStoreAddress] = useState("");
   const [storePhone, setStorePhone] = useState("");
+  const [storeName, setStoreName] = useState("Coffee Shop");
+
+  const [newsletterEmail, setNewsletterEmail] = useState("");
+  const [isSubscribing, setIsSubscribing] = useState(false);
+
+  const handleSubscribeNewsletter = async (e) => {
+    e.preventDefault();
+    if (!newsletterEmail) return;
+
+    try {
+      setIsSubscribing(true);
+      await axiosClient.post("/newsletters/subscribe", {
+        email: newsletterEmail,
+      });
+      toast.success("Cảm ơn bạn đã đăng ký nhận tin!");
+      setNewsletterEmail("");
+    } catch (error) {
+      toast.error(error?.response?.data?.message || "Đăng ký thất bại");
+    } finally {
+      setIsSubscribing(false);
+    }
+  };
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -43,6 +69,8 @@ function Footer() {
           }
           if (data.address) setStoreAddress(data.address);
           if (data.phone) setStorePhone(data.phone);
+          if (data.store_name) setStoreName(data.store_name);
+          else setStoreName("Coffee Shop");
         } else {
           setStoreLogo(Logo);
           localStorage.removeItem("cached_store_logo");
@@ -71,13 +99,16 @@ function Footer() {
           {/* Cột 1: Thông tin liên hệ & Mạng xã hội */}
           <div className="space-y-8 lg:pr-4">
             <div>
-              <Link to="/" className="inline-block mb-4">
+              <Link to="/" className="inline-flex items-center gap-3 mb-4 group">
                 <img
                   src={storeLogo}
                   onError={(e) => { e.currentTarget.src = Logo; }}
-                  alt="Coffee Shop Logo"
-                  className="h-16 w-auto hover:opacity-80 transition-opacity object-contain rounded-xl"
+                  alt={`${storeName} Logo`}
+                  className="h-16 w-auto group-hover:opacity-80 transition-opacity object-contain rounded-xl shadow-sm"
                 />
+                <h3 className="text-xl font-semibold tracking-tight text-amber-900 dark:text-amber-500 transition-colors line-clamp-2" style={{ fontFamily: 'serif' }}>
+                  {storeName}
+                </h3>
               </Link>
               <p className="mt-4 text-sm leading-relaxed text-muted-foreground dark:text-gray-400">
                 Hương vị cà phê chuẩn vị, phục vụ mỗi ngày
@@ -150,14 +181,7 @@ function Footer() {
                 Chính sách
               </h4>
               <ul className="mt-4 space-y-3">
-                <li>
-                  <Link
-                    to="/about-us"
-                    className="text-sm text-muted-foreground dark:text-gray-400 transition-colors hover:text-primary hover:underline hover:underline-offset-4"
-                  >
-                    Về chúng tôi
-                  </Link>
-                </li>
+
                 <li>
                   <Link
                     to="/order-policy"
@@ -307,6 +331,37 @@ function Footer() {
                   </div>
                 </a>
               </div>
+            </div>
+
+            <div className="mt-8">
+              <h4 className="text-sm font-semibold uppercase tracking-wider text-foreground">
+                Đăng ký nhận tin
+              </h4>
+              <p className="mt-2 text-[13px] text-muted-foreground dark:text-gray-400">
+                Nhận thông tin ưu đãi và sản phẩm mới sớm nhất
+              </p>
+              <form onSubmit={handleSubscribeNewsletter} className="mt-3 flex">
+                <input
+                  type="email"
+                  placeholder="Nhập địa chỉ email"
+                  required
+                  value={newsletterEmail}
+                  onChange={(e) => setNewsletterEmail(e.target.value)}
+                  disabled={isSubscribing}
+                  className="w-full bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm rounded-l focus:outline-none focus:border-amber-500 disabled:opacity-70 text-gray-800 dark:text-gray-200"
+                />
+                <button
+                  type="submit"
+                  disabled={isSubscribing}
+                  className="bg-amber-600 hover:bg-amber-700 text-white px-3 py-2 rounded-r text-sm font-semibold transition-colors disabled:opacity-70 disabled:cursor-not-allowed flex items-center gap-1"
+                >
+                  {isSubscribing ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    "Đăng ký"
+                  )}
+                </button>
+              </form>
             </div>
           </div>
         </div>

@@ -281,7 +281,7 @@ export function UserProfile() {
             <Card className="h-fit">
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle>Thông tin cá nhân</CardTitle>
+                <CardTitle className="text-xl font-semibold">Thông tin cá nhân</CardTitle>
                 {!isEditing ? (
                   <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
                     <Edit2 className="w-4 h-4 mr-2" />
@@ -420,7 +420,7 @@ export function UserProfile() {
 
             <Card className="h-fit">
             <CardHeader>
-              <CardTitle>Cài đặt tài khoản</CardTitle>
+              <CardTitle className="text-xl font-semibold">Cài đặt tài khoản</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">

@@ -1030,7 +1030,7 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
 
             {!isStoreOpen && (
               <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 rounded-xl flex items-center gap-2">
-                <span className="font-medium text-sm">Cửa hàng hiện đang đóng cửa. {nextOpenMessage}. Bạn không thể đặt hàng lúc này.</span>
+                <span className="font-medium text-sm">Cửa hàng hiện đang đóng cửa. {nextOpenMessage}. Xin quý khách thông cảm</span>
               </div>
             )}
 

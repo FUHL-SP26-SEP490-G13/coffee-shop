@@ -161,11 +161,6 @@ export default function AdminTables() {
     }
   };
 
-  // const handleReserveTable = (table) => {
-  //   setTableToReserve(table);
-  //   setIsReservationModalOpen(true);
-  // };
-
   // -- AREA HANDLERS --
   const handleAddArea = () => {
     setSelectedArea(null);
@@ -222,12 +217,11 @@ export default function AdminTables() {
   const currentAreaObj = areas.find((a) => a.id.toString() === selectedAreaId);
 
   return (
-    <div className="space-y-6">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
       {/* HEADER */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div className="flex items-center gap-3">
-          <LayoutGrid className="w-6 h-6 text-primary" />
-          <h1 className="text-2xl font-semibold">Quản lý Khu vực & Bàn</h1>
+          <h1 className="text-xl font-semibold">Quản lý khu vực & bàn</h1>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">

@@ -135,10 +135,7 @@ export default function AdminProducts() {
     <div className='p-6'>
       <div className='flex items-center justify-between mb-6'>
         <div>
-          <h2 className='text-2xl mb-1 font-bold'>Sản phẩm</h2>
-          <p className='text-sm text-muted-foreground'>
-            Quản lý sản phẩm quán cà phê
-          </p>
+          <h2 className="text-xl font-semibold">Sản phẩm</h2>
         </div>
 
         <Button onClick={() => openModal('create')} className='cursor-pointer'>
