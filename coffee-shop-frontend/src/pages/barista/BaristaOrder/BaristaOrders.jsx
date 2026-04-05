@@ -55,12 +55,12 @@ export function BaristaOrders() {
   const OrderCard = ({ order }) => (
     <Card 
       key={order.id} 
-      className="mb-3 hover:shadow-md transition-all border-border cursor-pointer group overflow-hidden"
+      className="mb-3 hover:shadow-lg transition-all duration-300 border-border cursor-pointer group overflow-hidden p-0 relative"
       onClick={() => setSelectedOrder(order)}
     >
       <CardContent className="p-4 flex items-center justify-between">
         <div className="flex flex-col">
-          <h3 className="font-bold text-base">Đơn #{order.id}</h3>
+          <h3 className="font-bold text-base group-hover:text-primary transition-colors">Đơn #{order.id}</h3>
           <p className="text-xs font-semibold text-primary mt-0.5">
             {Number(order.total).toLocaleString()} đ
           </p>
@@ -75,13 +75,15 @@ export function BaristaOrders() {
         <Button 
           size="sm" 
           variant="secondary"
-          className="h-8 px-4 rounded-lg bg-muted text-foreground group-hover:bg-primary group-hover:text-primary-foreground transition-all font-bold text-xs shadow-sm"
+          className="h-8 px-4 rounded-lg bg-muted text-foreground transition-all duration-300 font-bold text-xs shadow-sm
+            hover:bg-primary hover:text-primary-foreground hover:scale-105 active:scale-95
+            group-hover:bg-primary/90 group-hover:text-primary-foreground"
           onClick={(e) => {
             e.stopPropagation();
             handleUpdateStatus(order.id, 'completed');
           }}
         >
-          Xác nhận
+          Xác nhận hoàn thành
         </Button>
       </CardContent>
     </Card>
