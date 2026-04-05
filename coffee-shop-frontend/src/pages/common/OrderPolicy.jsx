@@ -45,7 +45,7 @@ function OrderPolicy() {
           {/* 2 */}
           <PolicyCard icon={<Clock />} title="2. Thời gian xử lý">
             <ul className="space-y-2">
-              <li>• Xác nhận đơn trong 5–15 phút hoặc có thể trong vòng 24 giờ nếu quý khách đặt đơn ngoài giờ làm việc của quán.</li>
+              <li>• Xác nhận đơn trong 5–15 phút kể từ khi đặt.</li>
               <li>• Giao hàng phụ thuộc khu vực.</li>
               <li>• Giờ cao điểm có thể chậm hơn.</li>
             </ul>
