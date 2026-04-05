@@ -111,14 +111,14 @@ export function BaristaOrders() {
   );
 
   return (
-    <div className="h-full flex flex-col p-6 space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="h-full flex flex-col p-0 space-y-6">
+      {/* <div className="flex items-center justify-between">
         <h1 className="text-3xl font-extrabold tracking-tight text-foreground">Quản lý pha chế</h1>
         <div className="flex items-center gap-2 text-sm bg-card px-4 py-2 rounded-full border border-border shadow-sm">
           <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
           <span className="font-medium">Đang hoạt động</span>
         </div>
-      </div>
+      </div> */}
 
       <Tabs defaultValue="new" className="flex-1 flex flex-col space-y-6">
         <TabsList className="bg-muted p-1 h-14 rounded-2xl w-fit">
