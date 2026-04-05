@@ -42,6 +42,7 @@ import { Loader2 } from "lucide-react";
 
 const DELIVERY_SHIPPING_FEE = 20000;
 const LOYALTY_MONEY_PER_POINT = 100;
+const LOYALTY_MAX_REDEEM_RATIO = 0.5;
 
 export default function CheckoutPage() {
   const navigate = useNavigate();
@@ -375,9 +376,16 @@ export default function CheckoutPage() {
   const maxRedeemablePointsByAmount = Math.floor(
     amountAfterDiscount / LOYALTY_MONEY_PER_POINT,
   );
+  const maxRedeemablePointsByPolicy = Math.floor(
+    (amountAfterDiscount * LOYALTY_MAX_REDEEM_RATIO) / LOYALTY_MONEY_PER_POINT,
+  );
   const maxRedeemablePoints = Math.max(
     0,
-    Math.min(maxRedeemablePointsByWallet, maxRedeemablePointsByAmount),
+    Math.min(
+      maxRedeemablePointsByWallet,
+      maxRedeemablePointsByAmount,
+      maxRedeemablePointsByPolicy,
+    ),
   );
   const usedPoints = Math.min(parsedUsedPoints, maxRedeemablePoints);
   const loyaltyDiscountAmount = usedPoints * LOYALTY_MONEY_PER_POINT;
@@ -956,6 +964,7 @@ export default function CheckoutPage() {
                   Tối đa có thể dùng: {maxRedeemablePoints.toLocaleString("vi-VN")} điểm
                   {" "}(={" "}
                   {(maxRedeemablePoints * LOYALTY_MONEY_PER_POINT).toLocaleString("vi-VN")}đ)
+                  {" "}- không vượt quá 50% tổng giá trị đơn.
                 </p>
 
                 {isPointsInputExceeded && (
