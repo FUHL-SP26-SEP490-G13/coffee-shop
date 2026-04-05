@@ -1,5 +1,5 @@
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Plus, Search, Edit, Trash2 } from 'lucide-react';
 import toppingService from '../../../services/toppingService';
 import useFetch from '../../../hooks/useFetch';
@@ -13,6 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from '../../../components/ui/table';
+import PaginationControl from '../../../components/common/PaginationControl';
 import CreateTopping from './Action/CreateTopping';
 import UpdateTopping from './Action/UpdateTopping';
 import DeleteTopping from './Action/DeleteTopping';
@@ -46,6 +47,22 @@ export default function AdminToppings() {
     );
   }, [toppings, searchQuery]);
 
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 10;
+  const totalPages = Math.ceil(filteredToppings.length / PAGE_SIZE);
+
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(1);
+    }
+  }, [filteredToppings.length, totalPages, currentPage]);
+
+  const currentToppings = useMemo(() => {
+    const startIndex = (currentPage - 1) * PAGE_SIZE;
+    return filteredToppings.slice(startIndex, startIndex + PAGE_SIZE);
+  }, [filteredToppings, currentPage]);
+
   return (
     <div className='p-6'>
       {/* ===== HEADER ===== */}
@@ -77,6 +94,7 @@ export default function AdminToppings() {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className='w-16'>STT</TableHead>
               <TableHead>Tên topping</TableHead>
               <TableHead>Giá</TableHead>
               <TableHead>Trạng thái</TableHead>
@@ -86,16 +104,17 @@ export default function AdminToppings() {
           <TableBody>
             {loading && (
               <TableRow>
-                <TableCell colSpan={4} className='text-center py-6'>Đang tải...</TableCell>
+                <TableCell colSpan={5} className='text-center py-6'>Đang tải...</TableCell>
               </TableRow>
             )}
             {!loading && filteredToppings.length === 0 && (
               <TableRow>
-                <TableCell colSpan={4} className='text-center py-6'>Không có topping nào</TableCell>
+                <TableCell colSpan={5} className='text-center py-6'>Không có topping nào</TableCell>
               </TableRow>
             )}
-            {!loading && filteredToppings.map((topping) => (
+            {!loading && currentToppings.map((topping, idx) => (
               <TableRow key={topping.id}>
+                <TableCell>{(currentPage - 1) * PAGE_SIZE + idx + 1}</TableCell>
                 <TableCell>{topping.name}</TableCell>
                 <TableCell>{Number(topping.price).toLocaleString('vi-VN')}đ</TableCell>
                 <TableCell>
@@ -118,6 +137,15 @@ export default function AdminToppings() {
           </TableBody>
         </Table>
       </div>
+
+      <PaginationControl
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+        totalItems={filteredToppings.length}
+        itemsPerPage={PAGE_SIZE}
+        itemName="topping"
+      />
 
       {/* ===== MODALS ===== */}
       {modal.type === 'create' && (

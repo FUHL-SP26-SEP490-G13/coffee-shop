@@ -1,4 +1,4 @@
-import { Outlet, NavLink, useNavigate } from 'react-router-dom';
+import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
   Package,
@@ -56,6 +56,43 @@ export default function AdminApp() {
    const [showNotifications, setShowNotifications] = useState(false);
    const notificationRef = useRef(null);
    const navigate = useNavigate();
+   const location = useLocation();
+
+   useEffect(() => {
+     const routeTitles = {
+       "/admin/dashboard": "Bảng điều khiển",
+       "/admin/orders": "Đơn hàng",
+       "/admin/tables": "Quản lý bàn",
+       "/admin/menu/categories": "Danh mục",
+       "/admin/menu/products": "Sản phẩm",
+       "/admin/toppings": "Topping",
+       "/admin/ingredients": "Nguyên liệu",
+       "/admin/users": "Người dùng",
+       "/admin/reviews": "Đánh giá",
+       "/admin/discounts": "Mã giảm giá",
+       "/admin/reputation": "Điểm uy tín",
+       "/admin/loyalty": "Điểm loyalty",
+       "/admin/flash-sales": "Flash sale",
+       "/admin/banners": "Quảng cáo",
+       "/admin/news-list": "Bài viết",
+       "/admin/newsletters": "Email",
+       "/admin/schedule/templates": "Quản lý ca làm",
+       "/admin/schedule/list": "Lịch làm việc",
+       "/admin/receipt-settings": "Cấu hình hóa đơn",
+       "/admin/profile": "Thông tin cá nhân"
+     };
+
+     let matchedTitle = "Quản trị viên";
+     if (routeTitles[location.pathname]) {
+       matchedTitle = routeTitles[location.pathname];
+     } else {
+       const match = Object.keys(routeTitles).find(path => location.pathname.startsWith(path));
+       if (match) matchedTitle = routeTitles[match];
+     }
+
+     const shopName = localStorage.getItem("cached_store_name") || "Coffee Shop";
+     document.title = `${matchedTitle} | ${shopName}`;
+   }, [location.pathname]);
 
    const [storeLogo, setStoreLogo] = useState(() => {
      return localStorage.getItem("cached_store_logo") || Logo;
