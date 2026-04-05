@@ -115,7 +115,7 @@ class ShiftRepository {
     // SHIFT REGISTRATIONS
     async findRegistration(userId, shiftId) {
         const [[row]] = await pool.query(
-            `SELECT id, user_id, shift_id, status, leave_request_id
+            `SELECT id, user_id, shift_id, status
        FROM shift_registrations
        WHERE user_id = ? AND shift_id = ?`,
             [userId, shiftId],
@@ -169,7 +169,7 @@ class ShiftRepository {
     async reactivateRegistration(registrationId) {
         await pool.query(
             `UPDATE shift_registrations
-       SET status = 'registered', leave_request_id = NULL
+       SET status = 'registered'
        WHERE id = ?`,
             [registrationId],
         );
@@ -226,18 +226,9 @@ class ShiftRepository {
          st.color,
          -- Tính display_status cho calendar
          CASE
-           WHEN sr.status = 'cancelled' AND sr.leave_request_id IS NOT NULL
-             THEN 'on_leave'
-           WHEN sr.status = 'swapped_out'
-             THEN 'swapped_out'
-           WHEN sr.status = 'swapped_in'
-             THEN 'swapped_in'
-           WHEN sr.status = 'registered' AND EXISTS (
-             SELECT 1 FROM leave_requests lr
-             WHERE lr.shift_id = sr.shift_id
-               AND lr.user_id = sr.user_id
-               AND lr.status = 'pending'
-           ) THEN 'pending_leave'
+           WHEN sr.status = 'cancelled' THEN 'cancelled'
+           WHEN sr.status = 'swapped_out' THEN 'swapped_out'
+           WHEN sr.status = 'swapped_in' THEN 'swapped_in'
            ELSE 'working'
          END AS display_status
        FROM shift_registrations sr

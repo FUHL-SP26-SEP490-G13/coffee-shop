@@ -277,13 +277,6 @@ class ShiftService {
         const reg = await ShiftRepository.findRegistrationById(registrationId);
         if (!reg) throw new ErrorResponse(404, 'Không tìm thấy lịch làm việc này');
 
-        // Không cho xóa nếu đã có leave_request pending/approved
-        if (reg.leave_request_id)
-            throw new ErrorResponse(
-                400,
-                'Nhân viên đang có đơn xin nghỉ liên quan, hãy xử lý đơn trước',
-            );
-
         await ShiftRepository.cancelRegistration(registrationId);
     }
 
