@@ -20,22 +20,22 @@ router.get(
 
 router.post(
     '/templates',
-    // authenticate,
-    // authorize(MANAGER_ONLY),
+    authenticate,
+    authorize(MANAGER_ONLY),
     AsyncMiddleware(shiftTemplateController.create),
 );
 
 router.put(
     '/templates/:id',
-    // authenticate,
-    // authorize(MANAGER_ONLY),
+    authenticate,
+    authorize(MANAGER_ONLY),
     AsyncMiddleware(shiftTemplateController.update),
 );
 
 router.delete(
     '/templates/:id',
-    // authenticate,
-    // authorize(MANAGER_ONLY),
+    authenticate,
+    authorize(MANAGER_ONLY),
     AsyncMiddleware(shiftTemplateController.remove),
 );
 

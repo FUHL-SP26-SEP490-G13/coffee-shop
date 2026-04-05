@@ -96,7 +96,9 @@ export default function AssignBulkModal({ open, onClose, onSuccess }) {
           days_of_week: a.days_of_week,
         })),
       });
-      const { total } = res?.data?.data || {};
+
+      // console.log(res.data);
+      const { total } = res?.data || {};
       toast.success(`Gán thành công ${total ?? '?'} ca`);
       onSuccess?.();
       onClose();

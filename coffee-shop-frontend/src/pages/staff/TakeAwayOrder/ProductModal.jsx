@@ -20,7 +20,7 @@ export function ProductModal({ product, toppings = [], initialItem = null, onClo
             </div>
             <button
               onClick={onClose}
-              className='w-8 h-8 rounded-full bg-white dark:bg-gray-900/20 flex items-center justify-center hover:bg-white dark:bg-gray-900/30'
+              className='w-8 h-8 rounded-full bg-white/20 flex items-center justify-center hover:bg-white/30 text-white'
             >
               <X size={16} />
             </button>
@@ -107,7 +107,7 @@ function ProductModalInner({ product, toppings, initialItem, onClose, onAdd }) {
             </div>
             <button
               onClick={onClose}
-              className='w-8 h-8 rounded-full bg-white dark:bg-gray-900/20 flex items-center justify-center hover:bg-white dark:bg-gray-900/30'
+              className='w-8 h-8 rounded-full bg-white/20 flex items-center justify-center hover:bg-white/30 text-white'
             >
               <X size={16} />
             </button>
@@ -126,11 +126,10 @@ function ProductModalInner({ product, toppings, initialItem, onClose, onAdd }) {
                 <button
                   key={s.id}
                   onClick={() => setSelectedSize(s)}
-                  className={`flex-1 py-2.5 rounded-xl border-2 text-sm font-semibold transition-all ${
-                    selectedSize.id === s.id
-                      ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'
-                      : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:border-gray-600'
-                  }`}
+                  className={`flex-1 py-2.5 rounded-xl border-2 text-sm font-semibold transition-all ${selectedSize.id === s.id
+                    ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'
+                    : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:border-gray-600'
+                    }`}
                 >
                   <div>{s.size}</div>
                   <div className='text-xs mt-0.5'>{fmt(s.price)}</div>
@@ -171,7 +170,7 @@ function ProductModalInner({ product, toppings, initialItem, onClose, onAdd }) {
             onClick={onClose}
             className='flex-1 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 font-semibold text-sm hover:bg-gray-50 dark:hover:bg-gray-800/50 dark:bg-gray-800/50'
           >
-            Huỷ
+            Hủy
           </button>
           <button
             onClick={handleAdd}
