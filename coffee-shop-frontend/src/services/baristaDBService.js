@@ -41,9 +41,9 @@ const baristaDBService = {
   // (ví dụ: từ "preparing" sang "served" hoặc "delivered" (trường hợp đặt hàng 
   // theo giao hàng online))
 
-  // updateOrderStatus: async (orderId, status) => {
-  //   return await axiosClient.put(`/orders/${orderId}/status`, { status });
-  // },
+  updateOrderStatus: async (orderId, status) => {
+    return await axiosClient.put(`/barista/orders/${orderId}/status`, { status });
+  },
 };
 
 export default baristaDBService;

@@ -41,4 +41,11 @@ router.get(
   controller.getTopProductsToday
 );
 
+router.put(
+  "/orders/:id/status",
+  authenticate,
+  authorize([ROLES_STRING.BARISTA, ROLES_STRING.MANAGER]),
+  controller.updateStatus
+);
+
 module.exports = router;
