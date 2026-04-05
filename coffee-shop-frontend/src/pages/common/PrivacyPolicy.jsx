@@ -12,6 +12,7 @@ import {
   Phone,
   MapPin,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 function PrivacyPolicy() {
@@ -21,14 +22,10 @@ function PrivacyPolicy() {
       <Header />
 
       <div className="flex-1 w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-10 mb-10">
-        <div className="text-center space-y-3 mt-4 mb-10">
-          <h1 className="text-2xl md:text-3xl font-semibold text-amber-900 dark:text-amber-500" style={{ fontFamily: 'serif' }}>
-            Chính sách bảo mật
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400 text-sm">
-            Cam kết minh bạch trong việc thu thập, sử dụng và bảo vệ thông tin cá
-            nhân.
-          </p>
+        <div className="flex items-center gap-2 text-base md:text-lg text-gray-500 dark:text-gray-400 font-medium mb-8 mt-[-10px]">
+          <Link to="/" className="hover:text-amber-600 transition">Trang chủ</Link>
+          <span className="text-gray-400">/</span>
+          <span className="text-amber-600 font-bold">Chính sách bảo mật</span>
         </div>
 
         {/* ===== CONTENT ===== */}
@@ -77,14 +74,14 @@ function PolicyCard({ icon, title, children }) {
   return (
     <Card className="rounded-3xl shadow-xl border border-gray-200 dark:border-gray-800 hover:border-amber-300 dark:hover:border-amber-500 transition-all duration-300 p-8 bg-white dark:bg-gray-950">
       <div className="flex items-start gap-4 mb-2">
-        <div className="mt-0.5 p-2 bg-amber-100 dark:bg-amber-900/40 rounded-xl text-amber-600 dark:text-amber-500 shrink-0 [&>svg]:w-5 [&>svg]:h-5">
+        <div className="mt-0.5 p-2 bg-amber-100 dark:bg-amber-900/40 rounded-xl text-amber-600 dark:text-amber-500 shrink-0 [&>svg]:w-6 [&>svg]:h-6">
           {icon}
         </div>
         <div>
-          <h3 className="font-semibold text-base mb-1.5 text-gray-900 dark:text-gray-100">
+          <h3 className="font-semibold text-base md:text-lg mb-1.5 text-gray-900 dark:text-gray-100">
             {title}
           </h3>
-          <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+          <p className="text-sm md:text-base text-gray-600 dark:text-gray-400 leading-relaxed">
             {children}
           </p>
         </div>
