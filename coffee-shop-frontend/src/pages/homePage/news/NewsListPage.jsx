@@ -13,8 +13,10 @@ import Header from "../../../components/layout/Header";
 import Footer from "../../../components/layout/Footer";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 export default function NewsListPage() {
+  useDocumentTitle("Tin tức");
   const [page, setPage] = useState(1);
   const [data, setData] = useState(null);
   const [featuredNews, setFeaturedNews] = useState([]);

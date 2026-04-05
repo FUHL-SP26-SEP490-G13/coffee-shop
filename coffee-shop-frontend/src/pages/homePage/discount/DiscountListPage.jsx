@@ -7,8 +7,10 @@ import discountService from "@/services/discountService";
 import PaginationControl from "@/components/common/PaginationControl";
 import { Button } from "@/components/ui/button";
 import { STORAGE_KEYS } from "@/constants";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 export default function DiscountListPage() {
+  useDocumentTitle("Khuyến mãi");
   const [discounts, setDiscounts] = useState([]);
   const [copiedCode, setCopiedCode] = useState("");
   const [loading, setLoading] = useState(true);

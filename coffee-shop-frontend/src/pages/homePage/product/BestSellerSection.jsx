@@ -358,26 +358,47 @@ export default function BestSellerSection({
                           <div className="min-w-0">
                             {(() => {
                               const isFlashSale = activeSale && activeSale.product_ids?.includes(product.id);
-                              const originalPriceText = getDisplayPrice(product);
+                              
+                              const sizes = Array.isArray(product?.sizes) ? product.sizes : [];
+                              const validPrices = sizes
+                                .map((size) => Number(size?.price))
+                                .filter((price) => Number.isFinite(price) && price > 0);
+                          
+                              if (validPrices.length === 0) {
+                                return <p className="break-words text-[15px] font-bold leading-tight text-[#8B5A2B] dark:text-amber-500">Liên hệ</p>;
+                              }
+                          
+                              const minPrice = Math.min(...validPrices);
+                              const maxPrice = Math.max(...validPrices);
+                              const hasMultiplePrices = minPrice !== maxPrice;
+                          
+                              let originalText = `${minPrice.toLocaleString("vi-VN")}đ`;
+                              if (hasMultiplePrices) {
+                                originalText = `${minPrice.toLocaleString("vi-VN")}đ - ${maxPrice.toLocaleString("vi-VN")}đ`;
+                              }
 
                               if (isFlashSale) {
-                                const originalPriceNum = Number(originalPriceText.replace(/\D/g, ''));
-                                if (originalPriceNum > 0) {
-                                  const salePriceNum = Math.round(originalPriceNum * (1 - (activeSale.discount_percent || 0) / 100));
-                                  return (
-                                    <div className="flex flex-col">
-                                      <span className="text-[11px] line-through text-gray-400">{originalPriceText}</span>
-                                      <p className="break-words text-[17px] font-bold leading-tight text-[#8B5A2B] dark:text-amber-500">
-                                        {salePriceNum.toLocaleString("vi-VN")}đ
-                                      </p>
-                                    </div>
-                                  );
+                                const saleMin = Math.round(minPrice * (1 - (activeSale.discount_percent || 0) / 100));
+                                let saleText = `${saleMin.toLocaleString("vi-VN")}đ`;
+                                
+                                if (hasMultiplePrices) {
+                                  const saleMax = Math.round(maxPrice * (1 - (activeSale.discount_percent || 0) / 100));
+                                  saleText = `${saleMin.toLocaleString("vi-VN")}đ - ${saleMax.toLocaleString("vi-VN")}đ`;
                                 }
+
+                                return (
+                                  <div className="flex flex-col">
+                                    <span className="text-[11px] line-through text-gray-400">{originalText}</span>
+                                    <p className="break-words text-[15px] font-bold leading-tight text-[#8B5A2B] dark:text-amber-500">
+                                      {saleText}
+                                    </p>
+                                  </div>
+                                );
                               }
 
                               return (
-                                <p className="break-words text-[17px] font-bold leading-tight text-[#8B5A2B] dark:text-amber-500">
-                                  {originalPriceText}
+                                <p className="break-words text-[15px] font-bold leading-tight text-[#8B5A2B] dark:text-amber-500">
+                                  {originalText}
                                 </p>
                               );
                             })()}

@@ -12,8 +12,10 @@ import favoriteService from "@/services/favoriteService";
 import { STORAGE_KEYS } from "@/constants";
 import { toast } from "sonner";
 import { useStoreHours } from "@/hooks/useStoreHours";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 export default function CartPage() {
+  useDocumentTitle("Giỏ hàng");
   const navigate = useNavigate();
   const { isOpen: isStoreOpen, nextOpenMessage } = useStoreHours();
   const token =

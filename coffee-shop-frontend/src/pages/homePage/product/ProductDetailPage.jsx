@@ -115,6 +115,11 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
     images.length > 0 ? images : [{ image_url: defaultImage }];
 
   useEffect(() => {
+    const shopName = localStorage.getItem("cached_store_name") || "Coffee Shop";
+    document.title = product?.name ? `${product.name} | ${shopName}` : `Chi tiết sản phẩm | ${shopName}`;
+  }, [product?.name]);
+
+  useEffect(() => {
     if (sizes.length > 0 && !selectedSize) {
       setSelectedSize(sizes[0].size);
     }
@@ -1083,10 +1088,23 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
                 const itemSizes = Array.isArray(item.sizes) ? item.sizes : [];
                 const itemImage = itemImages[0]?.image_url || defaultImage;
 
+                const validPrices = itemSizes
+                  .map((s) => Number(s.price))
+                  .filter((p) => Number.isFinite(p) && p > 0);
+
                 const minPrice =
-                  itemSizes.length > 0
-                    ? Math.min(...itemSizes.map((s) => Number(s.price)))
-                    : null;
+                  validPrices.length > 0 ? Math.min(...validPrices) : null;
+                const maxPrice =
+                  validPrices.length > 0 ? Math.max(...validPrices) : null;
+                const hasMultiplePrices = minPrice !== null && maxPrice !== null && maxPrice > minPrice;
+
+                let priceText = "Liên hệ";
+                if (minPrice !== null) {
+                  priceText = `${minPrice.toLocaleString("vi-VN")}đ`;
+                  if (hasMultiplePrices) {
+                    priceText = `${minPrice.toLocaleString("vi-VN")}đ - ${maxPrice.toLocaleString("vi-VN")}đ`;
+                  }
+                }
 
                 return (
                   <div
@@ -1119,9 +1137,7 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
                       </div>
 
                       <p className="text-amber-600 font-bold text-lg mt-3">
-                        {minPrice !== null
-                          ? `${minPrice.toLocaleString("vi-VN")}đ`
-                          : "Liên hệ"}
+                        {priceText}
                       </p>
                     </div>
                   </div>

@@ -11,8 +11,10 @@ import { Input } from "@/components/ui/input";
 import { useStoreHours } from "@/hooks/useStoreHours";
 
 const PAGE_SIZE = 8;
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 export default function FavoritePage() {
+  useDocumentTitle("Sản phẩm yêu thích");
   const navigate = useNavigate();
   const { isOpen: isStoreOpen, nextOpenMessage } = useStoreHours();
 

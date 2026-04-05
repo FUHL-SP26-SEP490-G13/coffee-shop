@@ -259,10 +259,28 @@ export default function FlashSaleSection({ products, getThumbnail, getDefaultCar
                   return Array.isArray(ids) && ids.some(id => String(id) === String(p.id));
                 })
                 .map((product) => {
-                  const cartSize = getDefaultCartSize(product);
-                  const originalPrice = cartSize ? Number(cartSize.price) : 0;
-                  const salePrice = Math.round(originalPrice * (1 - activeSale.discount_percent / 100));
+                  const sizes = Array.isArray(product?.sizes) ? product.sizes : [];
+                  const validPrices = sizes
+                    .map((size) => Number(size?.price))
+                    .filter((price) => Number.isFinite(price) && price > 0);
 
+                  const minPrice = validPrices.length > 0 ? Math.min(...validPrices) : 0;
+                  const maxPrice = validPrices.length > 0 ? Math.max(...validPrices) : 0;
+                  const hasMultiplePrices = minPrice > 0 && maxPrice > minPrice;
+
+                  const originalPrice = minPrice;
+                  const salePriceMin = Math.round(minPrice * (1 - activeSale.discount_percent / 100));
+                  const salePriceMax = Math.round(maxPrice * (1 - activeSale.discount_percent / 100));
+
+                  const originalPriceText = hasMultiplePrices
+                    ? `${minPrice.toLocaleString("vi-VN")}đ - ${maxPrice.toLocaleString("vi-VN")}đ`
+                    : `${minPrice.toLocaleString("vi-VN")}đ`;
+
+                  const salePriceText = hasMultiplePrices
+                    ? `${salePriceMin.toLocaleString("vi-VN")}đ - ${salePriceMax.toLocaleString("vi-VN")}đ`
+                    : `${salePriceMin.toLocaleString("vi-VN")}đ`;
+
+                  const salePrice = salePriceMin; // For add to cart fallback if needed, but best if it relies on size dropdown
                   return (
                     <SwiperSlide key={product.id}>
                       <div
@@ -334,9 +352,9 @@ export default function FlashSaleSection({ products, getThumbnail, getDefaultCar
                               <div className="min-w-0">
                                 {originalPrice > 0 ? (
                                   <div className="flex flex-col">
-                                    <span className="text-[11px] line-through text-gray-400">{originalPrice.toLocaleString("vi-VN")}đ</span>
-                                    <p className="break-words text-[17px] font-bold leading-tight text-[#8B5A2B] dark:text-amber-500">
-                                      {salePrice.toLocaleString("vi-VN")}đ
+                                    <span className="text-[11px] line-through text-gray-400">{originalPriceText}</span>
+                                    <p className="break-words text-[15px] font-bold leading-tight text-[#8B5A2B] dark:text-amber-500">
+                                      {salePriceText}
                                     </p>
                                   </div>
                                 ) : (
@@ -355,7 +373,7 @@ export default function FlashSaleSection({ products, getThumbnail, getDefaultCar
                                     <ShoppingCart className="w-[15px] h-[15px] xl:ml-[-1px]" />
                                   </button>
                                 ) : (
-                                  <div 
+                                  <div
                                     onClick={(e) => e.stopPropagation()}
                                     className="flex items-center text-[11px] font-bold text-rose-600 bg-rose-50 px-2 py-1.5 rounded-lg border border-rose-100 whitespace-nowrap shadow-sm cursor-not-allowed"
                                   >

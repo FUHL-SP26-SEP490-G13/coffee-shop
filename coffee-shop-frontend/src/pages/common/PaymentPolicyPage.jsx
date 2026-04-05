@@ -2,8 +2,10 @@ import { CreditCard, ShieldCheck, Clock, Phone } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 export default function PaymentPolicyPage() {
+  useDocumentTitle("Chính sách thanh toán");
   return (
     <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900">
       <Header />

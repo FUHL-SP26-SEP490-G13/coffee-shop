@@ -14,6 +14,7 @@ import Header from "../../../components/layout/Header";
 import Footer from "../../../components/layout/Footer";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 export default function NewsDetailPage() {
   const { slug } = useParams();
@@ -25,6 +26,7 @@ export default function NewsDetailPage() {
 
   const { data, loading } = useFetch(fetchDetail);
   const news = data?.data;
+  useDocumentTitle(news?.title || "Tin tức");
 
   const [relatedNews, setRelatedNews] = useState([]);
 

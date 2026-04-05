@@ -3,8 +3,10 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Loader2, MapPin, Phone, Clock, Mail } from "lucide-react";
 import receiptSettingService from "@/services/receiptSettingService";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 export default function StoreInfoPage() {
+  useDocumentTitle("Hệ thống cửa hàng");
   const [storeInfo, setStoreInfo] = useState({
     name: "Coffee Shop",
     address: "Đang cập nhật địa chỉ...",

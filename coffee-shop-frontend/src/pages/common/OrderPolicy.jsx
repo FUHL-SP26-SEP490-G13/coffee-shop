@@ -14,8 +14,10 @@ import {
   Mail,
   CheckCircle2,
 } from "lucide-react";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 function OrderPolicy() {
+  useDocumentTitle("Chính sách đặt hàng");
   return (
     <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900">
       <Header />

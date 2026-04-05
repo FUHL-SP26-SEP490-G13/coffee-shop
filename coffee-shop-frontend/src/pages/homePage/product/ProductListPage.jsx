@@ -25,7 +25,8 @@ export default function ProductListPage({ categoryIdOverride, categoryName, cate
   const { isOpen: isStoreOpen, nextOpenMessage } = useStoreHours();
 
   useEffect(() => {
-    document.title = categoryName ? `${categoryName} | Cửa Hàng Bán Lẻ` : "Thực Đơn Sản Phẩm";
+    const shopName = localStorage.getItem("cached_store_name") || "Coffee Shop";
+    document.title = categoryName ? `${categoryName} | ${shopName}` : `Thực Đơn | ${shopName}`;
   }, [categoryName]);
 
   const handleFastAdd = (e, product) => {
@@ -636,22 +637,30 @@ export default function ProductListPage({ categoryIdOverride, categoryName, cate
                                     const isFlashSale = activeSale && activeSale.product_ids?.includes(item.id);
 
                                     if (minPrice !== null) {
-                                      const originalText = `${minPrice.toLocaleString("vi-VN")}đ`;
+                                      let originalText = `${minPrice.toLocaleString("vi-VN")}đ`;
+                                      if (hasMultiplePrices) {
+                                        originalText = `${minPrice.toLocaleString("vi-VN")}đ - ${maxPrice.toLocaleString("vi-VN")}đ`;
+                                      }
 
                                       if (isFlashSale) {
                                         const saleMin = Math.round(minPrice * (1 - (activeSale.discount_percent || 0) / 100));
-                                        const saleText = `${saleMin.toLocaleString("vi-VN")}đ`;
+                                        let saleText = `${saleMin.toLocaleString("vi-VN")}đ`;
+                                        
+                                        if (hasMultiplePrices) {
+                                          const saleMax = Math.round(maxPrice * (1 - (activeSale.discount_percent || 0) / 100));
+                                          saleText = `${saleMin.toLocaleString("vi-VN")}đ - ${saleMax.toLocaleString("vi-VN")}đ`;
+                                        }
 
                                         return (
                                           <div className="flex flex-col">
                                             <span className="text-[11px] line-through text-gray-400">{originalText}</span>
-                                            <p className="break-words text-[17px] font-bold leading-tight text-[#8B5A2B] dark:text-amber-500">{saleText}</p>
+                                            <p className="break-words text-[15px] font-bold leading-tight text-[#8B5A2B] dark:text-amber-500">{saleText}</p>
                                           </div>
                                         );
                                       }
 
                                       return (
-                                        <p className="break-words text-[17px] font-bold leading-tight text-[#8B5A2B] dark:text-amber-500">{originalText}</p>
+                                        <p className="break-words text-[15px] font-bold leading-tight text-[#8B5A2B] dark:text-amber-500">{originalText}</p>
                                       );
                                     }
                                     return <p className="break-words text-[17px] font-bold leading-tight text-[#8B5A2B] dark:text-amber-500">Liên hệ</p>;

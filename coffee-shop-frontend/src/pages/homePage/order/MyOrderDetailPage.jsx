@@ -7,14 +7,16 @@ import { Button } from "@/components/ui/button";
 import orderService from "@/services/orderOnlineService";
 import { handleBuyAgain } from "@/utils/handleBuyAgain";
 import { useStoreHours } from "@/hooks/useStoreHours";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 const defaultProductImage =
   "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085";
 const DEFAULT_DELIVERY_FEE = 20000;
 
 export default function MyOrderDetailPage() {
-  const navigate = useNavigate();
   const { id } = useParams();
+  useDocumentTitle(`Chi tiết đơn hàng #${id || ''}`);
+  const navigate = useNavigate();
 
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);

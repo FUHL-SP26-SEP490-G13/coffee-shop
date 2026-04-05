@@ -12,8 +12,10 @@ import {
   Phone,
   MapPin,
 } from "lucide-react";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 function PrivacyPolicy() {
+  useDocumentTitle("Chính sách bảo mật");
   return (
     <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900">
       <Header />

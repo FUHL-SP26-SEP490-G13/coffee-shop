@@ -44,7 +44,10 @@ const DELIVERY_SHIPPING_FEE = 20000;
 const LOYALTY_MONEY_PER_POINT = 100;
 const LOYALTY_MAX_REDEEM_RATIO = 0.5;
 
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+
 export default function CheckoutPage() {
+  useDocumentTitle("Thanh toán");
   const navigate = useNavigate();
   const cart = useMemo(() => cartService.getCart(), []);
   const token =

@@ -16,6 +16,7 @@ import socket from "@/lib/socket";
 import orderService from "@/services/orderOnlineService";
 import { handleBuyAgain } from "@/utils/handleBuyAgain";
 import { useStoreHours } from "@/hooks/useStoreHours";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 const PAGE_SIZE = 5;
 const STATUS_TABS = [
@@ -26,6 +27,7 @@ const STATUS_TABS = [
 ];
 
 export default function MyOrderOnlinePage() {
+  useDocumentTitle('Đơn hàng của tôi');
   const navigate = useNavigate();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
