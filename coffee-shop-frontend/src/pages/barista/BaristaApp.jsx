@@ -11,6 +11,8 @@ import {
   X,
   LayoutDashboard,
   Bell,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -27,16 +29,35 @@ import authenticationService from "../../services/authenticationService";
 import notificationService from "@/services/notificationService";
 import socket from "@/lib/socket";
 import { getNotificationLink } from "@/utils/getNotificationLink";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import Logo from "/logo/Logo.png";
+
+const BARISTA_SIDEBAR_PREF_KEY = "barista_sidebar_collapsed_by_page";
+const BARISTA_SIDEBAR_DEFAULTS = {};
 
 export function BaristaApp() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isSidebarHovered, setIsSidebarHovered] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [sidebarCollapsedByPage, setSidebarCollapsedByPage] = useState(() => {
+    try {
+      const raw = localStorage.getItem(BARISTA_SIDEBAR_PREF_KEY);
+      const parsed = raw ? JSON.parse(raw) : {};
+      return parsed && typeof parsed === "object" ? parsed : {};
+    } catch {
+      return {};
+    }
+  });
 
   // Force disable dark mode for barista
   useEffect(() => {
-    document.documentElement.classList.remove('dark');
+    document.documentElement.classList.remove("dark");
   }, []);
 
   const navigate = useNavigate();
@@ -63,45 +84,71 @@ export function BaristaApp() {
   };
 
   const currentPage = getCurrentPage();
+  const defaultCollapsedForPage = BARISTA_SIDEBAR_DEFAULTS[currentPage] ?? false;
+  const isSidebarCollapsed =
+    sidebarCollapsedByPage[currentPage] ?? defaultCollapsedForPage;
+  const isSidebarExpanded = !isSidebarCollapsed || isSidebarHovered;
+  const isSidebarCompact = !isSidebarExpanded;
 
-  const menuItems = [
+  const menuGroups = [
     {
-      id: "dashboard",
-      icon: LayoutDashboard,
-      label: "Bảng điều khiển",
-      path: "/barista",
+      title: "Pha chế",
+      items: [
+        {
+          id: "dashboard",
+          icon: LayoutDashboard,
+          label: "Bảng điều khiển",
+          path: "/barista",
+        },
+        {
+          id: "orders",
+          icon: PackageOpen,
+          label: "Đơn hàng",
+          path: "/barista/orders",
+        },
+      ],
     },
     {
-      id: "orders",
-      icon: PackageOpen,
-      label: "Đơn hàng",
-      path: "/barista/orders",
-    },
-    {
-      id: "attendance",
-      icon: Clock,
-      label: "Chấm công",
-      path: "/barista/attendance",
-    },
-    {
-      id: "schedule",
-      icon: Calendar,
-      label: "Lịch làm việc",
-      path: "/barista/schedule",
-    },
-    {
-      id: "requests",
-      icon: FileText,
-      label: "Yêu cầu",
-      path: "/barista/requests",
-    },
-    {
-      id: "profile",
-      icon: User,
-      label: "Hồ sơ cá nhân",
-      path: "/barista/profile",
+      title: "Cá nhân",
+      items: [
+        {
+          id: "attendance",
+          icon: Clock,
+          label: "Chấm công",
+          path: "/barista/attendance",
+        },
+        {
+          id: "schedule",
+          icon: Calendar,
+          label: "Lịch làm việc",
+          path: "/barista/schedule",
+        },
+        {
+          id: "requests",
+          icon: FileText,
+          label: "Yêu cầu",
+          path: "/barista/requests",
+        },
+        {
+          id: "profile",
+          icon: User,
+          label: "Hồ sơ cá nhân",
+          path: "/barista/profile",
+        },
+      ],
     },
   ];
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        BARISTA_SIDEBAR_PREF_KEY,
+        JSON.stringify(sidebarCollapsedByPage)
+      );
+    } catch {
+      // Ignore localStorage errors
+    }
+  }, [sidebarCollapsedByPage]);
 
   useEffect(() => {
     const initNotifications = async () => {
@@ -113,11 +160,7 @@ export function BaristaApp() {
           if (!socket.connected) {
             socket.connect();
           }
-
           socket.emit("join-user-room", user.id);
-          console.log("Barista joined room:", `user-${user.id}`);
-        } else {
-          console.log("Không tìm thấy user.id");
         }
 
         const notificationRes = await notificationService.getMine();
@@ -132,23 +175,17 @@ export function BaristaApp() {
     initNotifications();
 
     const handleNewNotification = (data) => {
-      console.log("received barista notification:", data);
-
       setNotifications((prev) => {
         const list = Array.isArray(prev) ? prev : [];
         const existed = list.some(
           (item) => item.recipient_id === data.recipient_id
         );
-
         if (existed) return list;
-
         return [{ ...data, is_read: 0 }, ...list];
       });
     };
 
-    // Nếu backend của bạn emit event khác thì đổi tên ở đây
     socket.on("barista:notification", handleNewNotification);
-
     return () => {
       socket.off("barista:notification", handleNewNotification);
     };
@@ -163,7 +200,6 @@ export function BaristaApp() {
         setShowNotifications(false);
       }
     };
-
     document.addEventListener("mousedown", handleClickOutside);
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
@@ -175,15 +211,12 @@ export function BaristaApp() {
       if (Number(item.is_read) === 0 && item.recipient_id) {
         await notificationService.markAsRead(item.recipient_id);
       }
-
       setNotifications((prev) =>
         prev.map((n) =>
           n.recipient_id === item.recipient_id ? { ...n, is_read: 1 } : n
         )
       );
-
       setShowNotifications(false);
-
       const targetLink = getNotificationLink(item);
       navigate(targetLink);
     } catch (error) {
@@ -193,11 +226,9 @@ export function BaristaApp() {
 
   const handleToggleRead = async (item, e) => {
     e.stopPropagation();
-
     try {
       if (Number(item.is_read) === 0) {
         await notificationService.markAsRead(item.recipient_id);
-
         setNotifications((prev) =>
           prev.map((n) =>
             n.recipient_id === item.recipient_id
@@ -207,7 +238,6 @@ export function BaristaApp() {
         );
       } else {
         await notificationService.markAsUnread(item.recipient_id);
-
         setNotifications((prev) =>
           prev.map((n) =>
             n.recipient_id === item.recipient_id
@@ -226,7 +256,6 @@ export function BaristaApp() {
       const hasUnread = notifications.some(
         (item) => Number(item.is_read) === 0
       );
-
       if (hasUnread) {
         await notificationService.markAllAsRead();
         setNotifications((prev) =>
@@ -251,21 +280,25 @@ export function BaristaApp() {
     }
   };
 
+  const toggleSidebar = () => {
+    setSidebarCollapsedByPage((prev) => {
+      const currentValue = prev[currentPage] ?? defaultCollapsedForPage;
+      return {
+        ...prev,
+        [currentPage]: !currentValue,
+      };
+    });
+  };
+
   return (
     <div className="flex min-h-screen bg-background">
-      {/* Mobile Menu Button */}
       <button
         onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
         className="md:hidden fixed top-4 left-4 z-50 p-2 bg-card border border-border rounded-lg shadow-lg"
       >
-        {mobileMenuOpen ? (
-          <X className="w-5 h-5" />
-        ) : (
-          <Menu className="w-5 h-5" />
-        )}
+        {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
       </button>
 
-      {/* Overlay */}
       {mobileMenuOpen && (
         <div
           className="md:hidden fixed inset-0 bg-black/50 z-30"
@@ -273,81 +306,127 @@ export function BaristaApp() {
         />
       )}
 
-      {/* Sidebar Navigation */}
       <div
+        onMouseEnter={() => setIsSidebarHovered(true)}
+        onMouseLeave={() => setIsSidebarHovered(false)}
         className={`
           fixed md:static inset-y-0 left-0 z-40
-          w-64 bg-card border-r border-border flex flex-col
+          w-64 ${isSidebarCompact ? "md:w-20" : "md:w-64"} bg-card border-r border-border flex flex-col
           transform transition-transform duration-300 ease-in-out
-          ${
-            mobileMenuOpen
-              ? "translate-x-0"
-              : "-translate-x-full md:translate-x-0"
-          }
+          ${mobileMenuOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
         `}
       >
         <div
-          className="p-6 border-b border-border"
+          className={`p-6 border-b border-border ${isSidebarCompact ? "md:px-3" : ""}`}
           style={{
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
+            position: "relative",
           }}
         >
-          <img src={Logo} alt="Coffee Shop Logo" className="h-20 w-auto" />
-          <p className="text-sm text-muted-foreground mt-1">Cổng Pha chế</p>
+          <button
+            type="button"
+            onClick={toggleSidebar}
+            className="hidden md:inline-flex absolute top-3 right-3 items-center justify-center rounded-md border border-border p-1.5 text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+            aria-label={isSidebarCollapsed ? "Mở rộng sidebar" : "Thu nhỏ sidebar"}
+            title={isSidebarCollapsed ? "Mở rộng sidebar" : "Thu nhỏ sidebar"}
+          >
+            {isSidebarCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+          </button>
+          <img
+            src={Logo}
+            alt="Coffee Shop Logo"
+            className={`w-auto ${isSidebarCompact ? "h-12" : "h-20"}`}
+          />
+          <p className={`text-sm text-muted-foreground mt-1 ${isSidebarCompact ? "md:hidden" : ""}`}>
+            Cổng Pha chế
+          </p>
         </div>
 
-        <nav className="flex-1 p-4 overflow-auto">
-          {menuItems.map((item) => {
-            const Icon = item.icon;
-            return (
-              <button
-                key={item.id}
-                onClick={() => {
-                  navigate(item.path);
-                  setMobileMenuOpen(false);
-                }}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all mb-2 ${
-                  currentPage === item.id
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                }`}
-              >
-                <Icon className="w-5 h-5 flex-shrink-0" />
-                <span className="text-sm">{item.label}</span>
-              </button>
-            );
-          })}
+        <TooltipProvider>
+          <nav className="flex-1 p-4 overflow-auto">
+            {menuGroups.map((group) => (
+              <div key={group.title} className="mb-6">
+                <h3
+                  className={`px-4 text-[11px] font-bold text-muted-foreground uppercase tracking-wider mb-3 ${
+                    isSidebarCompact ? "md:hidden" : ""
+                  }`}
+                >
+                  {group.title}
+                </h3>
+                {group.items.map((item) => {
+                  const Icon = item.icon;
+                  const menuButton = (
+                    <button
+                      key={item.id}
+                      onClick={() => {
+                        navigate(item.path);
+                        setMobileMenuOpen(false);
+                      }}
+                      className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all mb-1 ${
+                        isSidebarCompact ? "md:justify-center md:px-2" : ""
+                      } ${
+                        currentPage === item.id
+                          ? "bg-primary text-primary-foreground shadow-sm"
+                          : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                      }`}
+                      title={isSidebarCompact ? item.label : undefined}
+                    >
+                      <Icon className="w-[18px] h-[18px] flex-shrink-0" />
+                      <span className={`text-sm font-medium ${isSidebarCompact ? "md:hidden" : ""}`}>
+                        {item.label}
+                      </span>
+                    </button>
+                  );
 
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all mt-4 text-red-600 hover:bg-red-100">
-                <LogOut className="w-5 h-5 flex-shrink-0" />
-                <span className="text-sm">Đăng xuất</span>
-              </button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Xác nhận đăng xuất</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Bạn có chắc chắn muốn đăng xuất khỏi hệ thống không?
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Hủy</AlertDialogCancel>
-                <AlertDialogAction onClick={handleLogout}>
-                  Đăng xuất
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </nav>
+                  if (!isSidebarCompact) return menuButton;
+                  return (
+                    <Tooltip key={item.id}>
+                      <TooltipTrigger asChild>{menuButton}</TooltipTrigger>
+                      <TooltipContent side="right" sideOffset={10}>
+                        {item.label}
+                      </TooltipContent>
+                    </Tooltip>
+                  );
+                })}
+              </div>
+            ))}
+
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <button
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all mt-4 text-red-600 hover:bg-red-50 ${
+                    isSidebarCompact ? "md:justify-center md:px-2" : ""
+                  }`}
+                  title={isSidebarCompact ? "Đăng xuất" : undefined}
+                >
+                  <LogOut className="w-5 h-5 flex-shrink-0" />
+                  <span className={`text-sm ${isSidebarCompact ? "md:hidden" : ""}`}>
+                    Đăng xuất
+                  </span>
+                </button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Xác nhận đăng xuất</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Bạn có chắc chắn muốn đăng xuất khỏi hệ thống không?
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Hủy</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleLogout}>
+                    Đăng xuất
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </nav>
+        </TooltipProvider>
       </div>
 
-      {/* Content */}
       <div className="flex-1 w-full md:w-auto overflow-auto">
-        {/* Topbar notification */}
         <div
           ref={notificationRef}
           className="flex justify-end px-4 md:px-8 pt-4 md:pt-4 pb-0 relative"
@@ -404,12 +483,10 @@ export function BaristaApp() {
                             {new Date(item.created_at).toLocaleString("vi-VN")}
                           </p>
                         </div>
-
                         <div className="flex flex-col items-end gap-2 shrink-0">
                           {Number(item.is_read) === 0 && (
                             <span className="w-2 h-2 rounded-full bg-red-500 mt-1" />
                           )}
-
                           <button
                             onClick={(e) => handleToggleRead(item, e)}
                             className="text-xs text-primary hover:underline"
