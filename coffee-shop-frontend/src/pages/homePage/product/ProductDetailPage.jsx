@@ -53,7 +53,6 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
   const [showToppings, setShowToppings] = useState(false);
 
   const [isFavorite, setIsFavorite] = useState(false);
-  const [favoriteLoading, setFavoriteLoading] = useState(false);
 
   const [reviews, setReviews] = useState([]);
   const [reviewLoading, setReviewLoading] = useState(false);
@@ -415,24 +414,20 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
       return;
     }
 
+    const previousState = isFavorite;
+    setIsFavorite(!isFavorite);
+
     try {
-      setFavoriteLoading(true);
+      const res = await favoriteService.toggleFavorite(product.id, previousState);
 
-      const res = await favoriteService.toggleFavorite(product.id, isFavorite);
+      if (res?.data?.isFavorite !== undefined) {
+        setIsFavorite(Boolean(res.data.isFavorite));
+      }
 
-      setIsFavorite(Boolean(res?.data?.isFavorite));
-
-      alert(
-        res?.message ||
-        (!isFavorite
-          ? "Đã thêm sản phẩm vào yêu thích"
-          : "Đã bỏ sản phẩm khỏi yêu thích")
-      );
+      window.dispatchEvent(new Event("favoriteUpdated")); //phát tín hiệu iu thích
     } catch (error) {
       console.error("Lỗi cập nhật yêu thích:", error);
-      alert(error?.message || "Không thể cập nhật yêu thích");
-    } finally {
-      setFavoriteLoading(false);
+      setIsFavorite(previousState);
     }
   };
 
@@ -528,24 +523,27 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
     <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900 relative">
       <Header />
 
-      <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 pt-6">
-        <div className="text-sm text-gray-500 dark:text-gray-400 mb-2 flex items-center space-x-2">
+      <div className="w-full mx-auto w-full px-4 sm:px-6 lg:px-8 pt-6">
+        <div className="text-base md:text-lg text-gray-500 dark:text-gray-400 mb-2 flex items-center flex-wrap gap-2 font-medium">
+          {/* Nút 1: Lấy cố định chữ "Trang chủ" */}
           <span className="cursor-pointer hover:text-amber-600 transition-colors" onClick={() => navigate("/")}>Trang chủ</span>
-          {productData?.category_name && (
+          {/* Nút 2: Nếu có thông tin danh mục, sẽ in ra "/" và "Tên Danh Mục" (VD: Nước ngọt) */}
+          {(productData || product)?.category_name && (
             <>
               <span className="text-gray-400">/</span>
               <span
                 className="cursor-pointer hover:text-amber-600 transition-colors"
-                onClick={() => navigate(`/${productData.category_slug}`)}
+                onClick={() => navigate(`/${(productData || product).category_slug}`)}
               >
-                {productData.category_name}
+                {(productData || product).category_name}
               </span>
             </>
           )}
-          {productData?.name && (
+          {/* Nút 3: Nếu có thông tin tên sản phẩm, sẽ in ra "/" và "Tên Sản Phẩm" in đậm (VD: Bò húc) */}
+          {(productData || product)?.name && (
             <>
               <span className="text-gray-400">/</span>
-              <span className="text-amber-600 font-medium">{productData.name}</span>
+              <span className="text-amber-600 font-bold">{(productData || product).name}</span>
             </>
           )}
         </div>
@@ -556,7 +554,7 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
       <section className="w-full px-4 sm:px-6 lg:px-8 py-14">
 
 
-        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
+        <div className="w-full mx-auto grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
           <div>
             <Swiper
               modules={[Pagination, Navigation, Autoplay]}
@@ -815,18 +813,13 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
                 <button
                   type="button"
                   onClick={handleToggleFavorite}
-                  disabled={favoriteLoading}
                   className={`w-12 h-12 rounded-full border flex items-center justify-center transition ${isFavorite
-                    ? "bg-red-50 border-red-500 text-red-500"
+                    ? "bg-red-50 border-red-500 text-red-500 hover:bg-white hover:text-gray-500 hover:border-gray-300"
                     : "bg-white dark:bg-gray-900 border-gray-300 text-gray-500 dark:text-gray-400 hover:border-red-400 hover:text-red-500 hover:bg-red-50"
                     }`}
                   title={isFavorite ? "Bỏ yêu thích" : "Thêm vào yêu thích"}
                 >
-                  {favoriteLoading ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                  ) : (
-                    <Heart className={`w-5 h-5 ${isFavorite ? "fill-current" : ""}`} />
-                  )}
+                  <Heart className={`w-5 h-5 ${isFavorite ? "fill-current" : ""}`} />
                 </button>
               </div>
             </div>
@@ -1058,7 +1051,7 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
       </section>
 
       <section className="w-full px-4 sm:px-6 lg:px-8 pb-14">
-        <div className="max-w-7xl mx-auto">
+        <div className="w-full mx-auto">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
               Sản phẩm liên quan

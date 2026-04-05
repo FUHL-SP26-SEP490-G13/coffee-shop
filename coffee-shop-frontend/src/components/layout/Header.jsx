@@ -448,11 +448,13 @@ function Header() {
   }, [user?.id]);
 
   useEffect(() => {
-    loadFavorites();
+    loadFavorites(); // Load lần đầu khi vừa vào web
 
+    // Dựng ăng-ten để hóng sự kiện
     window.addEventListener("favoriteUpdated", loadFavorites);
 
     return () => {
+      // Nhổ ăng-ten ra khi tắt web
       window.removeEventListener("favoriteUpdated", loadFavorites);
     };
   }, [loadFavorites]);
@@ -815,9 +817,9 @@ function Header() {
   return (
     <>
       <header className="flex flex-col border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:border-gray-800 sticky top-0 z-50 shadow-sm transition-all duration-300">
-        <div className="max-w-[1440px] mx-auto w-full px-4 sm:px-6 lg:px-8 py-3 sm:py-4 flex justify-between items-center gap-2 sm:gap-3 lg:gap-4">
+        <div className="w-full px-4 lg:px-6 xl:px-8 py-3 sm:py-4 flex justify-between items-center gap-2 sm:gap-3 lg:gap-0">
           <div
-            className="flex-shrink-0 cursor-pointer flex items-center gap-2 sm:gap-3"
+            className="flex-shrink-0 cursor-pointer flex items-center gap-2 sm:gap-3 lg:w-[250px]"
             onClick={() => navigate("/")}
           >
             <img
@@ -831,7 +833,7 @@ function Header() {
             </h1>
           </div>
 
-          <div className="hidden md:flex flex-1 w-full max-w-sm lg:max-w-2xl mr-auto ml-4 lg:ml-8 px-2 lg:px-6">
+          <div className="hidden md:flex flex-1 w-full max-w-sm lg:max-w-2xl mr-auto ml-4 lg:ml-0 lg:pl-6 px-2 lg:px-0">
             <div className="w-full relative" ref={searchRef}>
               <div className="relative">
                 <Input
@@ -971,8 +973,8 @@ function Header() {
               <button
                 onClick={() => setExploreOpen(!exploreOpen)}
                 className={`flex items-center gap-1.5 font-bold px-3 py-2 rounded-xl transition-all border ${exploreOpen
-                    ? "bg-amber-50 dark:bg-amber-900/20 text-amber-600 border-amber-200 dark:border-amber-800"
-                    : "text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 border-transparent hover:border-gray-200 dark:hover:border-gray-700"
+                  ? "bg-amber-50 dark:bg-amber-900/20 text-amber-600 border-amber-200 dark:border-amber-800"
+                  : "text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 border-transparent hover:border-gray-200 dark:hover:border-gray-700"
                   }`}
               >
                 <span className="text-[13px] uppercase tracking-wide">Khám phá</span>
@@ -1249,8 +1251,8 @@ function Header() {
                               }
                               onClick={() => handleReadNotification(item)}
                               className={`w-full text-left px-4 py-3 border-b hover:bg-gray-50 dark:hover:bg-gray-800 dark:bg-gray-950 ${Number(item.is_read) === 0
-                                  ? "bg-orange-50"
-                                  : "bg-white dark:bg-gray-900 dark:border-gray-800"
+                                ? "bg-orange-50"
+                                : "bg-white dark:bg-gray-900 dark:border-gray-800"
                                 }`}
                             >
                               <div className="flex items-start justify-between gap-3">
@@ -1630,8 +1632,8 @@ function Header() {
                           setMobileMenuOpen(false);
                         }}
                         className={`w-full text-left px-3 py-3 border-b rounded-md ${Number(item.is_read) === 0
-                            ? "bg-orange-50"
-                            : "bg-white dark:bg-gray-900 dark:border-gray-800"
+                          ? "bg-orange-50"
+                          : "bg-white dark:bg-gray-900 dark:border-gray-800"
                           }`}
                       >
                         <p className="font-medium text-xs">{item.title}</p>

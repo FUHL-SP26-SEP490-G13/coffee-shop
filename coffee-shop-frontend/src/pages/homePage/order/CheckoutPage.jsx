@@ -510,7 +510,7 @@ export default function CheckoutPage() {
       <Header />
 
       <section className="flex-1 w-full px-4 sm:px-6 lg:px-8 py-10">
-        <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="w-full mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 border rounded-2xl p-6 bg-white dark:bg-gray-900">
             <h1 className="text-xl md:text-xl font-semibold text-amber-900 dark:text-amber-500 mb-4" style={{ fontFamily: 'serif' }}>
               Thanh toán
@@ -854,37 +854,50 @@ export default function CheckoutPage() {
             </div>
           </div>
 
-          <div className="border rounded-2xl p-5 bg-gray-50 dark:bg-gray-950 h-fit">
+          <div className="border rounded-2xl p-5 bg-gray-50 dark:bg-gray-950 h-fit lg:sticky lg:top-24">
             <h2 className="text-xl md:text-xl font-semibold text-amber-900 dark:text-amber-500 mb-4" style={{ fontFamily: 'serif' }}>Đơn hàng</h2>
 
-            <div className="space-y-3 mb-5">
+            <div className="space-y-3 mb-5 max-h-[40vh] overflow-y-auto pr-2">
               {cart.map((item) => (
                 <div
                   key={item.cartKey}
                   className="flex items-start justify-between gap-3"
                 >
-                  <div>
-                    <p className="font-medium text-sm">{item.name}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {item.size} x {item.quantity}
-                    </p>
+                  <div className="flex items-start gap-3 flex-1 text-left">
+                    <div className="w-12 h-12 shrink-0 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-100 dark:border-gray-800 flex items-center justify-center p-1.5 overflow-hidden mix-blend-multiply dark:mix-blend-normal">
+                      <img
+                        src={item.image || "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085"}
+                        alt={item.name}
+                        className="w-full h-full object-contain"
+                        onError={(e) => {
+                          e.currentTarget.src =
+                            "https://images.unsplash.com/photo-1509042239860-f550ce710b93";
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <p className="font-medium text-sm leading-snug">{item.name}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                        {item.size} x {item.quantity}
+                      </p>
 
-                    {Array.isArray(item.toppings) &&
-                      item.toppings.length > 0 && (
-                        <div className="mt-1">
-                          {item.toppings.map((topping) => (
-                            <p
-                              key={topping.topping_id}
-                              className="text-xs text-gray-500 dark:text-gray-400 mt-0.5"
-                            >
-                              + {topping.name}
-                            </p>
-                          ))}
-                        </div>
-                      )}
+                      {Array.isArray(item.toppings) &&
+                        item.toppings.length > 0 && (
+                          <div className="mt-1">
+                            {item.toppings.map((topping) => (
+                              <p
+                                key={topping.topping_id}
+                                className="text-[11px] text-gray-500 dark:text-gray-400"
+                              >
+                                + {topping.name}
+                              </p>
+                            ))}
+                          </div>
+                        )}
+                    </div>
                   </div>
 
-                  <p className="text-sm font-semibold">
+                  <p className="text-sm font-semibold mt-0.5 shrink-0">
                     {cartService.getItemSubtotal(item).toLocaleString("vi-VN")}đ
                   </p>
                 </div>
@@ -1008,7 +1021,7 @@ export default function CheckoutPage() {
               <div className="flex justify-between text-base font-bold">
                 <div className="flex flex-col">
                   <span>Tổng cộng</span>
-                  <span className="text-xs font-normal text-gray-500 mt-0.5">(Đã bao gồm VAT nếu có)</span>
+                  <span className="text-xs font-normal text-gray-500 mt-2">(Đã bao gồm VAT nếu có)</span>
                 </div>
                 <span className="text-amber-600">
                   {totalAmount.toLocaleString("vi-VN")}đ

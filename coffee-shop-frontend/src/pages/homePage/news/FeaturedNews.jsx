@@ -18,7 +18,7 @@ export default function FeaturedNews() {
   if (loading) {
     return (
       <div className="bg-gradient-to-b from-background to-muted/30 py-16 md:py-20">
-        <div className="max-w-[1440px] w-full mx-auto px-4 sm:px-6 lg:px-8 xl:px-12">
+        <div className="w-full w-full mx-auto px-4 sm:px-6 lg:px-8 xl:px-12">
           <div className="flex items-center justify-center py-12">
             <div className="text-center space-y-4">
               <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto" />

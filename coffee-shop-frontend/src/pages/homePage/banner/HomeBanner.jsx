@@ -45,7 +45,7 @@ export default function HomeBanner({
               <div className="absolute inset-0 bg-gradient-to-r from-foreground/60 via-foreground/30 to-transparent" />
 
               <div className="absolute inset-0 flex items-center">
-                <div className="mx-auto w-full max-w-7xl px-6 lg:px-8">
+                <div className="mx-auto w-full w-full px-6 lg:px-8">
                   <div className="max-w-lg">
                     <h1
                       className="text-3xl font-bold leading-tight text-primary-foreground sm:text-4xl lg:text-5xl"
@@ -78,7 +78,7 @@ export default function HomeBanner({
 
       {visibleBanners.length > 0 && (
         <div className="border-b border-border/50 bg-card">
-          <div className="mx-auto flex max-w-7xl items-center gap-3 px-6 py-3 lg:px-8">
+          <div className="mx-auto flex w-full items-center gap-3 px-6 py-3 lg:px-8">
             <span className="h-1 w-8 rounded-full bg-primary" />
             <div>
               <p className="text-sm font-semibold text-foreground">

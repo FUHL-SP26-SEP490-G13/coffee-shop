@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { Loader2, Heart, Search, Trash2, ShoppingBag, Coffee } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Loader2, Heart, Search, Trash2, ShoppingBag, ShoppingCart, Star } from "lucide-react";
+import { useNavigate, Link } from "react-router-dom";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import favoriteService from "@/services/favoriteService";
@@ -102,10 +102,10 @@ export default function FavoritePage() {
       };
 
       cartService.addItem(cartItem);
-      
+
       // Dispatch sự kiện để cập nhật UI Badge Giỏ hàng nếu có 
       window.dispatchEvent(new Event("cartUpdated"));
-      
+
       alert("Đã thêm vào giỏ hàng");
     } catch (error) {
       console.error("Lỗi khi thêm vào giỏ hàng:", error);
@@ -121,6 +121,7 @@ export default function FavoritePage() {
       setFavorites((prev) =>
         prev.filter((item) => item.product_id !== productId)
       );
+      window.dispatchEvent(new Event("favoriteUpdated"));
     } catch (error) {
       console.error("Lỗi xóa yêu thích:", error);
       alert("Không thể xóa sản phẩm khỏi yêu thích");
@@ -134,6 +135,7 @@ export default function FavoritePage() {
         // Delete all favorites simultaneously
         await Promise.all(favorites.map(item => favoriteService.removeFavorite(item.product_id)));
         setFavorites([]);
+        window.dispatchEvent(new Event("favoriteUpdated"));
         alert("Đã làm sạch danh sách yêu thích!");
       } catch (error) {
         console.error("Lỗi xóa tất cả:", error);
@@ -149,24 +151,21 @@ export default function FavoritePage() {
       <Header />
 
       <section className="w-full px-4 sm:px-6 lg:px-8 py-12 flex-1">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center gap-3 mb-8">
-            <Heart className="w-7 h-7 text-red-500 fill-current" />
-            <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">Danh sách yêu thích</h1>
-          </div>
+        <div className="w-full mx-auto">
+          <div className="flex items-center justify-between gap-4 mb-8 flex-wrap">
+            <h1 className="text-2xl md:text-2xl font-semibold text-amber-900 dark:text-amber-500" style={{ fontFamily: 'serif' }}>Danh sách yêu thích</h1>
 
-          <div className="flex justify-end mb-8">
-
-            {favorites.length > 0 && (
-              <Button 
-                variant="outline" 
-                onClick={handleClearAll}
-                className="w-full sm:w-auto text-red-500 border-red-200 hover:bg-red-50 hover:text-red-600 rounded-full"
-              >
-                <Trash2 className="w-4 h-4 mr-2" />
-                Xóa tất cả
-              </Button>
-            )}
+            <div className="flex gap-3">
+              {favorites.length > 0 && (
+                <Button
+                  variant="ghost"
+                  className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
+                  onClick={handleClearAll}
+                >
+                  Xóa tất cả
+                </Button>
+              )}
+            </div>
           </div>
 
           {loading ? (
@@ -175,8 +174,8 @@ export default function FavoritePage() {
             </div>
           ) : favorites.length === 0 ? (
             <div className="text-center py-20 flex flex-col items-center justify-center bg-gray-50/50 dark:bg-gray-800/20 rounded-3xl border border-dashed border-gray-200 dark:border-gray-700">
-              <div className="w-24 h-24 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center mb-6">
-                <Coffee className="w-12 h-12 text-amber-500" strokeWidth={1.5} />
+              <div className="w-24 h-24 bg-red-50 dark:bg-red-900/10 rounded-full flex items-center justify-center mb-6">
+                <Heart className="w-12 h-12 text-red-500 fill-current opacity-80" strokeWidth={1.5} />
               </div>
               <h3 className="text-xl font-semibold text-gray-600 dark:text-gray-100 mb-5">
                 Bộ sưu tập trống trơn
@@ -184,7 +183,7 @@ export default function FavoritePage() {
               <p className="text-gray-500 dark:text-gray-400 mb-8 max-w-sm">
                 Danh sách yêu thích đang buồn hiu hà. Đi dạo một vòng xem có món nước nào hợp gu để thả tim không nhé!
               </p>
-              <Button 
+              <Button
                 onClick={() => navigate("/products")}
                 size="lg"
                 className="bg-amber-600 hover:bg-amber-700 text-white rounded-full px-8 shadow-md shadow-amber-600/20"
@@ -200,80 +199,91 @@ export default function FavoritePage() {
                   const itemSizes = Array.isArray(item.sizes) ? item.sizes : [];
                   const image = item.image_url || defaultImage;
 
-                  const minPrice = item.min_price !== undefined && item.min_price !== null 
-                    ? Number(item.min_price) 
+                  const minPrice = item.min_price !== undefined && item.min_price !== null
+                    ? Number(item.min_price)
                     : (itemSizes.length > 0
-                        ? Math.min(...itemSizes.map((s) => Number(s.price)))
-                        : null);
+                      ? Math.min(...itemSizes.map((s) => Number(s.price)))
+                      : null);
 
                   return (
                     <div
                       key={item.product_id}
-                      className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group"
+                      className="group h-full pb-4 px-2 pt-2"
                     >
-                      <div className="relative h-56 bg-gray-100 dark:bg-gray-800 overflow-hidden">
-                        <img
-                          src={image}
-                          alt={item.name}
-                          className="w-full h-full object-cover cursor-pointer group-hover:scale-105 transition-transform duration-500"
-                          onClick={() => navigate(`/${item.slug || 'products/' + item.product_id}`)}
-                        />
-                        {/* Biểu tượng Heart góc phải */}
-                        <button 
-                          onClick={() => handleRemoveFavorite(item.product_id)}
-                          className="absolute top-3 right-3 p-2 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-full shadow-sm hover:scale-110 transition-transform active:scale-95 group/btn"
-                          title="Bỏ yêu thích"
-                        >
-                          <Heart className="w-5 h-5 text-red-500 fill-red-500 group-hover/btn:scale-110 transition-transform" />
-                        </button>
-                        
-                        {!isStoreOpen && (
-                          <div className="absolute inset-x-0 bottom-0 z-[15] bg-white/90 dark:bg-gray-900/90 py-1.5 px-3 flex justify-center border-t dark:border-gray-800 shadow-sm">
-                            <span className="text-xs font-semibold text-gray-800 dark:text-gray-200">
-                              {nextOpenMessage}
-                            </span>
-                          </div>
-                        )}
-                      </div>
+                      <div className="flex h-full flex-col overflow-hidden rounded-[24px] bg-[#FCFAF8] dark:bg-gray-900 border border-transparent hover:border-[#E8DFD5] dark:hover:border-gray-800 transition-all duration-300 hover:-translate-y-1 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] hover:shadow-lg p-5">
+                        <div className="relative">
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); handleRemoveFavorite(item.product_id); }}
+                            className="absolute right-0 top-0 z-10 flex items-center justify-center transition-all text-red-500 drop-shadow-sm"
+                            title="Bỏ khỏi yêu thích"
+                          >
+                            <Heart
+                              className="h-5 w-5 fill-current"
+                              strokeWidth={1.5}
+                            />
+                          </button>
 
-                      <div className="p-5">
-                        <p className="text-xs font-medium uppercase tracking-wider text-amber-600 mb-1">
-                          {item.category_name || "Danh mục"}
-                        </p>
-
-                        <h3
-                          className="font-bold text-gray-900 dark:text-gray-100 line-clamp-2 min-h-[48px] cursor-pointer hover:text-amber-600 transition-colors"
-                          onClick={() =>
-                            navigate(`/${item.slug || 'products/' + item.product_id}`)
-                          }
-                        >
-                          {item.name}
-                        </h3>
-
-                        <div className="flex items-end justify-between mt-4">
-                          <p className="text-amber-600 font-bold text-lg">
-                            {minPrice !== null
-                              ? `${minPrice.toLocaleString("vi-VN")}đ`
-                              : "Liên hệ"}
-                          </p>
+                          <Link to={`/${item.slug || 'products/' + item.product_id}`} className="block mt-6 mb-2">
+                            <div className="relative h-48 w-full flex items-center justify-center">
+                              <img
+                                src={image}
+                                alt={item.name}
+                                className="h-[95%] w-[95%] object-contain transition duration-500 group-hover:scale-[1.1] mix-blend-multiply dark:mix-blend-normal drop-shadow-sm"
+                                onError={(e) => {
+                                  e.currentTarget.src =
+                                    "https://images.unsplash.com/photo-1509042239860-f550ce710b93";
+                                }}
+                              />
+                            </div>
+                          </Link>
                         </div>
 
-                        <Button
-                          disabled={!isStoreOpen}
-                          className="w-full mt-5 bg-gray-900 hover:bg-amber-600 text-white rounded-xl transition-colors duration-300 shadow-sm hover:shadow-amber-600/30 font-semibold disabled:bg-gray-400 disabled:opacity-100 disabled:cursor-not-allowed"
-                          onClick={() => {
-                            if (isStoreOpen) handleAddToCart(item);
-                          }}
-                        >
-                          {isStoreOpen ? (
-                            <>
-                              <ShoppingBag className="w-4 h-4 mr-2" />
-                              Thêm Ngay
-                            </>
-                          ) : (
-                            nextOpenMessage || "Đóng cửa"
-                          )}
-                        </Button>
+                        <div className="flex flex-col flex-grow mt-2">
+                          <p className="text-[11px] font-medium text-gray-400 uppercase mb-1">
+                            {item.category_name || "Thức uống"}
+                          </p>
+
+                          <Link to={`/${item.slug || 'products/' + item.product_id}`}>
+                            <h3 className="line-clamp-2 min-h-[44px] text-base font-bold text-[#4A3219] dark:text-gray-100 transition hover:text-[#8B5A2B] mb-1.5" style={{ fontFamily: 'serif' }}>
+                              {item.name}
+                            </h3>
+                          </Link>
+
+                          <div className="flex items-center gap-1.5 mb-5 h-[20px]">
+                            <Star className="w-3.5 h-3.5 fill-[#F59E0B] text-[#F59E0B]" />
+                            <span className="text-xs font-bold text-gray-700 dark:text-gray-200">
+                              {Number(item.rating) > 0 ? Number(item.rating).toFixed(1) : "Chưa có đánh giá"}
+                            </span>
+                          </div>
+
+                          <div className="mt-auto flex items-end justify-between border-t border-transparent pt-1 gap-2">
+                            <div className="min-w-0">
+                              <p className="break-words text-[17px] font-bold leading-tight text-[#8B5A2B] dark:text-amber-500">
+                                {minPrice !== null ? `${minPrice.toLocaleString("vi-VN")}đ` : "Liên hệ"}
+                              </p>
+                            </div>
+
+                            {isStoreOpen ? (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleAddToCart(item);
+                                }}
+                                className="w-8 h-8 rounded-md flex items-center justify-center shrink-0 transition-colors shadow-sm bg-[#8B5A2B] hover:bg-[#69421c] text-white"
+                              >
+                                <ShoppingCart className="w-[15px] h-[15px] xl:ml-[-1px]" />
+                              </button>
+                            ) : (
+                              <div
+                                onClick={(e) => e.stopPropagation()}
+                                className="flex items-center text-[11px] font-bold text-rose-600 bg-rose-50 px-2 py-1.5 rounded-lg border border-rose-100 whitespace-nowrap shadow-sm cursor-not-allowed"
+                              >
+                                {nextOpenMessage}
+                              </div>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     </div>
                   );
@@ -305,7 +315,6 @@ export default function FavoritePage() {
           )}
         </div>
       </section>
-
       <Footer />
     </div>
   );

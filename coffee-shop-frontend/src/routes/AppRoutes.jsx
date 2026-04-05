@@ -124,7 +124,7 @@ const AppRoutes = () => {
   return (
     <Routes>
       <Route path="/" element={<HomePage />} />
-      <Route path="/products" element={<ProductListPage />} />
+      {/* Route /products đã được chuyển vào /:slug (GenericSlugResolver) để chống chớp giật Grid */}
       <Route path="/products/:id" element={<ProductDetailPage />} />
       <Route path={APP_ROUTES.LOGIN} element={<LoginPage />} />
       <Route path={APP_ROUTES.REGISTER} element={<RegisterPage />} />

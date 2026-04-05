@@ -27,7 +27,6 @@ export default function BestSellerSection({
   const isLoggedIn = !!token;
 
   const [favoriteMap, setFavoriteMap] = useState({});
-  const [favoriteLoadingMap, setFavoriteLoadingMap] = useState({});
   const [activeSale, setActiveSale] = useState(null);
 
   const [activeTab, setActiveTab] = useState("Bán chạy");
@@ -206,12 +205,12 @@ export default function BestSellerSection({
 
     const currentFavorite = Boolean(favoriteMap[productId]);
 
-    try {
-      setFavoriteLoadingMap((prev) => ({
-        ...prev,
-        [productId]: true,
-      }));
+    setFavoriteMap((prev) => ({
+      ...prev,
+      [productId]: !currentFavorite,
+    }));
 
+    try {
       const res = await favoriteService.toggleFavorite(
         productId,
         currentFavorite
@@ -219,22 +218,19 @@ export default function BestSellerSection({
 
       const payload = res?.data?.data || res?.data || res || {};
 
-      setFavoriteMap((prev) => ({
-        ...prev,
-        [productId]:
-          typeof payload.isFavorite === "boolean"
-            ? payload.isFavorite
-            : !currentFavorite,
-      }));
+      if (typeof payload.isFavorite === "boolean") {
+        setFavoriteMap((prev) => ({
+          ...prev,
+          [productId]: payload.isFavorite,
+        }));
+      }
 
       window.dispatchEvent(new Event("favoriteUpdated"));
     } catch (error) {
       console.error("Lỗi cập nhật yêu thích:", error);
-      alert(error?.response?.data?.message || "Không thể cập nhật yêu thích");
-    } finally {
-      setFavoriteLoadingMap((prev) => ({
+      setFavoriteMap((prev) => ({
         ...prev,
-        [productId]: false,
+        [productId]: currentFavorite,
       }));
     }
   };
@@ -280,7 +276,6 @@ export default function BestSellerSection({
             <div className="mt-10 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
               {displayProducts.map((product, index) => {
                 const isFavorite = Boolean(favoriteMap[product.id]);
-                const isFavoriteLoading = Boolean(favoriteLoadingMap[product.id]);
 
                 return (
                   <div
@@ -309,7 +304,6 @@ export default function BestSellerSection({
                         <button
                           type="button"
                           onClick={(e) => handleToggleFavorite(e, product.id)}
-                          disabled={isFavoriteLoading}
                           className={`absolute right-0 top-0 z-10 flex items-center justify-center transition-all ${isFavorite
                             ? "text-red-500 drop-shadow-sm"
                             : "text-[#DCD5CD] hover:text-red-400 dark:text-gray-600"
@@ -320,23 +314,19 @@ export default function BestSellerSection({
                               : "Thêm vào yêu thích"
                           }
                         >
-                          {isFavoriteLoading ? (
-                            <Loader2 className="h-5 w-5 animate-spin" />
-                          ) : (
                             <Heart
                               className={`h-5 w-5 ${isFavorite ? "fill-current" : ""
                                 }`}
                               strokeWidth={1.5}
                             />
-                          )}
                         </button>
 
                         <Link to={`/${product.slug || 'products/' + product.id}`} className="block mt-6 mb-2">
-                          <div className="relative h-44 w-full flex items-center justify-center">
+                          <div className="relative h-48 w-full flex items-center justify-center">
                             <img
                               src={getThumbnail(product)}
                               alt={product.name}
-                              className="h-[85%] w-[85%] object-contain transition duration-500 group-hover:scale-[1.08] mix-blend-multiply dark:mix-blend-normal drop-shadow-sm"
+                              className="h-[95%] w-[95%] object-contain transition duration-500 group-hover:scale-[1.1] mix-blend-multiply dark:mix-blend-normal drop-shadow-sm"
                               onError={(e) => {
                                 e.currentTarget.src =
                                   "https://images.unsplash.com/photo-1509042239860-f550ce710b93";
@@ -401,7 +391,10 @@ export default function BestSellerSection({
                               <ShoppingCart className="w-[15px] h-[15px] xl:ml-[-1px]" />
                             </button>
                           ) : (
-                            <div className="flex items-center text-[11px] font-bold text-rose-600 bg-rose-50 px-2 py-1.5 rounded-lg border border-rose-100 whitespace-nowrap shadow-sm">
+                            <div 
+                              onClick={(e) => e.stopPropagation()}
+                              className="flex items-center text-[11px] font-bold text-rose-600 bg-rose-50 px-2 py-1.5 rounded-lg border border-rose-100 whitespace-nowrap shadow-sm cursor-not-allowed"
+                            >
                               {nextOpenMessage}
                             </div>
                           )}

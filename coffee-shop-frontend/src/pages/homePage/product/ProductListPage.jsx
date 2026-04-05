@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { Loader2, Heart, Filter, X, Star } from "lucide-react";
+import { useNavigate, useSearchParams, Link } from "react-router-dom";
+import { Loader2, Heart, Filter, X, Star, ShoppingCart } from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,10 @@ export default function ProductListPage({ categoryIdOverride, categoryName, cate
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { isOpen: isStoreOpen, nextOpenMessage } = useStoreHours();
+
+  useEffect(() => {
+    document.title = categoryName ? `${categoryName} | Cửa Hàng Bán Lẻ` : "Thực Đơn Sản Phẩm";
+  }, [categoryName]);
 
   const handleFastAdd = (e, product) => {
     e.preventDefault();
@@ -118,7 +122,6 @@ export default function ProductListPage({ categoryIdOverride, categoryName, cate
   }, []);
 
   const [favoriteMap, setFavoriteMap] = useState({});
-  const [favoriteLoadingMap, setFavoriteLoadingMap] = useState({});
   const [activeSale, setActiveSale] = useState(null);
 
   useEffect(() => {
@@ -268,12 +271,12 @@ export default function ProductListPage({ categoryIdOverride, categoryName, cate
 
     const currentFavorite = Boolean(favoriteMap[productId]);
 
-    try {
-      setFavoriteLoadingMap((prev) => ({
-        ...prev,
-        [productId]: true,
-      }));
+    setFavoriteMap((prev) => ({
+      ...prev,
+      [productId]: !currentFavorite,
+    }));
 
+    try {
       const res = await favoriteService.toggleFavorite(
         productId,
         currentFavorite
@@ -281,22 +284,19 @@ export default function ProductListPage({ categoryIdOverride, categoryName, cate
 
       const payload = res?.data?.data || res?.data || res || {};
 
-      setFavoriteMap((prev) => ({
-        ...prev,
-        [productId]:
-          typeof payload.isFavorite === "boolean"
-            ? payload.isFavorite
-            : !currentFavorite,
-      }));
+      if (typeof payload.isFavorite === "boolean") {
+        setFavoriteMap((prev) => ({
+          ...prev,
+          [productId]: payload.isFavorite,
+        }));
+      }
 
       window.dispatchEvent(new Event("favoriteUpdated"));
     } catch (error) {
       console.error("Lỗi cập nhật yêu thích:", error);
-      alert(error?.response?.data?.message || "Không thể cập nhật yêu thích");
-    } finally {
-      setFavoriteLoadingMap((prev) => ({
+      setFavoriteMap((prev) => ({
         ...prev,
-        [productId]: false,
+        [productId]: currentFavorite,
       }));
     }
   };
@@ -306,14 +306,14 @@ export default function ProductListPage({ categoryIdOverride, categoryName, cate
       <Header />
 
       <section className="w-full px-4 sm:px-6 lg:px-8 py-10">
-        <div className="max-w-7xl mx-auto">
+        <div className="w-full mx-auto">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-            <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center space-x-2">
+            <div className="text-base md:text-lg text-gray-500 dark:text-gray-400 flex items-center space-x-2 font-medium">
               <span className="cursor-pointer hover:text-amber-600 transition-colors" onClick={() => navigate("/")}>Trang chủ</span>
               {categoryName && (
                  <>
                    <span className="text-gray-400">/</span>
-                   <span className="text-amber-600 font-medium">{categoryName}</span>
+                   <span className="text-amber-600 font-bold">{categoryName}</span>
                  </>
               )}
             </div>
@@ -474,10 +474,64 @@ export default function ProductListPage({ categoryIdOverride, categoryName, cate
 
             {/* Main Content */}
             <div className="flex-1 min-w-0">
+              
+              {/* Active Filter Pills */}
+              {(keyword || filterSize || filterMinPrice || filterMaxPrice || filterMinRating) && (
+                <div className="flex flex-wrap items-center gap-2 mb-6">
+                  <span className="text-sm text-gray-500 mr-2 flex items-center"><Filter className="w-3.5 h-3.5 mr-1"/> Đang lọc theo:</span>
+                  {keyword && (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 text-sm font-medium transition-all hover:bg-amber-100">
+                      Từ khóa: {keyword}
+                      <button onClick={() => updateQuery({ keyword: "", page: 1 })} className="hover:text-red-500 transition-colors"><X className="w-3.5 h-3.5" /></button>
+                    </span>
+                  )}
+                  {filterSize && (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 text-sm font-medium transition-all hover:bg-amber-100">
+                      Size: {filterSize}
+                      <button onClick={() => updateQuery({ size: "", page: 1 })} className="hover:text-red-500 transition-colors"><X className="w-3.5 h-3.5" /></button>
+                    </span>
+                  )}
+                  {filterMinRating && (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 text-sm font-medium transition-all hover:bg-amber-100">
+                      {filterMinRating}+ Sao
+                      <button onClick={() => updateQuery({ min_rating: "", page: 1 })} className="hover:text-red-500 transition-colors"><X className="w-3.5 h-3.5" /></button>
+                    </span>
+                  )}
+                  {(filterMinPrice || filterMaxPrice) && (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 text-sm font-medium transition-all hover:bg-amber-100">
+                      Giá: {filterMinPrice ? `${Number(filterMinPrice).toLocaleString("vi-VN")}đ` : "0đ"} - {filterMaxPrice ? `${Number(filterMaxPrice).toLocaleString("vi-VN")}đ` : "Max"}
+                      <button 
+                        onClick={() => { setMinPriceInput(""); setMaxPriceInput(""); updateQuery({ min_price: "", max_price: "", page: 1 }); }} 
+                        className="hover:text-red-500 transition-colors"><X className="w-3.5 h-3.5" />
+                      </button>
+                    </span>
+                  )}
+                  <button 
+                    onClick={() => {
+                      setMinPriceInput(""); setMaxPriceInput("");
+                      updateQuery({ keyword: "", size: "", min_price: "", max_price: "", min_rating: "", page: 1 });
+                    }}
+                    className="text-sm text-red-500 hover:text-red-600 font-medium underline ml-2 decoration-transparent hover:decoration-red-600 transition-all"
+                  >
+                    Xóa tất cả
+                  </button>
+                </div>
+              )}
 
-              {loading ? (
-                <div className="flex justify-center py-20">
-                  <Loader2 className="w-10 h-10 animate-spin text-amber-600" />
+              {loading && products.length === 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {Array.from({ length: 9 }).map((_, i) => (
+                    <div key={i} className="flex flex-col h-full bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-[24px] p-5 shadow-sm animate-pulse">
+                      <div className="w-full h-48 bg-gray-200 dark:bg-gray-800 rounded-xl mb-4"></div>
+                      <div className="w-1/3 h-3 bg-gray-200 dark:bg-gray-800 rounded mb-2"></div>
+                      <div className="w-3/4 h-5 bg-gray-200 dark:bg-gray-800 rounded mb-4"></div>
+                      <div className="w-1/4 h-4 bg-gray-200 dark:bg-gray-800 rounded mb-6"></div>
+                      <div className="mt-auto flex justify-between items-end">
+                        <div className="w-1/3 h-5 bg-gray-200 dark:bg-gray-800 rounded"></div>
+                        <div className="w-8 h-8 rounded-md bg-gray-200 dark:bg-gray-800"></div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               ) : products.length === 0 ? (
                 <div className="text-center py-20 text-gray-500 dark:text-gray-400">
@@ -485,8 +539,8 @@ export default function ProductListPage({ categoryIdOverride, categoryName, cate
                 </div>
               ) : (
                 <>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {products.map((item) => {
+                  <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 transition-all duration-300 ${loading ? 'opacity-40 pointer-events-none scale-[0.98] blur-[1px]' : 'opacity-100 scale-100 blur-0'}`}>
+                    {products.map((item, index) => {
                       const itemImages = Array.isArray(item.images)
                         ? item.images
                         : [];
@@ -505,122 +559,124 @@ export default function ProductListPage({ categoryIdOverride, categoryName, cate
                         minPrice !== null && maxPrice !== null && maxPrice > minPrice;
 
                       const isFavorite = Boolean(favoriteMap[item.id]);
-                      const isFavoriteLoading = Boolean(
-                        favoriteLoadingMap[item.id]
-                      );
 
                       return (
                         <div
                           key={item.id}
-                          onClick={() => navigate(`/${item.slug || 'products/' + item.id}`)}
-                          className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200  overflow-hidden cursor-pointer hover:shadow-lg transition"
+                          className="group h-full pb-4 px-2 pt-2 animate-in fade-in duration-300"
                         >
-                          <div className="relative h-56 bg-gray-100 dark:bg-gray-800">
-                            <img
-                              src={itemImage}
-                              alt={item.name}
-                              className="w-full h-full object-cover"
-                            />
-
-                            {!isStoreOpen && (
-                              <div className="absolute inset-x-0 bottom-0 z-[15] bg-white/90 dark:bg-gray-900/90 py-1.5 px-3 flex justify-center border-t dark:border-gray-800 shadow-sm">
-                                <span className="text-xs font-semibold text-gray-800 dark:text-gray-200">
-                                  {nextOpenMessage}
-                                </span>
-                              </div>
-                            )}
-
-                            {activeSale && activeSale.product_ids?.includes(item.id) && (
-                              <div className="absolute top-3 left-3 z-10 bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-sm flex items-center gap-1 animate-pulse">
-                                ⚡ Flash Sale
-                              </div>
-                            )}
-
-                            <button
-                              type="button"
-                              onClick={(e) => handleToggleFavorite(e, item.id)}
-                              disabled={isFavoriteLoading}
-                              className={`absolute top-3 right-3 z-10 w-10 h-10 rounded-full border shadow-sm flex items-center justify-center transition ${isFavorite
-                                  ? "bg-red-50 border-red-500 text-red-500"
-                                  : "bg-white dark:bg-gray-900 border-gray-300 text-gray-500 dark:text-gray-400 hover:border-red-400 hover:text-red-500"
-                                }`}
-                              title={
-                                isFavorite
-                                  ? "Bỏ khỏi yêu thích"
-                                  : "Thêm vào yêu thích"
-                              }
-                            >
-                              {isFavoriteLoading ? (
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                              ) : (
-                                <Heart
-                                  className={`w-5 h-5 ${isFavorite ? "fill-current" : ""
-                                    }`}
-                                />
+                          <div className="flex h-full flex-col overflow-hidden rounded-[24px] bg-[#FCFAF8] dark:bg-gray-900 border border-transparent hover:border-[#E8DFD5] dark:hover:border-gray-800 transition-all duration-300 hover:-translate-y-1 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] hover:shadow-lg p-5">
+                            <div className="relative">
+                              {/* Badges */}
+                              {activeSale && activeSale.product_ids?.includes(item.id) && (
+                                <div className="absolute top-0 left-0 z-10 flex flex-col gap-2">
+                                  <span className="bg-red-500 text-white text-[10px] uppercase font-bold px-3 py-1 rounded-full shadow-sm flex items-center gap-1">
+                                    ⚡ Flash Sale
+                                  </span>
+                                </div>
                               )}
-                            </button>
-                          </div>
 
-                          <div className="p-4">
-                            <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
-                              {item.category_name || "Danh mục"}
-                            </p>
 
-                            <h3 className="font-semibold text-gray-900 dark:text-gray-100 line-clamp-2 min-h-[40px] mb-1.5">
-                              {item.name}
-                            </h3>
 
-                            <div className="flex items-center gap-1 mb-2">
-                              <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
-                              <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                                {Number(item.rating) > 0 ? Number(item.rating).toFixed(1) : "Chưa có đánh giá"}
-                              </span>
+                              <button
+                                type="button"
+                                onClick={(e) => handleToggleFavorite(e, item.id)}
+                                className={`absolute right-0 top-0 z-10 flex items-center justify-center transition-all ${isFavorite
+                                  ? "text-red-500 drop-shadow-sm"
+                                  : "text-[#DCD5CD] hover:text-red-400 dark:text-gray-600"
+                                  }`}
+                                title={
+                                  isFavorite
+                                    ? "Bỏ khỏi yêu thích"
+                                    : "Thêm vào yêu thích"
+                                }
+                              >
+                                <Heart
+                                  className={`h-5 w-5 ${isFavorite ? "fill-current" : ""}`}
+                                  strokeWidth={1.5}
+                                />
+                              </button>
+
+                              <Link to={`/${item.slug || 'products/' + item.id}`} className="block mt-6 mb-2">
+                                <div className="relative h-48 w-full flex items-center justify-center">
+                                  <img
+                                    src={itemImage}
+                                    alt={item.name}
+                                    className="h-[95%] w-[95%] object-contain transition duration-500 group-hover:scale-[1.1] mix-blend-multiply dark:mix-blend-normal drop-shadow-sm"
+                                    onError={(e) => {
+                                      e.currentTarget.src =
+                                        "https://images.unsplash.com/photo-1509042239860-f550ce710b93";
+                                    }}
+                                  />
+                                </div>
+                              </Link>
                             </div>
 
-                            <div className="flex items-center justify-between gap-3">
-                              <div>
-                                {(() => {
-                                  const isFlashSale = activeSale && activeSale.product_ids?.includes(item.id);
+                            <div className="flex flex-col flex-grow mt-2">
+                              <p className="text-[11px] font-medium text-gray-400 uppercase mb-1">
+                                {item.category_name || "Thức uống"}
+                              </p>
 
-                                  if (minPrice !== null) {
-                                    const originalText = hasMultiplePrices
-                                      ? `${minPrice.toLocaleString("vi-VN")}đ - ${maxPrice.toLocaleString("vi-VN")}đ`
-                                      : `${minPrice.toLocaleString("vi-VN")}đ`;
+                              <Link to={`/${item.slug || 'products/' + item.id}`}>
+                                <h3 className="line-clamp-2 min-h-[44px] text-base font-bold text-[#4A3219] dark:text-gray-100 transition hover:text-[#8B5A2B] mb-1.5" style={{ fontFamily: 'serif' }}>
+                                  {item.name}
+                                </h3>
+                              </Link>
 
-                                    if (isFlashSale) {
-                                      const saleMin = Math.round(minPrice * (1 - (activeSale.discount_percent || 0) / 100));
-                                      const saleMax = maxPrice ? Math.round(maxPrice * (1 - (activeSale.discount_percent || 0) / 100)) : null;
-
-                                      const saleText = hasMultiplePrices && saleMax
-                                        ? `${saleMin.toLocaleString("vi-VN")}đ - ${saleMax.toLocaleString("vi-VN")}đ`
-                                        : `${saleMin.toLocaleString("vi-VN")}đ`;
-
-                                      return (
-                                        <div className="flex flex-col">
-                                          <span className="text-xs line-through text-gray-400">{originalText}</span>
-                                          <p className="text-red-600 font-bold text-lg">{saleText}</p>
-                                        </div>
-                                      );
-                                    }
-
-                                    return (
-                                      <p className="text-amber-600 font-bold text-lg">{originalText}</p>
-                                    );
-                                  }
-                                  return <p className="text-amber-600 font-bold text-lg">Liên hệ</p>;
-                                })()}
+                              <div className="flex items-center gap-1.5 mb-5 h-[20px]">
+                                <Star className="w-3.5 h-3.5 fill-[#F59E0B] text-[#F59E0B]" />
+                                <span className="text-xs font-bold text-gray-700 dark:text-gray-200">
+                                  {Number(item.rating) > 0 ? Number(item.rating).toFixed(1) : "Chưa có đánh giá"}
+                                </span>
                               </div>
 
-                              <Button
-                                size="sm"
-                                disabled={!isStoreOpen}
-                                className="bg-amber-600 hover:bg-amber-700 text-white disabled:bg-gray-400 disabled:opacity-100"
-                                onClick={(e) => {
-                                  if (isStoreOpen) handleFastAdd(e, item);
-                                }}
-                              >
-                                {isStoreOpen ? "Thêm" : "Đóng cửa"}
-                              </Button>
+                              <div className="mt-auto flex items-end justify-between border-t border-transparent pt-1 gap-2">
+                                <div className="min-w-0">
+                                  {(() => {
+                                    const isFlashSale = activeSale && activeSale.product_ids?.includes(item.id);
+
+                                    if (minPrice !== null) {
+                                      const originalText = `${minPrice.toLocaleString("vi-VN")}đ`;
+
+                                      if (isFlashSale) {
+                                        const saleMin = Math.round(minPrice * (1 - (activeSale.discount_percent || 0) / 100));
+                                        const saleText = `${saleMin.toLocaleString("vi-VN")}đ`;
+
+                                        return (
+                                          <div className="flex flex-col">
+                                            <span className="text-[11px] line-through text-gray-400">{originalText}</span>
+                                            <p className="break-words text-[17px] font-bold leading-tight text-[#8B5A2B] dark:text-amber-500">{saleText}</p>
+                                          </div>
+                                        );
+                                      }
+
+                                      return (
+                                        <p className="break-words text-[17px] font-bold leading-tight text-[#8B5A2B] dark:text-amber-500">{originalText}</p>
+                                      );
+                                    }
+                                    return <p className="break-words text-[17px] font-bold leading-tight text-[#8B5A2B] dark:text-amber-500">Liên hệ</p>;
+                                  })()}
+                                </div>
+
+                                {isStoreOpen ? (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleFastAdd(e, item);
+                                    }}
+                                    className="w-8 h-8 rounded-md flex items-center justify-center shrink-0 transition-colors shadow-sm bg-[#8B5A2B] hover:bg-[#69421c] text-white"
+                                  >
+                                    <ShoppingCart className="w-[15px] h-[15px] xl:ml-[-1px]" />
+                                  </button>
+                                ) : (
+                                  <div 
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="flex items-center text-[11px] font-bold text-rose-600 bg-rose-50 px-2 py-1.5 rounded-lg border border-rose-100 whitespace-nowrap shadow-sm cursor-not-allowed"
+                                  >
+                                    {nextOpenMessage}
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           </div>
                         </div>
