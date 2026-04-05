@@ -71,11 +71,12 @@ class SwapRequestRepository {
         return row || null;
     }
 
-    // Lấy tất cả swap request của user (cả gửi lẫn nhận)
-    async findByUserId(userId) {
+    // Lấy tất cả swap request toàn bộ quán (cho Admin)
+    async findAll() {
         const [rows] = await pool.query(
             `SELECT
                 ssr.*,
+                r_req.role_name   AS role,
                 u_req.first_name  AS requester_first_name,
                 u_req.last_name   AS requester_last_name,
                 u_rec.first_name  AS receiver_first_name,
@@ -92,6 +93,40 @@ class SwapRequestRepository {
                 st_rec.color      AS receiver_color
              FROM shift_swap_requests ssr
              JOIN users          u_req  ON ssr.requester_id      = u_req.id
+             JOIN role           r_req  ON u_req.role_id         = r_req.id
+             JOIN users          u_rec  ON ssr.receiver_id       = u_rec.id
+             JOIN shifts         s_req  ON ssr.requester_shift_id = s_req.id
+             JOIN shift_templates st_req ON s_req.template_id    = st_req.id
+             LEFT JOIN shifts         s_rec  ON ssr.receiver_shift_id = s_rec.id
+             LEFT JOIN shift_templates st_rec ON s_rec.template_id   = st_rec.id
+             ORDER BY ssr.created_at DESC`
+        );
+        return rows;
+    }
+
+    // Lấy tất cả swap request của user (cả gửi lẫn nhận)
+    async findByUserId(userId) {
+        const [rows] = await pool.query(
+            `SELECT
+                ssr.*,
+                r_req.role_name   AS role,
+                u_req.first_name  AS requester_first_name,
+                u_req.last_name   AS requester_last_name,
+                u_rec.first_name  AS receiver_first_name,
+                u_rec.last_name   AS receiver_last_name,
+                s_req.shift_date  AS requester_shift_date,
+                st_req.name       AS requester_template_name,
+                st_req.start_time AS requester_start_time,
+                st_req.end_time   AS requester_end_time,
+                st_req.color      AS requester_color,
+                s_rec.shift_date  AS receiver_shift_date,
+                st_rec.name       AS receiver_template_name,
+                st_rec.start_time AS receiver_start_time,
+                st_rec.end_time   AS receiver_end_time,
+                st_rec.color      AS receiver_color
+             FROM shift_swap_requests ssr
+             JOIN users          u_req  ON ssr.requester_id      = u_req.id
+             JOIN role           r_req  ON u_req.role_id         = r_req.id
              JOIN users          u_rec  ON ssr.receiver_id       = u_rec.id
              JOIN shifts         s_req  ON ssr.requester_shift_id = s_req.id
              JOIN shift_templates st_req ON s_req.template_id    = st_req.id

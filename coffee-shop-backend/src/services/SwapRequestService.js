@@ -252,6 +252,30 @@ class SwapRequestService {
 
 
     // ================================================
+    // LẤY DANH SÁCH TẤT CẢ (CHO ADMIN)
+    // ================================================
+    async getAllSwapRequests() {
+        const rows = await SwapRequestRepository.findAll();
+        const now = new Date();
+
+        // Eager-on-read: tìm các đơn pending đã quá expired_at → update DB luôn
+        const expiredIds = rows
+            .filter((r) => r.status === 'pending' && r.expired_at && now >= new Date(r.expired_at))
+            .map((r) => r.id);
+
+        if (expiredIds.length > 0) {
+            await SwapRequestRepository.bulkCancel(expiredIds);
+            expiredIds.forEach((id) => {
+                const r = rows.find((x) => x.id === id);
+                if (r) r.status = 'cancelled';
+            });
+        }
+
+        return rows.map((row) => this._formatSwap(row));
+    }
+
+
+    // ================================================
     // XEM CHI TIẾT
     // ================================================
     async getSwapRequestById(swapId, currentUserId) {
@@ -398,6 +422,7 @@ class SwapRequestService {
             id: row.id,
             type: isExchange ? 'exchange' : 'give_away',
             status: status,   // đã qua lazy expiry check
+            role: row.role,
             requester: {
                 id: row.requester_id,
                 name: `${row.requester_first_name} ${row.requester_last_name}`,

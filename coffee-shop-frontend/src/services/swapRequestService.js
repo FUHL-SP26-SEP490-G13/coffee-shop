@@ -5,8 +5,13 @@ const { BASE, BY_ID, ACCEPT, REJECT, CANCEL } = API_ENDPOINTS.SWAP_REQUESTS;
 
 const swapRequestService = {
   // Lấy danh sách yêu cầu đổi ca (cả gửi lẫn nhận)
+  // Lấy danh sách yêu cầu đổi ca (cả gửi lẫn nhận)
   getMySwapRequests() {
     return axiosClient.get(BASE);
+  },
+  // Lấy danh sách toàn bộ yêu cầu (cho Admin)
+  getAllSwapRequests() {
+    return axiosClient.get(`${BASE}/all`);
   },
   // Chi tiết 1 yêu cầu
   getSwapRequestById(id) {

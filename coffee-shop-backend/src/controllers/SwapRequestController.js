@@ -74,6 +74,17 @@ class SwapRequestController {
         }
     }
 
+    // GET /swap-requests/all
+    // Lấy tất cả yêu cầu (cho Admin)
+    async getAllSwapRequests(req, res, next) {
+        try {
+            const result = await SwapRequestService.getAllSwapRequests();
+            return res.json({ success: true, data: result });
+        } catch (err) {
+            next(err);
+        }
+    }
+
     // GET /swap-requests
     // Lấy tất cả yêu cầu của mình (cả gửi lẫn nhận)
     async getMySwapRequests(req, res, next) {

@@ -27,6 +27,7 @@ import {
   Clock,
   Moon,
   Sun,
+  ArrowLeftRight,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import authenticationService from '../../services/authenticationService';
@@ -562,6 +563,18 @@ export default function AdminApp() {
                     </div>
                   )}
                 </div>
+                <NavLink
+                  to="/admin/schedule/requests"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={({ isActive }) =>
+                    `w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                      isActive ? "bg-primary text-white" : "text-muted-foreground hover:bg-secondary"
+                    }`
+                  }
+                >
+                  <ArrowLeftRight className="w-4 h-4" />
+                  <span className="text-sm tracking-wide">Đơn đổi ca</span>
+                </NavLink>
                 <NavLink
                   to="/admin/receipt-settings"
                   onClick={() => setMobileMenuOpen(false)}
