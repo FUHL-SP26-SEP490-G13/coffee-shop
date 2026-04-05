@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Search,
   Table as TableIcon,
   Loader2,
   LayoutGrid,
@@ -31,13 +30,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import tableService from "@/services/tableService";
@@ -64,6 +56,12 @@ const formatOrderTime = (dateString) => {
   return date.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
 };
 
+const STATUS_FILTER_OPTIONS = [
+  { value: "all", label: "Tất cả trạng thái" },
+  { value: "available", label: "Trống" },
+  { value: "occupied", label: "Có khách" },
+];
+
 function TableCard({
   table,
   onOpenPOS,
@@ -87,7 +85,7 @@ function TableCard({
         <div className="absolute top-2 right-2 flex items-center gap-1 z-20">
           <button
             onClick={(e) => onViewOrder(e, table)}
-            className="p-1.5 rounded-full hover:bg-black/5 text-muted-foreground transition-colors"
+            className="p-1.5 rounded-full hover:bg-black/5 text-slate-600 dark:text-slate-300 transition-colors"
             title="Xem đơn hàng"
           >
             <ReceiptText className="w-4 h-4 text-blue-600 dark:text-blue-400" />
@@ -96,7 +94,7 @@ function TableCard({
             <DropdownMenuTrigger asChild>
               <button
                 onClick={(e) => e.stopPropagation()}
-                className="p-1.5 rounded-full hover:bg-black/5 text-muted-foreground transition-colors"
+                className="p-1.5 rounded-full hover:bg-black/5 text-slate-600 dark:text-slate-300 transition-colors"
                 title="Tùy chọn"
               >
                 <MoreVertical className="w-4 h-4" />
@@ -177,7 +175,7 @@ function TableCard({
 
       <div className="text-center space-y-0.5">
         <h3 className="text-sm font-bold text-foreground">Bàn {table.code}</h3>
-        <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-widest">
+        <p className="text-[10px] font-medium text-slate-600 dark:text-slate-300 uppercase tracking-widest">
           {table.area_name}
         </p>
         {table.status === "occupied" && (
@@ -280,17 +278,12 @@ export function StaffTables() {
   const [tables, setTables] = useState([]);
   const [areas, setAreas] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
   const [selectedAreaId, setSelectedAreaId] = useState("all");
   const [selectedStatus, setSelectedStatus] = useState("all");
 
   // Reservation Modal States
   // const [isReservationModalOpen, setIsReservationModalOpen] = useState(false);
   // const [tableToReserve, setTableToReserve] = useState(null);
-
-  // Pagination states
-  const [page, setPage] = useState(1);
-  const limit = 12;
 
   // POS Modal States
   const [selectedTableForPOS, setSelectedTableForPOS] = useState(null);
@@ -830,24 +823,9 @@ export function StaffTables() {
   //   setIsReservationModalOpen(true);
   // };
 
-  const filteredTables = tables.filter((table) => {
-    const matchesSearch = table.code
-      ?.toLowerCase()
-      .includes(searchTerm.toLowerCase());
-    const matchesArea =
-      selectedAreaId === "all" || table.area_id.toString() === selectedAreaId;
-    return matchesSearch && matchesArea;
-  });
-
-  const totalPages = Math.ceil(filteredTables.length / limit);
-  const paginatedTables = filteredTables.slice(
-    (page - 1) * limit,
-    page * limit,
+  const filteredTables = tables.filter(
+    (table) => selectedAreaId === "all" || table.area_id.toString() === selectedAreaId
   );
-
-  useEffect(() => {
-    setPage(1);
-  }, [searchTerm, selectedAreaId]);
 
   const currentAreaObj = areas.find((a) => a.id.toString() === selectedAreaId);
 
@@ -872,60 +850,14 @@ export function StaffTables() {
         </div>
       </div>
 
-      {/* FILTERS & STATS */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        <Card className="p-4 lg:col-span-3 flex flex-col md:flex-row gap-4 items-center bg-white dark:bg-gray-900/50 backdrop-blur-sm">
-          <div className="relative flex-1 w-full">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-            <Input
-              placeholder="Tìm theo mã bàn (VD: TB-01)..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 h-10 w-full bg-white dark:bg-gray-900/50"
-            />
-          </div>
-
-          <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-            <SelectTrigger className="h-10 w-full md:w-64 bg-white dark:bg-gray-900/50">
-              <SelectValue placeholder="Chọn trạng thái" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tất cả trạng thái</SelectItem>
-              <SelectItem value="available">Trống</SelectItem>
-              <SelectItem value="occupied">Có khách</SelectItem>
-              {/* <SelectItem value="reserved">Đã đặt</SelectItem> */}
-            </SelectContent>
-          </Select>
-        </Card>
-
-        <Card className="p-4 flex flex-col justify-center bg-primary/5 border-primary/20">
-          <div className="flex justify-between items-center text-sm">
-            <span className="text-muted-foreground font-medium">
-              Tổng số bàn:
-            </span>
-            <span className="font-bold text-primary">
-              {filteredTables.length}
-            </span>
-          </div>
-          <div className="flex justify-between items-center text-sm mt-1">
-            <span className="text-muted-foreground font-medium">
-              Đang trống:
-            </span>
-            <span className="font-bold text-green-600 dark:text-green-400">
-              {filteredTables.filter((t) => t.status === "available").length}
-            </span>
-          </div>
-        </Card>
-      </div>
-
-      {/* TABS FOR AREAS AND TABLES GRID */}
+      {/* FILTERS + TABS FOR AREAS AND TABLES GRID */}
       <Tabs
         value={selectedAreaId}
         onValueChange={setSelectedAreaId}
         className="w-full"
       >
         <div className="overflow-x-auto pb-2 mb-4">
-          <TabsList className="inline-flex h-11 items-center justify-start rounded-md bg-muted p-1 text-muted-foreground">
+          <TabsList className="inline-flex h-11 items-center justify-start rounded-md bg-muted p-1 text-slate-700 dark:text-slate-200">
             <TabsTrigger value="all" className="px-4 py-2">
               Tất cả khu vực
             </TabsTrigger>
@@ -941,25 +873,70 @@ export function StaffTables() {
           </TabsList>
         </div>
 
+        {/* STATUS FILTERS & STATS */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
+          <Card className="p-4 lg:col-span-3 bg-white dark:bg-gray-900/50 backdrop-blur-sm">
+            <div className="flex flex-col gap-3">
+              <p className="text-sm font-semibold text-foreground">Lọc trạng thái:</p>
+              <div className="flex flex-wrap gap-2">
+                {STATUS_FILTER_OPTIONS.map((option) => {
+                  const isActive = selectedStatus === option.value;
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => setSelectedStatus(option.value)}
+                      className={`rounded-full border px-4 py-1.5 text-sm font-medium transition-colors ${isActive
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-background text-slate-700 dark:text-slate-200 border-border hover:border-primary/50 hover:text-foreground"
+                        }`}
+                    >
+                      {option.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </Card>
+
+          <Card className="p-4 flex flex-col justify-center bg-primary/5 border-primary/20">
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-slate-600 dark:text-slate-300 font-medium">
+                Tổng số bàn:
+              </span>
+              <span className="font-bold text-primary">
+                {filteredTables.length}
+              </span>
+            </div>
+            <div className="flex justify-between items-center text-sm mt-1">
+              <span className="text-slate-600 dark:text-slate-300 font-medium">
+                Đang trống:
+              </span>
+              <span className="font-bold text-green-600 dark:text-green-400">
+                {filteredTables.filter((t) => t.status === "available").length}
+              </span>
+            </div>
+          </Card>
+        </div>
+
         <TabsContent value={selectedAreaId} className="mt-0">
           {loading ? (
             <div className="p-12 flex flex-col items-center justify-center gap-2">
               <Loader2 className="w-8 h-8 animate-spin text-primary" />
-              <p className="text-muted-foreground">Đang tải...</p>
+              <p className="text-slate-600 dark:text-slate-300">Đang tải...</p>
             </div>
           ) : selectedAreaId === "all" ? (
             /* === ALL AREAS: Grouped by area === */
             <div className="space-y-8">
               {filteredTables.length === 0 ? (
                 <div className="p-20 text-center flex flex-col items-center gap-4 bg-muted/30 rounded-3xl border-2 border-dashed">
-                  <TableIcon className="w-12 h-12 text-muted-foreground/30" />
-                  <p className="text-muted-foreground font-medium text-lg">
+                  <TableIcon className="w-12 h-12 text-slate-400 dark:text-slate-500" />
+                  <p className="text-slate-600 dark:text-slate-300 font-medium text-lg">
                     Không tìm thấy bàn nào phù hợp
                   </p>
                   <Button
                     variant="outline"
                     onClick={() => {
-                      setSearchTerm("");
                       setSelectedAreaId("all");
                       setSelectedStatus("all");
                     }}
@@ -988,12 +965,12 @@ export function StaffTables() {
                                 className="w-full h-full object-cover"
                               />
                             ) : (
-                              <MapPin className="w-4 h-4 opacity-50 text-muted-foreground" />
+                              <MapPin className="w-4 h-4 opacity-70 text-slate-600 dark:text-slate-300" />
                             )}
                           </div>
                           <div>
                             <h2 className="font-bold text-base text-foreground">{area.name}</h2>
-                            <p className="text-xs text-muted-foreground">{areaTables.length} bàn</p>
+                            <p className="text-xs text-slate-600 dark:text-slate-300">{areaTables.length} bàn</p>
                           </div>
                         </div>
                         <div className="flex items-center gap-3 text-xs font-medium">
@@ -1009,7 +986,7 @@ export function StaffTables() {
                       </div>
 
                       {/* Tables Grid for this area */}
-                      <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
+                      <div className="grid grid-cols-2 md:grid-cols-5 xl:grid-cols-10 gap-4">
                         {areaTables.map((table) => (
                           <TableCard
                             key={table.id}
@@ -1046,12 +1023,12 @@ export function StaffTables() {
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                        <MapPin className="w-6 h-6 opacity-50 text-muted-foreground" />
+                        <MapPin className="w-6 h-6 opacity-70 text-slate-600 dark:text-slate-300" />
                       )}
                     </div>
                     <div>
                       <h3 className="font-bold text-lg">{currentAreaObj.name}</h3>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-sm text-slate-600 dark:text-slate-300">
                         {filteredTables.length} bàn trong khu vực này
                       </p>
                     </div>
@@ -1069,9 +1046,9 @@ export function StaffTables() {
                 </div>
               )}
 
-              <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-6">
-                {paginatedTables.length > 0 ? (
-                  paginatedTables.map((table) => (
+              <div className="grid grid-cols-2 md:grid-cols-5 xl:grid-cols-10 gap-4">
+                {filteredTables.length > 0 ? (
+                  filteredTables.map((table) => (
                     <TableCard
                       key={table.id}
                       table={table}
@@ -1088,14 +1065,13 @@ export function StaffTables() {
                   ))
                 ) : (
                   <div className="col-span-full p-20 text-center flex flex-col items-center gap-4 bg-muted/30 rounded-3xl border-2 border-dashed">
-                    <TableIcon className="w-12 h-12 text-muted-foreground/30" />
-                    <p className="text-muted-foreground font-medium text-lg">
+                    <TableIcon className="w-12 h-12 text-slate-400 dark:text-slate-500" />
+                    <p className="text-slate-600 dark:text-slate-300 font-medium text-lg">
                       Không tìm thấy bàn nào phù hợp
                     </p>
                     <Button
                       variant="outline"
                       onClick={() => {
-                        setSearchTerm("");
                         setSelectedAreaId("all");
                         setSelectedStatus("all");
                       }}
@@ -1106,30 +1082,6 @@ export function StaffTables() {
                 )}
               </div>
 
-              {/* PAGINATION */}
-              {totalPages > 1 && (
-                <div className="flex justify-center gap-4 mt-8">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={page === 1}
-                    onClick={() => setPage((p) => p - 1)}
-                  >
-                    Trước
-                  </Button>
-                  <div className="flex items-center text-sm font-medium">
-                    Trang {page} / {totalPages}
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={page >= totalPages}
-                    onClick={() => setPage((p) => p + 1)}
-                  >
-                    Sau
-                  </Button>
-                </div>
-              )}
             </div>
           )}
 
@@ -1177,23 +1129,23 @@ export function StaffTables() {
               </div>
               <div>
                 <p className="text-sm font-medium">Bàn hiện tại</p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-slate-600 dark:text-slate-300">
                   {tableToTransfer?.area_name}
                   {tableActionMode === "merge" ? " · Nguồn" : ""}
                 </p>
               </div>
-              <ArrowLeftRight className="w-4 h-4 text-muted-foreground mx-auto" />
+              <ArrowLeftRight className="w-4 h-4 text-slate-600 dark:text-slate-300 mx-auto" />
               <div className="flex-1 text-right">
                 {transferTargetId ? (() => {
                   const t = tables.find(x => x.id === transferTargetId);
                   return t ? (
                     <div className="inline-flex flex-col items-end">
-                      <span className="text-sm font-bold text-indigo-700">{t.code}</span>
-                      <span className="text-xs text-muted-foreground">{t.area_name}</span>
+                      <span className="text-sm font-bold text-indigo-700 dark:text-indigo-300">{t.code}</span>
+                      <span className="text-xs text-slate-600 dark:text-slate-300">{t.area_name}</span>
                     </div>
                   ) : null;
                 })() : (
-                  <span className="text-xs text-muted-foreground italic">Chưa chọn bàn đích</span>
+                  <span className="text-xs text-slate-600 dark:text-slate-300 italic">Chưa chọn bàn đích</span>
                 )}
               </div>
             </div>
@@ -1206,7 +1158,7 @@ export function StaffTables() {
                   onClick={() => setTransferAreaFilter("all")}
                   className={`text-xs px-3 py-1 rounded-full border transition-colors ${transferAreaFilter === "all"
                     ? "bg-indigo-600 text-white border-indigo-600"
-                    : "border-border text-muted-foreground hover:border-indigo-400"
+                    : "border-border text-slate-700 dark:text-slate-200 hover:border-indigo-400"
                     }`}
                 >
                   Tất cả
@@ -1217,7 +1169,7 @@ export function StaffTables() {
                     onClick={() => setTransferAreaFilter(a.id.toString())}
                     className={`text-xs px-3 py-1 rounded-full border transition-colors ${transferAreaFilter === a.id.toString()
                       ? "bg-indigo-600 text-white border-indigo-600"
-                      : "border-border text-muted-foreground hover:border-indigo-400"
+                      : "border-border text-slate-700 dark:text-slate-200 hover:border-indigo-400"
                       }`}
                   >
                     {a.name}
@@ -1248,7 +1200,7 @@ export function StaffTables() {
                       }`}>
                       {t.code?.replace("TB-", "")}
                     </span>
-                    <span className="text-[10px] text-muted-foreground mt-0.5 text-center leading-tight">
+                    <span className="text-[10px] text-slate-600 dark:text-slate-300 mt-0.5 text-center leading-tight">
                       {t.area_name} {tableActionMode === "merge" && t.status === "occupied" ? "· Có khách" : ""}
                     </span>
                   </button>
@@ -1259,7 +1211,7 @@ export function StaffTables() {
                   (tableActionMode === "merge" || t.status === "available") &&
                   (transferAreaFilter === "all" || t.area_id.toString() === transferAreaFilter)
               ).length === 0 && (
-                  <div className="col-span-4 py-8 text-center text-muted-foreground text-sm">
+                  <div className="col-span-4 py-8 text-center text-slate-600 dark:text-slate-300 text-sm">
                     {tableActionMode === "merge" ? "Không có bàn phù hợp" : "Không có bàn trống nào"}
                   </div>
                 )}
@@ -1305,18 +1257,18 @@ export function StaffTables() {
             <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
               <div className="flex justify-between items-center border-b pb-3">
                 <span className="font-semibold text-lg">Mã đơn: #{activeOrder.id}</span>
-                <span className="text-muted-foreground text-sm">{new Date(activeOrder.created_at).toLocaleString('vi-VN')}</span>
+                <span className="text-slate-600 dark:text-slate-300 text-sm">{new Date(activeOrder.created_at).toLocaleString('vi-VN')}</span>
               </div>
               <div className="space-y-4">
                 {activeOrder.items?.map((item, idx) => (
                   <div key={idx} className="flex justify-between items-start text-sm border-b pb-2 last:border-0">
                     <div className="flex-1">
                       <p className="font-medium text-base">{item.quantity} x {item.name}</p>
-                      <p className="text-muted-foreground">Size {item.size}</p>
+                      <p className="text-slate-600 dark:text-slate-300">Size {item.size}</p>
                       {item.toppings?.length > 0 && (
                         <div className="mt-1 pl-2 border-l-2 border-muted space-y-1">
                           {item.toppings.map((t, tidx) => (
-                            <p key={tidx} className="text-xs text-muted-foreground">
+                            <p key={tidx} className="text-xs text-slate-600 dark:text-slate-300">
                               + {t.name} (x{t.quantity})
                             </p>
                           ))}
@@ -1346,7 +1298,7 @@ export function StaffTables() {
               </div>
             </div>
           ) : (
-            <div className="py-8 text-center text-muted-foreground">
+            <div className="py-8 text-center text-slate-600 dark:text-slate-300">
               <ReceiptText className="w-12 h-12 mx-auto mb-3 opacity-20" />
               <p>Chưa có đơn hàng nào cho bàn này</p>
             </div>
@@ -1380,19 +1332,19 @@ export function StaffTables() {
           <div className="space-y-5">
             <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4">
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-500 dark:text-gray-400">Khách cần trả ()</span>
+                <span className="text-sm text-gray-700 dark:text-gray-200">Khách cần trả ()</span>
                 <span className="text-xl font-bold text-orange-500">{formatVND(debtPaymentDialog.debtAmount)}</span>
               </div>
             </div>
 
             <div>
-              <label className="text-xs font-semibold text-gray-400 block mb-2">PHƯƠNG THỨC THANH TOÁN</label>
+              <label className="text-xs font-semibold text-gray-700 dark:text-gray-200 block mb-2">PHƯƠNG THỨC THANH TOÁN</label>
               <div className="grid grid-cols-2 gap-3">
                 <button
                   onClick={() => setDebtPaymentDialog((prev) => ({ ...prev, method: "cash" }))}
                   className={`flex items-center justify-center gap-2 p-3 rounded-xl border-2 font-medium transition-all ${debtPaymentDialog.method === "cash"
                     ? "border-green-500 text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30/50"
-                    : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400"
+                    : "border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200"
                     }`}
                 >
                   <Wallet className="w-4 h-4" /> Tiền mặt
@@ -1401,7 +1353,7 @@ export function StaffTables() {
                   onClick={() => setDebtPaymentDialog((prev) => ({ ...prev, method: "payos" }))}
                   className={`flex items-center justify-center gap-2 p-3 rounded-xl border-2 font-medium transition-all ${debtPaymentDialog.method === "payos"
                     ? "border-green-500 text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30/50"
-                    : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400"
+                    : "border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200"
                     }`}
                 >
                   <img src={PayOSLogo} alt="PayOS" className="h-8 w-8" />
@@ -1412,7 +1364,7 @@ export function StaffTables() {
 
             {debtPaymentDialog.method === "cash" && (
               <div>
-                <label className="text-xs font-semibold text-gray-400 block mb-1">TIỀN KHÁCH ĐƯA</label>
+                <label className="text-xs font-semibold text-gray-700 dark:text-gray-200 block mb-1">TIỀN KHÁCH ĐƯA</label>
                 <Input
                   type="number"
                   value={debtPaymentDialog.cashReceived}
@@ -1435,7 +1387,7 @@ export function StaffTables() {
                         }
                         className={`flex-1 p-2 rounded-full border text-sm font-medium transition-all ${selected
                           ? "border-green-500 text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30"
-                          : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 dark:bg-gray-800/50"
+                          : "border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800/50 dark:bg-gray-800/50"
                           }`}
                       >
                         {formatVND(val).replace(/\s?₫/, "").trim()}
