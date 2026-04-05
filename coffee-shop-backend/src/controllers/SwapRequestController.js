@@ -1,15 +1,15 @@
 const SwapRequestService = require('../services/SwapRequestService');
+
 class SwapRequestController {
-    /**
-     * POST /swap-requests
-     * Body: { requester_shift_id, receiver_id, receiver_shift_id? }
-     */
+
+    // POST /swap-requests
+    // Body: { requester_shift_id, receiver_id, receiver_shift_id? }
     async createSwapRequest(req, res, next) {
         try {
-            const result = await SwapRequestService.createSwapRequest({
-                requester_id: req.user.id,
-                ...req.body,
-            });
+            const result = await SwapRequestService.createSwapRequest(
+                req.body,
+                req.user.id,
+            );
             return res.status(201).json({
                 success: true,
                 data: result,
@@ -19,27 +19,9 @@ class SwapRequestController {
             next(err);
         }
     }
-    /**
-     * POST /swap-requests/:id/cancel
-     */
-    async cancelSwapRequest(req, res, next) {
-        try {
-            const result = await SwapRequestService.cancelSwapRequest(
-                Number(req.params.id),
-                req.user.id,
-            );
-            return res.json({
-                success: true,
-                data: result,
-                message: 'Đã hủy yêu cầu đổi ca',
-            });
-        } catch (err) {
-            next(err);
-        }
-    }
-    /**
-     * POST /swap-requests/:id/accept
-     */
+
+    // POST /swap-requests/:id/accept
+    // B đồng ý → swap thực thi luôn
     async acceptSwapRequest(req, res, next) {
         try {
             const result = await SwapRequestService.acceptSwapRequest(
@@ -49,15 +31,15 @@ class SwapRequestController {
             return res.json({
                 success: true,
                 data: result,
-                message: 'Đã chấp nhận đổi ca',
+                message: 'Đổi ca thành công',
             });
         } catch (err) {
             next(err);
         }
     }
-    /**
-     * POST /swap-requests/:id/reject
-     */
+
+    // POST /swap-requests/:id/reject
+    // B từ chối → không có gì thay đổi
     async rejectSwapRequest(req, res, next) {
         try {
             const result = await SwapRequestService.rejectSwapRequest(
@@ -73,9 +55,27 @@ class SwapRequestController {
             next(err);
         }
     }
-    /**
-     * GET /swap-requests
-     */
+
+    // POST /swap-requests/:id/cancel
+    // A tự hủy khi B chưa phản hồi
+    async cancelSwapRequest(req, res, next) {
+        try {
+            const result = await SwapRequestService.cancelSwapRequest(
+                Number(req.params.id),
+                req.user.id,
+            );
+            return res.json({
+                success: true,
+                data: result,
+                message: 'Đã hủy yêu cầu đổi ca',
+            });
+        } catch (err) {
+            next(err);
+        }
+    }
+
+    // GET /swap-requests
+    // Lấy tất cả yêu cầu của mình (cả gửi lẫn nhận)
     async getMySwapRequests(req, res, next) {
         try {
             const result = await SwapRequestService.getMySwapRequests(req.user.id);
@@ -84,9 +84,9 @@ class SwapRequestController {
             next(err);
         }
     }
-    /**
-     * GET /swap-requests/:id
-     */
+
+    // GET /swap-requests/:id
+    // Xem chi tiết 1 yêu cầu
     async getSwapRequestById(req, res, next) {
         try {
             const result = await SwapRequestService.getSwapRequestById(
@@ -99,4 +99,5 @@ class SwapRequestController {
         }
     }
 }
+
 module.exports = new SwapRequestController();

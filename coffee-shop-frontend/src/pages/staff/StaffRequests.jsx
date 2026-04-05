@@ -303,7 +303,7 @@ function CreateSwapDialog({ open, onClose, onCreated, myUserId }) {
         end_date: shiftDate,
       });
       const data = res?.data?.data || res?.data || [];
-      setTeamData(data.filter((emp) => emp.user_id !== myUserId));
+      setTeamData(data.filter((emp) => emp.user_id !== myUserId && emp.role?.toLowerCase() === 'staff'));
     } catch {
       toast.error('Không thể tải danh sách đồng nghiệp');
     } finally {

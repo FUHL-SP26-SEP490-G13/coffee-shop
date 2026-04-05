@@ -105,7 +105,7 @@ class ShiftRepository {
              JOIN shift_templates st ON s.template_id = st.id
              WHERE sr.user_id = ?
                AND s.shift_date = ?
-               AND sr.status NOT IN ('cancelled')
+               AND sr.status NOT IN ('cancelled', 'swapped_out')
                AND st.start_time < ? AND st.end_time > ?`,
             [userId, date, endTime, startTime],
         );
@@ -195,7 +195,7 @@ class ShiftRepository {
              SET sr.status = 'cancelled'
              WHERE sr.user_id = ?
                AND s.shift_date >= ?
-               AND sr.status NOT IN ('cancelled')`,
+               AND sr.status NOT IN ('cancelled', 'swapped_out')`,
             [userId, fromDate],
         );
         return result.affectedRows;
@@ -224,10 +224,8 @@ class ShiftRepository {
          st.start_time,
          st.end_time,
          st.color,
-         -- Tính display_status cho calendar
+         -- display_status: chỉ còn 'registered' và 'swapped_in' do WHERE đã lọc các trạng thái khác
          CASE
-           WHEN sr.status = 'cancelled' THEN 'cancelled'
-           WHEN sr.status = 'swapped_out' THEN 'swapped_out'
            WHEN sr.status = 'swapped_in' THEN 'swapped_in'
            ELSE 'working'
          END AS display_status
@@ -237,7 +235,7 @@ class ShiftRepository {
        JOIN shifts s ON sr.shift_id = s.id
        JOIN shift_templates st ON s.template_id = st.id
        WHERE s.shift_date BETWEEN ? AND ?
-         AND sr.status != 'cancelled'
+         AND sr.status IN ('registered', 'swapped_in')
          ${userFilter}
        ORDER BY u.last_name, s.shift_date, st.start_time`,
             params,
