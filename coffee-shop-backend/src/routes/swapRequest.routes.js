@@ -40,6 +40,14 @@ router.post(
     AsyncMiddleware(swapRequestController.cancelSwapRequest),
 );
 
+// Lấy danh sách của tất cả (dành cho Admin/Manager)
+router.get(
+    '/all',
+    authenticate,
+    authorize([ROLES_STRING.MANAGER]),
+    AsyncMiddleware(swapRequestController.getAllSwapRequests),
+);
+
 // Lấy danh sách của mình (cả gửi lẫn nhận)
 router.get(
     '/',

@@ -21,6 +21,9 @@ import NewsDetailPage from "@/pages/homePage/news/NewsDetailPage";
 import NewsListPage from "@/pages/homePage/news/NewsListPage";
 import DiscountListPage from "@/pages/homePage/discount/DiscountListPage";
 import AdminDiscounts from "@/pages/admin/AdminDiscount/AdminDiscounts";
+import AdminRequests from "../pages/admin/AdminRequest/AdminRequests";
+// import AdminDiscountCreate from "@/pages/admin/AdminDiscount/AdminDiscountCreate";
+// import AdminDiscountEdit from "@/pages/admin/AdminDiscount/AdminDiscountEdit";
 import OrderPolicy from "@/pages/common/OrderPolicy";
 import PrivacyPolicy from "@/pages/common/PrivacyPolicy";
 import AdminApp from "../pages/admin/AdminApp";
@@ -201,6 +204,7 @@ const AppRoutes = () => {
           <Route index element={<ShiftTemplatePage />} />
           <Route path="templates" element={<ShiftTemplatePage />} />
           <Route path="list" element={<WorkSchedulePage />} />
+          <Route path="requests" element={<AdminRequests />} />
         </Route>
         <Route path="inventory" element={<AdminIngredients />} />
         <Route path="profile" element={<UserProfile />} />
