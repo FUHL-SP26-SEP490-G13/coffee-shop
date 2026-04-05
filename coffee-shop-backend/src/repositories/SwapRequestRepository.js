@@ -20,12 +20,12 @@ class SwapRequestRepository {
     // SWAP REQUESTS — CRUD
     // ================================================
 
-    async createSwapRequest({ requester_id, requester_shift_id, receiver_id, receiver_shift_id }) {
+    async createSwapRequest({ requester_id, requester_shift_id, receiver_id, receiver_shift_id, expired_at }) {
         const [result] = await pool.query(
             `INSERT INTO shift_swap_requests
-                (requester_id, requester_shift_id, receiver_id, receiver_shift_id, status)
-             VALUES (?, ?, ?, ?, 'pending')`,
-            [requester_id, requester_shift_id, receiver_id, receiver_shift_id || null],
+                (requester_id, requester_shift_id, receiver_id, receiver_shift_id, status, expired_at)
+             VALUES (?, ?, ?, ?, 'pending', ?)`,
+            [requester_id, requester_shift_id, receiver_id, receiver_shift_id || null, expired_at || null],
         );
         return this.findById(result.insertId);
     }
@@ -132,6 +132,18 @@ class SwapRequestRepository {
         );
         return this.findById(swapId);
     }
+
+    // Batch cancel nhiều đơn hết hạn cùng lúc (gọi khi load danh sách)
+    async bulkCancel(ids) {
+        if (!ids || ids.length === 0) return;
+        await pool.query(
+            `UPDATE shift_swap_requests
+             SET status = 'cancelled'
+             WHERE id IN (?)`,
+            [ids],
+        );
+    }
+
 
     // ================================================
     // SHIFT REGISTRATIONS

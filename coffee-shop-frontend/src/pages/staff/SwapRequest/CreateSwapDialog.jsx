@@ -77,7 +77,7 @@ export function CreateSwapDialog({ open, onClose, onCreated, myUserId }) {
       setLoading(true);
       const res = await shiftService.getSchedule({ start_date: shiftDate, end_date: shiftDate });
       const data = res?.data?.data || res?.data || [];
-      setTeamData(data.filter((emp) => emp.user_id !== myUserId));
+      setTeamData(data.filter((emp) => emp.user_id !== myUserId && emp.role?.toLowerCase() === 'staff'));
     } catch {
       toast.error('Không thể tải danh sách đồng nghiệp');
     } finally {
@@ -171,9 +171,9 @@ export function CreateSwapDialog({ open, onClose, onCreated, myUserId }) {
                 </div>
               ) : Object.entries(shiftsByDate).map(([date, shifts]) => {
                 const todayStr = toStr(new Date());
-                const isToday    = date === todayStr;
+                const isToday = date === todayStr;
                 const isTomorrow = date === toStr(new Date(Date.now() + 86400000));
-                const dayLabel   = isToday ? 'Hôm nay' : isTomorrow ? 'Ngày mai' : getDayName(date);
+                const dayLabel = isToday ? 'Hôm nay' : isTomorrow ? 'Ngày mai' : getDayName(date);
                 return (
                   <div key={date}>
                     <div className="flex items-center gap-2 mb-2">
@@ -238,7 +238,7 @@ export function CreateSwapDialog({ open, onClose, onCreated, myUserId }) {
                 <div className="grid grid-cols-2 gap-2">
                   {[
                     { value: 'give_away', label: 'Nhường ca' },
-                    { value: 'exchange',  label: 'Đổi ca' },
+                    { value: 'exchange', label: 'Đổi ca' },
                   ].map(({ value, label }) => (
                     <button
                       key={value}
@@ -266,7 +266,7 @@ export function CreateSwapDialog({ open, onClose, onCreated, myUserId }) {
                   <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1 rounded-xl">
                     {teamData.map((emp) => {
                       const isSelected = selectedReceiver?.user_id === emp.user_id;
-                      const hasShifts  = (emp.schedule?.[selectedMyShift?.date] || []).length > 0;
+                      const hasShifts = (emp.schedule?.[selectedMyShift?.date] || []).length > 0;
                       return (
                         <button
                           key={emp.user_id}

@@ -1,14 +1,69 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Plus, Loader2, RefreshCw, Send, Inbox } from 'lucide-react';
+import { Plus, Loader2, RefreshCw, Send, Inbox, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import swapRequestService from '@/services/swapRequestService';
 import authenticationService from '@/services/authenticationService';
 import { SwapRequestCard } from './SwapRequestCard';
 import { CreateSwapDialog } from './CreateSwapDialog';
 
+const PAGE_SIZE = 5;
+
+// ─── Pagination Controls ──────────────────────────────────────────────────────
+function Pagination({ page, totalPages, onChange }) {
+  if (totalPages <= 1) return null;
+
+  const pages = Array.from({ length: totalPages }, (_, i) => i + 1);
+  const showEllipsis = totalPages > 7;
+
+  const visiblePages = showEllipsis
+    ? pages.filter((p) => p === 1 || p === totalPages || Math.abs(p - page) <= 1)
+    : pages;
+
+  return (
+    <div className="flex items-center justify-center gap-1 pt-2">
+      <button
+        onClick={() => onChange(page - 1)}
+        disabled={page === 1}
+        className="p-1.5 rounded-lg border text-muted-foreground hover:bg-muted transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+      >
+        <ChevronLeft className="w-4 h-4" />
+      </button>
+
+      {visiblePages.map((p, i) => {
+        const prev = visiblePages[i - 1];
+        return (
+          <div key={p} className="flex items-center gap-1">
+            {showEllipsis && prev && p - prev > 1 && (
+              <span className="px-1 text-xs text-muted-foreground">…</span>
+            )}
+            <button
+              onClick={() => onChange(p)}
+              className={`min-w-[32px] h-8 px-2 rounded-lg text-sm font-medium transition-all
+                ${p === page
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'border text-muted-foreground hover:bg-muted hover:text-foreground'}`}
+            >
+              {p}
+            </button>
+          </div>
+        );
+      })}
+
+      <button
+        onClick={() => onChange(page + 1)}
+        disabled={page === totalPages}
+        className="p-1.5 rounded-lg border text-muted-foreground hover:bg-muted transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+      >
+        <ChevronRight className="w-4 h-4" />
+      </button>
+    </div>
+  );
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export function BaristaRequests() {
   const [tab, setTab] = useState('received');
+  const [page, setPage] = useState(1);
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
@@ -38,10 +93,15 @@ export function BaristaRequests() {
 
   useEffect(() => { fetchRequests(); }, [fetchRequests]);
 
+  const handleTabChange = (newTab) => {
+    setTab(newTab);
+    setPage(1);
+  };
+
   const filtered = requests
     .filter((r) => {
-      if (tab === 'received' && r.receiver.id  !== myUserId) return false;
-      if (tab === 'sent'     && r.requester.id !== myUserId) return false;
+      if (tab === 'received' && r.receiver.id !== myUserId) return false;
+      if (tab === 'sent' && r.requester.id !== myUserId) return false;
       return true;
     })
     .sort((a, b) => {
@@ -49,6 +109,9 @@ export function BaristaRequests() {
       if (a.status !== 'pending' && b.status === 'pending') return 1;
       return new Date(b.created_at) - new Date(a.created_at);
     });
+
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const paginated  = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const sentCount            = requests.filter((r) => r.requester.id === myUserId).length;
   const pendingReceivedCount = requests.filter((r) => r.receiver.id === myUserId && r.status === 'pending').length;
@@ -98,7 +161,7 @@ export function BaristaRequests() {
       {/* Tabs */}
       <div className="flex gap-1 p-1 bg-muted rounded-xl w-fit">
         <button
-          onClick={() => setTab('received')}
+          onClick={() => handleTabChange('received')}
           className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all
             ${tab === 'received' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
         >
@@ -111,7 +174,7 @@ export function BaristaRequests() {
           )}
         </button>
         <button
-          onClick={() => setTab('sent')}
+          onClick={() => handleTabChange('sent')}
           className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all
             ${tab === 'sent' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
         >
@@ -149,7 +212,14 @@ export function BaristaRequests() {
         </div>
       ) : (
         <div className="space-y-3">
-          {filtered.map((r) => (
+          {/* Info row */}
+          <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
+            <span>{filtered.length} yêu cầu</span>
+            {totalPages > 1 && <span>Trang {page}/{totalPages}</span>}
+          </div>
+
+          {/* Cards */}
+          {paginated.map((r) => (
             <SwapRequestCard
               key={r.id}
               req={r}
@@ -158,6 +228,9 @@ export function BaristaRequests() {
               actionLoading={actionLoading}
             />
           ))}
+
+          {/* Pagination */}
+          <Pagination page={page} totalPages={totalPages} onChange={setPage} />
         </div>
       )}
 

@@ -52,6 +52,7 @@ export function SwapRequestCard({ req, myUserId, onAction, actionLoading }) {
   const isReceiver = req.receiver.id  === myUserId;
   const isExchange = req.type === 'exchange';
   const isPendingReceived = req.status === 'pending' && isReceiver;
+  const isExpired = req.status === 'expired';
   const [expanded, setExpanded] = useState(isPendingReceived);
 
   const otherPerson = isSender ? req.receiver : req.requester;

@@ -1,5 +1,6 @@
 const SwapRequestRepository = require('../repositories/SwapRequestRepository');
 const ErrorResponse = require('../utils/ErrorResponse');
+const { EXPIRE_BEFORE_SHIFT_HOURS } = require('../config/swapConfig');
 
 class SwapRequestService {
 
@@ -82,12 +83,27 @@ class SwapRequestService {
             throw new ErrorResponse(400, 'Bạn đã gửi yêu cầu đổi ca này cho người này rồi');
         }
 
-        // 8. Tạo yêu cầu
+        // 8. Tính expired_at = giờ bắt đầu ca A − EXPIRE_BEFORE_SHIFT_HOURS
+        //    Nếu exchange → lấy ca nào sớm hơn (deadline an toàn)
+        let expiredAt = this._calcExpiredAt(shiftA.shift_date, shiftA.start_time);
+        if (shiftBId) {
+            const shiftB = await SwapRequestRepository.findShiftWithTemplate(shiftBId);
+            const expiredAtB = this._calcExpiredAt(shiftB.shift_date, shiftB.start_time);
+            if (expiredAtB < expiredAt) expiredAt = expiredAtB;
+        }
+
+        // Đảm bảo không tạo đơn nếu expiredAt tính ra đã nằm trong quá khứ do cấu hình admin
+        if (new Date() >= expiredAt) {
+            throw new ErrorResponse(400, 'Đã quá thời hạn cho phép để tạo yêu cầu đổi ca này');
+        }
+
+        // 9. Tạo yêu cầu
         const newSwap = await SwapRequestRepository.createSwapRequest({
             requester_id: userAId,
             requester_shift_id: shiftAId,
             receiver_id: userBId,
             receiver_shift_id: shiftBId,
+            expired_at: expiredAt,
         });
 
         return this._formatSwap(newSwap);
@@ -103,6 +119,13 @@ class SwapRequestService {
         // 2. Chỉ người nhận (B) mới được accept
         if (swap.receiver_id !== Number(currentUserId)) {
             throw new ErrorResponse(403, 'Bạn không phải người nhận yêu cầu này');
+        }
+
+        // 3. Kiểm tra đơn chưa hết hạn
+        //    Nếu đã quá expired_at → cập nhật DB sang 'cancelled' rồi báo lỗi
+        if (swap.expired_at && new Date() >= new Date(swap.expired_at)) {
+            await SwapRequestRepository.updateStatus(swapId, 'cancelled');
+            throw new ErrorResponse(400, 'Đơn đổi ca đã quá hạn, đơn đã bị hủy tự động');
         }
 
         const today = this._todayStr();
@@ -178,6 +201,13 @@ class SwapRequestService {
             throw new ErrorResponse(403, 'Bạn không phải người nhận yêu cầu này');
         }
 
+        // Kiểm tra đơn chưa hết hạn
+        //    Nếu đã quá expired_at → cập nhật DB sang 'cancelled' rồi báo lỗi
+        if (swap.expired_at && new Date() >= new Date(swap.expired_at)) {
+            await SwapRequestRepository.updateStatus(swapId, 'cancelled');
+            throw new ErrorResponse(400, 'Đơn đổi ca đã quá hạn, đơn đã bị hủy tự động');
+        }
+
         const updated = await SwapRequestRepository.updateStatus(swapId, 'rejected');
         return this._formatSwap(updated);
     }
@@ -201,8 +231,25 @@ class SwapRequestService {
     // ================================================
     async getMySwapRequests(userId) {
         const rows = await SwapRequestRepository.findByUserId(Number(userId));
+        const now = new Date();
+
+        // Eager-on-read: tìm các đơn pending đã quá expired_at → update DB luôn
+        const expiredIds = rows
+            .filter((r) => r.status === 'pending' && r.expired_at && now >= new Date(r.expired_at))
+            .map((r) => r.id);
+
+        if (expiredIds.length > 0) {
+            await SwapRequestRepository.bulkCancel(expiredIds);
+            // Gán lại status trong memory để khỏi query lại
+            expiredIds.forEach((id) => {
+                const r = rows.find((x) => x.id === id);
+                if (r) r.status = 'cancelled';
+            });
+        }
+
         return rows.map((row) => this._formatSwap(row));
     }
+
 
     // ================================================
     // XEM CHI TIẾT
@@ -273,6 +320,22 @@ class SwapRequestService {
     }
 
     /**
+     * Tính thời điểm hết hạn của đơn:
+     * expired_at = ngày ca + giờ bắt đầu ca − EXPIRE_BEFORE_SHIFT_HOURS
+     *
+     * @param {string|Date} shiftDate  - '2026-04-08' hoặc Date object
+     * @param {string}      startTime  - 'HH:MM:SS'
+     * @returns {Date}
+     */
+    _calcExpiredAt(shiftDate, startTime) {
+        const dateStr = this._toDateStr(shiftDate);
+        const dt = new Date(`${dateStr}T${startTime.slice(0, 8)}`);
+        // Dùng ms để hỗ trợ số thập phân (ví dụ: 0.0833 giờ = 5 phút)
+        dt.setTime(dt.getTime() - EXPIRE_BEFORE_SHIFT_HOURS * 60 * 60 * 1000);
+        return dt;
+    }
+
+    /**
      * Kiểm tra user có bị trùng giờ khi nhận ca mới không.
      *
      * @param userId        - user sắp nhận ca mới
@@ -316,13 +379,25 @@ class SwapRequestService {
     }
 
     // Format response trả về cho client
+    // Lazy Expiry: nếu đơn vẫn pending nhưng đã quá expired_at → hiển thị là cancelled
+    // (DB chưa update cho đến khi có ai đụng vào accept/reject)
     _formatSwap(row) {
         const isExchange = !!row.receiver_shift_id;
+
+        // Áp dụng lazy expiry
+        let status = row.status;
+        if (
+            status === 'pending' &&
+            row.expired_at &&
+            new Date() >= new Date(row.expired_at)
+        ) {
+            status = 'cancelled';
+        }
 
         return {
             id: row.id,
             type: isExchange ? 'exchange' : 'give_away',
-            status: row.status,
+            status: status,   // đã qua lazy expiry check
             requester: {
                 id: row.requester_id,
                 name: `${row.requester_first_name} ${row.requester_last_name}`,
@@ -347,6 +422,7 @@ class SwapRequestService {
                 end_time: row.receiver_end_time,
                 color: row.receiver_color,
             } : null,
+            expired_at: row.expired_at || null,
             responded_at: row.responded_at,
             created_at: row.created_at,
             updated_at: row.updated_at,
