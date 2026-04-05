@@ -13,6 +13,7 @@ class ReviewRepository extends BaseRepository {
         r.product_id,
         r.rating,
         r.comment,
+        r.images,
         r.created_at,
         r.updated_at,
         u.first_name,
@@ -53,29 +54,31 @@ class ReviewRepository extends BaseRepository {
     return rows.length > 0;
   }
 
-  async createReview(userId, productId, rating, comment) {
+  async createReview(userId, productId, rating, comment, images = []) {
     const query = `
-      INSERT INTO reviews (user_id, product_id, rating, comment)
-      VALUES (?, ?, ?, ?)
+      INSERT INTO reviews (user_id, product_id, rating, comment, images)
+      VALUES (?, ?, ?, ?, ?)
     `;
     const [result] = await this.db.query(query, [
       userId,
       productId,
       rating,
       comment || null,
+      JSON.stringify(images),
     ]);
     return result;
   }
 
-  async updateReview(userId, productId, rating, comment) {
+  async updateReview(userId, productId, rating, comment, images = []) {
     const query = `
       UPDATE reviews
-      SET rating = ?, comment = ?, updated_at = CURRENT_TIMESTAMP
+      SET rating = ?, comment = ?, images = ?, updated_at = CURRENT_TIMESTAMP
       WHERE user_id = ? AND product_id = ?
     `;
     const [result] = await this.db.query(query, [
       rating,
       comment || null,
+      JSON.stringify(images),
       userId,
       productId,
     ]);
@@ -107,6 +110,7 @@ class ReviewRepository extends BaseRepository {
       r.product_id,
       r.rating,
       r.comment,
+      r.images,
       r.created_at,
       r.updated_at,
       u.first_name,
@@ -149,12 +153,12 @@ class ReviewRepository extends BaseRepository {
         r.id,
         r.rating,
         r.comment,
+        r.images,
         r.created_at,
         u.first_name,
         u.last_name
       FROM reviews r
       INNER JOIN users u ON u.id = r.user_id
-      WHERE r.comment IS NOT NULL AND TRIM(r.comment) != ''
       ORDER BY r.rating DESC, r.created_at DESC
       LIMIT ?
     `;

@@ -42,6 +42,10 @@ const orderService = {
   getAllOrders(params) {
     return axiosClient.get(API_ENDPOINTS.ORDERSLIST.ADMIN_LIST, { params });
   },
+
+  getOrderDetailForStaff(id) {
+    return axiosClient.get(`/orders/${id}`);
+  },
 };
 
 export default orderService;

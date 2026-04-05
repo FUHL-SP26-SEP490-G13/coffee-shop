@@ -9,7 +9,6 @@ import {
   User,
   Tag,
   LogOut,
-  Mail,
   ImagePlus,
   ListOrdered,
   Coffee,
@@ -20,9 +19,13 @@ import {
   MapPin,
   LayoutGrid,
   Bell,
+  Settings,
   MessageSquare,
+  Shield,
   Zap,
   Clock,
+  Moon,
+  Sun,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import authenticationService from '../../services/authenticationService';
@@ -50,6 +53,22 @@ export default function AdminApp() {
    const [showNotifications, setShowNotifications] = useState(false);
    const notificationRef = useRef(null);
    const navigate = useNavigate();
+
+   const [isDarkMode, setIsDarkMode] = useState(() => {
+     return document.documentElement.classList.contains("dark");
+   });
+
+   const toggleDarkMode = () => {
+     if (isDarkMode) {
+       document.documentElement.classList.remove("dark");
+       localStorage.setItem("theme", "light");
+       setIsDarkMode(false);
+     } else {
+       document.documentElement.classList.add("dark");
+       localStorage.setItem("theme", "dark");
+       setIsDarkMode(true);
+     }
+   };
 
    const unreadCount = notifications.filter(
      (item) => Number(item.is_read) === 0
@@ -431,6 +450,18 @@ export default function AdminApp() {
                   <span className="text-sm tracking-wide">Mã giảm giá</span>
                 </NavLink>
                 <NavLink
+                  to="/admin/reputation"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={({ isActive }) =>
+                    `w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                      isActive ? "bg-primary text-white" : "text-muted-foreground hover:bg-secondary"
+                    }`
+                  }
+                >
+                  <Shield className="w-4 h-4" />
+                  <span className="text-sm tracking-wide">Điểm uy tín</span>
+                </NavLink>
+                <NavLink
                   to="/admin/flash-sales"
                   onClick={() => setMobileMenuOpen(false)}
                   className={({ isActive }) =>
@@ -466,18 +497,6 @@ export default function AdminApp() {
                   <ClipboardList className="w-4 h-4" />
                   <span className="text-sm tracking-wide">Bài viết</span>
                 </NavLink>
-                <NavLink
-                  to="/admin/subscriber"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={({ isActive }) =>
-                    `w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
-                      isActive ? "bg-primary text-white" : "text-muted-foreground hover:bg-secondary"
-                    }`
-                  }
-                >
-                  <Mail className="w-4 h-4" />
-                  <span className="text-sm tracking-wide">Email đăng kí</span>
-                </NavLink>
               </div>
             </div>
 
@@ -487,6 +506,8 @@ export default function AdminApp() {
                 Hệ thống
               </p>
               <div className="space-y-1">
+
+
                 <div>
                   <button
                     onClick={() => setOpenScheduleMenu(!openScheduleMenu)}
@@ -588,80 +609,95 @@ export default function AdminApp() {
         {/* Topbar notification */}
         <div
           ref={notificationRef}
-          className="flex justify-end px-4 md:px-8 pt-4 md:pt-4 pb-0 relative"
+          className="flex justify-end gap-3 px-4 md:px-8 pt-4 md:pt-4 pb-0 relative"
         >
+          {/* Dark Mode Toggle */}
           <button
-            onClick={() => setShowNotifications((prev) => !prev)}
-            className="relative p-2 rounded-full border bg-white hover:bg-gray-50 shadow-sm"
+            onClick={toggleDarkMode}
+            className="p-2 rounded-full border bg-white dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 shadow-sm transition-colors text-gray-700 dark:text-gray-200"
+            title="Bật/Tắt giao diện tối"
           >
+            {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+          </button>
+
+          {/* Notification Bell */}
+          <div className="relative">
+            <button
+              onClick={() => setShowNotifications((prev) => !prev)}
+              className="relative p-2 rounded-full border bg-white dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 shadow-sm transition-colors text-gray-700 dark:text-gray-200"
+            >
             <Bell className="w-5 h-5" />
             {unreadCount > 0 && (
               <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-red-500 text-white text-xs flex items-center justify-center">
                 {unreadCount}
               </span>
             )}
-          </button>
-
-          {showNotifications && (
-            <div className="absolute top-14 right-4 md:right-8 w-[360px] bg-white border rounded-xl shadow-xl z-50 overflow-hidden">
-              <div className="flex items-center justify-between px-4 py-3 border-b">
-                <h3 className="font-semibold">Thông báo</h3>
-                {notifications.length > 0 && (
-                  <button
-                    onClick={toggleAllReadStatus}
-                    className="text-sm text-primary hover:underline"
-                  >
-                    {notifications.some((item) => Number(item.is_read) === 0)
-                      ? "Đánh dấu tất cả đã đọc"
-                      : "Đánh dấu tất cả chưa đọc"}
-                  </button>
-                )}
-              </div>
-
-              <div className="max-h-96 overflow-y-auto">
-                {notifications.length === 0 ? (
-                  <div className="p-4 text-sm text-muted-foreground">
-                    Chưa có thông báo nào
-                  </div>
-                ) : (
-                  notifications.map((item) => (
+            </button>
+            {/* Notification Dropdown */}
+            {showNotifications && (
+              <div
+                className="absolute right-0 mt-3 w-80 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden"
+                style={{ top: "100%", marginRight: "-0.5rem" }}
+              >
+                <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700">
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100">Thông báo</h3>
+                  {notifications.length > 0 && (
                     <button
-                      key={item.recipient_id || `${item.id}-${item.created_at}`}
-                      onClick={() => handleReadNotification(item)}
-                      className={`w-full text-left px-4 py-3 border-b hover:bg-gray-50 ${
-                        Number(item.is_read) === 0 ? "bg-orange-50" : "bg-white"
-                      }`}
+                      onClick={toggleAllReadStatus}
+                      className="text-sm text-primary hover:underline"
                     >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex-1">
-                          <p className="font-medium text-sm">{item.title}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {item.message}
-                          </p>
-                          <p className="text-xs text-gray-400 mt-1">
-                            {new Date(item.created_at).toLocaleString("vi-VN")}
-                          </p>
-                        </div>
-
-                        <div className="flex flex-col items-end gap-2 shrink-0">
-                          {Number(item.is_read) === 0 && (
-                            <span className="w-2 h-2 rounded-full bg-red-500 mt-1" />
-                          )}
-
-                          <button
-                            onClick={(e) => handleToggleRead(item, e)}
-                            className="text-xs text-primary hover:underline"
-                          >
-                            {Number(item.is_read) === 0 ? "Đã đọc" : "Chưa đọc"}
-                          </button>
-                        </div>
-                      </div>
+                      {notifications.some((item) => Number(item.is_read) === 0)
+                        ? "Đánh dấu tất cả đã đọc"
+                        : "Đánh dấu tất cả chưa đọc"}
                     </button>
-                  ))
-                )}
+                  )}
+                </div>
+
+                <div className="max-h-96 overflow-y-auto">
+                  {notifications.length === 0 ? (
+                    <div className="p-4 text-sm text-gray-500 dark:text-gray-400">
+                      Chưa có thông báo nào
+                    </div>
+                  ) : (
+                    notifications.map((item) => (
+                      <button
+                        key={item.recipient_id || `${item.id}-${item.created_at}`}
+                        onClick={() => handleReadNotification(item)}
+                        className={`w-full text-left px-4 py-3 border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${
+                          Number(item.is_read) === 0 ? "bg-orange-50 dark:bg-amber-900/20" : "bg-white dark:bg-gray-800"
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1">
+                            <p className="font-medium text-sm text-gray-900 dark:text-gray-100">{item.title}</p>
+                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                              {item.message}
+                            </p>
+                            <p className="text-xs text-gray-400 mt-1">
+                              {new Date(item.created_at).toLocaleString("vi-VN")}
+                            </p>
+                          </div>
+
+                          <div className="flex flex-col items-end gap-2 shrink-0">
+                            {Number(item.is_read) === 0 && (
+                              <span className="w-2 h-2 rounded-full bg-red-500 mt-1" />
+                            )}
+
+                            <button
+                              onClick={(e) => handleToggleRead(item, e)}
+                              className="text-xs text-primary hover:underline"
+                            >
+                              {Number(item.is_read) === 0 ? "Đã đọc" : "Chưa đọc"}
+                            </button>
+                          </div>
+                        </div>
+                      </button>
+                    ))
+                  )}
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
         <div className="p-4 md:px-8 md:pb-8 pt-2 md:pt-2">

@@ -174,17 +174,6 @@ class OrderRepository {
     );
   }
 
-  async createReputationProfileIfNotExists(connection, phoneNumber) {
-    await connection.query(
-      `
-      INSERT INTO reputation_profiles (phone_number)
-      VALUES (?)
-      ON DUPLICATE KEY UPDATE phone_number = phone_number
-      `,
-      [phoneNumber]
-    );
-  }
-
   async markOrderAsPaid(connection, orderId) {
     await connection.query(
       `
@@ -337,6 +326,8 @@ class OrderRepository {
       `
       SELECT
         o.id,
+        o.user_id,
+        o.customer_type,
         o.order_type,
         o.status,
         o.is_paid,
@@ -468,8 +459,7 @@ class OrderRepository {
     );
   }
 
-  // Đếm số đơn hàng chưa thanh toán online đang ở trạng thái pending của một 
-  // user
+  // Đếm số đơn hàng online tiền mặt chưa thanh toán (pending) của một user
   async countPendingUnpaidOnlineOrdersByUser(connection, userId) {
     const [rows] = await connection.query(
       `
@@ -480,6 +470,7 @@ class OrderRepository {
         AND o.order_type IN ('delivery', 'takeaway')
         AND o.status = 'pending'
         AND o.is_paid = 0
+        AND op.payment_method = 'cash'
         AND op.payment_status = 'pending'
       `,
       [userId]
@@ -488,8 +479,8 @@ class OrderRepository {
     return Number(rows[0]?.total || 0);
   }
 
-  // Đếm số đơn hàng chưa thanh toán online đang ở trạng thái pending của một số
-  // điện thoại (dùng cho khách vãng lai)
+  // Đếm số đơn hàng online tiền mặt chưa thanh toán (pending) theo số điện thoại
+  // (dùng cho khách vãng lai)
   async countPendingUnpaidOnlineOrdersByPhone(connection, normalizedPhone) {
     const phoneDigitsExpr = `REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(TRIM(COALESCE(odi.receiver_phone, '')), ' ', ''), '.', ''), '-', ''), '(', ''), ')', ''), '+', '')`;
     const normalizedPhoneExpr = `
@@ -511,6 +502,7 @@ class OrderRepository {
       WHERE o.order_type IN ('delivery', 'takeaway')
         AND o.status = 'pending'
         AND o.is_paid = 0
+        AND op.payment_method = 'cash'
         AND op.payment_status = 'pending'
         AND ${normalizedPhoneExpr} = ?
       `,
@@ -571,24 +563,26 @@ class OrderRepository {
     return rows[0].count;
   }
 
-  async findReputationProfileByPhone(phoneNumber) {
-    const [rows] = await db.query(
+  async cancelExpiredPendingPayosOrders({ timeoutMinutes = 5 } = {}) {
+    const safeTimeoutMinutes = Math.max(1, Number(timeoutMinutes) || 5);
+
+    const [result] = await db.query(
       `
-      SELECT
-        phone_number,
-        current_score,
-        total_orders_completed,
-        total_orders_cancelled,
-        is_frozen,
-        updated_at
-      FROM reputation_profiles
-      WHERE phone_number = ?
-      LIMIT 1
+      UPDATE orders o
+      JOIN order_payments op ON op.order_id = o.id
+      SET o.status = 'cancelled',
+          o.is_paid = 0,
+          op.payment_status = 'cancelled'
+      WHERE o.status = 'pending'
+        AND o.is_paid = 0
+        AND op.payment_method = 'payos'
+        AND op.payment_status = 'pending'
+        AND o.created_at <= DATE_SUB(NOW(), INTERVAL ? MINUTE)
       `,
-      [phoneNumber]
+      [safeTimeoutMinutes]
     );
 
-    return rows[0] || null;
+    return Number(result?.affectedRows || 0);
   }
 }
 

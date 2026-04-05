@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Coffee, Lock, Mail, User, Phone, CheckCircle2, AlertCircle, Shield, Eye, EyeOff } from "lucide-react";
 
@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { APP_ROUTES } from "@/constants";
+import { APP_ROUTES, STORAGE_KEYS } from "@/constants";
 import authenticationService from "@/services/authenticationService";
 
 export default function RegisterPage() {
@@ -30,6 +30,16 @@ export default function RegisterPage() {
 	const [otpError, setOtpError] = useState("");
 	const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
 	const [registrationData, setRegistrationData] = useState(null);
+
+	// Redirect if already logged in
+	useEffect(() => {
+		const token =
+			localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN) ||
+			sessionStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
+		if (token) {
+			navigate("/customer/profile", { replace: true });
+		}
+	}, [navigate]);
 
 	// Hàm tính độ mạnh password
 	const calculatePasswordStrength = (pwd) => {

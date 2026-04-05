@@ -173,9 +173,6 @@ class TableController {
   //   }
   // }
 
-  /**
-   * Get active order for a table
-   */
   async getActiveOrder(req, res, next) {
     try {
       const { id } = req.params;
@@ -185,6 +182,23 @@ class TableController {
       res.json({
         success: true,
         data: order,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Get all unpaid orders for current table session
+   */
+  async getUnpaidOrders(req, res, next) {
+    try {
+      const { id } = req.params;
+      const orders = await TableService.getUnpaidOrders(Number(id));
+
+      res.json({
+        success: true,
+        data: orders,
       });
     } catch (error) {
       next(error);
@@ -233,11 +247,15 @@ class TableController {
   async settleTableDebt(req, res, next) {
     try {
       const { id } = req.params;
-      const { payment_method, cash_received } = req.body || {};
+      const { payment_method, cash_received, order_ids, order_id } = req.body || {};
+
+      // Support both singular and plural for flexibility
+      const ids = order_ids || (order_id ? [order_id] : null);
 
       const result = await TableService.settleTableDebt(Number(id), {
         payment_method,
         cash_received,
+        order_ids: ids,
       });
 
       return res.json({
@@ -271,7 +289,7 @@ class TableController {
         });
       }
 
-      const result = await TableService.mergeOrder(
+      const result = await TableService.mergeOrders(
         Number(from_table_id),
         Number(to_table_id)
       );
@@ -280,6 +298,32 @@ class TableController {
         success: true,
         message: `Đã ghép order từ ${result.from.code} vào ${result.to.code}`,
         data: result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+  /**
+   * Tách hóa đơn (Separate Bill)
+   */
+  async splitBill(req, res, next) {
+    try {
+      const { id } = req.params;
+      const { items } = req.body;
+
+      if (!items || !Array.isArray(items) || items.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Dữ liệu tách đơn không hợp lệ'
+        });
+      }
+
+      const result = await TableService.splitBill(Number(id), items);
+
+      res.status(200).json({
+        success: true,
+        message: 'Tách đơn thành công',
+        data: result
       });
     } catch (error) {
       next(error);

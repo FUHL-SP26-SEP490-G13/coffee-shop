@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Search,
   Table as TableIcon,
@@ -23,6 +24,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+
 import {
   Dialog,
   DialogContent,
@@ -36,19 +38,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import tableService from "@/services/tableService";
 import areaService from "@/services/areaService";
 import orderService from "@/services/orderService";
 import { POSModal } from "./POSModal";
+import { SplitBillModal } from './SplitBillModal';
+import { PaySplitBillModal } from './PaySplitBillModal';
+import { ReceiptModal } from "./TakeAwayOrder/ReceiptModal";
 import PayOSLogo from "/logo/payOS.svg";
 // import ReservationModal from "../admin/AdminTables/ReservationModal";
 
@@ -73,6 +71,7 @@ function TableCard({
   onStatusChange,
   onTransfer,
   onMergeOrder,
+  onSeparateBill,
   onRequestPayment,
   activeOrderMeta,
   paymentRequested,
@@ -111,7 +110,7 @@ function TableCard({
                 }}
               >
                 <GitMerge className="w-4 h-4" />
-               Ghép đơn
+                Ghép đơn
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={(e) => {
@@ -121,6 +120,15 @@ function TableCard({
               >
                 <ArrowLeftRight className="w-4 h-4" />
                 Chuyển bàn
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onSeparateBill(table);
+                }}
+              >
+                <ReceiptText className="w-4 h-4" />
+                Tách đơn
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={(e) => {
@@ -294,9 +302,15 @@ export function StaffTables() {
   const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
   const [loadingOrder, setLoadingOrder] = useState(false);
   const [orderModalMode, setOrderModalMode] = useState("view-order");
+  const [isSplitBillModalOpen, setIsSplitBillModalOpen] = useState(false);
+  const [isPaySplitBillModalOpen, setIsPaySplitBillModalOpen] = useState(false);
+  const [splitOrderIds, setSplitOrderIds] = useState([]);
+
+  const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+  const [selectedTableToReset, setSelectedTableToReset] = useState(null);
   const [activeOrderSummaries, setActiveOrderSummaries] = useState({});
   const [requestedPaymentByTable, setRequestedPaymentByTable] = useState({});
-  const [nowTick, setNowTick] = useState(Date.now());
+  const [_nowTick, setNowTick] = useState(Date.now());
 
   // Transfer Modal States
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
@@ -307,6 +321,7 @@ export function StaffTables() {
   const [tableActionMode, setTableActionMode] = useState("transfer");
   const [activeOrderMetaByTable, setActiveOrderMetaByTable] = useState({});
   const [paymentRequestedByTable, setPaymentRequestedByTable] = useState({});
+  const [debtReceiptOrder, setDebtReceiptOrder] = useState(null);
   const [debtPaymentDialog, setDebtPaymentDialog] = useState({
     open: false,
     table: null,
@@ -443,6 +458,20 @@ export function StaffTables() {
   };
 
 
+  const handleOpenSeparateBill = async (table) => {
+    setSelectedTableForOrder(table);
+    setLoadingOrder(true);
+    try {
+      const res = await tableService.getActiveOrder(table.id);
+      setActiveOrder(res.data);
+      setIsSplitBillModalOpen(true);
+    } catch (err) {
+      toast.error("Không thể tải thông tin đơn hàng để tách");
+    } finally {
+      setLoadingOrder(false);
+    }
+  };
+
   const handleViewOrder = async (e, table) => {
     e.stopPropagation();
     setOrderModalMode("view-order");
@@ -453,23 +482,6 @@ export function StaffTables() {
       const res = await tableService.getActiveOrder(table.id);
       setActiveOrder(res.data);
     } catch (err) {
-      toast.error("Không thể tải thông tin đơn hàng");
-      setActiveOrder(null);
-    } finally {
-      setLoadingOrder(false);
-    }
-  };
-
-  const handleRequestPayment = async (table) => {
-    setRequestedPaymentByTable((prev) => ({ ...prev, [table.id]: true }));
-    setOrderModalMode("request-payment");
-    setSelectedTableForOrder(table);
-    setIsOrderModalOpen(true);
-    setLoadingOrder(true);
-    try {
-      const res = await tableService.getActiveOrder(table.id);
-      setActiveOrder(res.data);
-    } catch {
       toast.error("Không thể tải thông tin đơn hàng");
       setActiveOrder(null);
     } finally {
@@ -501,7 +513,7 @@ export function StaffTables() {
       setTables(nextTables);
       setAreas(areasRes.data || []);
       await fetchActiveOrderMeta(nextTables);
-    } catch (error) {
+    } catch {
       toast.error("Không thể tải dữ liệu");
     } finally {
       setLoading(false);
@@ -510,6 +522,7 @@ export function StaffTables() {
 
   useEffect(() => {
     fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedStatus]);
 
   useEffect(() => {
@@ -592,8 +605,99 @@ export function StaffTables() {
     });
   };
 
+  const buildDebtReceiptOrder = async ({
+    table,
+    paymentMethod,
+    cashReceived = 0,
+    fallbackAmount = 0,
+    orderId = null,
+  }) => {
+    const unpaidRes = await tableService.getUnpaidOrders(table.id);
+    let unpaidOrders = unpaidRes?.data || [];
+
+    if (orderId) {
+      unpaidOrders = unpaidOrders.filter((o) => Number(o.id) === Number(orderId));
+    }
+
+    const detailedOrders = await Promise.all(
+      unpaidOrders.map(async (order) => {
+        try {
+          const detailRes = await orderService.getOrderDetailForStaff(order.id);
+          return detailRes?.data || null;
+        } catch {
+          return null;
+        }
+      })
+    );
+
+    const validOrders = detailedOrders.filter(Boolean);
+    const orderIds = (validOrders.length > 0 ? validOrders : unpaidOrders)
+      .map((order) => Number(order.id || 0))
+      .filter((id) => id > 0);
+
+    if (orderIds.length === 0) {
+      throw new Error("Không lấy được mã đơn hàng");
+    }
+
+    const orderCodeText =
+      orderIds.length > 0
+        ? orderIds.length === 1
+          ? `#${orderIds[0]}`
+          : orderIds.map((id) => `#${id}`).join(", ")
+        : orderId
+          ? `#${Number(orderId)}`
+          : "#N/A";
+
+    let items = validOrders.flatMap((order) =>
+      (order.items || []).map((item) => ({
+        product_name: item.name || item.product_name || "",
+        size: item.size || "M",
+        quantity: Number(item.quantity || 0),
+        unit_price: Number(item.price || item.unit_price || 0),
+        toppings: (item.toppings || []).map((t) => ({
+          name: t.name,
+          quantity: Number(t.quantity || 0),
+          price: Number(t.price || 0),
+        })),
+        note: item.note || "",
+      }))
+    );
+
+    const totalAmountFromOrders = validOrders.reduce(
+      (sum, order) => sum + Number(order.total_amount || 0),
+      0
+    );
+    const totalAmount = Number(totalAmountFromOrders || fallbackAmount || 0);
+    items = items.filter((item) => item.product_name && item.quantity > 0 && item.unit_price >= 0);
+
+    if (items.length === 0) {
+      throw new Error("Không lấy được tên sản phẩm đã bán");
+    }
+
+    return {
+      order_id: orderIds[0] || Number(orderId || Date.now()),
+      order_code: orderCodeText,
+      created_at: new Date().toISOString(),
+      order_type: "dine-in",
+      receiver_name: `Khách bàn ${table.code || table.id}`,
+      payment_method: paymentMethod,
+      items,
+      total_amount: totalAmount,
+      payment: {
+        method: paymentMethod,
+        status: "paid",
+        cash_received: paymentMethod === "cash" ? Number(cashReceived || 0) : undefined,
+        change_amount:
+          paymentMethod === "cash"
+            ? Math.max(0, Number(cashReceived || 0) - Number(totalAmount || 0))
+            : undefined,
+      },
+    };
+  };
+
   const handleSettleDebt = async () => {
     if (!debtPaymentDialog.table) return;
+    const selectedTable = debtPaymentDialog.table;
 
     const debtAmount = Number(debtPaymentDialog.debtAmount || 0);
     if (debtAmount <= 0) {
@@ -607,21 +711,48 @@ export function StaffTables() {
 
     if (debtPaymentDialog.method === "payos") {
       try {
+        const receiptForPayos = await buildDebtReceiptOrder({
+          table: selectedTable,
+          paymentMethod: "payos",
+          fallbackAmount: debtAmount,
+        });
+
+        const payosItems = (receiptForPayos.items || [])
+          .map((item) => ({
+            name: String(item.product_name || "").slice(0, 100),
+            quantity: Math.max(1, Number(item.quantity || 1)),
+            price: Math.round(Number(item.unit_price || item.price || 0)),
+          }))
+          .filter((item) => item.name && item.price > 0);
+
+        if (payosItems.length === 0) {
+          setDebtPaymentDialog((prev) => ({ ...prev, loading: false }));
+          toast.error("Không lấy được sản phẩm đã bán để tạo thanh toán");
+          return;
+        }
+
         const now = Date.now();
         const orderCode = Number(String(now).slice(-6));
-        const returnUrl = `${window.location.origin}/staff/tables?debtPay=1&tableId=${debtPaymentDialog.table.id}`;
-        const payosItems = [
-          {
-            name: `Cong no ban ${debtPaymentDialog.table.code}`.slice(0, 100),
-            quantity: 1,
-            price: Math.round(debtAmount),
-          },
-        ];
+        const transferOrderId = Number(receiptForPayos.order_id || 0);
+        if (!transferOrderId) {
+          setDebtPaymentDialog((prev) => ({ ...prev, loading: false }));
+          toast.error("Không lấy được mã id đơn để tạo thanh toán");
+          return;
+        }
+        const transferDescription = `DH${transferOrderId}`.slice(0, 25);
+        const payosReturnParams = new URLSearchParams({
+          origin: "/staff/tables",
+          debtPay: "1",
+          tableId: String(selectedTable.id),
+          tableCode: String(selectedTable.code || ""),
+          debtAmount: String(Math.round(debtAmount)),
+        });
+        const returnUrl = `${window.location.origin}/staff/payment-result?${payosReturnParams.toString()}`;
 
         const createRes = await orderService.createPaymentLink({
           orderCode,
           amount: Math.round(debtAmount),
-          description: `CN${debtPaymentDialog.table.code}`.slice(0, 25),
+          description: transferDescription,
           items: payosItems,
           returnUrl,
           cancelUrl: returnUrl,
@@ -650,8 +781,22 @@ export function StaffTables() {
       return;
     }
 
+    let receiptOrderDraft = null;
     try {
-      const res = await tableService.settleDebt(debtPaymentDialog.table.id, {
+      receiptOrderDraft = await buildDebtReceiptOrder({
+        table: selectedTable,
+        paymentMethod: "cash",
+        cashReceived,
+        fallbackAmount: debtAmount,
+      });
+    } catch (error) {
+      setDebtPaymentDialog((prev) => ({ ...prev, loading: false }));
+      toast.error(error?.message || "Không lấy được thông tin đơn hàng");
+      return;
+    }
+
+    try {
+      const res = await tableService.settleDebt(selectedTable.id, {
         payment_method: debtPaymentDialog.method,
         cash_received: cashReceived,
       });
@@ -667,9 +812,12 @@ export function StaffTables() {
       });
       setPaymentRequestedByTable((prev) => {
         const next = { ...prev };
-        delete next[debtPaymentDialog.table.id];
+        delete next[selectedTable.id];
         return next;
       });
+
+      setDebtReceiptOrder(receiptOrderDraft);
+
       await fetchData();
     } catch (error) {
       toast.error(error?.response?.data?.message || "Không thanh toán được ");
@@ -871,6 +1019,7 @@ export function StaffTables() {
                             onStatusChange={handleStatusChange}
                             onTransfer={handleOpenTransfer}
                             onMergeOrder={handleMergeOrder}
+                            onSeparateBill={handleOpenSeparateBill}
                             onRequestPayment={handleRequestPayment}
                             activeOrderMeta={activeOrderMetaByTable[table.id]}
                             paymentRequested={Boolean(paymentRequestedByTable[table.id])}
@@ -884,7 +1033,7 @@ export function StaffTables() {
             </div>
           ) : (
             /* === SPECIFIC AREA === */
-            <div>
+            <div className="space-y-6">
               {/* Area Info Banner */}
               {currentAreaObj && (
                 <div className="flex items-center justify-between bg-card border rounded-xl p-4 mb-6 shadow-sm">
@@ -920,24 +1069,6 @@ export function StaffTables() {
                 </div>
               )}
 
-              )}
-            </div>
-          )}
-
-          {/* PAGINATION */}
-          {totalPages > 1 && (
-            <div className="flex justify-center gap-4 mt-8">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={page === 1}
-                onClick={() => setPage((p) => p - 1)}
-              >
-                Trước
-              </Button>
-
-              <div className="flex items-center text-sm font-medium">
-                Trang {page} / {totalPages}
               <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-6">
                 {paginatedTables.length > 0 ? (
                   paginatedTables.map((table) => (
@@ -949,6 +1080,7 @@ export function StaffTables() {
                       onStatusChange={handleStatusChange}
                       onTransfer={handleOpenTransfer}
                       onMergeOrder={handleMergeOrder}
+                      onSeparateBill={handleOpenSeparateBill}
                       onRequestPayment={handleRequestPayment}
                       activeOrderMeta={activeOrderMetaByTable[table.id]}
                       paymentRequested={Boolean(paymentRequestedByTable[table.id])}
@@ -972,7 +1104,6 @@ export function StaffTables() {
                     </Button>
                   </div>
                 )}
-
               </div>
 
               {/* PAGINATION */}
@@ -1001,6 +1132,7 @@ export function StaffTables() {
               )}
             </div>
           )}
+
         </TabsContent>
       </Tabs>
 
@@ -1155,7 +1287,12 @@ export function StaffTables() {
 
 
       {/* Order Info Modal */}
-      <Dialog open={isOrderModalOpen} onOpenChange={setIsOrderModalOpen}>
+      <Dialog open={isOrderModalOpen} onOpenChange={(open) => {
+        setIsOrderModalOpen(open);
+        if (!open) {
+          setOrderModalMode("view-order");
+        }
+      }}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>Đơn hàng - {selectedTableForOrder ? `Bàn ${selectedTableForOrder.code}` : ''}</DialogTitle>
@@ -1172,7 +1309,7 @@ export function StaffTables() {
               </div>
               <div className="space-y-4">
                 {activeOrder.items?.map((item, idx) => (
-                  <div key={idx} className="flex justify-between items-start text-sm">
+                  <div key={idx} className="flex justify-between items-start text-sm border-b pb-2 last:border-0">
                     <div className="flex-1">
                       <p className="font-medium text-base">{item.quantity} x {item.name}</p>
                       <p className="text-muted-foreground">Size {item.size}</p>
@@ -1202,14 +1339,11 @@ export function StaffTables() {
                   ).toLocaleString('vi-VN')}đ
                 </span>
               </div>
-              {orderModalMode === "request-payment" && (
-                <Button
-                  onClick={handleOpenPaymentFromRequest}
-                  className="w-full rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold"
-                >
-                  Thanh toán
-                </Button>
-              )}
+
+              <div className="flex w-full gap-2 mt-4">
+              
+             
+              </div>
             </div>
           ) : (
             <div className="py-8 text-center text-muted-foreground">
@@ -1358,6 +1492,36 @@ export function StaffTables() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <SplitBillModal
+        isOpen={isSplitBillModalOpen}
+        onClose={() => setIsSplitBillModalOpen(false)}
+        table={selectedTableForOrder}
+        activeOrder={activeOrder}
+        onSplitSuccess={() => {
+          setIsPaySplitBillModalOpen(true);
+          fetchData();
+        }}
+      />
+
+      {isPaySplitBillModalOpen && (
+        <PaySplitBillModal
+          isOpen={isPaySplitBillModalOpen}
+          onClose={() => setIsPaySplitBillModalOpen(false)}
+          table={selectedTableForOrder}
+          onSuccess={() => {
+            fetchData();
+          }}
+        />
+      )}
+
+      {debtReceiptOrder && (
+        <ReceiptModal
+          order={debtReceiptOrder}
+          onClose={() => setDebtReceiptOrder(null)}
+        />
+      )}
+
     </div>
   );
 }

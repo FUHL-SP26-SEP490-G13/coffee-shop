@@ -1,5 +1,6 @@
 const CategoryRepository = require("../repositories/CategoryRepository");
 const ErrorResponse = require("../utils/ErrorResponse");
+const slugify = require("slugify");
 
 class CategoryService {
   /**
@@ -40,10 +41,19 @@ class CategoryService {
       throw new ErrorResponse(409, 'Mã code category đã tồn tại');
     }
 
+    let baseSlug = slugify(data.name, { lower: true, strict: true });
+    let slug = baseSlug;
+    let counter = 1;
+    while (await CategoryRepository.findBySlug(slug)) {
+      slug = `${baseSlug}-${counter}`;
+      counter++;
+    }
+
     return CategoryRepository.create({
       name: data.name.trim(),
       code: data.code.trim().toUpperCase(),
       image_url: data.image_url || null,
+      slug: slug,
     });
   }
 
@@ -62,6 +72,21 @@ class CategoryService {
         throw new ErrorResponse(409, 'Tên danh mục đã tồn tại');
       }
       updateData.name = data.name.trim();
+
+      let baseSlug = slugify(data.name, { lower: true, strict: true });
+      let slug = baseSlug;
+      let counter = 1;
+      let isUnique = false;
+      while (!isUnique) {
+        const checkSlug = await CategoryRepository.findBySlug(slug);
+        if (!checkSlug || checkSlug.id === parseInt(id)) {
+          isUnique = true;
+        } else {
+          slug = `${baseSlug}-${counter}`;
+          counter++;
+        }
+      }
+      updateData.slug = slug;
     }
 
     // check category code if exist

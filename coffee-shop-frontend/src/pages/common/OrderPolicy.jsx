@@ -17,22 +17,22 @@ import {
 
 function OrderPolicy() {
   return (
-    <div className="min-h-screen flex flex-col bg-white">
+    <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900">
       <Header />
 
-      <div className="text-center space-y-3 mt-10">
-        <h1 className="text-2xl md:text-3xl text-primary font-bold">
-          Chính sách đặt hàng
-        </h1>
-        <p className="text-gray-600 text-sm">
-          Thông tin chi tiết về quy trình đặt hàng, thanh toán và hỗ trợ khách
-          hàng.
-        </p>
-      </div>
+      <div className="flex-1 w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-10 mb-10">
+        <div className="text-center space-y-3 mt-4 mb-10">
+          <h1 className="text-2xl md:text-3xl text-primary font-bold">
+            Chính sách đặt hàng
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400 text-sm">
+            Thông tin chi tiết về quy trình đặt hàng, thanh toán và hỗ trợ khách
+            hàng.
+          </p>
+        </div>
 
-      {/* ===== CONTENT ===== */}
-      <section className="w-full px-4 sm:px-6 lg:px-8 py-16 sm:py-20">
-        <div className="max-w-6xl mx-auto space-y-10">
+        {/* ===== CONTENT ===== */}
+        <div className="w-full space-y-10">
           {/* 1 */}
           <PolicyCard icon={<ShoppingBag />} title="1. Hình thức đặt hàng">
             <ul className="space-y-2">
@@ -100,7 +100,7 @@ function OrderPolicy() {
             </ul>
           </PolicyCard>
         </div>
-      </section>
+      </div>
 
       {/* Divider giống Home */}
       <div className="w-full h-px bg-gradient-to-r from-transparent via-amber-300 to-transparent" />
@@ -113,14 +113,14 @@ function OrderPolicy() {
 /* Reusable Policy Card */
 function PolicyCard({ icon, title, children }) {
   return (
-    <Card className="rounded-3xl shadow-xl border border-gray-200 hover:border-amber-300 transition-all duration-300 p-8">
+    <Card className="rounded-3xl shadow-xl border border-gray-200 dark:border-gray-800 hover:border-amber-300 dark:hover:border-amber-500 transition-all duration-300 p-8 bg-white dark:bg-gray-950">
       <div className="flex items-center gap-4 mb-6">
-        <div className="p-3 bg-amber-100 rounded-xl text-amber-600">{icon}</div>
-        <h2 className="text-lg sm:text-xl font-semibold text-gray-900">
+        <div className="p-3 bg-amber-100 dark:bg-amber-900/40 rounded-xl text-amber-600 dark:text-amber-500">{icon}</div>
+        <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100">
           {title}
         </h2>
       </div>
-      <div className="text-sm sm:text-base text-gray-600 leading-relaxed">
+      <div className="text-sm sm:text-base text-gray-600 dark:text-gray-400 leading-relaxed">
         {children}
       </div>
     </Card>

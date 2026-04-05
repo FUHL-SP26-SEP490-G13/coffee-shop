@@ -2,21 +2,6 @@ const OrderOnlineService = require("../services/OrderOnlineService");
 const NotificationService = require("../services/NotificationService");
 
 class OrderOnlineController {
-  async getReputationByPhone(req, res, next) {
-    try {
-      const { phone } = req.query;
-      const result = await OrderOnlineService.getReputationByPhone(phone);
-
-      return res.json({
-        success: true,
-        data: result,
-        message: "Lấy điểm uy tín thành công",
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
-
   async checkout(req, res, next) {
     try {
       const result = await OrderOnlineService.checkout(req.body, req.user || null);
@@ -342,8 +327,8 @@ class OrderOnlineController {
 
   async payosReturn(req, res, next) {
     try {
-      const { orderCode, payosId, status } = req.body;
-      const result = await OrderOnlineService.savePayosReturn({ orderCode, payosId, status });
+      const { orderCode, payosId, status, cancel } = req.body;
+      const result = await OrderOnlineService.savePayosReturn({ orderCode, payosId, status, cancel });
 
       // Emit socket event to customer when payment is completed
       const io = req.app.get("io");

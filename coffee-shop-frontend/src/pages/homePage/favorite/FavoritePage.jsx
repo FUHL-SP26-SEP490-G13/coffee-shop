@@ -77,14 +77,14 @@ export default function FavoritePage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-white">
+    <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900">
       <Header />
 
       <section className="w-full px-4 sm:px-6 lg:px-8 py-12 flex-1">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center gap-3 mb-8">
             <Heart className="w-7 h-7 text-red-500 fill-current" />
-            <h1 className="text-1xl text-gray-900">Danh sách yêu thích</h1>
+            <h1 className="text-1xl text-gray-900 dark:text-gray-100">Danh sách yêu thích</h1>
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3 mb-8">
@@ -108,7 +108,7 @@ export default function FavoritePage() {
             </div>
           ) : favorites.length === 0 ? (
             <div className="text-center py-16">
-              <p className="text-gray-500 mb-4">
+              <p className="text-gray-500 dark:text-gray-400 mb-4">
                 Không có sản phẩm yêu thích phù hợp
               </p>
               <Button onClick={() => navigate("/products")}>
@@ -130,11 +130,11 @@ export default function FavoritePage() {
                   return (
                     <div
                       key={item.product_id}
-                      className="bg-white rounded-2xl border border-gray-200 overflow-hidden hover:shadow-lg transition"
+                      className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-lg transition"
                     >
                       <div
-                        className="h-56 bg-gray-100 cursor-pointer"
-                        onClick={() => navigate(`/products/${item.product_id}`)}
+                        className="h-56 bg-gray-100 dark:bg-gray-800 cursor-pointer"
+                        onClick={() => navigate(`/${item.slug || 'products/' + item.product_id}`)}
                       >
                         <img
                           src={image}
@@ -144,14 +144,14 @@ export default function FavoritePage() {
                       </div>
 
                       <div className="p-4">
-                        <p className="text-sm text-gray-500 mb-1">
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
                           {item.category_name || "Danh mục"}
                         </p>
 
                         <h3
-                          className="font-semibold text-gray-900 line-clamp-2 min-h-[48px] cursor-pointer"
+                          className="font-semibold text-gray-900 dark:text-gray-100 line-clamp-2 min-h-[48px] cursor-pointer"
                           onClick={() =>
-                            navigate(`/products/${item.product_id}`)
+                            navigate(`/${item.slug || 'products/' + item.product_id}`)
                           }
                         >
                           {item.name}
@@ -185,7 +185,7 @@ export default function FavoritePage() {
                   Trước
                 </Button>
 
-                <span className="text-sm text-gray-600">
+                <span className="text-sm text-gray-600 dark:text-gray-400">
                   Trang {page} / {totalPages}
                 </span>
 

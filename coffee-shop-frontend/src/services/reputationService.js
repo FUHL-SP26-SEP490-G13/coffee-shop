@@ -9,7 +9,7 @@ const reputationService = {
   getReputationProfile: async (phoneNumber) => {
     try {
       return await axiosClient.get(
-        `/order-online/reputation-by-phone?phone=${encodeURIComponent(phoneNumber)}`
+        `/reputation/by-phone?phone=${encodeURIComponent(phoneNumber)}`
       );
     } catch (error) {
       console.error('Lỗi lấy thông tin uy tín:', error);
@@ -38,6 +38,25 @@ const reputationService = {
       console.error('Lỗi lấy lịch sử uy tín:', error);
       return { data: [] };
     }
+  },
+
+  getAdminReputationList: async ({ page = 1, limit = 20, keyword = "" } = {}) => {
+    return await axiosClient.get('/reputation/admin', {
+      params: {
+        page,
+        limit,
+        keyword,
+      },
+    });
+  },
+
+  getAdminReputationHistory: async (phoneNumber, limit = 50) => {
+    return await axiosClient.get(
+      `/reputation/admin/${encodeURIComponent(phoneNumber)}/history`,
+      {
+        params: { limit },
+      }
+    );
   },
 
   /**

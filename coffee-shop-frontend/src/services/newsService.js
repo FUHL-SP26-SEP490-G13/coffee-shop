@@ -2,7 +2,7 @@ import axiosClient from "@/services/axiosClient";
 import { API_ENDPOINTS } from "@/constants";
 
 const newsService = {
-  getFeatured: () => axiosClient.get(API_ENDPOINTS.NEWS.FEATURED),
+  getFeatured: (params) => axiosClient.get(API_ENDPOINTS.NEWS.FEATURED, { params }),
 
   getAll: (params) => {
     return axiosClient.get(API_ENDPOINTS.NEWS.BASE, { params });

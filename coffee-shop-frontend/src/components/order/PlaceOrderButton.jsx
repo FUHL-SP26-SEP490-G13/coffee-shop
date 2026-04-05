@@ -5,6 +5,8 @@ import { cartService } from "@/services/cartService";
 import orderService from "@/services/orderOnlineService";
 import { validateOrderForm } from "@/utils/orderValidation";
 
+
+
 /**
  * Nút đặt hàng tái sử dụng cho cả trang Checkout (khách) lẫn Staff.
  *
@@ -27,6 +29,8 @@ export default function PlaceOrderButton({
   backPath = "/cart",
   backLabel = "← Quay lại giỏ hàng",
   label = "Đặt hàng",
+  shippingFee = 0,
+  disabled = false,
 }) {
   const navigate = useNavigate();
   const [submitting, setSubmitting] = useState(false);
@@ -103,9 +107,22 @@ export default function PlaceOrderButton({
           );
         });
 
+        if (form.order_type === "delivery" && shippingFee > 0) {
+          payosItems.push({
+            name: "Phí vận chuyển",
+            quantity: 1,
+            price: shippingFee,
+          });
+        }
+
+        const amountFromCheckout = Number(orderData?.total_amount || 0);
+
         const payosRes = await orderService.createPaymentLink({
           orderCode: order_id,
-          amount: Math.max(0, Math.round(totalAmount)),
+          amount: Math.max(
+            0,
+            Math.round(amountFromCheckout > 0 ? amountFromCheckout : totalAmount),
+          ),
           description: `DH #${order_id}`.slice(0, 25),
           items: payosItems,
         });
@@ -139,7 +156,7 @@ export default function PlaceOrderButton({
       <Button
         className="w-full mb-3"
         onClick={handleSubmit}
-        disabled={submitting}
+        disabled={submitting || disabled}
       >
         {submitting ? "Đang xử lý..." : label}
       </Button>

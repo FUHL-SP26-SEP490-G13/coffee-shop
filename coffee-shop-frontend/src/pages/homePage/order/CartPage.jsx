@@ -1,17 +1,23 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ShoppingBag } from "lucide-react";
+import { ShoppingBag, Plus } from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
 import { cartService } from "@/services/cartService";
 import toppingService from "@/services/toppingService";
+import productService from "@/services/productService";
+import flashSaleService from "@/services/flashSaleService";
+import { toast } from "sonner";
 
 export default function CartPage() {
   const navigate = useNavigate();
   const [cart, setCart] = useState(() => cartService.getCart());
   const [allToppings, setAllToppings] = useState([]);
   const [editingIndex, setEditingIndex] = useState(null);
+  const [productSizesMap, setProductSizesMap] = useState({});
+  const [activeSale, setActiveSale] = useState(null);
+  const [recommendations, setRecommendations] = useState([]);
 
   const refreshCart = () => {
     setCart(cartService.getCart());
@@ -45,6 +51,57 @@ export default function CartPage() {
 
     fetchToppings();
   }, []);
+
+  useEffect(() => {
+    flashSaleService.getCurrentActive()
+      .then((res) => setActiveSale(res?.data || null))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    const fetchSizes = async () => {
+      const ids = [...new Set(cart.map((item) => item.product_id || item.id).filter(Boolean))];
+      const missingIds = ids.filter(id => !productSizesMap[id]);
+      
+      if (missingIds.length === 0) return;
+
+      const map = { ...productSizesMap };
+      await Promise.all(
+        missingIds.map(async (id) => {
+          try {
+            const res = await productService.getById(id);
+            const sizes = res?.data?.data?.sizes || res?.data?.sizes || [];
+            if (sizes.length > 0) {
+              map[id] = sizes;
+            }
+          } catch (error) {
+            console.error("Lỗi lấy size", error);
+          }
+        })
+      );
+      setProductSizesMap(map);
+    };
+    
+    fetchSizes();
+  }, [cart]);
+
+  useEffect(() => {
+    const fetchRecommendations = async () => {
+      try {
+        const res = await productService.getBestSellers({ limit: 12 });
+        const list = Array.isArray(res?.data?.data) ? res.data.data : res?.data || [];
+        
+        // Filter out items already in cart
+        const cartProductIds = cart.map(item => Number(item.product_id || item.id)).filter(Boolean);
+        const filtered = list.filter(p => !cartProductIds.includes(Number(p.id)));
+        
+        setRecommendations(filtered.slice(0, 4));
+      } catch (error) {
+        console.error("Lỗi lấy recommendations:", error);
+      }
+    };
+    fetchRecommendations();
+  }, [cart.length]);
 
   const totalAmount = cartService.getTotalAmount();
 
@@ -105,24 +162,92 @@ export default function CartPage() {
     refreshCart();
   };
 
+  const handleSizeChange = (item, newSizeId) => {
+    const productId = item.product_id || item.id;
+    const sizes = productSizesMap[productId];
+    if (!sizes) return;
+
+    const newSizeObj = sizes.find((s) => Number(s.id) === Number(newSizeId));
+    if (!newSizeObj) return;
+
+    let newPrice = Number(newSizeObj.price);
+    
+    if (activeSale && activeSale.product_ids?.includes(Number(productId))) {
+       newPrice = Math.round(newPrice * (1 - activeSale.discount_percent / 100));
+    }
+
+    cartService.updateItemSize(item.cartKey, newSizeObj.id, newSizeObj.size, newPrice);
+    refreshCart();
+  };
+
+  const handleFastAdd = (product) => {
+    if (!product.sizes || product.sizes.length === 0) {
+      toast.error("Sản phẩm không có size");
+      return;
+    }
+    const cartSize = product.sizes.find(s => s.size === "M") || product.sizes[0];
+    let price = Number(cartSize.price);
+    
+    if (activeSale && activeSale.product_ids?.includes(product.id)) {
+      price = Math.round(price * (1 - activeSale.discount_percent / 100));
+    }
+
+    const defaultImage = "https://png.pngtree.com/png-vector/20190820/ourmid/pngtree-no-image-vector-illustration-isolated-png-image_1694547.jpg";
+    const thumbnail = product.images?.find(img => img.isThumbnail === 1)?.image_url || product.images?.[0]?.image_url || defaultImage;
+
+    const cartItem = {
+      productSizeId: cartSize.id,
+      id: product.id,
+      product_id: product.id,
+      name: product.name,
+      image: thumbnail,
+      size: cartSize.size,
+      basePrice: price,
+      price: price,
+      quantity: 1,
+      toppings: [],
+    };
+
+    cartService.addItem(cartItem);
+    toast.success(`Đã thêm ${product.name} vào giỏ hàng`);
+    refreshCart();
+  };
+
   return (
-    <div className="min-h-screen flex flex-col bg-white">
+    <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900">
       <Header />
 
       <section className="flex-1 w-full px-4 sm:px-6 lg:px-8 py-10">
         <div className="max-w-6xl mx-auto">
           <div className="flex items-center justify-between gap-4 mb-8 flex-wrap">
-            <h1 className="text-3xl font-bold text-gray-900">Giỏ hàng</h1>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Giỏ hàng</h1>
 
-            <Button variant="outline" onClick={() => navigate("/products")}>
-              Tiếp tục mua hàng
-            </Button>
+            <div className="flex gap-3">
+              {cart.length > 0 && (
+                <Button 
+                  variant="ghost" 
+                  className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
+                  onClick={() => {
+                    if (window.confirm("Bạn có chắc muốn xóa tất cả sản phẩm khỏi giỏ hàng không?")) {
+                      cartService.clearCart();
+                      refreshCart();
+                      toast.success("Đã làm trống giỏ hàng");
+                    }
+                  }}
+                >
+                  Xóa tất cả
+                </Button>
+              )}
+              <Button variant="outline" onClick={() => navigate("/products")}>
+                Tiếp tục mua hàng
+              </Button>
+            </div>
           </div>
 
           {cart.length === 0 ? (
-            <div className="text-center py-16 border rounded-2xl bg-gray-50">
+            <div className="text-center py-16 border rounded-2xl bg-gray-50 dark:bg-gray-950">
               <ShoppingBag className="w-10 h-10 mx-auto text-gray-400 mb-3" />
-              <p className="text-gray-500 mb-4">Giỏ hàng của bạn đang trống</p>
+              <p className="text-gray-500 dark:text-gray-400 mb-4">Giỏ hàng của bạn đang trống</p>
               <Button onClick={() => navigate("/products")}>
                 Tiếp tục mua hàng
               </Button>
@@ -139,14 +264,14 @@ export default function CartPage() {
                   return (
                     <div
                       key={cartKey}
-                      className="border border-gray-200 rounded-2xl p-5 bg-white"
+                      className="border border-gray-200  rounded-2xl p-5 bg-white dark:bg-gray-900"
                     >
                       <div className="flex gap-4">
                         <img
                           src={item.image}
                           alt={item.name}
-                          onClick={() => navigate(`/products/${item.product_id || item.id}`)}
-                          className="w-24 h-24 text-gray-900 rounded-xl object-cover border cursor-pointer hover:opacity-80 transition-opacity"
+                          onClick={() => navigate(`/${item.slug || 'products/' + (item.product_id || item.id)}`)}
+                          className="w-24 h-24 text-gray-900 dark:text-gray-100 rounded-xl object-cover border cursor-pointer hover:opacity-80 transition-opacity"
                         />
 
                         <div className="flex-1">
@@ -154,16 +279,31 @@ export default function CartPage() {
                             <div>
                               <h3
                                 className="text-lg font-semibold cursor-pointer hover:text-amber-600 transition-colors"
-                                onClick={() => navigate(`/products/${item.product_id || item.id}`)}
+                                onClick={() => navigate(`/${item.slug || 'products/' + (item.product_id || item.id)}`)}
                               >
                                 {item.name}
                               </h3>
 
-                              <p className="text-sm text-gray-500 mt-1">
-                                Size: {item.size}
-                              </p>
+                              <div className="mt-2 flex items-center gap-2">
+                                <span className="text-sm text-gray-500 dark:text-gray-400">Size:</span>
+                                {productSizesMap[item.product_id || item.id]?.length > 0 ? (
+                                  <select
+                                    value={item.productSizeId || item.product_size_id}
+                                    onChange={(e) => handleSizeChange(item, e.target.value)}
+                                    className="border rounded px-2 py-1 text-sm bg-gray-50 dark:bg-gray-950 outline-none hover:border-amber-500 transition-colors cursor-pointer"
+                                  >
+                                    {productSizesMap[item.product_id || item.id].map(size => (
+                                      <option key={size.id} value={size.id}>
+                                        {size.size}
+                                      </option>
+                                    ))}
+                                  </select>
+                                ) : (
+                                  <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">{item.size}</span>
+                                )}
+                              </div>
 
-                              <p className="text-sm text-gray-500 mt-1">
+                              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                                 Giá gốc:{" "}
                                 {Number(
                                   item.basePrice || item.price
@@ -172,7 +312,7 @@ export default function CartPage() {
                               </p>
                             </div>
 
-                            <div className="font-bold text-gray-900 whitespace-nowrap">
+                            <div className="font-bold text-gray-900 dark:text-gray-100 whitespace-nowrap">
                               {itemTotal.toLocaleString("vi-VN")}đ
                             </div>
                           </div>
@@ -180,7 +320,7 @@ export default function CartPage() {
                           {Array.isArray(item.toppings) &&
                             item.toppings.length > 0 && (
                               <div className="mt-3">
-                                <p className="text-sm font-medium text-gray-700">
+                                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
                                   Topping:
                                 </p>
 
@@ -188,10 +328,10 @@ export default function CartPage() {
                                   {item.toppings.map((topping) => (
                                     <div
                                       key={topping.topping_id}
-                                      className="flex items-center justify-between gap-3 text-sm text-gray-500"
+                                      className="flex items-center justify-between gap-3 text-sm text-gray-500 dark:text-gray-400"
                                     >
                                       <span className="break-words">
-                                        - {topping.name} x {topping.quantity} (
+                                        - {topping.name} (
                                         {Number(topping.price).toLocaleString(
                                           "vi-VN"
                                         )}
@@ -233,7 +373,7 @@ export default function CartPage() {
                                 cartService.updateQuantity(cartKey, nextQty);
                                 refreshCart();
                               }}
-                              className="w-10 h-10 border rounded-lg hover:bg-gray-50 text-lg"
+                              className="w-10 h-10 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 dark:bg-gray-950 text-lg"
                             >
                               -
                             </button>
@@ -260,7 +400,7 @@ export default function CartPage() {
                                 cartService.updateQuantity(cartKey, nextQty);
                                 refreshCart();
                               }}
-                              className="w-10 h-10 border rounded-lg hover:bg-gray-50 text-lg"
+                              className="w-10 h-10 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 dark:bg-gray-950 text-lg"
                             >
                               +
                             </button>
@@ -294,7 +434,7 @@ export default function CartPage() {
 
                       {isEditing && (
                         <div className="mt-4 border-t pt-4">
-                          <p className="text-sm font-semibold text-gray-800 mb-3">
+                          <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-3">
                             Chọn topping
                           </p>
 
@@ -312,7 +452,7 @@ export default function CartPage() {
                               return (
                                 <div
                                   key={topping.id}
-                                  className="border border-gray-200 rounded-2xl p-4"
+                                  className="border border-gray-200  rounded-2xl p-4"
                                 >
                                   <div className="flex items-center justify-between gap-4">
                                     <label className="flex items-center gap-3 cursor-pointer flex-1">
@@ -326,7 +466,7 @@ export default function CartPage() {
                                       />
 
                                       <div className="min-w-0">
-                                        <p className="font-medium text-gray-900 break-words">
+                                        <p className="font-medium text-gray-900 dark:text-gray-100 break-words">
                                           {topping.name}
                                         </p>
                                         <p className="text-sm text-amber-600 font-semibold">
@@ -338,46 +478,6 @@ export default function CartPage() {
                                         </p>
                                       </div>
                                     </label>
-
-                                    {checked && (
-                                      <div className="flex items-center gap-2 shrink-0">
-                                        <button
-                                          type="button"
-                                          onClick={() =>
-                                            updateToppingQuantityForItem(
-                                              item,
-                                              topping.id,
-                                              Number(
-                                                selectedTopping?.quantity || 1
-                                              ) - 1
-                                            )
-                                          }
-                                          className="w-8 h-8 border rounded-lg hover:bg-gray-50"
-                                        >
-                                          -
-                                        </button>
-
-                                        <span className="min-w-[24px] text-center font-medium">
-                                          {selectedTopping?.quantity || 1}
-                                        </span>
-
-                                        <button
-                                          type="button"
-                                          onClick={() =>
-                                            updateToppingQuantityForItem(
-                                              item,
-                                              topping.id,
-                                              Number(
-                                                selectedTopping?.quantity || 1
-                                              ) + 1
-                                            )
-                                          }
-                                          className="w-8 h-8 border rounded-lg hover:bg-gray-50"
-                                        >
-                                          +
-                                        </button>
-                                      </div>
-                                    )}
                                   </div>
                                 </div>
                               );
@@ -390,12 +490,12 @@ export default function CartPage() {
                 })}
               </div>
 
-              <div className="border rounded-2xl p-5 h-fit bg-gray-50 lg:sticky lg:top-24">
-                <h2 className="text-xl font-bold text-gray-900 mb-4">
+              <div className="border rounded-2xl p-5 h-fit bg-gray-50 dark:bg-gray-950 lg:sticky lg:top-24">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">
                   Tóm tắt đơn hàng
                 </h2>
 
-                <div className="flex justify-between text-gray-700 mb-3">
+                <div className="flex justify-between text-gray-700 dark:text-gray-300 mb-3">
                   <span>Tổng tiền</span>
                   <span className="font-bold text-amber-600">
                     {totalAmount.toLocaleString("vi-VN")}đ
@@ -411,6 +511,74 @@ export default function CartPage() {
               </div>
             </div>
           )}
+
+            {/* Cross-selling Section */}
+            {recommendations.length > 0 && (
+              <div className="mt-12 pt-8 border-t border-gray-200 dark:border-gray-800">
+                <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-6 flex items-center gap-2">
+                  <span className="text-red-500">❤️</span> Có thể bạn sẽ thích
+                </h3>
+                
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {recommendations.map(product => {
+                    const defaultImage = "https://png.pngtree.com/png-vector/20190820/ourmid/pngtree-no-image-vector-illustration-isolated-png-image_1694547.jpg";
+                    const thumbnail = product.images?.find(img => img.isThumbnail === 1)?.image_url || product.images?.[0]?.image_url || defaultImage;
+                    const cartSize = product.sizes?.find(s => s.size === "M") || product.sizes?.[0];
+                    const originalPrice = cartSize ? Number(cartSize.price) : 0;
+                    
+                    let salePrice = originalPrice;
+                    let isSale = activeSale && activeSale.product_ids?.includes(product.id);
+                    if (isSale) {
+                      salePrice = Math.round(originalPrice * (1 - activeSale.discount_percent / 100));
+                    }
+
+                    return (
+                      <div key={product.id} className="border border-gray-200 dark:border-gray-800 rounded-2xl p-3 bg-white dark:bg-gray-900 flex flex-col group relative overflow-hidden transition-all hover:border-amber-400">
+                        {isSale && (
+                           <div className="absolute top-2 left-2 z-10 bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded shadow-sm">
+                             GIẢM {activeSale.discount_percent}%
+                           </div>
+                        )}
+                        <img 
+                          src={thumbnail} 
+                          alt={product.name} 
+                          onClick={() => navigate(`/${product.slug || 'products/' + product.id}`)}
+                          className="w-full aspect-square object-cover rounded-xl cursor-pointer hover:scale-105 transition-transform duration-300 mb-3"
+                        />
+                        <div className="flex-1 flex flex-col justify-between">
+                          <h4 
+                            onClick={() => navigate(`/${product.slug || 'products/' + product.id}`)}
+                            className="font-semibold text-sm text-gray-800 dark:text-gray-200 line-clamp-2 cursor-pointer hover:text-amber-600 mb-2"
+                          >
+                            {product.name}
+                          </h4>
+                          
+                          <div className="flex items-center justify-between">
+                            <div className="flex flex-col">
+                               {isSale && originalPrice > 0 ? (
+                                  <>
+                                    <span className="text-[10px] text-gray-400 line-through decoration-gray-400">{originalPrice.toLocaleString('vi-VN')}đ</span>
+                                    <span className="text-sm font-bold text-red-600">{salePrice.toLocaleString('vi-VN')}đ</span>
+                                  </>
+                               ) : (
+                                  <span className="text-sm font-bold text-gray-900 dark:text-gray-100">{salePrice.toLocaleString('vi-VN')}đ</span>
+                               )}
+                            </div>
+                            
+                            <button 
+                              onClick={() => handleFastAdd(product)}
+                              className="w-8 h-8 rounded-full bg-amber-100 text-amber-600 dark:bg-amber-900/40 dark:text-amber-400 flex items-center justify-center hover:bg-amber-500 hover:text-white transition-colors shadow-sm"
+                            >
+                              <Plus className="w-5 h-5" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
         </div>
       </section>
 

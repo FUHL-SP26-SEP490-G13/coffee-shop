@@ -37,17 +37,14 @@ export default function DiscountSection() {
       ? `Giảm ${Number(d.percentage)}%`
       : (d.max_discount_amount > 0 ? `Giảm ${Number(d.max_discount_amount).toLocaleString('vi-VN')}đ` : 'Khuyến mãi đặc biệt');
 
-    let desc = d.description;
-    if (!desc && d.min_order_amount > 0) {
-      desc = `Áp dụng cho đơn hàng từ ${Number(d.min_order_amount).toLocaleString('vi-VN')}đ`;
-    } else if (!desc) {
-      desc = `Mã ưu đãi đặc biệt`;
-    }
+    const desc = d.description || `Mã ưu đãi đặc biệt`;
+    const minOrder = d.min_order_amount > 0 ? `Đơn tối thiểu: ${Number(d.min_order_amount).toLocaleString('vi-VN')}đ` : '';
 
     return {
       id: d.id,
       title,
       description: desc,
+      minOrder,
       code: d.code
     };
   });
@@ -55,15 +52,15 @@ export default function DiscountSection() {
   if (displayDiscounts.length === 0) return null;
 
   return (
-    <section className="py-16 bg-[#F8F5F0]">
-      <div className="mx-auto max-w-7xl px-6 lg:px-8">
+    <section className="py-16 bg-[#F8F5F0] dark:bg-[#1a1614]">
+      <div className="max-w-[1440px] mx-auto w-full px-4 sm:px-6 lg:px-8 xl:px-12">
         <div className="text-center mb-12">
           <div className="inline-flex items-center gap-2 text-amber-600 font-semibold mb-3 tracking-widest text-sm uppercase">
             <Sparkles className="w-4 h-4" />
             Ưu đãi
           </div>
-          <h5 className="text-xl md:text-3xl font-semibold text-gray-900" style={{ fontFamily: 'serif' }}>
-            khuyến mãi hôm nay
+          <h5 className="text-xl md:text-3xl font-semibold text-gray-900 dark:text-gray-100" style={{ fontFamily: 'serif' }}>
+            Khuyến mãi hôm nay
           </h5>
         </div>
 
@@ -86,26 +83,31 @@ export default function DiscountSection() {
           >
             {displayDiscounts.map((item) => (
               <SwiperSlide key={item.id} className="h-auto">
-                <div className="bg-[#FAF9F6] border-t-4 border-t-amber-800 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow h-full flex flex-col">
+                <div className="bg-[#FAF9F6] dark:bg-[#252220] border-t-4 border-t-amber-800 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow h-full flex flex-col">
                   <div className="flex items-start gap-3 mb-2 flex-1">
                     <Ticket className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
                     <div>
-                      <h3 className="text-xl font-bold text-gray-900 mb-1" style={{ fontFamily: 'serif' }}>
+                      <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-1" style={{ fontFamily: 'serif' }}>
                         {item.title}
                       </h3>
-                      <p className="text-sm text-gray-500 mb-6 min-h-[40px]">
-                        {item.description}
-                      </p>
+                      <div className="text-sm text-gray-500 dark:text-gray-400 mb-6 min-h-[60px] flex flex-col">
+                        <span className="line-clamp-2" title={item.description}>{item.description}</span>
+                        {item.minOrder && (
+                          <span className="mt-1.5 inline-block text-[13px] font-semibold text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/40/50 px-2 py-0.5 rounded-md w-fit">
+                            * {item.minOrder}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-2 mt-auto">
-                    <div className="flex-1 bg-gray-100 rounded-lg px-4 py-2 text-center font-mono font-semibold text-gray-800 truncate">
+                    <div className="flex-1 bg-gray-100 dark:bg-gray-800 rounded-lg px-4 py-2 text-center font-mono font-semibold text-gray-800 dark:text-gray-200 truncate">
                       {item.code}
                     </div>
                     <button
                       onClick={() => handleCopy(item.code)}
-                      className="flex items-center gap-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-lg transition-colors shadow-sm shrink-0"
+                      className="flex items-center gap-2 bg-white dark:bg-gray-900 dark:bg-gray-900 dark:border-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 dark:bg-gray-950 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg transition-colors shadow-sm shrink-0"
                     >
                       {copiedCode === item.code ? (
                         <>
@@ -135,6 +137,11 @@ export default function DiscountSection() {
           height: 32px;
           border-radius: 50%;
           box-shadow: 0 2px 4px rgb(0 0 0 / 0.1);
+        }
+        html.dark .discount-swiper-container .swiper-button-next,
+        html.dark .discount-swiper-container .swiper-button-prev {
+          background: #1f2937;
+          color: #fbbf24;
         }
         .discount-swiper-container .swiper-button-next:after,
         .discount-swiper-container .swiper-button-prev:after {

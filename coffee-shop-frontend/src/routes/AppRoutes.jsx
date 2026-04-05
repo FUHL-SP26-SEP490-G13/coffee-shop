@@ -4,7 +4,7 @@ import { APP_ROUTES, STORAGE_KEYS } from "../constants";
 import LoginPage from "../pages/authentication/LoginPage";
 import RegisterPage from "../pages/authentication/RegisterPage";
 import AdminOrders from "../pages/admin/AdminOrders";
-import AdminUsers from "../pages/admin/AdminUsers";
+import AdminUsers from "../pages/admin/AdminUser/AdminUsers";
 import authenticationService from "../services/authenticationService";
 import HomePage from "@/pages/homePage/HomePage";
 import ChangePasswordPage from "../pages/authentication/ChangePasswordPage";
@@ -54,17 +54,19 @@ import OrderQRMenu from "@/pages/homePage/order/OrderQRMenu";
 import MyOrderQRDetail from "@/pages/homePage/order/MyOrderQRDetail";
 import PayOSReturnSuccess from "@/pages/common/PayOSReturnSuccess";
 import AdminDB from "@/pages/admin/AdminDB/AdminDB";
-import AdminSubscriber from "@/pages/admin/AdminSubscriber/AdminSubscriber";
 import FavoritePage from "@/pages/homePage/favorite/FavoritePage";
 import AdminReviews from "@/pages/admin/AdminReview/AdminReview";
 import MyOrderOnlinePage from "../pages/homePage/order/MyOrderOnlinePage";
 import MyOrderDetailPage from "../pages/homePage/order/MyOrderDetailPage";
 import AdminReceiptSettings from "@/pages/admin/AdminReceiptSettings/AdminReceiptSettings";
 import AdminFlashSales from "@/pages/admin/AdminFlashSale/AdminFlashSales";
+import AdminReputation from "@/pages/admin/AdminReputation/AdminReputation";
 import TakeawayPOS from '../pages/staff/TakeawayPOS'
 import { OrderDelivery } from '@/pages/staff/StaffOrderList';
 import { StaffDashboard } from "@/pages/staff/StaffDashboard";
 import StaffPayOSReturn from "@/pages/staff/StaffPayOSReturn";
+import StoreInfoPage from "@/pages/common/StoreInfoPage";
+import GenericSlugResolver from "../pages/common/GenericSlugResolver";
 
 const getStoredValue = (key) =>
   localStorage.getItem(key) || sessionStorage.getItem(key);
@@ -153,7 +155,8 @@ const AppRoutes = () => {
 
         <Route path="takeaway" element={<TakeawayPOS />} />
         <Route path="payment-result" element={<StaffPayOSReturn />} />
-        <Route path="orders" element={<OrderDelivery />} />
+        <Route path="orders" element={<Navigate to="pending" replace />} />
+        <Route path="orders/:status" element={<OrderDelivery />} />
         <Route path="attendance" element={<StaffAttendance />} />
         <Route path="inventory" element={<StaffInventory />} />
         <Route path="kitchen" element={<StaffKitchen />} />
@@ -209,16 +212,17 @@ const AppRoutes = () => {
         <Route path="discounts" element={<AdminDiscounts />} />
         <Route path="discounts/create" element={<AdminDiscountCreate />} />
         <Route path="discounts/edit/:id" element={<AdminDiscountEdit />} />
-        <Route path="subscriber" element={<AdminSubscriber />} />
         <Route path="banners" element={<AdminBanner />} />
         <Route path="tables" element={<AdminTables />} />
         <Route path="toppings" element={<AdminToppings />} />
         <Route path="reviews" element={<AdminReviews />} />
+        <Route path="reputation" element={<AdminReputation />} />
         <Route path="receipt-settings" element={<AdminReceiptSettings />} />
         <Route path="flash-sales" element={<AdminFlashSales />} />
       </Route>
       <Route path="/news/:slug" element={<NewsDetailPage />} />
       <Route path="/news" element={<NewsListPage />} />
+      <Route path="/store" element={<StoreInfoPage />} />
       <Route path="/customer/profile" element={<UserProfile />} />
       {/* Only allow customers to access favorites */}
       <Route
@@ -255,6 +259,9 @@ const AppRoutes = () => {
 
       <Route path="/order" element={<OrderQRMenu />} />
       <Route path="/order/confirm" element={<MyOrderQRDetail />} />
+
+      {/* SEO Slug Resolver */}
+      <Route path="/:slug" element={<GenericSlugResolver />} />
 
       {/* 404 */}
       <Route

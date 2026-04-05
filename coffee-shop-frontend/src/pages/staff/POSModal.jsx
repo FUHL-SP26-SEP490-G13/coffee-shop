@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { X, Search, Plus, Minus, Trash2, ShoppingCart, Coffee, Send, Clock3 } from 'lucide-react';
 import productService from '../../services/productService';
-import tableService from '../../services/tableService';
 import orderService from '../../services/orderService';
 import categoryService from '../../services/categoryService';
 import toppingService from '../../services/toppingService';
@@ -31,6 +30,12 @@ const getProductPrice = (product, size = 'M') => {
 const getProductImage = (product) => {
   const thumbnail = product.images?.find((img) => img.isThumbnail === 1) || product.images?.[0];
   return thumbnail ? thumbnail.image_url : null;
+};
+
+const isProductAvailable = (product) => {
+  const status = String(product?.status || '').trim().toLowerCase();
+  if (!status) return true;
+  return status !== 'unavailable';
 };
 
 const CASH_SUGGESTIONS = [10000, 20000, 50000, 100000, 200000, 500000];
@@ -138,28 +143,6 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
     }
   }, [isOpen, table?.id]);
 
-  const addToCart = useCallback((product) => {
-    setCart((prev) => {
-      const existing = prev.find((i) => i.productId === product.id && i.size === 'M');
-      if (existing) {
-        return prev.map((i) =>
-          i.id === existing.id ? { ...i, quantity: i.quantity + 1 } : i
-        );
-      }
-      return [
-        ...prev,
-        {
-          id: `${product.id}-${Date.now()}`,
-          productId: product.id,
-          product,
-          size: 'M',
-          quantity: 1,
-          toppings: [],
-        },
-      ];
-    });
-  }, []);
-
   const handleAddFromModal = (modalItem, isEditing = false) => {
     setCart((prev) => {
       if (isEditing) {
@@ -266,48 +249,7 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
     return orderService.checkout(payload);
   };
 
-  const handleSendToBarista = async () => {
-    if (!table) {
-      toast.error('Không tìm thấy thông tin bàn');
-      return;
-    }
-    if (cart.length === 0) {
-      toast.error('Giỏ hàng trống');
-      return;
-    }
-    setSendingToBarista(true);
-    try {
-      await createUnpaidOrder();
 
-      // Placeholder for future Barista-account handoff integration.
-      const handoffToBaristaAccount = () => {
-        return true;
-      };
-      handoffToBaristaAccount();
-
-      toast.success('Đã gửi order cho Barista! 🎉', {
-        description: `Bàn ${table.code} — ${cart.reduce((a, i) => a + i.quantity, 0)} món`,
-      });
-      if (onTableStatusChange) onTableStatusChange(table.id, 'occupied');
-      setCart([]);
-      setNote('');
-      navigate(TABLE_MANAGEMENT_PATH, {
-        state: {
-          focusTableId: table.id,
-          sourceAction: 'send-barista',
-        },
-      });
-      onClose();
-    } catch (error) {
-      if (error?.message === 'invalid-product-size') {
-        toast.error('Có lỗi xảy ra với thông tin sản phẩm');
-        return;
-      }
-      toast.error(error.response?.data?.message || 'Không gửi được order cho Barista');
-    } finally {
-      setSendingToBarista(false);
-    }
-  };
 
   const handleSaveForLaterPayment = async () => {
     if (!table) {
@@ -474,7 +416,7 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
           }
         }
 
-        
+
       }
 
       if (notifyBarista) {
@@ -498,9 +440,6 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
       if (resolvedPaymentMethod === 'payos') {
         setPendingPayosOrderId(null);
       }
-      onClose();
-    } catch (error) {
-      
       toast.error(error.response?.data?.message || 'Không đặt được hàng');
     } finally {
       setIsSubmittingOrder(false);
@@ -529,9 +468,10 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
 
   const filteredProducts = useMemo(() => {
     return products.filter((p) => {
+      const isAvailable = isProductAvailable(p);
       const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesCategory = activeCategory === 'all' || p.category_id === activeCategory;
-      return matchesSearch && matchesCategory;
+      return isAvailable && matchesSearch && matchesCategory;
     });
   }, [products, searchQuery, activeCategory]);
 
@@ -787,7 +727,6 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
               />
             </div>
 
-            {/* Total + Checkout */}
             <div className="p-3 border-t border-border flex-shrink-0 space-y-3">
               <div className="flex justify-between items-center px-1">
                 <span className="text-sm text-muted-foreground">Tổng cộng</span>

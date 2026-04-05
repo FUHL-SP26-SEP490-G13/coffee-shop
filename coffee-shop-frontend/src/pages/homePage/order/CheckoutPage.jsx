@@ -36,6 +36,11 @@ import {
 } from "@/utils/reputationValidation";
 import { toast } from "sonner";
 import flashSaleService from "@/services/flashSaleService";
+import appSettingService from "@/services/appSettingService";
+import { geocodeAddress, getDrivingDistance, calculateShippingFee } from "@/utils/distanceCalculator";
+import { Loader2 } from "lucide-react";
+
+const DELIVERY_SHIPPING_FEE = 20000;
 
 export default function CheckoutPage() {
   const navigate = useNavigate();
@@ -56,11 +61,13 @@ export default function CheckoutPage() {
   const [reputationScore, setReputationScore] = useState(50);
   const [reputationTier, setReputationTier] = useState("SILVER");
   const [reputationFrozen, setReputationFrozen] = useState(false);
+  const [reputationRules, setReputationRules] = useState([]);
   const [isReputationLoading, setIsReputationLoading] = useState(false);
+  const [fetchedPhone, setFetchedPhone] = useState("");
   const [paymentValidation, setPaymentValidation] = useState(null);
   const [form, setForm] = useState({
     order_type: "delivery",
-    payment_method: "payos",
+    payment_method: "cash",
     receiver_name: "",
     receiver_phone: "",
     receiver_email: "",
@@ -69,6 +76,11 @@ export default function CheckoutPage() {
     discount_code: "",
   });
   const [activeSale, setActiveSale] = useState(null);
+
+  const [storeAddress, setStoreAddress] = useState("");
+  const [shippingFee, setShippingFee] = useState(DELIVERY_SHIPPING_FEE);
+  const [deliveryDistanceKm, setDeliveryDistanceKm] = useState(null);
+  const [isShippingCalculating, setIsShippingCalculating] = useState(false);
 
   useEffect(() => {
     flashSaleService
@@ -90,10 +102,30 @@ export default function CheckoutPage() {
       if (!token) return;
 
       try {
-        const [profileRes, addressesRes] = await Promise.all([
+        const [profileRes, addressesRes, settingsRes] = await Promise.all([
           authenticationService.getProfile(),
           authenticationService.getMyAddresses(),
+          appSettingService.getSettings(),
         ]);
+        
+        if (settingsRes?.data?.reputation_rules) {
+          try {
+            let parsed = settingsRes.data.reputation_rules;
+            if (typeof parsed === 'string') {
+               parsed = JSON.parse(parsed);
+            }
+            if (typeof parsed === 'string') {
+               parsed = JSON.parse(parsed);
+            }
+            if (Array.isArray(parsed)) {
+               setReputationRules(parsed);
+            }
+          } catch (e) { console.error("Error parsing rules:", e) }
+        }
+
+        if (settingsRes?.data?.address) {
+          setStoreAddress(settingsRes.data.address);
+        }
 
         const user = profileRes?.data;
 
@@ -146,6 +178,7 @@ export default function CheckoutPage() {
       setReputationTier("SILVER");
       setReputationFrozen(false);
       setIsReputationLoading(false);
+      setFetchedPhone(normalizedPhone);
       return;
     }
 
@@ -169,11 +202,49 @@ export default function CheckoutPage() {
         setReputationFrozen(false);
       } finally {
         setIsReputationLoading(false);
+        setFetchedPhone(normalizedPhone);
       }
     }, 450);
 
     return () => clearTimeout(timeoutId);
   }, [form.receiver_phone]);
+
+  // Handle dynamic distance and shipping fee
+  useEffect(() => {
+    if (form.order_type !== "delivery" || !form.address || form.address.trim().length < 5 || !storeAddress) {
+      setShippingFee(form.order_type === "delivery" ? DELIVERY_SHIPPING_FEE : 0);
+      setDeliveryDistanceKm(null);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setIsShippingCalculating(true);
+      try {
+        const [storeCoords, customerCoords] = await Promise.all([
+          geocodeAddress(storeAddress),
+          geocodeAddress(form.address)
+        ]);
+
+        if (storeCoords && customerCoords) {
+          const distMeters = await getDrivingDistance(storeCoords, customerCoords);
+          const fee = calculateShippingFee(distMeters);
+          setShippingFee(fee);
+          setDeliveryDistanceKm((distMeters / 1000).toFixed(1));
+        } else {
+          // Fallback if address not found
+          setShippingFee(DELIVERY_SHIPPING_FEE);
+          setDeliveryDistanceKm(null);
+        }
+      } catch (error) {
+         setShippingFee(DELIVERY_SHIPPING_FEE);
+         setDeliveryDistanceKm(null);
+      } finally {
+        setIsShippingCalculating(false);
+      }
+    }, 1500);
+
+    return () => clearTimeout(timer);
+  }, [form.address, form.order_type, storeAddress]);
 
   const getAddressTypeLabel = (type) => {
     if (type === "work") return "Văn phòng";
@@ -245,15 +316,22 @@ export default function CheckoutPage() {
   }, [cart, activeSale]);
 
   const discountAmount = Number(appliedDiscount?.discount_amount || 0);
-  const totalAmount = subtotalAmount - discountAmount;
+  const totalAmount = subtotalAmount - discountAmount + shippingFee;
 
   // Validate payment permissions khi điểm uy tín thay đổi
   useEffect(() => {
+    const currentPhone = normalizePhoneNumber(form.receiver_phone);
+    // Không ép phương thức nếu vẫn đang trong quá trình lấy điểm của SĐT hiện tại
+    if (currentPhone !== fetchedPhone || isReputationLoading) {
+       return;
+    }
+
     try {
       const validation = validateOrderPermissions(
         reputationScore,
         totalAmount,
         reputationFrozen,
+        reputationRules
       );
       setPaymentValidation(validation);
 
@@ -272,7 +350,7 @@ export default function CheckoutPage() {
       toast.error(error.message, { duration: 5000 });
       setPaymentValidation(null);
     }
-  }, [reputationScore, reputationFrozen, totalAmount, form.payment_method]);
+  }, [reputationScore, reputationFrozen, totalAmount, form.payment_method, reputationRules, fetchedPhone, form.receiver_phone, isReputationLoading]);
 
   const handleApplyDiscount = async () => {
     const code = discountCode.trim();
@@ -329,13 +407,13 @@ export default function CheckoutPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-white">
+    <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900">
       <Header />
 
       <section className="flex-1 w-full px-4 sm:px-6 lg:px-8 py-10">
         <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 border rounded-2xl p-6 bg-white">
-            <h1 className="text-3xl font-bold text-gray-900 mb-6">
+          <div className="lg:col-span-2 border rounded-2xl p-6 bg-white dark:bg-gray-900">
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-6">
               Thanh toán
             </h1>
 
@@ -475,28 +553,28 @@ export default function CheckoutPage() {
                     </Button>
 
                     {addresses.length === 0 && !isAddressLoading && (
-                      <p className="text-sm text-gray-500 mt-2">
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
                         Bạn chưa lưu địa chỉ nào. Hãy nhập địa chỉ giao hàng bên
                         dưới.
                       </p>
                     )}
 
                     {selectedAddress && (
-                      <div className="mt-3 border rounded-xl p-3 bg-amber-50 border-amber-200">
+                      <div className="mt-3 border rounded-xl p-3 bg-amber-50 dark:bg-amber-900/20 border-amber-200">
                         <div className="flex items-center justify-between gap-2">
-                          <p className="text-sm font-semibold text-gray-900">
+                          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                             {selectedAddress.receiver_name ||
                               "Địa chỉ giao hàng"}
                           </p>
-                          <span className="text-xs text-gray-600">
+                          <span className="text-xs text-gray-600 dark:text-gray-400">
                             {getAddressTypeLabel(selectedAddress.address_type)}
                           </span>
                         </div>
-                        <p className="text-sm text-gray-600 mt-1">
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                           {selectedAddress.receiver_phone ||
                             "Chưa có số điện thoại"}
                         </p>
-                        <p className="text-sm text-gray-800 mt-1">
+                        <p className="text-sm text-gray-800 dark:text-gray-200 mt-1">
                           {selectedAddress.address}
                         </p>
                       </div>
@@ -563,6 +641,12 @@ export default function CheckoutPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {[
                   {
+                    value: "cash",
+                    label: "Tiền mặt",
+                    sub: "Thanh toán khi nhận hàng",
+                    icon: <Banknote className="w-5 h-5 text-green-600" />,
+                  },
+                  {
                     value: "payos",
                     label: "PayOS",
                     sub: "Thanh toán trực tuyến qua PayOS",
@@ -596,10 +680,10 @@ export default function CheckoutPage() {
                       }}
                       className={`flex items-center gap-3 rounded-xl border-2 px-4 py-3 text-left transition-all ${
                         isDisabled
-                          ? "border-gray-200 bg-gray-100 opacity-50 cursor-not-allowed"
+                          ? "border-gray-200  bg-gray-100 dark:bg-gray-800 opacity-50 cursor-not-allowed"
                           : selected
-                            ? "border-amber-500 bg-amber-50"
-                            : "border-gray-200 bg-white hover:border-gray-300"
+                            ? "border-amber-500 bg-amber-50 dark:bg-amber-900/20"
+                            : "border-gray-200  bg-white dark:bg-gray-900 hover:border-gray-300"
                       }`}
                     >
                       <span
@@ -607,12 +691,12 @@ export default function CheckoutPage() {
                           isDisabled
                             ? "bg-gray-200"
                             : selected
-                              ? "bg-amber-100"
-                              : "bg-gray-100"
+                              ? "bg-amber-100 dark:bg-amber-900/30"
+                              : "bg-gray-100 dark:bg-gray-800"
                         }`}
                       >
                         {isDisabled ? (
-                          <span className="text-xs text-gray-500">✕</span>
+                          <span className="text-xs text-gray-500 dark:text-gray-400">✕</span>
                         ) : (
                           opt.icon
                         )}
@@ -620,7 +704,7 @@ export default function CheckoutPage() {
                       <span>
                         <span
                           className={`block text-sm font-medium ${
-                            isDisabled ? "text-gray-500" : "text-gray-900"
+                            isDisabled ? "text-gray-500 dark:text-gray-400" : "text-gray-900 dark:text-gray-100"
                           }`}
                         >
                           {opt.label}
@@ -628,7 +712,7 @@ export default function CheckoutPage() {
                         </span>
                         <span
                           className={`block text-xs ${
-                            isDisabled ? "text-gray-400" : "text-gray-500"
+                            isDisabled ? "text-gray-400" : "text-gray-500 dark:text-gray-400"
                           }`}
                         >
                           {opt.sub}
@@ -639,7 +723,7 @@ export default function CheckoutPage() {
                           isDisabled
                             ? "border-gray-300 bg-gray-300"
                             : selected
-                              ? "border-amber-500 bg-amber-500"
+                              ? "border-amber-500 bg-amber-50 dark:bg-amber-900/200"
                               : "border-gray-300"
                         }`}
                       />
@@ -671,8 +755,8 @@ export default function CheckoutPage() {
             </div>
           </div>
 
-          <div className="border rounded-2xl p-5 bg-gray-50 h-fit">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Đơn hàng</h2>
+          <div className="border rounded-2xl p-5 bg-gray-50 dark:bg-gray-950 h-fit">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Đơn hàng</h2>
 
             <div className="space-y-3 mb-5">
               {cart.map((item) => (
@@ -682,7 +766,7 @@ export default function CheckoutPage() {
                 >
                   <div>
                     <p className="font-medium text-sm">{item.name}</p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
                       {item.size} x {item.quantity}
                     </p>
 
@@ -692,9 +776,9 @@ export default function CheckoutPage() {
                           {item.toppings.map((topping) => (
                             <p
                               key={topping.topping_id}
-                              className="text-xs text-gray-500"
+                              className="text-xs text-gray-500 dark:text-gray-400 mt-0.5"
                             >
-                              + {topping.name} x {topping.quantity}
+                              + {topping.name}
                             </p>
                           ))}
                         </div>
@@ -744,15 +828,27 @@ export default function CheckoutPage() {
             </div>
 
             <div className="space-y-3 border-t pt-4 mb-4">
-              <div className="flex justify-between text-sm text-gray-700">
+              <div className="flex justify-between text-sm text-gray-700 dark:text-gray-300">
                 <span>Tạm tính</span>
                 <span>{subtotalAmount.toLocaleString("vi-VN")}đ</span>
               </div>
 
-              <div className="flex justify-between text-sm text-gray-700">
+              <div className="flex justify-between text-sm text-gray-700 dark:text-gray-300">
                 <span>Giảm giá</span>
                 <span>- {discountAmount.toLocaleString("vi-VN")}đ</span>
               </div>
+
+              {shippingFee > 0 ? (
+                <div className="flex justify-between text-sm text-gray-700 dark:text-gray-300">
+                  <span className="flex items-center gap-2">
+                    Phí vận chuyển {deliveryDistanceKm ? `(${deliveryDistanceKm} km)` : ""}
+                    {isShippingCalculating && (
+                      <Loader2 className="w-3 h-3 animate-spin text-amber-600" />
+                    )}
+                  </span>
+                  <span>+ {shippingFee.toLocaleString("vi-VN")}đ</span>
+                </div>
+              ) : null}
 
               <div className="flex justify-between text-base font-bold">
                 <span>Tổng cộng</span>
@@ -766,8 +862,10 @@ export default function CheckoutPage() {
               form={form}
               cart={cart}
               totalAmount={totalAmount}
+              shippingFee={shippingFee}
+              disabled={isShippingCalculating}
               onValidateError={(errs) => setErrors(errs)}
-              onSuccess={() => navigate("/")}
+              onSuccess={() => navigate("/", { state: { orderSuccess: true } })}
             />
           </div>
         </div>
@@ -784,7 +882,7 @@ export default function CheckoutPage() {
 
           <div className="max-h-[60vh] overflow-y-auto space-y-3">
             {addresses.length === 0 ? (
-              <div className="text-sm text-gray-500 border rounded-xl p-4 bg-gray-50">
+              <div className="text-sm text-gray-500 dark:text-gray-400 border rounded-xl p-4 bg-gray-50 dark:bg-gray-950">
                 Bạn chưa có địa chỉ đã lưu.
               </div>
             ) : (
@@ -798,13 +896,13 @@ export default function CheckoutPage() {
                     onClick={() => handleSelectAddress(item)}
                     className={`w-full text-left border rounded-xl p-4 transition ${
                       isSelected
-                        ? "border-amber-500 bg-amber-50"
-                        : "border-gray-200 hover:border-gray-300 bg-white"
+                        ? "border-amber-500 bg-amber-50 dark:bg-amber-900/20"
+                        : "border-gray-200  hover:border-gray-300 bg-white dark:bg-gray-900"
                     }`}
                   >
                     <div className="flex items-center justify-between gap-3 mb-2">
                       <div className="flex items-center gap-2">
-                        <p className="text-sm font-semibold text-gray-900">
+                        <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                           {item.receiver_name || "Địa chỉ giao hàng"}
                         </p>
                         {Number(item.is_default) === 1 && (
@@ -813,15 +911,15 @@ export default function CheckoutPage() {
                           </span>
                         )}
                       </div>
-                      <span className="text-xs text-gray-500">
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
                         {getAddressTypeLabel(item.address_type)}
                       </span>
                     </div>
 
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
                       {item.receiver_phone || "Chưa có số điện thoại"}
                     </p>
-                    <p className="text-sm text-gray-800 mt-1">{item.address}</p>
+                    <p className="text-sm text-gray-800 dark:text-gray-200 mt-1">{item.address}</p>
                   </button>
                 );
               })
@@ -835,6 +933,7 @@ export default function CheckoutPage() {
         onClose={() => setIsReputationDialogOpen(false)}
         currentScore={reputationScore}
         currentTier={normalizedReputationTier}
+        reputationRules={reputationRules}
       />
 
       <Footer />

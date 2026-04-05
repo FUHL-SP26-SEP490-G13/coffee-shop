@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Lock, Mail, CheckCircle2, AlertCircle, Shield, Eye, EyeOff } from "lucide-react";
+import { ArrowLeft, Lock, Mail, CheckCircle2, AlertCircle, Shield, Eye, EyeOff, Coffee } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -200,16 +200,62 @@ export default function ForgotPasswordPage() {
 
 	return (
 		<div className="min-h-screen bg-background">
-			<div className="mx-auto max-w-2xl px-6 py-12">
-				<Button variant="outline" type="button" onClick={() => navigate(-1)} className="mb-8">
-					<ArrowLeft className="mr-2 h-4 w-4" />
-					Quay lại
-				</Button>
-
-				<div className="mb-12">
-					<h1 className="text-3xl font-semibold text-foreground">Đặt lại mật khẩu</h1>
-					<p className="mt-2 text-muted-foreground">Làm theo các bước bên dưới để đặt lại mật khẩu của bạn</p>
+			<div className="relative min-h-screen overflow-hidden">
+				<div className="pointer-events-none absolute inset-0">
+					<div className="absolute -left-24 -top-24 h-80 w-80 rounded-full bg-secondary/50 blur-3xl" />
+					<div className="absolute -bottom-24 right-0 h-96 w-96 rounded-full bg-accent/30 blur-3xl" />
 				</div>
+
+				<button 
+					onClick={() => navigate('/')} 
+					className="absolute top-6 left-6 z-50 flex items-center justify-center p-2.5 bg-white/20 hover:bg-white/30 backdrop-blur-md text-white rounded-full transition-all hover:scale-105"
+					title="Quay lại trang chủ"
+				>
+					<ArrowLeft className="w-5 h-5" />
+				</button>
+				<div className="relative grid min-h-screen grid-cols-1 lg:grid-cols-2">
+					<div className="hidden lg:flex relative items-center justify-center overflow-hidden p-10">
+						<div className="absolute inset-0">
+							<img 
+								src="https://images.unsplash.com/photo-1497935586351-b67a49e012bf?auto=format&fit=crop&w=1200&q=80" 
+								alt="Coffee Shop Background" 
+								className="h-full w-full object-cover"
+							/>
+							<div className="absolute inset-0 bg-black/60 backdrop-blur-[2px]" />
+						</div>
+						
+						<div className="relative z-10 max-w-md space-y-6">
+							<div className="inline-flex items-center gap-3 rounded-2xl border border-white/20 bg-white/10 backdrop-blur-md px-4 py-2 text-sm text-white">
+								<Coffee className="h-4 w-4 text-amber-400" />
+								<span>Khôi phục tài khoản của bạn</span>
+							</div>
+							<div className="space-y-3">
+								<h1 className="text-3xl font-bold text-white lg:text-5xl leading-tight">
+									Coffee Shop
+								</h1>
+								<p className="text-base text-gray-200">
+									Bạn lỡ quên mật khẩu? Đừng lo lắng, hãy làm theo các bước bên phải để khôi phục tài khoản dễ dàng.
+								</p>
+							</div>
+							<div className="grid gap-3 text-sm text-gray-200">
+								<div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 backdrop-blur-md px-4 py-3">
+									<span className="h-2 w-2 rounded-full bg-amber-400" />
+									Bảo mật thông tin chặt chẽ qua OTP
+								</div>
+								<div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 backdrop-blur-md px-4 py-3">
+									<span className="h-2 w-2 rounded-full bg-amber-400" />
+									Thiết lập lại mật khẩu an toàn, nhanh chóng
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<div className="flex items-center justify-center p-8 lg:p-12">
+						<div className="w-full max-w-md rounded-2xl border border-border bg-card p-8 shadow-sm">
+							<div className="mb-12 space-y-2">
+								<h1 className="text-3xl font-semibold text-foreground">Đặt lại mật khẩu</h1>
+								<p className="mt-2 text-muted-foreground">Làm theo hướng dẫn bên dưới nhé!</p>
+							</div>
 
 				{/* Progress Steps */}
 				<div className="mb-12 space-y-4">
@@ -452,6 +498,9 @@ export default function ForgotPasswordPage() {
 					>
 						Đăng nhập
 					</button>
+				</div>
+						</div>
+					</div>
 				</div>
 			</div>
 		</div>

@@ -38,10 +38,6 @@ class OrderService {
       throw new ErrorResponse(400, "Phương thức thanh toán không hợp lệ");
     }
 
-    if (order_type !== "dine-in" && (!receiver_name || !receiver_phone)) {
-      throw new ErrorResponse(400, "Vui lòng nhập tên và số điện thoại người nhận");
-    }
-
     const connection = await OrderRepository.getConnection();
 
     try {
@@ -421,18 +417,45 @@ class OrderService {
     };
   }
 
-  async savePayosReturn({ orderCode, payosId, status }) {
+  async getOrderDetail(orderId) {
+    const order = await OrderRepository.findOrderDetailForStaff(orderId);
+
+    if (!order) {
+      throw new ErrorResponse(404, "Đơn hàng không tồn tại");
+    }
+
+    const items = await OrderRepository.findOrderItems(orderId);
+
+    return {
+      ...order,
+      items,
+    };
+  }
+
+  async savePayosReturn({ orderCode, payosId, status, cancel }) {
     if (!orderCode) throw new ErrorResponse(400, "Thiếu orderCode");
 
-    const isPaid = status === "PAID";
-    const paymentStatus = isPaid ? "paid" : "pending";
+    const order = await OrderRepository.findOrderById(orderCode);
+    const currentOrderStatus = String(order?.status || "").toLowerCase();
+
+    const normalizedStatus = String(status || "").toUpperCase();
+    const isCancelled =
+      currentOrderStatus === "cancelled" ||
+      normalizedStatus === "CANCELLED" ||
+      String(cancel || "").toLowerCase() === "true" ||
+      String(cancel || "") === "1";
+    const isPaid = !isCancelled && normalizedStatus === "PAID";
+    const paymentStatus = isCancelled ? "cancelled" : isPaid ? "paid" : "pending";
 
     await OrderRepository.updatePaymentByOrderCode(orderCode, {
       transaction_id: payosId || null,
       payment_status: paymentStatus,
     });
 
-    if (isPaid) {
+    if (isCancelled) {
+      await OrderRepository.updateOrderStatus(orderCode, "cancelled");
+      await OrderRepository.updateOrderPaidStatus(orderCode, false);
+    } else if (isPaid) {
       await OrderRepository.updateOrderPaidStatus(orderCode, true);
     }
 
@@ -484,10 +507,14 @@ class OrderService {
           o.id,
           o.total_amount,
           o.is_paid,
+          o.status AS order_status,
           COALESCE(op.payment_status, 'pending') AS payment_status
         FROM orders o
         LEFT JOIN order_payments op ON op.order_id = o.id
-        WHERE o.table_id = ? AND o.session_id = ?
+        WHERE o.table_id = ?
+          AND o.session_id = ?
+          AND o.status NOT IN ('cancelled')
+          AND o.total_amount > 0
         ORDER BY o.created_at ASC
         `,
         [tableId, sessionId]
@@ -506,6 +533,7 @@ class OrderService {
         const paymentStatus = String(order.payment_status || '').toLowerCase();
         return !(paidFlag && paymentStatus === 'paid');
       });
+      // Pick a non-cancelled order as representative
       const representativeOrderId = unpaidOrders[0]?.id || rows[0].id;
 
       for (const order of rows) {

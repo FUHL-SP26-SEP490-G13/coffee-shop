@@ -178,6 +178,50 @@ export const cartService = {
     this.saveCart(cart);
   },
 
+  updateItemSize(cartKey, newSizeId, newSizeName, newBasePrice) {
+    const cart = this.getCart();
+    const currentIndex = cart.findIndex(
+      (item) => item.cartKey === cartKey || getCartItemKey(item) === cartKey
+    );
+
+    if (currentIndex === -1) return;
+
+    const currentItem = cart[currentIndex];
+    const updatedItem = {
+      ...currentItem,
+      productSizeId: newSizeId,
+      product_size_id: newSizeId,
+      size: newSizeName,
+      basePrice: newBasePrice,
+      price: newBasePrice,
+    };
+
+    const newCartKey = getCartItemKey(updatedItem);
+
+    const duplicateIndex = cart.findIndex(
+      (item, index) =>
+        index !== currentIndex && getCartItemKey(item) === newCartKey
+    );
+
+    if (duplicateIndex >= 0) {
+      cart[duplicateIndex] = {
+        ...cart[duplicateIndex],
+        quantity:
+          Math.max(1, Number(cart[duplicateIndex].quantity) || 1) +
+          Math.max(1, Number(updatedItem.quantity) || 1),
+      };
+      cart.splice(currentIndex, 1);
+    } else {
+      cart[currentIndex] = {
+        ...updatedItem,
+        cartKey: newCartKey,
+        unitPrice: getUnitPrice(updatedItem),
+      };
+    }
+
+    this.saveCart(cart);
+  },
+
   updateToppingQuantity(cartKey, toppingId, quantity) {
     const cart = this.getCart();
     const currentIndex = cart.findIndex(

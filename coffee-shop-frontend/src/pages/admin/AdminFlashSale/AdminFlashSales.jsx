@@ -95,7 +95,7 @@ export default function AdminFlashSales() {
     const end = new Date(sale.end_time);
 
     if (sale.status === 'inactive') {
-      return <span className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-600">Đã tắt</span>;
+      return <span className="px-2 py-1 text-xs rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300">Đã tắt</span>;
     }
     
     if (now < start) {
@@ -108,11 +108,11 @@ export default function AdminFlashSales() {
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-      <div className="p-6 border-b border-gray-100">
+    <div className="bg-white dark:bg-gray-900 dark:border-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+      <div className="p-6 border-b border-gray-100 dark:border-gray-700">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
               <Zap className="w-6 h-6 text-amber-500 fill-amber-500" /> Quản lý Flash Sale
             </h1>
             <p className="text-gray-500 text-sm mt-1">Cài đặt các chiến dịch Giờ Vàng Giá Sốc</p>
@@ -127,15 +127,15 @@ export default function AdminFlashSales() {
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full text-left text-sm text-gray-600">
-          <thead className="bg-gray-50/50 text-gray-700 font-medium">
+        <table className="w-full text-left text-sm text-gray-600 dark:text-gray-300">
+          <thead className="bg-gray-50 dark:bg-gray-800/50 text-gray-700 dark:text-gray-200 font-medium">
             <tr>
-              <th className="py-4 px-6 border-b border-gray-100">ID</th>
-              <th className="py-4 px-6 border-b border-gray-100">Chiến dịch</th>
-              <th className="py-4 px-6 border-b border-gray-100">Thời gian</th>
-              <th className="py-4 px-6 border-b border-gray-100">Khuyến mãi</th>
-              <th className="py-4 px-6 border-b border-gray-100">Trạng thái</th>
-              <th className="py-4 px-6 border-b border-gray-100 text-right">Thao tác</th>
+              <th className="py-4 px-6 border-b border-gray-100 dark:border-gray-700">STT</th>
+              <th className="py-4 px-6 border-b border-gray-100 dark:border-gray-700">Chiến dịch</th>
+              <th className="py-4 px-6 border-b border-gray-100 dark:border-gray-700">Thời gian</th>
+              <th className="py-4 px-6 border-b border-gray-100 dark:border-gray-700">Khuyến mãi</th>
+              <th className="py-4 px-6 border-b border-gray-100 dark:border-gray-700">Trạng thái</th>
+              <th className="py-4 px-6 border-b border-gray-100 dark:border-gray-700 text-right">Thao tác</th>
             </tr>
           </thead>
           <tbody>
@@ -148,10 +148,10 @@ export default function AdminFlashSales() {
                 <td colSpan="6" className="py-8 text-center text-gray-400">Chưa có chiến dịch Flash Sale nào</td>
               </tr>
             ) : (
-              sales.map((sale) => (
-                <tr key={sale.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
-                  <td className="py-4 px-6">#{sale.id}</td>
-                  <td className="py-4 px-6 font-medium text-gray-900">{sale.title}</td>
+              sales.map((sale, index) => (
+                <tr key={sale.id} className="border-b border-gray-50 hover:bg-gray-50 dark:hover:bg-gray-800 dark:bg-gray-800/50 transition-colors">
+                  <td className="py-4 px-6">{index + 1}</td>
+                  <td className="py-4 px-6 font-medium text-gray-900 dark:text-gray-100">{sale.title}</td>
                   <td className="py-4 px-6 text-xs text-gray-500">
                     <div className="flex flex-col gap-1">
                       <span className="flex items-center gap-1"><Clock className="w-3 h-3 text-green-500" /> Bắt đầu: {formatDateTime(sale.start_time)}</span>

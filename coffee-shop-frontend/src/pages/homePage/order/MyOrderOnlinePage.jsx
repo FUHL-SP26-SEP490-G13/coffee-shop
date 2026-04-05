@@ -15,13 +15,12 @@ import { toast } from "sonner";
 import socket from "@/lib/socket";
 import orderService from "@/services/orderOnlineService";
 import { handleBuyAgain } from "@/utils/handleBuyAgain";
+import { useStoreHours } from "@/hooks/useStoreHours";
 
 const PAGE_SIZE = 5;
 const STATUS_TABS = [
   "pending",
   "preparing",
-  "served",
-  "delivering",
   "completed",
   "cancelled",
 ];
@@ -33,6 +32,7 @@ export default function MyOrderOnlinePage() {
   const [buyAgainLoadingId, setBuyAgainLoadingId] = useState(null);
   const [page, setPage] = useState(1);
   const [activeStatus, setActiveStatus] = useState(STATUS_TABS[0]);
+  const { isOpen } = useStoreHours();
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -113,10 +113,6 @@ export default function MyOrderOnlinePage() {
         return "Chờ xác nhận";
       case "preparing":
         return "Đang chuẩn bị";
-      case "served":
-        return "Đã phục vụ";
-      case "delivering":
-        return "Đang giao";
       case "completed":
         return "Hoàn tất";
       case "cancelled":
@@ -132,16 +128,12 @@ export default function MyOrderOnlinePage() {
         return "bg-yellow-100 text-yellow-700";
       case "preparing":
         return "bg-blue-100 text-blue-700";
-      case "served":
-        return "bg-indigo-100 text-indigo-700";
-      case "delivering":
-        return "bg-cyan-100 text-cyan-700";
       case "completed":
         return "bg-green-100 text-green-700";
       case "cancelled":
         return "bg-red-100 text-red-700";
       default:
-        return "bg-gray-100 text-gray-700";
+        return "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300";
     }
   };
 
@@ -181,7 +173,7 @@ export default function MyOrderOnlinePage() {
             className={`min-w-10 h-10 px-3 rounded-lg border text-sm font-medium transition ${
               page === item
                 ? "bg-amber-600 text-white border-amber-600"
-                : "bg-white text-gray-700 border-gray-300 hover:border-amber-500"
+                : "bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-amber-500"
             }`}
           >
             {item}
@@ -201,13 +193,13 @@ export default function MyOrderOnlinePage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-white">
+    <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900">
       <Header />
 
       <section className="flex-1 w-full px-4 sm:px-6 lg:px-8 py-10">
         <div className="max-w-6xl mx-auto">
           <div className="flex items-center justify-between gap-4 mb-8 flex-wrap">
-            <h1 className="text-3xl font-bold text-gray-900">
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
               Đơn hàng của tôi
             </h1>
 
@@ -221,9 +213,9 @@ export default function MyOrderOnlinePage() {
               <Loader2 className="w-8 h-8 animate-spin text-amber-600" />
             </div>
           ) : orders.length === 0 ? (
-            <div className="text-center py-16 border rounded-2xl bg-gray-50">
+            <div className="text-center py-16 border rounded-2xl bg-gray-50 dark:bg-gray-950">
               <ShoppingBag className="w-10 h-10 mx-auto text-gray-400 mb-3" />
-              <p className="text-gray-500 mb-4">Bạn chưa có đơn hàng nào</p>
+              <p className="text-gray-500 dark:text-gray-400 mb-4">Bạn chưa có đơn hàng nào</p>
               <Button onClick={() => navigate("/products")}>Mua ngay</Button>
             </div>
           ) : (
@@ -241,7 +233,7 @@ export default function MyOrderOnlinePage() {
                         className={`px-4 py-2 rounded-full border text-sm font-medium transition whitespace-nowrap ${
                           isActive
                             ? "bg-amber-600 text-white border-amber-600"
-                            : "bg-white text-gray-700 border-gray-300 hover:border-amber-500"
+                            : "bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-amber-500"
                         }`}
                       >
                         {getStatusLabel(status)} ({statusCountMap[status] || 0})
@@ -252,8 +244,8 @@ export default function MyOrderOnlinePage() {
               </div>
 
               {filteredOrders.length === 0 ? (
-                <div className="text-center py-14 border rounded-2xl bg-gray-50">
-                  <p className="text-gray-500">
+                <div className="text-center py-14 border rounded-2xl bg-gray-50 dark:bg-gray-950">
+                  <p className="text-gray-500 dark:text-gray-400">
                     Không có đơn hàng ở trạng thái {getStatusLabel(activeStatus)}
                   </p>
                 </div>
@@ -262,18 +254,18 @@ export default function MyOrderOnlinePage() {
                 {paginatedOrders.map((order) => (
                   <div
                     key={order.id}
-                    className="border border-gray-200 rounded-2xl p-5 bg-white"
+                    className="border border-gray-200 dark:border-gray-700 rounded-2xl p-5 bg-white dark:bg-gray-900"
                   >
                     <div className="flex items-start justify-between gap-4 flex-wrap">
                       <div>
-                        <p className="text-lg font-semibold text-gray-900">
+                        <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                           Đơn hàng #{order.id}
                         </p>
 
-                        <div className="mt-2 space-y-1 text-sm text-gray-500">
+                        <div className="mt-2 space-y-1 text-sm text-gray-500 dark:text-gray-400">
                           <p>
                             Loại đơn:{" "}
-                            <span className="text-gray-800 font-medium">
+                            <span className="text-gray-800 dark:text-gray-200 font-medium">
                               {order.order_type === "delivery"
                                 ? "Giao hàng"
                                 : order.order_type === "takeaway"
@@ -284,7 +276,7 @@ export default function MyOrderOnlinePage() {
 
                           <p>
                             Thanh toán:{" "}
-                            <span className="text-gray-800 font-medium">
+                            <span className="text-gray-800 dark:text-gray-200 font-medium">
                               {Number(order.is_paid) === 1
                                 ? "Đã thanh toán"
                                 : "Chưa thanh toán"}
@@ -293,7 +285,7 @@ export default function MyOrderOnlinePage() {
 
                           <p>
                             Ngày tạo:{" "}
-                            <span className="text-gray-800 font-medium">
+                            <span className="text-gray-800 dark:text-gray-200 font-medium">
                               {order.created_at
                                 ? new Date(order.created_at).toLocaleString(
                                     "vi-VN"
@@ -333,8 +325,9 @@ export default function MyOrderOnlinePage() {
 
                       <Button
                         onClick={() => onBuyAgain(order.id)}
-                        disabled={buyAgainLoadingId === order.id}
-                        className="bg-amber-600 hover:bg-amber-700 text-white"
+                        disabled={buyAgainLoadingId === order.id || !isOpen}
+                        className={`text-white ${!isOpen ? "bg-gray-400 cursor-not-allowed" : "bg-amber-600 hover:bg-amber-700"}`}
+                        title={!isOpen ? "Cửa hàng đang đóng cửa" : ""}
                       >
                         {buyAgainLoadingId === order.id ? (
                           <>
@@ -344,7 +337,7 @@ export default function MyOrderOnlinePage() {
                         ) : (
                           <>
                             <RotateCcw className="w-4 h-4 mr-2" />
-                            Mua lại
+                            {isOpen ? "Mua lại" : "Đã đóng cửa"}
                           </>
                         )}
                       </Button>

@@ -6,8 +6,6 @@ class AdminDBService {
     const ordersToday = await AdminDBRepository.getOrdersToday();
     const totalUsers = await AdminDBRepository.getTotalUsers();
     const activeDiscounts = await AdminDBRepository.getActiveDiscounts();
-    const totalNewsletterSubscribers =
-      await AdminDBRepository.getTotalNewsletterSubscribers();
 
     // Bạn có thể thêm vài số “hữu dụng” cho dashboard
     const revenueSeries7Days = await AdminDBRepository.getRevenueSeries({
@@ -23,7 +21,6 @@ class AdminDBService {
       ordersToday,
       totalUsers,
       activeDiscounts,
-      totalNewsletterSubscribers,
       revenueSeries7Days, // để FE vẽ chart khỏi gọi thêm endpoint cũng được
       topProducts7Days, // để FE render top 5
     };

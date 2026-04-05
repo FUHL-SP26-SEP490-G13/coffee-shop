@@ -6,8 +6,11 @@ import flashSaleService from "@/services/flashSaleService";
 import { cartService } from "@/services/cartService";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, Navigation } from "swiper/modules";
+import { useStoreHours } from "@/hooks/useStoreHours";
+import productService from "@/services/productService";
 
 export default function FlashSaleSection({ products, getThumbnail, getDefaultCartSize }) {
+  const { isOpen } = useStoreHours();
   const [activeSale, setActiveSale] = useState(null);
   const [timeLeft, setTimeLeft] = useState({ hours: 0, minutes: 0, seconds: 0 });
 
@@ -24,6 +27,22 @@ export default function FlashSaleSection({ products, getThumbnail, getDefaultCar
     };
     fetchFlashSale();
   }, []);
+
+  const [flashProducts, setFlashProducts] = useState(products || []);
+
+  useEffect(() => {
+    const fetchFlashProducts = async () => {
+      if (!activeSale) return;
+      try {
+        const res = await productService.getAll({ limit: 200 });
+        const list = Array.isArray(res?.data) ? res.data : (res?.data?.items || []);
+        if (list.length > 0) setFlashProducts(list);
+      } catch (error) {
+        console.error("Failed to fetch products for flash sale", error);
+      }
+    };
+    fetchFlashProducts();
+  }, [activeSale]);
 
   useEffect(() => {
     if (!activeSale) return;
@@ -46,11 +65,16 @@ export default function FlashSaleSection({ products, getThumbnail, getDefaultCar
     return () => clearInterval(timer);
   }, [activeSale]);
 
-  if (!activeSale || !products || products.length === 0) return null;
+  if (!activeSale || !flashProducts || flashProducts.length === 0) return null;
 
   const handleAddToCart = (e, product) => {
     e.preventDefault();
     e.stopPropagation();
+
+    if (!isOpen) {
+      toast.error("Cửa hàng hiện đang đóng cửa");
+      return;
+    }
 
     const cartSize = getDefaultCartSize(product);
     if (!cartSize) {
@@ -77,25 +101,24 @@ export default function FlashSaleSection({ products, getThumbnail, getDefaultCar
   };
 
   return (
-    <section 
-      className="py-12 relative overflow-hidden" 
-      style={{ background: 'linear-gradient(to right, #dc2626, #ea580c, #f59e0b)' }}
-    >
-      <div className="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
-      
-      <div className="max-w-[1200px] mx-auto px-4 sm:px-6 relative z-10">
-        <div className="flex flex-col md:flex-row items-center justify-between mb-8 gap-6">
+    <section className="py-6 sm:py-8 lg:py-12">
+      <div className="max-w-[1440px] w-full mx-auto px-4 sm:px-6 lg:px-8 xl:px-12">
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-red-600 via-orange-600 to-amber-500 dark:from-red-950 dark:via-orange-950 dark:to-amber-950 px-5 py-8 sm:px-8 lg:px-12 shadow-2xl">
+          <div className="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 pointer-events-none"></div>
+          
+          <div className="relative z-10">
+            <div className="flex flex-col md:flex-row items-center justify-between mb-8 gap-6">
           <div className="flex items-center gap-4 text-white">
             <div className="bg-white/20 p-3 rounded-2xl backdrop-blur-md border border-white/20">
               <Zap className="w-8 h-8 text-yellow-300 animate-pulse" />
             </div>
             <div>
-              <h2 className="text-3xl md:text-4xl font-black italic tracking-wider flex items-center gap-2 drop-shadow-md text-white">
+              <h4 className="text-2xl md:text-3xl font-black italic tracking-wider flex items-center gap-2 drop-shadow-md text-white">
                 FLASH SALE
                 <span className="bg-red-800 text-white text-base md:text-lg px-3 py-1 rounded-full font-bold ml-2 shadow-inner">
                   -{activeSale.discount_percent}%
                 </span>
-              </h2>
+              </h4>
               <p className="text-white/90 font-medium text-sm md:text-base mt-1 drop-shadow-sm">{activeSale.title}</p>
             </div>
           </div>
@@ -133,8 +156,15 @@ export default function FlashSaleSection({ products, getThumbnail, getDefaultCar
           }}
           className="flash-sale-swiper !pb-8"
         >
-          {products
-            .filter((p) => activeSale.product_ids?.includes(p.id))
+          {flashProducts
+            .filter((p) => {
+              if (!activeSale.product_ids) return false;
+              let ids = activeSale.product_ids;
+              if (typeof ids === 'string') {
+                try { ids = JSON.parse(ids); } catch(e) { return false; }
+              }
+              return Array.isArray(ids) && ids.some(id => String(id) === String(p.id));
+            })
             .slice(0, 5)
             .map((product) => {
             const cartSize = getDefaultCartSize(product);
@@ -144,8 +174,8 @@ export default function FlashSaleSection({ products, getThumbnail, getDefaultCar
             return (
               <SwiperSlide key={product.id}>
                 <Link
-                  to={`/products/${product.id}`}
-                  className="block bg-white rounded-2xl p-3 shadow-lg hover:-translate-y-2 transition-transform duration-300 group border border-orange-100"
+                  to={`/${product.slug || 'products/' + product.id}`}
+                  className="block bg-white dark:bg-gray-900 rounded-2xl p-3 shadow-lg hover:-translate-y-2 transition-transform duration-300 group border border-orange-100 dark:border-gray-800"
                 >
                   <div className="relative aspect-square rounded-xl overflow-hidden mb-4">
                     <img
@@ -158,13 +188,13 @@ export default function FlashSaleSection({ products, getThumbnail, getDefaultCar
                     </div>
                   </div>
                   <div className="px-2 pb-2">
-                    <h3 className="font-semibold text-gray-800 line-clamp-1 mb-2 group-hover:text-red-500 transition-colors">
+                    <h3 className="font-semibold text-gray-800 dark:text-gray-100 line-clamp-1 mb-2 group-hover:text-red-500 dark:group-hover:text-red-400 transition-colors">
                       {product.name}
                     </h3>
                     <div className="flex flex-col gap-1 mb-4">
                       {originalPrice > 0 ? (
                         <>
-                          <span className="text-gray-400 text-sm line-through decoration-gray-400 decoration-1">
+                          <span className="text-gray-400 dark:text-gray-500 text-sm line-through decoration-gray-400 dark:decoration-gray-500 decoration-1">
                             {originalPrice.toLocaleString("vi-VN")}đ
                           </span>
                           <span className="text-red-600 font-bold text-lg">
@@ -178,9 +208,14 @@ export default function FlashSaleSection({ products, getThumbnail, getDefaultCar
                     {originalPrice > 0 && (
                       <button
                         onClick={(e) => handleAddToCart(e, product)}
-                        className="w-full bg-gradient-to-r from-red-500 to-orange-500 text-white font-medium py-3 rounded-xl hover:from-red-600 hover:to-orange-600 active:scale-95 transition-all shadow-md shadow-orange-500/30 flex justify-center items-center gap-2"
+                        disabled={!isOpen}
+                        className={`w-full font-medium py-3 rounded-xl transition-all shadow-md flex justify-center items-center gap-2 ${
+                          isOpen
+                            ? "bg-gradient-to-r from-red-500 to-orange-500 text-white hover:from-red-600 hover:to-orange-600 active:scale-95 shadow-orange-500/30 dark:shadow-none"
+                            : "bg-gray-300 dark:bg-gray-800 text-gray-500 dark:text-gray-500 cursor-not-allowed shadow-none"
+                        }`}
                       >
-                        <ShoppingCart className="w-5 h-5" /> Mua Ngay
+                        <ShoppingCart className="w-5 h-5" /> {isOpen ? "Thêm Ngay" : "Đã Khóa"}
                       </button>
                     )}
                   </div>
@@ -189,6 +224,8 @@ export default function FlashSaleSection({ products, getThumbnail, getDefaultCar
             );
           })}
         </Swiper>
+          </div>
+        </div>
       </div>
 
       <style>{`

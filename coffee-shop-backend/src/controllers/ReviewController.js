@@ -1,4 +1,5 @@
 const ReviewService = require("../services/ReviewService");
+const cloudinary = require("../config/cloudinary");
 
 class ReviewController {
   async getByProductId(req, res, next) {
@@ -17,9 +18,19 @@ class ReviewController {
   }
 
   async createOrUpdate(req, res, next) {
+    let uploadedImages = [];
     try {
       const userId = req.user.id;
       const { product_id, rating, comment } = req.body;
+      
+      let deleteImageIds = [];
+      if (req.body.deleteImageIds) {
+        try {
+           deleteImageIds = JSON.parse(req.body.deleteImageIds);
+        } catch(e) {
+           deleteImageIds = Array.isArray(req.body.deleteImageIds) ? req.body.deleteImageIds : [req.body.deleteImageIds];
+        }
+      }
 
       if (!product_id || !rating) {
         return res.status(400).json({
@@ -28,11 +39,30 @@ class ReviewController {
         });
       }
 
+      if (req.files && req.files.length > 0) {
+        for (const file of req.files) {
+          const result = await cloudinary.uploader.upload(file.path, {
+            folder: "reviews",
+            transformation: [
+              { width: 800, height: 800, crop: "limit" },
+              { quality: "auto" },
+            ],
+          });
+
+          uploadedImages.push({
+            url: result.secure_url,
+            public_id: result.public_id,
+          });
+        }
+      }
+
       const result = await ReviewService.createOrUpdateReview(
         userId,
         Number(product_id),
         Number(rating),
-        comment || ""
+        comment || "",
+        uploadedImages,
+        deleteImageIds
       );
 
       return res.status(200).json({
@@ -41,6 +71,15 @@ class ReviewController {
         message: result.message,
       });
     } catch (error) {
+      if (uploadedImages.length > 0) {
+        for (const img of uploadedImages) {
+          try {
+            await cloudinary.uploader.destroy(img.public_id);
+          } catch (err) {
+            console.error("Failed to delete review image:", err);
+          }
+        }
+      }
       return res.status(400).json({
         success: false,
         message: error.message || "Không thể đánh giá sản phẩm",

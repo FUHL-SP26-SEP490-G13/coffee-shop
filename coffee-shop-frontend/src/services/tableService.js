@@ -41,7 +41,6 @@ const tableService = {
   delete: async (id) => {
     const response = await axios.delete(`${API_URL}/tables/${id}`);
     return response.data;
-  }
   },
 
   transfer: async (fromTableId, toTableId) => {
@@ -62,6 +61,16 @@ const tableService = {
 
   settleDebt: async (tableId, payload = {}) => {
     const response = await axios.post(`${API_URL}/tables/${tableId}/settle-debt`, payload);
+    return response.data;
+  },
+
+  splitBill: async (tableId, payload = {}) => {
+    const response = await axios.post(`${API_URL}/tables/${tableId}/split-bill`, payload);
+    return response.data;
+  },
+
+  getUnpaidOrders: async (tableId) => {
+    const response = await axios.get(`${API_URL}/tables/${tableId}/unpaid-orders`);
     return response.data;
   },
 

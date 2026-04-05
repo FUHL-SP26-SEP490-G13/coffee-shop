@@ -66,8 +66,8 @@ class OrderController {
 
   async payosReturn(req, res, next) {
     try {
-      const { orderCode, payosId, status } = req.body;
-      const result = await OrderService.savePayosReturn({ orderCode, payosId, status });
+      const { orderCode, payosId, status, cancel } = req.body;
+      const result = await OrderService.savePayosReturn({ orderCode, payosId, status, cancel });
       return res.json({ success: true, data: result });
     } catch (error) {
       next(error);
@@ -89,6 +89,21 @@ class OrderController {
         data: result.orders,
         pagination: result.pagination,
         message: "Lấy danh sách đơn hàng toàn hệ thống thành công",
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getOrderDetailByStaff(req, res, next) {
+    try {
+      const orderId = Number(req.params.id);
+      const result = await OrderService.getOrderDetail(orderId);
+
+      return res.json({
+        success: true,
+        data: result,
+        message: "Lấy chi tiết đơn hàng (staff) thành công",
       });
     } catch (error) {
       next(error);

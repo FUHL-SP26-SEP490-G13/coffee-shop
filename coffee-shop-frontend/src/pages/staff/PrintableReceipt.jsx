@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import receiptSettingService from '@/services/receiptSettingService';
 
 const fmt = (n) => Number(n).toLocaleString('vi-VN') + ' đ';
+const DELIVERY_FEE = 20000;
 
 const isOrderPaid = (order) => {
   const paymentStatus = String(
@@ -27,15 +28,31 @@ const toLines = (textOrLines) => {
     .filter(Boolean);
 };
 
+const getItemQuantity = (item) => Math.max(1, Number(item?.quantity) || 1);
+
+const getItemLineTotal = (item) => {
+  const lineTotal = Number(item?.line_total);
+  if (Number.isFinite(lineTotal) && lineTotal >= 0) return lineTotal;
+  return Number(item?.unit_price ?? item?.price ?? 0) * getItemQuantity(item);
+};
+
+const getToppingUnitTotal = (item) =>
+  (item?.toppings || []).reduce(
+    (sum, topping) =>
+      sum + Number(topping?.price || 0) * Number(topping?.quantity || 0),
+    0
+  );
+
+const getBaseUnitPrice = (item) => {
+  const fromApi = Number(item?.base_unit_price);
+  if (Number.isFinite(fromApi) && fromApi >= 0) return fromApi;
+
+  const unitPrice = getItemLineTotal(item) / getItemQuantity(item);
+  return Math.max(0, unitPrice - getToppingUnitTotal(item));
+};
+
 const calcSubtotal = (order) =>
-  (order.items || []).reduce((sum, item) => {
-    const base = Number(item.unit_price || item.price || 0) * Number(item.quantity || 0);
-    const topping = (item.toppings || []).reduce(
-      (s, t) => s + Number(t.price || 0) * Number(t.quantity || 0),
-      0
-    );
-    return sum + base + topping;
-  }, 0);
+  (order.items || []).reduce((sum, item) => sum + getItemLineTotal(item), 0);
 
 const getOrderTypeLabel = (orderType) => {
   switch (String(orderType || '').toLowerCase()) {
@@ -93,17 +110,19 @@ export function PrintableReceipt({ order, onDone, onPrintSuccess }) {
   const storeAddress = setting?.address || '';
   const storePhone = setting?.phone || '';
 
-  const orderCode =
-    order.order_code ||
-    `HD${String(order.order_id || order.id || '').padStart(4, '0')}`;
+  const orderId = Number(order.order_id || order.id || 0);
+  const orderCode = `#${String(
+    Number.isFinite(orderId) && orderId > 0 ? orderId : 0
+  ).padStart(5, '0')}`;
   const subtotal = calcSubtotal(order);
   const totalAmount = Number(order.total_amount || 0);
   const computedDiscount = Math.max(0, subtotal - totalAmount);
   const normalizedOrderType = String(order?.order_type || '').toLowerCase();
+  const isDeliveryOrder = normalizedOrderType === 'delivery';
   const hasReceiverInfo = Boolean(
     order?.receiver_name || order?.receiver_phone || order?.address || order?.receiver_email
   );
-  const shouldShowDeliveryInfo = normalizedOrderType === 'delivery' && hasReceiverInfo;
+  const shouldShowDeliveryInfo = isDeliveryOrder && hasReceiverInfo;
   const orderDate = new Date(order.created_at || printedAt).toLocaleString(
     'vi-VN',
     {
@@ -129,7 +148,7 @@ export function PrintableReceipt({ order, onDone, onPrintSuccess }) {
 
       try {
         if (typeof onPrintSuccess === 'function') {
-          await onPrintSuccess(order);
+          Promise.resolve(onPrintSuccess(order)).catch(() => {});
         }
       } finally {
         if (typeof onDone === 'function') {
@@ -353,7 +372,7 @@ export function PrintableReceipt({ order, onDone, onPrintSuccess }) {
         <div className="receipt-section">
           <div className="receipt-item">
             <span>Mã đơn:</span>
-            <span className="receipt-code">#{orderCode}</span>
+            <span className="receipt-code">{orderCode}</span>
           </div>
           <div className="receipt-item">
             <span>Ngày:</span>
@@ -411,7 +430,7 @@ export function PrintableReceipt({ order, onDone, onPrintSuccess }) {
                   {item.product_name || item.name} ({item.size}) x{item.quantity}
                 </div>
                 <div className="receipt-item-price">
-                  {fmt((item.unit_price || item.price) * item.quantity)}
+                  {fmt(getBaseUnitPrice(item) * getItemQuantity(item))}
                 </div>
               </div>
 
@@ -421,10 +440,15 @@ export function PrintableReceipt({ order, onDone, onPrintSuccess }) {
                   {item.toppings.map((t, j) => (
                     <div key={j} className="receipt-item">
                       <span style={{ fontSize: '10px' }}>
-                        + {t.name} ×{t.quantity}
+                        + {t.name} ×{Number(t.quantity || 0) * getItemQuantity(item)}
                       </span>
                       <span style={{ fontSize: '10px' }}>
-                        +{fmt(t.price * t.quantity)}
+                        +
+                        {fmt(
+                          Number(t.price || 0) *
+                            Number(t.quantity || 0) *
+                            getItemQuantity(item)
+                        )}
                       </span>
                     </div>
                   ))}
@@ -457,6 +481,15 @@ export function PrintableReceipt({ order, onDone, onPrintSuccess }) {
             <div className="receipt-item">
               <span>Ghi chú:</span>
               <span>{order.note}</span>
+            </div>
+          </div>
+        )}
+
+        {isDeliveryOrder && (
+          <div className="receipt-section">
+            <div className="receipt-item">
+              <span>Phí vận chuyển</span>
+              <span>{fmt(DELIVERY_FEE)}</span>
             </div>
           </div>
         )}

@@ -7,10 +7,13 @@ import {
   ChevronUp,
   Heart,
   Star,
+  ImagePlus,
+  X,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
-import AiAssistantWidget from "@/components/layout/AiAssistantWidget";
 import { Button } from "@/components/ui/button";
 import productService from "@/services/productService";
 import toppingService from "@/services/toppingService";
@@ -26,10 +29,13 @@ import flashSaleService from "@/services/flashSaleService";
 import { STORAGE_KEYS } from "@/constants";
 import reviewService from "@/services/reviewService";
 import { Textarea } from "@/components/ui/textarea";
+import { useStoreHours } from "@/hooks/useStoreHours";
 
-export default function ProductDetailPage() {
+export default function ProductDetailPage({ productIdOverride, productData }) {
   const { id } = useParams();
+  const productId = productIdOverride || id;
   const navigate = useNavigate();
+  const { isOpen: isStoreOpen, nextOpenMessage } = useStoreHours();
 
   const token =
     localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN) ||
@@ -53,6 +59,9 @@ export default function ProductDetailPage() {
 
   const [myRating, setMyRating] = useState(0);
   const [myComment, setMyComment] = useState("");
+  const [myImages, setMyImages] = useState([]);
+  const [existingImages, setExistingImages] = useState([]);
+  const [deleteImageIds, setDeleteImageIds] = useState([]);
   const [canReview, setCanReview] = useState(false);
   const [reviewSubmitting, setReviewSubmitting] = useState(false);
 
@@ -65,8 +74,8 @@ export default function ProductDetailPage() {
   }, []);
 
   const fetchProduct = useCallback(() => {
-    return productService.getById(id);
-  }, [id]);
+    return productService.getById(productId);
+  }, [productId]);
 
   const { data, loading } = useFetch(fetchProduct);
 
@@ -93,7 +102,43 @@ export default function ProductDetailPage() {
     setSelectedSize(null);
     setSelectedToppings([]);
     setShowToppings(false);
-  }, [id]);
+  }, [productId]);
+
+  const [prevProduct, setPrevProduct] = useState(null);
+  const [nextProduct, setNextProduct] = useState(null);
+  const [showNavArrows, setShowNavArrows] = useState(true);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const isAtBottom = window.innerHeight + window.scrollY >= document.body.offsetHeight - 250;
+      setShowNavArrows(!isAtBottom);
+    };
+    window.addEventListener("scroll", handleScroll);
+    handleScroll();
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  useEffect(() => {
+    const fetchAdjacent = async () => {
+      try {
+        const res = await productService.getAll({ limit: 1000, status: "available" });
+        const items = res?.data?.items || res?.data || [];
+        if (items.length > 0) {
+          const currentIndex = items.findIndex((p) => String(p.id) === String(id));
+          if (currentIndex !== -1) {
+            setPrevProduct(currentIndex > 0 ? items[currentIndex - 1] : null);
+            setNextProduct(currentIndex < items.length - 1 ? items[currentIndex + 1] : null);
+          } else {
+            setPrevProduct(null);
+            setNextProduct(null);
+          }
+        }
+      } catch (err) {
+        console.error("Lỗi lấy sản phẩm liền kề", err);
+      }
+    };
+    fetchAdjacent();
+  }, [productId]);
 
   useEffect(() => {
     const fetchToppings = async () => {
@@ -172,11 +217,17 @@ export default function ProductDetailPage() {
         setCanReview(Boolean(result?.canReview));
         setMyRating(Number(result?.review?.rating) || 0);
         setMyComment(result?.review?.comment || "");
+        setExistingImages(result?.review?.images || []);
+        setMyImages([]);
+        setDeleteImageIds([]);
       } catch (error) {
         console.error("Lỗi lấy đánh giá của bạn:", error);
         setCanReview(false);
         setMyRating(0);
         setMyComment("");
+        setExistingImages([]);
+        setMyImages([]);
+        setDeleteImageIds([]);
       }
     };
 
@@ -200,28 +251,83 @@ export default function ProductDetailPage() {
       return;
     }
 
+    if (myImages.length > 3) {
+      alert("Bạn chỉ có thể tải lên tối đa 3 ảnh");
+      return;
+    }
+
     try {
       setReviewSubmitting(true);
 
-      const res = await reviewService.createOrUpdate({
-        product_id: product.id,
-        rating: myRating,
-        comment: myComment,
+      const formData = new FormData();
+      formData.append("product_id", product.id);
+      formData.append("rating", myRating);
+      formData.append("comment", myComment);
+
+      myImages.forEach((img) => {
+        formData.append("images", img.file);
       });
 
-      alert(res?.data?.message || "Gửi đánh giá thành công");
+      // Nếu có ảnh mới lên, tự động xóa tất cả ảnh cũ (do form giờ đã ẩn ảnh cũ)
+      if (myImages.length > 0) {
+        existingImages.forEach(img => {
+          formData.append("deleteImageIds", img.public_id);
+        });
+      } else {
+        deleteImageIds.forEach((id) => {
+          formData.append("deleteImageIds", id);
+        });
+      }
+
+      const res = await reviewService.createOrUpdate(formData);
+
+      alert(res?.data?.message || res?.message || "Gửi đánh giá thành công");
 
       const reviewRes = await reviewService.getByProductId(product.id);
-      const reviewResult = reviewRes?.data?.data || {};
+      const reviewResult = reviewRes?.data?.data || reviewRes?.data || {};
 
       setReviews(Array.isArray(reviewResult?.items) ? reviewResult.items : []);
       setAverageRating(Number(reviewResult?.averageRating) || 0);
+
+      const myRes = await reviewService.getMyReview(product.id);
+      const myResult = myRes?.data || {};
+      setExistingImages(myResult?.review?.images || []);
+      setMyImages([]);
+      setDeleteImageIds([]);
+
     } catch (error) {
       console.error("Lỗi gửi đánh giá:", error);
-      alert(error?.response?.data?.message || "Không thể gửi đánh giá");
+      alert(error?.response?.data?.message || error?.message || "Không thể gửi đánh giá");
     } finally {
       setReviewSubmitting(false);
     }
+  };
+
+  const handleAddPreviewImages = (e) => {
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
+
+    if (myImages.length + files.length > 3) {
+      alert("Bạn chỉ được tải lên tối đa 3 ảnh.");
+      return;
+    }
+
+    const newPreviewImages = files.map(file => ({
+      file,
+      url: URL.createObjectURL(file)
+    }));
+
+    setMyImages(prev => [...prev, ...newPreviewImages]);
+    e.target.value = null;
+  };
+
+  const handleRemoveExistingImage = (publicId) => {
+    setDeleteImageIds(prev => [...prev, publicId]);
+    setExistingImages(prev => prev.filter(img => img.public_id !== publicId));
+  };
+
+  const handleRemoveMyImage = (index) => {
+    setMyImages(prev => prev.filter((_, i) => i !== index));
   };
 
   const selectedSizeObj = useMemo(() => {
@@ -406,7 +512,7 @@ export default function ProductDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col bg-white">
+      <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900">
         <Header />
         <div className="flex-1 flex items-center justify-center">
           <Loader2 className="w-10 h-10 animate-spin text-amber-600" />
@@ -418,9 +524,9 @@ export default function ProductDetailPage() {
 
   if (!product) {
     return (
-      <div className="min-h-screen flex flex-col bg-white">
+      <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900">
         <Header />
-        <div className="flex-1 flex items-center justify-center text-gray-600">
+        <div className="flex-1 flex items-center justify-center text-gray-600 dark:text-gray-400">
           Không tìm thấy sản phẩm
         </div>
         <Footer />
@@ -429,15 +535,58 @@ export default function ProductDetailPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-white">
+    <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900 relative">
       <Header />
 
-      <section className="w-full px-4 sm:px-6 lg:px-8 py-14">
-        <div className="max-w-7xl mx-auto">
-          <Button variant="ghost" onClick={() => navigate(-1)} className="mb-4">
-            ← Quay lại
-          </Button>
+      <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 pt-6">
+        <div className="text-sm text-gray-500 dark:text-gray-400 mb-2 flex items-center space-x-2">
+          <span className="cursor-pointer hover:text-amber-600 transition-colors" onClick={() => navigate("/")}>Trang chủ</span>
+          {productData?.category_name && (
+            <>
+              <span className="text-gray-400">/</span>
+              <span 
+                className="cursor-pointer hover:text-amber-600 transition-colors"
+                onClick={() => navigate(`/${productData.category_slug}`)}
+              >
+                {productData.category_name}
+              </span>
+            </>
+          )}
+          {productData?.name && (
+            <>
+               <span className="text-gray-400">/</span>
+               <span className="text-amber-600 font-medium">{productData.name}</span>
+            </>
+          )}
         </div>
+      </div>
+
+      {prevProduct && (
+        <button
+          onClick={() => navigate(`/${prevProduct.slug || 'products/' + prevProduct.id}`)}
+          className={`fixed left-2 xl:left-8 top-1/2 -translate-y-1/2 z-[100] bg-white/70 hover:bg-white dark:bg-gray-800/80 dark:hover:bg-gray-800 p-2 md:p-4 rounded-full shadow-[0_4px_20px_-4px_rgba(245,158,11,0.5)] border border-amber-200 dark:border-amber-900/50 text-amber-600 dark:text-amber-500 backdrop-blur-md transition-all duration-300 flex group overflow-hidden ${
+            showNavArrows ? 'opacity-100 hover:scale-110' : 'opacity-0 pointer-events-none -translate-x-10'
+          }`}
+          title={`Xem sản phẩm trước: ${prevProduct.name}`}
+        >
+          <ChevronLeft className="w-6 h-6 md:w-8 md:h-8 group-hover:-translate-x-1 transition-transform" />
+        </button>
+      )}
+
+      {nextProduct && (
+        <button
+          onClick={() => navigate(`/${nextProduct.slug || 'products/' + nextProduct.id}`)}
+          className={`fixed right-2 xl:right-8 top-1/2 -translate-y-1/2 z-[100] bg-white/70 hover:bg-white dark:bg-gray-800/80 dark:hover:bg-gray-800 p-2 md:p-4 rounded-full shadow-[0_4px_20px_-4px_rgba(245,158,11,0.5)] border border-amber-200 dark:border-amber-900/50 text-amber-600 dark:text-amber-500 backdrop-blur-md transition-all duration-300 flex group overflow-hidden ${
+            showNavArrows ? 'opacity-100 hover:scale-110' : 'opacity-0 pointer-events-none translate-x-10'
+          }`}
+          title={`Xem sản phẩm tiếp theo: ${nextProduct.name}`}
+        >
+          <ChevronRight className="w-6 h-6 md:w-8 md:h-8 group-hover:translate-x-1 transition-transform" />
+        </button>
+      )}
+
+      <section className="w-full px-4 sm:px-6 lg:px-8 py-14">
+
 
         <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
           <div>
@@ -446,7 +595,7 @@ export default function ProductDetailPage() {
               pagination={{ clickable: true }}
               autoplay={{ delay: 3000, disableOnInteraction: false }}
               loop
-              className="rounded-2xl overflow-hidden border border-gray-200 shadow-sm relative"
+              className="rounded-2xl overflow-hidden border border-gray-200  shadow-sm relative"
             >
               {isFlashSale && (
                 <div className="absolute top-4 left-4 z-20 bg-red-600 text-white text-sm font-bold px-3 py-1.5 rounded-lg shadow-lg flex items-center gap-1.5 animate-pulse">
@@ -455,7 +604,7 @@ export default function ProductDetailPage() {
               )}
               {displayImages.map((img, index) => (
                 <SwiperSlide key={index}>
-                  <div className="h-[420px] bg-gray-100">
+                  <div className="h-[420px] bg-gray-100 dark:bg-gray-800">
                     <img
                       src={img.image_url || defaultImage}
                       alt={product.name}
@@ -467,58 +616,58 @@ export default function ProductDetailPage() {
             </Swiper>
 
             <div className="mt-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
                 Mô tả sản phẩm
               </h3>
 
               {description ? (
                 hasRichDescription ? (
                   <div
-                    className="product-rich-content text-gray-700"
+                    className="product-rich-content text-gray-700 dark:text-gray-300"
                     dangerouslySetInnerHTML={{ __html: description }}
                   />
                 ) : (
-                  <p className="text-gray-600 leading-8 whitespace-pre-line">
+                  <p className="text-gray-600 dark:text-gray-400 leading-8 whitespace-pre-line">
                     {description}
                   </p>
                 )
               ) : (
-                <p className="text-gray-600 leading-8">
+                <p className="text-gray-600 dark:text-gray-400 leading-8">
                   Thưởng thức hương vị đặc biệt của chúng tôi
                 </p>
               )}
             </div>
-            <div className="mt-6 bg-gray-50 border border-gray-200 rounded-2xl p-4">
+            <div className="mt-6 bg-gray-50 dark:bg-gray-950 border border-gray-200  rounded-2xl p-4">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-lg font-semibold text-gray-900">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                   Đánh giá
                 </h3>
 
                 <div className="flex items-center gap-1 text-amber-500">
                   <Star className="w-4 h-4 fill-current" />
-                  <span className="font-semibold text-gray-800">
+                  <span className="font-semibold text-gray-800 dark:text-gray-200">
                     {averageRating > 0 ? averageRating : "--"}
                   </span>
                 </div>
               </div>
 
               {reviewLoading ? (
-                <div className="flex items-center justify-center py-6 text-gray-500">
+                <div className="flex items-center justify-center py-6 text-gray-500 dark:text-gray-400">
                   <Loader2 className="w-5 h-5 animate-spin mr-2" />
                   Đang tải đánh giá...
                 </div>
               ) : reviews.length === 0 ? (
-                <p className="text-sm text-gray-500">Chưa có đánh giá nào</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Chưa có đánh giá nào</p>
               ) : (
                 <div className="space-y-3 max-h-[320px] overflow-y-auto pr-2">
                   {reviews.map((item) => (
                     <div
                       key={item.id}
-                      className="bg-white border border-gray-200 rounded-xl px-3 py-3"
+                      className="bg-white dark:bg-gray-900 border border-gray-200  rounded-xl px-3 py-3"
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0 flex-1">
-                          <p className="font-medium text-gray-900 break-words">
+                          <p className="font-medium text-gray-900 dark:text-gray-100 break-words">
                             {item.full_name}
                           </p>
 
@@ -547,26 +696,36 @@ export default function ProductDetailPage() {
                       </div>
 
                       {item.comment && (
-                        <p className="text-sm text-gray-600 mt-3 leading-6 break-words">
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-3 leading-6 break-words">
                           {item.comment}
                         </p>
+                      )}
+                      
+                      {item.images && item.images.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-3">
+                          {item.images.map((img, idx) => (
+                            <a key={idx} href={img.url} target="_blank" rel="noopener noreferrer" className="block">
+                               <img src={img.url} alt="Review" className="w-16 h-16 object-cover rounded-lg border border-gray-200 cursor-zoom-in hover:brightness-90 transition-all"/>
+                            </a>
+                          ))}
+                        </div>
                       )}
                     </div>
                   ))}
                 </div>
               )}
 
-              <div className="mt-4 pt-4 border-t border-gray-200">
-                <h4 className="font-semibold text-gray-900 mb-3">
+              <div className="mt-4 pt-4 border-t border-gray-200 ">
+                <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-3">
                   Đánh giá của bạn
                 </h4>
 
                 {!isLoggedIn ? (
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
                     Vui lòng đăng nhập để đánh giá sản phẩm.
                   </p>
                 ) : !canReview ? (
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
                     Bạn chỉ có thể đánh giá sản phẩm đã mua và đã hoàn tất đơn
                     hàng.
                   </p>
@@ -603,7 +762,28 @@ export default function ProductDetailPage() {
                       className="w-full rounded-xl text-sm"
                     />
 
-                    <div className="mt-3">
+                    <div className="mt-3 border border-gray-200 dark:border-gray-800 rounded-xl p-3 bg-white dark:bg-gray-900 shadow-sm">
+                      <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Hình ảnh đính kèm (Tối đa 3 ảnh)</p>
+                      <div className="flex flex-wrap gap-3">
+                         {myImages.map((img, idx) => (
+                           <div key={idx} className="relative w-20 h-20 shrink-0">
+                              <img src={img.url} className="w-full h-full object-cover rounded-lg border border-gray-200" alt="Review preview" />
+                              <button type="button" onClick={() => handleRemoveMyImage(idx)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md hover:bg-red-600 transition">
+                                 <X className="w-3 h-3" />
+                              </button>
+                           </div>
+                         ))}
+                         {myImages.length < 3 && (
+                           <label className="w-20 h-20 shrink-0 flex flex-col gap-1 items-center justify-center border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-amber-500 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-gray-800 text-gray-400 transition bg-gray-50 dark:bg-gray-800">
+                              <ImagePlus className="w-6 h-6" />
+                              <span className="text-[10px] font-medium uppercase tracking-wider">Thêm ảnh</span>
+                              <input type="file" accept="image/*" multiple className="hidden" onChange={handleAddPreviewImages} />
+                           </label>
+                         )}
+                      </div>
+                    </div>
+
+                    <div className="mt-4">
                       <Button
                         onClick={handleSubmitReview}
                         disabled={reviewSubmitting}
@@ -628,12 +808,12 @@ export default function ProductDetailPage() {
           <div>
             <div className="flex items-start justify-between gap-4 mb-4">
               <div>
-                <p className="text-sm uppercase tracking-wide text-gray-500 mb-2">
+                <p className="text-sm uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">
                   {product.category_name || "Danh mục"}
                 </p>
-                <h1 className="text-3xl font-bold text-gray-900">
+                <h5 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                   {product.name}
-                </h1>
+                </h5>
               </div>
 
               <div className="flex gap-2 shrink-0">
@@ -644,7 +824,7 @@ export default function ProductDetailPage() {
                     const text = encodeURIComponent(`Sản phẩm ${product.name} rất ngon, hãy vào cà phê mua ngay bạn nhé`);
                     window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}&quote=${text}`, '_blank', 'width=600,height=400');
                   }}
-                  className="w-12 h-12 rounded-full border flex items-center justify-center transition bg-white border-gray-300 text-blue-600 hover:border-blue-500 hover:text-blue-700 hover:bg-blue-50"
+                  className="w-12 h-12 rounded-full border flex items-center justify-center transition bg-white dark:bg-gray-900 border-gray-300 text-blue-600 hover:border-blue-500 hover:text-blue-700 hover:bg-blue-50"
                   title="Chia sẻ lên Facebook"
                 >
                   <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
@@ -659,7 +839,7 @@ export default function ProductDetailPage() {
                     const text = encodeURIComponent(`Sản phẩm ${product.name} rất ngon, hãy vào cà phê mua ngay bạn nhé`);
                     window.open(`https://twitter.com/intent/tweet?url=${url}&text=${text}`, '_blank', 'width=600,height=400');
                   }}
-                  className="w-12 h-12 rounded-full border flex items-center justify-center transition bg-white border-gray-300 text-gray-800 hover:border-black hover:text-black hover:bg-gray-100"
+                  className="w-12 h-12 rounded-full border flex items-center justify-center transition bg-white dark:bg-gray-900 border-gray-300 text-gray-800 dark:text-gray-200 hover:border-black hover:text-black hover:bg-gray-100 dark:hover:bg-gray-700 dark:bg-gray-800"
                   title="Chia sẻ lên X (Twitter)"
                 >
                   <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
@@ -674,7 +854,7 @@ export default function ProductDetailPage() {
                   className={`w-12 h-12 rounded-full border flex items-center justify-center transition ${
                     isFavorite
                       ? "bg-red-50 border-red-500 text-red-500"
-                      : "bg-white border-gray-300 text-gray-500 hover:border-red-400 hover:text-red-500 hover:bg-red-50"
+                      : "bg-white dark:bg-gray-900 border-gray-300 text-gray-500 dark:text-gray-400 hover:border-red-400 hover:text-red-500 hover:bg-red-50"
                   }`}
                   title={isFavorite ? "Bỏ yêu thích" : "Thêm vào yêu thích"}
                 >
@@ -689,7 +869,7 @@ export default function ProductDetailPage() {
 
             {sizes.length > 0 && (
               <div className="mb-6">
-                <p className="text-sm font-semibold text-gray-800 mb-3">
+                <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-3">
                   Chọn size
                 </p>
 
@@ -702,7 +882,7 @@ export default function ProductDetailPage() {
                       className={`px-4 py-2 rounded-full border font-medium ${
                         selectedSize === size.size
                           ? "bg-amber-600 text-white border-amber-600"
-                          : "bg-white text-gray-700 border-gray-300"
+                          : "bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 border-gray-300"
                       }`}
                     >
                       {size.size}
@@ -714,16 +894,16 @@ export default function ProductDetailPage() {
 
             {toppings.length > 0 && (
               <div className="mb-8">
-                <p className="text-sm font-semibold text-gray-800 mb-3">
+                <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-3">
                   Topping
                 </p>
 
                 <button
                   type="button"
                   onClick={() => setShowToppings((prev) => !prev)}
-                  className="w-full flex items-center justify-between rounded-2xl border border-gray-300 bg-white px-4 py-3 hover:border-amber-500 transition"
+                  className="w-full flex items-center justify-between rounded-2xl border border-gray-300 bg-white dark:bg-gray-900 px-4 py-3 hover:border-amber-500 transition"
                 >
-                  <span className="font-medium text-gray-800">
+                  <span className="font-medium text-gray-800 dark:text-gray-200">
                     Muốn gọi thêm
                     {selectedToppings.length > 0
                       ? ` (${selectedToppings.length} loại đã chọn)`
@@ -731,9 +911,9 @@ export default function ProductDetailPage() {
                   </span>
 
                   {showToppings ? (
-                    <ChevronUp className="w-5 h-5 text-gray-600" />
+                    <ChevronUp className="w-5 h-5 text-gray-600 dark:text-gray-400" />
                   ) : (
-                    <ChevronDown className="w-5 h-5 text-gray-600" />
+                    <ChevronDown className="w-5 h-5 text-gray-600 dark:text-gray-400" />
                   )}
                 </button>
 
@@ -746,7 +926,7 @@ export default function ProductDetailPage() {
                       return (
                         <div
                           key={topping.id}
-                          className="border border-gray-200 rounded-2xl p-4 bg-white"
+                          className="border border-gray-200  rounded-2xl p-4 bg-white dark:bg-gray-900"
                         >
                           <div className="flex items-center justify-between gap-4">
                             <label className="flex items-center gap-3 cursor-pointer flex-1">
@@ -758,7 +938,7 @@ export default function ProductDetailPage() {
                               />
 
                               <div className="min-w-0">
-                                <p className="font-medium text-gray-900 break-words">
+                                <p className="font-medium text-gray-900 dark:text-gray-100 break-words">
                                   {topping.name}
                                 </p>
                                 <p className="text-sm text-amber-600 font-semibold">
@@ -770,44 +950,6 @@ export default function ProductDetailPage() {
                                 </p>
                               </div>
                             </label>
-
-                            {checked && (
-                              <div className="flex items-center gap-2 shrink-0">
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    updateToppingQuantity(
-                                      topping.id,
-                                      Math.max(
-                                        1,
-                                        Number(selectedTopping?.quantity || 1) -
-                                          1
-                                      )
-                                    )
-                                  }
-                                  className="w-8 h-8 border rounded-lg hover:bg-gray-50"
-                                >
-                                  -
-                                </button>
-
-                                <span className="min-w-[24px] text-center font-medium">
-                                  {selectedTopping?.quantity || 1}
-                                </span>
-
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    updateToppingQuantity(
-                                      topping.id,
-                                      Number(selectedTopping?.quantity || 1) + 1
-                                    )
-                                  }
-                                  className="w-8 h-8 border rounded-lg hover:bg-gray-50"
-                                >
-                                  +
-                                </button>
-                              </div>
-                            )}
                           </div>
                         </div>
                       );
@@ -816,26 +958,20 @@ export default function ProductDetailPage() {
                 )}
 
                 {selectedToppings.length > 0 && (
-                  <div className="mt-4 rounded-2xl bg-amber-50 border border-amber-100 p-4">
-                    <p className="text-sm font-semibold text-gray-800 mb-2">
+                  <div className="mt-4 rounded-2xl bg-amber-50 dark:bg-amber-900/20 border border-amber-100 p-4">
+                    <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">
                       Topping đã chọn
                     </p>
 
-                    <div className="space-y-1 text-sm text-gray-600">
+                    <div className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
                       {selectedToppings.map((item) => (
                         <div
                           key={item.topping_id}
                           className="flex items-center justify-between gap-3"
                         >
-                          <span>
-                            {item.name} x {item.quantity}
-                          </span>
+                          <span>{item.name}</span>
                           <span className="font-medium text-amber-600">
-                            +
-                            {(
-                              Number(item.price) * Number(item.quantity)
-                            ).toLocaleString("vi-VN")}
-                            đ
+                            +{Number(item.price).toLocaleString("vi-VN")}đ
                           </span>
                         </div>
                       ))}
@@ -845,13 +981,13 @@ export default function ProductDetailPage() {
               </div>
             )}
 
-            <div className="mb-8 p-4 rounded-2xl bg-gray-50 border border-gray-100">
-              <p className="text-sm font-medium text-gray-500 mb-1">Tổng tiền tạm tính</p>
+            <div className="mb-8 p-4 rounded-2xl bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800">
+              <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Tổng tiền tạm tính</p>
               
               <div className="flex flex-col">
                 {isFlashSale && originalDisplayPrice ? (
                   <div className="flex items-center gap-3">
-                    <p className="text-4xl font-bold text-red-600">
+                    <p className="text-3xl font-semibold text-red-600">
                       {selectedSizeObj
                         ? `${displayPrice.toLocaleString("vi-VN")}đ`
                         : "Liên hệ"}
@@ -861,7 +997,7 @@ export default function ProductDetailPage() {
                     </span>
                   </div>
                 ) : (
-                  <p className="text-4xl font-bold text-amber-600">
+                  <p className="text-3xl font-semibold text-amber-600">
                     {selectedSizeObj
                       ? `${displayPrice.toLocaleString("vi-VN")}đ`
                       : "Liên hệ"}
@@ -870,7 +1006,7 @@ export default function ProductDetailPage() {
               </div>
 
               {selectedToppings.length > 0 && (
-                <div className="mt-4 pt-3 border-t border-gray-200 text-sm text-gray-600 space-y-1.5">
+                <div className="mt-4 pt-3 border-t border-gray-200  text-sm text-gray-600 dark:text-gray-400 space-y-1.5">
                   <div className="flex justify-between items-center">
                     <span>Giá size {selectedSizeObj?.size || ""}:</span>
                     <span className="font-medium">
@@ -904,19 +1040,27 @@ export default function ProductDetailPage() {
               </button>
             </div>
 
+            {!isStoreOpen && (
+              <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 rounded-xl flex items-center gap-2">
+                <span className="font-medium text-sm">Cửa hàng hiện đang đóng cửa. {nextOpenMessage}. Bạn không thể đặt hàng lúc này.</span>
+              </div>
+            )}
+
             <div className="flex gap-4 flex-wrap">
               <Button
                 onClick={addToCart}
-                className="bg-amber-600 hover:bg-amber-700 text-white px-8 py-6 text-base"
+                disabled={!isStoreOpen}
+                className="bg-amber-600 hover:bg-amber-700 text-white px-8 py-6 text-base disabled:bg-gray-400 disabled:opacity-100"
               >
                 <Plus className="w-5 h-5 mr-2" />
-                Thêm vào giỏ hàng
+                {isStoreOpen ? "Thêm vào giỏ hàng" : "Đóng cửa"}
               </Button>
 
               <Button
                 onClick={buyNow}
+                disabled={!isStoreOpen}
                 variant="outline"
-                className="px-8 py-6 text-base border-amber-600 text-amber-600 hover:bg-amber-50"
+                className="px-8 py-6 text-base border-amber-600 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20 disabled:border-gray-400 disabled:text-gray-500 disabled:hover:bg-transparent"
               >
                 Mua ngay
               </Button>
@@ -928,7 +1072,7 @@ export default function ProductDetailPage() {
       <section className="w-full px-4 sm:px-6 lg:px-8 pb-14">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-gray-900">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
               Sản phẩm liên quan
             </h2>
 
@@ -946,7 +1090,7 @@ export default function ProductDetailPage() {
               <Loader2 className="w-8 h-8 animate-spin text-amber-600" />
             </div>
           ) : relatedProducts.length === 0 ? (
-            <div className="text-gray-500 py-6">
+            <div className="text-gray-500 dark:text-gray-400 py-6">
               Không có sản phẩm liên quan
             </div>
           ) : (
@@ -966,10 +1110,10 @@ export default function ProductDetailPage() {
                 return (
                   <div
                     key={item.id}
-                    onClick={() => navigate(`/products/${item.id}`)}
-                    className="bg-white rounded-2xl border border-gray-200 overflow-hidden cursor-pointer hover:shadow-lg transition"
+                    onClick={() => navigate(`/${item.slug || 'products/' + item.id}`)}
+                    className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200  overflow-hidden cursor-pointer hover:shadow-lg transition"
                   >
-                    <div className="h-56 bg-gray-100">
+                    <div className="h-56 bg-gray-100 dark:bg-gray-800">
                       <img
                         src={itemImage}
                         alt={item.name}
@@ -978,11 +1122,11 @@ export default function ProductDetailPage() {
                     </div>
 
                     <div className="p-4">
-                      <p className="text-sm text-gray-500 mb-1">
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
                         {item.category_name || "Danh mục"}
                       </p>
 
-                      <h3 className="font-semibold text-gray-900 line-clamp-2 min-h-[48px]">
+                      <h3 className="font-semibold text-gray-900 dark:text-gray-100 line-clamp-2 min-h-[48px]">
                         {item.name}
                       </h3>
 
@@ -1001,7 +1145,6 @@ export default function ProductDetailPage() {
       </section>
 
       <Footer />
-      <AiAssistantWidget />
     </div>
   );
 }
