@@ -33,7 +33,7 @@ export default function FeaturedNews() {
   if (!featuredNews.length) return null;
 
   return (
-    <div className="py-8 md:py-12 bg-white dark:bg-gray-950 overflow-hidden">
+    <div className="py-8 md:py-4 bg-white dark:bg-gray-950 overflow-hidden">
       <div className="w-full px-4 lg:px-6 xl:px-8">
         <div className="relative bg-gradient-to-b from-background via-muted/20 to-background rounded-none sm:rounded-3xl py-12 md:py-16 px-4 sm:px-8 lg:px-12 w-full">
           {/* Decorative Background Elements */}

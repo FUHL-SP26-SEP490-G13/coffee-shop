@@ -833,7 +833,7 @@ function Header() {
             </h1>
           </div>
 
-          <div className="hidden md:flex flex-1 w-full max-w-sm lg:max-w-2xl mr-auto ml-4 lg:ml-0 lg:pl-6 px-2 lg:px-0">
+          <div className="hidden md:flex flex-1 w-full max-w-md lg:max-w-2xl mx-auto px-4 lg:px-6">
             <div className="w-full relative" ref={searchRef}>
               <div className="relative">
                 <Input

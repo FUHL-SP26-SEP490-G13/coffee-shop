@@ -93,7 +93,7 @@ function Footer() {
   }, []);
 
   return (
-    <footer className="mt-20 border-t border-border bg-card">
+    <footer className="mt-5 border-t border-border bg-card">
       <div className="w-full px-4 lg:px-6 xl:px-8 py-12 lg:py-16">
         <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-4">
           {/* Cột 1: Thông tin liên hệ & Mạng xã hội */}
