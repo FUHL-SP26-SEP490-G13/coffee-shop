@@ -3,6 +3,7 @@ const AreaRepository = require("../repositories/AreaRepository");
 const generateQrCode = require('../utils/generateQrCode');
 const ErrorResponse = require('../utils/ErrorResponse');
 const LoyaltyService = require("./LoyaltyService");
+const CashSessionRepository = require('../repositories/CashSessionRepository');
 
 class TableService {
   /**
@@ -841,12 +842,13 @@ class TableService {
       );
 
       // 4. Tạo order mới (Tách), dùng session_id của bàn để có thể settle cùng
+      const activeSession = await CashSessionRepository.findOpenSession();
       const [insertOrder] = await connection.query(
         `
-        INSERT INTO orders (user_id, created_by, customer_type, order_type, table_id, status, is_paid, total_amount, session_id)
-        VALUES (1, 1, 'guest', 'dine-in', ?, 'pending', 0, 0, ?)
+        INSERT INTO orders (user_id, created_by, customer_type, order_type, table_id, status, is_paid, total_amount, session_id, cash_session_id)
+        VALUES (1, 1, 'guest', 'dine-in', ?, 'pending', 0, 0, ?, ?)
         `,
-        [tableId, table.current_session_id]
+        [tableId, table.current_session_id, activeSession ? activeSession.id : null]
       );
       const newOrderId = Number(insertOrder.insertId);
 

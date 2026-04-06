@@ -76,9 +76,10 @@ class QrOrderRepository {
         status,
         is_paid,
         total_amount,
-        discount_id
+        discount_id,
+        cash_session_id
       )
-      VALUES (?, ?, ?, ?, ?, 'pending', 0, ?, ?)
+      VALUES (?, ?, ?, ?, ?, 'pending', 0, ?, ?, ?)
       `,
       [
         data.user_id,
@@ -87,7 +88,8 @@ class QrOrderRepository {
         data.order_type,
         data.table_id || null,
         data.total_amount,
-        data.discount_id || null
+        data.discount_id || null,
+        data.cash_session_id || null,
       ]
     );
 
