@@ -364,6 +364,7 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
         order_type: 'dine-in',
         table_id: Number(table.id),
         payment_method: resolvedPaymentMethod,
+        cash_received: resolvedPaymentMethod === 'cash' ? Number(customerCash) : undefined,
         receiver_name: `Khách Bàn ${table.code || ''}`,
         receiver_phone: '0000000000',
         items,

@@ -157,6 +157,28 @@ class OrderRepository {
   }
 
   async createOrderPayment(connection, data) {
+    const amount = Number(data.amount) || 0;
+    const paymentStatus = data.payment_status || "pending";
+    const isPaid = paymentStatus === "paid";
+
+    const normalizedPaidAmount = Number.isFinite(Number(data.paid_amount))
+      ? Number(data.paid_amount)
+      : isPaid
+      ? amount
+      : 0;
+
+    const normalizedCashReceived = Number.isFinite(Number(data.cash_received))
+      ? Number(data.cash_received)
+      : isPaid
+      ? normalizedPaidAmount
+      : 0;
+
+    const normalizedChangeAmount = Number.isFinite(Number(data.change_amount))
+      ? Math.max(0, Number(data.change_amount))
+      : isPaid
+      ? Math.max(0, normalizedCashReceived - normalizedPaidAmount)
+      : 0;
+
     await connection.query(
       `
       INSERT INTO order_payments (
@@ -164,18 +186,24 @@ class OrderRepository {
         payment_method,
         payment_status,
         amount,
+        paid_amount,
+        cash_received,
+        change_amount,
         transaction_id,
         paid_at
       )
-      VALUES (?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `,
       [
         data.order_id,
         data.payment_method,
-        data.payment_status || "pending",
-        data.amount,
+        paymentStatus,
+        amount,
+        normalizedPaidAmount,
+        normalizedCashReceived,
+        normalizedChangeAmount,
         data.transaction_id || null,
-        data.payment_status === "paid" ? new Date() : null,
+        isPaid ? new Date() : null,
       ]
     );
   }
@@ -206,6 +234,8 @@ class OrderRepository {
       if (payment_status === "paid") {
         setParts.push("paid_at = NOW()");
         setParts.push("paid_amount = amount");
+        setParts.push("cash_received = amount");
+        setParts.push("change_amount = 0");
       }
     }
 
@@ -247,14 +277,59 @@ class OrderRepository {
     );
   }
 
-  async updatePaymentStatusByOrderId(orderId, paymentStatus) {
+  async updatePaymentStatusByOrderId(orderId, paymentStatus, paymentMeta = {}) {
+    const setParts = ["payment_status = ?"];
+    const params = [paymentStatus];
+
+    if (paymentStatus === "paid") {
+      const paidAmount = Number(paymentMeta.paid_amount);
+      const hasPaidAmount = Number.isFinite(paidAmount);
+
+      const cashReceived = Number(paymentMeta.cash_received);
+      const hasCashReceived = Number.isFinite(cashReceived);
+
+      const changeAmount = Number(paymentMeta.change_amount);
+      const hasChangeAmount = Number.isFinite(changeAmount);
+
+      setParts.push("paid_at = NOW()");
+
+      if (hasPaidAmount) {
+        setParts.push("paid_amount = ?");
+        params.push(paidAmount);
+      } else {
+        setParts.push("paid_amount = amount");
+      }
+
+      if (hasCashReceived) {
+        setParts.push("cash_received = ?");
+        params.push(cashReceived);
+      } else {
+        setParts.push("cash_received = amount");
+      }
+
+      if (hasChangeAmount) {
+        setParts.push("change_amount = ?");
+        params.push(Math.max(0, changeAmount));
+      } else if (hasCashReceived) {
+        if (hasPaidAmount) {
+          setParts.push("change_amount = ?");
+          params.push(Math.max(0, cashReceived - paidAmount));
+        } else {
+          setParts.push("change_amount = GREATEST(? - amount, 0)");
+          params.push(cashReceived);
+        }
+      } else {
+        setParts.push("change_amount = 0");
+      }
+    }
+
     await db.query(
       `
       UPDATE order_payments
-      SET payment_status = ?
+      SET ${setParts.join(", ")}
       WHERE order_id = ?
       `,
-      [paymentStatus, orderId]
+      [...params, orderId]
     );
   }
 

@@ -130,6 +130,28 @@ class QrOrderRepository {
 
 
   async createOrderPayment(connection, data) {
+    const amount = Number(data.amount) || 0;
+    const paymentStatus = data.payment_status || "pending";
+    const isPaid = paymentStatus === "paid";
+
+    const normalizedPaidAmount = Number.isFinite(Number(data.paid_amount))
+      ? Number(data.paid_amount)
+      : isPaid
+      ? amount
+      : 0;
+
+    const normalizedCashReceived = Number.isFinite(Number(data.cash_received))
+      ? Number(data.cash_received)
+      : isPaid
+      ? normalizedPaidAmount
+      : 0;
+
+    const normalizedChangeAmount = Number.isFinite(Number(data.change_amount))
+      ? Math.max(0, Number(data.change_amount))
+      : isPaid
+      ? Math.max(0, normalizedCashReceived - normalizedPaidAmount)
+      : 0;
+
     await connection.query(
       `
       INSERT INTO order_payments (
@@ -137,18 +159,24 @@ class QrOrderRepository {
         payment_method,
         payment_status,
         amount,
+        paid_amount,
+        cash_received,
+        change_amount,
         transaction_id,
         paid_at
       )
-      VALUES (?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `,
       [
         data.order_id,
         data.payment_method,
-        data.payment_status || "pending",
-        data.amount,
+        paymentStatus,
+        amount,
+        normalizedPaidAmount,
+        normalizedCashReceived,
+        normalizedChangeAmount,
         data.transaction_id || null,
-        data.payment_status === "paid" ? new Date() : null,
+        isPaid ? new Date() : null,
       ]
     );
   }

@@ -502,11 +502,21 @@ class TableService {
       // Upsert order_payments: insert if missing (e.g. split orders), update if existing
       for (const oid of orderIds) {
         const orderTotal = unpaidOrders.find(o => Number(o.id) === oid)?.total_amount || 0;
+        const normalizedOrderTotal = Number(orderTotal) || 0;
+        const isSingleOrderSettlement = orderIds.length === 1;
+        const normalizedReceived = method === 'cash'
+          ? isSingleOrderSettlement
+            ? Number(cash_received ?? normalizedOrderTotal) || 0
+            : normalizedOrderTotal
+          : normalizedOrderTotal;
+        const normalizedChange = method === 'cash'
+          ? Math.max(0, normalizedReceived - normalizedOrderTotal)
+          : 0;
         await connection.query(
-          `INSERT INTO order_payments (order_id, payment_method, payment_status, amount, paid_at)
-           VALUES (?, ?, 'paid', ?, NOW())
-           ON DUPLICATE KEY UPDATE payment_status = 'paid', payment_method = ?, paid_at = NOW()`,
-          [oid, method, orderTotal, method]
+          `INSERT INTO order_payments (order_id, payment_method, payment_status, amount, paid_amount, cash_received, change_amount, paid_at)
+           VALUES (?, ?, 'paid', ?, ?, ?, ?, NOW())
+           ON DUPLICATE KEY UPDATE payment_status = 'paid', payment_method = ?, paid_at = NOW(), paid_amount = VALUES(paid_amount), cash_received = VALUES(cash_received), change_amount = VALUES(change_amount)`,
+          [oid, method, normalizedOrderTotal, normalizedOrderTotal, normalizedReceived, normalizedChange, method]
         );
       }
 

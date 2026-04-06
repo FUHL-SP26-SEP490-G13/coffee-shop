@@ -91,6 +91,26 @@ class TakeawayRepository {
     },
   ) {
     const isPaid = payment_status === 'paid';
+    const normalizedAmount = Number(amount) || 0;
+
+    const normalizedPaidAmount = Number.isFinite(Number(paid_amount))
+      ? Number(paid_amount)
+      : isPaid
+      ? normalizedAmount
+      : 0;
+
+    const normalizedCashReceived = Number.isFinite(Number(cash_received))
+      ? Number(cash_received)
+      : isPaid
+      ? normalizedPaidAmount
+      : 0;
+
+    const normalizedChangeAmount = Number.isFinite(Number(change_amount))
+      ? Math.max(0, Number(change_amount))
+      : isPaid
+      ? Math.max(0, normalizedCashReceived - normalizedPaidAmount)
+      : 0;
+
     await connection.query(
       `INSERT INTO order_payments 
      (order_id, payment_method, payment_status, amount, paid_amount, cash_received, change_amount, paid_at,created_at)
@@ -99,26 +119,26 @@ class TakeawayRepository {
         order_id,
         payment_method,
         payment_status,
-        amount,
-        paid_amount || 0,
-        cash_received || 0,
-        change_amount || 0,
+        normalizedAmount,
+        normalizedPaidAmount,
+        normalizedCashReceived,
+        normalizedChangeAmount,
         isPaid ? new Date() : null,
       ],
     );
   }
 
   // Cash: ghi nhận paid_amount = amount tại thời điểm tạo
-  async markOrderPaidCash(connection, orderId, amount) {
+  async markOrderPaidCash(connection, orderId, amount, cashReceived = amount) {
     await connection.query(
       `UPDATE orders SET is_paid = 1, paid_at = NOW() WHERE id = ?`,
       [orderId],
     );
     await connection.query(
       `UPDATE order_payments 
-       SET payment_status = 'paid', paid_at = NOW(), paid_amount = ?
+       SET payment_status = 'paid', paid_at = NOW(), paid_amount = ?, cash_received = ?, change_amount = GREATEST(? - ?, 0)
        WHERE order_id = ?`,
-      [amount, orderId],
+      [amount, cashReceived, cashReceived, amount, orderId],
     );
   }
 

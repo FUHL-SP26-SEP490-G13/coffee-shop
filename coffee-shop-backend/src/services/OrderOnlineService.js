@@ -663,7 +663,10 @@ class OrderOnlineService {
       changeAmount = Math.max(0, cashReceivedAmount - totalAmount);
 
       await OrderRepository.updateOrderPaidStatus(orderId, true);
-      await OrderRepository.updatePaymentStatusByOrderId(orderId, "paid");
+      await OrderRepository.updatePaymentStatusByOrderId(orderId, "paid", {
+        cash_received: cashReceivedAmount,
+        change_amount: changeAmount,
+      });
     }
 
     await OrderRepository.updateOrderStatus(orderId, "completed");

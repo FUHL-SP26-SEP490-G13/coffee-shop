@@ -14,6 +14,7 @@ class OrderService {
     const {
       order_type,
       payment_method,
+      cash_received,
       receiver_name,
       receiver_phone,
       receiver_email,
@@ -216,6 +217,25 @@ class OrderService {
 
       const finalAmount = Math.max(0, amountAfterVoucher - loyaltyDiscountAmount);
 
+      const normalizedCashReceived =
+        payment_method === "cash"
+          ? cash_received === undefined || cash_received === null || cash_received === ""
+            ? finalAmount
+            : Number(cash_received)
+          : 0;
+
+      if (
+        payment_method === "cash" &&
+        (!Number.isFinite(normalizedCashReceived) || normalizedCashReceived < finalAmount)
+      ) {
+        throw new ErrorResponse(400, "Tiền khách đưa không đủ");
+      }
+
+      const normalizedChangeAmount =
+        payment_method === "cash"
+          ? Math.max(0, normalizedCashReceived - finalAmount)
+          : 0;
+
       const orderId = await OrderRepository.createOrder(connection, {
         user_id: userId,
         created_by: userId,
@@ -308,18 +328,16 @@ class OrderService {
       await OrderRepository.createOrderPayment(connection, {
         order_id: orderId,
         payment_method,
-        payment_status: "pending",
+        payment_status: payment_method === "cash" ? "paid" : "pending",
         amount: finalAmount,
+        paid_amount: payment_method === "cash" ? finalAmount : 0,
+        cash_received: payment_method === "cash" ? normalizedCashReceived : 0,
+        change_amount: normalizedChangeAmount,
       });
 
       if (payment_method === "cash") {
         await connection.query(
           "UPDATE orders SET is_paid = 1, paid_at = NOW() WHERE id = ?",
-          [orderId]
-        );
-
-        await connection.query(
-          "UPDATE order_payments SET payment_status = 'paid', paid_at = NOW() WHERE order_id = ?",
           [orderId]
         );
       }
