@@ -10,11 +10,13 @@ import { useStoreHours } from "@/hooks/useStoreHours";
 import productService from "@/services/productService";
 import favoriteService from "@/services/favoriteService";
 import { STORAGE_KEYS } from "@/constants";
+import CartSuccessModal from "@/components/common/CartSuccessModal";
 
 export default function FlashSaleSection({ products, getThumbnail, getDefaultCartSize }) {
   const { isOpen, storeSchedule, nextOpenMessage } = useStoreHours();
   const [activeSale, setActiveSale] = useState(null);
   const [timeLeft, setTimeLeft] = useState({ hours: 0, minutes: 0, seconds: 0 });
+  const [addedCartItem, setAddedCartItem] = useState(null);
 
   const token =
     localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN) ||
@@ -190,7 +192,8 @@ export default function FlashSaleSection({ products, getThumbnail, getDefaultCar
     };
 
     cartService.addItem(cartItem);
-    toast.success(`Đã thêm ${product.name} (giá Flash Sale) vào giỏ hàng`);
+    setAddedCartItem(cartItem);
+    window.dispatchEvent(new Event("cartUpdated"));
   };
 
   return (
@@ -413,6 +416,7 @@ export default function FlashSaleSection({ products, getThumbnail, getDefaultCar
           background: rgba(0,0,0,0.6);
         }
       `}</style>
+      <CartSuccessModal addedCartItem={addedCartItem} onClose={() => setAddedCartItem(null)} />
     </section>
   );
 }

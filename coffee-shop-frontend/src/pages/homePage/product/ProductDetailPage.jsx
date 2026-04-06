@@ -13,10 +13,12 @@ import {
   ChevronRight,
   Zap,
   Clock,
-  User
+  User,
+  CheckCircle2
 } from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import CartSuccessModal from "@/components/common/CartSuccessModal";
 import { Button } from "@/components/ui/button";
 import productService from "@/services/productService";
 import toppingService from "@/services/toppingService";
@@ -89,6 +91,8 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
   const [activeSale, setActiveSale] = useState(null);
   const [timeLeft, setTimeLeft] = useState({ hours: 0, minutes: 0, seconds: 0 });
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  
+  const [addedCartItem, setAddedCartItem] = useState(null);
 
   useEffect(() => {
     flashSaleService.getCurrentActive()
@@ -508,6 +512,10 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
     };
   };
 
+  const notifyCartSuccess = (cartItem) => {
+    setAddedCartItem(cartItem);
+  };
+
   const addToCart = () => {
     if (!product || !selectedSizeObj) {
       toast.error("Vui lòng chọn size.");
@@ -516,7 +524,8 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
 
     const cartItem = buildCartItem();
     cartService.addItem(cartItem);
-    toast.success("Đã thêm vào giỏ hàng");
+    notifyCartSuccess(cartItem);
+    window.dispatchEvent(new Event("cartUpdated"));
   };
 
   const buyNow = () => {
@@ -618,7 +627,7 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
     };
 
     cartService.addItem(cartItem);
-    toast.success(`Đã thêm ${relatedProduct.name} vào giỏ`);
+    notifyCartSuccess(cartItem);
     window.dispatchEvent(new Event("cartUpdated"));
   };
 
@@ -1382,6 +1391,9 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
       </section>
 
       <Footer />
+
+      {/* Cửa sổ Modal Thêm vào giỏ hàng thành công */}
+      <CartSuccessModal addedCartItem={addedCartItem} onClose={() => setAddedCartItem(null)} />
     </div>
   );
 }

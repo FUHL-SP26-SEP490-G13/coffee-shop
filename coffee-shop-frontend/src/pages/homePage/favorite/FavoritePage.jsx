@@ -9,9 +9,10 @@ import { cartService } from "@/services/cartService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useStoreHours } from "@/hooks/useStoreHours";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+import CartSuccessModal from "@/components/common/CartSuccessModal";
 
 const PAGE_SIZE = 8;
-import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 export default function FavoritePage() {
   useDocumentTitle("Sản phẩm yêu thích");
@@ -23,6 +24,7 @@ export default function FavoritePage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [initialized, setInitialized] = useState(false);
+  const [addedCartItem, setAddedCartItem] = useState(null);
 
   const defaultImage =
     "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085";
@@ -108,7 +110,7 @@ export default function FavoritePage() {
       // Dispatch sự kiện để cập nhật UI Badge Giỏ hàng nếu có 
       window.dispatchEvent(new Event("cartUpdated"));
 
-      alert("Đã thêm vào giỏ hàng");
+      setAddedCartItem(cartItem);
     } catch (error) {
       console.error("Lỗi khi thêm vào giỏ hàng:", error);
       alert("Có lỗi xảy ra khi thêm vào giỏ!");
@@ -318,6 +320,7 @@ export default function FavoritePage() {
         </div>
       </section>
       <Footer />
+      <CartSuccessModal addedCartItem={addedCartItem} onClose={() => setAddedCartItem(null)} />
     </div>
   );
 }

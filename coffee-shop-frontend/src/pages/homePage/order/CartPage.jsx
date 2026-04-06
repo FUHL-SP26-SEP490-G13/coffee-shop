@@ -13,6 +13,7 @@ import { STORAGE_KEYS } from "@/constants";
 import { toast } from "sonner";
 import { useStoreHours } from "@/hooks/useStoreHours";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+import CartSuccessModal from "@/components/common/CartSuccessModal";
 
 export default function CartPage() {
   useDocumentTitle("Giỏ hàng");
@@ -29,6 +30,7 @@ export default function CartPage() {
   const [activeSale, setActiveSale] = useState(null);
   const [suggestions, setSuggestions] = useState([]);
   const [favoriteMap, setFavoriteMap] = useState({});
+  const [addedCartItem, setAddedCartItem] = useState(null);
 
   const refreshCart = () => {
     setCart(cartService.getCart());
@@ -252,8 +254,8 @@ export default function CartPage() {
     };
 
     cartService.addItem(cartItem);
+    setAddedCartItem(cartItem);
     window.dispatchEvent(new Event("cartUpdated"));
-    toast.success(`Đã thêm ${item.name} vào giỏ`);
   };
 
   const handleToggleFavorite = async (e, productId) => {
@@ -718,6 +720,7 @@ export default function CartPage() {
         )}
       </section>
       <Footer />
+      <CartSuccessModal addedCartItem={addedCartItem} onClose={() => setAddedCartItem(null)} />
     </div>
   );
 }

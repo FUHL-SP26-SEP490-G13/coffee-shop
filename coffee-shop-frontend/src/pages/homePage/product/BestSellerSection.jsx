@@ -10,6 +10,7 @@ import { cartService } from "@/services/cartService";
 import { toast } from "sonner";
 import { useStoreHours } from "@/hooks/useStoreHours";
 import receiptSettingService from "@/services/receiptSettingService";
+import CartSuccessModal from "@/components/common/CartSuccessModal";
 
 export default function BestSellerSection({
   loading,
@@ -28,6 +29,7 @@ export default function BestSellerSection({
 
   const [favoriteMap, setFavoriteMap] = useState({});
   const [activeSale, setActiveSale] = useState(null);
+  const [addedCartItem, setAddedCartItem] = useState(null);
 
   const [activeTab, setActiveTab] = useState("Bán chạy");
   const [tabData, setTabData] = useState({ "Bán chạy": [], "Mới nhất": [], "Được yêu thích": [] });
@@ -107,7 +109,7 @@ export default function BestSellerSection({
     };
 
     cartService.addItem(cartItem);
-    toast.success(`Đã thêm ${product.name} vào giỏ`);
+    setAddedCartItem(cartItem);
     window.dispatchEvent(new Event("cartUpdated"));
   };
 
@@ -437,6 +439,7 @@ export default function BestSellerSection({
           )}
         </div>
       </div>
+      <CartSuccessModal addedCartItem={addedCartItem} onClose={() => setAddedCartItem(null)} />
     </section>
   );
 }
