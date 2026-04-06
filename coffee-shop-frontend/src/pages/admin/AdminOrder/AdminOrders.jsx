@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Badge } from "../../components/ui/badge";
+import { Badge } from "../../../components/ui/badge";
 import {
   Table,
   TableBody,
@@ -7,14 +7,14 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "../../components/ui/table";
+} from "../../../components/ui/table";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "../../components/ui/select";
+} from "../../../components/ui/select";
 import {
   ShoppingBag,
   Loader2,
@@ -25,17 +25,17 @@ import {
   MapPin,
   ReceiptText,
 } from "lucide-react";
-import orderService from "../../services/orderService";
+import orderService from "../../../services/orderService";
 import { toast } from "sonner";
-import { Button } from "../../components/ui/button";
+import { Button } from "../../../components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from "../../components/ui/dialog";
-import PaginationControl from "../../components/common/PaginationControl";
+} from "../../../components/ui/dialog";
+import PaginationControl from "../../../components/common/PaginationControl";
 
 export default function AdminOrders() {
   const [orders, setOrders] = useState([]);
@@ -132,20 +132,14 @@ export default function AdminOrders() {
   };
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
+    <div className="p-4 sm:p-6 lg:p-8 space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="space-y-1">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-primary/10 rounded-xl">
-              <ShoppingBag className="w-6 h-6 text-primary" />
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100">
+            <h1 className="text-xl font-semibold">
               Quản lý Đơn hàng
             </h1>
           </div>
-          <p className="text-sm text-muted-foreground dark:text-gray-400 ml-[52px]">
-            Theo dõi và cập nhật trạng thái các đơn hàng trong hệ thống
-          </p>
         </div>
 
         <div className="flex items-center gap-3 w-full sm:w-auto bg-white dark:bg-gray-900 dark:border-gray-800 p-1 rounded-xl border shadow-sm">
@@ -172,6 +166,9 @@ export default function AdminOrders() {
           <Table>
             <TableHeader className="bg-gray-50 dark:bg-gray-800/50">
               <TableRow className="hover:bg-transparent">
+                <TableHead className="font-semibold text-gray-600 dark:text-gray-300 w-[60px]">
+                  STT
+                </TableHead>
                 <TableHead className="font-semibold text-gray-600 dark:text-gray-300 w-[120px]">
                   Mã đơn
                 </TableHead>
@@ -196,7 +193,7 @@ export default function AdminOrders() {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="h-64 text-center">
+                  <TableCell colSpan={8} className="h-64 text-center">
                     <div className="flex flex-col items-center justify-center text-muted-foreground dark:text-gray-400 gap-3">
                       <Loader2 className="w-8 h-8 animate-spin text-primary/50" />
                       <span className="text-sm font-medium">
@@ -207,7 +204,7 @@ export default function AdminOrders() {
                 </TableRow>
               ) : orders.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="h-64 text-center">
+                  <TableCell colSpan={8} className="h-64 text-center">
                     <div className="flex flex-col items-center justify-center text-muted-foreground dark:text-gray-400 gap-3">
                       <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-full">
                         <ShoppingBag className="w-8 h-8 text-gray-400" />
@@ -219,15 +216,21 @@ export default function AdminOrders() {
                   </TableCell>
                 </TableRow>
               ) : (
-                orders.map((order) => {
+                orders.map((order, index) => {
                   const statusInfo = getStatusInfo(order.status);
                   const typeInfo = getOrderTypeInfo(order.order_type);
+                  const stt = (currentPage - 1) * 10 + index + 1;
 
                   return (
                     <TableRow
                       key={order.id}
                       className="group hover:bg-gray-50 dark:hover:bg-gray-800 dark:bg-gray-800/50 transition-colors"
                     >
+                      <TableCell>
+                        <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
+                          {stt}
+                        </span>
+                      </TableCell>
                       <TableCell>
                         <span className="font-mono font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-md text-xs">
                           #{String(order.id).padStart(5, "0")}
@@ -424,8 +427,8 @@ export default function AdminOrders() {
                       {(selectedOrder.receiver_name ||
                         selectedOrder.receiver_phone ||
                         selectedOrder.receiver_email) && (
-                        <div className="pt-2 border-t border-dashed border-gray-100" />
-                      )}
+                          <div className="pt-2 border-t border-dashed border-gray-100" />
+                        )}
                       {selectedOrder.receiver_name && (
                         <div className="flex justify-between">
                           <span className="text-gray-500">Tên nhận:</span>
@@ -603,18 +606,18 @@ export default function AdminOrders() {
                   </div>
                   {Number(calculateSubtotal(selectedOrder)) >
                     Number(selectedOrder.total_amount) && (
-                    <div className="flex justify-between text-sm text-emerald-600">
-                      <span>Giảm giá</span>
-                      <span>
-                        -
-                        {Number(
-                          calculateSubtotal(selectedOrder) -
+                      <div className="flex justify-between text-sm text-emerald-600">
+                        <span>Giảm giá</span>
+                        <span>
+                          -
+                          {Number(
+                            calculateSubtotal(selectedOrder) -
                             selectedOrder.total_amount,
-                        ).toLocaleString("vi-VN")}
-                        đ
-                      </span>
-                    </div>
-                  )}
+                          ).toLocaleString("vi-VN")}
+                          đ
+                        </span>
+                      </div>
+                    )}
                   <div className="flex justify-between text-base font-bold text-gray-900 dark:text-gray-100 pt-2 border-t border-gray-200 dark:border-gray-700">
                     <span>Tổng thanh toán</span>
                     <span className="text-primary">
@@ -636,8 +639,8 @@ export default function AdminOrders() {
                       </span>
                     </span>
                     {selectedOrder.is_paid ||
-                    selectedOrder.payment?.status === "paid" ||
-                    selectedOrder.payment?.status === "success" ? (
+                      selectedOrder.payment?.status === "paid" ||
+                      selectedOrder.payment?.status === "success" ? (
                       <span className="text-emerald-600 font-medium flex items-center gap-1">
                         Đã thanh toán
                       </span>

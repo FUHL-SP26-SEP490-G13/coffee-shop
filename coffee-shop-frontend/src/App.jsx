@@ -8,7 +8,7 @@ export default function App() {
       <ScrollToTop />
       <AppRoutes />
 
-      <Toaster position="top-right" richColors closeButton duration={3000} />
+      <Toaster position="top-right" richColors closeButton duration={3000} visibleToasts={1} />
     </div>
   );
 }

@@ -124,14 +124,8 @@ export default function AdminReviews() {
       <div className="mb-6">
         <div className="flex justify-between items-start mb-6 gap-4">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-primary/10 rounded-lg">
-              <MessageSquare className="h-6 w-6 text-primary" />
-            </div>
             <div>
-              <h2 className="text-2xl font-semibold mb-1">Quản lý đánh giá</h2>
-              <p className="text-sm text-muted-foreground">
-                Theo dõi các đánh giá sản phẩm từ khách hàng
-              </p>
+              <h2 className="text-xl font-semibold">Quản lý đánh giá</h2>
             </div>
           </div>
         </div>

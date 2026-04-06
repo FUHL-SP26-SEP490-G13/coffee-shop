@@ -22,7 +22,7 @@ import { ReceiptModal } from './TakeAwayOrder/ReceiptModal';
 import { useNavigate } from 'react-router-dom';
 import PayOSLogo from "/logo/payOS.svg";
 
-const getProductPrice = (product, size = 'M') => {
+const getProductPrice = (product, size = 'S') => {
   const sizeItem = product.sizes?.find((s) => s.size === size);
   return sizeItem ? Number(sizeItem.price) : 0;
 };
@@ -39,9 +39,28 @@ const isProductAvailable = (product) => {
 };
 
 const CASH_SUGGESTIONS = [10000, 20000, 50000, 100000, 200000, 500000];
+const SIZE_DISPLAY_ORDER = ['S', 'M', 'L', 'XL', 'XXL'];
 
 const formatVND = (amount) =>
   new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
+
+const formatVNDCompact = (amount) => `${new Intl.NumberFormat('vi-VN').format(Number(amount || 0))}đ`;
+
+const getSortedSizes = (product) => {
+  const sizes = Array.isArray(product?.sizes) ? product.sizes : [];
+  return sizes
+    .filter((s) => s?.size && s?.price != null)
+    .sort((a, b) => {
+      const aSize = String(a.size).toUpperCase();
+      const bSize = String(b.size).toUpperCase();
+      const aIndex = SIZE_DISPLAY_ORDER.indexOf(aSize);
+      const bIndex = SIZE_DISPLAY_ORDER.indexOf(bSize);
+      if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
+      if (aIndex !== -1) return -1;
+      if (bIndex !== -1) return 1;
+      return aSize.localeCompare(bSize);
+    });
+};
 
 const TABLE_MANAGEMENT_PATH = '/staff/tables';
 
@@ -112,7 +131,6 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
     loadProfile();
   }, []);
 
-  // Socket listener for PayOS Success
   useEffect(() => {
     if (!socket.connected) socket.connect();
 
@@ -499,8 +517,8 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
           className={`bg-gradient-to-r ${statusColor} text-white px-6 py-3 flex items-center justify-between shadow-lg dark:shadow-none flex-shrink-0`}
         >
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-white dark:bg-gray-900/20 flex items-center justify-center">
-              <Coffee className="w-5 h-5" />
+            <div className="w-9 h-9 rounded-xl bg-white/95 dark:bg-gray-900/20 flex items-center justify-center">
+              <Coffee className="w-5 h-5 text-amber-700 dark:text-white" />
             </div>
             <div>
               <h2 className="font-bold text-lg leading-tight">
@@ -510,12 +528,12 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-sm bg-white dark:bg-gray-900/20 px-3 py-1 rounded-full font-medium">
+            <span className="text-sm bg-white/95 text-slate-800 dark:bg-gray-900/30 dark:text-white px-3 py-1 rounded-full font-medium">
               {cart.length > 0 ? `${cart.reduce((a, i) => a + i.quantity, 0)} món` : 'Chưa chọn món'}
             </span>
             <button
               onClick={onClose}
-              className="w-9 h-9 rounded-xl bg-white dark:bg-gray-900/20 hover:bg-white dark:bg-gray-900/30 flex items-center justify-center transition-colors"
+              className="w-9 h-9 rounded-xl bg-white/95 text-slate-800 hover:bg-white dark:bg-gray-900/30 dark:text-white dark:hover:bg-gray-900/50 flex items-center justify-center transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
@@ -542,7 +560,7 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
                   onClick={() => setActiveCategory('all')}
                   className={`px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all flex-shrink-0 ${activeCategory === 'all'
                     ? 'bg-amber-500 text-white shadow-sm dark:shadow-none'
-                    : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                    : 'bg-muted text-slate-700 dark:text-slate-200 hover:bg-muted/80'
                     }`}
                 >
                   Tất cả
@@ -553,7 +571,7 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
                     onClick={() => setActiveCategory(cat.id)}
                     className={`px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all flex-shrink-0 ${activeCategory === cat.id
                       ? 'bg-amber-500 text-white shadow-sm dark:shadow-none'
-                      : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                      : 'bg-muted text-slate-700 dark:text-slate-200 hover:bg-muted/80'
                       }`}
                   >
                     {cat.name}
@@ -566,45 +584,61 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
             <div className="flex-1 overflow-y-auto p-4 pt-0">
               {loading ? (
                 <div className="flex items-center justify-center h-full">
-                  <div className="text-center text-muted-foreground">
+                  <div className="text-center text-slate-600 dark:text-slate-300">
                     <div className="w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
                     <p className="text-sm">Đang tải sản phẩm...</p>
                   </div>
                 </div>
               ) : filteredProducts.length === 0 ? (
-                <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
+                <div className="flex items-center justify-center h-full text-slate-600 dark:text-slate-300 text-sm">
                   Không tìm thấy sản phẩm
                 </div>
               ) : (
                 <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
                   {filteredProducts.map((product) => (
-                    <button
-                      key={product.id}
-                      onClick={() => setSelectedProduct(product)}
-                      className="group bg-card rounded-xl p-2 border border-border hover:border-amber-400/60 hover:shadow-md dark:shadow-none transition-all text-left relative overflow-hidden"
-                    >
-                      <div className="aspect-square bg-muted rounded-lg mb-2 overflow-hidden">
-                        {getProductImage(product) ? (
-                          <img
-                            src={getProductImage(product)}
-                            alt={product.name}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <Coffee className="w-8 h-8 text-muted-foreground/30" />
+                    (() => {
+                      const sortedSizes = getSortedSizes(product);
+                      return (
+                        <button
+                          key={product.id}
+                          onClick={() => setSelectedProduct(product)}
+                          className="group bg-card rounded-xl p-2 border border-border hover:border-amber-400/60 hover:shadow-md dark:shadow-none transition-all text-left relative overflow-hidden"
+                        >
+                          <div className="aspect-square bg-muted rounded-lg mb-2 overflow-hidden">
+                            {getProductImage(product) ? (
+                              <img
+                                src={getProductImage(product)}
+                                alt={product.name}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <Coffee className="w-8 h-8 text-muted-foreground/30" />
+                              </div>
+                            )}
                           </div>
-                        )}
-                      </div>
-                      <h3 className="text-xs font-semibold line-clamp-2 leading-tight mb-1 text-foreground">
-                        {product.name}
-                      </h3>
-                      <p className="text-[11px] font-bold text-amber-600 dark:text-amber-400">
-                        {formatVND(getProductPrice(product, 'M'))}
-                      </p>
-                      {/* Hover overlay */}
-                      <div className="absolute inset-0 bg-amber-500/0 group-hover:bg-amber-500/5 transition-colors rounded-xl" />
-                    </button>
+                          <h3 className="text-xs font-semibold line-clamp-2 leading-tight mb-1 text-foreground">
+                            {product.name}
+                          </h3>
+                          {sortedSizes.length > 0 ? (
+                            <div className="flex flex-wrap gap-1">
+                              {sortedSizes.map((sizeItem) => (
+                                <span
+                                  key={`${product.id}-${sizeItem.size}`}
+                                  className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300"
+                                >
+                                  {String(sizeItem.size).toUpperCase()}: {formatVNDCompact(sizeItem.price)}
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-300">Chưa có giá</p>
+                          )}
+                          {/* Hover overlay */}
+                          <div className="absolute inset-0 bg-amber-500/0 group-hover:bg-amber-500/5 transition-colors rounded-xl" />
+                        </button>
+                      );
+                    })()
                   ))}
                 </div>
               )}
@@ -615,7 +649,7 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
           <div className="w-80 xl:w-96 flex flex-col bg-card flex-shrink-0">
             {/* Cart Header */}
             <div className="px-4 py-3 border-b border-border flex items-center gap-2 flex-shrink-0">
-              <ShoppingCart className="w-4 h-4 text-muted-foreground" />
+              <ShoppingCart className="w-4 h-4 text-slate-600 dark:text-slate-300" />
               <span className="font-semibold text-sm">Giỏ hàng</span>
               {cart.length > 0 && (
                 <span className="ml-auto text-xs bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 rounded-full px-2 py-0.5 font-semibold">
@@ -627,7 +661,7 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
             {/* Cart Items */}
             <div className="flex-1 overflow-y-auto p-3">
               {cart.length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-center text-muted-foreground gap-3">
+                <div className="h-full flex flex-col items-center justify-center text-slate-600 dark:text-slate-300 gap-3">
                   <ShoppingCart className="w-12 h-12 opacity-20" />
                   <p className="text-sm text-center">
                     Chọn sản phẩm để thêm vào giỏ
@@ -650,12 +684,12 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
                             e.stopPropagation();
                             setCart((prev) => prev.filter((i) => i.id !== item.id));
                           }}
-                          className="text-muted-foreground hover:text-red-500 p-1 rounded transition-colors flex-shrink-0"
+                          className="text-slate-500 dark:text-slate-300 hover:text-red-500 p-1 rounded transition-colors flex-shrink-0"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
-                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1.5">
+                      <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300 mb-1.5">
                         <span className="bg-muted px-1.5 py-0.5 rounded font-medium">
                           {item.size}
                         </span>
@@ -666,7 +700,7 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
                         )}
                       </div>
                       {item.note && (
-                        <p className="text-xs text-muted-foreground italic line-clamp-1 mb-1.5">
+                        <p className="text-xs text-slate-500 dark:text-slate-300 italic line-clamp-1 mb-1.5">
                           "{item.note}"
                         </p>
                       )}
@@ -713,7 +747,7 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
 
             {/* Note */}
             <div className="px-3 pb-2 flex-shrink-0">
-              <label className="text-xs text-muted-foreground font-medium block mb-1">
+              <label className="text-xs text-slate-600 dark:text-slate-300 font-medium block mb-1">
                 Ghi chú đơn hàng
               </label>
               <Textarea
@@ -727,7 +761,7 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
 
             <div className="p-3 border-t border-border flex-shrink-0 space-y-3">
               <div className="flex justify-between items-center px-1">
-                <span className="text-sm text-muted-foreground">Tổng cộng</span>
+                <span className="text-sm text-slate-600 dark:text-slate-300">Tổng cộng</span>
                 <span className="text-xl font-black text-amber-600 dark:text-amber-400">{formatVND(total)}</span>
               </div>
               <div className="grid grid-cols-2 gap-2">
@@ -789,7 +823,7 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
           <div className="space-y-5">
             {/* Order Summary */}
             <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 space-y-2">
-              <div className="flex justify-between text-gray-500 dark:text-gray-400 text-sm">
+              <div className="flex justify-between text-gray-700 dark:text-gray-200 text-sm">
                 <span>Tổng tiền hàng</span>
                 <span>{formatVND(total)}</span>
               </div>
@@ -809,7 +843,7 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
 
             {/* Discount Code */}
             <div>
-              <label className="text-xs font-semibold text-gray-400 block mb-1">MÃ GIẢM GIÁ</label>
+              <label className="text-xs font-semibold text-gray-700 dark:text-gray-200 block mb-1">MÃ GIẢM GIÁ</label>
               <div className="flex gap-2">
                 <Input
                   placeholder="Nhập mã giảm giá"
@@ -819,7 +853,7 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
                 />
                 <Button
                   onClick={handleApplyDiscount}
-                  className="bg-orange-100 text-orange-500 hover:bg-orange-200 border-none px-4"
+                  className="bg-orange-100 text-orange-700 hover:bg-orange-200 dark:bg-orange-900/40 dark:text-orange-300 dark:hover:bg-orange-900/60 border-none px-4"
                 >
                   Áp dụng
                 </Button>
@@ -829,7 +863,7 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
 
             {/* Payment Method */}
             <div>
-              <label className="text-xs font-semibold text-gray-400 block mb-2">
+              <label className="text-xs font-semibold text-gray-700 dark:text-gray-200 block mb-2">
                 PHƯƠNG THỨC THANH TOÁN
               </label>
               <div className="grid grid-cols-2 gap-3">
@@ -837,7 +871,7 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
                   onClick={() => setPaymentMethod('cash')}
                   className={`flex items-center justify-center gap-2 p-3 rounded-xl border-2 font-medium transition-all ${paymentMethod === 'cash'
                     ? 'border-green-500 text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30/50'
-                    : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400'
+                    : 'border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200'
                     }`}
                 >
                   <span className="text-lg">💵</span> Tiền mặt
@@ -846,7 +880,7 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
                   onClick={() => setPaymentMethod('payos')}
                   className={`flex items-center justify-center gap-2 p-3 rounded-xl border-2 font-medium transition-all ${paymentMethod === 'payos'
                     ? 'border-green-500 text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30/50'
-                    : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400'
+                    : 'border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200'
                     }`}
                 >
                   <img src={PayOSLogo} alt="PayOS" className="h-10 w-10" />
@@ -859,7 +893,7 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
             {paymentMethod === 'cash' && (
               <div className="space-y-4">
                 <div>
-                  <label className="text-xs font-semibold text-gray-400 block mb-1">
+                  <label className="text-xs font-semibold text-gray-700 dark:text-gray-200 block mb-1">
                     TIỀN KHÁCH ĐƯA
                   </label>
                   <Input
@@ -876,7 +910,7 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
                       onClick={() => setCustomerCash(val)}
                       className={`flex-1 p-2 rounded-full border text-sm font-medium transition-all ${customerCash === val
                         ? 'border-green-500 text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30'
-                        : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 dark:bg-gray-800/50'
+                        : 'border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800/50 dark:bg-gray-800/50'
                         }`}
                     >
                       {formatVND(val).replace(' ₫', '').trim()}
@@ -884,7 +918,7 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
                   ))}
                 </div>
                 <div className="bg-blue-50 dark:bg-blue-900/30/50 rounded-xl p-3 flex justify-between items-center">
-                  <span className="text-gray-500 dark:text-gray-400 text-sm">Tiền thừa trả khách</span>
+                  <span className="text-gray-700 dark:text-gray-200 text-sm">Tiền thừa trả khách</span>
                   <span className="text-blue-600 dark:text-blue-400 font-bold text-lg">
                     {formatVND(
                       Math.max(0, customerCash - Math.max(0, total - discountAmount))

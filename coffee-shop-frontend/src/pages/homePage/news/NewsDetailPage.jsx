@@ -14,6 +14,7 @@ import Header from "../../../components/layout/Header";
 import Footer from "../../../components/layout/Footer";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 export default function NewsDetailPage() {
   const { slug } = useParams();
@@ -25,6 +26,7 @@ export default function NewsDetailPage() {
 
   const { data, loading } = useFetch(fetchDetail);
   const news = data?.data;
+  useDocumentTitle(news?.title || "Tin tức");
 
   const [relatedNews, setRelatedNews] = useState([]);
 
@@ -97,7 +99,7 @@ export default function NewsDetailPage() {
       <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/20">
 
 
-        <div className="max-w-[1440px] w-full mx-auto py-8 md:py-12 px-4 sm:px-6 lg:px-8 xl:px-12">
+        <div className="w-full w-full mx-auto py-8 md:py-12 px-4 sm:px-6 lg:px-8 xl:px-12">
           
           <div className="flex flex-col lg:flex-row gap-10">
             {/* Main Content */}
@@ -106,12 +108,12 @@ export default function NewsDetailPage() {
                 {/* Article Header */}
                 <div className="space-y-6">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
-                    <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center space-x-2">
+                    <div className="text-base md:text-lg text-gray-500 dark:text-gray-400 flex items-center flex-wrap gap-2 font-medium">
                       <Link to="/" className="cursor-pointer hover:text-amber-600 transition-colors">Trang chủ</Link>
                       <span className="text-gray-400">/</span>
                       <Link to="/news" className="cursor-pointer hover:text-amber-600 transition-colors">Tin tức</Link>
                       <span className="text-gray-400">/</span>
-                      <span className="text-amber-600 font-medium line-clamp-1 break-all">{news.title}</span>
+                      <span className="text-amber-600 font-bold line-clamp-1 break-all">{news.title}</span>
                     </div>
                   </div>
                   <h4 className="text-lg md:text-xl font-bold leading-snug tracking-tight">

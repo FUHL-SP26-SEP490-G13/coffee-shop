@@ -69,7 +69,7 @@ function ProductModalInner({ product, toppings, initialItem, onClose, onAdd }) {
     if (initialItem && initialItem.size) {
       return sortedSizes.find((s) => s.size === initialItem.size) || sortedSizes[0];
     }
-    return sortedSizes.find((s) => s.size === 'M') || sortedSizes[0];
+    return sortedSizes.find((s) => s.size === 'S') || sortedSizes[0];
   });
   const [selectedToppings, setSelectedToppings] = useState(() => initialItem?.toppings || []);
   const [note, setNote] = useState(() => initialItem?.note || '');

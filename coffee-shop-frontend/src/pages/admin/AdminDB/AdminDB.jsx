@@ -109,18 +109,12 @@ export default function AdminDB() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="p-4 sm:p-6 lg:p-8 space-y-6">
       {/* Header controls */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-primary/10 rounded-lg">
-            <LayoutDashboard className="h-6 w-6 text-primary" />
-          </div>
           <div>
-            <h2 className="text-2xl font-semibold mb-1">Tổng quan cửa hàng</h2>
-            <p className="text-sm text-muted-foreground">
-              Khái quát chung cửa hàng của bạn
-            </p>
+            <h2 className="text-xl font-semibold">Tổng quan cửa hàng</h2>
           </div>
         </div>
 
@@ -277,9 +271,8 @@ export default function AdminDB() {
           <div className="text-sm text-muted-foreground">...</div>
         ) : (
           <div
-            className={`text-2xl font-bold ${
-              comparison.revenueGrowth >= 0 ? "text-green-600" : "text-red-600"
-            }`}
+            className={`text-2xl font-bold ${comparison.revenueGrowth >= 0 ? "text-green-600" : "text-red-600"
+              }`}
           >
             {comparison.revenueGrowth >= 0 ? "↑" : "↓"}{" "}
             {Math.abs(comparison.revenueGrowth)}%

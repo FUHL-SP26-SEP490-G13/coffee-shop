@@ -23,9 +23,9 @@ export default function OrderGuideSection() {
   ];
 
   return (
-    <section className="py-8 md:py-12 bg-white dark:bg-gray-950">
+    <section className="py-8 md:py-4 bg-white dark:bg-gray-950">
       <div className="w-full px-4 lg:px-6 xl:px-8">
-        <div className="bg-[#F4EBE1] dark:bg-[#1f1917] rounded-none sm:rounded-3xl py-12 md:py-16 px-4 sm:px-8 lg:px-12 w-full">
+        <div className="bg-[#FAFAFA] dark:bg-gray-900/50 rounded-none sm:rounded-3xl py-12 md:py-16 px-4 sm:px-8 lg:px-12 w-full">
           <div className="text-center mb-16">
             <h2 className="text-2xl md:text-3xl font-semibold text-amber-900 dark:text-amber-500" style={{ fontFamily: 'serif' }}>
               Đặt hàng dễ dàng
@@ -38,7 +38,7 @@ export default function OrderGuideSection() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-6">
             {steps.map((step) => (
               <div key={step.id} className="flex flex-col items-center text-center">
-                <div className="w-20 h-20 bg-white dark:bg-[#2c2320] rounded-full flex items-center justify-center mb-6 shadow-sm">
+                <div className="w-20 h-20 bg-white dark:bg-gray-800 rounded-full flex items-center justify-center mb-6 shadow-sm">
                   {step.icon}
                 </div>
                 <span className="text-amber-900 dark:text-amber-500 font-bold mb-2">

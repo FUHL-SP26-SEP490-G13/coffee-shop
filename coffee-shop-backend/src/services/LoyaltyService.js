@@ -5,6 +5,7 @@ const UserRepository = require("../repositories/UserRepository");
 
 class LoyaltyService {
   static MONEY_PER_POINT = 100;
+  static MAX_REDEEM_RATIO = 0.5;
 
   static EARN_PER_VND = 10000;
 
@@ -71,6 +72,17 @@ class LoyaltyService {
     }
 
     const redeemAmount = this.calculateRedeemAmount(points);
+    const maxRedeemAmount = Math.floor(
+      Math.max(0, Number(orderAmount || 0)) * LoyaltyService.MAX_REDEEM_RATIO
+    );
+
+    if (redeemAmount > maxRedeemAmount) {
+      throw new ErrorResponse(
+        400,
+        "Số điểm quy đổi không được vượt quá 50% giá trị đơn hàng"
+      );
+    }
+
     if (redeemAmount > Number(orderAmount || 0)) {
       throw new ErrorResponse(400, "Số điểm vượt quá giá trị đơn hàng hiện tại");
     }

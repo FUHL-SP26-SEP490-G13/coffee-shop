@@ -1,4 +1,4 @@
-import { Outlet, NavLink, useNavigate } from 'react-router-dom';
+import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
   Package,
@@ -27,6 +27,7 @@ import {
   Clock,
   Moon,
   Sun,
+  Mailbox,
   ArrowLeftRight,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -46,6 +47,7 @@ import Logo from "/logo/Logo.png";
 import notificationService from "@/services/notificationService";
 import socket from "@/lib/socket";
 import { getNotificationLink } from "@/utils/getNotificationLink";
+import receiptSettingService from "@/services/receiptSettingService";
 
 export default function AdminApp() {
    const [openMenu, setOpenMenu] = useState(false);
@@ -55,6 +57,76 @@ export default function AdminApp() {
    const [showNotifications, setShowNotifications] = useState(false);
    const notificationRef = useRef(null);
    const navigate = useNavigate();
+   const location = useLocation();
+
+   useEffect(() => {
+     const routeTitles = {
+       "/admin/dashboard": "Bảng điều khiển",
+       "/admin/orders": "Đơn hàng",
+       "/admin/tables": "Quản lý bàn",
+       "/admin/menu/categories": "Danh mục",
+       "/admin/menu/products": "Sản phẩm",
+       "/admin/toppings": "Topping",
+       "/admin/ingredients": "Nguyên liệu",
+       "/admin/users": "Người dùng",
+       "/admin/reviews": "Đánh giá",
+       "/admin/discounts": "Mã giảm giá",
+       "/admin/reputation": "Điểm uy tín",
+       "/admin/loyalty": "Điểm loyalty",
+       "/admin/flash-sales": "Flash sale",
+       "/admin/banners": "Quảng cáo",
+       "/admin/news-list": "Bài viết",
+       "/admin/newsletters": "Email",
+       "/admin/schedule/templates": "Quản lý ca làm",
+       "/admin/schedule/list": "Lịch làm việc",
+       "/admin/receipt-settings": "Cấu hình hóa đơn",
+       "/admin/profile": "Thông tin cá nhân"
+     };
+
+     let matchedTitle = "Quản trị viên";
+     if (routeTitles[location.pathname]) {
+       matchedTitle = routeTitles[location.pathname];
+     } else {
+       const match = Object.keys(routeTitles).find(path => location.pathname.startsWith(path));
+       if (match) matchedTitle = routeTitles[match];
+     }
+
+     const shopName = localStorage.getItem("cached_store_name") || "Coffee Shop";
+     document.title = `${matchedTitle} | ${shopName}`;
+   }, [location.pathname]);
+
+   const [storeLogo, setStoreLogo] = useState(() => {
+     return localStorage.getItem("cached_store_logo") || Logo;
+   });
+
+   useEffect(() => {
+     const fetchLogo = async () => {
+       try {
+         const res = await receiptSettingService.getActive();
+         const data = res?.data || null;
+         if (data && data.logo_url) {
+           setStoreLogo(data.logo_url);
+           localStorage.setItem("cached_store_logo", data.logo_url);
+         } else {
+           setStoreLogo(Logo);
+           localStorage.removeItem("cached_store_logo");
+         }
+       } catch (error) {
+         setStoreLogo(Logo);
+         localStorage.removeItem("cached_store_logo");
+       }
+     };
+     fetchLogo();
+
+     const handleReceiptUpdate = () => {
+       fetchLogo();
+     };
+
+     window.addEventListener("receiptSettingsUpdated", handleReceiptUpdate);
+     return () => {
+       window.removeEventListener("receiptSettingsUpdated", handleReceiptUpdate);
+     };
+   }, []);
 
    const [isDarkMode, setIsDarkMode] = useState(() => {
      return document.documentElement.classList.contains("dark");
@@ -275,7 +347,7 @@ export default function AdminApp() {
             alignItems: "center",
           }}
         >
-          <img src={Logo} alt="Coffee Shop Logo" className="h-20 w-auto" />
+          <img src={storeLogo} onError={(e) => { e.currentTarget.src = Logo; }} alt="Coffee Shop Logo" className="h-20 w-auto object-contain rounded-2xl" />
           <p className="text-sm text-muted-foreground">Cổng Quản lý</p>
         </div>
 
@@ -485,7 +557,7 @@ export default function AdminApp() {
                   }
                 >
                   <Zap className="w-4 h-4 text-amber-500" />
-                  <span className="text-sm tracking-wide">Flash Sales</span>
+                  <span className="text-sm tracking-wide">Flash sale</span>
                 </NavLink>
                 <NavLink
                   to="/admin/banners"
@@ -510,6 +582,18 @@ export default function AdminApp() {
                 >
                   <ClipboardList className="w-4 h-4" />
                   <span className="text-sm tracking-wide">Bài viết</span>
+                </NavLink>
+                <NavLink
+                  to="/admin/newsletters"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={({ isActive }) =>
+                    `w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                      isActive ? "bg-primary text-white" : "text-muted-foreground hover:bg-secondary"
+                    }`
+                  }
+                >
+                  <Mailbox className="w-4 h-4" />
+                  <span className="text-sm tracking-wide">Email</span>
                 </NavLink>
               </div>
             </div>

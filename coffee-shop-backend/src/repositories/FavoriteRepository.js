@@ -41,7 +41,8 @@ class FavoriteRepository extends BaseRepository {
     p.description,
     p.category_id,
     p.status,
-    COALESCE(pi_thumb.image_url, pi_first.image_url) AS image_url
+    COALESCE(pi_thumb.image_url, pi_first.image_url) AS image_url,
+    (SELECT MIN(ps.price) FROM product_sizes ps WHERE ps.product_id = p.id AND ps.is_deleted = 0) AS min_price
     FROM favorites f
     INNER JOIN products p ON p.id = f.product_id
     LEFT JOIN product_images pi_thumb

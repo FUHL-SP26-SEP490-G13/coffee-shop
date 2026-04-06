@@ -117,7 +117,9 @@ class BaristaDBRepository {
     const [rows] = await pool.query(
       `
       SELECT
+        p.id AS productId,
         p.name AS productName,
+        ps.id AS productSizeId,
         ps.size,
         od.quantity,
         od.price,

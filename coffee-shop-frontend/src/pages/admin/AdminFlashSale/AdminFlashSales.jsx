@@ -12,6 +12,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
 import AdminFlashSaleModal from "./AdminFlashSaleModal";
 
 export default function AdminFlashSales() {
@@ -108,25 +109,22 @@ export default function AdminFlashSales() {
   };
 
   return (
-    <div className="bg-white dark:bg-gray-900 dark:border-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-      <div className="p-6 border-b border-gray-100 dark:border-gray-700">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <div className="p-4 sm:p-6 space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="flex items-center gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-              <Zap className="w-6 h-6 text-amber-500 fill-amber-500" /> Quản lý Flash Sale
+            <h1 className="text-xl font-semibold">
+              Quản lý Flash Sale
             </h1>
-            <p className="text-gray-500 text-sm mt-1">Cài đặt các chiến dịch Giờ Vàng Giá Sốc</p>
           </div>
-          <button
-            onClick={handleOpenAdd}
-            className="flex items-center gap-2 bg-amber-600 hover:bg-amber-700 text-white px-4 py-2.5 rounded-lg active:scale-95 transition-all text-sm font-medium"
-          >
-            <Plus className="w-4 h-4" /> Tạo chiến dịch mới
-          </button>
         </div>
+        <Button onClick={handleOpenAdd}>
+          <Plus className="w-4 h-4 mr-2" /> Tạo chiến dịch mới
+        </Button>
       </div>
 
-      <div className="overflow-x-auto">
+      <div className="bg-white dark:bg-gray-900 dark:border-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+        <div className="overflow-x-auto">
         <table className="w-full text-left text-sm text-gray-600 dark:text-gray-300">
           <thead className="bg-gray-50 dark:bg-gray-800/50 text-gray-700 dark:text-gray-200 font-medium">
             <tr>
@@ -185,6 +183,8 @@ export default function AdminFlashSales() {
             )}
           </tbody>
         </table>
+      </div>
+
       </div>
 
       <AdminFlashSaleModal

@@ -11,9 +11,10 @@ import Header from '../../components/layout/Header';
 import Footer from '../../components/layout/Footer';
 import { toast } from 'sonner';
 import authenticationService from '../../services/authenticationService';
-import { APP_ROUTES } from '../../constants';
+import { APP_ROUTES } from '../../constants';import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 export function UserProfile() {
+  useDocumentTitle('Hồ sơ của tôi');
   const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
   const [profile, setProfile] = useState(null);
@@ -281,7 +282,7 @@ export function UserProfile() {
             <Card className="h-fit">
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle>Thông tin cá nhân</CardTitle>
+                <CardTitle className="text-xl font-semibold">Thông tin cá nhân</CardTitle>
                 {!isEditing ? (
                   <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
                     <Edit2 className="w-4 h-4 mr-2" />
@@ -308,9 +309,6 @@ export function UserProfile() {
                 </Avatar>
                 <div>
                     <h3 className="text-xl font-semibold">{displayName || '...'}</h3>
-                    <p className="text-sm text-muted-foreground capitalize">
-                      {roleLabel}
-                    </p>
                 </div>
               </div>
 
@@ -423,7 +421,7 @@ export function UserProfile() {
 
             <Card className="h-fit">
             <CardHeader>
-              <CardTitle>Cài đặt tài khoản</CardTitle>
+              <CardTitle className="text-xl font-semibold">Cài đặt tài khoản</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
@@ -565,7 +563,7 @@ export function UserProfile() {
 
           <div className="space-y-4">
             <div>
-              <Label htmlFor="receiver_name">Tên người nhận</Label>
+              <Label htmlFor="receiver_name" className="mb-2">Tên người nhận</Label>
               <Input
                 id="receiver_name"
                 value={addressForm.receiver_name}
@@ -580,7 +578,7 @@ export function UserProfile() {
             </div>
 
             <div>
-              <Label htmlFor="receiver_phone">Số điện thoại nhận hàng</Label>
+              <Label htmlFor="receiver_phone" className="mb-2">Số điện thoại nhận hàng</Label>
               <Input
                 id="receiver_phone"
                 value={addressForm.receiver_phone}
@@ -595,7 +593,7 @@ export function UserProfile() {
             </div>
 
             <div>
-              <Label htmlFor="address_type">Loại địa chỉ</Label>
+              <Label htmlFor="address_type" className="mb-2">Loại địa chỉ</Label>
               <div className="flex flex-wrap gap-2 mt-1">
                 <Button
                   type="button"
@@ -631,7 +629,7 @@ export function UserProfile() {
             </div>
 
             <div>
-              <Label htmlFor="shipping_address">Địa chỉ nhận hàng</Label>
+              <Label htmlFor="shipping_address" className="mb-2">Địa chỉ nhận hàng</Label>
               <Input
                 id="shipping_address"
                 value={addressForm.address}

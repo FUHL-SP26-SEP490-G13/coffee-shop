@@ -39,10 +39,22 @@ import { ReceiptModal } from "./TakeAwayOrder/ReceiptModal";
 const STAFF_TAB_STATUSES = ["pending", "preparing", "completed", "cancelled"];
 
 const statusLabelMap = {
-  pending: "Đang chờ",
-  preparing: "Đang chuẩn bị",
-  completed: "Hoàn thành",
-  cancelled: "Đã hủy",
+  pending: {
+    label: "Đang chờ",
+    className: "text-amber-600 dark:text-amber-300",
+  },
+  preparing: {
+    label: "Đang chuẩn bị",
+    className: "text-blue-600 dark:text-blue-300",
+  },
+  completed: {
+    label: "Hoàn thành",
+    className: "text-emerald-600 dark:text-emerald-300",
+  },
+  cancelled: {
+    label: "Đã hủy",
+    className: "text-gray-600 dark:text-gray-400",
+  },
 };
 
 const orderTypeLabelMap = {
@@ -146,6 +158,11 @@ export function OrderDelivery() {
   const activeStatus = STAFF_TAB_STATUSES.includes(routeStatus)
     ? routeStatus
     : "pending";
+  const activeStatusMeta =
+    statusLabelMap[activeStatus] || {
+      label: "Không xác định",
+      className: "text-slate-600 dark:text-slate-300",
+    };
 
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -622,14 +639,14 @@ export function OrderDelivery() {
     const paid = isOrderPaid(order);
 
     return (
-      <Card key={order.id} className="border-slate-200 bg-white dark:bg-gray-900 shadow-sm dark:shadow-none">
+      <Card key={order.id} className="border-slate-200 dark:border-slate-700 bg-white dark:bg-gray-900 shadow-sm dark:shadow-none">
         <CardContent className="p-3 md:p-2.5">
           <div className="flex items-start justify-between gap-2">
             <div>
-              <p className="text-sm font-semibold leading-none text-slate-900">
+              <p className="text-sm font-semibold leading-none text-slate-900 dark:text-slate-100">
                 Đơn #{order.id}
               </p>
-              <p className="mt-1 text-xs text-slate-500">
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-300">
                 {getRelativeTimeLabel(order.created_at)}
               </p>
             </div>
@@ -638,7 +655,7 @@ export function OrderDelivery() {
               className={`h-6 px-2 text-[11px] font-medium ${
                 paid
                   ? "bg-emerald-500 text-white hover:bg-emerald-500"
-                  : "border-slate-300 text-slate-600"
+                  : "border-slate-300 text-slate-600 dark:border-slate-600 dark:text-slate-200"
               }`}
             >
               {paid ? "Đã thanh toán" : "Chưa thanh toán"}
@@ -646,7 +663,7 @@ export function OrderDelivery() {
           </div>
 
           <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-            <p className="text-base font-bold color-green-500 leading-none text-slate-900 ">
+            <p className="text-base font-bold leading-none text-emerald-600 dark:text-emerald-300">
               {money(order.total_amount)}
             </p>
             <Button
@@ -664,15 +681,18 @@ export function OrderDelivery() {
   };
 
   return (
-    <div className="mx-auto max-w-[1600px] space-y-3 px-4 pb-1 pt-1 md:px-6 md:pb-3 md:pt-2">
-      <div className="rounded-xl border border-slate-200 bg-white dark:bg-gray-900 px-3 py-2 shadow-sm dark:shadow-none md:px-4 md:py-2.5">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div className="min-w-0">
-            <h2 className="truncate text-lg font-bold tracking-tight text-slate-900 md:text-xl">
+    <div className="mx-auto space-y-3 px-4 pb-1 pt-1 md:px-6 md:pb-3 md:pt-2">
+      <h2 className="truncate text-lg font-bold tracking-tight text-slate-900 dark:text-slate-100 md:text-xl">
               Danh sách đơn hàng
             </h2>
-            <p className="text-xs text-slate-500 md:text-sm">
-              Trạng thái hiện tại: {statusLabelMap[activeStatus]}
+      <div className="px-3 py-2 md:px-4 md:py-2.5">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <p className="text-xs text-slate-500 dark:text-slate-300 md:text-sm">
+              Trạng thái hiện tại:{" "}
+              <strong className={activeStatusMeta.className}>
+                {activeStatusMeta.label}
+              </strong>
             </p>
           </div>
 
@@ -695,17 +715,17 @@ export function OrderDelivery() {
               disabled={loading}
               variant="outline"
               size="sm"
-              className="h-9 gap-1.5 border-slate-200 bg-white dark:bg-gray-900 px-3 text-xs font-medium hover:bg-slate-50 md:h-8 md:px-2.5"
+              className="h-9 gap-1.5 border-slate-200 dark:border-slate-700 bg-white dark:bg-gray-900 px-3 text-xs font-medium dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800 md:h-8 md:px-2.5"
             >
               <RefreshCw
-                className={`h-4 w-4 ${loading ? "animate-spin text-primary" : "text-slate-500"}`}
+                className={`h-4 w-4 ${loading ? "animate-spin text-primary" : "text-slate-500 dark:text-slate-300"}`}
               />
               Cập nhật
             </Button>
           </div>
         </div>
 
-        <div className="mt-2.5 flex items-center gap-1.5 overflow-x-auto border-t border-slate-100 pb-0.5 pt-2.5 md:flex-wrap md:overflow-visible md:pb-0">
+        <div className="mt-2.5 flex items-center gap-1.5 overflow-x-auto border-t border-slate-100 dark:border-slate-700/70 pb-0.5 pt-2.5 md:flex-wrap md:overflow-visible md:pb-0">
           {Object.entries(orderTypeLabelMap).map(([typeKey, label]) => (
             <Button
               key={typeKey}
@@ -726,7 +746,7 @@ export function OrderDelivery() {
 
           {["pending", "preparing"].includes(activeStatus) ? (
             <div className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-2.5 md:ml-auto md:h-8">
-              <span className="text-xs font-medium text-rose-700">
+              <span className="text-xs font-medium text-rose-700 dark:text-rose-300">
                 Trễ &gt; 10 phút
               </span>
               <Badge variant="secondary" className="h-5 px-1.5 text-[11px]">
@@ -748,12 +768,12 @@ export function OrderDelivery() {
             return (
               <div
                 key={column.key}
-                className="rounded-xl border border-slate-200 bg-white dark:bg-gray-900 shadow-sm dark:shadow-none"
+                className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-gray-900 shadow-sm dark:shadow-none"
               >
-                <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50 px-3 py-2">
+                <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 px-3 py-2">
                   <div className="flex items-center gap-2">
-                    <Icon className="h-4 w-4 text-slate-600" />
-                    <span className="text-sm font-semibold text-slate-800">
+                    <Icon className="h-4 w-4 text-slate-600 dark:text-slate-200" />
+                    <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">
                       {column.label}
                     </span>
                   </div>
@@ -851,11 +871,11 @@ export function OrderDelivery() {
 
                 {selectedOrderIsPendingUnpaidDelivery ? (
                   <div className="sm:col-span-2 mt-2 rounded-md border border-amber-200 dark:border-amber-800/50 bg-amber-50 dark:bg-amber-900/30 p-3">
-                    <p className="mb-2 text-sm font-semibold text-amber-900">
+                    <p className="mb-2 text-sm font-semibold text-amber-900 dark:text-amber-200">
                       Xử lý đơn giao hàng chưa thanh toán
                     </p>
                     <div className="grid gap-2 sm:grid-cols-2">
-                      <label className="flex items-center gap-2 text-sm text-amber-900">
+                      <label className="flex items-center gap-2 text-sm text-amber-900 dark:text-amber-200">
                         <input
                           type="radio"
                           name="modal-pending-action"
@@ -866,7 +886,7 @@ export function OrderDelivery() {
                         <span>Nhận đơn</span>
                       </label>
 
-                      <label className="flex items-center gap-2 text-sm text-amber-900">
+                      <label className="flex items-center gap-2 text-sm text-amber-900 dark:text-amber-200">
                         <input
                           type="radio"
                           name="modal-pending-action"
@@ -931,7 +951,7 @@ export function OrderDelivery() {
 
               <div className="flex flex-col items-end gap-1">
                 {isDeliveryOrder(selectedOrder) ? (
-                  <p className="text-sm text-slate-600">
+                  <p className="text-sm text-slate-600 dark:text-slate-300">
                     Phí vận chuyển:{" "}
                     <span className="font-medium">{money(DELIVERY_FEE)}</span>
                   </p>
@@ -1036,13 +1056,13 @@ export function OrderDelivery() {
 
             {cashPaymentDialog.cashReceived !== "" &&
             cashReceivedAmount < requiredAmount ? (
-              <p className="text-sm text-red-600">
+              <p className="text-sm text-red-600 dark:text-red-400">
                 Số tiền nhập vào nhỏ hơn số tiền cần thanh toán.
               </p>
             ) : null}
 
             {isCashInputValid ? (
-              <p className="text-sm text-emerald-700">
+              <p className="text-sm text-emerald-700 dark:text-emerald-300">
                 Tiền thừa trả khách:{" "}
                 <span className="font-semibold">{money(changeAmount)}</span>
               </p>

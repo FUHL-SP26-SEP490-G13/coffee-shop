@@ -43,6 +43,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import Logo from '/logo/Logo.png';
+import receiptSettingService from "@/services/receiptSettingService";
 
 const STAFF_SIDEBAR_PREF_KEY = 'staff_sidebar_collapsed_by_page';
 const STAFF_SIDEBAR_DEFAULTS = {
@@ -64,6 +65,39 @@ export function StaffApp() {
     }
   });
 
+  const [storeLogo, setStoreLogo] = useState(() => {
+    return localStorage.getItem("cached_store_logo") || Logo;
+  });
+
+  useEffect(() => {
+    const fetchLogo = async () => {
+      try {
+        const res = await receiptSettingService.getActive();
+        const data = res?.data || null;
+        if (data && data.logo_url) {
+          setStoreLogo(data.logo_url);
+          localStorage.setItem("cached_store_logo", data.logo_url);
+        } else {
+          setStoreLogo(Logo);
+          localStorage.removeItem("cached_store_logo");
+        }
+      } catch (error) {
+        setStoreLogo(Logo);
+        localStorage.removeItem("cached_store_logo");
+      }
+    };
+    fetchLogo();
+
+    const handleReceiptUpdate = () => {
+      fetchLogo();
+    };
+
+    window.addEventListener("receiptSettingsUpdated", handleReceiptUpdate);
+    return () => {
+      window.removeEventListener("receiptSettingsUpdated", handleReceiptUpdate);
+    };
+  }, []);
+
   // Quản lý Dark Mode thay cho force disable
   const [isDarkMode, setIsDarkMode] = useState(() => {
     return localStorage.getItem("theme") === "dark";
@@ -84,6 +118,35 @@ export function StaffApp() {
   const navigate = useNavigate();
   const location = useLocation();
   const notificationRef = useRef(null);
+
+  useEffect(() => {
+    const routeTitles = {
+        "/staff/dashboard": "Tổng quan",
+        "/staff/tables": "Phòng bàn",
+        "/staff/takeaway": "Đặt mang đi",
+        "/staff/orders/pending": "Đơn chờ",
+        "/staff/orders/preparing": "Đơn đang làm",
+        "/staff/orders/completed": "Đơn đã xong",
+        "/staff/orders/cancelled": "Đơn đã hủy",
+        "/staff/kitchen": "Bếp",
+        "/staff/inventory": "Kho hàng",
+        "/staff/requests": "Đổi ca",
+        "/staff/attendance": "Điểm danh ca làm",
+        "/staff/schedule": "Lịch làm việc",
+        "/staff/profile": "Thông tin cá nhân",
+    };
+
+    let matchedTitle = "Cổng Nhân viên";
+    if (routeTitles[location.pathname]) {
+      matchedTitle = routeTitles[location.pathname];
+    } else {
+      const match = Object.keys(routeTitles).find(path => location.pathname.startsWith(path));
+      if (match) matchedTitle = routeTitles[match];
+    }
+
+    const shopName = localStorage.getItem("cached_store_name") || "Coffee Shop";
+    document.title = `${matchedTitle} | ${shopName}`;
+  }, [location.pathname]);
 
   const unreadCount = notifications.filter(
     (item) => Number(item.is_read) === 0,
@@ -385,9 +448,10 @@ export function StaffApp() {
             )}
           </button>
           <img
-            src={Logo}
+            src={storeLogo}
+            onError={(e) => { e.currentTarget.src = Logo; }}
             alt='Coffee Shop Logo'
-            className={`w-auto ${isSidebarCompact ? 'h-12' : 'h-20'}`}
+            className={`w-auto object-contain rounded-2xl ${isSidebarCompact ? 'h-12' : 'h-20'}`}
           />
           <p className={`text-sm text-muted-foreground mt-1 ${isSidebarCompact ? 'md:hidden' : ''}`}>
             Cổng Nhân viên

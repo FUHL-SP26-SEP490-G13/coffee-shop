@@ -114,6 +114,7 @@ export default function AdminReceiptSettings() {
       setLogoFile(null);
 
       toast.success("Lưu cấu hình hóa đơn thành công");
+      window.dispatchEvent(new CustomEvent("receiptSettingsUpdated"));
     } catch (error) {
       console.error("Lỗi lưu cấu hình hóa đơn:", error);
       toast.error(error?.response?.data?.message || "Không thể lưu cấu hình hóa đơn");
@@ -220,14 +221,8 @@ export default function AdminReceiptSettings() {
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-            <ReceiptText className="w-5 h-5 text-primary" />
-          </div>
           <div>
-            <h1 className="text-2xl font-semibold">Cấu hình hóa đơn</h1>
-            <p className="text-sm text-muted-foreground dark:text-gray-400">
-              Thiết lập thông tin cửa hàng và nội dung in trên hóa đơn
-            </p>
+            <h1 className="text-xl font-semibold">Cấu hình hóa đơn</h1>
           </div>
         </div>
 
@@ -378,7 +373,7 @@ export default function AdminReceiptSettings() {
                 <img
                   src={displayLogo}
                   alt="Receipt Logo"
-                  className="h-14 object-contain"
+                  className="h-14 object-contain rounded-md"
                   onError={(e) => {
                     e.currentTarget.style.display = "none";
                   }}
