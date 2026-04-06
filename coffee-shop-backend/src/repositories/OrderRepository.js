@@ -78,7 +78,7 @@ class OrderRepository {
         total_amount,
         session_id
       )
-      VALUES (?, ?, ?, ?, ?, 'pending', 0, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?)
       `,
       [
         data.user_id,
@@ -86,6 +86,7 @@ class OrderRepository {
         data.customer_type,
         data.order_type,
         data.table_id || null,
+        data.status || 'pending',
         data.total_amount,
         data.session_id || null,
       ]

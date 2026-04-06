@@ -450,6 +450,105 @@ class OrderService {
     return { saved: true };
   }
 
+  async updateOrderItems(orderId, items) {
+    const connection = await OrderRepository.getConnection();
+    try {
+      await connection.beginTransaction();
+
+      // Verify the order exists, is unpaid, and is a dine-in order
+      const [orderRows] = await connection.query(
+        `SELECT id, is_paid, order_type FROM orders WHERE id = ? LIMIT 1`,
+        [orderId]
+      );
+      if (orderRows.length === 0) {
+        throw new ErrorResponse(404, 'Đơn hàng không tồn tại');
+      }
+      const order = orderRows[0];
+      if (Number(order.is_paid) === 1) {
+        throw new ErrorResponse(400, 'Không thể sửa đơn hàng đã thanh toán');
+      }
+
+      if (!Array.isArray(items) || items.length === 0) {
+        throw new ErrorResponse(400, 'Giỏ hàng trống');
+      }
+
+      let totalAmount = 0;
+      const normalizedItems = [];
+
+      for (const item of items) {
+        const quantity = Number(item.quantity);
+        const toppings = Array.isArray(item.toppings) ? item.toppings : [];
+
+        if (!item.product_size_id || quantity <= 0) {
+          throw new ErrorResponse(400, 'Dữ liệu sản phẩm không hợp lệ');
+        }
+
+        const productSize = await OrderRepository.findProductSizeById(connection, item.product_size_id);
+        if (!productSize) throw new ErrorResponse(400, 'Sản phẩm không tồn tại');
+        if (productSize.status !== 'available') {
+          throw new ErrorResponse(400, `Sản phẩm "${productSize.name}" hiện không khả dụng`);
+        }
+
+        let toppingsTotal = 0;
+        const normalizedToppings = [];
+        for (const toppingItem of toppings) {
+          const toppingId = Number(toppingItem.topping_id);
+          const toppingQty = Math.max(1, Number(toppingItem.quantity) || 1);
+          if (!toppingId) throw new ErrorResponse(400, 'Topping không hợp lệ');
+          const topping = await OrderRepository.findToppingById(connection, toppingId);
+          if (!topping) throw new ErrorResponse(400, 'Topping không tồn tại');
+          const toppingPrice = Number(topping.price || 0);
+          toppingsTotal += toppingPrice * toppingQty;
+          normalizedToppings.push({ topping_id: topping.id, quantity: toppingQty, price: toppingPrice });
+        }
+
+        const unitPrice = Number(productSize.price) + toppingsTotal;
+        totalAmount += unitPrice * quantity;
+        normalizedItems.push({ product_size_id: productSize.id, quantity, price: unitPrice, toppings: normalizedToppings });
+      }
+
+      // Delete existing order details (and their toppings via cascade or manual)
+      const [existingDetails] = await connection.query(
+        'SELECT id FROM order_details WHERE order_id = ?',
+        [orderId]
+      );
+      for (const detail of existingDetails) {
+        await connection.query('DELETE FROM order_detail_toppings WHERE order_detail_id = ?', [detail.id]);
+      }
+      await connection.query('DELETE FROM order_details WHERE order_id = ?', [orderId]);
+
+      // Insert new items
+      for (const item of normalizedItems) {
+        const orderDetailId = await OrderRepository.createOrderDetail(connection, {
+          order_id: orderId,
+          product_size_id: item.product_size_id,
+          quantity: item.quantity,
+          price: item.price,
+        });
+        for (const topping of item.toppings) {
+          await OrderRepository.createOrderDetailTopping(connection, {
+            order_detail_id: orderDetailId,
+            topping_id: topping.topping_id,
+            quantity: topping.quantity,
+            price: topping.price,
+          });
+        }
+      }
+
+      // Update order total and payment amount
+      await connection.query('UPDATE orders SET total_amount = ? WHERE id = ?', [totalAmount, orderId]);
+      await connection.query('UPDATE order_payments SET amount = ? WHERE order_id = ?', [totalAmount, orderId]);
+
+      await connection.commit();
+      return { order_id: orderId, total_amount: totalAmount };
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
+  }
+
   async getAllOrders({ page = 1, limit = 20, status = "all" } = {}) {
     const offset = (parseInt(page) - 1) * parseInt(limit);
 

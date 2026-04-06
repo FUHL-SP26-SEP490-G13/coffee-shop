@@ -295,6 +295,7 @@ export function StaffTables() {
   // POS Modal States
   const [selectedTableForPOS, setSelectedTableForPOS] = useState(null);
   const [isPOSModalOpen, setIsPOSModalOpen] = useState(false);
+  const [editingOrder, setEditingOrder] = useState(null); // order to edit in POS
 
   // Order Modal States
   const [selectedTableForOrder, setSelectedTableForOrder] = useState(null);
@@ -377,8 +378,26 @@ export function StaffTables() {
 
 
   const handleOpenPOS = (table) => {
+    setEditingOrder(null); // normal mode
     setSelectedTableForPOS(table);
     setIsPOSModalOpen(true);
+  };
+
+  const handleEditOrder = async (order, table) => {
+    // Load full order detail (with items) if not already loaded
+    setIsOrderModalOpen(false);
+    setLoadingOrder(true);
+    try {
+      const res = await orderService.getOrderDetailForStaff(order.id);
+      const fullOrder = res.data;
+      setEditingOrder(fullOrder);
+      setSelectedTableForPOS(table || selectedTableForOrder);
+      setIsPOSModalOpen(true);
+    } catch {
+      toast.error('Không thể tải chi tiết đơn để chỉnh sửa');
+    } finally {
+      setLoadingOrder(false);
+    }
   };
 
   const handleOpenTransfer = (table, mode = "transfer") => {
@@ -1034,9 +1053,11 @@ export function StaffTables() {
         onClose={() => {
           setIsPOSModalOpen(false);
           setSelectedTableForPOS(null);
+          setEditingOrder(null);
           fetchData();
         }}
         table={selectedTableForPOS}
+        editingOrder={editingOrder}
         onTableStatusChange={(tableId, newStatus) => {
           setTables((prev) =>
             prev.map((t) => (t.id === tableId ? { ...t, status: newStatus } : t))
@@ -1225,10 +1246,20 @@ export function StaffTables() {
                 </span>
               </div>
 
-              <div className="flex w-full gap-2 mt-4">
-              
-             
-              </div>
+              {/* Edit Order button: only for single unpaid pay-later orders (no splits in progress) */}
+              {activeOrder && !activeOrder.is_paid && (activeOrder.unpaid_orders_count === 1 || !activeOrder.unpaid_orders_count) && (
+                <div className="flex w-full gap-2 mt-4">
+                  <Button
+                    className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white"
+                    onClick={() => handleEditOrder(activeOrder, selectedTableForOrder)}
+                    disabled={loadingOrder}
+                  >
+                    {loadingOrder ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                    Chỉnh sửa đơn hàng
+                  </Button>
+                </div>
+              )}
+
             </div>
           ) : (
             <div className="py-8 text-center text-muted-foreground">
