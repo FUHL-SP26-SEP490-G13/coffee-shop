@@ -47,18 +47,15 @@ class CashSessionService {
   // ================================================
   async getCurrentSession() {
     const session = await CashSessionRepository.findOpenSession();
-
-    // Không có ca nào đang open → trả về null, không throw lỗi
-    // Frontend tự xử lý hiển thị "Chưa có ca nào đang mở"
     if (!session) return null;
 
-    // Lấy thêm summary nhanh để hiển thị header
     const summary = await CashSessionRepository.getOrderSummary(session.id);
+    const openingCash  = Number(session.opening_cash  || 0);
+    const cashRevenue  = Number(summary.cash_revenue   || 0);
 
     return {
       ...this._formatSession(session),
-      // Tiền két hiện tại = tiền đầu ca + tiền mặt thu được trong ca
-      current_cash: session.opening_cash + (summary.cash_revenue || 0),
+      current_cash: openingCash + cashRevenue,
     };
   }
 
@@ -113,7 +110,23 @@ class CashSessionService {
       throw new ErrorResponse(400, 'Ca này đã được kết trước đó');
     }
 
-    // 2. Validate tiền thực tế
+    // 2. Kiểm tra quyền đóng ca
+    // Staff chỉ được đóng ca của chính mình
+    // Manager được phép force-close bất kỳ ca nào (khi nhân viên quên đóng)
+    const isManager = currentUser.role === 'manager';
+    const isOwner   = Number(session.opened_by) === Number(currentUser.id);
+
+    if (!isOwner && !isManager) {
+      const ownerName = session.opener_first_name
+        ? `${session.opener_first_name} ${session.opener_last_name}`
+        : `#${session.opened_by}`;
+      throw new ErrorResponse(
+        403,
+        `Bạn không thể đóng ca của ${ownerName}. Chỉ Manager mới có quyền force-close ca người khác.`,
+      );
+    }
+
+    // 3. Validate tiền thực tế
     if (closing_cash_actual === undefined || closing_cash_actual === null) {
       throw new ErrorResponse(400, 'Vui lòng nhập số tiền thực tế trong két');
     }
@@ -122,21 +135,21 @@ class CashSessionService {
       throw new ErrorResponse(400, 'Số tiền thực tế không hợp lệ');
     }
 
-    // 3. Hệ thống tự tính tiền lý thuyết từ orders trong ca
-    const summary = await CashSessionRepository.getOrderSummary(sessionId);
-    const cashRevenue = summary.cash_revenue || 0;
-    const systemCash = session.opening_cash + cashRevenue;
+    // 4. Hệ thống tự tính tiền lý thuyết từ orders trong ca
+    const summary     = await CashSessionRepository.getOrderSummary(sessionId);
+    const cashRevenue = Number(summary.cash_revenue || 0);
+    const openingCash = Number(session.opening_cash || 0);
+    const systemCash  = openingCash + cashRevenue;
 
-    // 4. Tính chênh lệch
-    // Dương = két thừa tiền, âm = két thiếu tiền
+    // 5. Tính chênh lệch  (dương = thừa, âm = thiếu)
     const difference = actualCash - systemCash;
 
-    // 5. BẮT BUỘC ghi chú nếu tiền lệch — dù thừa hay thiếu đều phải giải thích
+    // 6. BẮT BUỘC ghi chú nếu tiền lệch
     if (difference !== 0) {
       const note = closing_note?.trim();
       if (!note) {
         const direction = difference > 0 ? 'thừa' : 'thiếu';
-        const amount = Math.abs(difference).toLocaleString('vi-VN');
+        const amount    = Math.abs(difference).toLocaleString('vi-VN');
         throw new ErrorResponse(
           400,
           `Két ${direction} ${amount}đ so với hệ thống. Bắt buộc phải nhập ghi chú lý do.`,
@@ -144,28 +157,27 @@ class CashSessionService {
       }
     }
 
-    // 6. Cập nhật và đóng ca
-    // closed_by có thể khác opened_by (VD: quản lý ép đóng khi nhân viên quên)
+    // 7. Cập nhật và đóng ca
     const closedSession = await CashSessionRepository.closeSession(sessionId, {
-      closed_by: currentUser.id,
-      closed_at: new Date(),
-      closing_cash_actual: actualCash,
-      closing_cash_system: systemCash,
-      cash_difference: difference,
-      closing_note: closing_note?.trim() || null,
+      closed_by:            currentUser.id,
+      closed_at:            new Date(),
+      closing_cash_actual:  actualCash,
+      closing_cash_system:  systemCash,
+      cash_difference:      difference,
+      closing_note:         closing_note?.trim() || null,
     });
 
-    const isForceClose = closedSession.opened_by !== currentUser.id;
+    const isForceClose = Number(closedSession.opened_by) !== Number(currentUser.id);
 
     return {
       session: this._formatSession(closedSession),
-      is_force_close: isForceClose, // FE dùng để hiển thị cảnh báo nếu cần
+      is_force_close: isForceClose,
       closing_summary: {
-        opening_cash: session.opening_cash,
-        cash_revenue: cashRevenue,
-        closing_cash_system: systemCash,
-        closing_cash_actual: actualCash,
-        cash_difference: difference,
+        opening_cash:         openingCash,
+        cash_revenue:         cashRevenue,
+        closing_cash_system:  systemCash,
+        closing_cash_actual:  actualCash,
+        cash_difference:      difference,
         difference_note: difference > 0
           ? `Két thừa ${difference.toLocaleString('vi-VN')}đ`
           : difference < 0
@@ -182,44 +194,45 @@ class CashSessionService {
     const session = await CashSessionRepository.findById(sessionId);
     if (!session) throw new ErrorResponse(404, 'Ca làm việc không tồn tại');
 
-    // Lấy tổng hợp orders trong ca
     const summary = await CashSessionRepository.getOrderSummary(sessionId);
 
-    const cashRevenue = summary.cash_revenue || 0;
-    const payosRevenue = summary.payos_revenue || 0;
+    const cashRevenue  = Number(summary.cash_revenue  || 0);
+    const payosRevenue = Number(summary.payos_revenue || 0);
     const totalRevenue = cashRevenue + payosRevenue;
-    const systemCash = session.opening_cash + cashRevenue;
+    const openingCash  = Number(session.opening_cash  || 0);
+    const systemCash   = openingCash + cashRevenue;
 
     return {
-      // Thông tin ca
-      code: session.code,
+      code:      session.code,
       opened_by: `${session.opener_first_name} ${session.opener_last_name}`,
       opened_at: session.opened_at,
       closed_by: session.closer_first_name
         ? `${session.closer_first_name} ${session.closer_last_name}`
         : null,
       closed_at: session.closed_at,
-      status: session.status,
+      status:    session.status,
 
-      // Doanh thu trong ca
       revenue: {
-        total_orders: summary.total_orders || 0,
-        completed_orders: summary.completed_orders || 0,
-        cancelled_orders: summary.cancelled_orders || 0,
-        cash_revenue,
+        total_orders:      Number(summary.total_orders      || 0),
+        completed_orders:  Number(summary.completed_orders  || 0),
+        cancelled_orders:  Number(summary.cancelled_orders  || 0),
+        cash_revenue:  cashRevenue,
         payos_revenue: payosRevenue,
         total_revenue,
       },
 
-      // Đối soát tiền mặt
       cash_reconciliation: {
-        opening_cash: session.opening_cash,
-        cash_revenue,
+        opening_cash:        openingCash,
+        cash_revenue:        cashRevenue,
         closing_cash_system: session.status === 'closed'
-          ? session.closing_cash_system
+          ? Number(session.closing_cash_system || 0)
           : systemCash,
-        closing_cash_actual: session.closing_cash_actual,
-        cash_difference: session.cash_difference,
+        closing_cash_actual: session.closing_cash_actual !== null
+          ? Number(session.closing_cash_actual)
+          : null,
+        cash_difference: session.cash_difference !== null
+          ? Number(session.cash_difference)
+          : null,
       },
 
       closing_note: session.closing_note,
