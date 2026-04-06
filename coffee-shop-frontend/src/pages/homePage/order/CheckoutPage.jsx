@@ -686,9 +686,10 @@ export default function CheckoutPage() {
 
                 <div>
                   <label className="text-sm font-medium mb-2 block">
-                    Địa chỉ giao hàng
+                    Địa chỉ giao hàng *
                   </label>
                   <Input
+                    required
                     value={form.address}
                     onChange={(e) => {
                       const value = e.target.value;

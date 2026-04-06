@@ -118,8 +118,17 @@ const checkoutOrderSchema = Joi.object({
       "string.email": "Email không đúng định dạng",
     }),
 
-  address: Joi.string().trim().allow("").max(255).messages({
-    "string.max": "Địa chỉ không được vượt quá 255 ký tự",
+  address: Joi.alternatives().conditional("order_type", {
+    is: "delivery",
+    then: Joi.string().trim().min(1).max(255).required().messages({
+      "string.empty": "Địa chỉ không được để trống",
+      "string.min": "Địa chỉ không được để trống",
+      "any.required": "Địa chỉ là bắt buộc",
+      "string.max": "Địa chỉ không được vượt quá 255 ký tự",
+    }),
+    otherwise: Joi.string().trim().allow("").max(255).messages({
+      "string.max": "Địa chỉ không được vượt quá 255 ký tự",
+    }),
   }),
 
   note: Joi.string().trim().allow("").max(500).messages({
