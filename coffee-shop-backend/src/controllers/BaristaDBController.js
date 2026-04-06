@@ -1,4 +1,5 @@
 const service = require("../services/BaristaDBService");
+const OrderRepository = require("../repositories/OrderRepository");
 
 class BaristaDBController {
   async getOverview(req, res, next) {
@@ -68,6 +69,26 @@ class BaristaDBController {
       return res.json({
         success: true,
         data,
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async updateStatus(req, res, next) {
+    try {
+      const { id } = req.params;
+      const { status } = req.body;
+
+      if (!status) {
+        return res.status(400).json({ success: false, message: "Thiếu trạng thái" });
+      }
+
+      await OrderRepository.updateOrderStatus(id, status);
+
+      return res.json({
+        success: true,
+        message: "Cập nhật trạng thái thành công",
       });
     } catch (err) {
       next(err);
