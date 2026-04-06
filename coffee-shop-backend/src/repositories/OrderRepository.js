@@ -205,6 +205,7 @@ class OrderRepository {
       params.push(payment_status);
       if (payment_status === "paid") {
         setParts.push("paid_at = NOW()");
+        setParts.push("paid_amount = amount");
       }
     }
 
