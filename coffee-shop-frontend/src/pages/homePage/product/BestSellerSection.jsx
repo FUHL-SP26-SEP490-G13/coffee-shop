@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
-import { Loader2, ArrowRight, Heart, Star, ShoppingCart } from "lucide-react";
+import { Loader2, ArrowRight, Star, ShoppingCart } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import favoriteService from "@/services/favoriteService";
 import flashSaleService from "@/services/flashSaleService";
 import productService from "@/services/productService";
 import { STORAGE_KEYS } from "@/constants";
@@ -10,7 +9,7 @@ import { cartService } from "@/services/cartService";
 import { toast } from "sonner";
 import { useStoreHours } from "@/hooks/useStoreHours";
 import receiptSettingService from "@/services/receiptSettingService";
-import CartSuccessModal from "@/components/common/CartSuccessModal";
+import CartSuccessModal from "@/pages/homePage/order/CartSuccessModal";
 
 export default function BestSellerSection({
   loading,
@@ -27,7 +26,6 @@ export default function BestSellerSection({
 
   const isLoggedIn = !!token;
 
-  const [favoriteMap, setFavoriteMap] = useState({});
   const [activeSale, setActiveSale] = useState(null);
   const [addedCartItem, setAddedCartItem] = useState(null);
 
@@ -154,88 +152,6 @@ export default function BestSellerSection({
       .catch(() => { });
   }, []);
 
-  useEffect(() => {
-    const fetchFavoriteStatus = async () => {
-      if (!isLoggedIn || products.length === 0) {
-        setFavoriteMap({});
-        return;
-      }
-
-      try {
-        const results = await Promise.all(
-          products.map(async (product) => {
-            try {
-              const res = await favoriteService.checkFavorite(product.id);
-              const payload = res?.data?.data || res?.data || res || {};
-
-              return {
-                productId: product.id,
-                isFavorite: Boolean(payload.isFavorite),
-              };
-            } catch (error) {
-              return {
-                productId: product.id,
-                isFavorite: false,
-              };
-            }
-          })
-        );
-
-        const nextMap = {};
-        results.forEach((item) => {
-          nextMap[item.productId] = item.isFavorite;
-        });
-
-        setFavoriteMap(nextMap);
-      } catch (error) {
-        console.error("Lỗi kiểm tra trạng thái yêu thích:", error);
-        setFavoriteMap({});
-      }
-    };
-
-    fetchFavoriteStatus();
-  }, [products, isLoggedIn]);
-
-  const handleToggleFavorite = async (e, productId) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    if (!isLoggedIn) {
-      alert("Bạn phải đăng nhập để thêm sản phẩm yêu thích");
-      return;
-    }
-
-    const currentFavorite = Boolean(favoriteMap[productId]);
-
-    setFavoriteMap((prev) => ({
-      ...prev,
-      [productId]: !currentFavorite,
-    }));
-
-    try {
-      const res = await favoriteService.toggleFavorite(
-        productId,
-        currentFavorite
-      );
-
-      const payload = res?.data?.data || res?.data || res || {};
-
-      if (typeof payload.isFavorite === "boolean") {
-        setFavoriteMap((prev) => ({
-          ...prev,
-          [productId]: payload.isFavorite,
-        }));
-      }
-
-      window.dispatchEvent(new Event("favoriteUpdated"));
-    } catch (error) {
-      console.error("Lỗi cập nhật yêu thích:", error);
-      setFavoriteMap((prev) => ({
-        ...prev,
-        [productId]: currentFavorite,
-      }));
-    }
-  };
 
   return (
     <section className="py-8 md:py-4 bg-white dark:bg-gray-950">
@@ -256,8 +172,8 @@ export default function BestSellerSection({
                 key={tab}
                 onClick={() => handleTabChange(tab)}
                 className={`px-5 py-2 rounded-full text-sm font-semibold transition-colors ${activeTab === tab
-                    ? "bg-[#8B5A2B] text-white shadow-sm"
-                    : "bg-[#F3EBE1] text-[#8B5A2B] hover:bg-[#EAE0D3] dark:bg-[#3E2723] dark:text-amber-200 dark:hover:bg-[#4E342E]"
+                  ? "bg-[#8B5A2B] text-white shadow-sm"
+                  : "bg-[#F3EBE1] text-[#8B5A2B] hover:bg-[#EAE0D3] dark:bg-[#3E2723] dark:text-amber-200 dark:hover:bg-[#4E342E]"
                   }`}
               >
                 {tab}
@@ -277,7 +193,6 @@ export default function BestSellerSection({
           {!isCurrentlyLoading && displayProducts.length > 0 && (
             <div className="mt-10 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
               {displayProducts.map((product, index) => {
-                const isFavorite = Boolean(favoriteMap[product.id]);
 
                 return (
                   <div
@@ -303,25 +218,6 @@ export default function BestSellerSection({
                           )}
                         </div>
 
-                        <button
-                          type="button"
-                          onClick={(e) => handleToggleFavorite(e, product.id)}
-                          className={`absolute right-0 top-0 z-10 flex items-center justify-center transition-all ${isFavorite
-                            ? "text-red-500 drop-shadow-sm"
-                            : "text-[#DCD5CD] hover:text-red-400 dark:text-gray-600"
-                            }`}
-                          title={
-                            isFavorite
-                              ? "Bỏ khỏi yêu thích"
-                              : "Thêm vào yêu thích"
-                          }
-                        >
-                            <Heart
-                              className={`h-5 w-5 ${isFavorite ? "fill-current" : ""
-                                }`}
-                              strokeWidth={1.5}
-                            />
-                        </button>
 
                         <Link to={`/${product.slug || 'products/' + product.id}`} className="block mt-6 mb-2">
                           <div className="relative h-48 w-full flex items-center justify-center">
@@ -360,20 +256,20 @@ export default function BestSellerSection({
                           <div className="min-w-0">
                             {(() => {
                               const isFlashSale = activeSale && activeSale.product_ids?.includes(product.id);
-                              
+
                               const sizes = Array.isArray(product?.sizes) ? product.sizes : [];
                               const validPrices = sizes
                                 .map((size) => Number(size?.price))
                                 .filter((price) => Number.isFinite(price) && price > 0);
-                          
+
                               if (validPrices.length === 0) {
                                 return <p className="break-words text-[15px] font-bold leading-tight text-[#8B5A2B] dark:text-amber-500">Liên hệ</p>;
                               }
-                          
+
                               const minPrice = Math.min(...validPrices);
                               const maxPrice = Math.max(...validPrices);
                               const hasMultiplePrices = minPrice !== maxPrice;
-                          
+
                               let originalText = `${minPrice.toLocaleString("vi-VN")}đ`;
                               if (hasMultiplePrices) {
                                 originalText = `${minPrice.toLocaleString("vi-VN")}đ - ${maxPrice.toLocaleString("vi-VN")}đ`;
@@ -382,7 +278,7 @@ export default function BestSellerSection({
                               if (isFlashSale) {
                                 const saleMin = Math.round(minPrice * (1 - (activeSale.discount_percent || 0) / 100));
                                 let saleText = `${saleMin.toLocaleString("vi-VN")}đ`;
-                                
+
                                 if (hasMultiplePrices) {
                                   const saleMax = Math.round(maxPrice * (1 - (activeSale.discount_percent || 0) / 100));
                                   saleText = `${saleMin.toLocaleString("vi-VN")}đ - ${saleMax.toLocaleString("vi-VN")}đ`;
@@ -414,7 +310,7 @@ export default function BestSellerSection({
                               <ShoppingCart className="w-[15px] h-[15px] xl:ml-[-1px]" />
                             </button>
                           ) : (
-                            <div 
+                            <div
                               onClick={(e) => e.stopPropagation()}
                               className="flex items-center text-[11px] font-bold text-rose-600 bg-rose-50 px-2 py-1.5 rounded-lg border border-rose-100 whitespace-nowrap shadow-sm cursor-not-allowed"
                             >

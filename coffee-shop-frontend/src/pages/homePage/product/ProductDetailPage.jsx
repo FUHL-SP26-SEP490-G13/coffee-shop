@@ -5,7 +5,6 @@ import {
   Plus,
   ChevronDown,
   ChevronUp,
-  Heart,
   Star,
   ImagePlus,
   X,
@@ -18,7 +17,7 @@ import {
 } from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
-import CartSuccessModal from "@/components/common/CartSuccessModal";
+import CartSuccessModal from "@/pages/homePage/order/CartSuccessModal";
 import { Button } from "@/components/ui/button";
 import productService from "@/services/productService";
 import toppingService from "@/services/toppingService";
@@ -29,13 +28,97 @@ import { Pagination, Navigation, Autoplay } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/pagination";
 import "swiper/css/navigation";
-import favoriteService from "@/services/favoriteService";
+
 import flashSaleService from "@/services/flashSaleService";
 import { STORAGE_KEYS } from "@/constants";
 import reviewService from "@/services/reviewService";
 import { Textarea } from "@/components/ui/textarea";
 import { useStoreHours } from "@/hooks/useStoreHours";
 import { toast } from "sonner";
+
+const ReviewItem = ({ item }) => {
+  const [expandedIndex, setExpandedIndex] = useState(null);
+
+  const isVideo = (url) => {
+    if (!url) return false;
+    return url.match(/\.(mp4|webm|ogg)$/i) || url.includes("video/upload");
+  };
+
+  return (
+    <div className="flex gap-4 py-6 border-b border-gray-100 dark:border-gray-800 last:border-0 pl-1 pr-1">
+      <div className="w-10 h-10 shrink-0 bg-gray-200 dark:bg-gray-800 rounded-full flex items-center justify-center overflow-hidden">
+        <User className="w-6 h-6 text-gray-400" />
+      </div>
+      <div className="flex-1 w-full max-w-full overflow-hidden">
+        <div className="text-[13px] text-gray-800 dark:text-gray-200 mb-1 font-medium">{item.full_name}</div>
+        <div className="flex gap-0.5 text-[#ee4d2d] mb-1.5">
+          {Array.from({ length: 5 }).map((_, index) => (
+            <Star
+              key={index}
+              className={`w-3.5 h-3.5 ${index < Number(item.rating) ? "fill-current" : "text-gray-300"}`}
+            />
+          ))}
+        </div>
+        <div className="text-gray-400 text-xs mb-3 flex items-center gap-1.5">
+          <span>{new Date(item.created_at || Date.now()).toLocaleString('vi-VN')}</span>
+          {item.updated_at && item.created_at && item.updated_at !== item.created_at && (
+            <span className="text-gray-500 italic text-[11px] bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded">(Đã chỉnh sửa)</span>
+          )}
+        </div>
+
+        {item.comment && (
+          <div className="text-sm text-gray-800 dark:text-gray-200 mb-3 whitespace-pre-line leading-relaxed max-w-full break-words">{item.comment}</div>
+        )}
+
+        {item.images && item.images.length > 0 && (
+          <div>
+            <div className="flex flex-wrap gap-2 mb-2">
+              {item.images.map((img, idx) => {
+                const videoMode = isVideo(img.url);
+                return (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setExpandedIndex(expandedIndex === idx ? null : idx)}
+                    className={`relative block w-[72px] h-[72px] bg-gray-50 overflow-hidden cursor-zoom-in group ${expandedIndex === idx ? 'border-2 border-[#ee4d2d]' : 'border border-gray-100'}`}
+                  >
+                    {videoMode ? (
+                      <>
+                        <video src={img.url} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300 pointer-events-none" />
+                        <div className="absolute inset-x-0 bottom-0 py-0.5 bg-black/60 flex items-center px-1">
+                          <span className="w-0 h-0 border-t-[4px] border-t-transparent border-l-[6px] border-l-white border-b-[4px] border-b-transparent mx-1" />
+                          <span className="text-[10px] text-white font-medium">Video</span>
+                        </div>
+                      </>
+                    ) : (
+                      <img src={img.url} alt="Review img" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+            
+            {expandedIndex !== null && (
+               <div className="relative w-full max-w-[400px] mb-4 bg-black flex items-center justify-center border border-gray-200 dark:border-gray-800 overflow-hidden group/large">
+                  {isVideo(item.images[expandedIndex].url) ? (
+                     <video src={item.images[expandedIndex].url} controls autoPlay className="w-full max-h-[400px] object-contain" />
+                  ) : (
+                     <img src={item.images[expandedIndex].url} alt="Expanded review" className="w-full max-h-[400px] object-contain" />
+                  )}
+                  {item.images.length > 1 && (
+                     <>
+                        <button onClick={() => setExpandedIndex(prev => prev === 0 ? item.images.length - 1 : prev - 1)} className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center bg-white/50 hover:bg-white text-gray-800 rounded-full shadow-sm transition opacity-0 group-hover/large:opacity-100"><ChevronLeft className="w-5 h-5"/></button>
+                        <button onClick={() => setExpandedIndex(prev => prev === item.images.length - 1 ? 0 : prev + 1)} className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center bg-white/50 hover:bg-white text-gray-800 rounded-full shadow-sm transition opacity-0 group-hover/large:opacity-100"><ChevronRight className="w-5 h-5"/></button>
+                     </>
+                  )}
+               </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
 
 export default function ProductDetailPage({ productIdOverride, productData }) {
   const { id } = useParams();
@@ -56,8 +139,7 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
   const [selectedToppings, setSelectedToppings] = useState([]);
   const [showToppings, setShowToppings] = useState(false);
 
-  const [isFavorite, setIsFavorite] = useState(false);
-  const [relatedFavoriteMap, setRelatedFavoriteMap] = useState({});
+
 
   const [reviews, setReviews] = useState([]);
   const [reviewLoading, setReviewLoading] = useState(false);
@@ -87,11 +169,13 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
   const [deleteImageIds, setDeleteImageIds] = useState([]);
   const [canReview, setCanReview] = useState(false);
   const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const [hasReviewed, setHasReviewed] = useState(false);
+  const [isEditingReview, setIsEditingReview] = useState(false);
 
   const [activeSale, setActiveSale] = useState(null);
   const [timeLeft, setTimeLeft] = useState({ hours: 0, minutes: 0, seconds: 0 });
   const [activeImageIndex, setActiveImageIndex] = useState(0);
-  
+
   const [addedCartItem, setAddedCartItem] = useState(null);
 
   useEffect(() => {
@@ -187,24 +271,7 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
     fetchToppings();
   }, []);
 
-  useEffect(() => {
-    const fetchFavoriteStatus = async () => {
-      if (!product?.id || !isLoggedIn) {
-        setIsFavorite(false);
-        return;
-      }
 
-      try {
-        const res = await favoriteService.checkFavorite(product.id);
-        setIsFavorite(Boolean(res?.data?.isFavorite));
-      } catch (error) {
-        console.error("Lỗi kiểm tra yêu thích:", error);
-        setIsFavorite(false);
-      }
-    };
-
-    fetchFavoriteStatus();
-  }, [product?.id, isLoggedIn]);
 
   useEffect(() => {
     const fetchReviews = async () => {
@@ -248,6 +315,9 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
         setExistingImages(result?.review?.images || []);
         setMyImages([]);
         setDeleteImageIds([]);
+        const userHasReviewed = result?.review != null;
+        setHasReviewed(userHasReviewed);
+        setIsEditingReview(!userHasReviewed);
       } catch (error) {
         console.error("Lỗi lấy đánh giá của bạn:", error);
         setCanReview(false);
@@ -256,6 +326,8 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
         setExistingImages([]);
         setMyImages([]);
         setDeleteImageIds([]);
+        setHasReviewed(false);
+        setIsEditingReview(true);
       }
     };
 
@@ -270,17 +342,17 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
     }
 
     if (!canReview) {
-      alert("Bạn chỉ có thể đánh giá sản phẩm đã mua");
+      toast.error("Bạn chỉ có thể đánh giá sản phẩm đã mua");
       return;
     }
 
     if (!myRating || myRating < 1 || myRating > 5) {
-      alert("Vui lòng chọn số sao từ 1 đến 5");
+      toast.error("Vui lòng chọn số sao từ 1 đến 5");
       return;
     }
 
-    if (myImages.length > 3) {
-      alert("Bạn chỉ có thể tải lên tối đa 3 ảnh");
+    if (myImages.length + existingImages.length > 4) {
+      toast.error("Bạn chỉ có thể lưu tối đa 4 tệp (ảnh và video)");
       return;
     }
 
@@ -296,20 +368,13 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
         formData.append("images", img.file);
       });
 
-      // Nếu có ảnh mới lên, tự động xóa tất cả ảnh cũ (do form giờ đã ẩn ảnh cũ)
-      if (myImages.length > 0) {
-        existingImages.forEach(img => {
-          formData.append("deleteImageIds", img.public_id);
-        });
-      } else {
-        deleteImageIds.forEach((id) => {
-          formData.append("deleteImageIds", id);
-        });
-      }
+      deleteImageIds.forEach((id) => {
+        formData.append("deleteImageIds", id);
+      });
 
       const res = await reviewService.createOrUpdate(formData);
 
-      alert(res?.data?.message || res?.message || "Gửi đánh giá thành công");
+      toast.success(res?.data?.message || res?.message || "Gửi đánh giá thành công");
 
       const reviewRes = await reviewService.getByProductId(product.id);
       const reviewResult = reviewRes?.data?.data || reviewRes?.data || {};
@@ -322,30 +387,60 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
       setExistingImages(myResult?.review?.images || []);
       setMyImages([]);
       setDeleteImageIds([]);
+      setHasReviewed(true);
+      setIsEditingReview(false);
 
     } catch (error) {
       console.error("Lỗi gửi đánh giá:", error);
-      alert(error?.response?.data?.message || error?.message || "Không thể gửi đánh giá");
+      toast.error(error?.response?.data?.message || error?.message || "Không thể gửi đánh giá");
     } finally {
       setReviewSubmitting(false);
     }
   };
 
-  const handleAddPreviewImages = (e) => {
+  const handleAddPreviewFiles = (e) => {
     const files = Array.from(e.target.files);
     if (!files.length) return;
 
-    if (myImages.length + files.length > 3) {
-      alert("Bạn chỉ được tải lên tối đa 3 ảnh.");
+    const isVideoUrl = (url) => typeof url === 'string' && (url.match(/\.(mp4|webm|ogg)$/i) || url.includes('video/upload'));
+
+    let currentImagesCount = myImages.filter(img => !img.file.type.startsWith('video/')).length + 
+                             existingImages.filter(img => !isVideoUrl(img.url)).length;
+                             
+    let currentVideosCount = myImages.filter(img => img.file.type.startsWith('video/')).length + 
+                             existingImages.filter(img => isVideoUrl(img.url)).length;
+
+    const validFiles = [];
+
+    for (const file of files) {
+      if (file.type.startsWith('video/')) {
+        if (currentVideosCount >= 1) {
+          toast.warning("Bạn chỉ được tải lên tối đa 1 video.");
+          continue;
+        }
+        currentVideosCount++;
+        validFiles.push(file);
+      } else {
+        if (currentImagesCount >= 3) {
+          toast.warning("Bạn chỉ được tải lên tối đa 3 ảnh.");
+          continue;
+        }
+        currentImagesCount++;
+        validFiles.push(file);
+      }
+    }
+
+    if (!validFiles.length) {
+      e.target.value = null;
       return;
     }
 
-    const newPreviewImages = files.map(file => ({
+    const newPreviewFiles = validFiles.map(file => ({
       file,
       url: URL.createObjectURL(file)
     }));
 
-    setMyImages(prev => [...prev, ...newPreviewImages]);
+    setMyImages(prev => [...prev, ...newPreviewFiles]);
     e.target.value = null;
   };
 
@@ -445,30 +540,7 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
     });
   };
 
-  const handleToggleFavorite = async () => {
-    if (!product?.id) return;
 
-    if (!isLoggedIn) {
-      alert("Bạn phải đăng nhập để thêm sản phẩm yêu thích");
-      return;
-    }
-
-    const previousState = isFavorite;
-    setIsFavorite(!isFavorite);
-
-    try {
-      const res = await favoriteService.toggleFavorite(product.id, previousState);
-
-      if (res?.data?.isFavorite !== undefined) {
-        setIsFavorite(Boolean(res.data.isFavorite));
-      }
-
-      window.dispatchEvent(new Event("favoriteUpdated")); //phát tín hiệu iu thích
-    } catch (error) {
-      console.error("Lỗi cập nhật yêu thích:", error);
-      setIsFavorite(previousState);
-    }
-  };
 
   const updateToppingQuantity = (toppingId, nextQuantity) => {
     setSelectedToppings((prev) =>
@@ -539,46 +611,7 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
     navigate("/checkout");
   };
 
-  useEffect(() => {
-    if (!isLoggedIn || relatedProducts.length === 0) return;
-    const fetchRelatedFavorites = async () => {
-      const newMap = { ...relatedFavoriteMap };
-      await Promise.all(relatedProducts.map(async (p) => {
-        try {
-          if (newMap[p.id] === undefined) {
-             const res = await favoriteService.checkFavorite(p.id);
-             newMap[p.id] = Boolean(res?.data?.isFavorite);
-          }
-        } catch(e) {}
-      }));
-      setRelatedFavoriteMap(newMap);
-    };
-    fetchRelatedFavorites();
-  }, [relatedProducts, isLoggedIn]);
 
-  const handleToggleRelatedFavorite = async (e, relatedId) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    if (!isLoggedIn) {
-      toast.error("Bạn phải đăng nhập để thêm sản phẩm yêu thích");
-      return;
-    }
-
-    const currentFav = Boolean(relatedFavoriteMap[relatedId]);
-    setRelatedFavoriteMap((prev) => ({ ...prev, [relatedId]: !currentFav }));
-
-    try {
-      if (currentFav) {
-        await favoriteService.removeFavorite(relatedId);
-      } else {
-        await favoriteService.addFavorite(relatedId);
-      }
-      window.dispatchEvent(new Event("favoriteUpdated"));
-    } catch (error) {
-      setRelatedFavoriteMap((prev) => ({ ...prev, [relatedId]: currentFav }));
-    }
-  };
 
   const handleRelatedFastAdd = (e, relatedProduct) => {
     e.preventDefault();
@@ -763,18 +796,6 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
               </div>
 
               <div className="flex gap-2 shrink-0">
-
-                <button
-                  type="button"
-                  onClick={handleToggleFavorite}
-                  className={`w-12 h-12 rounded-full border flex items-center justify-center transition ${isFavorite
-                    ? "bg-red-50 border-red-500 text-red-500 hover:bg-white hover:text-gray-500 hover:border-gray-300"
-                    : "bg-white dark:bg-gray-900 border-gray-300 text-gray-500 dark:text-gray-400 hover:border-red-400 hover:text-red-500 hover:bg-red-50"
-                    }`}
-                  title={isFavorite ? "Bỏ yêu thích" : "Thêm vào yêu thích"}
-                >
-                  <Heart className={`w-5 h-5 ${isFavorite ? "fill-current" : ""}`} />
-                </button>
               </div>
             </div>
 
@@ -1085,45 +1106,11 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
                 Đang tải đánh giá...
               </div>
             ) : filteredReviews.length === 0 ? (
-              <div className="text-center py-10 text-gray-500">Không tìm thấy đánh giá nào</div>
+              <div className="text-sm text-center text-gray-500">Không tìm thấy đánh giá nào</div>
             ) : (
               <div className="flex flex-col max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
                 {filteredReviews.map((item) => (
-                  <div key={item.id} className="flex gap-4 py-6 border-b border-gray-100 dark:border-gray-800 last:border-0 pl-1 pr-1">
-                    <div className="w-10 h-10 shrink-0 bg-gray-200 dark:bg-gray-800 rounded-full flex items-center justify-center overflow-hidden">
-                      <User className="w-6 h-6 text-gray-400" />
-                    </div>
-                    <div className="flex-1 w-full max-w-full overflow-hidden">
-                      <div className="text-[13px] text-gray-800 dark:text-gray-200 mb-1 font-medium">{item.full_name}</div>
-                      <div className="flex gap-0.5 text-[#ee4d2d] mb-1.5">
-                        {Array.from({ length: 5 }).map((_, index) => (
-                          <Star
-                            key={index}
-                            className={`w-3.5 h-3.5 ${index < Number(item.rating) ? "fill-current" : "text-gray-300"}`}
-                          />
-                        ))}
-                      </div>
-                      <div className="text-gray-400 text-xs mb-3 flex items-center gap-1.5">
-                        <span>{new Date(item.created_at || Date.now()).toLocaleString('vi-VN')}</span>
-                      </div>
-
-                      {item.comment && (
-                        <div className="text-sm text-gray-800 dark:text-gray-200 mb-3 whitespace-pre-line leading-relaxed max-w-full break-words">{item.comment}</div>
-                      )}
-
-                      {item.images && item.images.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mb-4">
-                          {item.images.map((img, idx) => (
-                            <a key={idx} href={img.url} target="_blank" rel="noopener noreferrer" className="block w-[72px] h-[72px] bg-gray-50 border border-gray-100 overflow-hidden cursor-zoom-in group">
-                              <img src={img.url} alt="Review img" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
-                            </a>
-                          ))}
-                        </div>
-                      )}
-
-
-                    </div>
-                  </div>
+                  <ReviewItem key={item.id} item={item} />
                 ))}
               </div>
             )}
@@ -1139,9 +1126,18 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
                 Vui lòng đăng nhập để đánh giá sản phẩm.
               </p>
             ) : !canReview ? (
-              <p className="text-sm text-gray-500">
-                Bạn chỉ có thể đánh giá sản phẩm đã mua và đã hoàn tất đơn hàng.
+              <p className="text-sm text-center text-gray-500">
+                Bạn chỉ có thể đánh giá sản phẩm đã mua và đã hoàn tất đơn hàng
               </p>
+            ) : hasReviewed && !isEditingReview ? (
+              <div className="bg-[#fafafa] dark:bg-gray-900 border border-gray-100 dark:border-gray-800 p-8 flex flex-col items-center justify-center text-center">
+                <CheckCircle2 className="w-12 h-12 text-green-500 mb-3" />
+                <p className="text-gray-900 dark:text-gray-100 font-medium mb-1">Bạn đã đánh giá sản phẩm này</p>
+                <p className="text-sm text-gray-500 mb-4">Cảm ơn bạn đã chia sẻ trải nghiệm với mọi người</p>
+                <Button onClick={() => setIsEditingReview(true)} variant="outline" className="border-[#ee4d2d] text-[#ee4d2d] bg-transparent hover:bg-[#ee4d2d] hover:text-white transition-colors">
+                  Chỉnh Sửa Đánh Giá
+                </Button>
+              </div>
             ) : (
               <div className="bg-[#fafafa] dark:bg-gray-900 border border-gray-100 dark:border-gray-800 p-6">
                 <div className="flex items-center gap-3 mb-6">
@@ -1177,27 +1173,41 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
                 />
 
                 <div className="flex flex-wrap gap-3 mb-6">
-                  {existingImages.map((img, idx) => (
-                    <div key={`existing-${idx}`} className="relative w-[72px] h-[72px] shrink-0 border border-gray-200 shadow-sm">
-                      <img src={img.url} className="w-full h-full object-cover" alt="Review existing" />
-                      <button type="button" onClick={() => handleRemoveExistingImage(img.public_id)} className="absolute top-0 right-0 bg-[#ee4d2d] text-white p-0.5">
-                        <X className="w-3 h-3" />
-                      </button>
-                    </div>
-                  ))}
-                  {myImages.map((img, idx) => (
-                    <div key={idx} className="relative w-[72px] h-[72px] shrink-0 border border-gray-200 shadow-sm">
-                      <img src={img.url} className="w-full h-full object-cover" alt="Review preview" />
-                      <button type="button" onClick={() => handleRemoveMyImage(idx)} className="absolute top-0 right-0 bg-[#ee4d2d] text-white p-0.5">
-                        <X className="w-3 h-3" />
-                      </button>
-                    </div>
-                  ))}
-                  {myImages.length < 3 && (
+                  {existingImages.map((img, idx) => {
+                    const isVid = img.url?.match(/\.(mp4|webm|ogg)$/i) || img.url?.includes("video/upload");
+                    return (
+                      <div key={`existing-${idx}`} className="relative w-[72px] h-[72px] shrink-0 border border-gray-200 shadow-sm bg-black overflow-hidden">
+                        {isVid ? (
+                          <video src={img.url} className="w-full h-full object-cover" />
+                        ) : (
+                          <img src={img.url} className="w-full h-full object-cover" alt="Review existing" />
+                        )}
+                        <button type="button" onClick={() => handleRemoveExistingImage(img.public_id)} className="absolute top-0 right-0 bg-[#ee4d2d] text-white p-0.5 z-10">
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    );
+                  })}
+                  {myImages.map((img, idx) => {
+                    const isVid = img.file.type.startsWith('video/');
+                    return (
+                      <div key={idx} className="relative w-[72px] h-[72px] shrink-0 border border-gray-200 shadow-sm bg-black overflow-hidden">
+                        {isVid ? (
+                          <video src={img.url} className="w-full h-full object-cover" />
+                        ) : (
+                          <img src={img.url} className="w-full h-full object-cover" alt="Review preview" />
+                        )}
+                        <button type="button" onClick={() => handleRemoveMyImage(idx)} className="absolute top-0 right-0 bg-[#ee4d2d] text-white p-0.5 z-10">
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    );
+                  })}
+                  {(myImages.length + existingImages.length) < 4 && (
                     <label className="w-[72px] h-[72px] shrink-0 flex flex-col items-center justify-center border-2 border-dashed border-[#ee4d2d] text-[#ee4d2d] cursor-pointer hover:bg-orange-50 transition bg-white">
                       <ImagePlus className="w-6 h-6 mb-1" />
                       <span className="text-[10px] uppercase font-medium">Thêm Hình</span>
-                      <input type="file" accept="image/*" multiple className="hidden" onChange={handleAddPreviewImages} />
+                      <input type="file" accept="image/*,video/*" multiple className="hidden" onChange={handleAddPreviewFiles} />
                     </label>
                   )}
                 </div>
@@ -1211,9 +1221,18 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
                     {reviewSubmitting ? (
                       <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Đang gửi...</>
                     ) : (
-                      "Hoàn Thành"
+                      hasReviewed ? "Cập Nhật" : "Hoàn Thành"
                     )}
                   </Button>
+                  {hasReviewed && (
+                    <Button
+                      onClick={() => setIsEditingReview(false)}
+                      variant="ghost"
+                      className="ml-3 text-gray-500 hover:text-gray-700"
+                    >
+                      Hủy thao tác
+                    </Button>
+                  )}
                 </div>
               </div>
             )}
@@ -1242,18 +1261,15 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
               <Loader2 className="w-8 h-8 animate-spin text-amber-600" />
             </div>
           ) : relatedProducts.length === 0 ? (
-            <div className="text-gray-500 dark:text-gray-400 py-6">
+            <div className="text-sm text-center text-gray-500">
               Không có sản phẩm liên quan
             </div>
           ) : (
             <div className="relative group/related">
               <Swiper
-                modules={[Navigation, Autoplay]}
-                navigation={{
-                   nextEl: ".related-swiper-next",
-                   prevEl: ".related-swiper-prev",
-                }}
+                modules={[Autoplay, Pagination]}
                 autoplay={{ delay: 5000 }}
+                pagination={{ clickable: true, dynamicBullets: true }}
                 spaceBetween={24}
                 slidesPerView={1}
                 breakpoints={{
@@ -1261,7 +1277,7 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
                   768: { slidesPerView: 3 },
                   1024: { slidesPerView: 4 },
                 }}
-                className="pb-4"
+                className="pb-10"
               >
                 {relatedProducts.slice(0, 10).map((item) => {
                   const itemImages = Array.isArray(item.images) ? item.images : [];
@@ -1300,17 +1316,7 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
                               </div>
                             )}
 
-                            <button
-                              type="button"
-                              onClick={(e) => handleToggleRelatedFavorite(e, item.id)}
-                              className={`absolute right-0 top-0 z-10 flex items-center justify-center transition-all ${Boolean(relatedFavoriteMap[item.id])
-                                ? "text-red-500 drop-shadow-sm"
-                                : "text-[#DCD5CD] hover:text-red-400 dark:text-gray-600"
-                                }`}
-                              title={Boolean(relatedFavoriteMap[item.id]) ? "Bỏ khỏi yêu thích" : "Thêm vào yêu thích"}
-                            >
-                              <Heart className={`h-5 w-5 ${Boolean(relatedFavoriteMap[item.id]) ? "fill-current" : ""}`} strokeWidth={1.5} />
-                            </button>
+
 
                             <div onClick={() => navigate(`/${item.slug || 'products/' + item.id}`)} className="block mt-6 mb-2 cursor-pointer">
                               <div className="relative h-48 w-full flex items-center justify-center">
@@ -1363,7 +1369,7 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
                               </div>
                               <button
                                 onClick={(e) => handleRelatedFastAdd(e, item)}
-                                className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${isStoreOpen 
+                                className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${isStoreOpen
                                   ? "bg-[#D62828] text-white hover:bg-[#B91D1D] hover:scale-105 shadow-md"
                                   : "bg-gray-300 text-gray-500 cursor-not-allowed"}`}
                                 title={isStoreOpen ? "Thêm vào giỏ" : "Cửa hàng đóng cửa"}
@@ -1379,12 +1385,6 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
                 })}
               </Swiper>
 
-              <button className="related-swiper-prev absolute left-0 top-[40%] -translate-y-1/2 -translate-x-4 z-10 w-10 h-10 bg-white border border-gray-200 rounded-full shadow-md text-amber-600 flex items-center justify-center opacity-0 group-hover/related:opacity-100 hover:bg-amber-50 transition !hidden md:!flex">
-                <ChevronLeft className="w-5 h-5" />
-              </button>
-              <button className="related-swiper-next absolute right-0 top-[40%] -translate-y-1/2 translate-x-4 z-10 w-10 h-10 bg-white border border-gray-200 rounded-full shadow-md text-amber-600 flex items-center justify-center opacity-0 group-hover/related:opacity-100 hover:bg-amber-50 transition !hidden md:!flex">
-                <ChevronRight className="w-5 h-5" />
-              </button>
             </div>
           )}
         </div>

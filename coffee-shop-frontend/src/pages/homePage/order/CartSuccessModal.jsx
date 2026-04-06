@@ -73,7 +73,7 @@ export default function CartSuccessModal({ addedCartItem, onClose }) {
           </button>
           <button 
             className="flex-1 py-3 rounded-xl bg-amber-600 text-white font-bold text-[14px] hover:bg-amber-700 active:scale-95 transition-all shadow-md shadow-amber-600/20" 
-            onClick={() => {onClose(); navigate("/checkout");}}
+            onClick={() => {onClose(); navigate("/cart");}}
           >
             Xem giỏ hàng
           </button>

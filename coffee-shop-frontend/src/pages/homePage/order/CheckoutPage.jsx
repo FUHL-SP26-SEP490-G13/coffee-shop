@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Banknote, CircleHelp, MapPin } from "lucide-react";
+import { useNavigate, Link } from "react-router-dom";
+import { Banknote, CircleHelp, MapPin, Clock, Plus } from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Badge } from "@/components/ui/badge";
@@ -26,6 +26,7 @@ import PlaceOrderButton from "@/components/order/PlaceOrderButton";
 import ReputationScoreDialog from "@/components/order/ReputationScoreDialog";
 import orderService from "@/services/orderOnlineService";
 import loyaltyService from "@/services/loyaltyService";
+import productService from "@/services/productService";
 import { STORAGE_KEYS } from "@/constants";
 import { validateOrderField } from "@/utils/orderValidation";
 import PayOSLogo from "/logo/payOS.svg";
@@ -49,7 +50,15 @@ import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 export default function CheckoutPage() {
   useDocumentTitle("Thanh toán");
   const navigate = useNavigate();
-  const cart = useMemo(() => cartService.getCart(), []);
+  const [cart, setCart] = useState(() => cartService.getCart());
+
+  useEffect(() => {
+    const handleCartUpdate = () => {
+      setCart(cartService.getCart());
+    };
+    window.addEventListener("cartUpdated", handleCartUpdate);
+    return () => window.removeEventListener("cartUpdated", handleCartUpdate);
+  }, []);
   const token =
     localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN) ||
     sessionStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
@@ -91,6 +100,15 @@ export default function CheckoutPage() {
   const [deliveryDistanceKm, setDeliveryDistanceKm] = useState(null);
   const [isShippingCalculating, setIsShippingCalculating] = useState(false);
 
+  const [isVatRequested, setIsVatRequested] = useState(false);
+  const [vatInfo, setVatInfo] = useState({
+    companyName: "",
+    taxCode: "",
+    companyAddress: ""
+  });
+
+  const [crossSells, setCrossSells] = useState([]);
+
   useEffect(() => {
     flashSaleService
       .getCurrentActive()
@@ -98,7 +116,58 @@ export default function CheckoutPage() {
         setActiveSale(res?.data || null);
       })
       .catch((err) => console.error("Error fetching active sale:", err));
+
+    productService.getBestSellers({ limit: 10 })
+      .then(res => {
+         const items = Array.isArray(res?.data?.data) ? res.data.data : (res?.data || []);
+         setCrossSells(items);
+      }).catch(console.error);
   }, []);
+
+  const availableCrossSells = useMemo(() => {
+    const cartProductIds = cart.map((c) => Number(c.product_id || c.id));
+    return crossSells.filter((p) => !cartProductIds.includes(Number(p.id))).slice(0, 4);
+  }, [crossSells, cart]);
+
+  const handleAddCrossSell = (e, product) => {
+    e.preventDefault();
+    if (!product.sizes || product.sizes.length === 0) {
+      toast.error("Sản phẩm không có size");
+      return;
+    }
+    
+    let cartSize = product.sizes.find(s => String(s?.size).trim().toUpperCase() === "S");
+    if (!cartSize || Number(cartSize.price) <= 0) {
+      const validSizes = product.sizes.filter(s => Number(s?.price) > 0).sort((a,b) => Number(a.price) - Number(b.price));
+      cartSize = validSizes[0] || product.sizes[0];
+    }
+    
+    let price = Number(cartSize.price);
+    if (activeSale && activeSale.product_ids?.includes(product.id)) {
+      price = Math.round(price * (1 - activeSale.discount_percent / 100));
+    }
+    
+    const defaultImage = "https://png.pngtree.com/png-vector/20190820/ourmid/pngtree-no-image-vector-illustration-isolated-png-image_1694547.jpg";
+    const thumbnail = Array.isArray(product.images) ? (product.images.find(img => Number(img.isThumbnail) === 1)?.image_url || product.images[0]?.image_url || defaultImage) : defaultImage;
+
+    const cartItem = {
+      productSizeId: cartSize.id,
+      id: product.id,
+      product_id: product.id,
+      name: product.name,
+      image: thumbnail,
+      size: cartSize.size,
+      basePrice: price,
+      price: price,
+      quantity: 1,
+      toppings: [],
+    };
+
+    cartService.addItem(cartItem);
+    toast.success(`Đã thêm ${product.name} vào đơn`);
+    window.dispatchEvent(new Event("cartUpdated"));
+  };
+
 
   useEffect(() => {
     if (cart.length === 0) {
@@ -107,34 +176,30 @@ export default function CheckoutPage() {
   }, [cart, navigate]);
 
   useEffect(() => {
+    receiptSettingService.getSettings().then((settingsRes) => {
+      if (settingsRes?.data?.reputation_rules) {
+        try {
+          let parsed = settingsRes.data.reputation_rules;
+          if (typeof parsed === 'string') parsed = JSON.parse(parsed);
+          if (typeof parsed === 'string') parsed = JSON.parse(parsed);
+          if (Array.isArray(parsed)) setReputationRules(parsed);
+        } catch (e) {
+          console.error("Error parsing rules:", e);
+        }
+      }
+      if (settingsRes?.data?.address) {
+        setStoreAddress(settingsRes.data.address);
+      }
+    }).catch(console.error);
+
     const loadCheckoutData = async () => {
       if (!token) return;
 
       try {
-        const [profileRes, addressesRes, settingsRes] = await Promise.all([
+        const [profileRes, addressesRes] = await Promise.all([
           authenticationService.getProfile(),
           authenticationService.getMyAddresses(),
-          receiptSettingService.getSettings(),
         ]);
-        
-        if (settingsRes?.data?.reputation_rules) {
-          try {
-            let parsed = settingsRes.data.reputation_rules;
-            if (typeof parsed === 'string') {
-               parsed = JSON.parse(parsed);
-            }
-            if (typeof parsed === 'string') {
-               parsed = JSON.parse(parsed);
-            }
-            if (Array.isArray(parsed)) {
-               setReputationRules(parsed);
-            }
-          } catch (e) { console.error("Error parsing rules:", e) }
-        }
-
-        if (settingsRes?.data?.address) {
-          setStoreAddress(settingsRes.data.address);
-        }
 
         const user = profileRes?.data;
 
@@ -855,6 +920,27 @@ export default function CheckoutPage() {
                 <p className="text-sm text-red-500 mt-1">{errors.note}</p>
               )}
             </div>
+
+            <div className="mt-4 p-4 border border-amber-100 dark:border-amber-900/40 rounded-xl bg-orange-50/50 dark:bg-amber-900/10">
+               <label className="flex items-center gap-2 cursor-pointer font-medium text-sm text-amber-900 dark:text-amber-500">
+                 <input type="checkbox" checked={isVatRequested} onChange={(e) => setIsVatRequested(e.target.checked)} className="w-4 h-4 rounded text-amber-600 focus:ring-amber-500 accent-amber-600" />
+                 Yêu cầu xuất hoá đơn công ty (VAT)
+               </label>
+               
+               {isVatRequested && (
+                 <div className="mt-3 space-y-3 pl-6 border-l-2 border-amber-200 dark:border-amber-800/50">
+                    <div>
+                      <Input placeholder="Tên công ty" value={vatInfo.companyName} onChange={e => setVatInfo(prev => ({...prev, companyName: e.target.value}))} />
+                    </div>
+                    <div>
+                      <Input placeholder="Mã số thuế" value={vatInfo.taxCode} onChange={e => setVatInfo(prev => ({...prev, taxCode: e.target.value}))} />
+                    </div>
+                    <div>
+                      <Input placeholder="Địa chỉ nhận hóa đơn" value={vatInfo.companyAddress} onChange={e => setVatInfo(prev => ({...prev, companyAddress: e.target.value}))} />
+                    </div>
+                 </div>
+               )}
+            </div>
           </div>
 
           <div className="border rounded-2xl p-5 bg-gray-50 dark:bg-gray-950 h-fit lg:sticky lg:top-24">
@@ -1021,6 +1107,15 @@ export default function CheckoutPage() {
                 </div>
               ) : null}
 
+              {!isShippingCalculating && deliveryDistanceKm && form.order_type === "delivery" && (
+                <div className="bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 px-3 py-2.5 rounded-lg flex items-center gap-2 text-sm font-medium border border-emerald-100 dark:border-emerald-800/50 mt-2 mb-1">
+                  <Clock className="w-4 h-4 shrink-0" />
+                  <span>
+                    Dự kiến giao hàng trong vòng <strong>{10 + Math.ceil(Number(deliveryDistanceKm) * 4)} phút</strong>
+                  </span>
+                </div>
+              )}
+
               <div className="flex justify-between text-base font-bold">
                 <div className="flex flex-col">
                   <span>Tổng cộng</span>
@@ -1032,8 +1127,53 @@ export default function CheckoutPage() {
               </div>
             </div>
 
+            {availableCrossSells.length > 0 && (
+              <div className="mb-5 pt-4 border-t">
+                <p className="text-sm font-semibold mb-3">Gọi thêm món?</p>
+                <div className="flex gap-3 overflow-x-auto pb-2 custom-scrollbar pr-2">
+                  {availableCrossSells.map((product) => {
+                    const defaultImage = "https://png.pngtree.com/png-vector/20190820/ourmid/pngtree-no-image-vector-illustration-isolated-png-image_1694547.jpg";
+                    const thumbnail = Array.isArray(product.images) ? (product.images.find(img => Number(img.isThumbnail) === 1)?.image_url || product.images[0]?.image_url || defaultImage) : defaultImage;
+                    const fallbackPrice = Array.isArray(product.sizes) && product.sizes.length > 0 ? product.sizes[0].price : 0;
+                    
+                    return (
+                      <div key={product.id} className="min-w-[120px] max-w-[120px] border rounded-xl p-2.5 bg-white dark:bg-gray-900 shadow-sm shrink-0 flex flex-col justify-between">
+                        <div>
+                          <div className="w-full h-16 bg-gray-50 dark:bg-gray-800 rounded-lg overflow-hidden flex items-center justify-center p-1 mix-blend-multiply dark:mix-blend-normal mb-2">
+                            <img src={thumbnail} alt={product.name} className="w-full h-full object-contain" />
+                          </div>
+                          <p className="text-[12px] font-medium leading-snug line-clamp-2">{product.name}</p>
+                        </div>
+                        <div className="mt-2 flex items-center justify-between gap-1">
+                          <span className="text-[11px] font-bold text-amber-600">{Number(fallbackPrice).toLocaleString("vi-VN")}đ</span>
+                          <button 
+                            onClick={(e) => handleAddCrossSell(e, product)}
+                            className="bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 p-1.5 rounded-full hover:bg-amber-200"
+                          >
+                            <Plus className="w-3 h-3" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            <p className="mb-4 text-[13px] text-gray-500 dark:text-gray-400">
+              Nhấn "Đặt hàng" đồng nghĩa với việc bạn đồng ý tuân theo{" "}
+              <Link to="/order-policy" className="text-amber-600 hover:text-amber-700 hover:underline transition-colors font-medium">
+                Điều khoản Cửa Hàng
+              </Link>
+            </p>
+
             <PlaceOrderButton
-              form={form}
+              form={{
+                ...form,
+                note: (isVatRequested && (vatInfo.companyName || vatInfo.taxCode)) 
+                  ? `${form.note ? form.note + '\n\n' : ''}[YÊU CẦU VAT] Tên CT: ${vatInfo.companyName || 'N/A'}, MST: ${vatInfo.taxCode || 'N/A'}, Đ/c: ${vatInfo.companyAddress || 'N/A'}` 
+                  : form.note
+              }}
               cart={cart}
               totalAmount={totalAmount}
               shippingFee={shippingFee}

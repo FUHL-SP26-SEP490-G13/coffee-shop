@@ -53,7 +53,6 @@ import OrderQRMenu from "@/pages/homePage/order/OrderQRMenu";
 import MyOrderQRDetail from "@/pages/homePage/order/MyOrderQRDetail";
 import PayOSReturnSuccess from "@/pages/common/PayOSReturnSuccess";
 import AdminDB from "@/pages/admin/AdminDB/AdminDB";
-import FavoritePage from "@/pages/homePage/favorite/FavoritePage";
 import AdminReviews from "@/pages/admin/AdminReview/AdminReview";
 import MyOrderOnlinePage from "../pages/homePage/order/MyOrderOnlinePage";
 import MyOrderDetailPage from "../pages/homePage/order/MyOrderDetailPage";
@@ -226,15 +225,7 @@ const AppRoutes = () => {
       <Route path="/store" element={<StoreInfoPage />} />
       <Route path="/about-us" element={<AboutUsPage />} />
       <Route path="/customer/profile" element={<UserProfile />} />
-      {/* Only allow customers to access favorites */}
-      <Route
-        path="/favorites"
-        element={
-          <RoleGuard allowedRoles={[4]}>
-            <FavoritePage />
-          </RoleGuard>
-        }
-      />
+
       <Route path="/order-policy" element={<OrderPolicy />} />
       <Route path="/privacy-policy" element={<PrivacyPolicy />} />
       <Route path="/payment-policy" element={<PaymentPolicyPage />} />

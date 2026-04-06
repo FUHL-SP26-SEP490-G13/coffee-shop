@@ -1,19 +1,20 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
-import { Loader2, Heart, Filter, X, Star, ShoppingCart } from "lucide-react";
+import { Loader2, Filter, X, Star, ShoppingCart } from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
 import productService from "@/services/productService";
 import { cartService } from "@/services/cartService";
 import { toast } from "sonner";
-import favoriteService from "@/services/favoriteService";
 import categoryService from "@/services/categoryService";
 import useFetch from "@/hooks/useFetch";
 import flashSaleService from "@/services/flashSaleService";
 import { STORAGE_KEYS } from "@/constants";
 import { useStoreHours } from "@/hooks/useStoreHours";
 import { slugCache } from "@/pages/common/GenericSlugResolver";
+import CartSuccessModal from "@/pages/homePage/order/CartSuccessModal";
+import QuickViewModal from "@/pages/homePage/product/QuickViewModal";
 
 const PAGE_SIZE = 9;
 
@@ -23,6 +24,9 @@ export default function ProductListPage({ categoryIdOverride, categoryName, cate
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { isOpen: isStoreOpen, nextOpenMessage } = useStoreHours();
+  const [addedCartItem, setAddedCartItem] = useState(null);
+  const [quickViewProduct, setQuickViewProduct] = useState(null);
+  const [accumulatedProducts, setAccumulatedProducts] = useState([]);
 
   useEffect(() => {
     const shopName = localStorage.getItem("cached_store_name") || "Coffee Shop";
@@ -79,8 +83,8 @@ export default function ProductListPage({ categoryIdOverride, categoryName, cate
     };
 
     cartService.addItem(cartItem);
-    toast.success(`Đã thêm ${product.name} vào giỏ`);
     window.dispatchEvent(new Event("cartUpdated"));
+    setAddedCartItem(cartItem);
   };
 
   const token =
@@ -122,7 +126,7 @@ export default function ProductListPage({ categoryIdOverride, categoryName, cate
     }).catch(() => { });
   }, []);
 
-  const [favoriteMap, setFavoriteMap] = useState({});
+
   const [activeSale, setActiveSale] = useState(null);
 
   useEffect(() => {
@@ -166,51 +170,27 @@ export default function ProductListPage({ categoryIdOverride, categoryName, cate
   const totalPages = Number(pagination.totalPages || 1);
   const page = Number(pagination.page || currentPage);
 
+  useEffect(() => {
+    if (data?.data) {
+      if (currentPage === 1) {
+        setAccumulatedProducts(data.data);
+      } else {
+        setAccumulatedProducts(prev => {
+          const nextList = [...prev];
+          data.data.forEach(item => {
+            if (!nextList.some(p => p.id === item.id)) nextList.push(item);
+          });
+          return nextList;
+        });
+      }
+    }
+  }, [data, currentPage]);
+
   const productIds = useMemo(
     () => products.map((item) => Number(item.id)).filter(Boolean),
     [products]
   );
 
-  useEffect(() => {
-    const fetchFavoriteStatus = async () => {
-      if (!isLoggedIn || productIds.length === 0) {
-        setFavoriteMap({});
-        return;
-      }
-
-      try {
-        const results = await Promise.all(
-          productIds.map(async (productId) => {
-            try {
-              const res = await favoriteService.checkFavorite(productId);
-              const payload = res?.data?.data || res?.data || res || {};
-              return {
-                productId,
-                isFavorite: Boolean(payload.isFavorite),
-              };
-            } catch (error) {
-              return {
-                productId,
-                isFavorite: false,
-              };
-            }
-          })
-        );
-
-        const nextMap = {};
-        results.forEach((item) => {
-          nextMap[item.productId] = item.isFavorite;
-        });
-
-        setFavoriteMap(nextMap);
-      } catch (error) {
-        console.error("Lỗi kiểm tra trạng thái yêu thích:", error);
-        setFavoriteMap({});
-      }
-    };
-
-    fetchFavoriteStatus();
-  }, [isLoggedIn, productIds]);
 
   const handleApplyPrice = () => {
     updateQuery({ min_price: minPriceInput, max_price: maxPriceInput, page: 1 });
@@ -262,45 +242,6 @@ export default function ProductListPage({ categoryIdOverride, categoryName, cate
     });
   };
 
-  const handleToggleFavorite = async (e, productId) => {
-    e.stopPropagation();
-
-    if (!isLoggedIn) {
-      alert("Bạn phải đăng nhập để thêm sản phẩm yêu thích");
-      return;
-    }
-
-    const currentFavorite = Boolean(favoriteMap[productId]);
-
-    setFavoriteMap((prev) => ({
-      ...prev,
-      [productId]: !currentFavorite,
-    }));
-
-    try {
-      const res = await favoriteService.toggleFavorite(
-        productId,
-        currentFavorite
-      );
-
-      const payload = res?.data?.data || res?.data || res || {};
-
-      if (typeof payload.isFavorite === "boolean") {
-        setFavoriteMap((prev) => ({
-          ...prev,
-          [productId]: payload.isFavorite,
-        }));
-      }
-
-      window.dispatchEvent(new Event("favoriteUpdated"));
-    } catch (error) {
-      console.error("Lỗi cập nhật yêu thích:", error);
-      setFavoriteMap((prev) => ({
-        ...prev,
-        [productId]: currentFavorite,
-      }));
-    }
-  };
 
   return (
     <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900">
@@ -519,7 +460,7 @@ export default function ProductListPage({ categoryIdOverride, categoryName, cate
                 </div>
               )}
 
-              {loading && products.length === 0 ? (
+              {loading && accumulatedProducts.length === 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                   {Array.from({ length: 9 }).map((_, i) => (
                     <div key={i} className="flex flex-col h-full bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-[24px] p-5 shadow-sm animate-pulse">
@@ -534,14 +475,14 @@ export default function ProductListPage({ categoryIdOverride, categoryName, cate
                     </div>
                   ))}
                 </div>
-              ) : products.length === 0 ? (
+              ) : accumulatedProducts.length === 0 ? (
                 <div className="text-center py-20 text-gray-500 dark:text-gray-400">
                   Không có sản phẩm nào
                 </div>
               ) : (
                 <>
-                  <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 transition-all duration-300 ${loading ? 'opacity-40 pointer-events-none scale-[0.98] blur-[1px]' : 'opacity-100 scale-100 blur-0'}`}>
-                    {products.map((item, index) => {
+                  <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 transition-all duration-300 ${loading && currentPage === 1 ? 'opacity-40 pointer-events-none scale-[0.98] blur-[1px]' : 'opacity-100 scale-100 blur-0'}`}>
+                    {accumulatedProducts.map((item, index) => {
                       const itemImages = Array.isArray(item.images)
                         ? item.images
                         : [];
@@ -559,7 +500,6 @@ export default function ProductListPage({ categoryIdOverride, categoryName, cate
                       const hasMultiplePrices =
                         minPrice !== null && maxPrice !== null && maxPrice > minPrice;
 
-                      const isFavorite = Boolean(favoriteMap[item.id]);
 
                       return (
                         <div
@@ -576,27 +516,6 @@ export default function ProductListPage({ categoryIdOverride, categoryName, cate
                                   </span>
                                 </div>
                               )}
-
-
-
-                              <button
-                                type="button"
-                                onClick={(e) => handleToggleFavorite(e, item.id)}
-                                className={`absolute right-0 top-0 z-10 flex items-center justify-center transition-all ${isFavorite
-                                  ? "text-red-500 drop-shadow-sm"
-                                  : "text-[#DCD5CD] hover:text-red-400 dark:text-gray-600"
-                                  }`}
-                                title={
-                                  isFavorite
-                                    ? "Bỏ khỏi yêu thích"
-                                    : "Thêm vào yêu thích"
-                                }
-                              >
-                                <Heart
-                                  className={`h-5 w-5 ${isFavorite ? "fill-current" : ""}`}
-                                  strokeWidth={1.5}
-                                />
-                              </button>
 
                               <Link to={`/${item.slug || 'products/' + item.id}`} className="block mt-6 mb-2">
                                 <div className="relative h-48 w-full flex items-center justify-center">
@@ -666,17 +585,30 @@ export default function ProductListPage({ categoryIdOverride, categoryName, cate
                                     return <p className="break-words text-[17px] font-bold leading-tight text-[#8B5A2B] dark:text-amber-500">Liên hệ</p>;
                                   })()}
                                 </div>
-
                                 {isStoreOpen ? (
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleFastAdd(e, item);
-                                    }}
-                                    className="w-8 h-8 rounded-md flex items-center justify-center shrink-0 transition-colors shadow-sm bg-[#8B5A2B] hover:bg-[#69421c] text-white"
-                                  >
-                                    <ShoppingCart className="w-[15px] h-[15px] xl:ml-[-1px]" />
-                                  </button>
+                                  <div className="flex gap-2">
+                                    <button
+                                      onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        setQuickViewProduct(item);
+                                      }}
+                                      className="w-8 h-8 rounded-md flex items-center justify-center shrink-0 transition-colors shadow-sm bg-amber-100 dark:bg-amber-900/30 hover:bg-amber-200 dark:hover:bg-amber-800/50 text-amber-700 dark:text-amber-500"
+                                      title="Xem nhanh"
+                                    >
+                                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-eye"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></svg>
+                                    </button>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        e.preventDefault();
+                                        handleFastAdd(e, item);
+                                      }}
+                                      className="w-8 h-8 rounded-md flex items-center justify-center shrink-0 transition-colors shadow-sm bg-[#8B5A2B] hover:bg-[#69421c] text-white"
+                                    >
+                                      <ShoppingCart className="w-[15px] h-[15px] xl:ml-[-1px]" />
+                                    </button>
+                                  </div>
                                 ) : (
                                   <div 
                                     onClick={(e) => e.stopPropagation()}
@@ -693,41 +625,18 @@ export default function ProductListPage({ categoryIdOverride, categoryName, cate
                     })}
                   </div>
 
-                  <div className="flex items-center justify-center gap-2 mt-10 flex-wrap">
-                    <Button
-                      variant="outline"
-                      disabled={page <= 1}
-                      onClick={() => handlePageChange(page - 1)}
-                    >
-                      Trước
-                    </Button>
+                  {page < totalPages && (
+                     <div className="flex justify-center mt-12 mb-6">
+                        <Button 
+                          className="bg-transparent border-2 border-amber-600 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-full px-8 py-6 text-base font-bold shadow-sm transition-all hover:scale-105"
+                          onClick={() => handlePageChange(page + 1)}
+                          disabled={loading}
+                        >
+                           {loading ? <><Loader2 className="w-5 h-5 mr-2 animate-spin"/> Đang tải...</> : "Xem thêm món..."}
+                        </Button>
+                     </div>
+                  )}
 
-                    {Array.from(
-                      { length: totalPages },
-                      (_, index) => index + 1
-                    ).map((pageNumber) => (
-                      <Button
-                        key={pageNumber}
-                        variant={pageNumber === page ? "default" : "outline"}
-                        onClick={() => handlePageChange(pageNumber)}
-                        className={
-                          pageNumber === page
-                            ? "bg-amber-600 hover:bg-amber-700 text-white"
-                            : ""
-                        }
-                      >
-                        {pageNumber}
-                      </Button>
-                    ))}
-
-                    <Button
-                      variant="outline"
-                      disabled={page >= totalPages}
-                      onClick={() => handlePageChange(page + 1)}
-                    >
-                      Sau
-                    </Button>
-                  </div>
                 </>
               )}
             </div>
@@ -736,6 +645,21 @@ export default function ProductListPage({ categoryIdOverride, categoryName, cate
       </section>
 
       <Footer />
+
+      <QuickViewModal 
+        product={quickViewProduct} 
+        isOpen={!!quickViewProduct} 
+        onClose={() => setQuickViewProduct(null)} 
+        activeSale={activeSale} 
+        isStoreOpen={isStoreOpen} 
+        nextOpenMessage={nextOpenMessage}
+        notifySuccess={(item) => setAddedCartItem(item)}
+      />
+
+      <CartSuccessModal
+        addedCartItem={addedCartItem}
+        onClose={() => setAddedCartItem(null)}
+      />
     </div>
   );
 }

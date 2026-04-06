@@ -512,7 +512,11 @@ class OrderOnlineService {
   }
 
   async getOrdersByUser(userId) {
-    return await OrderRepository.findOrdersByUser(userId);
+    const orders = await OrderRepository.findOrdersByUser(userId);
+    for (let order of orders) {
+      order.items = await OrderRepository.findOrderItems(order.id);
+    }
+    return orders;
   }
 
   async getOrderDetailByUser(orderId, userId) {

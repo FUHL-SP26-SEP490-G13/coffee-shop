@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import {
   ShoppingCart,
+  ShoppingBag,
   Search,
   User,
   LogOut,
@@ -13,7 +14,6 @@ import {
   Grid3X3,
   Loader2,
   Bell,
-  Heart,
   MapPin,
   Moon,
   Sun,
@@ -23,6 +23,7 @@ import {
   Info,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import {
   AlertDialog,
@@ -45,7 +46,6 @@ import productService from "@/services/productService";
 import notificationService from "@/services/notificationService";
 import socket from "@/lib/socket";
 import { getNotificationLink } from "@/utils/getNotificationLink";
-import favoriteService from "@/services/favoriteService";
 import loyaltyService from "@/services/loyaltyService";
 import LoyaltyHistoryModal from "@/components/loyalty/LoyaltyHistoryModal";
 import receiptSettingService from "@/services/receiptSettingService";
@@ -137,8 +137,6 @@ function Header() {
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
 
-  const [favoriteCount, setFavoriteCount] = useState(0);
-  const [favoriteLoading, setFavoriteLoading] = useState(false);
   const [loyaltyPoints, setLoyaltyPoints] = useState(0);
   const [loyaltyModalOpen, setLoyaltyModalOpen] = useState(false);
 
@@ -262,6 +260,7 @@ function Header() {
       const newCart = cart.filter((_, idx) => idx !== indexToRemove);
       localStorage.setItem(CART_KEY, JSON.stringify(newCart));
       window.dispatchEvent(new Event("cartUpdated"));
+      toast.success("Đã xóa sản phẩm khỏi giỏ hàng");
     } catch (e) {
       console.error("Lỗi xóa sản phẩm header preview:", e);
     }
@@ -278,34 +277,6 @@ function Header() {
       console.error("Lỗi lấy danh mục:", error);
     }
   }, []);
-
-  const loadFavorites = useCallback(async () => {
-    if (!user?.id) {
-      setFavoriteCount(0);
-      return;
-    }
-
-    try {
-      setFavoriteLoading(true);
-
-      const res = await favoriteService.getMyFavorites({
-        page: 1,
-        limit: 100,
-        keyword: "",
-      });
-
-      const payload = res?.data?.data || res?.data || {};
-      const items = Array.isArray(payload?.items) ? payload.items : [];
-      const total = Number(payload?.total ?? items.length ?? 0);
-
-      setFavoriteCount(total);
-    } catch (error) {
-      console.error("Lỗi lấy danh sách yêu thích:", error);
-      setFavoriteCount(0);
-    } finally {
-      setFavoriteLoading(false);
-    }
-  }, [user?.id]);
 
   const loadLoyalty = useCallback(async () => {
     if (!user?.id) {
@@ -447,17 +418,7 @@ function Header() {
     };
   }, [user?.id]);
 
-  useEffect(() => {
-    loadFavorites(); // Load lần đầu khi vừa vào web
 
-    // Dựng ăng-ten để hóng sự kiện
-    window.addEventListener("favoriteUpdated", loadFavorites);
-
-    return () => {
-      // Nhổ ăng-ten ra khi tắt web
-      window.removeEventListener("favoriteUpdated", loadFavorites);
-    };
-  }, [loadFavorites]);
 
   useEffect(() => {
     loadLoyalty();
@@ -1076,6 +1037,7 @@ function Header() {
                               e.stopPropagation();
                               localStorage.setItem(CART_KEY, "[]");
                               window.dispatchEvent(new Event("cartUpdated"));
+                              toast.success("Đã làm trống giỏ hàng");
                             }}
                             className="text-xs text-red-500 hover:text-red-700 font-medium transition-colors"
                           >
@@ -1085,8 +1047,15 @@ function Header() {
                       )}
                       <div className="max-h-80 overflow-y-auto">
                         {cartItems.length === 0 ? (
-                          <div className="p-4 text-sm text-gray-500 dark:text-gray-500">
-                            Giỏ hàng đang trống
+                          <div className="py-10 flex flex-col items-center justify-center text-center">
+                            <div className="relative w-24 h-24 flex items-center justify-center mb-3">
+                              <div className="absolute top-2 left-2 w-2.5 h-2.5 bg-amber-500 rounded-full opacity-80" />
+                              <div className="absolute top-0 left-6 w-1.5 h-1.5 bg-amber-300 rounded-full opacity-60" />
+                              <div className="absolute top-4 right-4 w-2 h-2 bg-amber-400 rounded-full opacity-70" />
+                              <div className="absolute inset-0 bg-amber-100 dark:bg-amber-900/30 rounded-full scale-[0.8]" />
+                              <ShoppingBag className="relative z-10 w-12 h-12 text-amber-700 dark:text-amber-500" strokeWidth={1.5} />
+                            </div>
+                            <p className="text-[14px] text-gray-700 dark:text-gray-300 font-medium">Chưa có sản phẩm nào hết</p>
                           </div>
                         ) : (
                           cartItems.map((item, idx) => {
@@ -1346,22 +1315,7 @@ function Header() {
                           <span>Đơn hàng</span>
                         </Button>
 
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            navigate("/favorites");
-                            setOpen(false);
-                          }}
-                          className="w-full text-left px-3 py-2 text-gray-700 dark:text-gray-300 transition text-xs sm:text-sm justify-start"
-                        >
-                          <Heart className="w-4 h-4 mr-2" />
-                          <span className="flex-1 text-left">Yêu thích</span>
 
-                          <span className="text-xs font-semibold text-red-500">
-                            {favoriteLoading ? "..." : favoriteCount}
-                          </span>
-                        </Button>
 
                         <Button
                           variant="ghost"
@@ -1376,31 +1330,21 @@ function Header() {
                           <span>Hồ sơ cá nhân</span>
                         </Button>
 
-                        <div className="mx-2 my-1 rounded-xl border border-amber-200/70 bg-gradient-to-r from-amber-50 to-orange-50 px-3 py-2 text-amber-900 dark:border-amber-900/40 dark:from-amber-900/20 dark:to-orange-900/10 dark:text-amber-100">
-                          <div className="flex items-center justify-between gap-3">
-                            <div className="flex items-center gap-2">
-                              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-amber-100 text-amber-700 dark:bg-amber-800/40 dark:text-amber-200">
-                                <Coins className="h-4 w-4" />
-                              </span>
-                              <span className="text-[11px] font-medium uppercase tracking-wide text-amber-700/90 dark:text-amber-300">
-                                Điểm thưởng
-                              </span>
-                            </div>
-                            <span className="text-sm font-bold tabular-nums">
-                              {Number(loyaltyPoints || 0).toLocaleString("vi-VN")}
-                            </span>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setOpen(false);
-                              setLoyaltyModalOpen(true);
-                            }}
-                            className="mt-2 w-full rounded-md border border-amber-300/60 bg-white/70 px-2.5 py-1.5 text-center text-[11px] font-semibold text-amber-700 transition hover:bg-white dark:border-amber-700/40 dark:bg-amber-950/30 dark:text-amber-200"
-                          >
-                            Xem biểu đồ lịch sử điểm
-                          </button>
-                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="w-full text-left px-3 py-2 text-gray-700 dark:text-gray-300 transition text-xs sm:text-sm justify-start"
+                          onClick={() => {
+                            setOpen(false);
+                            setLoyaltyModalOpen(true);
+                          }}
+                        >
+                          <Coins className="w-4 h-4 mr-2" />
+                          <span className="flex-1 text-left">Điểm thưởng</span>
+                          <span className="font-bold text-amber-600 dark:text-amber-500">
+                            {Number(loyaltyPoints || 0).toLocaleString("vi-VN")}
+                          </span>
+                        </Button>
 
                         <div className="my-0.5 border-t border-gray-200 dark:border-gray-700" />
 

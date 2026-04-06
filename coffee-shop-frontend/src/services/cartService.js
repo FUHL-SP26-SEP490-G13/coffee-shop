@@ -1,4 +1,5 @@
 const CART_KEY = "cart_items";
+const SAVED_KEY = "saved_for_later_items";
 
 const getItemSizeId = (item) =>
   Number(item?.productSizeId || item?.product_size_id || 0);
@@ -285,5 +286,73 @@ export const cartService = {
       (sum, item) => sum + this.getItemSubtotal(item),
       0
     );
+  },
+
+  getSavedItems() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(SAVED_KEY) || "[]");
+      if (!Array.isArray(saved)) return [];
+
+      return saved.map((item) => {
+        const normalizedId = getItemSizeId(item);
+        const toppings = normalizeToppings(item?.toppings || []);
+
+        return {
+          ...item,
+          productSizeId: normalizedId,
+          product_size_id: normalizedId,
+          quantity: Math.max(1, Number(item.quantity) || 1),
+          basePrice: getBasePrice(item),
+          price: getBasePrice(item),
+          toppings,
+          cartKey: `${normalizedId}__${getToppingsSignature(toppings)}`,
+          unitPrice: getUnitPrice({
+            ...item,
+            toppings,
+          }),
+        };
+      });
+    } catch {
+      return [];
+    }
+  },
+
+  saveSavedItems(items) {
+    localStorage.setItem(SAVED_KEY, JSON.stringify(items));
+    window.dispatchEvent(new Event("cartUpdated"));
+  },
+
+  moveToSaved(cartKey) {
+    const cart = this.getCart();
+    const idx = cart.findIndex((i) => i.cartKey === cartKey || getCartItemKey(i) === cartKey);
+    if (idx >= 0) {
+      const item = cart[idx];
+      const saved = this.getSavedItems();
+      
+      const existsIdx = saved.findIndex(s => s.cartKey === item.cartKey);
+      if (existsIdx === -1) {
+        saved.push({ ...item, quantity: 1 });
+      }
+      this.saveSavedItems(saved);
+      this.removeItem(cartKey);
+    }
+  },
+
+  moveToCart(cartKey) {
+    const saved = this.getSavedItems();
+    const idx = saved.findIndex((i) => i.cartKey === cartKey || getCartItemKey(i) === cartKey);
+    if (idx >= 0) {
+      const item = saved[idx];
+      this.addItem(item);
+      saved.splice(idx, 1);
+      this.saveSavedItems(saved);
+    }
+  },
+
+  removeSavedItem(cartKey) {
+    const saved = this.getSavedItems().filter(
+      (item) => item.cartKey !== cartKey && getCartItemKey(item) !== cartKey
+    );
+    this.saveSavedItems(saved);
   },
 };

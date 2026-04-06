@@ -6,7 +6,7 @@ const upload = require("../middlewares/upload");
 
 router.get("/product/:productId", ReviewController.getByProductId);
 router.get("/me/:productId", authenticate, ReviewController.getMyReview);
-router.post("/", authenticate, upload.array("images", 3), ReviewController.createOrUpdate);
+router.post("/", authenticate, upload.array("images", 4), ReviewController.createOrUpdate);
 
 router.get("/public", ReviewController.getPublicReviews);
 router.get("/", authenticate, ReviewController.getAll);

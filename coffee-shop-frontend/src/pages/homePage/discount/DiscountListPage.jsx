@@ -181,7 +181,7 @@ export default function DiscountListPage() {
                   Đăng nhập để nhận ưu đãi riêng
                 </h3>
                 <p className="text-gray-500 dark:text-gray-400 mb-8 max-w-lg">
-                  Lưu địa chỉ giao hàng, xem sản phẩm yêu thích, nhận mã giảm giá dành riêng cho bạn
+                  Lưu địa chỉ giao hàng, nhận mã giảm giá dành riêng cho bạn
                 </p>
                 <Link to="/login">
                   <Button className="bg-[#8c5226] hover:bg-[#70421e] text-white rounded-md px-8 py-2 font-medium">
