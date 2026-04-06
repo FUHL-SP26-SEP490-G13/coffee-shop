@@ -1652,7 +1652,18 @@ function Header() {
               </div>
             )}
 
-
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                navigate("/store");
+                setMobileMenuOpen(false);
+              }}
+              className="w-full justify-start text-gray-700 dark:text-gray-300 text-xs"
+            >
+              <MapPin className="w-4 h-4 mr-2" />
+              Cửa hàng
+            </Button>
 
             <Button
               variant="ghost"

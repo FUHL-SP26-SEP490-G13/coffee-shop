@@ -259,7 +259,7 @@ export function BaristaDB() {
   const maxOrders = Math.max(...chartData.map((s) => s.orders), 1);
 
   return (
-    <div className="flex-1 p-8">
+    <div className="p-4 sm:p-6 lg:p-8 space-y-6">
       {loading && (
         <div className="flex h-96 items-center justify-center">
           <div className="text-center">
@@ -296,7 +296,7 @@ export function BaristaDB() {
           <div className="mb-8">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-3xl font-semibold">Tổng quan</h1>
+                <h1 className="text-xl font-bold tracking-tight">Tổng quan</h1>
                 <p className="mt-1 text-muted-foreground">
                   Hoạt động pha chế hôm nay
                 </p>

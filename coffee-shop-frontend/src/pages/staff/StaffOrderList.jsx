@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   RefreshCw,
@@ -681,10 +681,10 @@ export function OrderDelivery() {
   };
 
   return (
-    <div className="mx-auto space-y-3 px-4 pb-1 pt-1 md:px-6 md:pb-3 md:pt-2">
-      <h2 className="truncate text-lg font-bold tracking-tight text-slate-900 dark:text-slate-100 md:text-xl">
-              Danh sách đơn hàng
-            </h2>
+    <div className="p-4 sm:p-6 lg:p-8 space-y-6">
+      <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+        Danh sách đơn hàng
+      </h1>
       <div className="px-3 py-2 md:px-4 md:py-2.5">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">

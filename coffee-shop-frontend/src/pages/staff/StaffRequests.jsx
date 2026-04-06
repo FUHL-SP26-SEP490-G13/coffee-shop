@@ -133,11 +133,11 @@ export function StaffRequests() {
   };
 
   return (
-    <div className="space-y-5">
+    <div className="p-4 sm:p-6 lg:p-8 space-y-6">
       {/* Header */}
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Đổi ca</h1>
+          <h1 className="text-xl font-bold tracking-tight">Đổi ca</h1>
           <p className="text-sm text-muted-foreground mt-0.5">Quản lý yêu cầu đổi / nhường ca làm việc</p>
         </div>
         <div className="flex gap-2">

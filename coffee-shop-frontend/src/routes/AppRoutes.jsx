@@ -218,7 +218,7 @@ const AppRoutes = () => {
         <Route path="loyalty" element={<AdminLoyalty />} />
         <Route path="receipt-settings" element={<AdminReceiptSettings />} />
         <Route path="flash-sales" element={<AdminFlashSales />} />
-        <Route path="newsletters" element={<AdminNewsletterPage />} />
+        <Route path="newsletter" element={<AdminNewsletterPage />} />
       </Route>
       <Route path="/news/:slug" element={<NewsDetailPage />} />
       <Route path="/news" element={<NewsListPage />} />

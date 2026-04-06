@@ -548,10 +548,10 @@ export default function WorkSchedulePage() {
   const range = getRange();
 
   return (
-    <div className="space-y-5">
+    <div className="p-4 sm:p-6 lg:p-8 space-y-6">
       {/* Page title */}
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Lịch làm việc</h1>
+        <h1 className="text-xl font-semibold mb-1">Lịch làm việc</h1>
         <p className="text-sm text-muted-foreground mt-0.5">Xem lịch phân ca nhân viên theo ngày / tuần / tháng</p>
       </div>
 

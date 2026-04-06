@@ -265,22 +265,6 @@ function TakeawayPOS() {
     }
   };
 
-  // const handleComplete = async (order) => {
-  //   try {
-  //     await takeawayService.markCompleted(order.order_id || order.id);
-  //     setOrders((prev) =>
-  //       prev.map((o) =>
-  //         (o.order_id || o.id) === (order.order_id || order.id)
-  //           ? { ...o, status: 'completed' }
-  //           : o,
-  //       ),
-  //     );
-  //     toast.success(`Đơn #${order.order_id || order.id} đã giao cho khách`);
-  //   } catch (e) {
-  //     toast.error(e?.response?.data?.message || 'Lỗi cập nhật trạng thái');
-  //   }
-  // };
-
   const handleEditSave = (updatedData) => {
     setOrders((prev) =>
       prev.map((o) =>
@@ -309,7 +293,6 @@ function TakeawayPOS() {
         {/* Header */}
         <div className='px-5 pt-5 pb-3 border-b border-gray-100 dark:border-gray-800 shrink-0'>
           <div className='flex items-center gap-2'>
-            <ShoppingBag size={20} className='text-amber-500' />
             <h2 className='font-bold text-gray-800 dark:text-gray-200 text-lg'>Đặt đồ mang đi</h2>
           </div>
         </div>

@@ -8,8 +8,8 @@ export function StaffInventory() {
   const lowStockItems = ingredients.filter((i) => i.quantity <= i.minQuantity);
 
   return (
-    <div className="p-4 max-w-4xl mx-auto">
-      <h2 className="text-xl mb-6">Inventory Stock</h2>
+    <div className="p-4 sm:p-6 lg:p-8 space-y-6">
+      <h1 className="text-xl font-bold tracking-tight">Inventory Stock</h1>
 
       {lowStockItems.length > 0 && (
         <Card className="p-4 mb-6 bg-yellow-500/10 border-yellow-500/20">

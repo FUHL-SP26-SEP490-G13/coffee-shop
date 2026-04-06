@@ -91,13 +91,7 @@ export default function AdminIngredients() {
       {/* ===== HEADER ===== */}
       <div className='flex items-center justify-between mb-6'>
         <div>
-          <h2 className='text-2xl font-semibold mb-1 flex items-center gap-2'>
-            <Package className="w-6 h-6 text-primary" />
-            Nguyên liệu
-          </h2>
-          <p className='text-sm text-muted-foreground'>
-            Quản lý nguyên liệu pha chế
-          </p>
+          <h1 className="text-xl font-semibold mb-1">Quản lý nguyên liệu</h1>
         </div>
 
         <Button
