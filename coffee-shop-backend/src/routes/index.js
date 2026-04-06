@@ -30,6 +30,7 @@ const qrOrderRoutes = require('./qrOrder.routes');
 const shiftRoutes = require('./shift.routes');
 const swapRequestRoutes = require('./swapRequest.routes');
 const loyaltyRoutes = require('./loyalty.routes');
+const cashSessionRoutes = require('./cashSession.routes');
 
 const CategoryRepository = require('../repositories/CategoryRepository');
 const ProductRepository = require('../repositories/ProductRepository');
@@ -86,6 +87,7 @@ router.use('/shifts', shiftRoutes);
 router.use('/swap-requests', swapRequestRoutes);
 router.use('/loyalty', loyaltyRoutes);
 router.use('/ai', aiRoutes);
+router.use('/cash-sessions', cashSessionRoutes);
 
 // Health check endpoint
 router.get("/health", (req, res) => {

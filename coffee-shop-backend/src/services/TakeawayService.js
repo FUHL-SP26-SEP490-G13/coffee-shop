@@ -1,4 +1,5 @@
 const TakeawayRepository = require('../repositories/TakeawayRepository');
+const CashSessionRepository = require('../repositories/CashSessionRepository');
 const ErrorResponse = require('../utils/ErrorResponse');
 
 const { payOS } = require('../config/payos');
@@ -188,6 +189,11 @@ class TakeawayService {
         : 0;
       const changeAmt = isCash ? Math.max(0, cashReceivedAmt - finalAmount) : 0;
 
+      // Lấy cash_session_id của ca đang mở (nếu có)
+      // Đơn takeaway luôn phát sinh tại quầy → gán vào ca hiện tại
+      const activeSession = await CashSessionRepository.findOpenSession();
+      const cashSessionId = activeSession ? activeSession.id : null;
+
       // create order
       const orderId = await TakeawayRepository.createOrder(connection, {
         user_id: null,
@@ -195,6 +201,7 @@ class TakeawayService {
         order_type: 'takeaway',
         total_amount: finalAmount,
         discount_id: discountId,
+        cash_session_id: cashSessionId,
       });
 
       for (const item of normalizedItems) {

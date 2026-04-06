@@ -1,4 +1,5 @@
 const OrderRepository = require("../repositories/OrderRepository");
+const CashSessionRepository = require("../repositories/CashSessionRepository");
 const ReputationService = require("./ReputationService");
 const LoyaltyService = require("./LoyaltyService");
 const ErrorResponse = require("../utils/ErrorResponse");
@@ -310,6 +311,9 @@ class OrderOnlineService {
 
       let orderId = activeOrderId;
       if (!orderId) {
+        // Lấy ca đang mở để gán vào đơn hàng
+        const activeSession = await CashSessionRepository.findOpenSession();
+
         orderId = await OrderRepository.createOrder(connection, {
           user_id: userId,
           created_by: userId,
@@ -319,6 +323,7 @@ class OrderOnlineService {
           status: "pending",
           total_amount: finalAmount,
           used_points: normalizedUsedPoints,
+          cash_session_id: activeSession ? activeSession.id : null,
         });
 
         if (order_type === "dine-in") {

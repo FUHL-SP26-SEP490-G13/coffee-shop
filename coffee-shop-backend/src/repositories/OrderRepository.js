@@ -80,7 +80,7 @@ class OrderRepository {
         is_paid,
         total_amount,
         used_points,
-        session_id
+        cash_session_id
       )
       VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?)
       `,
@@ -93,7 +93,7 @@ class OrderRepository {
         safeStatus,
         data.total_amount,
         safeUsedPoints,
-        data.session_id || null,
+        data.cash_session_id || null,
       ]
     );
 
@@ -157,6 +157,7 @@ class OrderRepository {
   }
 
   async createOrderPayment(connection, data) {
+    const isCash = data.payment_method === "cash";
     await connection.query(
       `
       INSERT INTO order_payments (
@@ -164,16 +165,19 @@ class OrderRepository {
         payment_method,
         payment_status,
         amount,
+        paid_amount,
         transaction_id,
         paid_at
       )
-      VALUES (?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
       `,
       [
         data.order_id,
         data.payment_method,
         data.payment_status || "pending",
         data.amount,
+        // Cash đã trả ngay → paid_amount = amount. Các phương thức khác (payos) chờ webhook cập nhật sau
+        isCash && data.payment_status === "paid" ? data.amount : 0,
         data.transaction_id || null,
         data.payment_status === "paid" ? new Date() : null,
       ]
