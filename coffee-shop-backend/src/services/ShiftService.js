@@ -11,6 +11,20 @@ class ShiftService {
         if (!user_id) throw new ErrorResponse(400, 'Thiếu user_id');
         if (!template_id) throw new ErrorResponse(400, 'Thiếu template_id');
 
+        // Ngày gán ca phải cách hiện tại ít nhất 2 ngày
+        const [y, m, d] = date.split('-').map(Number);
+        const assignDate = new Date(y, m - 1, d);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const minDate = new Date(today);
+        minDate.setDate(today.getDate() + 2);
+        if (assignDate < minDate) {
+            throw new ErrorResponse(
+                400,
+                `Chỉ được gán ca trước ít nhất 2 ngày. Ngày sớm nhất có thể gán: ${minDate.toISOString().slice(0, 10)}`,
+            );
+        }
+
         const template = await ShiftRepository.findTemplateById(template_id);
         if (!template) throw new ErrorResponse(404, 'Ca làm việc không tồn tại');
 
@@ -91,6 +105,20 @@ class ShiftService {
 
         if (!weeks || weeks < 1 || weeks > 12) {
             throw new ErrorResponse(400, 'Số tuần phải từ 1 đến 12');
+        }
+
+        // start_date phải cách hôm nay ít nhất 2 ngày
+        const [sy0, sm0, sd0] = start_date.split('-').map(Number);
+        const startDateObj = new Date(sy0, sm0 - 1, sd0);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const minDate = new Date(today);
+        minDate.setDate(today.getDate() + 2);
+        if (startDateObj < minDate) {
+            throw new ErrorResponse(
+                400,
+                `Ngày bắt đầu gán ca phải cách hôm nay ít nhất 2 ngày. Ngày sớm nhất: ${minDate.toISOString().slice(0, 10)}`,
+            );
         }
 
         if (!Array.isArray(assignments) || assignments.length === 0) {
