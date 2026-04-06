@@ -1068,7 +1068,9 @@ function Header() {
                     <div className="bg-white dark:bg-gray-900 dark:border-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl overflow-hidden">
                       {cartItems.length > 0 && (
                         <div className="px-3 py-2 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
-                          <span className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide">Giỏ hàng của bạn</span>
+                          <span className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+                            Giỏ hàng của bạn ({cartCount} sản phẩm)
+                          </span>
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
