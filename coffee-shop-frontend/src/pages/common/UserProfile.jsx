@@ -11,9 +11,10 @@ import Header from '../../components/layout/Header';
 import Footer from '../../components/layout/Footer';
 import { toast } from 'sonner';
 import authenticationService from '../../services/authenticationService';
-import { APP_ROUTES } from '../../constants';
+import { APP_ROUTES } from '../../constants';import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 export function UserProfile() {
+  useDocumentTitle('Hồ sơ của tôi');
   const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
   const [profile, setProfile] = useState(null);

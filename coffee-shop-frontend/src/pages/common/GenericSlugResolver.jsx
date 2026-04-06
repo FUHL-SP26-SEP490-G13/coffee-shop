@@ -15,6 +15,12 @@ export default function GenericSlugResolver() {
   const [loading, setLoading] = useState(!slugCache[slug]);
 
   useEffect(() => {
+    if (slug === 'products') {
+      setType('all_products');
+      setLoading(false);
+      return;
+    }
+
     if (slugCache[slug]) {
        setData(slugCache[slug].data);
        setType(slugCache[slug].type);
@@ -49,6 +55,10 @@ export default function GenericSlugResolver() {
          <Footer />
        </div>
      );
+  }
+
+  if (type === 'all_products') {
+    return <ProductListPage />;
   }
 
   if (!data) return <Navigate to="/404" />;

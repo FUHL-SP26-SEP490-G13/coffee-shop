@@ -134,6 +134,7 @@ export default function AdminIngredients() {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className='w-16'>STT</TableHead>
               <TableHead>Tên nguyên liệu</TableHead>
               <TableHead>Loại đơn vị</TableHead>
               <TableHead>Đơn vị</TableHead>
@@ -144,7 +145,7 @@ export default function AdminIngredients() {
           <TableBody>
             {loading && (
               <TableRow>
-                <TableCell colSpan={4} className='text-center py-6'>
+                <TableCell colSpan={5} className='text-center py-6'>
                   Đang tải...
                 </TableCell>
               </TableRow>
@@ -152,15 +153,18 @@ export default function AdminIngredients() {
 
             {!loading && filteredIngredients.length === 0 && (
               <TableRow>
-                <TableCell colSpan={4} className='text-center py-6'>
+                <TableCell colSpan={5} className='text-center py-6'>
                   Không có nguyên liệu nào
                 </TableCell>
               </TableRow>
             )}
 
             {!loading &&
-              paginatedIngredients.map((ingredient) => (
+              paginatedIngredients.map((ingredient, index) => (
                 <TableRow key={ingredient.id}>
+                  <TableCell>
+                    {(currentPage - 1) * ITEMS_PER_PAGE + index + 1}
+                  </TableCell>
                   <TableCell>
                     <div className='font-medium'>{ingredient.name}</div>
                   </TableCell>

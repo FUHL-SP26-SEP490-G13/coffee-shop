@@ -32,6 +32,11 @@ export default function HomePage() {
   const navigate = useNavigate();
 
   useEffect(() => {
+    const shopName = localStorage.getItem("cached_store_name") || "Coffee Shop";
+    document.title = `Trang chủ | ${shopName}`;
+  }, []);
+
+  useEffect(() => {
     if (location.state?.orderSuccess) {
       const end = Date.now() + 2 * 1000;
       const colors = ["#f59e0b", "#d97706", "#fbbf24"];
@@ -138,9 +143,21 @@ export default function HomePage() {
   };
 
   const getDisplayPrice = (product) => {
-    const size = getDefaultCartSize(product);
-    if (!size) return "Liên hệ";
-    return `${Number(size.price).toLocaleString("vi-VN")}đ`;
+    const sizes = Array.isArray(product?.sizes) ? product.sizes : [];
+    const validPrices = sizes
+      .map((size) => Number(size?.price))
+      .filter((price) => Number.isFinite(price) && price > 0);
+
+    if (validPrices.length === 0) return "Liên hệ";
+
+    const minPrice = Math.min(...validPrices);
+    const maxPrice = Math.max(...validPrices);
+
+    if (minPrice === maxPrice) {
+      return `${minPrice.toLocaleString("vi-VN")}đ`;
+    }
+
+    return `${minPrice.toLocaleString("vi-VN")}đ - ${maxPrice.toLocaleString("vi-VN")}đ`;
   };
 
   return (

@@ -92,6 +92,28 @@ export function BaristaApp() {
   const location = useLocation();
   const notificationRef = useRef(null);
 
+  useEffect(() => {
+    const routeTitles = {
+      "/barista/dashboard": "Bảng điều khiển",
+      "/barista/orders": "Đơn hàng",
+      "/barista/attendance": "Chấm công",
+      "/barista/schedule": "Lịch làm việc",
+      "/barista/requests": "Yêu cầu",
+      "/barista/profile": "Thông tin cá nhân"
+    };
+
+    let matchedTitle = "Cổng Pha chế";
+    if (routeTitles[location.pathname]) {
+      matchedTitle = routeTitles[location.pathname];
+    } else {
+      const match = Object.keys(routeTitles).find(path => location.pathname.startsWith(path));
+      if (match) matchedTitle = routeTitles[match];
+    }
+
+    const shopName = localStorage.getItem("cached_store_name") || "Coffee Shop";
+    document.title = `${matchedTitle} | ${shopName}`;
+  }, [location.pathname]);
+
   const unreadCount = notifications.filter(
     (item) => Number(item.is_read) === 0
   ).length;

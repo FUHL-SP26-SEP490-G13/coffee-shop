@@ -132,7 +132,7 @@ export default function AdminOrders() {
   };
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
+    <div className="p-4 sm:p-6 lg:p-8 space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="space-y-1">
           <div className="flex items-center gap-3">
@@ -166,6 +166,9 @@ export default function AdminOrders() {
           <Table>
             <TableHeader className="bg-gray-50 dark:bg-gray-800/50">
               <TableRow className="hover:bg-transparent">
+                <TableHead className="font-semibold text-gray-600 dark:text-gray-300 w-[60px]">
+                  STT
+                </TableHead>
                 <TableHead className="font-semibold text-gray-600 dark:text-gray-300 w-[120px]">
                   Mã đơn
                 </TableHead>
@@ -190,7 +193,7 @@ export default function AdminOrders() {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="h-64 text-center">
+                  <TableCell colSpan={8} className="h-64 text-center">
                     <div className="flex flex-col items-center justify-center text-muted-foreground dark:text-gray-400 gap-3">
                       <Loader2 className="w-8 h-8 animate-spin text-primary/50" />
                       <span className="text-sm font-medium">
@@ -201,7 +204,7 @@ export default function AdminOrders() {
                 </TableRow>
               ) : orders.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="h-64 text-center">
+                  <TableCell colSpan={8} className="h-64 text-center">
                     <div className="flex flex-col items-center justify-center text-muted-foreground dark:text-gray-400 gap-3">
                       <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-full">
                         <ShoppingBag className="w-8 h-8 text-gray-400" />
@@ -213,15 +216,21 @@ export default function AdminOrders() {
                   </TableCell>
                 </TableRow>
               ) : (
-                orders.map((order) => {
+                orders.map((order, index) => {
                   const statusInfo = getStatusInfo(order.status);
                   const typeInfo = getOrderTypeInfo(order.order_type);
+                  const stt = (currentPage - 1) * 10 + index + 1;
 
                   return (
                     <TableRow
                       key={order.id}
                       className="group hover:bg-gray-50 dark:hover:bg-gray-800 dark:bg-gray-800/50 transition-colors"
                     >
+                      <TableCell>
+                        <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
+                          {stt}
+                        </span>
+                      </TableCell>
                       <TableCell>
                         <span className="font-mono font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-md text-xs">
                           #{String(order.id).padStart(5, "0")}

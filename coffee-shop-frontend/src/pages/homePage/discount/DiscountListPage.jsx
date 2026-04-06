@@ -7,8 +7,10 @@ import discountService from "@/services/discountService";
 import PaginationControl from "@/components/common/PaginationControl";
 import { Button } from "@/components/ui/button";
 import { STORAGE_KEYS } from "@/constants";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 export default function DiscountListPage() {
+  useDocumentTitle("Khuyến mãi");
   const [discounts, setDiscounts] = useState([]);
   const [copiedCode, setCopiedCode] = useState("");
   const [loading, setLoading] = useState(true);
@@ -80,12 +82,12 @@ export default function DiscountListPage() {
   return (
     <div className="min-h-screen flex flex-col bg-white dark:bg-gray-950 transition-colors">
       <Header />
-      <main className="flex-1 w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-10 md:py-16">
+      <main className="flex-1 w-full w-full mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-10 md:py-16">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-          <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center space-x-2">
+          <div className="text-base md:text-lg text-gray-500 dark:text-gray-400 flex items-center flex-wrap gap-2 font-medium">
             <Link to="/" className="cursor-pointer hover:text-amber-600 transition-colors">Trang chủ</Link>
             <span className="text-gray-400">/</span>
-            <span className="text-amber-600 font-medium">Ưu đãi</span>
+            <span className="text-amber-600 font-bold">Ưu đãi</span>
           </div>
         </div>
 

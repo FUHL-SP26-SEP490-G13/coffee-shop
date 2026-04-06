@@ -119,6 +119,35 @@ export function StaffApp() {
   const location = useLocation();
   const notificationRef = useRef(null);
 
+  useEffect(() => {
+    const routeTitles = {
+        "/staff/dashboard": "Tổng quan",
+        "/staff/tables": "Phòng bàn",
+        "/staff/takeaway": "Đặt mang đi",
+        "/staff/orders/pending": "Đơn chờ",
+        "/staff/orders/preparing": "Đơn đang làm",
+        "/staff/orders/completed": "Đơn đã xong",
+        "/staff/orders/cancelled": "Đơn đã hủy",
+        "/staff/kitchen": "Bếp",
+        "/staff/inventory": "Kho hàng",
+        "/staff/requests": "Đổi ca",
+        "/staff/attendance": "Điểm danh ca làm",
+        "/staff/schedule": "Lịch làm việc",
+        "/staff/profile": "Thông tin cá nhân",
+    };
+
+    let matchedTitle = "Cổng Nhân viên";
+    if (routeTitles[location.pathname]) {
+      matchedTitle = routeTitles[location.pathname];
+    } else {
+      const match = Object.keys(routeTitles).find(path => location.pathname.startsWith(path));
+      if (match) matchedTitle = routeTitles[match];
+    }
+
+    const shopName = localStorage.getItem("cached_store_name") || "Coffee Shop";
+    document.title = `${matchedTitle} | ${shopName}`;
+  }, [location.pathname]);
+
   const unreadCount = notifications.filter(
     (item) => Number(item.is_read) === 0,
   ).length;

@@ -166,6 +166,7 @@ export default function AdminProducts() {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className='w-16'>STT</TableHead>
               <TableHead>Sản phẩm</TableHead>
               <TableHead>Mã code</TableHead>
               <TableHead>Danh mục</TableHead>
@@ -178,7 +179,7 @@ export default function AdminProducts() {
           <TableBody>
             {loading && (
               <TableRow>
-                <TableCell colSpan={5} className='text-center py-6'>
+                <TableCell colSpan={7} className='text-center py-6'>
                   Đang tải...
                 </TableCell>
               </TableRow>
@@ -186,20 +187,25 @@ export default function AdminProducts() {
 
             {!loading && filteredProducts.length === 0 && (
               <TableRow>
-                <TableCell colSpan={5} className='text-center py-6'>
+                <TableCell colSpan={7} className='text-center py-6'>
                   Không có sản phẩm nào
                 </TableCell>
               </TableRow>
             )}
 
             {!loading &&
-              filteredProducts.map((product) => {
+              filteredProducts.map((product, index) => {
                 const category = categories.find(
                   (c) => Number(c.id) === Number(product.category_id),
                 );
 
                 return (
                   <TableRow key={product.id}>
+                    {/* STT */}
+                    <TableCell>
+                      {(currentPage - 1) * PAGE_SIZE + index + 1}
+                    </TableCell>
+
                     {/* PRODUCT */}
                     <TableCell>
                       <div className='flex items-center gap-3'>

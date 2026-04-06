@@ -146,6 +146,7 @@ export default function AdminCategories() {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className='w-16'>STT</TableHead>
               <TableHead>Tên danh mục</TableHead>
 
               <TableHead>Mã Code</TableHead>
@@ -159,7 +160,7 @@ export default function AdminCategories() {
           <TableBody>
             {loading && (
               <TableRow>
-                <TableCell colSpan={4} className='text-center py-6'>
+                <TableCell colSpan={5} className='text-center py-6'>
                   Đang tải...
                 </TableCell>
               </TableRow>
@@ -167,15 +168,19 @@ export default function AdminCategories() {
 
             {!loading && filteredCategories.length === 0 && (
               <TableRow>
-                <TableCell colSpan={4} className='text-center py-6'>
+                <TableCell colSpan={5} className='text-center py-6'>
                   Không có danh mục nào
                 </TableCell>
               </TableRow>
             )}
 
             {!loading &&
-              paginatedCategories.map((category) => (
+              paginatedCategories.map((category, index) => (
                 <TableRow key={category.id}>
+                  <TableCell>
+                    {(currentPage - 1) * itemsPerPage + index + 1}
+                  </TableCell>
+
                   <TableCell>
                     <div className='font-medium'>{category.name}</div>
                   </TableCell>

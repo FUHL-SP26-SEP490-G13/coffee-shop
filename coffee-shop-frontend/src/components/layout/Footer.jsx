@@ -93,8 +93,8 @@ function Footer() {
   }, []);
 
   return (
-    <footer className="mt-20 border-t border-border bg-card">
-      <div className="max-w-[1440px] mx-auto w-full px-6 py-12 lg:px-8 lg:py-16 xl:px-12">
+    <footer className="mt-5 border-t border-border bg-card">
+      <div className="w-full px-4 lg:px-6 xl:px-8 py-12 lg:py-16">
         <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-4">
           {/* Cột 1: Thông tin liên hệ & Mạng xã hội */}
           <div className="space-y-8 lg:pr-4">
@@ -368,7 +368,7 @@ function Footer() {
       </div>
 
       <div className="border-t border-border/60">
-        <div className="max-w-[1440px] mx-auto w-full px-6 py-5 lg:px-8 xl:px-12">
+        <div className="w-full px-4 lg:px-6 xl:px-8 py-5">
           <p className="text-center text-xs text-muted-foreground dark:text-gray-400">
             © {new Date().getFullYear()} Coffee Shop. Tất cả quyền được bảo lưu.
           </p>

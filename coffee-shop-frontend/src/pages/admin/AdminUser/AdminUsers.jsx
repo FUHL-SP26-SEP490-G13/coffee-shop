@@ -357,6 +357,7 @@ export default function AdminUsers() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className='w-16'>STT</TableHead>
                     <TableHead>Người dùng</TableHead>
                     <TableHead>Tên đăng nhập</TableHead>
                     <TableHead>Email</TableHead>
@@ -368,17 +369,19 @@ export default function AdminUsers() {
                 <TableBody>
                   {paginatedUsers.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                         Không tìm thấy người dùng nào
                       </TableCell>
                     </TableRow>
                   ) : (
-                    paginatedUsers.map((user) => {
+                    paginatedUsers.map((user, index) => {
                       const roleInfo = getRoleInfo(user.role_id);
                       const fullName = `${user.first_name} ${user.last_name}`;
+                      const stt = (currentPage - 1) * USERS_PER_PAGE + index + 1;
 
                       return (
                         <TableRow key={user.id}>
+                          <TableCell>{stt}</TableCell>
                           <TableCell>
                             <div className="flex items-center gap-3">
                               <Avatar>

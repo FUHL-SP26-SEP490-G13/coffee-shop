@@ -3,8 +3,11 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Loader2, MapPin, Phone, Clock, Mail } from "lucide-react";
 import receiptSettingService from "@/services/receiptSettingService";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+import { Link } from "react-router-dom";
 
 export default function StoreInfoPage() {
+  useDocumentTitle("Hệ thống cửa hàng");
   const [storeInfo, setStoreInfo] = useState({
     name: "Coffee Shop",
     address: "Đang cập nhật địa chỉ...",
@@ -41,13 +44,19 @@ export default function StoreInfoPage() {
     <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900 transition-colors">
       <Header />
 
-      <main className="flex-1 w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 pt-6 pb-10 md:pb-16 mb-10 mt-10">
+      <main className="flex-1 w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 pt-6 pb-10 md:pb-16 mb-5 mt-5">
         {loading ? (
           <div className="flex items-center justify-center py-20">
             <Loader2 className="w-8 h-8 animate-spin text-amber-600" />
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
+          <>
+            <div className="flex items-center gap-2 text-base md:text-lg text-gray-500 dark:text-gray-400 font-medium mb-8 mt-[-10px]">
+              <Link to="/" className="hover:text-amber-600 transition">Trang chủ</Link>
+              <span className="text-gray-400">/</span>
+              <span className="text-amber-600 font-bold">Hệ thống cửa hàng</span>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
             {/* Store Information */}
             <div className="space-y-8 animate-in slide-in-from-bottom-5 duration-700">
               <div>
@@ -107,7 +116,8 @@ export default function StoreInfoPage() {
                 allowFullScreen
               ></iframe>
             </div>
-          </div>
+            </div>
+          </>
         )}
       </main>
 
