@@ -78,6 +78,14 @@ const checkoutOrderSchema = Joi.object({
       "string.empty": "Phương thức thanh toán không được để trống",
     }),
 
+  cash_received: Joi.alternatives()
+    .try(Joi.number(), Joi.string())
+    .allow(null, "")
+    .optional()
+    .messages({
+      "alternatives.match": "Số tiền khách đưa không hợp lệ",
+    }),
+
   receiver_name: Joi.string().trim().min(2).max(100).required().messages({
     "string.empty": "Tên người nhận không được để trống",
     "any.required": "Tên người nhận là bắt buộc",
