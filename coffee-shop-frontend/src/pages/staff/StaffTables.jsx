@@ -461,8 +461,31 @@ export function StaffTables() {
     setSelectedTableForOrder(table);
     setLoadingOrder(true);
     try {
-      const res = await tableService.getActiveOrder(table.id);
-      setActiveOrder(res.data);
+      // Fetch unpaid orders to determine current state
+      const unpaidRes = await tableService.getUnpaidOrders(table.id);
+      const unpaidOrders = unpaidRes.data || [];
+
+      if (unpaidOrders.length === 0) {
+        toast.error("Không còn đơn hàng nào chờ tách");
+        return;
+      }
+
+      // Splits were already done – go straight to payment modal
+      if (unpaidOrders.length > 1) {
+        setIsPaySplitBillModalOpen(true);
+        return;
+      }
+
+      // Only 1 unpaid order → fresh split flow
+      const originalOrder = unpaidOrders[0];
+      try {
+        const detailRes = await orderService.getOrderDetailForStaff(originalOrder.id);
+        setActiveOrder(detailRes.data);
+      } catch {
+        // Fallback: use the summary object
+        setActiveOrder(originalOrder);
+      }
+
       setIsSplitBillModalOpen(true);
     } catch (err) {
       toast.error("Không thể tải thông tin đơn hàng để tách");
@@ -1372,7 +1395,13 @@ export function StaffTables() {
           onClose={() => setIsPaySplitBillModalOpen(false)}
           table={selectedTableForOrder}
           onSuccess={() => {
+            // Re-fetch full data so table card debt badge updates immediately
             fetchData();
+          }}
+          onPartialPayment={async () => {
+            // After paying one split bill, refresh the active order meta
+            // so the debt amount on the table card decreases right away
+            await fetchActiveOrderMeta(tables);
           }}
         />
       )}
