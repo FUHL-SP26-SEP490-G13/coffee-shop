@@ -259,7 +259,7 @@ export default function MyOrderOnlinePage() {
                     >
                       <div className="flex items-start justify-between gap-4 flex-wrap">
                         <div>
-                          <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                          <p className="text-md font-medium text-gray-900 dark:text-gray-100">
                             Đơn hàng #{order.id}
                           </p>
 
@@ -306,7 +306,7 @@ export default function MyOrderOnlinePage() {
                             {getStatusLabel(order.status)}
                           </span>
 
-                          <p className="mt-3 text-xl font-bold text-amber-600">
+                          <p className="mt-3 text-md font-semibold text-amber-600">
                             {Number(order.total_amount || 0).toLocaleString(
                               "vi-VN"
                             )}

@@ -833,7 +833,7 @@ function Header() {
             </h1>
           </div>
 
-          <div className="hidden md:flex flex-1 w-full max-w-md lg:max-w-2xl mx-auto px-4 lg:px-6">
+          <div className="hidden md:flex flex-1 w-full px-4 lg:px-0 lg:pl-6 lg:pr-10">
             <div className="w-full relative" ref={searchRef}>
               <div className="relative">
                 <Input
@@ -965,7 +965,7 @@ function Header() {
 
           <div className="flex items-center gap-1 sm:gap-2 lg:gap-4">
             <div
-              className="hidden lg:flex items-center relative h-full"
+              className="hidden sm:flex items-center relative h-full"
               ref={exploreDropdownRef}
               onMouseEnter={() => setExploreOpen(true)}
               onMouseLeave={() => setExploreOpen(false)}

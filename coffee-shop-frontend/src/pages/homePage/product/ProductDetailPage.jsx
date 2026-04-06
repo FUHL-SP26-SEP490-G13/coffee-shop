@@ -691,11 +691,11 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
                 </div>
               )}
               {/* Main Image */}
-              <div className="w-full max-w-[380px] md:max-w-[420px] mx-auto aspect-square flex items-center justify-center relative group">
+              <div className="w-full max-w-[480px] lg:max-w-[540px] mx-auto aspect-square flex items-center justify-center relative group bg-gray-50/50 dark:bg-gray-800/30 border border-gray-100 dark:border-gray-800 rounded-2xl overflow-hidden p-2">
                 <img
                   src={displayImages[activeImageIndex]?.image_url || defaultImage}
                   alt={product?.name || 'Sản phẩm'}
-                  className="w-full h-full object-cover rounded-xl"
+                  className="w-full h-full object-contain mix-blend-multiply dark:mix-blend-normal transition-transform duration-500 group-hover:scale-105"
                 />
 
                 {/* Left/Right arrows if more than 1 image */}

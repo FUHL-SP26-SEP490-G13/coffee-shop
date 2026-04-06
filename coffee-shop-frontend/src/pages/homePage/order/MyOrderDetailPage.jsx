@@ -201,7 +201,7 @@ export default function MyOrderDetailPage() {
           <div className="border rounded-2xl bg-white dark:bg-gray-900 p-6 shadow-sm">
             <div className="flex items-start justify-between gap-4 flex-wrap">
               <div>
-                <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                <h1 className="text-md font-semibold text-gray-900 dark:text-gray-100">
                   Đơn hàng #{order.id}
                 </h1>
 
@@ -260,7 +260,7 @@ export default function MyOrderDetailPage() {
                     Phí vận chuyển: <strong>+{shippingFee.toLocaleString("vi-VN")}đ</strong>
                   </p>
                 )}
-                <p className="text-3xl font-bold text-amber-600">
+                <p className="text-xl font-bold text-amber-600">
                   {Number(order.total_amount || 0).toLocaleString("vi-VN")}đ
                 </p>
               </div>
@@ -272,7 +272,7 @@ export default function MyOrderDetailPage() {
               order.address ||
               order.note) && (
               <div className="mt-8 border-t pt-6">
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                <h2 className="text-md font-semibold text-gray-900 dark:text-gray-100 mb-4">
                   Thông tin nhận hàng
                 </h2>
 
@@ -319,7 +319,7 @@ export default function MyOrderDetailPage() {
             )}
 
             <div className="mt-8 border-t pt-6">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
+              <h2 className="text-md font-semibold text-gray-900 dark:text-gray-100 mb-4">
                 Sản phẩm đã đặt
               </h2>
 
@@ -343,7 +343,7 @@ export default function MyOrderDetailPage() {
                           />
 
                           <div>
-                          <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                          <p className="text-md font-semibold text-gray-900 dark:text-gray-100">
                             {item.name}
                           </p>
 
@@ -386,7 +386,7 @@ export default function MyOrderDetailPage() {
 
                         <div className="text-right">
                           <p className="text-sm text-gray-500 dark:text-gray-400">Thành tiền</p>
-                          <p className="text-lg font-bold text-amber-600">
+                          <p className="text-md font-semibold text-amber-600">
                             {getItemLineTotal(item).toLocaleString("vi-VN")}
                             đ
                           </p>

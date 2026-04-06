@@ -287,7 +287,7 @@ function TakeawayPOS() {
   }, [showCheckout, cart.length]);
 
   return (
-    <div className='flex h-screen gap-0 -m-4 md:-m-8 -mt-2'>
+    <div className='flex h-full gap-0 bg-white dark:bg-gray-900'>
       {/*  CỘT TRÁI — Menu */}
       <div className='flex flex-col w-0 flex-[5] min-w-0 border-r border-gray-100 dark:border-gray-800'>
         {/* Header */}
