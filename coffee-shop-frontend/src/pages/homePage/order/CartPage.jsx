@@ -572,9 +572,19 @@ export default function CartPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {savedItems.map((item) => (
                 <div key={item.cartKey} className="flex gap-4 p-4 border rounded-2xl bg-white dark:bg-gray-900 items-center">
-                  <img src={item.image} alt={item.name} className="w-16 h-16 rounded-xl object-cover border" />
+                  <img 
+                    src={item.image} 
+                    alt={item.name} 
+                    onClick={() => navigate(`/${item.slug || 'products/' + (item.product_id || item.id)}`)}
+                    className="w-16 h-16 rounded-xl object-cover border cursor-pointer hover:opacity-80 transition-opacity" 
+                  />
                   <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-sm truncate">{item.name}</p>
+                    <p 
+                      onClick={() => navigate(`/${item.slug || 'products/' + (item.product_id || item.id)}`)}
+                      className="font-semibold text-sm truncate cursor-pointer hover:text-amber-600 transition-colors"
+                    >
+                      {item.name}
+                    </p>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Size: {item.size}</p>
                     <p className="font-bold text-amber-600 mt-1">{item.unitPrice?.toLocaleString("vi-VN")}đ</p>
                   </div>
