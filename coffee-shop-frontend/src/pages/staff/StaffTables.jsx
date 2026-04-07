@@ -830,12 +830,11 @@ export function StaffTables() {
   const currentAreaObj = areas.find((a) => a.id.toString() === selectedAreaId);
 
   return (
-    <div className="space-y-6">
+    <div className="p-4 sm:p-6 lg:p-8 space-y-6">
       {/* HEADER */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div className="flex items-center gap-3">
-          <LayoutGrid className="w-6 h-6 text-primary" />
-          <h1 className="text-2xl font-semibold">Theo dõi & Đặt Bàn</h1>
+          <h1 className="text-xl font-bold tracking-tight">Theo dõi & Đặt Bàn</h1>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Zap, Clock, ShoppingCart, Star, Heart } from "lucide-react";
+import { Zap, Clock, ShoppingCart, Star } from "lucide-react";
 import { toast } from "sonner";
 import flashSaleService from "@/services/flashSaleService";
 import { cartService } from "@/services/cartService";
@@ -8,13 +8,14 @@ import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, Navigation } from "swiper/modules";
 import { useStoreHours } from "@/hooks/useStoreHours";
 import productService from "@/services/productService";
-import favoriteService from "@/services/favoriteService";
 import { STORAGE_KEYS } from "@/constants";
+import CartSuccessModal from "@/pages/homePage/order/CartSuccessModal";
 
 export default function FlashSaleSection({ products, getThumbnail, getDefaultCartSize }) {
   const { isOpen, storeSchedule, nextOpenMessage } = useStoreHours();
   const [activeSale, setActiveSale] = useState(null);
   const [timeLeft, setTimeLeft] = useState({ hours: 0, minutes: 0, seconds: 0 });
+  const [addedCartItem, setAddedCartItem] = useState(null);
 
   const token =
     localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN) ||
@@ -22,7 +23,6 @@ export default function FlashSaleSection({ products, getThumbnail, getDefaultCar
 
   const isLoggedIn = !!token;
 
-  const [favoriteMap, setFavoriteMap] = useState({});
 
   useEffect(() => {
     const fetchFlashSale = async () => {
@@ -75,89 +75,6 @@ export default function FlashSaleSection({ products, getThumbnail, getDefaultCar
     return () => clearInterval(timer);
   }, [activeSale]);
 
-  useEffect(() => {
-    const fetchFavoriteStatus = async () => {
-      if (!isLoggedIn || !flashProducts || flashProducts.length === 0) {
-        setFavoriteMap({});
-        return;
-      }
-
-      try {
-        const results = await Promise.all(
-          flashProducts.map(async (product) => {
-            try {
-              const res = await favoriteService.checkFavorite(product.id);
-              const payload = res?.data?.data || res?.data || res || {};
-
-              return {
-                productId: product.id,
-                isFavorite: Boolean(payload.isFavorite),
-              };
-            } catch (error) {
-              return {
-                productId: product.id,
-                isFavorite: false,
-              };
-            }
-          })
-        );
-
-        const nextMap = {};
-        results.forEach((item) => {
-          nextMap[item.productId] = item.isFavorite;
-        });
-
-        setFavoriteMap(nextMap);
-      } catch (error) {
-        console.error("Lỗi kiểm tra trạng thái yêu thích:", error);
-        setFavoriteMap({});
-      }
-    };
-
-    fetchFavoriteStatus();
-  }, [flashProducts, isLoggedIn]);
-
-  const handleToggleFavorite = async (e, productId) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    if (!isLoggedIn) {
-      alert("Bạn phải đăng nhập để thêm sản phẩm yêu thích");
-      return;
-    }
-
-    const currentFavorite = Boolean(favoriteMap[productId]);
-
-    setFavoriteMap((prev) => ({
-      ...prev,
-      [productId]: !currentFavorite,
-    }));
-
-    try {
-      const res = await favoriteService.toggleFavorite(
-        productId,
-        currentFavorite
-      );
-
-      const payload = res?.data?.data || res?.data || res || {};
-
-      if (typeof payload.isFavorite === "boolean") {
-        setFavoriteMap((prev) => ({
-          ...prev,
-          [productId]: payload.isFavorite,
-        }));
-      }
-
-      window.dispatchEvent(new Event("favoriteUpdated"));
-    } catch (error) {
-      console.error("Lỗi cập nhật yêu thích:", error);
-      setFavoriteMap((prev) => ({
-        ...prev,
-        [productId]: currentFavorite,
-      }));
-    }
-  };
-
   if (!activeSale || !flashProducts || flashProducts.length === 0) return null;
 
   const handleAddToCart = (e, product) => {
@@ -180,6 +97,9 @@ export default function FlashSaleSection({ products, getThumbnail, getDefaultCar
 
     const cartItem = {
       productSizeId: cartSize.id,
+      id: product.id,
+      product_id: product.id,
+      slug: product.slug,
       name: product.name,
       image: getThumbnail(product),
       size: cartSize.size,
@@ -190,7 +110,8 @@ export default function FlashSaleSection({ products, getThumbnail, getDefaultCar
     };
 
     cartService.addItem(cartItem);
-    toast.success(`Đã thêm ${product.name} (giá Flash Sale) vào giỏ hàng`);
+    setAddedCartItem(cartItem);
+    window.dispatchEvent(new Event("cartUpdated"));
   };
 
   return (
@@ -295,25 +216,6 @@ export default function FlashSaleSection({ products, getThumbnail, getDefaultCar
                               </span>
                             </div>
 
-                            <button
-                              type="button"
-                              onClick={(e) => handleToggleFavorite(e, product.id)}
-                              className={`absolute right-0 top-0 z-10 flex items-center justify-center transition-all ${Boolean(favoriteMap[product.id])
-                                ? "text-red-500 drop-shadow-sm"
-                                : "text-[#DCD5CD] hover:text-red-400 dark:text-gray-600"
-                                }`}
-                              title={
-                                Boolean(favoriteMap[product.id])
-                                  ? "Bỏ khỏi yêu thích"
-                                  : "Thêm vào yêu thích"
-                              }
-                            >
-                              <Heart
-                                className={`h-5 w-5 ${Boolean(favoriteMap[product.id]) ? "fill-current" : ""
-                                  }`}
-                                strokeWidth={1.5}
-                              />
-                            </button>
 
                             <Link to={`/${product.slug || 'products/' + product.id}`} className="block mt-6 mb-2">
                               <div className="relative h-48 w-full flex items-center justify-center">
@@ -413,6 +315,7 @@ export default function FlashSaleSection({ products, getThumbnail, getDefaultCar
           background: rgba(0,0,0,0.6);
         }
       `}</style>
+      <CartSuccessModal addedCartItem={addedCartItem} onClose={() => setAddedCartItem(null)} />
     </section>
   );
 }

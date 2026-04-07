@@ -11,28 +11,39 @@ const OSRM_BASE_URL = "https://router.project-osrm.org/route/v1/driving";
  * @param {string} address - Chuỗi địa chỉ đầu vào 
  * @returns {Promise<[number, number] | null>} - Tọa độ [Lat, Lng] hoặc null nếu lỗi
  */
+const performGeocode = async (queryStr) => {
+  const url = `${NOMINATIM_BASE_URL}?format=json&q=${encodeURIComponent(queryStr)}&limit=1`;
+  const response = await fetch(url, {
+    method: "GET",
+    headers: {
+      "Accept-Language": "vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7",
+      "User-Agent": "CoffeeShopDeliveryApp/1.0"
+    }
+  });
+
+  if (!response.ok) return null;
+
+  const data = await response.json();
+  if (data && data.length > 0) {
+    return [parseFloat(data[0].lat), parseFloat(data[0].lon)];
+  }
+  return null;
+};
+
 export const geocodeAddress = async (address) => {
   if (!address || address.trim().length < 5) return null;
   
-  // Nối thêm quốc gia để OpenStreetMap tìm hiểu cảnh chính xác hơn
-  const query = encodeURIComponent(`${address.replace(/Việt Nam/gi, '').trim()}, Việt Nam`);
-  const url = `${NOMINATIM_BASE_URL}?format=json&q=${query}&limit=1`;
-
+  let cleanAddress = address.replace(/Việt Nam/gi, '').trim();
+  let parts = cleanAddress.split(',').map(p => p.trim()).filter(Boolean);
+  
   try {
-    const response = await fetch(url, {
-      method: "GET",
-      // Đặt headers theo chính sách của Nominatim (bắt buộc User-Agent hợp lệ)
-      headers: {
-        "Accept-Language": "vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7",
-        "User-Agent": "CoffeeShopDeliveryApp/1.0"
-      }
-    });
-
-    if (!response.ok) return null;
-
-    const data = await response.json();
-    if (data && data.length > 0) {
-      return [parseFloat(data[0].lat), parseFloat(data[0].lon)];
+    while (parts.length > 0) {
+      const query = `${parts.join(', ')}, Việt Nam`;
+      const coords = await performGeocode(query);
+      if (coords) return coords;
+      
+      // Bỏ đi phần tử đầu tiên (thường là tên tòa nhà, số ngõ ngách cụ thể rất khó tìm) và thử lại
+      parts.shift();
     }
     return null;
   } catch (error) {

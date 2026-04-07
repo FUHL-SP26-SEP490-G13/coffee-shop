@@ -114,7 +114,7 @@ export default function AdminFlashSales() {
         <div className="flex items-center gap-3">
           <div>
             <h1 className="text-xl font-semibold">
-              Quản lý Flash Sale
+              Quản lý flash sale
             </h1>
           </div>
         </div>

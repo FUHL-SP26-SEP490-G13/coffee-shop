@@ -76,7 +76,7 @@ export default function AdminApp() {
        "/admin/flash-sales": "Flash sale",
        "/admin/banners": "Quảng cáo",
        "/admin/news-list": "Bài viết",
-       "/admin/newsletters": "Email",
+       "/admin/newsletter": "Email",
        "/admin/schedule/templates": "Quản lý ca làm",
        "/admin/schedule/list": "Lịch làm việc",
        "/admin/receipt-settings": "Cấu hình hóa đơn",
@@ -584,7 +584,7 @@ export default function AdminApp() {
                   <span className="text-sm tracking-wide">Bài viết</span>
                 </NavLink>
                 <NavLink
-                  to="/admin/newsletters"
+                  to="/admin/newsletter"
                   onClick={() => setMobileMenuOpen(false)}
                   className={({ isActive }) =>
                     `w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${

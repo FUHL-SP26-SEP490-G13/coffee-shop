@@ -321,7 +321,7 @@ export default function RegisterPage() {
 								</div>
 								<div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 backdrop-blur-md px-4 py-3">
 									<span className="h-2 w-2 rounded-full bg-amber-400" />
-									Quản lý lịch sử đơn hàng và yêu thích
+									Quản lý lịch sử đơn hàng
 								</div>
 							</div>
 						</div>

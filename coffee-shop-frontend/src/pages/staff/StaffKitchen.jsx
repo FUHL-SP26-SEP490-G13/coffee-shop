@@ -16,8 +16,8 @@ export function StaffKitchen() {
   };
 
   return (
-    <div className="p-4">
-      <h2 className="text-xl mb-6">Kitchen Display</h2>
+    <div className="p-4 sm:p-6 lg:p-8 space-y-6">
+      <h1 className="text-xl font-bold tracking-tight mb-6">Kitchen Display</h1>
 
       <div className="grid grid-cols-3 gap-4">
         {activeOrders.map((order) => (

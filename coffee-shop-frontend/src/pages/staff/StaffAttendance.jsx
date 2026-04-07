@@ -22,8 +22,8 @@ export function StaffAttendance() {
   };
 
   return (
-    <div className="p-4 max-w-2xl mx-auto">
-      <h2 className="text-xl mb-6">Attendance</h2>
+    <div className="p-4 sm:p-6 lg:p-8 space-y-6">
+      <h1 className="text-xl font-bold tracking-tight mb-6">Attendance</h1>
 
       {/* Check In/Out Card */}
       <Card className="p-6 mb-6 bg-gradient-to-br from-primary/5 to-accent/5">

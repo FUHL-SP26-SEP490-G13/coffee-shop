@@ -7,6 +7,7 @@ import {
   RotateCcw,
   ChevronLeft,
   ChevronRight,
+  Clock,
 } from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
@@ -255,65 +256,89 @@ export default function MyOrderOnlinePage() {
                   {paginatedOrders.map((order) => (
                     <div
                       key={order.id}
-                      className="border border-gray-200 dark:border-gray-700 rounded-2xl p-5 bg-white dark:bg-gray-900"
+                      className="border border-gray-200 dark:border-gray-800 hover:border-amber-500/40 transition-colors rounded-[1.5rem] p-5 sm:p-6 bg-white dark:bg-gray-900 shadow-sm relative overflow-hidden group"
                     >
-                      <div className="flex items-start justify-between gap-4 flex-wrap">
-                        <div>
-                          <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                            Đơn hàng #{order.id}
-                          </p>
+                        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-6">
+                          <div className="flex items-start gap-4 sm:gap-5 flex-1">
+                            {/* Avatar Group */}
+                            {Array.isArray(order.items) && order.items.length > 0 && (
+                              <div className="flex -space-x-4 flex-shrink-0">
+                                {order.items.slice(0, 3).map((item, idx) => (
+                                  <img
+                                    key={idx}
+                                    src={item.image_url || "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085"}
+                                    alt={item.name}
+                                    className="w-[4.5rem] h-[4.5rem] md:w-20 md:h-20 rounded-full border-[3px] border-white dark:border-gray-900 object-cover bg-gray-50 dark:bg-gray-800 shadow-sm transition-transform duration-300 group-hover:-translate-y-1"
+                                    style={{ zIndex: 3 - idx }}
+                                  />
+                                ))}
+                                {order.items.length > 3 && (
+                                  <div 
+                                    className="w-[4.5rem] h-[4.5rem] md:w-20 md:h-20 rounded-full border-[3px] border-white dark:border-gray-900 bg-gray-50 dark:bg-gray-800 flex items-center justify-center text-sm font-bold text-gray-500 shadow-sm"
+                                    style={{ zIndex: 0 }}
+                                  >
+                                    +{order.items.length - 3}
+                                  </div>
+                                )}
+                              </div>
+                            )}
 
-                          <div className="mt-2 space-y-1 text-sm text-gray-500 dark:text-gray-400">
-                            <p>
-                              Loại đơn:{" "}
-                              <span className="text-gray-800 dark:text-gray-200 font-medium">
-                                {order.order_type === "delivery"
-                                  ? "Giao hàng"
-                                  : order.order_type === "takeaway"
-                                    ? "Mang đi"
-                                    : "Tại bàn"}
-                              </span>
-                            </p>
+                            <div className="flex-1 mt-1">
+                              <p className="text-base sm:text-lg font-bold text-gray-900 dark:text-gray-100 leading-tight line-clamp-2 transition-colors group-hover:text-amber-600" style={{ fontFamily: 'serif' }}>
+                                {Array.isArray(order.items) && order.items.length > 0
+                                  ? `${order.items[0].name}${order.items.length > 1 ? ` và ${order.items.length - 1} sản phẩm khác` : ""}`
+                                  : "Đơn hàng trực tuyến"}
+                              </p>
 
-                            <p>
-                              Thanh toán:{" "}
-                              <span className="text-gray-800 dark:text-gray-200 font-medium">
-                                {Number(order.is_paid) === 1
-                                  ? "Đã thanh toán"
-                                  : "Chưa thanh toán"}
-                              </span>
-                            </p>
+                              <div className="mt-3 flex flex-col gap-2 text-sm text-gray-500 dark:text-gray-400 font-medium">
+                                <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                                  <div className="flex items-center gap-1.5">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-amber-500 opacity-60"></div>
+                                    {order.order_type === "delivery"
+                                      ? "Giao hàng"
+                                      : order.order_type === "takeaway"
+                                        ? "Mang đi"
+                                        : "Tại bàn"}
+                                  </div>
+                                  <div className="flex items-center gap-1.5">
+                                    <div className={`w-1.5 h-1.5 rounded-full ${Number(order.is_paid) === 1 ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                                    {Number(order.is_paid) === 1
+                                      ? <span className="text-green-600 dark:text-green-500">Đã thanh toán</span>
+                                      : <span className="opacity-70">Chưa thanh toán</span>}
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-1.5 text-xs opacity-70">
+                                  <Clock className="w-3.5 h-3.5" />
+                                  {order.created_at
+                                    ? new Date(order.created_at).toLocaleString("vi-VN", { hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short', year: 'numeric' })
+                                    : "--"}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
 
-                            <p>
-                              Ngày tạo:{" "}
-                              <span className="text-gray-800 dark:text-gray-200 font-medium">
-                                {order.created_at
-                                  ? new Date(order.created_at).toLocaleString(
-                                    "vi-VN"
-                                  )
-                                  : "--"}
+                          <div className="flex flex-col sm:items-end justify-between items-start gap-4 border-t border-gray-100 dark:border-gray-800 sm:border-0 pt-4 sm:pt-0 min-w-[140px]">
+                            <div className="flex items-center justify-between w-full sm:justify-end">
+                              <span
+                                className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold shadow-sm ${getStatusClass(
+                                  order.status
+                                )}`}
+                              >
+                                {getStatusLabel(order.status)}
                               </span>
-                            </p>
+                            </div>
+
+                            <div className="flex flex-row sm:flex-col sm:text-right items-end justify-between w-full sm:w-auto mt-auto gap-2">
+                              <p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold hidden sm:block">Tổng tiền</p>
+                              <p className="text-xl font-black text-amber-600 leading-none">
+                                {Number(order.total_amount || 0).toLocaleString(
+                                  "vi-VN"
+                                )}
+                                đ
+                              </p>
+                            </div>
                           </div>
                         </div>
-
-                        <div className="text-right">
-                          <span
-                            className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold ${getStatusClass(
-                              order.status
-                            )}`}
-                          >
-                            {getStatusLabel(order.status)}
-                          </span>
-
-                          <p className="mt-3 text-xl font-bold text-amber-600">
-                            {Number(order.total_amount || 0).toLocaleString(
-                              "vi-VN"
-                            )}
-                            đ
-                          </p>
-                        </div>
-                      </div>
 
                       <div className="mt-5 flex gap-3 flex-wrap">
                         <Button

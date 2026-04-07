@@ -332,11 +332,11 @@ export function StaffSchedule() {
   const headerLabel = `${fmtShort(weekStart)} – ${fmtShort(sun)}, ${sun.getFullYear()}`;
 
   return (
-    <div className="space-y-5">
+    <div className="p-4 sm:p-6 lg:p-8 space-y-6">
       {/* Header */}
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Lịch làm việc</h1>
+          <h1 className="text-xl font-bold tracking-tight">Lịch làm việc</h1>
           <p className="text-sm text-muted-foreground mt-0.5">Xem lịch ca của bạn và đồng nghiệp</p>
         </div>
 
