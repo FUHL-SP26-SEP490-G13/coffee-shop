@@ -82,7 +82,7 @@ export default function DiscountListPage() {
   return (
     <div className="min-h-screen flex flex-col bg-white dark:bg-gray-950 transition-colors">
       <Header />
-      <main className="flex-1 w-full w-full mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-10 md:py-16">
+      <main className="flex-1 w-full mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 pt-2 md:pt-4 pb-10 md:pb-16 mb-5">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <div className="text-base md:text-lg text-gray-500 dark:text-gray-400 flex items-center flex-wrap gap-2 font-medium">
             <Link to="/" className="cursor-pointer hover:text-amber-600 transition-colors">Trang chủ</Link>

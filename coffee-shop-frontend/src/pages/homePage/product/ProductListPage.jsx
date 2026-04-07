@@ -247,9 +247,9 @@ export default function ProductListPage({ categoryIdOverride, categoryName, cate
     <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900">
       <Header />
 
-      <section className="w-full px-4 sm:px-6 lg:px-8 py-10">
+      <section className="w-full px-4 sm:px-6 lg:px-8 pt-2 md:pt-4 pb-10 md:pb-16 mb-5">
         <div className="w-full mx-auto">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
             <div className="text-base md:text-lg text-gray-500 dark:text-gray-400 flex items-center space-x-2 font-medium">
               <span className="cursor-pointer hover:text-amber-600 transition-colors" onClick={() => navigate("/")}>Trang chủ</span>
               {categoryName && (

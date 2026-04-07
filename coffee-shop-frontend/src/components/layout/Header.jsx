@@ -47,6 +47,7 @@ import notificationService from "@/services/notificationService";
 import socket from "@/lib/socket";
 import { getNotificationLink } from "@/utils/getNotificationLink";
 import loyaltyService from "@/services/loyaltyService";
+import flashSaleService from "@/services/flashSaleService";
 import LoyaltyHistoryModal from "@/components/loyalty/LoyaltyHistoryModal";
 import receiptSettingService from "@/services/receiptSettingService";
 
@@ -142,6 +143,13 @@ function Header() {
 
   const [cartItems, setCartItems] = useState([]);
   const [showCartPreview, setShowCartPreview] = useState(false);
+  const [activeSale, setActiveSale] = useState(null);
+
+  useEffect(() => {
+    flashSaleService.getCurrentActive()
+      .then(res => setActiveSale(res?.data || null))
+      .catch(console.error);
+  }, []);
 
   const [isDarkMode, setIsDarkMode] = useState(() => {
     return document.documentElement.classList.contains("dark");
@@ -1121,6 +1129,12 @@ function Header() {
                                     <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
                                       {item.size}
                                     </p>
+                                  )}
+                                  
+                                  {activeSale && activeSale.product_ids?.includes(Number(item.product_id || item.id)) && (
+                                    <div className="mt-0.5 text-[10px] text-red-600 font-bold">
+                                      🔥 Flash sale
+                                    </div>
                                   )}
 
                                   {Array.isArray(item.toppings) &&

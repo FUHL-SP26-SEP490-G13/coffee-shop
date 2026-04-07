@@ -97,6 +97,9 @@ export default function FlashSaleSection({ products, getThumbnail, getDefaultCar
 
     const cartItem = {
       productSizeId: cartSize.id,
+      id: product.id,
+      product_id: product.id,
+      slug: product.slug,
       name: product.name,
       image: getThumbnail(product),
       size: cartSize.size,

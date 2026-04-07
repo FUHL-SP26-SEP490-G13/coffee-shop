@@ -40,6 +40,7 @@ import flashSaleService from "@/services/flashSaleService";
 import receiptSettingService from "@/services/receiptSettingService";
 import { geocodeAddress, getDrivingDistance, calculateShippingFee } from "@/utils/distanceCalculator";
 import { Loader2 } from "lucide-react";
+import { useStoreHours } from "@/hooks/useStoreHours";
 
 const DELIVERY_SHIPPING_FEE = 20000;
 const LOYALTY_MONEY_PER_POINT = 100;
@@ -51,6 +52,7 @@ export default function CheckoutPage() {
   useDocumentTitle("Thanh toán");
   const navigate = useNavigate();
   const [cart, setCart] = useState(() => cartService.getCart());
+  const { isOpen, nextOpenMessage } = useStoreHours();
 
   useEffect(() => {
     const handleCartUpdate = () => {
@@ -131,6 +133,11 @@ export default function CheckoutPage() {
 
   const handleAddCrossSell = (e, product) => {
     e.preventDefault();
+    if (!isOpen) {
+      toast.error(nextOpenMessage || "Cửa hàng hiện đang đóng cửa");
+      return;
+    }
+    
     if (!product.sizes || product.sizes.length === 0) {
       toast.error("Sản phẩm không có size");
       return;
@@ -953,7 +960,7 @@ export default function CheckoutPage() {
                   className="flex items-start justify-between gap-3"
                 >
                   <div className="flex items-start gap-3 flex-1 text-left">
-                    <div className="w-12 h-12 shrink-0 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-100 dark:border-gray-800 flex items-center justify-center p-1.5 overflow-hidden mix-blend-multiply dark:mix-blend-normal">
+                    <div className="w-12 h-12 shrink-0 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-100 dark:border-gray-800 flex items-center justify-center p-1.5 overflow-hidden mix-blend-multiply dark:mix-blend-normal cursor-pointer transition-opacity hover:opacity-80" onClick={() => navigate(`/${item.slug || 'products/' + (item.product_id || item.id)}`)}>
                       <img
                         src={item.image || "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085"}
                         alt={item.name}
@@ -965,7 +972,17 @@ export default function CheckoutPage() {
                       />
                     </div>
                     <div>
-                      <p className="font-medium text-sm leading-snug">{item.name}</p>
+                      <p 
+                        className="font-medium text-sm leading-snug cursor-pointer hover:text-amber-600 transition-colors"
+                        onClick={() => navigate(`/${item.slug || 'products/' + (item.product_id || item.id)}`)}
+                      >
+                        {item.name}
+                      </p>
+                      {activeSale && activeSale.product_ids?.includes(Number(item.product_id || item.id)) && (
+                        <div className="mt-0.5 text-[11px] text-red-600 font-bold">
+                          🔥 Flash sale
+                        </div>
+                      )}
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                         {item.size} x {item.quantity}
                       </p>
@@ -1139,19 +1156,39 @@ export default function CheckoutPage() {
                     return (
                       <div key={product.id} className="min-w-[120px] max-w-[120px] border rounded-xl p-2.5 bg-white dark:bg-gray-900 shadow-sm shrink-0 flex flex-col justify-between">
                         <div>
-                          <div className="w-full h-16 bg-gray-50 dark:bg-gray-800 rounded-lg overflow-hidden flex items-center justify-center p-1 mix-blend-multiply dark:mix-blend-normal mb-2">
+                          <div className="w-full h-16 bg-gray-50 dark:bg-gray-800 rounded-lg overflow-hidden flex items-center justify-center p-1 mix-blend-multiply dark:mix-blend-normal mb-2 cursor-pointer transition-opacity hover:opacity-80" onClick={() => navigate(`/${product.slug || 'products/' + product.id}`)}>
                             <img src={thumbnail} alt={product.name} className="w-full h-full object-contain" />
                           </div>
-                          <p className="text-[12px] font-medium leading-snug line-clamp-2">{product.name}</p>
-                        </div>
-                        <div className="mt-2 flex items-center justify-between gap-1">
-                          <span className="text-[11px] font-bold text-amber-600">{Number(fallbackPrice).toLocaleString("vi-VN")}đ</span>
-                          <button 
-                            onClick={(e) => handleAddCrossSell(e, product)}
-                            className="bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 p-1.5 rounded-full hover:bg-amber-200"
+                          <p 
+                            className="text-[12px] font-medium leading-snug line-clamp-2 cursor-pointer hover:text-amber-600 transition-colors"
+                            onClick={() => navigate(`/${product.slug || 'products/' + product.id}`)}
                           >
-                            <Plus className="w-3 h-3" />
-                          </button>
+                            {product.name}
+                          </p>
+                          {activeSale && activeSale.product_ids?.includes(Number(product.id)) && (
+                            <div className="mt-0.5 text-[10px] text-red-600 font-bold">
+                              🔥 Flash sale
+                            </div>
+                          )}
+                        </div>
+                        <div className="mt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                          <span className="text-[11px] font-bold text-amber-600">{Number(fallbackPrice).toLocaleString("vi-VN")}đ</span>
+                          {isOpen ? (
+                            <button 
+                              onClick={(e) => handleAddCrossSell(e, product)}
+                              className="bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 p-1.5 rounded-full hover:bg-amber-200 ml-auto"
+                            >
+                              <Plus className="w-3 h-3" />
+                            </button>
+                          ) : (
+                            <div
+                              onClick={(e) => e.stopPropagation()}
+                              className="flex items-center text-[9px] font-bold text-rose-600 bg-rose-50 px-1.5 py-1 rounded border border-rose-100 whitespace-nowrap shadow-sm cursor-not-allowed ml-auto"
+                              title={nextOpenMessage}
+                            >
+                              Đóng cửa
+                            </div>
+                          )}
                         </div>
                       </div>
                     );
@@ -1177,7 +1214,8 @@ export default function CheckoutPage() {
               cart={cart}
               totalAmount={totalAmount}
               shippingFee={shippingFee}
-              disabled={isShippingCalculating}
+              disabled={isShippingCalculating || !isOpen}
+              label={isOpen ? "Đặt hàng" : nextOpenMessage || "Đã đóng cửa"}
               onValidateError={(errs) => setErrors(errs)}
               onSuccess={() => navigate("/", { state: { orderSuccess: true } })}
             />

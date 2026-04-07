@@ -693,7 +693,7 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
     <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900 relative">
       <Header />
 
-      <div className="w-full mx-auto w-full px-4 sm:px-6 lg:px-8 pt-6">
+      <div className="w-full mx-auto px-4 sm:px-6 lg:px-8 pt-2 md:pt-4">
         <div className="text-base md:text-lg text-gray-500 dark:text-gray-400 mb-2 flex items-center flex-wrap gap-2 font-medium">
           {/* Nút 1: Lấy cố định chữ "Trang chủ" */}
           <span className="cursor-pointer hover:text-amber-600 transition-colors" onClick={() => navigate("/")}>Trang chủ</span>
