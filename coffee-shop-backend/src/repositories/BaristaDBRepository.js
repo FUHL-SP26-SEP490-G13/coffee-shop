@@ -117,6 +117,7 @@ class BaristaDBRepository {
     const [rows] = await pool.query(
       `
       SELECT
+        od.id,
         p.id AS productId,
         p.name AS productName,
         ps.id AS productSizeId,
@@ -132,6 +133,25 @@ class BaristaDBRepository {
       `,
       [orderId]
     );
+
+    for (const item of rows) {
+      const [toppings] = await pool.query(
+        `
+        SELECT
+          odt.id,
+          odt.topping_id,
+          odt.quantity,
+          odt.price,
+          t.name
+        FROM order_detail_toppings odt
+        JOIN toppings t ON t.id = odt.topping_id
+        WHERE odt.order_detail_id = ?
+        `,
+        [item.id] // Use item.id from order_details
+      );
+
+      item.toppings = toppings;
+    }
 
     return rows;
   }
