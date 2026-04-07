@@ -6,7 +6,8 @@ const ErrorResponse = require("../utils/ErrorResponse");
 class OrderOnlineService {
   static LEGACY_DELIVERY_SHIPPING_FEE = 20000;
   static DYNAMIC_SHIPPING_ROLLOUT_AT = new Date("2026-04-07T00:00:00.000Z").getTime();
-  static MAX_DELIVERY_DISTANCE_KM = 15;
+  static MONEY_ROUNDING_UNIT = 100;
+  static MAX_DELIVERY_DISTANCE_KM = 10;
   static FIRST_TIER_MAX_KM = 5;
   static FIRST_TIER_RATE = 2000;
   static SECOND_TIER_RATE = 1500;
@@ -94,7 +95,7 @@ class OrderOnlineService {
       tierOneKm * OrderOnlineService.FIRST_TIER_RATE +
       tierTwoKm * OrderOnlineService.SECOND_TIER_RATE;
 
-    return Math.round(fee);
+    return Math.round(fee / OrderOnlineService.MONEY_ROUNDING_UNIT) * OrderOnlineService.MONEY_ROUNDING_UNIT;
   }
 
   calculateItemsSubtotal(items = []) {
@@ -119,7 +120,10 @@ class OrderOnlineService {
 
     const feeFromOrder = Number(order?.delivery_fee ?? order?.shipping_fee);
     if (Number.isFinite(feeFromOrder) && feeFromOrder > 0) {
-      return Math.round(feeFromOrder);
+      return (
+        Math.round(feeFromOrder / OrderOnlineService.MONEY_ROUNDING_UNIT) *
+        OrderOnlineService.MONEY_ROUNDING_UNIT
+      );
     }
 
     const loyaltyDiscountAmount =
@@ -127,7 +131,11 @@ class OrderOnlineService {
     const orderTotal = Math.max(0, Number(order?.total_amount || 0));
     const itemsSubtotal = this.calculateItemsSubtotal(items);
 
-    const derived = Math.round(orderTotal + loyaltyDiscountAmount - itemsSubtotal);
+    const derived =
+      Math.round(
+        (orderTotal + loyaltyDiscountAmount - itemsSubtotal) /
+          OrderOnlineService.MONEY_ROUNDING_UNIT
+      ) * OrderOnlineService.MONEY_ROUNDING_UNIT;
     if (Number.isFinite(derived) && derived > 0) {
       return derived;
     }

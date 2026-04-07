@@ -4,6 +4,7 @@ import receiptSettingService from '@/services/receiptSettingService';
 
 const fmt = (n) => Number(n).toLocaleString('vi-VN') + ' đ';
 const LOYALTY_MONEY_PER_POINT = 100;
+const MONEY_ROUNDING_UNIT = 100;
 const LEGACY_DELIVERY_SHIPPING_FEE = 20000;
 const DYNAMIC_SHIPPING_ROLLOUT_AT = new Date("2026-04-07T00:00:00.000Z").getTime();
 
@@ -61,14 +62,15 @@ const getShippingFee = (order, subtotal) => {
 
   const feeFromApi = Number(order?.shipping_fee);
   if (Number.isFinite(feeFromApi) && feeFromApi > 0) {
-    return Math.round(feeFromApi);
+    return Math.round(feeFromApi / MONEY_ROUNDING_UNIT) * MONEY_ROUNDING_UNIT;
   }
 
   const loyaltyDiscountAmount =
     Math.max(0, Number(order?.used_points || 0)) * LOYALTY_MONEY_PER_POINT;
   const derivedFee = Number(order?.total_amount || 0) + loyaltyDiscountAmount - Number(subtotal || 0);
 
-  const normalizedDerivedFee = Math.round(derivedFee);
+  const normalizedDerivedFee =
+    Math.round(derivedFee / MONEY_ROUNDING_UNIT) * MONEY_ROUNDING_UNIT;
   if (Number.isFinite(normalizedDerivedFee) && normalizedDerivedFee > 0) {
     return normalizedDerivedFee;
   }

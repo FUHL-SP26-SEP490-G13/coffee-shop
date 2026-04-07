@@ -6,7 +6,8 @@
 const NOMINATIM_BASE_URL = "https://nominatim.openstreetmap.org/search";
 const OSRM_BASE_URL = "https://router.project-osrm.org/route/v1/driving";
 const HANOI_VIEWBOX = "105.28,21.35,106.03,20.8";
-export const MAX_DELIVERY_DISTANCE_KM = 15;
+const MONEY_ROUNDING_UNIT = 100;
+export const MAX_DELIVERY_DISTANCE_KM = 10;
 
 const GEOCODE_STOP_WORDS = new Set([
   "viet",
@@ -229,7 +230,7 @@ export const getDrivingDistance = async (origin, destination) => {
  * Quy tắc gía:
  * - 0 - 5km: 2,000đ/km
  * - Trên 5km: 1,500đ/km từ km thứ 6
- * - Từ 15km trở lên: không hỗ trợ đặt giao hàng
+ * - Từ 10km trở lên: không hỗ trợ đặt giao hàng
  * @param {number} distanceMeters - Khoảng cách theo mét
  * @returns {{isDeliverable: boolean, fee: number, distanceKm: number, exceededByKm: number}}
  */
@@ -251,7 +252,7 @@ export const getShippingQuote = (distanceMeters) => {
 
   return {
     isDeliverable: true,
-    fee: Math.round(fee),
+    fee: Math.round(fee / MONEY_ROUNDING_UNIT) * MONEY_ROUNDING_UNIT,
     distanceKm: km,
     exceededByKm: 0,
   };

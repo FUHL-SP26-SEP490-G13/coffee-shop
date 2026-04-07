@@ -129,9 +129,9 @@ function OrderPolicy() {
               <li>• Hệ thống tính phí theo khoảng cách thực tế từ quán đến điểm giao hàng.</li>
               <li>• Từ 1km đến 5km: <strong>2.000đ/km</strong>.</li>
               <li>• Từ km thứ 6 trở đi: <strong>1.500đ/km</strong> cho phần vượt 5km.</li>
-              <li>• Đơn hàng có khoảng cách từ <strong>15km trở lên</strong> sẽ không thể đặt giao hàng để không làm ảnh hưởng đến chất lượng dịch vụ.</li>
+              <li>• Đơn hàng có khoảng cách từ <strong>10km trở lên</strong> sẽ không thể đặt giao hàng để không làm ảnh hưởng đến chất lượng dịch vụ.</li>
               <li>• Ví dụ: khoảng cách 7km =&gt; phí giao hàng = 5 x 2.000 + 2 x 1.500 = <strong>13.000đ</strong>.</li>
-              <li>• Ví dụ: khoảng cách 60km =&gt; vượt ngưỡng tối đa 15km là 45km, hệ thống sẽ báo <strong>ngoài phạm vi giao hàng</strong>.</li>
+              <li>• Ví dụ: khoảng cách 60km =&gt; vượt ngưỡng tối đa 10km là 50km, hệ thống sẽ báo <strong>ngoài phạm vi giao hàng</strong>.</li>
             </ul>
           </PolicyCard>
         </div>

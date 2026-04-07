@@ -22,6 +22,7 @@ import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 const PAGE_SIZE = 5;
 const LOYALTY_MONEY_PER_POINT = 100;
 const LEGACY_DELIVERY_SHIPPING_FEE = 20000;
+const MONEY_ROUNDING_UNIT = 100;
 const DYNAMIC_SHIPPING_ROLLOUT_AT = new Date("2026-04-07T00:00:00.000Z").getTime();
 const STATUS_TABS = [
   "pending",
@@ -159,14 +160,17 @@ export default function MyOrderOnlinePage() {
     if (order.order_type !== "delivery") return 0;
 
     const feeFromApi = Number(order.shipping_fee);
-    if (Number.isFinite(feeFromApi) && feeFromApi > 0) return feeFromApi;
+    if (Number.isFinite(feeFromApi) && feeFromApi > 0) {
+      return Math.round(feeFromApi / MONEY_ROUNDING_UNIT) * MONEY_ROUNDING_UNIT;
+    }
 
     const loyaltyDiscount =
       Math.max(0, Number(order.used_points || 0)) * LOYALTY_MONEY_PER_POINT;
     const derivedFee =
       Number(order.total_amount || 0) + loyaltyDiscount - getItemsSubtotal(order.items);
 
-    const normalizedDerivedFee = Math.round(derivedFee);
+    const normalizedDerivedFee =
+      Math.round(derivedFee / MONEY_ROUNDING_UNIT) * MONEY_ROUNDING_UNIT;
     if (Number.isFinite(normalizedDerivedFee) && normalizedDerivedFee > 0) {
       return normalizedDerivedFee;
     }

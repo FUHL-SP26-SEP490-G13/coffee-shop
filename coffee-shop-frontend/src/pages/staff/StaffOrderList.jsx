@@ -71,6 +71,7 @@ const ORDER_TYPE_COLUMNS = [
 ];
 
 const LOYALTY_MONEY_PER_POINT = 100;
+const MONEY_ROUNDING_UNIT = 100;
 const LEGACY_DELIVERY_SHIPPING_FEE = 20000;
 const DYNAMIC_SHIPPING_ROLLOUT_AT = new Date("2026-04-07T00:00:00.000Z").getTime();
 
@@ -114,7 +115,7 @@ const getShippingFee = (order) => {
 
   const feeFromApi = Number(order?.shipping_fee);
   if (Number.isFinite(feeFromApi) && feeFromApi > 0) {
-    return Math.round(feeFromApi);
+    return Math.round(feeFromApi / MONEY_ROUNDING_UNIT) * MONEY_ROUNDING_UNIT;
   }
 
   const loyaltyDiscountAmount =
@@ -122,7 +123,9 @@ const getShippingFee = (order) => {
   const orderTotal = Math.max(0, Number(order?.total_amount || 0));
   const itemsSubtotal = calculateOrderItemsSubtotal(order?.items);
 
-  const derived = Math.round(orderTotal + loyaltyDiscountAmount - itemsSubtotal);
+  const derived =
+    Math.round((orderTotal + loyaltyDiscountAmount - itemsSubtotal) / MONEY_ROUNDING_UNIT) *
+    MONEY_ROUNDING_UNIT;
   if (Number.isFinite(derived) && derived > 0) {
     return derived;
   }
