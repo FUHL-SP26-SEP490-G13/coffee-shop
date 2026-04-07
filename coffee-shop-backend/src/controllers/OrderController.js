@@ -109,6 +109,21 @@ class OrderController {
       next(error);
     }
   }
+
+  async updateOrderItems(req, res, next) {
+    try {
+      const orderId = Number(req.params.id);
+      const { items } = req.body;
+      const result = await OrderService.updateOrderItems(orderId, items);
+      return res.json({
+        success: true,
+        data: result,
+        message: 'Cập nhật đơn hàng thành công',
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 module.exports = new OrderController();

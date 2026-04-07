@@ -22,7 +22,7 @@ const formatVND = (amount) =>
 const BILLS = [10000, 20000, 50000, 100000, 200000, 500000];
 
 
-export function PaySplitBillModal({ isOpen, onClose, table, onSuccess }) {
+export function PaySplitBillModal({ isOpen, onClose, table, onSuccess, onPartialPayment }) {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [payingOrderId, setPayingOrderId] = useState(null);
@@ -136,6 +136,9 @@ export function PaySplitBillModal({ isOpen, onClose, table, onSuccess }) {
         if (remainingOrders.length === 0) {
           onSuccess?.();
           onClose();
+        } else {
+          // Still more orders to pay — notify parent to refresh debt badge
+          onPartialPayment?.();
         }
       }
     } catch (err) {
