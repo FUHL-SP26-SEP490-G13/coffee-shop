@@ -97,21 +97,21 @@ const ReviewItem = ({ item }) => {
                 );
               })}
             </div>
-            
+
             {expandedIndex !== null && (
-               <div className="relative w-full max-w-[400px] mb-4 bg-black flex items-center justify-center border border-gray-200 dark:border-gray-800 overflow-hidden group/large">
-                  {isVideo(item.images[expandedIndex].url) ? (
-                     <video src={item.images[expandedIndex].url} controls autoPlay className="w-full max-h-[400px] object-contain" />
-                  ) : (
-                     <img src={item.images[expandedIndex].url} alt="Expanded review" className="w-full max-h-[400px] object-contain" />
-                  )}
-                  {item.images.length > 1 && (
-                     <>
-                        <button onClick={() => setExpandedIndex(prev => prev === 0 ? item.images.length - 1 : prev - 1)} className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center bg-white/50 hover:bg-white text-gray-800 rounded-full shadow-sm transition opacity-0 group-hover/large:opacity-100"><ChevronLeft className="w-5 h-5"/></button>
-                        <button onClick={() => setExpandedIndex(prev => prev === item.images.length - 1 ? 0 : prev + 1)} className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center bg-white/50 hover:bg-white text-gray-800 rounded-full shadow-sm transition opacity-0 group-hover/large:opacity-100"><ChevronRight className="w-5 h-5"/></button>
-                     </>
-                  )}
-               </div>
+              <div className="relative w-full max-w-[400px] mb-4 bg-black flex items-center justify-center border border-gray-200 dark:border-gray-800 overflow-hidden group/large">
+                {isVideo(item.images[expandedIndex].url) ? (
+                  <video src={item.images[expandedIndex].url} controls autoPlay className="w-full max-h-[400px] object-contain" />
+                ) : (
+                  <img src={item.images[expandedIndex].url} alt="Expanded review" className="w-full max-h-[400px] object-contain" />
+                )}
+                {item.images.length > 1 && (
+                  <>
+                    <button onClick={() => setExpandedIndex(prev => prev === 0 ? item.images.length - 1 : prev - 1)} className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center bg-white/50 hover:bg-white text-gray-800 rounded-full shadow-sm transition opacity-0 group-hover/large:opacity-100"><ChevronLeft className="w-5 h-5" /></button>
+                    <button onClick={() => setExpandedIndex(prev => prev === item.images.length - 1 ? 0 : prev + 1)} className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center bg-white/50 hover:bg-white text-gray-800 rounded-full shadow-sm transition opacity-0 group-hover/large:opacity-100"><ChevronRight className="w-5 h-5" /></button>
+                  </>
+                )}
+              </div>
             )}
           </div>
         )}
@@ -404,11 +404,11 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
 
     const isVideoUrl = (url) => typeof url === 'string' && (url.match(/\.(mp4|webm|ogg)$/i) || url.includes('video/upload'));
 
-    let currentImagesCount = myImages.filter(img => !img.file.type.startsWith('video/')).length + 
-                             existingImages.filter(img => !isVideoUrl(img.url)).length;
-                             
-    let currentVideosCount = myImages.filter(img => img.file.type.startsWith('video/')).length + 
-                             existingImages.filter(img => isVideoUrl(img.url)).length;
+    let currentImagesCount = myImages.filter(img => !img.file.type.startsWith('video/')).length +
+      existingImages.filter(img => !isVideoUrl(img.url)).length;
+
+    let currentVideosCount = myImages.filter(img => img.file.type.startsWith('video/')).length +
+      existingImages.filter(img => isVideoUrl(img.url)).length;
 
     const validFiles = [];
 
@@ -693,36 +693,32 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
     <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900 relative">
       <Header />
 
-      <div className="w-full mx-auto px-4 sm:px-6 lg:px-8 pt-2 md:pt-4">
-        <div className="text-base md:text-lg text-gray-500 dark:text-gray-400 mb-2 flex items-center flex-wrap gap-2 font-medium">
-          {/* Nút 1: Lấy cố định chữ "Trang chủ" */}
-          <span className="cursor-pointer hover:text-amber-600 transition-colors" onClick={() => navigate("/")}>Trang chủ</span>
-          {/* Nút 2: Nếu có thông tin danh mục, sẽ in ra "/" và "Tên Danh Mục" (VD: Nước ngọt) */}
-          {(productData || product)?.category_name && (
-            <>
-              <span className="text-gray-400">/</span>
-              <span
-                className="cursor-pointer hover:text-amber-600 transition-colors"
-                onClick={() => navigate(`/${(productData || product).category_slug}`)}
-              >
-                {(productData || product).category_name}
-              </span>
-            </>
-          )}
-          {/* Nút 3: Nếu có thông tin tên sản phẩm, sẽ in ra "/" và "Tên Sản Phẩm" in đậm (VD: Bò húc) */}
-          {(productData || product)?.name && (
-            <>
-              <span className="text-gray-400">/</span>
-              <span className="text-amber-600 font-bold">{(productData || product).name}</span>
-            </>
-          )}
+      <main className="flex-1 w-full mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 pt-2 md:pt-4 pb-10 md:pb-16 mb-5">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 min-h-[50px]">
+          <div className="text-base md:text-lg text-gray-500 dark:text-gray-400 flex items-center flex-wrap gap-2 font-medium">
+            {/* Nút 1: Lấy cố định chữ "Trang chủ" */}
+            <span className="cursor-pointer hover:text-amber-600 transition-colors" onClick={() => navigate("/")}>Trang chủ</span>
+            {/* Nút 2: Nếu có thông tin danh mục, sẽ in ra "/" và "Tên Danh Mục" (VD: Nước ngọt) */}
+            {(productData || product)?.category_name && (
+              <>
+                <span className="text-gray-400">/</span>
+                <span
+                  className="cursor-pointer hover:text-amber-600 transition-colors"
+                  onClick={() => navigate(`/${(productData || product).category_slug}`)}
+                >
+                  {(productData || product).category_name}
+                </span>
+              </>
+            )}
+            {/* Nút 3: Nếu có thông tin tên sản phẩm, sẽ in ra "/" và "Tên Sản Phẩm" in đậm (VD: Bò húc) */}
+            {(productData || product)?.name && (
+              <>
+                <span className="text-gray-400">/</span>
+                <span className="text-amber-600 font-bold">{(productData || product).name}</span>
+              </>
+            )}
+          </div>
         </div>
-      </div>
-
-
-
-      <section className="w-full px-4 sm:px-6 lg:px-8 py-14">
-
 
         <div className="w-full mx-auto grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
           <div className="flex flex-col gap-6">
@@ -1238,7 +1234,7 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
             )}
           </div>
         </div>
-      </section>
+      </main>
 
       <section className="w-full px-4 sm:px-6 lg:px-8 pb-14">
         <div className="w-full mx-auto">

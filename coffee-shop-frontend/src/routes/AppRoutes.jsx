@@ -19,7 +19,6 @@ import AdminProducts from "@/pages/admin/AdminProduct/AdminProducts";
 import AdminCategories from "@/pages/admin/AdminCategory/AdminCategories";
 import NewsDetailPage from "@/pages/homePage/news/NewsDetailPage";
 import NewsListPage from "@/pages/homePage/news/NewsListPage";
-import DiscountListPage from "@/pages/homePage/discount/DiscountListPage";
 import AdminDiscounts from "@/pages/admin/AdminDiscount/AdminDiscounts";
 import AdminRequests from "../pages/admin/AdminRequest/AdminRequests";
 // import AdminDiscountCreate from "@/pages/admin/AdminDiscount/AdminDiscountCreate";
@@ -221,7 +220,6 @@ const AppRoutes = () => {
       </Route>
       <Route path="/news/:slug" element={<NewsDetailPage />} />
       <Route path="/news" element={<NewsListPage />} />
-      <Route path="/discounts" element={<DiscountListPage />} />
       <Route path="/store" element={<StoreInfoPage />} />
       <Route path="/about-us" element={<AboutUsPage />} />
       <Route path="/customer/profile" element={<UserProfile />} />

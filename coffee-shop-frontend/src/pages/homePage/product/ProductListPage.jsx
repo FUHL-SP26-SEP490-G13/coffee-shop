@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { Loader2, Filter, X, Star, ShoppingCart } from "lucide-react";
 import Header from "@/components/layout/Header";
@@ -23,6 +23,7 @@ const SIZES = ["S", "M", "L"];
 export default function ProductListPage({ categoryIdOverride, categoryName, categorySlug }) {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const sidebarRef = useRef(null);
   const { isOpen: isStoreOpen, nextOpenMessage } = useStoreHours();
   const [addedCartItem, setAddedCartItem] = useState(null);
   const [quickViewProduct, setQuickViewProduct] = useState(null);
@@ -160,6 +161,12 @@ export default function ProductListPage({ categoryIdOverride, categoryName, cate
     return productService.getAll(params);
   }, [categoryId, keyword, currentPage, sortBy, filterSize, filterMinPrice, filterMaxPrice, filterMinRating]);
 
+  useEffect(() => {
+    if (sidebarRef.current) {
+      sidebarRef.current.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }, [searchParams]);
+
   const { data, loading } = useFetch(fetchProducts);
 
   const defaultImage =
@@ -247,9 +254,8 @@ export default function ProductListPage({ categoryIdOverride, categoryName, cate
     <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900">
       <Header />
 
-      <section className="w-full px-4 sm:px-6 lg:px-8 pt-2 md:pt-4 pb-10 md:pb-16 mb-5">
-        <div className="w-full mx-auto">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+      <main className="flex-1 w-full mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 pt-2 md:pt-4 pb-10 md:pb-16 mb-5">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 min-h-[50px]">
             <div className="text-base md:text-lg text-gray-500 dark:text-gray-400 flex items-center space-x-2 font-medium">
               <span className="cursor-pointer hover:text-amber-600 transition-colors" onClick={() => navigate("/")}>Trang chủ</span>
               {categoryName && (
@@ -288,7 +294,7 @@ export default function ProductListPage({ categoryIdOverride, categoryName, cate
           <div className="flex flex-col lg:flex-row gap-8">
             {/* Sidebar */}
             <div className={`lg:w-64 flex-shrink-0 ${mobileFilterOpen ? 'block' : 'hidden'} lg:block`}>
-              <div className="bg-gray-50 dark:bg-gray-950 p-6 rounded-2xl lg:bg-transparent lg:p-0 lg:sticky lg:top-24 space-y-8">
+              <div ref={sidebarRef} className="bg-gray-50 dark:bg-gray-950 p-6 rounded-2xl lg:bg-transparent lg:py-0 lg:px-1 lg:-ml-1 lg:sticky lg:top-24 lg:h-[calc(100vh-6rem)] lg:overflow-y-auto lg:pr-2 custom-scrollbar space-y-8">
                 <div className="flex justify-between items-center lg:hidden mb-4">
                   <h2 className="text-xl font-bold">Bộ Lọc</h2>
                   <Button variant="ghost" size="icon" onClick={() => setMobileFilterOpen(false)}><X className="w-5 h-5" /></Button>
@@ -639,10 +645,9 @@ export default function ProductListPage({ categoryIdOverride, categoryName, cate
 
                 </>
               )}
-            </div>
           </div>
         </div>
-      </section>
+      </main>
 
       <Footer />
 

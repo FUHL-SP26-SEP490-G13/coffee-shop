@@ -102,13 +102,6 @@ export default function CheckoutPage() {
   const [deliveryDistanceKm, setDeliveryDistanceKm] = useState(null);
   const [isShippingCalculating, setIsShippingCalculating] = useState(false);
 
-  const [isVatRequested, setIsVatRequested] = useState(false);
-  const [vatInfo, setVatInfo] = useState({
-    companyName: "",
-    taxCode: "",
-    companyAddress: ""
-  });
-
   const [crossSells, setCrossSells] = useState([]);
 
   useEffect(() => {
@@ -928,26 +921,6 @@ export default function CheckoutPage() {
               )}
             </div>
 
-            <div className="mt-4 p-4 border border-amber-100 dark:border-amber-900/40 rounded-xl bg-orange-50/50 dark:bg-amber-900/10">
-               <label className="flex items-center gap-2 cursor-pointer font-medium text-sm text-amber-900 dark:text-amber-500">
-                 <input type="checkbox" checked={isVatRequested} onChange={(e) => setIsVatRequested(e.target.checked)} className="w-4 h-4 rounded text-amber-600 focus:ring-amber-500 accent-amber-600" />
-                 Yêu cầu xuất hoá đơn công ty (VAT)
-               </label>
-               
-               {isVatRequested && (
-                 <div className="mt-3 space-y-3 pl-6 border-l-2 border-amber-200 dark:border-amber-800/50">
-                    <div>
-                      <Input placeholder="Tên công ty" value={vatInfo.companyName} onChange={e => setVatInfo(prev => ({...prev, companyName: e.target.value}))} />
-                    </div>
-                    <div>
-                      <Input placeholder="Mã số thuế" value={vatInfo.taxCode} onChange={e => setVatInfo(prev => ({...prev, taxCode: e.target.value}))} />
-                    </div>
-                    <div>
-                      <Input placeholder="Địa chỉ nhận hóa đơn" value={vatInfo.companyAddress} onChange={e => setVatInfo(prev => ({...prev, companyAddress: e.target.value}))} />
-                    </div>
-                 </div>
-               )}
-            </div>
           </div>
 
           <div className="border rounded-2xl p-5 bg-gray-50 dark:bg-gray-950 h-fit lg:sticky lg:top-24">
@@ -1136,7 +1109,6 @@ export default function CheckoutPage() {
               <div className="flex justify-between text-base font-bold">
                 <div className="flex flex-col">
                   <span>Tổng cộng</span>
-                  <span className="text-xs font-normal text-gray-500 mt-2">(Đã bao gồm VAT nếu có)</span>
                 </div>
                 <span className="text-amber-600">
                   {totalAmount.toLocaleString("vi-VN")}đ
@@ -1205,12 +1177,7 @@ export default function CheckoutPage() {
             </p>
 
             <PlaceOrderButton
-              form={{
-                ...form,
-                note: (isVatRequested && (vatInfo.companyName || vatInfo.taxCode)) 
-                  ? `${form.note ? form.note + '\n\n' : ''}[YÊU CẦU VAT] Tên CT: ${vatInfo.companyName || 'N/A'}, MST: ${vatInfo.taxCode || 'N/A'}, Đ/c: ${vatInfo.companyAddress || 'N/A'}` 
-                  : form.note
-              }}
+              form={form}
               cart={cart}
               totalAmount={totalAmount}
               shippingFee={shippingFee}
