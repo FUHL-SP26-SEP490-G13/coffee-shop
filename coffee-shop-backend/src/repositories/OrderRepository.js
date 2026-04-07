@@ -79,10 +79,11 @@ class OrderRepository {
         status,
         is_paid,
         total_amount,
+        delivery_fee,
         used_points,
         session_id
       )
-      VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?)
       `,
       [
         data.user_id,
@@ -92,6 +93,7 @@ class OrderRepository {
         data.table_id || null,
         safeStatus,
         data.total_amount,
+        Math.max(0, Number(data.delivery_fee) || 0),
         safeUsedPoints,
         data.session_id || null,
       ]
@@ -141,9 +143,14 @@ class OrderRepository {
         receiver_phone,
         receiver_email,
         address,
-        note
+        note,
+        store_latitude,
+        store_longitude,
+        customer_latitude,
+        customer_longitude,
+        coordinates_source
       )
-      VALUES (?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `,
       [
         data.order_id,
@@ -152,6 +159,11 @@ class OrderRepository {
         data.receiver_email,
         data.address,
         data.note,
+        data.store_latitude,
+        data.store_longitude,
+        data.customer_latitude,
+        data.customer_longitude,
+        data.coordinates_source,
       ]
     );
   }
@@ -358,6 +370,7 @@ class OrderRepository {
         status,
         is_paid,
         total_amount,
+        delivery_fee,
         used_points,
         created_at,
         paid_at
@@ -382,6 +395,7 @@ class OrderRepository {
         o.print_status,
         o.is_paid,
         o.total_amount,
+        o.delivery_fee,
         o.used_points,
         o.created_at,
         o.paid_at,
@@ -416,6 +430,7 @@ class OrderRepository {
         o.status,
         o.is_paid,
         o.total_amount,
+        o.delivery_fee,
         o.used_points,
         o.created_at,
         op.payment_method,
@@ -441,6 +456,7 @@ class OrderRepository {
         o.status,
         o.is_paid,
         o.total_amount,
+        o.delivery_fee,
         o.used_points,
         o.created_at,
         o.paid_at,
@@ -607,6 +623,7 @@ class OrderRepository {
         o.status,
         o.is_paid,
         o.total_amount,
+        o.delivery_fee,
         o.used_points,
         o.created_at,
         o.paid_at,

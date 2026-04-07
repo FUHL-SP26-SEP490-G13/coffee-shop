@@ -20,6 +20,9 @@ import { useStoreHours } from "@/hooks/useStoreHours";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 const PAGE_SIZE = 5;
+const LOYALTY_MONEY_PER_POINT = 100;
+const LEGACY_DELIVERY_SHIPPING_FEE = 20000;
+const DYNAMIC_SHIPPING_ROLLOUT_AT = new Date("2026-04-07T00:00:00.000Z").getTime();
 const STATUS_TABS = [
   "pending",
   "preparing",
@@ -138,6 +141,41 @@ export default function MyOrderOnlinePage() {
       default:
         return "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300";
     }
+  };
+
+  const getItemsSubtotal = (items) =>
+    (Array.isArray(items) ? items : []).reduce((sum, item) => {
+      const quantity = Math.max(1, Number(item?.quantity) || 1);
+      const unitPrice = Number(item?.price ?? item?.unit_price ?? 0);
+      return sum + Math.max(0, unitPrice * quantity);
+    }, 0);
+
+  const shouldUseLegacyShippingFallback = (order) => {
+    const createdAtMs = new Date(order?.created_at || 0).getTime();
+    return Number.isFinite(createdAtMs) && createdAtMs < DYNAMIC_SHIPPING_ROLLOUT_AT;
+  };
+
+  const getShippingFee = (order) => {
+    if (order.order_type !== "delivery") return 0;
+
+    const feeFromApi = Number(order.shipping_fee);
+    if (Number.isFinite(feeFromApi) && feeFromApi > 0) return feeFromApi;
+
+    const loyaltyDiscount =
+      Math.max(0, Number(order.used_points || 0)) * LOYALTY_MONEY_PER_POINT;
+    const derivedFee =
+      Number(order.total_amount || 0) + loyaltyDiscount - getItemsSubtotal(order.items);
+
+    const normalizedDerivedFee = Math.round(derivedFee);
+    if (Number.isFinite(normalizedDerivedFee) && normalizedDerivedFee > 0) {
+      return normalizedDerivedFee;
+    }
+
+    if (shouldUseLegacyShippingFallback(order)) {
+      return LEGACY_DELIVERY_SHIPPING_FEE;
+    }
+
+    return 0;
   };
 
   const onBuyAgain = async (orderId) => {
@@ -336,6 +374,11 @@ export default function MyOrderOnlinePage() {
                                 )}
                                 đ
                               </p>
+                              {order.order_type === "delivery" && (
+                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                  Phí ship: {getShippingFee(order).toLocaleString("vi-VN")}đ
+                                </p>
+                              )}
                             </div>
                           </div>
                         </div>

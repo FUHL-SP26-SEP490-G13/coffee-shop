@@ -4,7 +4,13 @@ const LoyaltyService = require("./LoyaltyService");
 const ErrorResponse = require("../utils/ErrorResponse");
 
 class OrderOnlineService {
-  static DELIVERY_SHIPPING_FEE = 20000;
+  static LEGACY_DELIVERY_SHIPPING_FEE = 20000;
+  static DYNAMIC_SHIPPING_ROLLOUT_AT = new Date("2026-04-07T00:00:00.000Z").getTime();
+  static MAX_DELIVERY_DISTANCE_KM = 15;
+  static FIRST_TIER_MAX_KM = 5;
+  static FIRST_TIER_RATE = 2000;
+  static SECOND_TIER_RATE = 1500;
+  static OSRM_BASE_URL = "https://router.project-osrm.org/route/v1/driving";
 
   createBadRequestError(message) {
     const error = new Error(message);
@@ -25,6 +31,112 @@ class OrderOnlineService {
     }
 
     return onlyDigits;
+  }
+
+  getHaversineDistanceMeters(lat1, lon1, lat2, lon2) {
+    const R = 6371e3;
+    const phi1 = (lat1 * Math.PI) / 180;
+    const phi2 = (lat2 * Math.PI) / 180;
+    const deltaPhi = ((lat2 - lat1) * Math.PI) / 180;
+    const deltaLambda = ((lon2 - lon1) * Math.PI) / 180;
+
+    const a =
+      Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) +
+      Math.cos(phi1) * Math.cos(phi2) *
+      Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2);
+
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }
+
+  async getDrivingDistanceKm(originLat, originLng, destinationLat, destinationLng) {
+    try {
+      const url = `${OrderOnlineService.OSRM_BASE_URL}/${originLng},${originLat};${destinationLng},${destinationLat}?overview=false`;
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        throw new Error("OSRM request failed");
+      }
+
+      const data = await response.json();
+      if (data?.code === "Ok" && Array.isArray(data.routes) && data.routes.length > 0) {
+        return Number(data.routes[0].distance) / 1000;
+      }
+
+      throw new Error("No route returned from OSRM");
+    } catch (error) {
+      const straightMeters = this.getHaversineDistanceMeters(
+        originLat,
+        originLng,
+        destinationLat,
+        destinationLng
+      );
+      return (straightMeters * 1.3) / 1000;
+    }
+  }
+
+  calculateShippingFeeByDistanceKm(distanceKm) {
+    const normalizedDistance = Math.max(0, Number(distanceKm || 0));
+    const maxDistance = OrderOnlineService.MAX_DELIVERY_DISTANCE_KM;
+
+    if (normalizedDistance >= maxDistance) {
+      const exceededByKm = normalizedDistance - maxDistance;
+      throw new ErrorResponse(
+        400,
+        `Khoảng cách ${normalizedDistance.toFixed(1)}km vượt quá giới hạn giao hàng ${maxDistance}km (vượt ${exceededByKm.toFixed(1)}km).`
+      );
+    }
+
+    const tierOneKm = Math.min(normalizedDistance, OrderOnlineService.FIRST_TIER_MAX_KM);
+    const tierTwoKm = Math.max(0, normalizedDistance - OrderOnlineService.FIRST_TIER_MAX_KM);
+
+    const fee =
+      tierOneKm * OrderOnlineService.FIRST_TIER_RATE +
+      tierTwoKm * OrderOnlineService.SECOND_TIER_RATE;
+
+    return Math.round(fee);
+  }
+
+  calculateItemsSubtotal(items = []) {
+    if (!Array.isArray(items)) return 0;
+
+    return items.reduce((sum, item) => {
+      const itemQuantity = Math.max(1, Number(item?.quantity) || 1);
+      const unitPrice = Number(item?.price ?? item?.unit_price ?? 0);
+      return sum + Math.max(0, unitPrice * itemQuantity);
+    }, 0);
+  }
+
+  shouldUseLegacyShippingFallback(order) {
+    const createdAtMs = new Date(order?.created_at || 0).getTime();
+    return Number.isFinite(createdAtMs) && createdAtMs < OrderOnlineService.DYNAMIC_SHIPPING_ROLLOUT_AT;
+  }
+
+  getDerivedShippingFee(order, items = []) {
+    if (String(order?.order_type || "").toLowerCase() !== "delivery") {
+      return 0;
+    }
+
+    const feeFromOrder = Number(order?.delivery_fee ?? order?.shipping_fee);
+    if (Number.isFinite(feeFromOrder) && feeFromOrder > 0) {
+      return Math.round(feeFromOrder);
+    }
+
+    const loyaltyDiscountAmount =
+      Math.max(0, Number(order?.used_points || 0)) * LoyaltyService.MONEY_PER_POINT;
+    const orderTotal = Math.max(0, Number(order?.total_amount || 0));
+    const itemsSubtotal = this.calculateItemsSubtotal(items);
+
+    const derived = Math.round(orderTotal + loyaltyDiscountAmount - itemsSubtotal);
+    if (Number.isFinite(derived) && derived > 0) {
+      return derived;
+    }
+
+    if (this.shouldUseLegacyShippingFallback(order)) {
+      return OrderOnlineService.LEGACY_DELIVERY_SHIPPING_FEE;
+    }
+
+    return 0;
   }
 
   async calculateCartAmounts(connection, items) {
@@ -129,6 +241,9 @@ class OrderOnlineService {
       receiver_phone,
       receiver_email,
       address,
+      customer_latitude,
+      customer_longitude,
+      customer_location_source,
       note,
       discount_code,
       used_points,
@@ -153,6 +268,30 @@ class OrderOnlineService {
 
     if (order_type !== "dine-in" && (!receiver_name || !receiver_phone)) {
       throw new ErrorResponse(400, "Vui lòng nhập tên và số điện thoại người nhận");
+    }
+
+    let normalizedCustomerLatitude = null;
+    let normalizedCustomerLongitude = null;
+
+    if (order_type === "delivery") {
+      normalizedCustomerLatitude = Number(customer_latitude);
+      normalizedCustomerLongitude = Number(customer_longitude);
+
+      if (
+        !Number.isFinite(normalizedCustomerLatitude) ||
+        normalizedCustomerLatitude < -90 ||
+        normalizedCustomerLatitude > 90
+      ) {
+        throw new ErrorResponse(400, "Vĩ độ giao hàng không hợp lệ");
+      }
+
+      if (
+        !Number.isFinite(normalizedCustomerLongitude) ||
+        normalizedCustomerLongitude < -180 ||
+        normalizedCustomerLongitude > 180
+      ) {
+        throw new ErrorResponse(400, "Kinh độ giao hàng không hợp lệ");
+      }
     }
 
     const connection = await OrderRepository.getConnection();
@@ -221,8 +360,44 @@ class OrderOnlineService {
       let totalAmount = cartTotals.totalAmount;
       let regularAmount = cartTotals.regularAmount;
       const normalizedItems = cartTotals.normalizedItems;
-      const shippingFee =
-        order_type === "delivery" ? OrderOnlineService.DELIVERY_SHIPPING_FEE : 0;
+      let storeLatitude = null;
+      let storeLongitude = null;
+      let deliveryDistanceKm = 0;
+      let shippingFee = 0;
+
+      if (order_type === "delivery") {
+        const ReceiptSettingService = require("./ReceiptSettingService");
+        const activeSetting = await ReceiptSettingService.getActiveSetting();
+        storeLatitude = Number(activeSetting?.latitude);
+        storeLongitude = Number(activeSetting?.longitude);
+
+        if (
+          !Number.isFinite(storeLatitude) ||
+          storeLatitude < -90 ||
+          storeLatitude > 90 ||
+          !Number.isFinite(storeLongitude) ||
+          storeLongitude < -180 ||
+          storeLongitude > 180
+        ) {
+          throw new ErrorResponse(
+            400,
+            "Cửa hàng chưa ghim tọa độ. Vui lòng liên hệ quản lý để cập nhật cấu hình địa chỉ."
+          );
+        }
+
+        storeLatitude = Number(storeLatitude.toFixed(7));
+        storeLongitude = Number(storeLongitude.toFixed(7));
+        normalizedCustomerLatitude = Number(normalizedCustomerLatitude.toFixed(7));
+        normalizedCustomerLongitude = Number(normalizedCustomerLongitude.toFixed(7));
+
+        deliveryDistanceKm = await this.getDrivingDistanceKm(
+          storeLatitude,
+          storeLongitude,
+          normalizedCustomerLatitude,
+          normalizedCustomerLongitude
+        );
+        shippingFee = this.calculateShippingFeeByDistanceKm(deliveryDistanceKm);
+      }
 
       totalAmount += shippingFee;
 
@@ -318,6 +493,7 @@ class OrderOnlineService {
           table_id: order_type === "dine-in" ? payload.table_id : null,
           status: "pending",
           total_amount: finalAmount,
+          delivery_fee: shippingFee,
           used_points: normalizedUsedPoints,
         });
 
@@ -377,6 +553,19 @@ class OrderOnlineService {
             receiver_email: receiver_email?.trim() || null,
             address: address?.trim() || null,
             note: note?.trim() || null,
+            store_latitude: storeLatitude,
+            store_longitude: storeLongitude,
+            customer_latitude: normalizedCustomerLatitude,
+            customer_longitude: normalizedCustomerLongitude,
+            coordinates_source:
+              order_type === "delivery" &&
+              ["manual_pin", "gps", "geocode"].includes(
+                String(customer_location_source || "").toLowerCase()
+              )
+                ? String(customer_location_source).toLowerCase()
+                : order_type === "delivery"
+                ? "gps"
+                : null,
           });
         }
       }
@@ -410,6 +599,10 @@ class OrderOnlineService {
       return {
         order_id: orderId,
         subtotal_amount: totalAmount,
+        delivery_distance_km:
+          order_type === "delivery"
+            ? Number(deliveryDistanceKm.toFixed(2))
+            : 0,
         shipping_fee: shippingFee,
         discount_amount: discountAmount,
         loyalty_discount_amount: loyaltyDiscountAmount,
@@ -515,6 +708,7 @@ class OrderOnlineService {
     const orders = await OrderRepository.findOrdersByUser(userId);
     for (let order of orders) {
       order.items = await OrderRepository.findOrderItems(order.id);
+      order.shipping_fee = this.getDerivedShippingFee(order, order.items);
     }
     return orders;
   }
@@ -527,9 +721,11 @@ class OrderOnlineService {
     }
 
     const items = await OrderRepository.findOrderItems(orderId);
+    const shippingFee = this.getDerivedShippingFee(order, items);
 
     return {
       ...order,
+      shipping_fee: shippingFee,
       items,
     };
   }
@@ -789,6 +985,7 @@ class OrderOnlineService {
 
     return {
       ...order,
+      shipping_fee: this.getDerivedShippingFee(order, items),
       items,
     };
   }

@@ -11,7 +11,10 @@ import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 const defaultProductImage =
   "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085";
-const DEFAULT_DELIVERY_FEE = 20000;
+
+const LOYALTY_MONEY_PER_POINT = 100;
+const LEGACY_DELIVERY_SHIPPING_FEE = 20000;
+const DYNAMIC_SHIPPING_ROLLOUT_AT = new Date("2026-04-07T00:00:00.000Z").getTime();
 
 export default function MyOrderDetailPage() {
   const { id } = useParams();
@@ -154,10 +157,54 @@ export default function MyOrderDetailPage() {
   }
 
   const items = Array.isArray(order.items) ? order.items : [];
-  const shippingFee =
-    order.order_type === "delivery"
-      ? Number(order.shipping_fee ?? DEFAULT_DELIVERY_FEE)
-      : 0;
+  const getItemsSubtotal = (orderItems) =>
+    (Array.isArray(orderItems) ? orderItems : []).reduce((sum, item) => {
+      const quantity = Math.max(1, Number(item?.quantity) || 1);
+      const unitPrice = Number(item?.price ?? item?.unit_price ?? 0);
+      return sum + Math.max(0, unitPrice * quantity);
+    }, 0);
+
+  const shouldUseLegacyShippingFallback = () => {
+    const createdAtMs = new Date(order?.created_at || 0).getTime();
+    return Number.isFinite(createdAtMs) && createdAtMs < DYNAMIC_SHIPPING_ROLLOUT_AT;
+  };
+
+  const getShippingFee = () => {
+    if (order.order_type !== "delivery") return 0;
+
+    const feeFromApi = Number(order.shipping_fee);
+    if (Number.isFinite(feeFromApi) && feeFromApi > 0) return feeFromApi;
+
+    const loyaltyDiscount =
+      Math.max(0, Number(order.used_points || 0)) * LOYALTY_MONEY_PER_POINT;
+    const derivedFee =
+      Number(order.total_amount || 0) + loyaltyDiscount - getItemsSubtotal(items);
+
+    const normalizedDerivedFee = Math.round(derivedFee);
+    if (Number.isFinite(normalizedDerivedFee) && normalizedDerivedFee > 0) {
+      return normalizedDerivedFee;
+    }
+
+    if (shouldUseLegacyShippingFallback()) {
+      return LEGACY_DELIVERY_SHIPPING_FEE;
+    }
+
+    return 0;
+  };
+
+  const shippingFee = getShippingFee();
+  const discountAmount = Math.max(0, Number(order.discount_amount || 0));
+  const loyaltyDiscountAmount = Math.max(
+    0,
+    Number(
+      order.loyalty_discount_amount ??
+        Math.max(0, Number(order.used_points || 0)) * LOYALTY_MONEY_PER_POINT,
+    ),
+  );
+  const subtotalAmount = Math.max(
+    0,
+    Number(order.total_amount || 0) + discountAmount + loyaltyDiscountAmount - shippingFee,
+  );
 
   const getItemQuantity = (item) => Math.max(1, Number(item?.quantity) || 1);
 
@@ -325,7 +372,7 @@ export default function MyOrderDetailPage() {
                   <div className="flex justify-between font-medium text-gray-600 dark:text-gray-300">
                     <span>Tạm tính</span>
                     <span className="text-gray-900 dark:text-gray-100">
-                       {(Number(order.total_amount || 0) + (Number(order.discount_amount || 0)) + (Number(order.loyalty_discount_amount || 0)) - shippingFee).toLocaleString("vi-VN")}đ
+                      {subtotalAmount.toLocaleString("vi-VN")}đ
                     </span>
                   </div>
                   {shippingFee > 0 && (
@@ -334,16 +381,16 @@ export default function MyOrderDetailPage() {
                       <span className="text-gray-900 dark:text-gray-100">+{shippingFee.toLocaleString("vi-VN")}đ</span>
                     </div>
                   )}
-                  {Number(order.discount_amount || 0) > 0 && (
+                  {discountAmount > 0 && (
                     <div className="flex justify-between text-amber-600 font-semibold">
                       <span>Voucher giảm giá</span>
-                      <span>-{Number(order.discount_amount).toLocaleString("vi-VN")}đ</span>
+                      <span>-{discountAmount.toLocaleString("vi-VN")}đ</span>
                     </div>
                   )}
-                  {Number(order.loyalty_discount_amount || 0) > 0 && (
+                  {loyaltyDiscountAmount > 0 && (
                     <div className="flex justify-between text-amber-600 font-semibold">
                       <span>Điểm thành viên</span>
-                      <span>-{Number(order.loyalty_discount_amount).toLocaleString("vi-VN")}đ</span>
+                      <span>-{loyaltyDiscountAmount.toLocaleString("vi-VN")}đ</span>
                     </div>
                   )}
                 </div>

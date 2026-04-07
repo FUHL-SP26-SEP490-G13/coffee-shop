@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Mail, Phone, Edit2, Save, MapPin, Plus, Trash2 } from 'lucide-react';
+import { User, Mail, Phone, Edit2, Save, MapPin, Plus, Trash2, LocateFixed, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -28,9 +28,14 @@ export function UserProfile() {
     receiver_name: '',
     receiver_phone: '',
     address: '',
+    latitude: '',
+    longitude: '',
+    location_source: 'manual_pin',
     address_type: 'home',
   });
   const [editingAddressId, setEditingAddressId] = useState(null);
+  const [editingAddressOriginal, setEditingAddressOriginal] = useState('');
+  const [isPinningAddressLocation, setIsPinningAddressLocation] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -156,9 +161,13 @@ export function UserProfile() {
       receiver_name: '',
       receiver_phone: '',
       address: '',
+      latitude: '',
+      longitude: '',
+      location_source: 'manual_pin',
       address_type: 'home',
     });
     setEditingAddressId(null);
+    setEditingAddressOriginal('');
   };
 
   const openCreateAddressDialog = () => {
@@ -167,12 +176,81 @@ export function UserProfile() {
   };
 
   const validateAddressForm = () => {
-    if (!addressForm.address.trim()) {
+    const normalizedAddress = String(addressForm.address || '').trim();
+    const lat = String(addressForm.latitude || '').trim();
+    const lng = String(addressForm.longitude || '').trim();
+    const hasLat = lat.length > 0;
+    const hasLng = lng.length > 0;
+
+    if (!normalizedAddress) {
       toast.error('Vui lòng nhập địa chỉ nhận hàng');
       return false;
     }
 
+    if (hasLat !== hasLng) {
+      toast.error('Vui lòng nhập đầy đủ cả vĩ độ và kinh độ');
+      return false;
+    }
+
+    const isAddressChanged =
+      !editingAddressId ||
+      normalizedAddress !== String(editingAddressOriginal || '').trim();
+
+    if (isAddressChanged && !hasLat) {
+      toast.error('Khi nhập địa chỉ mới, bạn cần ghim tọa độ hoặc nhập tọa độ thủ công');
+      return false;
+    }
+
+    if (hasLat && hasLng) {
+      const latNum = Number(lat);
+      const lngNum = Number(lng);
+
+      if (!Number.isFinite(latNum) || latNum < -90 || latNum > 90) {
+        toast.error('Vĩ độ không hợp lệ');
+        return false;
+      }
+
+      if (!Number.isFinite(lngNum) || lngNum < -180 || lngNum > 180) {
+        toast.error('Kinh độ không hợp lệ');
+        return false;
+      }
+    }
+
     return true;
+  };
+
+  const handlePinCurrentAddressLocation = () => {
+    if (!navigator.geolocation) {
+      toast.error('Trình duyệt không hỗ trợ định vị GPS');
+      return;
+    }
+
+    setIsPinningAddressLocation(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setAddressForm((prev) => ({
+          ...prev,
+          latitude: String(Number(position.coords.latitude.toFixed(7))),
+          longitude: String(Number(position.coords.longitude.toFixed(7))),
+          location_source: 'gps',
+        }));
+        toast.success('Đã ghim vị trí hiện tại thành công');
+        setIsPinningAddressLocation(false);
+      },
+      (error) => {
+        const message =
+          error?.code === 1
+            ? 'Bạn đã từ chối quyền truy cập vị trí'
+            : 'Không lấy được vị trí hiện tại, vui lòng thử lại';
+        toast.error(message);
+        setIsPinningAddressLocation(false);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 12000,
+        maximumAge: 0,
+      }
+    );
   };
 
   const handleSubmitAddress = async () => {
@@ -182,6 +260,14 @@ export function UserProfile() {
       receiver_name: addressForm.receiver_name.trim() || null,
       receiver_phone: addressForm.receiver_phone.trim() || null,
       address: addressForm.address.trim(),
+      latitude:
+        addressForm.latitude === '' ? null : Number(addressForm.latitude),
+      longitude:
+        addressForm.longitude === '' ? null : Number(addressForm.longitude),
+      location_source:
+        addressForm.latitude === ''
+          ? null
+          : addressForm.location_source || 'manual_pin',
       address_type: addressForm.address_type,
     };
 
@@ -217,10 +303,20 @@ export function UserProfile() {
 
   const handleEditAddress = (item) => {
     setEditingAddressId(item.id);
+    setEditingAddressOriginal(item.address || '');
     setAddressForm({
       receiver_name: item.receiver_name || '',
       receiver_phone: item.receiver_phone || '',
       address: item.address || '',
+      latitude:
+        item.latitude === null || item.latitude === undefined
+          ? ''
+          : String(item.latitude),
+      longitude:
+        item.longitude === null || item.longitude === undefined
+          ? ''
+          : String(item.longitude),
+      location_source: item.location_source || 'manual_pin',
       address_type: item.address_type || 'home',
     });
     setAddressDialogOpen(true);
@@ -497,6 +593,15 @@ export function UserProfile() {
 
                           <p className="text-sm text-muted-foreground">{item.receiver_phone || '-'}</p>
                           <p className="text-sm">{item.address}</p>
+                          {item.latitude !== null && item.latitude !== undefined && item.longitude !== null && item.longitude !== undefined ? (
+                            <p className="text-xs text-emerald-600">
+                              Tọa độ: {item.latitude}, {item.longitude}
+                            </p>
+                          ) : (
+                            <p className="text-xs text-red-500">
+                              Chưa ghim tọa độ cho địa chỉ này
+                            </p>
+                          )}
 
                           <div className="flex flex-wrap gap-2 pt-1">
                             {Number(item.is_default) !== 1 && (
@@ -637,10 +742,74 @@ export function UserProfile() {
                   setAddressForm((prev) => ({
                     ...prev,
                     address: e.target.value,
+                    ...(e.target.value.trim() !== String(editingAddressOriginal || '').trim()
+                      ? {
+                          latitude: '',
+                          longitude: '',
+                          location_source: 'manual_pin',
+                        }
+                      : {}),
                   }))
                 }
                 placeholder="Số nhà, đường, phường/xã, quận/huyện, tỉnh/thành phố"
               />
+            </div>
+
+            <div className="space-y-3 rounded-lg border border-amber-200 bg-amber-50/60 p-3">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-sm font-medium flex items-center gap-2">
+                  <MapPin className="w-4 h-4 text-amber-600" />
+                  Ghim tọa độ giao hàng
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handlePinCurrentAddressLocation}
+                  disabled={isPinningAddressLocation}
+                >
+                  {isPinningAddressLocation ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Đang lấy vị trí...
+                    </>
+                  ) : (
+                    <>
+                      <LocateFixed className="w-4 h-4 mr-2" />
+                      Dùng vị trí hiện tại
+                    </>
+                  )}
+                </Button>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <Input
+                  value={addressForm.latitude}
+                  onChange={(e) =>
+                    setAddressForm((prev) => ({
+                      ...prev,
+                      latitude: e.target.value,
+                      location_source: 'manual_pin',
+                    }))
+                  }
+                  placeholder="Vĩ độ (lat)"
+                />
+                <Input
+                  value={addressForm.longitude}
+                  onChange={(e) =>
+                    setAddressForm((prev) => ({
+                      ...prev,
+                      longitude: e.target.value,
+                      location_source: 'manual_pin',
+                    }))
+                  }
+                  placeholder="Kinh độ (lng)"
+                />
+              </div>
+
+              <p className="text-xs text-muted-foreground">
+                Khi thêm địa chỉ mới hoặc thay đổi địa chỉ cũ, bạn cần ghim lại tọa độ.
+              </p>
             </div>
 
             <div className="flex justify-end gap-2">

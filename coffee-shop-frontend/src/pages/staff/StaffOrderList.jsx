@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+﻿import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   RefreshCw,
@@ -70,7 +70,9 @@ const ORDER_TYPE_COLUMNS = [
   { key: "takeaway", label: "Mang về", icon: ShoppingBag },
 ];
 
-const DELIVERY_FEE = 20000;
+const LOYALTY_MONEY_PER_POINT = 100;
+const LEGACY_DELIVERY_SHIPPING_FEE = 20000;
+const DYNAMIC_SHIPPING_ROLLOUT_AT = new Date("2026-04-07T00:00:00.000Z").getTime();
 
 const normalizeOrderType = (value) => {
   const type = String(value || "").toLowerCase();
@@ -91,6 +93,46 @@ const isDeliveryOrder = (order) =>
   normalizeOrderType(order?.order_type) === "delivery";
 
 const money = (value) => Number(value || 0).toLocaleString("vi-VN") + " đ";
+
+const calculateOrderItemsSubtotal = (items = []) => {
+  if (!Array.isArray(items)) return 0;
+
+  return items.reduce((sum, item) => {
+    const itemQuantity = Math.max(1, Number(item?.quantity) || 1);
+    const unitPrice = Number(item?.price ?? item?.unit_price ?? 0);
+    return sum + Math.max(0, unitPrice * itemQuantity);
+  }, 0);
+};
+
+const shouldUseLegacyShippingFallback = (order) => {
+  const createdAtMs = new Date(order?.created_at || 0).getTime();
+  return Number.isFinite(createdAtMs) && createdAtMs < DYNAMIC_SHIPPING_ROLLOUT_AT;
+};
+
+const getShippingFee = (order) => {
+  if (!isDeliveryOrder(order)) return 0;
+
+  const feeFromApi = Number(order?.shipping_fee);
+  if (Number.isFinite(feeFromApi) && feeFromApi > 0) {
+    return Math.round(feeFromApi);
+  }
+
+  const loyaltyDiscountAmount =
+    Math.max(0, Number(order?.used_points || 0)) * LOYALTY_MONEY_PER_POINT;
+  const orderTotal = Math.max(0, Number(order?.total_amount || 0));
+  const itemsSubtotal = calculateOrderItemsSubtotal(order?.items);
+
+  const derived = Math.round(orderTotal + loyaltyDiscountAmount - itemsSubtotal);
+  if (Number.isFinite(derived) && derived > 0) {
+    return derived;
+  }
+
+  if (shouldUseLegacyShippingFallback(order)) {
+    return LEGACY_DELIVERY_SHIPPING_FEE;
+  }
+
+  return 0;
+};
 
 const getDisplayName = (user) => {
   const firstName = String(user?.first_name || "").trim();
@@ -637,6 +679,7 @@ export function OrderDelivery() {
 
   const renderCompactOrderCard = (order) => {
     const paid = isOrderPaid(order);
+    const shippingFee = getShippingFee(order);
 
     return (
       <Card key={order.id} className="border-slate-200 dark:border-slate-700 bg-white dark:bg-gray-900 shadow-sm dark:shadow-none">
@@ -663,9 +706,16 @@ export function OrderDelivery() {
           </div>
 
           <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-            <p className="text-base font-bold leading-none text-emerald-600 dark:text-emerald-300">
-              {money(order.total_amount)}
-            </p>
+            <div className="space-y-1">
+              <p className="text-base font-bold leading-none text-emerald-600 dark:text-emerald-300">
+                {money(order.total_amount)}
+              </p>
+              {isDeliveryOrder(order) && (
+                <p className="text-xs text-slate-500 dark:text-slate-300">
+                  Phí ship: {money(shippingFee)}
+                </p>
+              )}
+            </div>
             <Button
               size="sm"
               className="h-9 w-full px-3 text-sm sm:h-7 sm:w-auto sm:px-2.5 sm:text-xs"
@@ -953,7 +1003,7 @@ export function OrderDelivery() {
                 {isDeliveryOrder(selectedOrder) ? (
                   <p className="text-sm text-slate-600 dark:text-slate-300">
                     Phí vận chuyển:{" "}
-                    <span className="font-medium">{money(DELIVERY_FEE)}</span>
+                    <span className="font-medium">{money(getShippingFee(selectedOrder))}</span>
                   </p>
                 ) : null}
                 <p className="text-sm">

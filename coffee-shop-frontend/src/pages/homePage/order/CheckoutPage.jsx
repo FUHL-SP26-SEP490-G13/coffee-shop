@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Banknote, CircleHelp, MapPin, Clock, Plus } from "lucide-react";
+import { Banknote, CircleHelp, MapPin, Clock, Plus, Loader2, LocateFixed } from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Badge } from "@/components/ui/badge";
@@ -38,11 +38,9 @@ import {
 import { toast } from "sonner";
 import flashSaleService from "@/services/flashSaleService";
 import receiptSettingService from "@/services/receiptSettingService";
-import { geocodeAddress, getDrivingDistance, calculateShippingFee } from "@/utils/distanceCalculator";
-import { Loader2 } from "lucide-react";
+import { geocodeAddress, getDrivingDistance, getShippingQuote, MAX_DELIVERY_DISTANCE_KM } from "@/utils/distanceCalculator";
 import { useStoreHours } from "@/hooks/useStoreHours";
 
-const DELIVERY_SHIPPING_FEE = 20000;
 const LOYALTY_MONEY_PER_POINT = 100;
 const LOYALTY_MAX_REDEEM_RATIO = 0.5;
 
@@ -98,9 +96,14 @@ export default function CheckoutPage() {
   const [activeSale, setActiveSale] = useState(null);
 
   const [storeAddress, setStoreAddress] = useState("");
-  const [shippingFee, setShippingFee] = useState(DELIVERY_SHIPPING_FEE);
+  const [storeCoords, setStoreCoords] = useState(null);
+  const [shippingFee, setShippingFee] = useState(0);
   const [deliveryDistanceKm, setDeliveryDistanceKm] = useState(null);
+  const [deliveryDistanceBlockMessage, setDeliveryDistanceBlockMessage] = useState("");
   const [isShippingCalculating, setIsShippingCalculating] = useState(false);
+  const [pinnedCustomerCoords, setPinnedCustomerCoords] = useState(null);
+  const [customerLocationSource, setCustomerLocationSource] = useState(null);
+  const [isPinningLocation, setIsPinningLocation] = useState(false);
 
   const [isVatRequested, setIsVatRequested] = useState(false);
   const [vatInfo, setVatInfo] = useState({
@@ -197,6 +200,14 @@ export default function CheckoutPage() {
       if (settingsRes?.data?.address) {
         setStoreAddress(settingsRes.data.address);
       }
+
+      const rawStoreLat = Number(settingsRes?.data?.latitude);
+      const rawStoreLng = Number(settingsRes?.data?.longitude);
+      if (Number.isFinite(rawStoreLat) && Number.isFinite(rawStoreLng)) {
+        setStoreCoords([rawStoreLat, rawStoreLng]);
+      } else {
+        setStoreCoords(null);
+      }
     }).catch(console.error);
 
     const loadCheckoutData = async () => {
@@ -220,6 +231,16 @@ export default function CheckoutPage() {
 
         setAddresses(addressList);
         setSelectedAddressId(defaultAddress?.id || null);
+
+        const defaultLat = Number(defaultAddress?.latitude);
+        const defaultLng = Number(defaultAddress?.longitude);
+        if (Number.isFinite(defaultLat) && Number.isFinite(defaultLng)) {
+          setPinnedCustomerCoords([defaultLat, defaultLng]);
+          setCustomerLocationSource(defaultAddress?.location_source || "manual_pin");
+        } else {
+          setPinnedCustomerCoords(null);
+          setCustomerLocationSource(null);
+        }
 
         setForm((prev) => ({
           ...prev,
@@ -344,42 +365,97 @@ export default function CheckoutPage() {
     return () => clearTimeout(timeoutId);
   }, [form.receiver_phone]);
 
+  const handleUseCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      toast.error("Trình duyệt không hỗ trợ định vị GPS");
+      return;
+    }
+
+    setIsPinningLocation(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setPinnedCustomerCoords([
+          position.coords.latitude,
+          position.coords.longitude,
+        ]);
+        setCustomerLocationSource("gps");
+        toast.success("Đã ghim vị trí hiện tại để tính phí giao hàng");
+        setIsPinningLocation(false);
+      },
+      (error) => {
+        const message =
+          error?.code === 1
+            ? "Bạn đã từ chối quyền truy cập vị trí"
+            : "Không lấy được vị trí hiện tại, vui lòng thử lại";
+        toast.error(message);
+        setIsPinningLocation(false);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 12000,
+        maximumAge: 0,
+      }
+    );
+  };
+
   // Handle dynamic distance and shipping fee
   useEffect(() => {
-    if (form.order_type !== "delivery" || !form.address || form.address.trim().length < 5 || !storeAddress) {
-      setShippingFee(form.order_type === "delivery" ? DELIVERY_SHIPPING_FEE : 0);
+    const hasCustomerPinnedCoords =
+      Array.isArray(pinnedCustomerCoords) && pinnedCustomerCoords.length === 2;
+    const hasStoreAddress = storeAddress && storeAddress.trim().length >= 5;
+    const hasStorePinnedCoords =
+      Array.isArray(storeCoords) && storeCoords.length === 2;
+
+    if (
+      form.order_type !== "delivery" ||
+      !hasCustomerPinnedCoords ||
+      (!hasStorePinnedCoords && !hasStoreAddress)
+    ) {
+      setShippingFee(0);
       setDeliveryDistanceKm(null);
+      setDeliveryDistanceBlockMessage("");
       return;
     }
 
     const timer = setTimeout(async () => {
       setIsShippingCalculating(true);
       try {
-        const [storeCoords, customerCoords] = await Promise.all([
-          geocodeAddress(storeAddress),
-          geocodeAddress(form.address)
-        ]);
+        const resolvedStoreCoords = hasStorePinnedCoords
+          ? storeCoords
+          : await geocodeAddress(storeAddress);
+        const customerCoords = pinnedCustomerCoords;
 
-        if (storeCoords && customerCoords) {
-          const distMeters = await getDrivingDistance(storeCoords, customerCoords);
-          const fee = calculateShippingFee(distMeters);
-          setShippingFee(fee);
-          setDeliveryDistanceKm((distMeters / 1000).toFixed(1));
+        if (resolvedStoreCoords && customerCoords) {
+          const distMeters = await getDrivingDistance(resolvedStoreCoords, customerCoords);
+          const quote = getShippingQuote(distMeters);
+          setDeliveryDistanceKm(quote.distanceKm.toFixed(1));
+
+          if (!quote.isDeliverable) {
+            setShippingFee(0);
+            setDeliveryDistanceBlockMessage(
+              `Khoảng cách ${quote.distanceKm.toFixed(1)}km vượt quá giới hạn giao hàng ${MAX_DELIVERY_DISTANCE_KM}km (vượt ${quote.exceededByKm.toFixed(1)}km).`
+            );
+            return;
+          }
+
+          setShippingFee(quote.fee);
+          setDeliveryDistanceBlockMessage("");
         } else {
-          // Fallback if address not found
-          setShippingFee(DELIVERY_SHIPPING_FEE);
+          setShippingFee(0);
           setDeliveryDistanceKm(null);
+          setDeliveryDistanceBlockMessage("Không thể tính khoảng cách giao hàng. Vui lòng ghim lại vị trí.");
         }
       } catch {
-         setShippingFee(DELIVERY_SHIPPING_FEE);
+         setShippingFee(0);
          setDeliveryDistanceKm(null);
+         setDeliveryDistanceBlockMessage("Không thể tính khoảng cách giao hàng. Vui lòng thử lại.");
       } finally {
         setIsShippingCalculating(false);
       }
     }, 1500);
 
     return () => clearTimeout(timer);
-  }, [form.address, form.order_type, storeAddress]);
+  }, [form.order_type, storeAddress, pinnedCustomerCoords, storeCoords]);
 
   const getAddressTypeLabel = (type) => {
     if (type === "work") return "Văn phòng";
@@ -389,6 +465,15 @@ export default function CheckoutPage() {
 
   const handleSelectAddress = (item) => {
     setSelectedAddressId(item.id);
+    const itemLat = Number(item?.latitude);
+    const itemLng = Number(item?.longitude);
+    if (Number.isFinite(itemLat) && Number.isFinite(itemLng)) {
+      setPinnedCustomerCoords([itemLat, itemLng]);
+      setCustomerLocationSource(item?.location_source || "manual_pin");
+    } else {
+      setPinnedCustomerCoords(null);
+      setCustomerLocationSource(null);
+    }
     setForm((prev) => ({
       ...prev,
       receiver_name: item.receiver_name || prev.receiver_name,
@@ -466,6 +551,26 @@ export default function CheckoutPage() {
   const loyaltyDiscountAmount = usedPoints * LOYALTY_MONEY_PER_POINT;
   const totalAmount = Math.max(0, amountAfterDiscount - loyaltyDiscountAmount);
   const isPointsInputExceeded = parsedUsedPoints > maxRedeemablePoints;
+  const isDeliveryOrder = form.order_type === "delivery";
+  const hasPinnedCustomerCoords =
+    Array.isArray(pinnedCustomerCoords) && pinnedCustomerCoords.length === 2;
+  const hasPinnedStoreCoords = Array.isArray(storeCoords) && storeCoords.length === 2;
+  const isCheckoutBlockedByCoordinates =
+    isDeliveryOrder && (!hasPinnedCustomerCoords || !hasPinnedStoreCoords);
+  const isCheckoutBlockedByDistance =
+    isDeliveryOrder && Boolean(deliveryDistanceBlockMessage);
+  const isCheckoutBlocked =
+    isCheckoutBlockedByCoordinates || isCheckoutBlockedByDistance;
+
+  const placeOrderLabel = !isOpen
+    ? nextOpenMessage || "Đã đóng cửa"
+    : isCheckoutBlockedByDistance
+    ? "Ngoài phạm vi giao hàng"
+    : isCheckoutBlockedByCoordinates
+    ? !hasPinnedStoreCoords
+      ? "Cửa hàng chưa ghim tọa độ"
+      : "Ghim vị trí để đặt hàng"
+    : "Đặt hàng";
 
   useEffect(() => {
     setForm((prev) => {
@@ -751,6 +856,15 @@ export default function CheckoutPage() {
                         <p className="text-sm text-gray-800 dark:text-gray-200 mt-1">
                           {selectedAddress.address}
                         </p>
+                        {selectedAddress.latitude !== null && selectedAddress.latitude !== undefined && selectedAddress.longitude !== null && selectedAddress.longitude !== undefined ? (
+                          <p className="text-xs text-emerald-600 mt-1">
+                            Địa chỉ này đã ghim tọa độ.
+                          </p>
+                        ) : (
+                          <p className="text-xs text-red-500 mt-1">
+                            Địa chỉ này chưa có tọa độ, vui lòng ghim vị trí hiện tại trước khi đặt hàng.
+                          </p>
+                        )}
                       </div>
                     )}
                   </div>
@@ -766,6 +880,8 @@ export default function CheckoutPage() {
                     onChange={(e) => {
                       const value = e.target.value;
                       setSelectedAddressId(null);
+                      setPinnedCustomerCoords(null);
+                      setCustomerLocationSource(null);
                       setForm((prev) => ({
                         ...prev,
                         address: value,
@@ -779,6 +895,66 @@ export default function CheckoutPage() {
                   {errors.address && (
                     <p className="text-sm text-red-500 mt-1">
                       {errors.address}
+                    </p>
+                  )}
+
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleUseCurrentLocation}
+                      disabled={isPinningLocation}
+                    >
+                      {isPinningLocation ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Đang lấy vị trí...
+                        </>
+                      ) : (
+                        <>
+                          <LocateFixed className="w-4 h-4 mr-2" />
+                          Dùng vị trí hiện tại
+                        </>
+                      )}
+                    </Button>
+
+                    {Array.isArray(pinnedCustomerCoords) && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setPinnedCustomerCoords(null);
+                          setCustomerLocationSource(null);
+                        }}
+                      >
+                        Bỏ ghim vị trí
+                      </Button>
+                    )}
+                  </div>
+
+                  {Array.isArray(pinnedCustomerCoords) && (
+                    <p className="text-xs text-emerald-600 mt-2">
+                      Đang dùng tọa độ GPS của bạn để tính khoảng cách.
+                    </p>
+                  )}
+
+                  {!Array.isArray(pinnedCustomerCoords) && (
+                    <p className="text-xs text-red-500 mt-2">
+                      Bạn cần ghim vị trí (hoặc chọn địa chỉ đã có tọa độ) trước khi đặt đơn giao hàng.
+                    </p>
+                  )}
+
+                  {!hasPinnedStoreCoords && (
+                    <p className="text-xs text-red-500 mt-1">
+                      Cửa hàng chưa ghim tọa độ trong cấu hình, tạm thời chưa thể nhận đơn giao hàng.
+                    </p>
+                  )}
+
+                  {deliveryDistanceBlockMessage && (
+                    <p className="text-xs text-red-500 mt-1">
+                      {deliveryDistanceBlockMessage}
                     </p>
                   )}
                 </div>
@@ -1125,7 +1301,7 @@ export default function CheckoutPage() {
                 </div>
               ) : null}
 
-              {!isShippingCalculating && deliveryDistanceKm && form.order_type === "delivery" && (
+              {!isShippingCalculating && deliveryDistanceKm && form.order_type === "delivery" && !deliveryDistanceBlockMessage && (
                 <div className="bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 px-3 py-2.5 rounded-lg flex items-center gap-2 text-sm font-medium border border-emerald-100 dark:border-emerald-800/50 mt-2 mb-1">
                   <Clock className="w-4 h-4 shrink-0" />
                   <span>
@@ -1215,8 +1391,10 @@ export default function CheckoutPage() {
               cart={cart}
               totalAmount={totalAmount}
               shippingFee={shippingFee}
-              disabled={isShippingCalculating || !isOpen}
-              label={isOpen ? "Đặt hàng" : nextOpenMessage || "Đã đóng cửa"}
+              customerCoords={hasPinnedCustomerCoords ? pinnedCustomerCoords : null}
+              customerLocationSource={customerLocationSource || "gps"}
+              disabled={isShippingCalculating || !isOpen || isCheckoutBlocked}
+              label={placeOrderLabel}
               onValidateError={(errs) => setErrors(errs)}
               onSuccess={() => navigate("/", { state: { orderSuccess: true } })}
             />
