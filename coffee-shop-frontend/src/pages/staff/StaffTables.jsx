@@ -68,6 +68,7 @@ function TableCard({
   table,
   onOpenPOS,
   onViewOrder,
+  onEditOrder,
   onStatusChange,
   onTransfer,
   onMergeOrder,
@@ -77,6 +78,10 @@ function TableCard({
   paymentRequested,
 }) {
   const debtAmount = Number(activeOrderMeta?.debt_amount || 0);
+  const canEditOrder =
+    Boolean(activeOrderMeta) &&
+    !activeOrderMeta?.is_paid &&
+    String(activeOrderMeta?.payment_status || "").toLowerCase() !== "paid";
 
   return (
     <Card
@@ -129,6 +134,16 @@ function TableCard({
               >
                 <ReceiptText className="w-4 h-4" />
                 Tách đơn
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                disabled={!canEditOrder}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (!canEditOrder) return;
+                  onEditOrder(table);
+                }}
+              >
+                Chỉnh sửa đơn hàng
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={(e) => {
@@ -345,13 +360,21 @@ export function StaffTables() {
       if (params.get("debtPay") !== "1") return;
 
       const tableId = Number(params.get("tableId") || 0);
+      const orderId = Number(params.get("orderId") || 0);
+      const code = String(params.get("code") || "").toUpperCase();
+      const cancel = String(params.get("cancel") || "").toLowerCase() === "true";
       const status = String(params.get("status") || "").toUpperCase();
+      const isPaid = status === "PAID" || code === "00";
+      const isCancelled = status === "CANCELLED" || cancel;
 
       if (!tableId) return;
 
-      if (status === "PAID") {
+      if (isPaid) {
         try {
-          await tableService.settleDebt(tableId, { payment_method: "payos" });
+          await tableService.settleDebt(tableId, {
+            payment_method: "payos",
+            ...(orderId > 0 ? { order_ids: [orderId] } : {}),
+          });
           toast.success("Thanh toán QR thành công");
           setPaymentRequestedByTable((prev) => {
             const next = { ...prev };
@@ -365,7 +388,7 @@ export function StaffTables() {
             "Không thể chốt  sau thanh toán QR";
           toast.error(msg);
         }
-      } else if (status === "CANCELLED") {
+      } else if (isCancelled) {
         toast.info("Khách đã hủy giao dịch QR");
       }
 
@@ -397,6 +420,43 @@ export function StaffTables() {
       toast.error('Không thể tải chi tiết đơn để chỉnh sửa');
     } finally {
       setLoadingOrder(false);
+    }
+  };
+
+  const handleEditOrderFromTable = async (table) => {
+    try {
+      const unpaidRes = await tableService.getUnpaidOrders(table.id);
+      const unpaidOrders = unpaidRes?.data || [];
+
+      if (unpaidOrders.length === 0) {
+        toast.error("Tất cả bill đã thanh toán, không thể chỉnh sửa");
+        return;
+      }
+
+      // Nếu chỉ 1 đơn → edit ngay (đơn bình thường)
+      if (unpaidOrders.length === 1) {
+        const targetOrder = unpaidOrders[0];
+        await handleEditOrder(targetOrder, table);
+        return;
+      }
+
+      // Nếu > 1 đơn → là đơn tách, hiển thị modal để chọn
+      setSelectedTableForOrder(table);
+      setOrderModalMode("edit-order");
+      setIsOrderModalOpen(true);
+      setLoadingOrder(true);
+
+      try {
+        const res = await tableService.getActiveOrder(table.id);
+        setActiveOrder(res.data);
+      } catch {
+        toast.error("Không thể tải thông tin đơn hàng");
+        setIsOrderModalOpen(false);
+      } finally {
+        setLoadingOrder(false);
+      }
+    } catch {
+      toast.error("Không thể tải bill chưa thanh toán để chỉnh sửa");
     }
   };
 
@@ -621,6 +681,21 @@ export function StaffTables() {
     if (debtAmount <= 0) {
       toast.info("Bàn này hiện không có đơn hàng cần thanh toán");
       return;
+    }
+
+    // Kiểm tra có phải đơn tách không
+    try {
+      const unpaidRes = await tableService.getUnpaidOrders(table.id);
+      const unpaidOrders = unpaidRes?.data || [];
+
+      // Nếu có nhiều hơn 1 đơn chưa thanh toán → là đơn tách, mở modal tách đơn
+      if (unpaidOrders.length > 1) {
+        setSelectedTableForOrder(table);
+        setIsPaySplitBillModalOpen(true);
+        return;
+      }
+    } catch (err) {
+      // Nếu lỗi, vẫn tiếp tục với flow bình thường
     }
 
     setPaymentRequestedByTable((prev) => ({
@@ -921,6 +996,7 @@ export function StaffTables() {
                             table={table}
                             onOpenPOS={handleOpenPOS}
                             onViewOrder={handleViewOrder}
+                            onEditOrder={handleEditOrderFromTable}
                             onStatusChange={handleStatusChange}
                             onTransfer={handleOpenTransfer}
                             onMergeOrder={handleMergeOrder}
@@ -982,6 +1058,7 @@ export function StaffTables() {
                       table={table}
                       onOpenPOS={handleOpenPOS}
                       onViewOrder={handleViewOrder}
+                      onEditOrder={handleEditOrderFromTable}
                       onStatusChange={handleStatusChange}
                       onTransfer={handleOpenTransfer}
                       onMergeOrder={handleMergeOrder}
@@ -1138,7 +1215,9 @@ export function StaffTables() {
                 .filter(
                   (t) =>
                     t.id !== tableToTransfer?.id &&
-                    (tableActionMode === "merge" || t.status === "available") &&
+                    (tableActionMode === "merge"
+                      ? t.status === "occupied" && Boolean(activeOrderMetaByTable[t.id])
+                      : t.status === "available") &&
                     (transferAreaFilter === "all" || t.area_id.toString() === transferAreaFilter)
                 )
                 .map((t) => (
@@ -1155,14 +1234,16 @@ export function StaffTables() {
                       {t.code?.replace("TB-", "")}
                     </span>
                     <span className="text-[10px] text-muted-foreground mt-0.5 text-center leading-tight">
-                      {t.area_name} {tableActionMode === "merge" && t.status === "occupied" ? "· Có khách" : ""}
+                      {t.area_name} {tableActionMode === "merge" ? "· Có đơn" : ""}
                     </span>
                   </button>
                 ))}
               {tables.filter(
                 (t) =>
                   t.id !== tableToTransfer?.id &&
-                  (tableActionMode === "merge" || t.status === "available") &&
+                  (tableActionMode === "merge"
+                    ? t.status === "occupied" && Boolean(activeOrderMetaByTable[t.id])
+                    : t.status === "available") &&
                   (transferAreaFilter === "all" || t.area_id.toString() === transferAreaFilter)
               ).length === 0 && (
                   <div className="col-span-4 py-8 text-center text-muted-foreground text-sm">
@@ -1213,28 +1294,106 @@ export function StaffTables() {
                 <span className="font-semibold text-lg">Mã đơn: #{activeOrder.id}</span>
                 <span className="text-muted-foreground text-sm">{new Date(activeOrder.created_at).toLocaleString('vi-VN')}</span>
               </div>
-              <div className="space-y-4">
-                {activeOrder.items?.map((item, idx) => (
-                  <div key={idx} className="flex justify-between items-start text-sm border-b pb-2 last:border-0">
-                    <div className="flex-1">
-                      <p className="font-medium text-base">{item.quantity} x {item.name}</p>
-                      <p className="text-muted-foreground">Size {item.size}</p>
-                      {item.toppings?.length > 0 && (
-                        <div className="mt-1 pl-2 border-l-2 border-muted space-y-1">
-                          {item.toppings.map((t, tidx) => (
-                            <p key={tidx} className="text-xs text-muted-foreground">
-                              + {t.name} (x{t.quantity})
-                            </p>
-                          ))}
+              {(() => {
+                const splitBills = Array.isArray(activeOrder.split_bills) ? activeOrder.split_bills : [];
+                const isPaidBill = (bill) => {
+                  const paidByFlag = Number(bill?.is_paid || 0) === 1;
+                  const paidByStatus = String(bill?.payment_status || '').toLowerCase() === 'paid';
+                  return paidByFlag || paidByStatus;
+                };
+
+                if (splitBills.length <= 1) {
+                  return (
+                    <div className="space-y-4">
+                      {activeOrder.items?.map((item, idx) => (
+                        <div key={idx} className="flex justify-between items-start text-sm border-b pb-2 last:border-0">
+                          <div className="flex-1">
+                            <p className="font-medium text-base">{item.quantity} x {item.name}</p>
+                            <p className="text-muted-foreground">Size {item.size}</p>
+                            {item.toppings?.length > 0 && (
+                              <div className="mt-1 pl-2 border-l-2 border-muted space-y-1">
+                                {item.toppings.map((t, tidx) => (
+                                  <p key={tidx} className="text-xs text-muted-foreground">
+                                    + {t.name} (x{t.quantity})
+                                  </p>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          <div className="font-medium whitespace-nowrap ml-4 mt-1">
+                            {parseInt(item.price * item.quantity).toLocaleString('vi-VN')}đ
+                          </div>
                         </div>
-                      )}
+                      ))}
                     </div>
-                    <div className="font-medium whitespace-nowrap ml-4 mt-1">
-                      {parseInt(item.price * item.quantity).toLocaleString('vi-VN')}đ
+                  );
+                }
+
+                const unpaidBills = splitBills.filter((bill) => !isPaidBill(bill));
+                const paidBills = splitBills.filter((bill) => isPaidBill(bill));
+
+                const renderBillSection = (title, bills, tone) => {
+                  if (!bills.length) return null;
+                  return (
+                    <div className="space-y-2">
+                      <div className={`text-xs font-semibold uppercase tracking-wide ${tone}`}>
+                        {title} ({bills.length})
+                      </div>
+                      {bills.map((bill) => (
+                        <div key={bill.id} className="rounded-xl border p-3 bg-card/60">
+                          <div className="flex justify-between items-center border-b pb-2 mb-2">
+                            <span className="font-semibold">Mã đơn #{bill.id}</span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-muted-foreground">{new Date(bill.created_at).toLocaleString('vi-VN')}</span>
+                              {orderModalMode === "edit-order" && splitBills.length > 1 && !isPaidBill(bill) && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleEditOrder(bill, selectedTableForOrder)}
+                                  className="h-7 text-xs"
+                                >
+                                  Chỉnh sửa
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            {bill.items?.map((item, idx) => (
+                              <div key={`${bill.id}_${idx}`} className="flex justify-between items-start text-sm border-b pb-2 last:border-0">
+                                <div className="flex-1">
+                                  <p className="font-medium text-base">{item.quantity} x {item.name}</p>
+                                  <p className="text-muted-foreground">Size {item.size}</p>
+                                  {item.toppings?.length > 0 && (
+                                    <div className="mt-1 pl-2 border-l-2 border-muted space-y-1">
+                                      {item.toppings.map((t, tidx) => (
+                                        <p key={tidx} className="text-xs text-muted-foreground">+ {t.name} (x{t.quantity})</p>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="font-medium whitespace-nowrap ml-4 mt-1">
+                                  {parseInt(item.price * item.quantity).toLocaleString('vi-VN')}đ
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                          <div className="pt-2 mt-2 border-t flex justify-between items-center text-sm font-semibold">
+                            <span>Tổng bill</span>
+                            <span className="text-primary">{parseInt(bill.total_amount || 0).toLocaleString('vi-VN')}đ</span>
+                          </div>
+                        </div>
+                      ))}
                     </div>
+                  );
+                };
+
+                return (
+                  <div className="space-y-4">
+                    {renderBillSection('Đơn chưa thanh toán', unpaidBills, 'text-amber-600')}
+                    {renderBillSection('Đơn đã thanh toán', paidBills, 'text-emerald-600')}
                   </div>
-                ))}
-              </div>
+                );
+              })()}
               <div className="border-t pt-3 flex justify-between items-center font-bold text-lg">
                 <span>Tổng cộng:</span>
                 <span className="text-primary">
@@ -1245,20 +1404,6 @@ export function StaffTables() {
                   ).toLocaleString('vi-VN')}đ
                 </span>
               </div>
-
-              {/* Edit Order button: only for single unpaid pay-later orders (no splits in progress) */}
-              {activeOrder && !activeOrder.is_paid && (activeOrder.unpaid_orders_count === 1 || !activeOrder.unpaid_orders_count) && (
-                <div className="flex w-full gap-2 mt-4">
-                  <Button
-                    className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white"
-                    onClick={() => handleEditOrder(activeOrder, selectedTableForOrder)}
-                    disabled={loadingOrder}
-                  >
-                    {loadingOrder ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-                    Chỉnh sửa đơn hàng
-                  </Button>
-                </div>
-              )}
 
             </div>
           ) : (

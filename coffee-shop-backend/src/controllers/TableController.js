@@ -309,16 +309,18 @@ class TableController {
   async splitBill(req, res, next) {
     try {
       const { id } = req.params;
-      const { items } = req.body;
+      const payload = req.body;
+      const bills = Array.isArray(payload?.bills) ? payload.bills : null;
+      const items = Array.isArray(payload?.items) ? payload.items : null;
 
-      if (!items || !Array.isArray(items) || items.length === 0) {
+      if ((!bills || bills.length === 0) && (!items || items.length === 0)) {
         return res.status(400).json({
           success: false,
           message: 'Dữ liệu tách đơn không hợp lệ'
         });
       }
 
-      const result = await TableService.splitBill(Number(id), items);
+      const result = await TableService.splitBill(Number(id), payload);
 
       res.status(200).json({
         success: true,
