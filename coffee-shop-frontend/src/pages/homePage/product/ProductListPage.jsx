@@ -136,7 +136,7 @@ export default function ProductListPage({ categoryIdOverride, categoryName, cate
       .catch(() => { });
   }, []);
 
-  const fetchProducts = useCallback(() => {
+  const fetchProducts = useCallback(async () => {
     const params = {
       status: "available",
       page: currentPage,
@@ -149,23 +149,27 @@ export default function ProductListPage({ categoryIdOverride, categoryName, cate
     if (filterMaxPrice) params.max_price = filterMaxPrice;
     if (filterMinRating) params.min_rating = filterMinRating;
 
+    let res;
     if (keyword) {
       params.keyword = keyword;
-      return productService.search(params);
+      res = await productService.search(params);
+    } else if (categoryId) {
+      res = await productService.getByCategory(categoryId, params);
+    } else {
+      res = await productService.getAll(params);
     }
 
-    if (categoryId) {
-      return productService.getByCategory(categoryId, params);
-    }
-
-    return productService.getAll(params);
+    return { ...res, sourceCategoryId: categoryId, sourcePage: currentPage };
   }, [categoryId, keyword, currentPage, sortBy, filterSize, filterMinPrice, filterMaxPrice, filterMinRating]);
 
+  const lastPageRef = useRef(currentPage);
+
   useEffect(() => {
-    if (sidebarRef.current) {
+    if (currentPage > lastPageRef.current && sidebarRef.current) {
       sidebarRef.current.scrollTo({ top: 0, behavior: "smooth" });
     }
-  }, [searchParams]);
+    lastPageRef.current = currentPage;
+  }, [currentPage]);
 
   const { data, loading } = useFetch(fetchProducts);
 
@@ -178,7 +182,11 @@ export default function ProductListPage({ categoryIdOverride, categoryName, cate
   const page = Number(pagination.page || currentPage);
 
   useEffect(() => {
-    if (data?.data) {
+    if (!loading && data?.data) {
+      if (data.sourceCategoryId !== categoryId || data.sourcePage !== currentPage) {
+        return;
+      }
+
       if (currentPage === 1) {
         setAccumulatedProducts(data.data);
       } else {
@@ -191,7 +199,7 @@ export default function ProductListPage({ categoryIdOverride, categoryName, cate
         });
       }
     }
-  }, [data, currentPage]);
+  }, [data, currentPage, loading, categoryId]);
 
   const productIds = useMemo(
     () => products.map((item) => Number(item.id)).filter(Boolean),
@@ -668,3 +676,5 @@ export default function ProductListPage({ categoryIdOverride, categoryName, cate
     </div>
   );
 }
+
+
