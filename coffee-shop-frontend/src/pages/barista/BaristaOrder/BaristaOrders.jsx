@@ -130,7 +130,7 @@ export function BaristaOrders() {
   );
 
   const KanbanColumn = ({ title, count, icon: Icon, orders: columnOrders, colorClass }) => (
-    <div className="flex flex-col h-full bg-muted/20 rounded-2xl border border-border p-4">
+    <div className="flex flex-col h-[calc(100vh-220px)] min-h-[500px] bg-muted/20 rounded-2xl border border-border p-4 overflow-hidden">
       <div className={`flex items-center gap-3 mb-6 p-4 rounded-xl shadow-sm bg-background border border-border`}>
         <div className={`p-2 rounded-lg ${colorClass} text-white relative`}>
           <Icon className="w-5 h-5" />
@@ -143,7 +143,7 @@ export function BaristaOrders() {
         </div>
         <h2 className="font-bold text-lg flex-1">{title} ({count})</h2>
       </div>
-      <ScrollArea className="flex-1 pr-2">
+      <ScrollArea className="flex-1 pr-2 min-h-0">
         {loading ? (
           <div className="flex items-center justify-center h-full py-12">
             <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
@@ -163,7 +163,7 @@ export function BaristaOrders() {
   return (
     <div className="h-full flex flex-col p-0 space-y-6">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between m-0">
           <TabsList className="bg-muted p-1 h-14 rounded-2xl w-fit">
             <TabsTrigger value="new" className="px-8 h-full rounded-xl data-[state=active]:bg-background data-[state=active]:shadow-sm text-base font-bold">
               Đơn hàng mới {activeTab === 'new' && `(${orderList.length})`}
@@ -180,7 +180,7 @@ export function BaristaOrders() {
         </div>
 
         <TabsContent value="new" className="flex-1 mt-0 outline-none">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-[calc(100vh-280px)] min-h-[500px]">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <KanbanColumn 
               title="Giao hàng" 
               count={deliveryOrders.length} 
@@ -206,7 +206,7 @@ export function BaristaOrders() {
         </TabsContent>
 
         <TabsContent value="completed" className="flex-1 mt-0 outline-none">
-          <ScrollArea className="h-[calc(100vh-280px)] pr-4">
+          <ScrollArea className="h-[calc(100vh-220px)] min-h-[500px] pr-4">
             {loading ? (
               <div className="flex items-center justify-center py-20">
                 <Loader2 className="w-10 h-10 animate-spin text-primary" />
