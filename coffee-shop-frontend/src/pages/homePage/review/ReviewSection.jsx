@@ -113,7 +113,7 @@ export default function ReviewSection() {
   };
 
   return (
-    <section className="py-8 md:py-12 bg-white dark:bg-gray-950 overflow-hidden">
+    <section className="py-8 md:py-12 lg:py-16 bg-white dark:bg-gray-950 overflow-hidden">
       <div className="w-full px-4 lg:px-6 xl:px-8">
         <div className="bg-[#EFE8D8] dark:bg-[#1f1b1a] rounded-none sm:rounded-3xl py-12 md:py-16 px-4 sm:px-8 lg:px-12 w-full">
         <div className="text-center pb-8">

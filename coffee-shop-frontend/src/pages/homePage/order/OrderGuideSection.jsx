@@ -23,7 +23,7 @@ export default function OrderGuideSection() {
   ];
 
   return (
-    <section className="py-8 md:py-4 bg-white dark:bg-gray-950">
+    <section className="py-8 md:py-12 lg:py-16 bg-white dark:bg-gray-950">
       <div className="w-full px-4 lg:px-6 xl:px-8">
         <div className="bg-[#FAFAFA] dark:bg-gray-900/50 rounded-none sm:rounded-3xl py-12 md:py-16 px-4 sm:px-8 lg:px-12 w-full">
           <div className="text-center mb-16">

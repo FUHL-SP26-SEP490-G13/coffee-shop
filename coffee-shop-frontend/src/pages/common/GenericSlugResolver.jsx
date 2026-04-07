@@ -10,23 +10,31 @@ export const slugCache = {};
 
 export default function GenericSlugResolver() {
   const { slug } = useParams();
-  const [data, setData] = useState(slugCache[slug]?.data || null);
-  const [type, setType] = useState(slugCache[slug]?.type || null);
-  const [loading, setLoading] = useState(!slugCache[slug]);
+
+  // Bắt cache đồng bộ ngay khi đổi URL để tránh giật frame
+  let syncData = null;
+  let syncType = null;
+  let syncLoading = false;
+
+  if (slug === 'products') {
+    syncType = 'all_products';
+  } else if (slugCache[slug]) {
+    syncData = slugCache[slug].data;
+    syncType = slugCache[slug].type;
+  } else {
+    syncLoading = true;
+  }
+
+  const [asyncData, setData] = useState(syncData);
+  const [asyncType, setType] = useState(syncType);
+  const [asyncLoading, setLoading] = useState(syncLoading);
+
+  const data = syncData || asyncData;
+  const type = syncType || asyncType;
+  const loading = syncLoading === false ? false : asyncLoading;
 
   useEffect(() => {
-    if (slug === 'products') {
-      setType('all_products');
-      setLoading(false);
-      return;
-    }
-
-    if (slugCache[slug]) {
-       setData(slugCache[slug].data);
-       setType(slugCache[slug].type);
-       setLoading(false);
-       return;
-    }
+    if (slug === 'products' || slugCache[slug]) return;
 
     setLoading(true);
     fetch(`http://localhost:5000/api/public/slugs/${slug}`)

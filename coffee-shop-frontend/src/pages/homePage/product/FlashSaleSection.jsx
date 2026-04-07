@@ -115,7 +115,7 @@ export default function FlashSaleSection({ products, getThumbnail, getDefaultCar
   };
 
   return (
-    <section className="py-6 sm:py-8 lg:pt-12 lg:pb-12">
+    <section className="py-8 md:py-12 lg:py-16">
       <div className="w-full px-4 lg:px-6 xl:px-8">
         <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-red-600 via-orange-600 to-amber-500 dark:from-red-950 dark:via-orange-950 dark:to-amber-950 px-5 py-8 sm:px-8 lg:px-12 shadow-2xl">
           <div className="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 pointer-events-none"></div>

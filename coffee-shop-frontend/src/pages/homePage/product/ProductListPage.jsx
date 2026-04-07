@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { Loader2, Filter, X, Star, ShoppingCart } from "lucide-react";
 import Header from "@/components/layout/Header";
@@ -23,6 +23,7 @@ const SIZES = ["S", "M", "L"];
 export default function ProductListPage({ categoryIdOverride, categoryName, categorySlug }) {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const sidebarRef = useRef(null);
   const { isOpen: isStoreOpen, nextOpenMessage } = useStoreHours();
   const [addedCartItem, setAddedCartItem] = useState(null);
   const [quickViewProduct, setQuickViewProduct] = useState(null);
@@ -135,7 +136,7 @@ export default function ProductListPage({ categoryIdOverride, categoryName, cate
       .catch(() => { });
   }, []);
 
-  const fetchProducts = useCallback(() => {
+  const fetchProducts = useCallback(async () => {
     const params = {
       status: "available",
       page: currentPage,
@@ -148,17 +149,27 @@ export default function ProductListPage({ categoryIdOverride, categoryName, cate
     if (filterMaxPrice) params.max_price = filterMaxPrice;
     if (filterMinRating) params.min_rating = filterMinRating;
 
+    let res;
     if (keyword) {
       params.keyword = keyword;
-      return productService.search(params);
+      res = await productService.search(params);
+    } else if (categoryId) {
+      res = await productService.getByCategory(categoryId, params);
+    } else {
+      res = await productService.getAll(params);
     }
 
-    if (categoryId) {
-      return productService.getByCategory(categoryId, params);
-    }
-
-    return productService.getAll(params);
+    return { ...res, sourceCategoryId: categoryId, sourcePage: currentPage };
   }, [categoryId, keyword, currentPage, sortBy, filterSize, filterMinPrice, filterMaxPrice, filterMinRating]);
+
+  const lastPageRef = useRef(currentPage);
+
+  useEffect(() => {
+    if (currentPage > lastPageRef.current && sidebarRef.current) {
+      sidebarRef.current.scrollTo({ top: 0, behavior: "smooth" });
+    }
+    lastPageRef.current = currentPage;
+  }, [currentPage]);
 
   const { data, loading } = useFetch(fetchProducts);
 
@@ -171,7 +182,11 @@ export default function ProductListPage({ categoryIdOverride, categoryName, cate
   const page = Number(pagination.page || currentPage);
 
   useEffect(() => {
-    if (data?.data) {
+    if (!loading && data?.data) {
+      if (data.sourceCategoryId !== categoryId || data.sourcePage !== currentPage) {
+        return;
+      }
+
       if (currentPage === 1) {
         setAccumulatedProducts(data.data);
       } else {
@@ -184,7 +199,7 @@ export default function ProductListPage({ categoryIdOverride, categoryName, cate
         });
       }
     }
-  }, [data, currentPage]);
+  }, [data, currentPage, loading, categoryId]);
 
   const productIds = useMemo(
     () => products.map((item) => Number(item.id)).filter(Boolean),
@@ -247,9 +262,8 @@ export default function ProductListPage({ categoryIdOverride, categoryName, cate
     <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900">
       <Header />
 
-      <section className="w-full px-4 sm:px-6 lg:px-8 pt-2 md:pt-4 pb-10 md:pb-16 mb-5">
-        <div className="w-full mx-auto">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+      <main className="flex-1 w-full mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 pt-2 md:pt-4 pb-10 md:pb-16 mb-5">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 min-h-[50px]">
             <div className="text-base md:text-lg text-gray-500 dark:text-gray-400 flex items-center space-x-2 font-medium">
               <span className="cursor-pointer hover:text-amber-600 transition-colors" onClick={() => navigate("/")}>Trang chủ</span>
               {categoryName && (
@@ -288,7 +302,7 @@ export default function ProductListPage({ categoryIdOverride, categoryName, cate
           <div className="flex flex-col lg:flex-row gap-8">
             {/* Sidebar */}
             <div className={`lg:w-64 flex-shrink-0 ${mobileFilterOpen ? 'block' : 'hidden'} lg:block`}>
-              <div className="bg-gray-50 dark:bg-gray-950 p-6 rounded-2xl lg:bg-transparent lg:p-0 lg:sticky lg:top-24 space-y-8">
+              <div ref={sidebarRef} className="bg-gray-50 dark:bg-gray-950 p-6 rounded-2xl lg:bg-transparent lg:py-0 lg:px-1 lg:-ml-1 lg:sticky lg:top-24 lg:h-[calc(100vh-6rem)] lg:overflow-y-auto lg:pr-2 custom-scrollbar space-y-8">
                 <div className="flex justify-between items-center lg:hidden mb-4">
                   <h2 className="text-xl font-bold">Bộ Lọc</h2>
                   <Button variant="ghost" size="icon" onClick={() => setMobileFilterOpen(false)}><X className="w-5 h-5" /></Button>
@@ -639,10 +653,9 @@ export default function ProductListPage({ categoryIdOverride, categoryName, cate
 
                 </>
               )}
-            </div>
           </div>
         </div>
-      </section>
+      </main>
 
       <Footer />
 
@@ -663,3 +676,5 @@ export default function ProductListPage({ categoryIdOverride, categoryName, cate
     </div>
   );
 }
+
+

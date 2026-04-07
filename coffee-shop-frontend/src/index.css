@@ -265,3 +265,12 @@
   margin: 0.75rem 0;
   max-width: 100%;
 }
+
+/* Custom Thin Scrollbar */
+.custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: #E5E7EB; border-radius: 4px; }
+.dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #374151; }
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #D1D5DB; }
+.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #4B5563; }
+

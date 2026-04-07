@@ -14,6 +14,7 @@ const defaultProductImage =
 
 const LOYALTY_MONEY_PER_POINT = 100;
 const LEGACY_DELIVERY_SHIPPING_FEE = 20000;
+const MONEY_ROUNDING_UNIT = 100;
 const DYNAMIC_SHIPPING_ROLLOUT_AT = new Date("2026-04-07T00:00:00.000Z").getTime();
 
 export default function MyOrderDetailPage() {
@@ -173,14 +174,17 @@ export default function MyOrderDetailPage() {
     if (order.order_type !== "delivery") return 0;
 
     const feeFromApi = Number(order.shipping_fee);
-    if (Number.isFinite(feeFromApi) && feeFromApi > 0) return feeFromApi;
+    if (Number.isFinite(feeFromApi) && feeFromApi > 0) {
+      return Math.round(feeFromApi / MONEY_ROUNDING_UNIT) * MONEY_ROUNDING_UNIT;
+    }
 
     const loyaltyDiscount =
       Math.max(0, Number(order.used_points || 0)) * LOYALTY_MONEY_PER_POINT;
     const derivedFee =
       Number(order.total_amount || 0) + loyaltyDiscount - getItemsSubtotal(items);
 
-    const normalizedDerivedFee = Math.round(derivedFee);
+    const normalizedDerivedFee =
+      Math.round(derivedFee / MONEY_ROUNDING_UNIT) * MONEY_ROUNDING_UNIT;
     if (Number.isFinite(normalizedDerivedFee) && normalizedDerivedFee > 0) {
       return normalizedDerivedFee;
     }
@@ -232,7 +236,7 @@ export default function MyOrderDetailPage() {
 
   const getTimelineSteps = () => {
     const isCancelled = order.status === "cancelled";
-    
+
     let steps = [
       { id: "pending", label: "Chờ xác nhận", icon: ClipboardList },
       { id: "preparing", label: "Đang chuẩn bị", icon: Package },
@@ -287,13 +291,13 @@ export default function MyOrderDetailPage() {
                   const status = getStepStatus(step.id, idx, arr);
                   const Icon = step.icon;
                   const isLast = idx === arr.length - 1;
-                  
+
                   return (
                     <div key={step.id} className="flex flex-col items-center relative flex-1 text-center group">
                       <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center border-[3px] transition-all duration-300 z-10 bg-white dark:bg-gray-900 shadow-sm
-                        ${status === 'completed' ? 'border-amber-500 bg-amber-500 text-white' : 
-                          status === 'current' ? (step.id === 'cancelled' ? 'border-red-500 bg-red-100 dark:bg-red-900/40 text-red-600' : 'border-amber-500 bg-amber-50 dark:bg-amber-900/40 text-amber-600 ring-4 ring-amber-100 dark:ring-amber-900/50') : 
-                          'border-gray-200 dark:border-gray-700 text-gray-300 dark:text-gray-600 bg-white dark:bg-gray-900'}`}
+                        ${status === 'completed' ? 'border-amber-500 bg-amber-500 text-white' :
+                          status === 'current' ? (step.id === 'cancelled' ? 'border-red-500 bg-red-100 dark:bg-red-900/40 text-red-600' : 'border-amber-500 bg-amber-50 dark:bg-amber-900/40 text-amber-600 ring-4 ring-amber-100 dark:ring-amber-900/50') :
+                            'border-gray-200 dark:border-gray-700 text-gray-300 dark:text-gray-600 bg-white dark:bg-gray-900'}`}
                       >
                         <Icon strokeWidth={status === 'completed' ? 3 : 2} className="w-4 h-4 sm:w-5 sm:h-5" />
                       </div>
@@ -305,7 +309,7 @@ export default function MyOrderDetailPage() {
                       {/* Connecting Line */}
                       {!isLast && (
                         <div className={`absolute top-5 sm:top-6 left-[50%] right-[-50%] h-[2px] sm:h-[3px] transition-colors duration-500 -z-10
-                          ${status === 'completed' ? 'bg-amber-500' : 'bg-gray-100 dark:bg-gray-800'}`} 
+                          ${status === 'completed' ? 'bg-amber-500' : 'bg-gray-100 dark:bg-gray-800'}`}
                         />
                       )}
                     </div>
@@ -367,7 +371,7 @@ export default function MyOrderDetailPage() {
                 <div className="absolute -right-3 top-20 w-6 h-6 rounded-full bg-white dark:bg-gray-900 border-l border-amber-100/50 dark:border-gray-700 shadow-inner"></div>
 
                 <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-6 text-center">Hóa đơn thanh toán</h3>
-                
+
                 <div className="space-y-3.5 text-sm border-b-2 border-dashed border-gray-200 dark:border-gray-700 pb-8 mb-6 mt-4">
                   <div className="flex justify-between font-medium text-gray-600 dark:text-gray-300">
                     <span>Tạm tính</span>
@@ -409,52 +413,52 @@ export default function MyOrderDetailPage() {
               order.receiver_email ||
               order.address ||
               order.note) && (
-              <div className="mt-8 border-t pt-6">
-                <h2 className="text-md font-semibold text-gray-900 dark:text-gray-100 mb-4">
-                  Thông tin nhận hàng
-                </h2>
+                <div className="mt-8 border-t pt-6">
+                  <h2 className="text-md font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                    Thông tin nhận hàng
+                  </h2>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-700 dark:text-gray-300">
-                  {order.receiver_name && (
-                    <p>
-                      Người nhận:{" "}
-                      <span className="font-medium">{order.receiver_name}</span>
-                    </p>
-                  )}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-700 dark:text-gray-300">
+                    {order.receiver_name && (
+                      <p>
+                        Người nhận:{" "}
+                        <span className="font-medium">{order.receiver_name}</span>
+                      </p>
+                    )}
 
-                  {order.receiver_phone && (
-                    <p>
-                      Số điện thoại:{" "}
-                      <span className="font-medium">
-                        {order.receiver_phone}
-                      </span>
-                    </p>
-                  )}
+                    {order.receiver_phone && (
+                      <p>
+                        Số điện thoại:{" "}
+                        <span className="font-medium">
+                          {order.receiver_phone}
+                        </span>
+                      </p>
+                    )}
 
-                  {order.receiver_email && (
-                    <p>
-                      Email:{" "}
-                      <span className="font-medium">
-                        {order.receiver_email}
-                      </span>
-                    </p>
-                  )}
+                    {order.receiver_email && (
+                      <p>
+                        Email:{" "}
+                        <span className="font-medium">
+                          {order.receiver_email}
+                        </span>
+                      </p>
+                    )}
 
-                  {order.address && (
-                    <p className="md:col-span-2">
-                      Địa chỉ:{" "}
-                      <span className="font-medium">{order.address}</span>
-                    </p>
-                  )}
+                    {order.address && (
+                      <p className="md:col-span-2">
+                        Địa chỉ:{" "}
+                        <span className="font-medium">{order.address}</span>
+                      </p>
+                    )}
 
-                  {order.note && (
-                    <p className="md:col-span-2">
-                      Ghi chú: <span className="font-medium">{order.note}</span>
-                    </p>
-                  )}
+                    {order.note && (
+                      <p className="md:col-span-2">
+                        Ghi chú: <span className="font-medium">{order.note}</span>
+                      </p>
+                    )}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
             <div className="mt-8 border-t pt-6">
               <h2 className="text-md font-semibold text-gray-900 dark:text-gray-100 mb-4">
@@ -482,44 +486,44 @@ export default function MyOrderDetailPage() {
                           />
 
                           <div>
-                          <p className="text-md font-semibold text-gray-900 dark:text-gray-100">
-                            {item.name}
-                          </p>
-
-                          <div className="mt-2 space-y-1 text-sm text-gray-600 dark:text-gray-400">
-                            <p>Size: {item.size}</p>
-                            <p>Số lượng: {item.quantity}</p>
-                            <p>
-                              Đơn giá:{" "}
-                              {getBaseUnitPrice(item).toLocaleString("vi-VN")}đ
+                            <p className="text-md font-semibold text-gray-900 dark:text-gray-100">
+                              {item.name}
                             </p>
-                          
-                          </div>
 
-                          {Array.isArray(item.toppings) &&
-                            item.toppings.length > 0 && (
-                              <div className="mt-3">
-                                <p className="text-sm font-medium text-gray-800 dark:text-gray-200 mb-1">
-                                  Topping:
-                                </p>
+                            <div className="mt-2 space-y-1 text-sm text-gray-600 dark:text-gray-400">
+                              <p>Size: {item.size}</p>
+                              <p>Số lượng: {item.quantity}</p>
+                              <p>
+                                Đơn giá:{" "}
+                                {getBaseUnitPrice(item).toLocaleString("vi-VN")}đ
+                              </p>
 
-                                <div className="space-y-1">
-                                  {item.toppings.map((topping) => (
-                                    <p
-                                      key={topping.id || topping.topping_id}
-                                      className="text-sm text-gray-600 dark:text-gray-400"
-                                    >
-                                      + {topping.name} x {getItemQuantity(item)} (
-                                      {(
-                                        Number(topping.price || 0) *
-                                        getItemQuantity(item)
-                                      ).toLocaleString("vi-VN")}
-                                      đ)
-                                    </p>
-                                  ))}
+                            </div>
+
+                            {Array.isArray(item.toppings) &&
+                              item.toppings.length > 0 && (
+                                <div className="mt-3">
+                                  <p className="text-sm font-medium text-gray-800 dark:text-gray-200 mb-1">
+                                    Topping:
+                                  </p>
+
+                                  <div className="space-y-1">
+                                    {item.toppings.map((topping) => (
+                                      <p
+                                        key={topping.id || topping.topping_id}
+                                        className="text-sm text-gray-600 dark:text-gray-400"
+                                      >
+                                        + {topping.name} x {getItemQuantity(item)} (
+                                        {(
+                                          Number(topping.price || 0) *
+                                          getItemQuantity(item)
+                                        ).toLocaleString("vi-VN")}
+                                        đ)
+                                      </p>
+                                    ))}
+                                  </div>
                                 </div>
-                              </div>
-                            )}
+                              )}
                           </div>
                         </div>
 

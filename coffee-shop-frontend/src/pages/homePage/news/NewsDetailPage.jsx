@@ -93,29 +93,27 @@ export default function NewsDetailPage() {
   }
 
   return (
-    <>
+    <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900">
       <Header />
 
-      <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/20">
-
-
-        <div className="w-full w-full mx-auto py-8 md:py-12 px-4 sm:px-6 lg:px-8 xl:px-12">
+      <main className="flex-1 w-full mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 pt-2 md:pt-4 pb-10 md:pb-16 mb-5">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 min-h-[50px]">
+          <div className="text-base md:text-lg text-gray-500 dark:text-gray-400 flex items-center flex-wrap gap-2 font-medium">
+            <Link to="/" className="cursor-pointer hover:text-amber-600 transition-colors">Trang chủ</Link>
+            <span className="text-gray-400">/</span>
+            <Link to="/news" className="cursor-pointer hover:text-amber-600 transition-colors">Tin tức</Link>
+            <span className="text-gray-400">/</span>
+            <span className="text-amber-600 font-bold line-clamp-1 break-all text-ellipsis max-w-[200px] sm:max-w-sm md:max-w-md lg:max-w-xl">{news.title}</span>
+          </div>
+        </div>
           
-          <div className="flex flex-col lg:flex-row gap-10">
+        <div className="flex flex-col lg:flex-row gap-10">
             {/* Main Content */}
             <div className="flex-1 min-w-0">
               <article className="space-y-8">
                 {/* Article Header */}
                 <div className="space-y-6">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
-                    <div className="text-base md:text-lg text-gray-500 dark:text-gray-400 flex items-center flex-wrap gap-2 font-medium">
-                      <Link to="/" className="cursor-pointer hover:text-amber-600 transition-colors">Trang chủ</Link>
-                      <span className="text-gray-400">/</span>
-                      <Link to="/news" className="cursor-pointer hover:text-amber-600 transition-colors">Tin tức</Link>
-                      <span className="text-gray-400">/</span>
-                      <span className="text-amber-600 font-bold line-clamp-1 break-all">{news.title}</span>
-                    </div>
-                  </div>
+
                   <h4 className="text-lg md:text-xl font-bold leading-snug tracking-tight">
                     {news.title}
                   </h4>
@@ -238,10 +236,9 @@ export default function NewsDetailPage() {
             </div>
 
           </div>
-        </div>
-      </div>
+      </main>
 
       <Footer />
-    </>
+    </div>
   );
 }

@@ -10,8 +10,6 @@ import categoryService from "@/services/categoryService";
 import FeaturedNews from "@/pages/homePage/news/FeaturedNews";
 import HomeBanner from "@/pages/homePage/banner/HomeBanner";
 import FlashSaleSection from "@/pages/homePage/product/FlashSaleSection";
-import DiscountSection from "@/pages/homePage/discount/DiscountSection";
-import CategorySection from "@/pages/homePage/product/CategorySection";
 import BestSellerSection from "@/pages/homePage/product/BestSellerSection";
 import ReviewSection from "@/pages/homePage/review/ReviewSection";
 import OrderGuideSection from "@/pages/homePage/order/OrderGuideSection";
@@ -165,11 +163,11 @@ export default function HomePage() {
       <Header />
 
       <FadeInView delay={0} duration={1200}>
-        <div className="w-full bg-[#fcfaf9] dark:bg-gray-950 border-b border-gray-100 dark:border-gray-900 pb-0">
+        <div className="w-full bg-white dark:bg-gray-950 pb-4">
           <div className="w-full px-4 lg:px-6 xl:px-8 relative flex items-stretch">
             {/* STATIC CATEGORY SIDEBAR */}
             <div
-              className="hidden lg:flex w-[250px] shrink-0 flex-col bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-xl rounded-b-2xl z-20 pb-3 relative"
+              className="hidden lg:flex w-[250px] shrink-0 flex-col bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-b-2xl z-20 pb-3 relative"
             >
               <div className="h-[480px] overflow-y-auto px-1 pt-1 customized-scrollbar relative">
                 {categories.length === 0 ? (
@@ -213,10 +211,6 @@ export default function HomePage() {
       </FadeInView>
 
       <FadeInView>
-        <DiscountSection />
-      </FadeInView>
-
-      <FadeInView>
         <BestSellerSection
           loading={loading}
           products={products}
@@ -237,9 +231,6 @@ export default function HomePage() {
         <div className="w-full h-px bg-gradient-to-r from-transparent via-amber-300 to-transparent" />
       </FadeInView>
 
-      <FadeInView>
-        <CategorySection />
-      </FadeInView>
 
       <FadeInView>
         <FeaturedNews />
