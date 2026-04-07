@@ -88,15 +88,17 @@ function TableCard({
       onClick={() => onOpenPOS(table)}
       className="relative group p-5 flex flex-col items-center justify-center gap-3 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl bg-card border-border/50 hover:border-primary/50 cursor-pointer overflow-hidden"
     >
-      {table.status === "occupied" && (
+      {["occupied", "available", "reserved"].includes(table.status) && (
         <div className="absolute top-2 right-2 flex items-center gap-1 z-20">
-          <button
-            onClick={(e) => onViewOrder(e, table)}
-            className="p-1.5 rounded-full hover:bg-black/5 text-muted-foreground transition-colors"
-            title="Xem đơn hàng"
-          >
-            <ReceiptText className="w-4 h-4 text-blue-600" />
-          </button>
+          {table.status === "occupied" && (
+            <button
+              onClick={(e) => onViewOrder(e, table)}
+              className="p-1.5 rounded-full hover:bg-black/5 text-muted-foreground transition-colors"
+              title="Xem đơn hàng"
+            >
+              <ReceiptText className="w-4 h-4 text-blue-600" />
+            </button>
+          )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
@@ -108,52 +110,66 @@ function TableCard({
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onMergeOrder(table);
-                }}
-              >
-                <GitMerge className="w-4 h-4" />
-                Ghép đơn
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onTransfer(table);
-                }}
-              >
-                <ArrowLeftRight className="w-4 h-4" />
-                Chuyển bàn
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onSeparateBill(table);
-                }}
-              >
-                <ReceiptText className="w-4 h-4" />
-                Tách đơn
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                disabled={!canEditOrder}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (!canEditOrder) return;
-                  onEditOrder(table);
-                }}
-              >
-                Chỉnh sửa đơn hàng
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onRequestPayment(table);
-                }}
-              >
-                <HandCoins className="w-4 h-4" />
-                Yêu cầu thanh toán
-              </DropdownMenuItem>
+              {table.status === "occupied" ? (
+                <>
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onMergeOrder(table);
+                    }}
+                  >
+                    <GitMerge className="w-4 h-4" />
+                    Ghép đơn
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onTransfer(table);
+                    }}
+                  >
+                    <ArrowLeftRight className="w-4 h-4" />
+                    Chuyển bàn
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onSeparateBill(table);
+                    }}
+                  >
+                    <ReceiptText className="w-4 h-4" />
+                    Tách đơn
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    disabled={!canEditOrder}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (!canEditOrder) return;
+                      onEditOrder(table);
+                    }}
+                  >
+                    Chỉnh sửa đơn hàng
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onRequestPayment(table);
+                    }}
+                  >
+                    <HandCoins className="w-4 h-4" />
+                    Yêu cầu thanh toán
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onStatusChange(table, "available");
+                    }}
+                  >
+                    <TableIcon className="w-4 h-4" />
+                    Trống
+                  </DropdownMenuItem>
+                </>
+              ) : null}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -242,49 +258,7 @@ function TableCard({
         </div>
       )}
 
-      {/* Action Buttons */}
-      <div className="flex gap-2 w-full justify-center mt-1 z-10">
-        {table.status === "available" && (
-          <Button
-            size="sm"
-            className="h-7 text-xs px-3"
-            onClick={(e) => {
-              e.stopPropagation();
-              onStatusChange(table, "occupied");
-            }}
-          >
-            Có khách
-          </Button>
-        )}
-        {table.status === "reserved" && (
-          <Button
-            size="sm"
-            className="h-7 text-xs px-3"
-            onClick={(e) => {
-              e.stopPropagation();
-              onStatusChange(table, "occupied");
-            }}
-          >
-            Có khách
-          </Button>
-        )}
-        {table.status === "occupied" && (
-          <>
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-7 text-xs px-3"
-              onClick={(e) => {
-                e.stopPropagation();
-                onStatusChange(table, "available");
-              }}
-            >
-              Trống
-            </Button>
 
-          </>
-        )}
-      </div>
     </Card>
   );
 }
@@ -810,14 +784,27 @@ export function StaffTables() {
   //   setIsReservationModalOpen(true);
   // };
 
-  const filteredTables = tables.filter((table) => {
-    const matchesSearch = table.code
-      ?.toLowerCase()
-      .includes(searchTerm.toLowerCase());
-    const matchesArea =
-      selectedAreaId === "all" || table.area_id.toString() === selectedAreaId;
-    return matchesSearch && matchesArea;
-  });
+  const tableStatusOrder = {
+    occupied: 0,
+    available: 1,
+    reserved: 2,
+  };
+
+  const filteredTables = tables
+    .filter((table) => {
+      const matchesSearch = table.code
+        ?.toLowerCase()
+        .includes(searchTerm.toLowerCase());
+      const matchesArea =
+        selectedAreaId === "all" || table.area_id.toString() === selectedAreaId;
+      return matchesSearch && matchesArea;
+    })
+    .sort((a, b) => {
+      const rankA = tableStatusOrder[a.status] ?? 99;
+      const rankB = tableStatusOrder[b.status] ?? 99;
+      if (rankA !== rankB) return rankA - rankB;
+      return String(a.code || "").localeCompare(String(b.code || ""), "vi", { numeric: true });
+    });
 
   const totalPages = Math.ceil(filteredTables.length / limit);
   const paginatedTables = filteredTables.slice(
