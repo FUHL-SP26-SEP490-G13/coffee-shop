@@ -143,14 +143,12 @@ export default function NewsDetailPage() {
 
                 {/* Featured Image */}
                 {news.thumbnail && (
-                  <div className="relative max-w-4xl mx-auto rounded-2xl overflow-hidden shadow-xl border border-border bg-muted">
-                    <div className="aspect-video md:aspect-[16/7]">
-                      <img
-                        src={news.thumbnail}
-                        alt={news.title}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
+                  <div className="relative w-full aspect-video md:aspect-[16/7] flex items-center justify-center rounded-2xl overflow-hidden shadow-xl border border-border bg-muted">
+                    <img
+                      src={news.thumbnail}
+                      alt={news.title}
+                      className="w-full h-full object-contain"
+                    />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
                   </div>
                 )}

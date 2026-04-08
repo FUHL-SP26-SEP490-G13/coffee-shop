@@ -94,40 +94,34 @@ export default function AdminToppings() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className='w-16'>STT</TableHead>
-              <TableHead>Tên topping</TableHead>
-              <TableHead>Giá</TableHead>
-              <TableHead>Trạng thái</TableHead>
-              <TableHead className='text-right'>Hành động</TableHead>
+              <TableHead className="text-center w-[60px]">STT</TableHead>
+              <TableHead className="min-w-[180px]">Tên topping</TableHead>
+              <TableHead className="text-center min-w-[130px]">Giá</TableHead>
+              <TableHead className="text-center min-w-[140px]">Hành động</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading && (
               <TableRow>
-                <TableCell colSpan={5} className='text-center py-6'>Đang tải...</TableCell>
+                <TableCell colSpan={4} className='text-center py-6'>Đang tải...</TableCell>
               </TableRow>
             )}
             {!loading && filteredToppings.length === 0 && (
               <TableRow>
-                <TableCell colSpan={5} className='text-center py-6'>Không có topping nào</TableCell>
+                <TableCell colSpan={4} className='text-center py-6'>Không có topping nào</TableCell>
               </TableRow>
             )}
             {!loading && currentToppings.map((topping, idx) => (
               <TableRow key={topping.id}>
-                <TableCell>{(currentPage - 1) * PAGE_SIZE + idx + 1}</TableCell>
+                <TableCell className="text-center font-medium">{(currentPage - 1) * PAGE_SIZE + idx + 1}</TableCell>
                 <TableCell>{topping.name}</TableCell>
-                <TableCell>{Number(topping.price).toLocaleString('vi-VN')}đ</TableCell>
+                <TableCell className="text-center">{Number(topping.price).toLocaleString('vi-VN')}đ</TableCell>
                 <TableCell>
-                  <span className={topping.is_active ? 'text-green-600' : 'text-red-600'}>
-                    {topping.is_active ? 'Hoạt động' : 'Ẩn'}
-                  </span>
-                </TableCell>
-                <TableCell className='text-right'>
-                  <div className='flex items-center justify-end gap-2'>
-                    <Button variant='ghost' size='sm' className='cursor-pointer' onClick={() => openModal('update', topping)}>
+                  <div className='flex items-center justify-center gap-1'>
+                    <Button variant='ghost' size='sm' className='cursor-pointer' title="Chỉnh sửa" onClick={() => openModal('update', topping)}>
                       <Edit className='w-4 h-4' />
                     </Button>
-                    <Button variant='ghost' size='sm' className='text-destructive cursor-pointer' onClick={() => openModal('delete', topping)}>
+                    <Button variant='ghost' size='sm' className='text-destructive cursor-pointer hover:text-red-600' title="Xóa" onClick={() => openModal('delete', topping)}>
                       <Trash2 className='w-4 h-4' />
                     </Button>
                   </div>

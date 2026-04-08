@@ -13,11 +13,13 @@ import {
   Zap,
   Clock,
   User,
-  CheckCircle2
+  CheckCircle2,
+  ShoppingCart
 } from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import CartSuccessModal from "@/pages/homePage/order/CartSuccessModal";
+import QuickViewModal from "@/pages/homePage/product/QuickViewModal";
 import { Button } from "@/components/ui/button";
 import productService from "@/services/productService";
 import toppingService from "@/services/toppingService";
@@ -177,6 +179,7 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
   const [activeImageIndex, setActiveImageIndex] = useState(0);
 
   const [addedCartItem, setAddedCartItem] = useState(null);
+  const [quickViewProduct, setQuickViewProduct] = useState(null);
 
   useEffect(() => {
     flashSaleService.getCurrentActive()
@@ -1363,15 +1366,36 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
                                   </span>
                                 )}
                               </div>
-                              <button
-                                onClick={(e) => handleRelatedFastAdd(e, item)}
-                                className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${isStoreOpen
-                                  ? "bg-[#D62828] text-white hover:bg-[#B91D1D] hover:scale-105 shadow-md"
-                                  : "bg-gray-300 text-gray-500 cursor-not-allowed"}`}
-                                title={isStoreOpen ? "Thêm vào giỏ" : "Cửa hàng đóng cửa"}
-                              >
-                                <Plus fill="none" className="w-6 h-6" />
-                              </button>
+                              <div className="flex gap-2 items-center">
+                                <button
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    setQuickViewProduct(item);
+                                  }}
+                                  className="w-8 h-8 rounded-md flex items-center justify-center shrink-0 transition-colors shadow-sm bg-amber-100 dark:bg-amber-900/30 hover:bg-amber-200 dark:hover:bg-amber-800/50 text-amber-700 dark:text-amber-500"
+                                  title="Xem nhanh"
+                                >
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-eye"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0" /><circle cx="12" cy="12" r="3" /></svg>
+                                </button>
+                                {isStoreOpen ? (
+                                  <button
+                                    onClick={(e) => handleRelatedFastAdd(e, item)}
+                                    className="w-8 h-8 rounded-md flex items-center justify-center shrink-0 transition-colors shadow-sm bg-[#8B5A2B] hover:bg-[#69421c] text-white"
+                                    title="Thêm vào giỏ"
+                                  >
+                                    <ShoppingCart className="w-[15px] h-[15px] xl:ml-[-1px]" />
+                                  </button>
+                                ) : (
+                                  <div
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="flex items-center justify-center text-[11px] font-bold text-rose-600 bg-rose-50 px-2 h-8 rounded-md border border-rose-100 whitespace-nowrap shadow-sm cursor-not-allowed"
+                                    title={nextOpenMessage}
+                                  >
+                                    Đóng cửa
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -1390,6 +1414,15 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
 
       {/* Cửa sổ Modal Thêm vào giỏ hàng thành công */}
       <CartSuccessModal addedCartItem={addedCartItem} onClose={() => setAddedCartItem(null)} />
+      <QuickViewModal
+        product={quickViewProduct}
+        isOpen={!!quickViewProduct}
+        onClose={() => setQuickViewProduct(null)}
+        activeSale={activeSale}
+        isStoreOpen={isStoreOpen}
+        nextOpenMessage={nextOpenMessage}
+        notifySuccess={(item) => setAddedCartItem(item)}
+      />
     </div>
   );
 }

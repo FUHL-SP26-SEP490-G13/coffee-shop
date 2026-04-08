@@ -297,7 +297,7 @@ export default function AdminNewsModal({ isOpen, onClose, newsId, onSuccess }) {
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto w-[90vw]">
+      <DialogContent className="sm:max-w-[1000px] w-[95vw] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-xl flex items-center gap-2">
             <Newspaper className="w-5 h-5 text-primary" />
@@ -379,10 +379,10 @@ export default function AdminNewsModal({ isOpen, onClose, newsId, onSuccess }) {
             {preview && (
               <div className="mt-4 space-y-2">
                 <p className="text-sm font-medium">Ảnh mới:</p>
-                <div className="flex justify-center">
+                <div className="w-full h-48 md:h-72 rounded-xl border bg-muted flex items-center justify-center p-2 shadow-sm">
                   <img
                     src={preview}
-                    className="max-h-72 max-w-xl w-full object-cover rounded-xl border border-border shadow-sm"
+                    className="w-full h-full object-contain"
                     alt="Preview"
                   />
                 </div>
@@ -392,10 +392,10 @@ export default function AdminNewsModal({ isOpen, onClose, newsId, onSuccess }) {
             {isEditing && existingThumbnail && !preview && (
               <div className="mt-4 space-y-2">
                 <p className="text-sm font-medium">Ảnh hiện tại:</p>
-                <div className="flex justify-center">
+                <div className="w-full h-48 md:h-72 rounded-xl border bg-muted flex items-center justify-center p-2 shadow-sm">
                   <img
                     src={existingThumbnail}
-                    className="max-h-72 max-w-xl w-full object-cover rounded-xl border border-border shadow-sm"
+                    className="w-full h-full object-contain"
                     alt="Current Thumbnail"
                   />
                 </div>

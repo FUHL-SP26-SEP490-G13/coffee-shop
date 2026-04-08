@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { useStoreHours } from "@/hooks/useStoreHours";
 import receiptSettingService from "@/services/receiptSettingService";
 import CartSuccessModal from "@/pages/homePage/order/CartSuccessModal";
+import QuickViewModal from "@/pages/homePage/product/QuickViewModal";
 
 export default function BestSellerSection({
   loading,
@@ -28,6 +29,7 @@ export default function BestSellerSection({
 
   const [activeSale, setActiveSale] = useState(null);
   const [addedCartItem, setAddedCartItem] = useState(null);
+  const [quickViewProduct, setQuickViewProduct] = useState(null);
 
   const [activeTab, setActiveTab] = useState("Bán chạy");
   const [tabData, setTabData] = useState({ "Bán chạy": [], "Mới nhất": [], "Được yêu thích": [] });
@@ -302,21 +304,36 @@ export default function BestSellerSection({
                             })()}
                           </div>
 
-                          {isOpen ? (
+                          <div className="flex gap-2 items-center">
                             <button
-                              onClick={(e) => handleFastAdd(e, product)}
-                              className="w-8 h-8 rounded-md flex items-center justify-center shrink-0 transition-colors shadow-sm bg-[#8B5A2B] hover:bg-[#69421c] text-white"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setQuickViewProduct(product);
+                              }}
+                              className="w-8 h-8 rounded-md flex items-center justify-center shrink-0 transition-colors shadow-sm bg-amber-100 dark:bg-amber-900/30 hover:bg-amber-200 dark:hover:bg-amber-800/50 text-amber-700 dark:text-amber-500"
+                              title="Xem nhanh"
                             >
-                              <ShoppingCart className="w-[15px] h-[15px] xl:ml-[-1px]" />
+                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-eye"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0" /><circle cx="12" cy="12" r="3" /></svg>
                             </button>
-                          ) : (
-                            <div
-                              onClick={(e) => e.stopPropagation()}
-                              className="flex items-center text-[11px] font-bold text-rose-600 bg-rose-50 px-2 py-1.5 rounded-lg border border-rose-100 whitespace-nowrap shadow-sm cursor-not-allowed"
-                            >
-                              {nextOpenMessage}
-                            </div>
-                          )}
+                            {isOpen ? (
+                              <button
+                                onClick={(e) => handleFastAdd(e, product)}
+                                className="w-8 h-8 rounded-md flex items-center justify-center shrink-0 transition-colors shadow-sm bg-[#8B5A2B] hover:bg-[#69421c] text-white"
+                                title="Thêm vào giỏ"
+                              >
+                                <ShoppingCart className="w-[15px] h-[15px] xl:ml-[-1px]" />
+                              </button>
+                            ) : (
+                              <div
+                                onClick={(e) => e.stopPropagation()}
+                                className="flex items-center justify-center text-[11px] font-bold text-rose-600 bg-rose-50 px-2 h-8 rounded-md border border-rose-100 whitespace-nowrap shadow-sm cursor-not-allowed"
+                                title={nextOpenMessage}
+                              >
+                                Đóng cửa
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -336,6 +353,15 @@ export default function BestSellerSection({
         </div>
       </div>
       <CartSuccessModal addedCartItem={addedCartItem} onClose={() => setAddedCartItem(null)} />
+      <QuickViewModal
+        product={quickViewProduct}
+        isOpen={!!quickViewProduct}
+        onClose={() => setQuickViewProduct(null)}
+        activeSale={activeSale}
+        isStoreOpen={isOpen}
+        nextOpenMessage={nextOpenMessage}
+        notifySuccess={(item) => setAddedCartItem(item)}
+      />
     </section>
   );
 }

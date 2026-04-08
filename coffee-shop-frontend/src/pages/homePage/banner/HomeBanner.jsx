@@ -11,12 +11,10 @@ export default function HomeBanner({
   setActiveBannerIndex,
   defaultImage,
 }) {
-  const visibleBanners = banners.filter((b) => b?.is_active !== false);
-
   const safeBannerIndex =
-    visibleBanners.length > 0 ? activeBannerIndex % visibleBanners.length : 0;
+    banners.length > 0 ? activeBannerIndex % banners.length : 0;
 
-  const displayBanners = visibleBanners.length > 0 ? visibleBanners : [null];
+  const displayBanners = banners.length > 0 ? banners : [null];
 
   return (
     <section className="relative">
@@ -27,7 +25,7 @@ export default function HomeBanner({
         effect="fade"
         loop={displayBanners.length > 1}
         onSlideChange={(swiper) => {
-          if (visibleBanners.length > 0 && setActiveBannerIndex) {
+          if (banners.length > 0 && setActiveBannerIndex) {
             setActiveBannerIndex(swiper.realIndex);
           }
         }}
@@ -76,16 +74,16 @@ export default function HomeBanner({
         ))}
       </Swiper>
 
-      {visibleBanners.length > 0 && (
+      {banners.length > 0 && (
         <div className="border-b border-border/50 bg-card">
           <div className="mx-auto flex w-full items-center gap-3 px-6 py-3 lg:px-8">
             <span className="h-1 w-8 rounded-full bg-primary" />
             <div>
               <p className="text-sm font-semibold text-foreground">
-                {visibleBanners[safeBannerIndex]?.title}
+                {banners[safeBannerIndex]?.title}
               </p>
               <p className="text-xs text-muted-foreground">
-                {visibleBanners[safeBannerIndex]?.subtitle}
+                {banners[safeBannerIndex]?.subtitle}
               </p>
             </div>
           </div>
