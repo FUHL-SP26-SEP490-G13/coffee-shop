@@ -659,6 +659,7 @@ class OrderService {
         `
         SELECT
           o.id,
+          o.created_at,
           o.total_amount,
           o.is_paid,
           o.status AS order_status,
@@ -682,6 +683,7 @@ class OrderService {
       let debtAmount = 0;
       let unpaidOrdersCount = 0;
       let allItems = [];
+      const splitBills = [];
       const unpaidOrders = rows.filter((order) => {
         const paidFlag = Number(order.is_paid || 0) === 1;
         const paymentStatus = String(order.payment_status || '').toLowerCase();
@@ -704,6 +706,14 @@ class OrderService {
 
         const orderItems = await OrderRepository.findOrderItems(order.id);
         allItems = allItems.concat(orderItems);
+        splitBills.push({
+          id: Number(order.id),
+          created_at: order.created_at,
+          total_amount: orderTotal,
+          is_paid: paidByFlag ? 1 : 0,
+          payment_status: order.payment_status || 'pending',
+          items: orderItems,
+        });
       }
 
       const orderData = await OrderRepository.findOrderDetailForStaff(representativeOrderId);
@@ -714,6 +724,7 @@ class OrderService {
         total_amount: combinedTotal,
         debt_amount: debtAmount,
         unpaid_orders_count: unpaidOrdersCount,
+        split_bills: splitBills,
         items: allItems,
       };
     } finally {

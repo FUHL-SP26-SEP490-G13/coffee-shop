@@ -799,11 +799,39 @@ class TableService {
       connection.release();
     }
   }
+
+  normalizeSplitBillPayload(payload) {
+    if (Array.isArray(payload)) {
+      return payload
+        .map((bill, index) => ({
+          name: bill?.name || `Đơn tách ${index + 1}`,
+          items: Array.isArray(bill?.items) ? bill.items : [],
+        }))
+        .filter((bill) => bill.items.length > 0);
+    }
+
+    if (Array.isArray(payload?.bills)) {
+      return payload.bills
+        .map((bill, index) => ({
+          name: bill?.name || `Đơn tách ${index + 1}`,
+          items: Array.isArray(bill?.items) ? bill.items : [],
+        }))
+        .filter((bill) => bill.items.length > 0);
+    }
+
+    if (Array.isArray(payload?.items)) {
+      return [{ name: 'Đơn tách 1', items: payload.items }].filter((bill) => bill.items.length > 0);
+    }
+
+    return [];
+  }
+
   /**
    * Tách hóa đơn từ bàn hiện tại (Tạo order mới)
    */
-  async splitBill(tableId, items) {
-    if (!items || !items.length) {
+  async splitBill(tableId, payload) {
+    const splitBills = this.normalizeSplitBillPayload(payload);
+    if (!splitBills.length) {
       throw new ErrorResponse(400, 'Không có món nào để tách');
     }
 
@@ -826,7 +854,10 @@ class TableService {
         SELECT o.id, o.is_paid, o.status, COALESCE(op.payment_status, 'pending') AS payment_status
         FROM orders o
         LEFT JOIN order_payments op ON op.order_id = o.id
-        WHERE o.table_id = ? AND o.session_id = ? AND o.status IN ('pending', 'processing')
+        WHERE o.table_id = ?
+          AND o.session_id = ?
+          AND o.status NOT IN ('cancelled')
+          AND o.total_amount > 0
         FOR UPDATE
         `,
         [tableId, table.current_session_id]
@@ -838,99 +869,158 @@ class TableService {
       if (unpaidOrders.length === 0) throw new ErrorResponse(400, 'Không có đơn hàng nào chưa thanh toán để tách');
       const orderIds = unpaidOrders.map(o => Number(o.id));
 
-      // 3. Lấy tất cả order details của các order trên
+      // 3. Lấy tất cả order details và toppings của các order trên
       const placeholders = orderIds.map(() => '?').join(',');
-      const [allDetails] = await connection.query(
+      const [detailRows] = await connection.query(
         `
-        SELECT id, order_id, product_size_id, quantity, price, COALESCE(note, '') AS note
-        FROM order_details
-        WHERE order_id IN (${placeholders})
+        SELECT
+          od.id AS detail_id,
+          od.order_id,
+          od.product_size_id,
+          od.quantity,
+          od.price,
+          COALESCE(od.note, '') AS note,
+          odt.id AS topping_row_id,
+          odt.topping_id,
+          odt.quantity AS topping_quantity,
+          odt.price AS topping_price
+        FROM order_details od
+        LEFT JOIN order_detail_toppings odt ON odt.order_detail_id = od.id
+        WHERE od.order_id IN (${placeholders})
+        ORDER BY od.id ASC, odt.id ASC
         FOR UPDATE
         `,
         orderIds
       );
 
-      // 4. Tạo order mới (Tách), dùng session_id của bàn để có thể settle cùng
-      const [insertOrder] = await connection.query(
-        `
-        INSERT INTO orders (user_id, created_by, customer_type, order_type, table_id, status, is_paid, total_amount, session_id)
-        VALUES (1, 1, 'guest', 'dine-in', ?, 'pending', 0, 0, ?)
-        `,
-        [tableId, table.current_session_id]
-      );
-      const newOrderId = Number(insertOrder.insertId);
+      const detailStateById = new Map();
+      for (const row of detailRows) {
+        const detailId = Number(row.detail_id);
+        if (!detailStateById.has(detailId)) {
+          detailStateById.set(detailId, {
+            id: detailId,
+            order_id: Number(row.order_id),
+            product_size_id: Number(row.product_size_id),
+            quantity: Number(row.quantity || 0),
+            price: Number(row.price || 0),
+            note: String(row.note || ''),
+            toppings: [],
+          });
+        }
 
-      let splitTotal = 0;
+        if (row.topping_row_id) {
+          detailStateById.get(detailId).toppings.push({
+            id: Number(row.topping_row_id),
+            topping_id: Number(row.topping_id),
+            quantity: Number(row.topping_quantity || 0),
+            price: Number(row.topping_price || 0),
+          });
+        }
+      }
+
+      const createdOrderIds = [];
       const modifiedOrderIds = new Set();
+      let totalSplitAmount = 0;
 
-      for (const reqItem of items) {
-        const detailId = Number(reqItem.order_detail_id);
-        const splitQty = Number(reqItem.quantity);
-        if (!splitQty || splitQty <= 0) continue;
+      for (const bill of splitBills) {
+        const billItems = bill.items
+          .map((item) => ({
+            order_detail_id: Number(item.order_detail_id),
+            quantity: Number(item.quantity),
+          }))
+          .filter((item) => item.order_detail_id && item.quantity > 0);
 
-        const originalDetail = allDetails.find(d => Number(d.id) === detailId);
-        if (!originalDetail) throw new ErrorResponse(400, `Item ${detailId} không tồn tại trong hóa đơn hiện tại`);
-        if (splitQty > originalDetail.quantity) throw new ErrorResponse(400, `Số lượng tách (${splitQty}) lớn hơn số lượng hiện có (${originalDetail.quantity})`);
+        if (billItems.length === 0) {
+          continue;
+        }
 
-        // Load toppings
-        const [toppings] = await connection.query(
-          'SELECT id, topping_id, quantity, price FROM order_detail_toppings WHERE order_detail_id = ? FOR UPDATE',
-          [detailId]
-        );
-
-        // Tạo order detail cho order mới
-        const [insertDetail] = await connection.query(
+        const [insertOrder] = await connection.query(
           `
-          INSERT INTO order_details (order_id, product_size_id, quantity, price, note)
-          VALUES (?, ?, ?, ?, ?)
+          INSERT INTO orders (user_id, created_by, customer_type, order_type, table_id, status, is_paid, total_amount, session_id)
+          VALUES (1, 1, 'guest', 'dine-in', ?, 'pending', 0, 0, ?)
           `,
-          [newOrderId, originalDetail.product_size_id, splitQty, originalDetail.price, originalDetail.note]
+          [tableId, table.current_session_id]
         );
-        const newDetailId = Number(insertDetail.insertId);
+        const newOrderId = Number(insertOrder.insertId);
+        let billTotal = 0;
 
-        let toppingTotalForSplit = 0;
+        for (const reqItem of billItems) {
+          const detailState = detailStateById.get(reqItem.order_detail_id);
+          if (!detailState) {
+            throw new ErrorResponse(400, `Item ${reqItem.order_detail_id} không tồn tại trong hóa đơn hiện tại`);
+          }
 
-        for (const t of toppings) {
-          const splitToppingQty = Math.floor((t.quantity * splitQty) / originalDetail.quantity);
-          if (splitToppingQty > 0) {
-            await connection.query(
-              `INSERT INTO order_detail_toppings (order_detail_id, topping_id, quantity, price) VALUES (?, ?, ?, ?)`,
-              [newDetailId, t.topping_id, splitToppingQty, t.price]
-            );
-            toppingTotalForSplit += splitToppingQty * t.price;
+          if (reqItem.quantity > detailState.quantity) {
+            throw new ErrorResponse(400, `Số lượng tách (${reqItem.quantity}) lớn hơn số lượng hiện có (${detailState.quantity})`);
+          }
 
-            const remainingToppingQty = t.quantity - splitToppingQty;
-            if (remainingToppingQty > 0) {
-              await connection.query('UPDATE order_detail_toppings SET quantity = ? WHERE id = ?', [remainingToppingQty, t.id]);
+          const originalQty = detailState.quantity;
+          const [insertDetail] = await connection.query(
+            `
+            INSERT INTO order_details (order_id, product_size_id, quantity, price, note)
+            VALUES (?, ?, ?, ?, ?)
+            `,
+            [newOrderId, detailState.product_size_id, reqItem.quantity, detailState.price, detailState.note]
+          );
+          const newDetailId = Number(insertDetail.insertId);
+
+          let toppingTotalForSplit = 0;
+          for (const toppingState of detailState.toppings) {
+            const originalToppingQty = Number(toppingState.quantity || 0);
+            let splitToppingQty = 0;
+
+            if (reqItem.quantity === originalQty) {
+              splitToppingQty = originalToppingQty;
+            } else if (originalQty > 0 && originalToppingQty > 0) {
+              splitToppingQty = Math.floor((originalToppingQty * reqItem.quantity) / originalQty);
+            }
+
+            if (splitToppingQty > 0) {
+              await connection.query(
+                `INSERT INTO order_detail_toppings (order_detail_id, topping_id, quantity, price) VALUES (?, ?, ?, ?)`,
+                [newDetailId, toppingState.topping_id, splitToppingQty, toppingState.price]
+              );
+              toppingTotalForSplit += splitToppingQty * toppingState.price;
+              toppingState.quantity = originalToppingQty - splitToppingQty;
+            }
+          }
+
+          billTotal += (reqItem.quantity * detailState.price) + toppingTotalForSplit;
+          detailState.quantity = originalQty - reqItem.quantity;
+          modifiedOrderIds.add(detailState.order_id);
+
+          if (detailState.quantity > 0) {
+            await connection.query('UPDATE order_details SET quantity = ? WHERE id = ?', [detailState.quantity, detailState.id]);
+          } else {
+            await connection.query('DELETE FROM order_details WHERE id = ?', [detailState.id]);
+          }
+
+          for (const toppingState of detailState.toppings) {
+            if (toppingState.quantity > 0) {
+              await connection.query('UPDATE order_detail_toppings SET quantity = ? WHERE id = ?', [toppingState.quantity, toppingState.id]);
             } else {
-              await connection.query('DELETE FROM order_detail_toppings WHERE id = ?', [t.id]);
+              await connection.query('DELETE FROM order_detail_toppings WHERE id = ?', [toppingState.id]);
             }
           }
         }
 
-        splitTotal += (splitQty * originalDetail.price) + toppingTotalForSplit;
-
-        // Trừ số lượng ở order detail gốc
-        const remainingQty = originalDetail.quantity - splitQty;
-        if (remainingQty > 0) {
-          await connection.query('UPDATE order_details SET quantity = ? WHERE id = ?', [remainingQty, detailId]);
-        } else {
-          await connection.query('DELETE FROM order_details WHERE id = ?', [detailId]);
+        if (billTotal <= 0) {
+          throw new ErrorResponse(400, 'Không tách được sản phẩm nào');
         }
-        modifiedOrderIds.add(originalDetail.order_id);
+
+        await connection.query(
+          'UPDATE orders SET total_amount = ?, is_paid = 0, status = "pending" WHERE id = ?',
+          [billTotal, newOrderId]
+        );
+
+        createdOrderIds.push(newOrderId);
+        totalSplitAmount += billTotal;
       }
 
-      if (splitTotal === 0) throw new ErrorResponse(400, 'Không tách được sản phẩm nào');
+      if (createdOrderIds.length === 0) {
+        throw new ErrorResponse(400, 'Không tách được sản phẩm nào');
+      }
 
-      // Cập nhật lại tổng tiền order mới (để trạng thái pending, chưa thanh toán)
-      await connection.query(
-        'UPDATE orders SET total_amount = ?, is_paid = 0, status = "pending" WHERE id = ?',
-        [splitTotal, newOrderId]
-      );
-
-      // (Đã loại bỏ phần tự động tạo order_payments và đánh dấu đã thanh toán)
-
-      // Tính lại tổng tiền order gốc
       for (const oId of modifiedOrderIds) {
         const remainingTotal = await this.recalculateOrderTotal(connection, oId);
         if (remainingTotal > 0) {
@@ -940,14 +1030,13 @@ class TableService {
         }
       }
 
-      // (Đã loại bỏ checkAndResetTableStatus vì đơn mới tách chưa được thanh toán)
-
-
       await connection.commit();
       return {
         table_id: tableId,
-        new_order_id: newOrderId,
-        split_total: splitTotal
+        table_code: table.code,
+        new_order_ids: createdOrderIds,
+        split_orders: createdOrderIds.length,
+        split_total: totalSplitAmount
       };
     } catch (error) {
       await connection.rollback();

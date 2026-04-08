@@ -1,9 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
 import {
   Table as TableIcon,
   Loader2,
-  LayoutGrid,
   MapPin,
   ReceiptText,
   ArrowLeftRight,
@@ -21,6 +19,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
@@ -66,6 +65,7 @@ function TableCard({
   table,
   onOpenPOS,
   onViewOrder,
+  onEditOrder,
   onStatusChange,
   onTransfer,
   onMergeOrder,
@@ -75,21 +75,27 @@ function TableCard({
   paymentRequested,
 }) {
   const debtAmount = Number(activeOrderMeta?.debt_amount || 0);
+  const canEditOrder =
+    Boolean(activeOrderMeta) &&
+    !activeOrderMeta?.is_paid &&
+    String(activeOrderMeta?.payment_status || "").toLowerCase() !== "paid";
 
   return (
     <Card
       onClick={() => onOpenPOS(table)}
       className="relative group p-5 flex flex-col items-center justify-center gap-3 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl dark:shadow-none bg-card border-border/50 hover:border-primary/50 cursor-pointer overflow-hidden"
     >
-      {table.status === "occupied" && (
+      {["occupied", "available", "reserved"].includes(table.status) && (
         <div className="absolute top-2 right-2 flex items-center gap-1 z-20">
-          <button
-            onClick={(e) => onViewOrder(e, table)}
-            className="p-1.5 rounded-full hover:bg-black/5 text-slate-600 dark:text-slate-300 transition-colors"
-            title="Xem đơn hàng"
-          >
-            <ReceiptText className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-          </button>
+          {table.status === "occupied" && (
+            <button
+              onClick={(e) => onViewOrder(e, table)}
+              className="p-1.5 rounded-full hover:bg-black/5 text-muted-foreground transition-colors"
+              title="Xem đơn hàng"
+            >
+              <ReceiptText className="w-4 h-4 text-blue-600" />
+            </button>
+          )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
@@ -101,42 +107,66 @@ function TableCard({
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onMergeOrder(table);
-                }}
-              >
-                <GitMerge className="w-4 h-4" />
-                Ghép đơn
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onTransfer(table);
-                }}
-              >
-                <ArrowLeftRight className="w-4 h-4" />
-                Chuyển bàn
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onSeparateBill(table);
-                }}
-              >
-                <ReceiptText className="w-4 h-4" />
-                Tách đơn
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onRequestPayment(table);
-                }}
-              >
-                <HandCoins className="w-4 h-4" />
-                Yêu cầu thanh toán
-              </DropdownMenuItem>
+              {table.status === "occupied" ? (
+                <>
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onMergeOrder(table);
+                    }}
+                  >
+                    <GitMerge className="w-4 h-4" />
+                    Ghép đơn
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onTransfer(table);
+                    }}
+                  >
+                    <ArrowLeftRight className="w-4 h-4" />
+                    Chuyển bàn
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onSeparateBill(table);
+                    }}
+                  >
+                    <ReceiptText className="w-4 h-4" />
+                    Tách đơn
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    disabled={!canEditOrder}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (!canEditOrder) return;
+                      onEditOrder(table);
+                    }}
+                  >
+                    Chỉnh sửa đơn hàng
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onRequestPayment(table);
+                    }}
+                  >
+                    <HandCoins className="w-4 h-4" />
+                    Yêu cầu thanh toán
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onStatusChange(table, "available");
+                    }}
+                  >
+                    <TableIcon className="w-4 h-4" />
+                    Trống
+                  </DropdownMenuItem>
+                </>
+              ) : null}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -225,61 +255,19 @@ function TableCard({
         </div>
       )}
 
-      {/* Action Buttons */}
-      <div className="flex gap-2 w-full justify-center mt-1 z-10">
-        {table.status === "available" && (
-          <Button
-            size="sm"
-            className="h-7 text-xs px-3"
-            onClick={(e) => {
-              e.stopPropagation();
-              onStatusChange(table, "occupied");
-            }}
-          >
-            Có khách
-          </Button>
-        )}
-        {table.status === "reserved" && (
-          <Button
-            size="sm"
-            className="h-7 text-xs px-3"
-            onClick={(e) => {
-              e.stopPropagation();
-              onStatusChange(table, "occupied");
-            }}
-          >
-            Có khách
-          </Button>
-        )}
-        {table.status === "occupied" && (
-          <>
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-7 text-xs px-3"
-              onClick={(e) => {
-                e.stopPropagation();
-                onStatusChange(table, "available");
-              }}
-            >
-              Trống
-            </Button>
 
-          </>
-        )}
-      </div>
     </Card>
   );
 }
 
 
 export function StaffTables() {
-  const navigate = useNavigate();
   const [tables, setTables] = useState([]);
   const [areas, setAreas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedAreaId, setSelectedAreaId] = useState("all");
   const [selectedStatus, setSelectedStatus] = useState("all");
+  const [searchTerm, setSearchTerm] = useState("");
 
   // Reservation Modal States
   // const [isReservationModalOpen, setIsReservationModalOpen] = useState(false);
@@ -298,12 +286,6 @@ export function StaffTables() {
   const [orderModalMode, setOrderModalMode] = useState("view-order");
   const [isSplitBillModalOpen, setIsSplitBillModalOpen] = useState(false);
   const [isPaySplitBillModalOpen, setIsPaySplitBillModalOpen] = useState(false);
-  const [splitOrderIds, setSplitOrderIds] = useState([]);
-
-  const [isResetModalOpen, setIsResetModalOpen] = useState(false);
-  const [selectedTableToReset, setSelectedTableToReset] = useState(null);
-  const [activeOrderSummaries, setActiveOrderSummaries] = useState({});
-  const [requestedPaymentByTable, setRequestedPaymentByTable] = useState({});
   const [_nowTick, setNowTick] = useState(Date.now());
 
   // Transfer Modal States
@@ -339,13 +321,21 @@ export function StaffTables() {
       if (params.get("debtPay") !== "1") return;
 
       const tableId = Number(params.get("tableId") || 0);
+      const orderId = Number(params.get("orderId") || 0);
+      const code = String(params.get("code") || "").toUpperCase();
+      const cancel = String(params.get("cancel") || "").toLowerCase() === "true";
       const status = String(params.get("status") || "").toUpperCase();
+      const isPaid = status === "PAID" || code === "00";
+      const isCancelled = status === "CANCELLED" || cancel;
 
       if (!tableId) return;
 
-      if (status === "PAID") {
+      if (isPaid) {
         try {
-          await tableService.settleDebt(tableId, { payment_method: "payos" });
+          await tableService.settleDebt(tableId, {
+            payment_method: "payos",
+            ...(orderId > 0 ? { order_ids: [orderId] } : {}),
+          });
           toast.success("Thanh toán QR thành công");
           setPaymentRequestedByTable((prev) => {
             const next = { ...prev };
@@ -359,7 +349,7 @@ export function StaffTables() {
             "Không thể chốt  sau thanh toán QR";
           toast.error(msg);
         }
-      } else if (status === "CANCELLED") {
+      } else if (isCancelled) {
         toast.info("Khách đã hủy giao dịch QR");
       }
 
@@ -391,6 +381,43 @@ export function StaffTables() {
       toast.error('Không thể tải chi tiết đơn để chỉnh sửa');
     } finally {
       setLoadingOrder(false);
+    }
+  };
+
+  const handleEditOrderFromTable = async (table) => {
+    try {
+      const unpaidRes = await tableService.getUnpaidOrders(table.id);
+      const unpaidOrders = unpaidRes?.data || [];
+
+      if (unpaidOrders.length === 0) {
+        toast.error("Tất cả bill đã thanh toán, không thể chỉnh sửa");
+        return;
+      }
+
+      // Nếu chỉ 1 đơn → edit ngay (đơn bình thường)
+      if (unpaidOrders.length === 1) {
+        const targetOrder = unpaidOrders[0];
+        await handleEditOrder(targetOrder, table);
+        return;
+      }
+
+      // Nếu > 1 đơn → là đơn tách, hiển thị modal để chọn
+      setSelectedTableForOrder(table);
+      setOrderModalMode("edit-order");
+      setIsOrderModalOpen(true);
+      setLoadingOrder(true);
+
+      try {
+        const res = await tableService.getActiveOrder(table.id);
+        setActiveOrder(res.data);
+      } catch {
+        toast.error("Không thể tải thông tin đơn hàng");
+        setIsOrderModalOpen(false);
+      } finally {
+        setLoadingOrder(false);
+      }
+    } catch {
+      toast.error("Không thể tải bill chưa thanh toán để chỉnh sửa");
     }
   };
 
@@ -500,7 +527,7 @@ export function StaffTables() {
       }
 
       setIsSplitBillModalOpen(true);
-    } catch (err) {
+    } catch {
       toast.error("Không thể tải thông tin đơn hàng để tách");
     } finally {
       setLoadingOrder(false);
@@ -516,25 +543,12 @@ export function StaffTables() {
     try {
       const res = await tableService.getActiveOrder(table.id);
       setActiveOrder(res.data);
-    } catch (err) {
+    } catch {
       toast.error("Không thể tải thông tin đơn hàng");
       setActiveOrder(null);
     } finally {
       setLoadingOrder(false);
     }
-  };
-
-  const handleOpenPaymentFromRequest = () => {
-    const orderId = Number(activeOrder?.unpaid_order_id || activeOrder?.id || 0);
-    const tableId = Number(selectedTableForOrder?.id || 0);
-    setIsOrderModalOpen(false);
-    navigate('/staff/orders', {
-      state: {
-        focusOrderId: orderId || null,
-        focusTableId: tableId || null,
-        sourceAction: 'request-payment',
-      },
-    });
   };
 
   const fetchData = async () => {
@@ -570,8 +584,8 @@ export function StaffTables() {
   // -- TABLE HANDLERS --
   const handleStatusChange = async (table, newStatus) => {
     if (newStatus === "available") {
-      const outstandingAmount = Number(activeOrderSummaries[table.id]?.outstanding_amount || 0);
-      const hasRequestedPayment = Boolean(requestedPaymentByTable[table.id]);
+      const outstandingAmount = Number(activeOrderMetaByTable[table.id]?.debt_amount || 0);
+      const hasRequestedPayment = Boolean(paymentRequestedByTable[table.id]);
 
       if (outstandingAmount > 0 && !hasRequestedPayment) {
         toast.error("Vui lòng bấm 'Yêu cầu thanh toán' trước khi đổi bàn về Trống");
@@ -590,11 +604,6 @@ export function StaffTables() {
         });
       }
       toast.success("Cập nhật trạng thái thành công");
-      setRequestedPaymentByTable((prev) => {
-        const next = { ...prev };
-        delete next[table.id];
-        return next;
-      });
       fetchData();
     } catch (error) {
       toast.error(error.message || "Cập nhật thất bại");
@@ -616,6 +625,21 @@ export function StaffTables() {
     if (debtAmount <= 0) {
       toast.info("Bàn này hiện không có đơn hàng cần thanh toán");
       return;
+    }
+
+    // Kiểm tra có phải đơn tách không
+    try {
+      const unpaidRes = await tableService.getUnpaidOrders(table.id);
+      const unpaidOrders = unpaidRes?.data || [];
+
+      // Nếu có nhiều hơn 1 đơn chưa thanh toán → là đơn tách, mở modal tách đơn
+      if (unpaidOrders.length > 1) {
+        setSelectedTableForOrder(table);
+        setIsPaySplitBillModalOpen(true);
+        return;
+      }
+    } catch {
+      // Nếu lỗi, vẫn tiếp tục với flow bình thường
     }
 
     setPaymentRequestedByTable((prev) => ({
@@ -865,9 +889,27 @@ export function StaffTables() {
   //   setIsReservationModalOpen(true);
   // };
 
-  const filteredTables = tables.filter(
-    (table) => selectedAreaId === "all" || table.area_id.toString() === selectedAreaId
-  );
+  const tableStatusOrder = {
+    occupied: 0,
+    available: 1,
+    reserved: 2,
+  };
+
+  const filteredTables = tables
+    .filter((table) => {
+      const matchesSearch = table.code
+        ?.toLowerCase()
+        .includes(searchTerm.toLowerCase());
+      const matchesArea =
+        selectedAreaId === "all" || table.area_id.toString() === selectedAreaId;
+      return matchesSearch && matchesArea;
+    })
+    .sort((a, b) => {
+      const rankA = tableStatusOrder[a.status] ?? 99;
+      const rankB = tableStatusOrder[b.status] ?? 99;
+      if (rankA !== rankB) return rankA - rankB;
+      return String(a.code || "").localeCompare(String(b.code || ""), "vi", { numeric: true });
+    });
 
   const currentAreaObj = areas.find((a) => a.id.toString() === selectedAreaId);
 
@@ -916,7 +958,15 @@ export function StaffTables() {
 
         {/* STATUS FILTERS & STATS */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
-          <Card className="p-4 lg:col-span-3 bg-white dark:bg-gray-900/50 backdrop-blur-sm">
+          <Card className="p-4 lg:col-span-3 bg-white dark:bg-gray-900/50 backdrop-blur-sm space-y-3">
+            <div>
+              <p className="text-sm font-semibold text-foreground mb-2">Tìm bàn:</p>
+              <Input
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Nhập mã bàn, ví dụ: TB-01"
+              />
+            </div>
             <div className="flex flex-col gap-3">
               <p className="text-sm font-semibold text-foreground">Lọc trạng thái:</p>
               <div className="flex flex-wrap gap-2">
@@ -1034,6 +1084,7 @@ export function StaffTables() {
                             table={table}
                             onOpenPOS={handleOpenPOS}
                             onViewOrder={handleViewOrder}
+                            onEditOrder={handleEditOrderFromTable}
                             onStatusChange={handleStatusChange}
                             onTransfer={handleOpenTransfer}
                             onMergeOrder={handleMergeOrder}
@@ -1095,6 +1146,7 @@ export function StaffTables() {
                       table={table}
                       onOpenPOS={handleOpenPOS}
                       onViewOrder={handleViewOrder}
+                      onEditOrder={handleEditOrderFromTable}
                       onStatusChange={handleStatusChange}
                       onTransfer={handleOpenTransfer}
                       onMergeOrder={handleMergeOrder}
@@ -1227,7 +1279,9 @@ export function StaffTables() {
                 .filter(
                   (t) =>
                     t.id !== tableToTransfer?.id &&
-                    (tableActionMode === "merge" || t.status === "available") &&
+                    (tableActionMode === "merge"
+                      ? t.status === "occupied" && Boolean(activeOrderMetaByTable[t.id])
+                      : t.status === "available") &&
                     (transferAreaFilter === "all" || t.area_id.toString() === transferAreaFilter)
                 )
                 .map((t) => (
@@ -1243,15 +1297,17 @@ export function StaffTables() {
                       }`}>
                       {t.code?.replace("TB-", "")}
                     </span>
-                    <span className="text-[10px] text-slate-600 dark:text-slate-300 mt-0.5 text-center leading-tight">
-                      {t.area_name} {tableActionMode === "merge" && t.status === "occupied" ? "· Có khách" : ""}
+                    <span className="text-[10px] text-muted-foreground mt-0.5 text-center leading-tight">
+                      {t.area_name} {tableActionMode === "merge" ? "· Có đơn" : ""}
                     </span>
                   </button>
                 ))}
               {tables.filter(
                 (t) =>
                   t.id !== tableToTransfer?.id &&
-                  (tableActionMode === "merge" || t.status === "available") &&
+                  (tableActionMode === "merge"
+                    ? t.status === "occupied" && Boolean(activeOrderMetaByTable[t.id])
+                    : t.status === "available") &&
                   (transferAreaFilter === "all" || t.area_id.toString() === transferAreaFilter)
               ).length === 0 && (
                   <div className="col-span-4 py-8 text-center text-slate-600 dark:text-slate-300 text-sm">
@@ -1302,28 +1358,106 @@ export function StaffTables() {
                 <span className="font-semibold text-lg">Mã đơn: #{activeOrder.id}</span>
                 <span className="text-slate-600 dark:text-slate-300 text-sm">{new Date(activeOrder.created_at).toLocaleString('vi-VN')}</span>
               </div>
-              <div className="space-y-4">
-                {activeOrder.items?.map((item, idx) => (
-                  <div key={idx} className="flex justify-between items-start text-sm border-b pb-2 last:border-0">
-                    <div className="flex-1">
-                      <p className="font-medium text-base">{item.quantity} x {item.name}</p>
-                      <p className="text-slate-600 dark:text-slate-300">Size {item.size}</p>
-                      {item.toppings?.length > 0 && (
-                        <div className="mt-1 pl-2 border-l-2 border-muted space-y-1">
-                          {item.toppings.map((t, tidx) => (
-                            <p key={tidx} className="text-xs text-slate-600 dark:text-slate-300">
-                              + {t.name} (x{t.quantity})
-                            </p>
-                          ))}
+              {(() => {
+                const splitBills = Array.isArray(activeOrder.split_bills) ? activeOrder.split_bills : [];
+                const isPaidBill = (bill) => {
+                  const paidByFlag = Number(bill?.is_paid || 0) === 1;
+                  const paidByStatus = String(bill?.payment_status || '').toLowerCase() === 'paid';
+                  return paidByFlag || paidByStatus;
+                };
+
+                if (splitBills.length <= 1) {
+                  return (
+                    <div className="space-y-4">
+                      {activeOrder.items?.map((item, idx) => (
+                        <div key={idx} className="flex justify-between items-start text-sm border-b pb-2 last:border-0">
+                          <div className="flex-1">
+                            <p className="font-medium text-base">{item.quantity} x {item.name}</p>
+                            <p className="text-muted-foreground">Size {item.size}</p>
+                            {item.toppings?.length > 0 && (
+                              <div className="mt-1 pl-2 border-l-2 border-muted space-y-1">
+                                {item.toppings.map((t, tidx) => (
+                                  <p key={tidx} className="text-xs text-muted-foreground">
+                                    + {t.name} (x{t.quantity})
+                                  </p>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          <div className="font-medium whitespace-nowrap ml-4 mt-1">
+                            {parseInt(item.price * item.quantity).toLocaleString('vi-VN')}đ
+                          </div>
                         </div>
-                      )}
+                      ))}
                     </div>
-                    <div className="font-medium whitespace-nowrap ml-4 mt-1">
-                      {parseInt(item.price * item.quantity).toLocaleString('vi-VN')}đ
+                  );
+                }
+
+                const unpaidBills = splitBills.filter((bill) => !isPaidBill(bill));
+                const paidBills = splitBills.filter((bill) => isPaidBill(bill));
+
+                const renderBillSection = (title, bills, tone) => {
+                  if (!bills.length) return null;
+                  return (
+                    <div className="space-y-2">
+                      <div className={`text-xs font-semibold uppercase tracking-wide ${tone}`}>
+                        {title} ({bills.length})
+                      </div>
+                      {bills.map((bill) => (
+                        <div key={bill.id} className="rounded-xl border p-3 bg-card/60">
+                          <div className="flex justify-between items-center border-b pb-2 mb-2">
+                            <span className="font-semibold">Mã đơn #{bill.id}</span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-muted-foreground">{new Date(bill.created_at).toLocaleString('vi-VN')}</span>
+                              {orderModalMode === "edit-order" && splitBills.length > 1 && !isPaidBill(bill) && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleEditOrder(bill, selectedTableForOrder)}
+                                  className="h-7 text-xs"
+                                >
+                                  Chỉnh sửa
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            {bill.items?.map((item, idx) => (
+                              <div key={`${bill.id}_${idx}`} className="flex justify-between items-start text-sm border-b pb-2 last:border-0">
+                                <div className="flex-1">
+                                  <p className="font-medium text-base">{item.quantity} x {item.name}</p>
+                                  <p className="text-muted-foreground">Size {item.size}</p>
+                                  {item.toppings?.length > 0 && (
+                                    <div className="mt-1 pl-2 border-l-2 border-muted space-y-1">
+                                      {item.toppings.map((t, tidx) => (
+                                        <p key={tidx} className="text-xs text-muted-foreground">+ {t.name} (x{t.quantity})</p>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="font-medium whitespace-nowrap ml-4 mt-1">
+                                  {parseInt(item.price * item.quantity).toLocaleString('vi-VN')}đ
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                          <div className="pt-2 mt-2 border-t flex justify-between items-center text-sm font-semibold">
+                            <span>Tổng bill</span>
+                            <span className="text-primary">{parseInt(bill.total_amount || 0).toLocaleString('vi-VN')}đ</span>
+                          </div>
+                        </div>
+                      ))}
                     </div>
+                  );
+                };
+
+                return (
+                  <div className="space-y-4">
+                    {renderBillSection('Đơn chưa thanh toán', unpaidBills, 'text-amber-600')}
+                    {renderBillSection('Đơn đã thanh toán', paidBills, 'text-emerald-600')}
                   </div>
-                ))}
-              </div>
+                );
+              })()}
               <div className="border-t pt-3 flex justify-between items-center font-bold text-lg">
                 <span>Tổng cộng:</span>
                 <span className="text-primary">
@@ -1334,20 +1468,6 @@ export function StaffTables() {
                   ).toLocaleString('vi-VN')}đ
                 </span>
               </div>
-
-              {/* Edit Order button: only for single unpaid pay-later orders (no splits in progress) */}
-              {activeOrder && !activeOrder.is_paid && (activeOrder.unpaid_orders_count === 1 || !activeOrder.unpaid_orders_count) && (
-                <div className="flex w-full gap-2 mt-4">
-                  <Button
-                    className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white"
-                    onClick={() => handleEditOrder(activeOrder, selectedTableForOrder)}
-                    disabled={loadingOrder}
-                  >
-                    {loadingOrder ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-                    Chỉnh sửa đơn hàng
-                  </Button>
-                </div>
-              )}
 
             </div>
           ) : (
