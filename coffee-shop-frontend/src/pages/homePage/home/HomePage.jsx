@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState, useEffect, useRef } from "react";
+import { useCallback, useMemo, useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import confetti from "canvas-confetti";
 import { ArrowUp } from "lucide-react";
@@ -25,10 +25,6 @@ import AiAssistantWidget from "@/components/layout/AiAssistantWidget";
 export default function HomePage() {
   const [activeBannerIndex, setActiveBannerIndex] = useState(0);
   const [showScrollTop, setShowScrollTop] = useState(false);
-  const [hoveredCategory, setHoveredCategory] = useState(null);
-  const [categoryProducts, setCategoryProducts] = useState({});
-  const hoverTimeoutRef = useRef(null);
-  const fetchLockRef = useRef({});
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -79,34 +75,6 @@ export default function HomePage() {
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
-
-  const handleCategoryHover = useCallback((categoryId) => {
-    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
-    setHoveredCategory(categoryId);
-
-    if (!categoryProducts[categoryId] && !fetchLockRef.current[categoryId]) {
-      fetchLockRef.current[categoryId] = true;
-      productService.getByCategory(categoryId, { limit: 6 }).then((res) => {
-        setCategoryProducts((prev) => ({
-          ...prev,
-          [categoryId]: Array.isArray(res.data?.data) ? res.data.data : Array.isArray(res.data) ? res.data : [],
-        }));
-      }).catch(err => {
-        console.error("Fetch products by category failed", err);
-        fetchLockRef.current[categoryId] = false;
-      });
-    }
-  }, [categoryProducts]);
-
-  const handleSidebarLeave = useCallback(() => {
-    hoverTimeoutRef.current = setTimeout(() => {
-      setHoveredCategory(null);
-    }, 150);
-  }, []);
-
-  const handleFlyoutEnter = useCallback(() => {
-    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
-  }, []);
 
   const fetchProducts = useCallback(() => {
     return productService.getBestSellers({ limit: 8 });
@@ -200,7 +168,6 @@ export default function HomePage() {
             {/* STATIC CATEGORY SIDEBAR */}
             <div
               className="hidden lg:flex w-[250px] shrink-0 flex-col bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-b-2xl z-20 pb-3 relative"
-              onMouseLeave={handleSidebarLeave}
             >
               <div className="h-[480px] overflow-y-auto px-1 pt-1 customized-scrollbar relative">
                 {categories.length === 0 ? (
@@ -209,7 +176,6 @@ export default function HomePage() {
                   categories.map((category) => (
                     <button
                       key={category.id}
-                      onMouseEnter={() => handleCategoryHover(category.id)}
                       onClick={() => navigate(`/${category.slug || 'products?category=' + category.id}`)}
                       className="w-full flex items-center justify-between px-5 py-3.5 transition text-[13px] font-bold text-gray-700 dark:text-gray-300 border-b border-dashed border-gray-100 dark:border-gray-800 last:border-0 hover:bg-amber-50 hover:text-amber-600 group"
                     >
@@ -221,53 +187,6 @@ export default function HomePage() {
                   ))
                 )}
               </div>
-
-              {/* Flyout panel */}
-              {hoveredCategory && (
-                <div 
-                  className="absolute left-[250px] top-0 w-[500px] max-h-[480px] min-h-[300px] bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-r-2xl shadow-xl z-50 p-6 flex flex-col"
-                  onMouseEnter={handleFlyoutEnter}
-                  onMouseLeave={handleSidebarLeave}
-                >
-                  <h3 className="font-bold text-lg text-amber-700 dark:text-amber-500 mb-4 border-b border-gray-100 dark:border-gray-800 pb-2 flex items-center justify-between">
-                    <span>Gợi ý sản phẩm</span>
-                    <button 
-                      onClick={() => {
-                        const cat = categories.find(c => c.id === hoveredCategory);
-                        if(cat) navigate(`/${cat.slug || 'products?category=' + cat.id}`);
-                      }}
-                      className="text-xs text-blue-500 hover:text-blue-700 underline"
-                    >
-                      Xem tất cả
-                    </button>
-                  </h3>
-                  <div className="flex-1 overflow-y-auto customized-scrollbar grid grid-cols-2 gap-4 self-start w-full">
-                    {!categoryProducts[hoveredCategory] ? (
-                      <div className="col-span-2 text-center text-sm text-gray-500 py-10">Đang tải sản phẩm...</div>
-                    ) : categoryProducts[hoveredCategory].length === 0 ? (
-                      <div className="col-span-2 text-center text-sm text-gray-500 py-10">Chưa có sản phẩm nào</div>
-                    ) : (
-                      categoryProducts[hoveredCategory].map((prod) => (
-                        <div 
-                          key={prod.id} 
-                          onClick={() => navigate(`/${prod.slug || 'products/' + prod.id}`)}
-                          className="flex items-center gap-3 p-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg cursor-pointer transition border border-transparent hover:border-gray-200 dark:hover:border-gray-700"
-                        >
-                          <img 
-                            src={getThumbnail(prod)} 
-                            alt={prod.name} 
-                            className="w-14 h-14 object-cover rounded-md bg-gray-100 shrink-0" 
-                          />
-                          <div className="flex-1 min-w-0">
-                            <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-200 truncate">{prod.name}</h4>
-                            <p className="text-xs text-amber-600 font-medium mt-1">{getDisplayPrice(prod)}</p>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-              )}
             </div>
 
             {/* BANNER */}
