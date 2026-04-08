@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { useStoreHours } from "@/hooks/useStoreHours";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import CartSuccessModal from "@/pages/homePage/order/CartSuccessModal";
+import QuickViewModal from "@/pages/homePage/product/QuickViewModal";
 
 export default function CartPage() {
   useDocumentTitle("Giỏ hàng");
@@ -31,6 +32,7 @@ export default function CartPage() {
   const [timeLeft, setTimeLeft] = useState(null);
   const [suggestions, setSuggestions] = useState([]);
   const [addedCartItem, setAddedCartItem] = useState(null);
+  const [quickViewProduct, setQuickViewProduct] = useState(null);
 
   const refreshCart = () => {
     setCart(cartService.getCart());
@@ -551,12 +553,19 @@ export default function CartPage() {
                   </span>
                 </div>
 
+                {!isStoreOpen && (
+                  <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 rounded-xl flex items-center gap-2">
+                    <span className="font-medium text-sm">Cửa hàng hiện đang đóng cửa. {nextOpenMessage}. Xin quý khách thông cảm.</span>
+                  </div>
+                )}
+
                 <Button
-                  className="w-full mt-4 flex items-center justify-center gap-2"
+                  className="w-full mt-4 flex items-center justify-center gap-2 disabled:bg-gray-400 disabled:opacity-100"
                   onClick={() => navigate("/checkout")}
+                  disabled={!isStoreOpen}
                 >
-                  <span>Tiến hành thanh toán</span>
-                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-arrow-right ml-1"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                  <span>{isStoreOpen ? "Tiến hành thanh toán" : "Đóng cửa"}</span>
+                  {isStoreOpen && <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-arrow-right ml-1"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>}
                 </Button>
               </div>
             </div>
@@ -695,24 +704,39 @@ export default function CartPage() {
                             )}
                           </div>
 
-                          {isStoreOpen ? (
+                          <div className="flex gap-2 items-center">
                             <button
                               onClick={(e) => {
+                                e.preventDefault();
                                 e.stopPropagation();
-                                handleAddSuggestion(item);
+                                setQuickViewProduct(item);
                               }}
-                              className="w-8 h-8 rounded-md flex items-center justify-center shrink-0 transition-colors shadow-sm bg-[#8B5A2B] hover:bg-[#69421c] text-white"
+                              className="w-8 h-8 rounded-md flex items-center justify-center shrink-0 transition-colors shadow-sm bg-amber-100 dark:bg-amber-900/30 hover:bg-amber-200 dark:hover:bg-amber-800/50 text-amber-700 dark:text-amber-500"
+                              title="Xem nhanh"
                             >
-                              <ShoppingCart className="w-[15px] h-[15px] xl:ml-[-1px]" />
+                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-eye"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0" /><circle cx="12" cy="12" r="3" /></svg>
                             </button>
-                          ) : (
-                            <div
-                              onClick={(e) => e.stopPropagation()}
-                              className="flex items-center text-[11px] font-bold text-rose-600 bg-rose-50 px-2 py-1.5 rounded-lg border border-rose-100 whitespace-nowrap shadow-sm cursor-not-allowed"
-                            >
-                              {nextOpenMessage}
-                            </div>
-                          )}
+                            {isStoreOpen ? (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleAddSuggestion(item);
+                                }}
+                                className="w-8 h-8 rounded-md flex items-center justify-center shrink-0 transition-colors shadow-sm bg-[#8B5A2B] hover:bg-[#69421c] text-white"
+                                title="Thêm vào giỏ"
+                              >
+                                <ShoppingCart className="w-[15px] h-[15px] xl:ml-[-1px]" />
+                              </button>
+                            ) : (
+                              <div
+                                onClick={(e) => e.stopPropagation()}
+                                className="flex items-center justify-center text-[11px] font-bold text-rose-600 bg-rose-50 px-2 h-8 rounded-md border border-rose-100 whitespace-nowrap shadow-sm cursor-not-allowed"
+                                title={nextOpenMessage}
+                              >
+                                Đóng cửa
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -725,6 +749,15 @@ export default function CartPage() {
       </section>
       <Footer />
       <CartSuccessModal addedCartItem={addedCartItem} onClose={() => setAddedCartItem(null)} />
+      <QuickViewModal
+        product={quickViewProduct}
+        isOpen={!!quickViewProduct}
+        onClose={() => setQuickViewProduct(null)}
+        activeSale={activeSale}
+        isStoreOpen={isStoreOpen}
+        nextOpenMessage={nextOpenMessage}
+        notifySuccess={(item) => setAddedCartItem(item)}
+      />
     </div>
   );
 }

@@ -10,12 +10,14 @@ import { useStoreHours } from "@/hooks/useStoreHours";
 import productService from "@/services/productService";
 import { STORAGE_KEYS } from "@/constants";
 import CartSuccessModal from "@/pages/homePage/order/CartSuccessModal";
+import QuickViewModal from "@/pages/homePage/product/QuickViewModal";
 
 export default function FlashSaleSection({ products, getThumbnail, getDefaultCartSize }) {
   const { isOpen, storeSchedule, nextOpenMessage } = useStoreHours();
   const [activeSale, setActiveSale] = useState(null);
   const [timeLeft, setTimeLeft] = useState({ hours: 0, minutes: 0, seconds: 0 });
   const [addedCartItem, setAddedCartItem] = useState(null);
+  const [quickViewProduct, setQuickViewProduct] = useState(null);
 
   const token =
     localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN) ||
@@ -267,21 +269,36 @@ export default function FlashSaleSection({ products, getThumbnail, getDefaultCar
                               </div>
 
                               {originalPrice > 0 && (
-                                isOpen ? (
+                                <div className="flex gap-2 items-center">
                                   <button
-                                    onClick={(e) => handleAddToCart(e, product)}
-                                    className="w-8 h-8 rounded-md flex items-center justify-center shrink-0 transition-colors shadow-sm bg-[#8B5A2B] hover:bg-[#69421c] text-white"
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      setQuickViewProduct(product);
+                                    }}
+                                    className="w-8 h-8 rounded-md flex items-center justify-center shrink-0 transition-colors shadow-sm bg-amber-100 dark:bg-amber-900/30 hover:bg-amber-200 dark:hover:bg-amber-800/50 text-amber-700 dark:text-amber-500"
+                                    title="Xem nhanh"
                                   >
-                                    <ShoppingCart className="w-[15px] h-[15px] xl:ml-[-1px]" />
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-eye"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0" /><circle cx="12" cy="12" r="3" /></svg>
                                   </button>
-                                ) : (
-                                  <div
-                                    onClick={(e) => e.stopPropagation()}
-                                    className="flex items-center text-[11px] font-bold text-rose-600 bg-rose-50 px-2 py-1.5 rounded-lg border border-rose-100 whitespace-nowrap shadow-sm cursor-not-allowed"
-                                  >
-                                    {nextOpenMessage}
-                                  </div>
-                                )
+                                  {isOpen ? (
+                                    <button
+                                      onClick={(e) => handleAddToCart(e, product)}
+                                      className="w-8 h-8 rounded-md flex items-center justify-center shrink-0 transition-colors shadow-sm bg-[#8B5A2B] hover:bg-[#69421c] text-white"
+                                      title="Thêm vào giỏ"
+                                    >
+                                      <ShoppingCart className="w-[15px] h-[15px] xl:ml-[-1px]" />
+                                    </button>
+                                  ) : (
+                                    <div
+                                      onClick={(e) => e.stopPropagation()}
+                                      className="flex items-center justify-center text-[11px] font-bold text-rose-600 bg-rose-50 px-2 h-8 rounded-md border border-rose-100 whitespace-nowrap shadow-sm cursor-not-allowed"
+                                      title={nextOpenMessage}
+                                    >
+                                      Đóng cửa
+                                    </div>
+                                  )}
+                                </div>
                               )}
                             </div>
                           </div>
@@ -316,6 +333,15 @@ export default function FlashSaleSection({ products, getThumbnail, getDefaultCar
         }
       `}</style>
       <CartSuccessModal addedCartItem={addedCartItem} onClose={() => setAddedCartItem(null)} />
+      <QuickViewModal
+        product={quickViewProduct}
+        isOpen={!!quickViewProduct}
+        onClose={() => setQuickViewProduct(null)}
+        activeSale={activeSale}
+        isStoreOpen={isOpen}
+        nextOpenMessage={nextOpenMessage}
+        notifySuccess={(item) => setAddedCartItem(item)}
+      />
     </section>
   );
 }

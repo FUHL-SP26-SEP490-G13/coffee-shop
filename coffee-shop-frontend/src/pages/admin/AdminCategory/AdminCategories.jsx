@@ -146,14 +146,11 @@ export default function AdminCategories() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className='w-16'>STT</TableHead>
-              <TableHead>Tên danh mục</TableHead>
-
-              <TableHead>Mã Code</TableHead>
-
-              <TableHead>Hình ảnh</TableHead>
-
-              <TableHead className='text-right'>Hành động</TableHead>
+              <TableHead className="text-center w-[60px]">STT</TableHead>
+              <TableHead className="min-w-[180px]">Tên danh mục</TableHead>
+              <TableHead className="text-center min-w-[120px]">Mã Code</TableHead>
+              <TableHead className="text-center min-w-[120px]">Hình ảnh</TableHead>
+              <TableHead className="text-center min-w-[140px]">Hành động</TableHead>
             </TableRow>
           </TableHeader>
 
@@ -177,7 +174,7 @@ export default function AdminCategories() {
             {!loading &&
               paginatedCategories.map((category, index) => (
                 <TableRow key={category.id}>
-                  <TableCell>
+                  <TableCell className="text-center font-medium">
                     {(currentPage - 1) * itemsPerPage + index + 1}
                   </TableCell>
 
@@ -185,16 +182,16 @@ export default function AdminCategories() {
                     <div className='font-medium'>{category.name}</div>
                   </TableCell>
 
-                  <TableCell>
+                  <TableCell className="text-center">
                     <div className='font-medium'>{category.code}</div>
                   </TableCell>
 
-                  <TableCell>
+                  <TableCell className="text-center">
                     {category.image_url ? (
                       <img
                         src={category.image_url}
                         alt={category.name}
-                        className='w-12 h-12 object-cover rounded-md'
+                        className='w-12 h-12 object-cover rounded-md mx-auto'
                       />
                     ) : (
                       <span className='text-muted-foreground text-sm'>
@@ -203,12 +200,13 @@ export default function AdminCategories() {
                     )}
                   </TableCell>
 
-                  <TableCell className='text-right'>
-                    <div className='flex items-center justify-end gap-2'>
+                  <TableCell>
+                    <div className='flex items-center justify-center gap-1'>
                       <Button
                         variant='ghost'
                         className={'cursor-pointer'}
                         size='sm'
+                        title="Chỉnh sửa"
                         onClick={() => openModal('update', category)}
                       >
                         <Edit className='w-4 h-4' />
@@ -217,7 +215,8 @@ export default function AdminCategories() {
                       <Button
                         variant='ghost'
                         size='sm'
-                        className='text-destructive hover:text-destructive cursor-pointer'
+                        className='text-destructive hover:text-red-600 cursor-pointer'
+                        title="Xóa"
                         onClick={() => openModal('delete', category)}
                       >
                         <Trash2 className='w-4 h-4' />

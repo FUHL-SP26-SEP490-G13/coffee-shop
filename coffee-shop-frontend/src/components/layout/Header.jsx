@@ -50,6 +50,7 @@ import loyaltyService from "@/services/loyaltyService";
 import flashSaleService from "@/services/flashSaleService";
 import LoyaltyHistoryModal from "@/components/loyalty/LoyaltyHistoryModal";
 import receiptSettingService from "@/services/receiptSettingService";
+import { useStoreHours } from "@/hooks/useStoreHours";
 
 const placeholders = [
   "Xin chào, bạn cần gì hôm nay?",
@@ -62,6 +63,7 @@ const CART_KEY = "cart_items";
 
 function Header() {
   const navigate = useNavigate();
+  const { isOpen: isStoreOpen, nextOpenMessage } = useStoreHours();
   const dropdownRef = useRef(null);
   const categoryDropdownRef = useRef(null);
   const exploreDropdownRef = useRef(null);
@@ -1160,14 +1162,21 @@ function Header() {
                             </span>
                           </p>
 
+                          {!isStoreOpen && (
+                            <div className="mb-3 p-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 rounded-lg flex items-center justify-center gap-2">
+                              <span className="font-medium text-xs text-center">Cửa hàng đóng cửa. {nextOpenMessage}.</span>
+                            </div>
+                          )}
+
                           <Button
                             onClick={() => {
                               setShowCartPreview(false);
                               navigate("/checkout");
                             }}
-                            className="w-full bg-red-600 hover:bg-red-700 text-white"
+                            disabled={!isStoreOpen}
+                            className="w-full bg-red-600 hover:bg-red-700 text-white disabled:bg-gray-400 disabled:opacity-100"
                           >
-                            Tiến hành thanh toán
+                            {isStoreOpen ? "Tiến hành thanh toán" : "Đóng cửa"}
                           </Button>
                         </div>
                       )}
