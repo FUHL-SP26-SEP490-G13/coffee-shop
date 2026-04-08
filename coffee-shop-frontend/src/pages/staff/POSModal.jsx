@@ -18,7 +18,7 @@ import {
 } from '../../components/ui/dialog';
 import authenticationService from '../../services/authenticationService';
 import socket from '../../lib/socket';
-import { ReceiptModal } from './TakeAwayOrder/ReceiptModal';
+import { PrintableReceipt } from './PrintableReceipt';
 import { useNavigate } from 'react-router-dom';
 import PayOSLogo from "/logo/payOS.svg";
 
@@ -182,7 +182,7 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange, editingO
         setCart([]);
       }
     }
-  }, [isOpen, table?.id, editingOrder?.id]);
+  }, [isOpen, table?.id, editingOrder]);
 
   const handleAddFromModal = (modalItem, isEditing = false) => {
     setCart((prev) => {
@@ -290,7 +290,7 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange, editingO
     return orderService.checkout(payload);
   };
 
-  const handleSaveForLaterPayment = async () => {
+  const _handleSaveForLaterPayment = async () => {
     if (!table) {
       toast.error('Không tìm thấy thông tin bàn');
       return;
@@ -1016,14 +1016,11 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange, editingO
       </Dialog>
 
       {viewingReceipt && (
-        <ReceiptModal
+        <PrintableReceipt
           order={viewingReceipt}
-          onClose={() => {
+          onDone={() => {
             setViewingReceipt(null);
             onClose();
-          }}
-          onPrint={() => {
-            // Optional: call markPrintSuccess if needed
           }}
         />
       )}

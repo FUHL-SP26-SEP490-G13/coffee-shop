@@ -34,7 +34,7 @@ import baristaDBService from "@/services/baristaDBService";
 import orderOnlineService from "@/services/orderOnlineService";
 import authenticationService from "@/services/authenticationService";
 import takeawayService from "@/services/takeAwayService";
-import { ReceiptModal } from "./TakeAwayOrder/ReceiptModal";
+import { PrintableReceipt } from "./PrintableReceipt";
 
 const STAFF_TAB_STATUSES = ["pending", "preparing", "completed", "cancelled"];
 
@@ -1036,11 +1036,10 @@ export function OrderDelivery() {
       </Dialog>
 
       {viewingReceipt && (
-        <ReceiptModal
-          autoPrint={viewingReceipt.autoPrint}
+        <PrintableReceipt
           order={viewingReceipt}
-          onPrint={handleMarkPrintSuccess}
-          onClose={() => setViewingReceipt(null)}
+          onPrintSuccess={handleMarkPrintSuccess}
+          onDone={() => setViewingReceipt(null)}
         />
       )}
 

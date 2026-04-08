@@ -10,7 +10,7 @@ import takeawayService from "@/services/takeAwayService";
 import tableService from "@/services/tableService";
 import authenticationService from '@/services/authenticationService';
 import { toast } from 'sonner';
-import { ReceiptModal } from './TakeAwayOrder/ReceiptModal';
+import { PrintableReceipt } from './PrintableReceipt';
 
 const STATUS_MAP = {
   PAID: { label: "Đã thanh toán", color: "bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400" },
@@ -271,10 +271,9 @@ export default function StaffPayOSReturn() {
       </Card>
 
       {viewingReceipt && (
-        <ReceiptModal
-          autoPrint={viewingReceipt.autoPrint}
+        <PrintableReceipt
           order={viewingReceipt}
-          onClose={() => setViewingReceipt(null)}
+          onDone={() => setViewingReceipt(null)}
         />
       )}
     </div>

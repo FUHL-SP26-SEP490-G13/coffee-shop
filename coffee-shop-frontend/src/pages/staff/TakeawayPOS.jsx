@@ -16,7 +16,7 @@ import { ProductModal } from './TakeAwayOrder/ProductModal';
 import { EditOrderModal } from './TakeAwayOrder/EditOrderModal';
 import { OrderCard } from './TakeAwayOrder/OrderCard';
 import { CancelModal } from './TakeAwayOrder/CancelModal';
-import { ReceiptModal } from './TakeAwayOrder/ReceiptModal';
+import { PrintableReceipt } from './PrintableReceipt';
 import { CheckoutModal } from './TakeAwayOrder/CheckoutModal';
 import takeawayService from '@/services/takeAwayService';
 import categoryService from '@/services/categoryService';
@@ -41,12 +41,11 @@ function TakeawayPOS() {
   const [showCheckout, setShowCheckout] = useState(false);
 
   // ─── Orders state ─────────────────────────────────────────────────────────
-  const [orders, setOrders] = useState([]);
-  const [ordersLoading, setOrdersLoading] = useState(false);
-  const [orderFilter, setOrderFilter] = useState('active');
+  const [_orders, setOrders] = useState([]);
+  const [_ordersLoading, setOrdersLoading] = useState(false);
   const [editingOrder, setEditingOrder] = useState(null);
   const [cancelingOrder, setCancelingOrder] = useState(null);
-  const [cancelLoading, setCancelLoading] = useState(false);
+  const [_cancelLoading, setCancelLoading] = useState(false);
   const [viewingReceipt, setViewingReceipt] = useState(null);
 
   // ─── Checkout state ───────────────────────────────────────────────────────
@@ -239,7 +238,7 @@ function TakeawayPOS() {
   };
 
   // ─── Cancel ───────────────────────────────────────────────────────────────
-  const handleCancelConfirm = async () => {
+  const _handleCancelConfirm = async () => {
     if (!cancelingOrder) return;
     setCancelLoading(true);
     try {
@@ -265,7 +264,7 @@ function TakeawayPOS() {
     }
   };
 
-  const handleEditSave = (updatedData) => {
+  const _handleEditSave = (updatedData) => {
     setOrders((prev) =>
       prev.map((o) =>
         (o.order_id || o.id) === (editingOrder.order_id || editingOrder.id)
@@ -487,9 +486,9 @@ function TakeawayPOS() {
       )} */}
 
       {viewingReceipt && (
-        <ReceiptModal
+        <PrintableReceipt
           order={viewingReceipt}
-          onClose={() => setViewingReceipt(null)}
+          onDone={() => setViewingReceipt(null)}
         />
       )}
 

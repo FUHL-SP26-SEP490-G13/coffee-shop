@@ -37,7 +37,7 @@ import orderService from "@/services/orderService";
 import { POSModal } from "./POSModal";
 import { SplitBillModal } from './SplitBillModal';
 import { PaySplitBillModal } from './PaySplitBillModal';
-import { ReceiptModal } from "./TakeAwayOrder/ReceiptModal";
+import { PrintableReceipt } from "./PrintableReceipt";
 import PayOSLogo from "/logo/payOS.svg";
 // import ReservationModal from "../admin/AdminTables/ReservationModal";
 
@@ -1647,9 +1647,9 @@ export function StaffTables() {
       )}
 
       {debtReceiptOrder && (
-        <ReceiptModal
+        <PrintableReceipt
           order={debtReceiptOrder}
-          onClose={() => setDebtReceiptOrder(null)}
+          onDone={() => setDebtReceiptOrder(null)}
         />
       )}
 
