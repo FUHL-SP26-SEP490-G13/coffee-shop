@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { ShoppingBag, Star, ShoppingCart, Heart } from "lucide-react";
+import { ShoppingBag, Star, ShoppingCart, Heart, Trash2, X } from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
@@ -91,7 +91,7 @@ export default function CartPage() {
         const h = Math.floor((diff / (1000 * 60 * 60)) % 24);
         const m = Math.floor((diff / 1000 / 60) % 60);
         const s = Math.floor((diff / 1000) % 60);
-        setTimeLeft(`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`);
+        setTimeLeft(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`);
       } else {
         setActiveSale(null);
         setTimeLeft(null);
@@ -363,11 +363,26 @@ export default function CartPage() {
                           {Array.isArray(item.toppings) &&
                             item.toppings.length > 0 && (
                               <div className="mt-3">
-                                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                  Topping:
-                                </p>
+                                <div className="flex items-center justify-between pr-2 mb-2">
+                                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                    Topping:
+                                  </p>
+                                  {!isEditing && (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        cartService.updateToppings(cartKey, []);
+                                        refreshCart();
+                                      }}
+                                      className="text-red-500 hover:text-red-600 text-[11px] font-bold transition-colors uppercase"
+                                      title="Xóa tất cả topping"
+                                    >
+                                      Xóa tất cả
+                                    </button>
+                                  )}
+                                </div>
 
-                                <div className="space-y-1 mt-1">
+                                <div className="space-y-1 mt-1 max-h-[150px] overflow-y-auto custom-scrollbar pr-2">
                                   {item.toppings.map((topping) => (
                                     <div
                                       key={topping.topping_id}
@@ -381,7 +396,7 @@ export default function CartPage() {
                                         đ)
                                       </span>
 
-                                      {isEditing && (
+                                      {!isEditing && (
                                         <button
                                           type="button"
                                           onClick={() =>
@@ -390,9 +405,10 @@ export default function CartPage() {
                                               topping.topping_id
                                             )
                                           }
-                                          className="text-red-600 hover:underline shrink-0"
+                                          className="text-gray-400 hover:text-red-500 shrink-0 bg-white dark:bg-gray-800 p-1 rounded-sm border shadow-sm transition-colors"
+                                          title="Xóa topping"
                                         >
-                                          Xóa topping
+                                          <X className="w-3.5 h-3.5" />
                                         </button>
                                       )}
                                     </div>
@@ -453,36 +469,39 @@ export default function CartPage() {
                               onClick={() =>
                                 setEditingIndex(isEditing ? null : index)
                               }
-                              className="text-amber-600 text-sm font-medium hover:underline"
+                              className="text-amber-600 text-sm font-medium hover:underline px-2"
                             >
                               {isEditing ? "Đóng thêm topping" : "Thêm topping"}
                             </button>
 
-                            <button
-                              type="button"
-                              onClick={() => {
-                                cartService.moveToSaved(cartKey);
-                                refreshCart();
-                              }}
-                              className="w-10 h-10 flex items-center justify-center border rounded-lg hover:bg-rose-50 dark:hover:bg-rose-900/30 text-gray-400 hover:text-rose-500 transition-colors"
-                              title="Lưu lại mua sau"
-                            >
-                              <Heart className="w-5 h-5" />
-                            </button>
+                            <div className="flex items-center gap-2 ml-auto border-l pl-3 dark:border-gray-800">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  cartService.moveToSaved(cartKey);
+                                  refreshCart();
+                                }}
+                                className="w-10 h-10 flex items-center justify-center border rounded-lg hover:bg-rose-50 dark:hover:bg-rose-900/30 text-gray-400 hover:text-rose-500 transition-colors shadow-sm"
+                                title="Lưu lại mua sau"
+                              >
+                                <Heart className="w-5 h-5" />
+                              </button>
 
-                            <button
-                              type="button"
-                              onClick={() => {
-                                cartService.removeItem(cartKey);
-                                if (editingIndex === index) {
-                                  setEditingIndex(null);
-                                }
-                                refreshCart();
-                              }}
-                              className="text-red-600 text-sm font-medium hover:underline"
-                            >
-                              Xóa
-                            </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  cartService.removeItem(cartKey);
+                                  if (editingIndex === index) {
+                                    setEditingIndex(null);
+                                  }
+                                  refreshCart();
+                                }}
+                                className="w-10 h-10 flex items-center justify-center border rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30 text-gray-400 hover:text-red-500 transition-colors shadow-sm"
+                                title="Xóa khỏi giỏ hàng"
+                              >
+                                <Trash2 className="w-5 h-5" />
+                              </button>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -493,7 +512,7 @@ export default function CartPage() {
                             Chọn topping
                           </p>
 
-                          <div className="max-h-[280px] overflow-y-auto pr-2 space-y-3">
+                          <div className="max-h-[280px] overflow-y-auto custom-scrollbar pr-2 space-y-3">
                             {allToppings.map((topping) => {
                               const checked = isToppingSelected(
                                 item,
@@ -565,7 +584,7 @@ export default function CartPage() {
                   disabled={!isStoreOpen}
                 >
                   <span>{isStoreOpen ? "Tiến hành thanh toán" : "Đóng cửa"}</span>
-                  {isStoreOpen && <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-arrow-right ml-1"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>}
+                  {isStoreOpen && <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-arrow-right ml-1"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg>}
                 </Button>
               </div>
             </div>
@@ -581,14 +600,14 @@ export default function CartPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {savedItems.map((item) => (
                 <div key={item.cartKey} className="flex gap-4 p-4 border rounded-2xl bg-white dark:bg-gray-900 items-center">
-                  <img 
-                    src={item.image} 
-                    alt={item.name} 
+                  <img
+                    src={item.image}
+                    alt={item.name}
                     onClick={() => navigate(`/${item.slug || 'products/' + (item.product_id || item.id)}`)}
-                    className="w-16 h-16 rounded-xl object-cover border cursor-pointer hover:opacity-80 transition-opacity" 
+                    className="w-16 h-16 rounded-xl object-cover border cursor-pointer hover:opacity-80 transition-opacity"
                   />
                   <div className="flex-1 min-w-0">
-                    <p 
+                    <p
                       onClick={() => navigate(`/${item.slug || 'products/' + (item.product_id || item.id)}`)}
                       className="font-semibold text-sm truncate cursor-pointer hover:text-amber-600 transition-colors"
                     >

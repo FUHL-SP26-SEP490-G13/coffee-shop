@@ -1,6 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Banknote, CircleHelp, MapPin, Clock, Plus, Loader2, LocateFixed } from "lucide-react";
+import {
+  Banknote,
+  CircleHelp,
+  MapPin,
+  Clock,
+  Loader2,
+  LocateFixed,
+} from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Badge } from "@/components/ui/badge";
@@ -26,7 +33,6 @@ import PlaceOrderButton from "@/components/order/PlaceOrderButton";
 import ReputationScoreDialog from "@/components/order/ReputationScoreDialog";
 import orderService from "@/services/orderOnlineService";
 import loyaltyService from "@/services/loyaltyService";
-import productService from "@/services/productService";
 import { STORAGE_KEYS } from "@/constants";
 import { validateOrderField } from "@/utils/orderValidation";
 import PayOSLogo from "/logo/payOS.svg";
@@ -38,7 +44,12 @@ import {
 import { toast } from "sonner";
 import flashSaleService from "@/services/flashSaleService";
 import receiptSettingService from "@/services/receiptSettingService";
-import { geocodeAddress, getDrivingDistance, getShippingQuote, MAX_DELIVERY_DISTANCE_KM } from "@/utils/distanceCalculator";
+import {
+  geocodeAddress,
+  getDrivingDistance,
+  getShippingQuote,
+  MAX_DELIVERY_DISTANCE_KM,
+} from "@/utils/distanceCalculator";
 import { useStoreHours } from "@/hooks/useStoreHours";
 
 const LOYALTY_MONEY_PER_POINT = 100;
@@ -99,13 +110,12 @@ export default function CheckoutPage() {
   const [storeCoords, setStoreCoords] = useState(null);
   const [shippingFee, setShippingFee] = useState(0);
   const [deliveryDistanceKm, setDeliveryDistanceKm] = useState(null);
-  const [deliveryDistanceBlockMessage, setDeliveryDistanceBlockMessage] = useState("");
+  const [deliveryDistanceBlockMessage, setDeliveryDistanceBlockMessage] =
+    useState("");
   const [isShippingCalculating, setIsShippingCalculating] = useState(false);
   const [pinnedCustomerCoords, setPinnedCustomerCoords] = useState(null);
   const [customerLocationSource, setCustomerLocationSource] = useState(null);
   const [isPinningLocation, setIsPinningLocation] = useState(false);
-
-  const [crossSells, setCrossSells] = useState([]);
 
   useEffect(() => {
     flashSaleService
@@ -114,63 +124,7 @@ export default function CheckoutPage() {
         setActiveSale(res?.data || null);
       })
       .catch((err) => console.error("Error fetching active sale:", err));
-
-    productService.getBestSellers({ limit: 10 })
-      .then(res => {
-         const items = Array.isArray(res?.data?.data) ? res.data.data : (res?.data || []);
-         setCrossSells(items);
-      }).catch(console.error);
   }, []);
-
-  const availableCrossSells = useMemo(() => {
-    const cartProductIds = cart.map((c) => Number(c.product_id || c.id));
-    return crossSells.filter((p) => !cartProductIds.includes(Number(p.id))).slice(0, 4);
-  }, [crossSells, cart]);
-
-  const handleAddCrossSell = (e, product) => {
-    e.preventDefault();
-    if (!isOpen) {
-      toast.error(nextOpenMessage || "Cửa hàng hiện đang đóng cửa");
-      return;
-    }
-    
-    if (!product.sizes || product.sizes.length === 0) {
-      toast.error("Sản phẩm không có size");
-      return;
-    }
-    
-    let cartSize = product.sizes.find(s => String(s?.size).trim().toUpperCase() === "S");
-    if (!cartSize || Number(cartSize.price) <= 0) {
-      const validSizes = product.sizes.filter(s => Number(s?.price) > 0).sort((a,b) => Number(a.price) - Number(b.price));
-      cartSize = validSizes[0] || product.sizes[0];
-    }
-    
-    let price = Number(cartSize.price);
-    if (activeSale && activeSale.product_ids?.includes(product.id)) {
-      price = Math.round(price * (1 - activeSale.discount_percent / 100));
-    }
-    
-    const defaultImage = "https://png.pngtree.com/png-vector/20190820/ourmid/pngtree-no-image-vector-illustration-isolated-png-image_1694547.jpg";
-    const thumbnail = Array.isArray(product.images) ? (product.images.find(img => Number(img.isThumbnail) === 1)?.image_url || product.images[0]?.image_url || defaultImage) : defaultImage;
-
-    const cartItem = {
-      productSizeId: cartSize.id,
-      id: product.id,
-      product_id: product.id,
-      name: product.name,
-      image: thumbnail,
-      size: cartSize.size,
-      basePrice: price,
-      price: price,
-      quantity: 1,
-      toppings: [],
-    };
-
-    cartService.addItem(cartItem);
-    toast.success(`Đã thêm ${product.name} vào đơn`);
-    window.dispatchEvent(new Event("cartUpdated"));
-  };
-
 
   useEffect(() => {
     if (cart.length === 0) {
@@ -179,29 +133,32 @@ export default function CheckoutPage() {
   }, [cart, navigate]);
 
   useEffect(() => {
-    receiptSettingService.getSettings().then((settingsRes) => {
-      if (settingsRes?.data?.reputation_rules) {
-        try {
-          let parsed = settingsRes.data.reputation_rules;
-          if (typeof parsed === 'string') parsed = JSON.parse(parsed);
-          if (typeof parsed === 'string') parsed = JSON.parse(parsed);
-          if (Array.isArray(parsed)) setReputationRules(parsed);
-        } catch (e) {
-          console.error("Error parsing rules:", e);
+    receiptSettingService
+      .getSettings()
+      .then((settingsRes) => {
+        if (settingsRes?.data?.reputation_rules) {
+          try {
+            let parsed = settingsRes.data.reputation_rules;
+            if (typeof parsed === "string") parsed = JSON.parse(parsed);
+            if (typeof parsed === "string") parsed = JSON.parse(parsed);
+            if (Array.isArray(parsed)) setReputationRules(parsed);
+          } catch (e) {
+            console.error("Error parsing rules:", e);
+          }
         }
-      }
-      if (settingsRes?.data?.address) {
-        setStoreAddress(settingsRes.data.address);
-      }
+        if (settingsRes?.data?.address) {
+          setStoreAddress(settingsRes.data.address);
+        }
 
-      const rawStoreLat = Number(settingsRes?.data?.latitude);
-      const rawStoreLng = Number(settingsRes?.data?.longitude);
-      if (Number.isFinite(rawStoreLat) && Number.isFinite(rawStoreLng)) {
-        setStoreCoords([rawStoreLat, rawStoreLng]);
-      } else {
-        setStoreCoords(null);
-      }
-    }).catch(console.error);
+        const rawStoreLat = Number(settingsRes?.data?.latitude);
+        const rawStoreLng = Number(settingsRes?.data?.longitude);
+        if (Number.isFinite(rawStoreLat) && Number.isFinite(rawStoreLng)) {
+          setStoreCoords([rawStoreLat, rawStoreLng]);
+        } else {
+          setStoreCoords(null);
+        }
+      })
+      .catch(console.error);
 
     const loadCheckoutData = async () => {
       if (!token) return;
@@ -229,7 +186,9 @@ export default function CheckoutPage() {
         const defaultLng = Number(defaultAddress?.longitude);
         if (Number.isFinite(defaultLat) && Number.isFinite(defaultLng)) {
           setPinnedCustomerCoords([defaultLat, defaultLng]);
-          setCustomerLocationSource(defaultAddress?.location_source || "manual_pin");
+          setCustomerLocationSource(
+            defaultAddress?.location_source || "manual_pin"
+          );
         } else {
           setPinnedCustomerCoords(null);
           setCustomerLocationSource(null);
@@ -334,15 +293,16 @@ export default function CheckoutPage() {
     const timeoutId = setTimeout(async () => {
       setIsReputationLoading(true);
       try {
-        const res =
-          await reputationService.getReputationProfile(normalizedPhone);
+        const res = await reputationService.getReputationProfile(
+          normalizedPhone
+        );
         const reputation = res?.data?.data || res?.data || {};
 
         setReputationScore(Number(reputation?.current_score ?? 50));
         setReputationTier(String(reputation?.reputation_tier || "SILVER"));
         setReputationFrozen(
           Number(reputation?.is_frozen || 0) === 1 ||
-            reputation?.is_frozen === true,
+            reputation?.is_frozen === true
         );
       } catch (error) {
         console.error("Lỗi lấy điểm uy tín theo số điện thoại:", error);
@@ -419,14 +379,21 @@ export default function CheckoutPage() {
         const customerCoords = pinnedCustomerCoords;
 
         if (resolvedStoreCoords && customerCoords) {
-          const distMeters = await getDrivingDistance(resolvedStoreCoords, customerCoords);
+          const distMeters = await getDrivingDistance(
+            resolvedStoreCoords,
+            customerCoords
+          );
           const quote = getShippingQuote(distMeters);
           setDeliveryDistanceKm(quote.distanceKm.toFixed(1));
 
           if (!quote.isDeliverable) {
             setShippingFee(0);
             setDeliveryDistanceBlockMessage(
-              `Khoảng cách ${quote.distanceKm.toFixed(1)}km vượt quá giới hạn giao hàng ${MAX_DELIVERY_DISTANCE_KM}km (vượt ${quote.exceededByKm.toFixed(1)}km).`
+              `Khoảng cách ${quote.distanceKm.toFixed(
+                1
+              )}km vượt quá giới hạn giao hàng ${MAX_DELIVERY_DISTANCE_KM}km (vượt ${quote.exceededByKm.toFixed(
+                1
+              )}km).`
             );
             return;
           }
@@ -436,12 +403,16 @@ export default function CheckoutPage() {
         } else {
           setShippingFee(0);
           setDeliveryDistanceKm(null);
-          setDeliveryDistanceBlockMessage("Không thể tính khoảng cách giao hàng. Vui lòng ghim lại vị trí.");
+          setDeliveryDistanceBlockMessage(
+            "Không thể tính khoảng cách giao hàng. Vui lòng ghim lại vị trí."
+          );
         }
       } catch {
-         setShippingFee(0);
-         setDeliveryDistanceKm(null);
-         setDeliveryDistanceBlockMessage("Không thể tính khoảng cách giao hàng. Vui lòng thử lại.");
+        setShippingFee(0);
+        setDeliveryDistanceKm(null);
+        setDeliveryDistanceBlockMessage(
+          "Không thể tính khoảng cách giao hàng. Vui lòng thử lại."
+        );
       } finally {
         setIsShippingCalculating(false);
       }
@@ -477,11 +448,11 @@ export default function CheckoutPage() {
       ...prev,
       receiver_name: validateOrderField(
         "receiver_name",
-        item.receiver_name || form.receiver_name,
+        item.receiver_name || form.receiver_name
       ),
       receiver_phone: validateOrderField(
         "receiver_phone",
-        item.receiver_phone || form.receiver_phone,
+        item.receiver_phone || form.receiver_phone
       ),
       address: validateOrderField("address", item.address || ""),
     }));
@@ -502,14 +473,14 @@ export default function CheckoutPage() {
   const subtotalAmount = useMemo(() => {
     return cart.reduce(
       (sum, item) => sum + cartService.getItemSubtotal(item),
-      0,
+      0
     );
   }, [cart]);
 
   const regularAmount = useMemo(() => {
     return cart.reduce((sum, item) => {
       const isFlashSale = activeSale?.product_ids?.some(
-        (id) => Number(id) === Number(item.product_id || item.id),
+        (id) => Number(id) === Number(item.product_id || item.id)
       );
       if (isFlashSale) {
         return sum; // Do not include in regular amount
@@ -521,24 +492,30 @@ export default function CheckoutPage() {
   const discountAmount = Number(appliedDiscount?.discount_amount || 0);
   const amountAfterDiscount = Math.max(
     0,
-    subtotalAmount - discountAmount + shippingFee,
+    subtotalAmount - discountAmount + shippingFee
   );
 
-  const parsedUsedPoints = Math.max(0, Math.floor(Number(usedPointsInput) || 0));
-  const maxRedeemablePointsByWallet = Math.max(0, Number(loyaltyWalletPoints || 0));
+  const parsedUsedPoints = Math.max(
+    0,
+    Math.floor(Number(usedPointsInput) || 0)
+  );
+  const maxRedeemablePointsByWallet = Math.max(
+    0,
+    Number(loyaltyWalletPoints || 0)
+  );
   const maxRedeemablePointsByAmount = Math.floor(
-    amountAfterDiscount / LOYALTY_MONEY_PER_POINT,
+    amountAfterDiscount / LOYALTY_MONEY_PER_POINT
   );
   const maxRedeemablePointsByPolicy = Math.floor(
-    (amountAfterDiscount * LOYALTY_MAX_REDEEM_RATIO) / LOYALTY_MONEY_PER_POINT,
+    (amountAfterDiscount * LOYALTY_MAX_REDEEM_RATIO) / LOYALTY_MONEY_PER_POINT
   );
   const maxRedeemablePoints = Math.max(
     0,
     Math.min(
       maxRedeemablePointsByWallet,
       maxRedeemablePointsByAmount,
-      maxRedeemablePointsByPolicy,
-    ),
+      maxRedeemablePointsByPolicy
+    )
   );
   const usedPoints = Math.min(parsedUsedPoints, maxRedeemablePoints);
   const loyaltyDiscountAmount = usedPoints * LOYALTY_MONEY_PER_POINT;
@@ -547,7 +524,8 @@ export default function CheckoutPage() {
   const isDeliveryOrder = form.order_type === "delivery";
   const hasPinnedCustomerCoords =
     Array.isArray(pinnedCustomerCoords) && pinnedCustomerCoords.length === 2;
-  const hasPinnedStoreCoords = Array.isArray(storeCoords) && storeCoords.length === 2;
+  const hasPinnedStoreCoords =
+    Array.isArray(storeCoords) && storeCoords.length === 2;
   const isCheckoutBlockedByCoordinates =
     isDeliveryOrder && (!hasPinnedCustomerCoords || !hasPinnedStoreCoords);
   const isCheckoutBlockedByDistance =
@@ -582,7 +560,7 @@ export default function CheckoutPage() {
     const currentPhone = normalizePhoneNumber(form.receiver_phone);
     // Không ép phương thức nếu vẫn đang trong quá trình lấy điểm của SĐT hiện tại
     if (currentPhone !== fetchedPhone || isReputationLoading) {
-       return;
+      return;
     }
 
     try {
@@ -609,7 +587,16 @@ export default function CheckoutPage() {
       toast.error(error.message, { duration: 5000 });
       setPaymentValidation(null);
     }
-  }, [reputationScore, reputationFrozen, totalAmount, form.payment_method, reputationRules, fetchedPhone, form.receiver_phone, isReputationLoading]);
+  }, [
+    reputationScore,
+    reputationFrozen,
+    totalAmount,
+    form.payment_method,
+    reputationRules,
+    fetchedPhone,
+    form.receiver_phone,
+    isReputationLoading,
+  ]);
 
   const handleApplyDiscount = async () => {
     const code = discountCode.trim();
@@ -621,7 +608,7 @@ export default function CheckoutPage() {
 
     if (regularAmount === 0) {
       alert(
-        "Mã giảm giá không áp dụng cho đơn hàng chỉ có sản phẩm Flash Sale!",
+        "Mã giảm giá không áp dụng cho đơn hàng chỉ có sản phẩm Flash Sale!"
       );
       return;
     }
@@ -685,7 +672,10 @@ export default function CheckoutPage() {
       <section className="flex-1 w-full px-4 sm:px-6 lg:px-8 py-10">
         <div className="w-full mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 border rounded-2xl p-6 bg-white dark:bg-gray-900">
-            <h1 className="text-xl md:text-xl font-semibold text-amber-900 dark:text-amber-500 mb-4" style={{ fontFamily: 'serif' }}>
+            <h1
+              className="text-xl md:text-xl font-semibold text-amber-900 dark:text-amber-500 mb-4"
+              style={{ fontFamily: "serif" }}
+            >
               Thanh toán
             </h1>
 
@@ -731,7 +721,7 @@ export default function CheckoutPage() {
                       ...prev,
                       receiver_phone: validateOrderField(
                         "receiver_phone",
-                        value,
+                        value
                       ),
                     }));
                   }}
@@ -768,7 +758,7 @@ export default function CheckoutPage() {
                       ...prev,
                       receiver_email: validateOrderField(
                         "receiver_email",
-                        value,
+                        value
                       ),
                     }));
                   }}
@@ -820,8 +810,8 @@ export default function CheckoutPage() {
                       {isAddressLoading
                         ? "Đang tải địa chỉ..."
                         : addresses.length === 0
-                          ? "Chưa có địa chỉ đã lưu"
-                          : "Chọn địa chỉ giao hàng"}
+                        ? "Chưa có địa chỉ đã lưu"
+                        : "Chọn địa chỉ giao hàng"}
                     </Button>
 
                     {addresses.length === 0 && !isAddressLoading && (
@@ -849,13 +839,17 @@ export default function CheckoutPage() {
                         <p className="text-sm text-gray-800 dark:text-gray-200 mt-1">
                           {selectedAddress.address}
                         </p>
-                        {selectedAddress.latitude !== null && selectedAddress.latitude !== undefined && selectedAddress.longitude !== null && selectedAddress.longitude !== undefined ? (
+                        {selectedAddress.latitude !== null &&
+                        selectedAddress.latitude !== undefined &&
+                        selectedAddress.longitude !== null &&
+                        selectedAddress.longitude !== undefined ? (
                           <p className="text-xs text-emerald-600 mt-1">
                             Địa chỉ này đã ghim tọa độ.
                           </p>
                         ) : (
                           <p className="text-xs text-red-500 mt-1">
-                            Địa chỉ này chưa có tọa độ, vui lòng ghim vị trí hiện tại trước khi đặt hàng.
+                            Địa chỉ này chưa có tọa độ, vui lòng ghim vị trí
+                            hiện tại trước khi đặt hàng.
                           </p>
                         )}
                       </div>
@@ -935,13 +929,15 @@ export default function CheckoutPage() {
 
                   {!Array.isArray(pinnedCustomerCoords) && (
                     <p className="text-xs text-red-500 mt-2">
-                      Bạn cần ghim vị trí (hoặc chọn địa chỉ đã có tọa độ) trước khi đặt đơn giao hàng.
+                      Bạn cần ghim vị trí (hoặc chọn địa chỉ đã có tọa độ) trước
+                      khi đặt đơn giao hàng.
                     </p>
                   )}
 
                   {!hasPinnedStoreCoords && (
                     <p className="text-xs text-red-500 mt-1">
-                      Cửa hàng chưa ghim tọa độ trong cấu hình, tạm thời chưa thể nhận đơn giao hàng.
+                      Cửa hàng chưa ghim tọa độ trong cấu hình, tạm thời chưa
+                      thể nhận đơn giao hàng.
                     </p>
                   )}
 
@@ -1026,8 +1022,8 @@ export default function CheckoutPage() {
                         isDisabled
                           ? "border-gray-200  bg-gray-100 dark:bg-gray-800 opacity-50 cursor-not-allowed"
                           : selected
-                            ? "border-amber-500 bg-amber-50 dark:bg-amber-900/20"
-                            : "border-gray-200  bg-white dark:bg-gray-900 hover:border-gray-300"
+                          ? "border-amber-500 bg-amber-50 dark:bg-amber-900/20"
+                          : "border-gray-200  bg-white dark:bg-gray-900 hover:border-gray-300"
                       }`}
                     >
                       <span
@@ -1035,12 +1031,14 @@ export default function CheckoutPage() {
                           isDisabled
                             ? "bg-gray-200"
                             : selected
-                              ? "bg-amber-100 dark:bg-amber-900/30"
-                              : "bg-gray-100 dark:bg-gray-800"
+                            ? "bg-amber-100 dark:bg-amber-900/30"
+                            : "bg-gray-100 dark:bg-gray-800"
                         }`}
                       >
                         {isDisabled ? (
-                          <span className="text-xs text-gray-500 dark:text-gray-400">✕</span>
+                          <span className="text-xs text-gray-500 dark:text-gray-400">
+                            ✕
+                          </span>
                         ) : (
                           opt.icon
                         )}
@@ -1048,7 +1046,9 @@ export default function CheckoutPage() {
                       <span>
                         <span
                           className={`block text-sm font-medium ${
-                            isDisabled ? "text-gray-500 dark:text-gray-400" : "text-gray-900 dark:text-gray-100"
+                            isDisabled
+                              ? "text-gray-500 dark:text-gray-400"
+                              : "text-gray-900 dark:text-gray-100"
                           }`}
                         >
                           {opt.label}
@@ -1056,7 +1056,9 @@ export default function CheckoutPage() {
                         </span>
                         <span
                           className={`block text-xs ${
-                            isDisabled ? "text-gray-400" : "text-gray-500 dark:text-gray-400"
+                            isDisabled
+                              ? "text-gray-400"
+                              : "text-gray-500 dark:text-gray-400"
                           }`}
                         >
                           {opt.sub}
@@ -1067,8 +1069,8 @@ export default function CheckoutPage() {
                           isDisabled
                             ? "border-gray-300 bg-gray-300"
                             : selected
-                              ? "border-amber-500 bg-amber-50 dark:bg-amber-900/200"
-                              : "border-gray-300"
+                            ? "border-amber-500 bg-amber-50 dark:bg-amber-900/200"
+                            : "border-gray-300"
                         }`}
                       />
                     </button>
@@ -1097,11 +1099,15 @@ export default function CheckoutPage() {
                 <p className="text-sm text-red-500 mt-1">{errors.note}</p>
               )}
             </div>
-
           </div>
 
           <div className="border rounded-2xl p-5 bg-gray-50 dark:bg-gray-950 h-fit lg:sticky lg:top-24">
-            <h2 className="text-xl md:text-xl font-semibold text-amber-900 dark:text-amber-500 mb-4" style={{ fontFamily: 'serif' }}>Đơn hàng</h2>
+            <h2
+              className="text-xl md:text-xl font-semibold text-amber-900 dark:text-amber-500 mb-4"
+              style={{ fontFamily: "serif" }}
+            >
+              Đơn hàng
+            </h2>
 
             <div className="space-y-3 mb-5 max-h-[40vh] overflow-y-auto pr-2">
               {cart.map((item) => (
@@ -1110,9 +1116,22 @@ export default function CheckoutPage() {
                   className="flex items-start justify-between gap-3"
                 >
                   <div className="flex items-start gap-3 flex-1 text-left">
-                    <div className="w-12 h-12 shrink-0 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-100 dark:border-gray-800 flex items-center justify-center p-1.5 overflow-hidden mix-blend-multiply dark:mix-blend-normal cursor-pointer transition-opacity hover:opacity-80" onClick={() => navigate(`/${item.slug || 'products/' + (item.product_id || item.id)}`)}>
+                    <div
+                      className="w-12 h-12 shrink-0 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-100 dark:border-gray-800 flex items-center justify-center p-1.5 overflow-hidden mix-blend-multiply dark:mix-blend-normal cursor-pointer transition-opacity hover:opacity-80"
+                      onClick={() =>
+                        navigate(
+                          `/${
+                            item.slug ||
+                            "products/" + (item.product_id || item.id)
+                          }`
+                        )
+                      }
+                    >
                       <img
-                        src={item.image || "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085"}
+                        src={
+                          item.image ||
+                          "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085"
+                        }
                         alt={item.name}
                         className="w-full h-full object-contain"
                         onError={(e) => {
@@ -1122,17 +1141,27 @@ export default function CheckoutPage() {
                       />
                     </div>
                     <div>
-                      <p 
+                      <p
                         className="font-medium text-sm leading-snug cursor-pointer hover:text-amber-600 transition-colors"
-                        onClick={() => navigate(`/${item.slug || 'products/' + (item.product_id || item.id)}`)}
+                        onClick={() =>
+                          navigate(
+                            `/${
+                              item.slug ||
+                              "products/" + (item.product_id || item.id)
+                            }`
+                          )
+                        }
                       >
                         {item.name}
                       </p>
-                      {activeSale && activeSale.product_ids?.includes(Number(item.product_id || item.id)) && (
-                        <div className="mt-0.5 text-[11px] text-red-600 font-bold">
-                          🔥 Flash sale
-                        </div>
-                      )}
+                      {activeSale &&
+                        activeSale.product_ids?.includes(
+                          Number(item.product_id || item.id)
+                        ) && (
+                          <div className="mt-0.5 text-[11px] text-red-600 font-bold">
+                            🔥 Flash sale
+                          </div>
+                        )}
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                         {item.size} x {item.quantity}
                       </p>
@@ -1203,7 +1232,9 @@ export default function CheckoutPage() {
                       Đổi điểm loyalty để giảm giá
                     </p>
                     <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                      1 điểm = 100đ. Bạn đang có {Number(loyaltyWalletPoints || 0).toLocaleString("vi-VN")} điểm.
+                      1 điểm = 100đ. Bạn đang có{" "}
+                      {Number(loyaltyWalletPoints || 0).toLocaleString("vi-VN")}{" "}
+                      điểm.
                     </p>
                   </div>
                   <Button
@@ -1230,15 +1261,18 @@ export default function CheckoutPage() {
                 </div>
 
                 <p className="mt-2 text-xs text-gray-600 dark:text-gray-400">
-                  Tối đa có thể dùng: {maxRedeemablePoints.toLocaleString("vi-VN")} điểm
-                  {" "}(={" "}
-                  {(maxRedeemablePoints * LOYALTY_MONEY_PER_POINT).toLocaleString("vi-VN")}đ)
-                  {" "}- không vượt quá 50% tổng giá trị đơn.
+                  Tối đa có thể dùng:{" "}
+                  {maxRedeemablePoints.toLocaleString("vi-VN")} điểm (={" "}
+                  {(
+                    maxRedeemablePoints * LOYALTY_MONEY_PER_POINT
+                  ).toLocaleString("vi-VN")}
+                  đ) - không vượt quá 50% tổng giá trị đơn.
                 </p>
 
                 {isPointsInputExceeded && (
                   <p className="mt-1 text-xs text-red-600">
-                    Số điểm nhập vượt quá mức cho phép, hệ thống sẽ tự giới hạn khi đặt hàng.
+                    Số điểm nhập vượt quá mức cho phép, hệ thống sẽ tự giới hạn
+                    khi đặt hàng.
                   </p>
                 )}
               </div>
@@ -1257,15 +1291,21 @@ export default function CheckoutPage() {
 
               {loyaltyDiscountAmount > 0 ? (
                 <div className="flex justify-between text-sm text-gray-700 dark:text-gray-300">
-                  <span>Giảm từ điểm loyalty ({usedPoints.toLocaleString("vi-VN")} điểm)</span>
-                  <span>- {loyaltyDiscountAmount.toLocaleString("vi-VN")}đ</span>
+                  <span>
+                    Giảm từ điểm loyalty ({usedPoints.toLocaleString("vi-VN")}{" "}
+                    điểm)
+                  </span>
+                  <span>
+                    - {loyaltyDiscountAmount.toLocaleString("vi-VN")}đ
+                  </span>
                 </div>
               ) : null}
 
               {shippingFee > 0 ? (
                 <div className="flex justify-between text-sm text-gray-700 dark:text-gray-300">
                   <span className="flex items-center gap-2">
-                    Phí vận chuyển {deliveryDistanceKm ? `(${deliveryDistanceKm} km)` : ""}
+                    Phí vận chuyển{" "}
+                    {deliveryDistanceKm ? `(${deliveryDistanceKm} km)` : ""}
                     {isShippingCalculating && (
                       <Loader2 className="w-3 h-3 animate-spin text-amber-600" />
                     )}
@@ -1274,14 +1314,20 @@ export default function CheckoutPage() {
                 </div>
               ) : null}
 
-              {!isShippingCalculating && deliveryDistanceKm && form.order_type === "delivery" && !deliveryDistanceBlockMessage && (
-                <div className="bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 px-3 py-2.5 rounded-lg flex items-center gap-2 text-sm font-medium border border-emerald-100 dark:border-emerald-800/50 mt-2 mb-1">
-                  <Clock className="w-4 h-4 shrink-0" />
-                  <span>
-                    Dự kiến giao hàng trong vòng <strong>{10 + Math.ceil(Number(deliveryDistanceKm) * 4)} phút</strong>
-                  </span>
-                </div>
-              )}
+              {!isShippingCalculating &&
+                deliveryDistanceKm &&
+                form.order_type === "delivery" &&
+                !deliveryDistanceBlockMessage && (
+                  <div className="bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 px-3 py-2.5 rounded-lg flex items-center gap-2 text-sm font-medium border border-emerald-100 dark:border-emerald-800/50 mt-2 mb-1">
+                    <Clock className="w-4 h-4 shrink-0" />
+                    <span>
+                      Dự kiến giao hàng trong vòng{" "}
+                      <strong>
+                        {10 + Math.ceil(Number(deliveryDistanceKm) * 4)} phút
+                      </strong>
+                    </span>
+                  </div>
+                )}
 
               <div className="flex justify-between text-base font-bold">
                 <div className="flex flex-col">
@@ -1293,62 +1339,12 @@ export default function CheckoutPage() {
               </div>
             </div>
 
-            {availableCrossSells.length > 0 && (
-              <div className="mb-5 pt-4 border-t">
-                <p className="text-sm font-semibold mb-3">Gọi thêm món?</p>
-                <div className="flex gap-3 overflow-x-auto pb-2 custom-scrollbar pr-2">
-                  {availableCrossSells.map((product) => {
-                    const defaultImage = "https://png.pngtree.com/png-vector/20190820/ourmid/pngtree-no-image-vector-illustration-isolated-png-image_1694547.jpg";
-                    const thumbnail = Array.isArray(product.images) ? (product.images.find(img => Number(img.isThumbnail) === 1)?.image_url || product.images[0]?.image_url || defaultImage) : defaultImage;
-                    const fallbackPrice = Array.isArray(product.sizes) && product.sizes.length > 0 ? product.sizes[0].price : 0;
-                    
-                    return (
-                      <div key={product.id} className="min-w-[120px] max-w-[120px] border rounded-xl p-2.5 bg-white dark:bg-gray-900 shadow-sm shrink-0 flex flex-col justify-between">
-                        <div>
-                          <div className="w-full h-16 bg-gray-50 dark:bg-gray-800 rounded-lg overflow-hidden flex items-center justify-center p-1 mix-blend-multiply dark:mix-blend-normal mb-2 cursor-pointer transition-opacity hover:opacity-80" onClick={() => navigate(`/${product.slug || 'products/' + product.id}`)}>
-                            <img src={thumbnail} alt={product.name} className="w-full h-full object-contain" />
-                          </div>
-                          <p 
-                            className="text-[12px] font-medium leading-snug line-clamp-2 cursor-pointer hover:text-amber-600 transition-colors"
-                            onClick={() => navigate(`/${product.slug || 'products/' + product.id}`)}
-                          >
-                            {product.name}
-                          </p>
-                          {activeSale && activeSale.product_ids?.includes(Number(product.id)) && (
-                            <div className="mt-0.5 text-[10px] text-red-600 font-bold">
-                              🔥 Flash sale
-                            </div>
-                          )}
-                        </div>
-                        <div className="mt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                          <span className="text-[11px] font-bold text-amber-600">{Number(fallbackPrice).toLocaleString("vi-VN")}đ</span>
-                          {isOpen ? (
-                            <button 
-                              onClick={(e) => handleAddCrossSell(e, product)}
-                              className="bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 p-1.5 rounded-full hover:bg-amber-200 ml-auto"
-                            >
-                              <Plus className="w-3 h-3" />
-                            </button>
-                          ) : (
-                            <div
-                              onClick={(e) => e.stopPropagation()}
-                              className="flex items-center text-[9px] font-bold text-rose-600 bg-rose-50 px-1.5 py-1 rounded border border-rose-100 whitespace-nowrap shadow-sm cursor-not-allowed ml-auto"
-                              title={nextOpenMessage}
-                            >
-                              Đóng cửa
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
             <p className="mb-4 text-[13px] text-gray-500 dark:text-gray-400">
               Nhấn "Đặt hàng" đồng nghĩa với việc bạn đồng ý tuân theo{" "}
-              <Link to="/order-policy" className="text-amber-600 hover:text-amber-700 hover:underline transition-colors font-medium">
+              <Link
+                to="/order-policy"
+                className="text-amber-600 hover:text-amber-700 hover:underline transition-colors font-medium"
+              >
                 Điều khoản Cửa Hàng
               </Link>
             </p>
@@ -1358,7 +1354,9 @@ export default function CheckoutPage() {
               cart={cart}
               totalAmount={totalAmount}
               shippingFee={shippingFee}
-              customerCoords={hasPinnedCustomerCoords ? pinnedCustomerCoords : null}
+              customerCoords={
+                hasPinnedCustomerCoords ? pinnedCustomerCoords : null
+              }
               customerLocationSource={customerLocationSource || "gps"}
               disabled={isShippingCalculating || !isOpen || isCheckoutBlocked}
               label={placeOrderLabel}
@@ -1417,7 +1415,9 @@ export default function CheckoutPage() {
                     <p className="text-sm text-gray-600 dark:text-gray-400">
                       {item.receiver_phone || "Chưa có số điện thoại"}
                     </p>
-                    <p className="text-sm text-gray-800 dark:text-gray-200 mt-1">{item.address}</p>
+                    <p className="text-sm text-gray-800 dark:text-gray-200 mt-1">
+                      {item.address}
+                    </p>
                   </button>
                 );
               })

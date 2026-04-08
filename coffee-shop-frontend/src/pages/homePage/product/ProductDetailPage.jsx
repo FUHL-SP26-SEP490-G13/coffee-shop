@@ -264,7 +264,8 @@ export default function ProductDetailPage({ productIdOverride, productData }) {
           : Array.isArray(res?.data)
             ? res.data
             : [];
-        setToppings(list);
+        const activeToppings = list.filter(t => !t.is_deleted || t.is_deleted === 0 || t.is_deleted === '0');
+        setToppings(activeToppings);
       } catch (error) {
         console.error("Lỗi lấy danh sách topping:", error);
         setToppings([]);

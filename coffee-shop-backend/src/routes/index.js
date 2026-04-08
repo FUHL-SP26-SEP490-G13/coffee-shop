@@ -31,6 +31,7 @@ const swapRequestRoutes = require('./swapRequest.routes');
 const loyaltyRoutes = require('./loyalty.routes');
 const aiRoutes = require('./ai.routes');
 const newsletterRoutes = require('./newsletter.routes');
+const cartRoutes = require('./cart.routes');
 
 const CategoryRepository = require('../repositories/CategoryRepository');
 const ProductRepository = require('../repositories/ProductRepository');
@@ -86,6 +87,7 @@ router.use('/swap-requests', swapRequestRoutes);
 router.use('/loyalty', loyaltyRoutes);
 router.use('/ai', aiRoutes);
 router.use('/newsletters', newsletterRoutes);
+router.use('/cart', cartRoutes);
 
 // Health check endpoint
 router.get("/health", (req, res) => {

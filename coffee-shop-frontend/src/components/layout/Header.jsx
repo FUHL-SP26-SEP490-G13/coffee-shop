@@ -50,6 +50,7 @@ import loyaltyService from "@/services/loyaltyService";
 import flashSaleService from "@/services/flashSaleService";
 import LoyaltyHistoryModal from "@/components/loyalty/LoyaltyHistoryModal";
 import receiptSettingService from "@/services/receiptSettingService";
+import { cartService } from "@/services/cartService";
 import { useStoreHours } from "@/hooks/useStoreHours";
 
 const placeholders = [
@@ -223,16 +224,9 @@ function Header() {
 
   const loadCartItems = useCallback(() => {
     try {
-      const cart = JSON.parse(localStorage.getItem(CART_KEY) || "[]");
-      const list = Array.isArray(cart) ? cart : [];
-
+      const list = cartService.getCart();
       setCartItems(list);
-
-      const total = list.reduce(
-        (sum, item) => sum + (Number(item.quantity) || 1),
-        0
-      );
-
+      const total = list.reduce((sum, item) => sum + (Number(item.quantity) || 1), 0);
       setCartCount(total);
     } catch {
       setCartItems([]);
@@ -265,11 +259,10 @@ function Header() {
 
   const handleRemoveFromCart = (indexToRemove) => {
     try {
-      const cart = JSON.parse(localStorage.getItem(CART_KEY) || "[]");
-      if (!Array.isArray(cart)) return;
-      const newCart = cart.filter((_, idx) => idx !== indexToRemove);
-      localStorage.setItem(CART_KEY, JSON.stringify(newCart));
-      window.dispatchEvent(new Event("cartUpdated"));
+      const cart = cartService.getCart();
+      const item = cart[indexToRemove];
+      if (!item) return;
+      cartService.removeItem(item.cartKey);
       toast.success("Đã xóa sản phẩm khỏi giỏ hàng");
     } catch (e) {
       console.error("Lỗi xóa sản phẩm header preview:", e);
@@ -309,6 +302,10 @@ function Header() {
   }, [fetchCategories]);
 
   useEffect(() => {
+    if (token) {
+      cartService.hydrateFromDatabase().catch(() => undefined);
+    }
+
     loadCartItems();
 
     window.addEventListener("storage", loadCartItems);
@@ -318,12 +315,12 @@ function Header() {
       setCartBump(true);
       setTimeout(() => setCartBump(false), 600);
     };
-    window.addEventListener("cartUpdated", handleCartBump);
+    window.addEventListener("cartAdded", handleCartBump);
 
     return () => {
       window.removeEventListener("storage", loadCartItems);
       window.removeEventListener("cartUpdated", loadCartItems);
-      window.removeEventListener("cartUpdated", handleCartBump);
+      window.removeEventListener("cartAdded", handleCartBump);
     };
   }, [loadCartItems]);
 

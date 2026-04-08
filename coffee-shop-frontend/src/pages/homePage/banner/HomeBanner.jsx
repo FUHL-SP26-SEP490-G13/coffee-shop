@@ -33,7 +33,7 @@ export default function HomeBanner({
       >
         {displayBanners.map((banner, idx) => (
           <SwiperSlide key={banner?.id ?? idx}>
-            <div className="relative h-[340px] w-full overflow-hidden sm:h-[440px] lg:h-[540px]">
+            <div className="relative h-[340px] w-full overflow-hidden sm:h-[440px] lg:h-[580px]">
               <img
                 src={banner?.image_url || defaultImage}
                 alt={banner?.title || "Banner"}

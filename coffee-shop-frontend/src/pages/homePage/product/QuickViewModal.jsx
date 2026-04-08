@@ -41,7 +41,11 @@ export default function QuickViewModal({ product, isOpen, onClose, activeSale, i
 
       setLoading(true);
       toppingService.getAll()
-        .then((res) => setToppings(res?.data || []))
+        .then((res) => {
+          const list = res?.data || [];
+          const activeToppings = list.filter(t => !t.is_deleted || t.is_deleted === 0 || t.is_deleted === '0');
+          setToppings(activeToppings);
+        })
         .catch(() => {})
         .finally(() => setLoading(false));
     }
@@ -301,7 +305,7 @@ export default function QuickViewModal({ product, isOpen, onClose, activeSale, i
                           Xóa tất cả
                         </button>
                       </div>
-                      <div className="flex flex-col gap-2.5">
+                      <div className="flex flex-col gap-2.5 max-h-[200px] overflow-y-auto custom-scrollbar pr-2">
                         {selectedToppings.map(t => (
                           <div key={t.topping_id} className="flex justify-between items-center text-[13px] group">
                             <span className="font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">

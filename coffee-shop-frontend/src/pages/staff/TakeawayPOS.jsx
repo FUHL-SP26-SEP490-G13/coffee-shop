@@ -69,7 +69,7 @@ function TakeawayPOS() {
         setCategories(rawCategories.filter((c) => !c.is_deleted));
         setToppings(
           rawToppings
-            .filter((t) => !t.is_deleted)
+            .filter((t) => !t.is_deleted || t.is_deleted === 0 || t.is_deleted === '0')
             .map((t) => ({ id: t.id, name: t.name, price: Number(t.price) })),
         );
       } catch (e) {
