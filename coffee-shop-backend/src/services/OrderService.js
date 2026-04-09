@@ -616,12 +616,41 @@ class OrderService {
     }
   }
 
-  async getAllOrders({ page = 1, limit = 20, status = "all" } = {}) {
+  async getAllOrders({
+    page = 1,
+    limit = 20,
+    status = "all",
+    order_type = "all",
+    order_code = "",
+    start_date = "",
+    end_date = "",
+  } = {}) {
     const offset = (parseInt(page) - 1) * parseInt(limit);
 
+    const normalizedStartDate = String(start_date || "").trim();
+    const normalizedEndDate = String(end_date || "").trim();
+
+    if (normalizedStartDate && normalizedEndDate && normalizedStartDate > normalizedEndDate) {
+      throw new ErrorResponse(400, "Khoảng ngày không hợp lệ");
+    }
+
     const [orders, totalCount] = await Promise.all([
-      OrderRepository.findAllOrders({ limit, offset, status }),
-      OrderRepository.countAllOrders({ status })
+      OrderRepository.findAllOrders({
+        limit,
+        offset,
+        status,
+        order_type,
+        order_code,
+        start_date: normalizedStartDate,
+        end_date: normalizedEndDate,
+      }),
+      OrderRepository.countAllOrders({
+        status,
+        order_type,
+        order_code,
+        start_date: normalizedStartDate,
+        end_date: normalizedEndDate,
+      })
     ]);
 
     for (const order of orders) {

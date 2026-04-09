@@ -614,7 +614,64 @@ class OrderRepository {
     return Number(rows[0]?.total || 0);
   }
 
-  async findAllOrders({ limit = 20, offset = 0, status = "all" } = {}) {
+  buildAdminOrderFilters({
+    status = "all",
+    order_type = "all",
+    order_code = "",
+    start_date = "",
+    end_date = "",
+  } = {}) {
+    const whereClauses = [];
+    const params = [];
+
+    if (status && status !== "all") {
+      whereClauses.push("o.status = ?");
+      params.push(String(status).trim().toLowerCase());
+    }
+
+    if (order_type && order_type !== "all") {
+      whereClauses.push("o.order_type = ?");
+      params.push(String(order_type).trim().toLowerCase());
+    }
+
+    const normalizedOrderCode = String(order_code || "")
+      .replace(/^#/, "")
+      .replace(/[^0-9]/g, "")
+      .trim();
+
+    if (normalizedOrderCode) {
+      whereClauses.push("CAST(o.id AS CHAR) LIKE ?");
+      params.push(`%${normalizedOrderCode}%`);
+    }
+
+    const normalizedStartDate = String(start_date || "").trim();
+    const normalizedEndDate = String(end_date || "").trim();
+
+    if (normalizedStartDate) {
+      whereClauses.push("DATE(o.created_at) >= ?");
+      params.push(normalizedStartDate);
+    }
+
+    if (normalizedEndDate) {
+      whereClauses.push("DATE(o.created_at) <= ?");
+      params.push(normalizedEndDate);
+    }
+
+    return {
+      whereSql: whereClauses.length > 0 ? ` WHERE ${whereClauses.join(" AND ")}` : "",
+      params,
+    };
+  }
+
+  async findAllOrders({
+    limit = 20,
+    offset = 0,
+    status = "all",
+    order_type = "all",
+    order_code = "",
+    start_date = "",
+    end_date = "",
+  } = {}) {
     let query = `
       SELECT 
         o.id,
@@ -640,12 +697,15 @@ class OrderRepository {
       LEFT JOIN order_delivery_info odi ON odi.order_id = o.id
       LEFT JOIN order_payments op ON op.order_id = o.id
     `;
-    const params = [];
+    const { whereSql, params } = this.buildAdminOrderFilters({
+      status,
+      order_type,
+      order_code,
+      start_date,
+      end_date,
+    });
 
-    if (status && status !== "all") {
-      query += " WHERE o.status = ?";
-      params.push(status);
-    }
+    query += whereSql;
 
     query += " ORDER BY o.created_at DESC LIMIT ? OFFSET ?";
     params.push(parseInt(limit), parseInt(offset));
@@ -654,14 +714,23 @@ class OrderRepository {
     return rows;
   }
 
-  async countAllOrders({ status = "all" } = {}) {
+  async countAllOrders({
+    status = "all",
+    order_type = "all",
+    order_code = "",
+    start_date = "",
+    end_date = "",
+  } = {}) {
     let query = "SELECT COUNT(*) as count FROM orders o";
-    const params = [];
+    const { whereSql, params } = this.buildAdminOrderFilters({
+      status,
+      order_type,
+      order_code,
+      start_date,
+      end_date,
+    });
 
-    if (status && status !== "all") {
-      query += " WHERE o.status = ?";
-      params.push(status);
-    }
+    query += whereSql;
 
     const [rows] = await db.query(query, params);
     return rows[0].count;

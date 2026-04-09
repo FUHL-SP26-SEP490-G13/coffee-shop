@@ -19,6 +19,7 @@ import {
 import orderService from "../../../services/orderService";
 import { toast } from "sonner";
 import { Button } from "../../../components/ui/button";
+import { Input } from "../../../components/ui/input";
 import {
   Dialog,
   DialogContent,
@@ -32,20 +33,60 @@ export default function AdminOrders() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("all");
+  const [orderTypeFilter, setOrderTypeFilter] = useState("all");
+  const [orderCodeFilter, setOrderCodeFilter] = useState("");
+  const [startDateFilter, setStartDateFilter] = useState("");
+  const [endDateFilter, setEndDateFilter] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
   const [selectedOrder, setSelectedOrder] = useState(null);
 
+  const hasAdvancedFilters =
+    statusFilter !== "all" ||
+    orderTypeFilter !== "all" ||
+    Boolean(orderCodeFilter.trim()) ||
+    Boolean(startDateFilter) ||
+    Boolean(endDateFilter);
+  const isInvalidDateRange =
+    Boolean(startDateFilter) &&
+    Boolean(endDateFilter) &&
+    startDateFilter > endDateFilter;
+
   useEffect(() => {
     const fetchOrders = async () => {
       try {
+        if (isInvalidDateRange) {
+          setOrders([]);
+          setTotalPages(1);
+          setTotalItems(0);
+          return;
+        }
+
         setLoading(true);
-        const res = await orderService.getAllOrders({
+        const params = {
           page: currentPage,
           limit: 10,
           status: statusFilter,
-        });
+        };
+
+        if (orderTypeFilter !== "all") {
+          params.order_type = orderTypeFilter;
+        }
+
+        if (orderCodeFilter.trim()) {
+          params.order_code = orderCodeFilter.trim().replace(/^#/, "");
+        }
+
+        if (startDateFilter) {
+          params.start_date = startDateFilter;
+        }
+
+        if (endDateFilter) {
+          params.end_date = endDateFilter;
+        }
+
+        const res = await orderService.getAllOrders(params);
         setOrders(res.data || []);
         if (res.pagination) {
           setTotalPages(res.pagination.totalPages);
@@ -59,11 +100,33 @@ export default function AdminOrders() {
       }
     };
     fetchOrders();
-  }, [currentPage, statusFilter]);
+  }, [
+    currentPage,
+    statusFilter,
+    orderTypeFilter,
+    orderCodeFilter,
+    startDateFilter,
+    endDateFilter,
+    isInvalidDateRange,
+  ]);
 
   const handleStatusChange = (val) => {
     setStatusFilter(val);
     setCurrentPage(1); // reset to page 1 always on filter change
+  };
+
+  const handleOrderTypeChange = (val) => {
+    setOrderTypeFilter(val);
+    setCurrentPage(1);
+  };
+
+  const handleResetFilters = () => {
+    setStatusFilter("all");
+    setOrderTypeFilter("all");
+    setOrderCodeFilter("");
+    setStartDateFilter("");
+    setEndDateFilter("");
+    setCurrentPage(1);
   };
 
   const getStatusInfo = (status) => {
@@ -192,7 +255,8 @@ export default function AdminOrders() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="space-y-4">
+        <div className="flex items-center justify-between gap-4">
         <div className="space-y-1">
           <div className="flex items-center gap-3">
             <h1 className="text-xl font-semibold">
@@ -200,23 +264,101 @@ export default function AdminOrders() {
             </h1>
           </div>
         </div>
+        </div>
 
-        <div className="flex items-center gap-3 w-full sm:w-auto bg-white dark:bg-gray-900 dark:border-gray-800 p-1 rounded-xl border shadow-sm">
-          <span className="text-sm font-medium text-gray-500 pl-3">
-            Trạng thái:
-          </span>
-          <Select value={statusFilter} onValueChange={handleStatusChange}>
-            <SelectTrigger className="w-full sm:w-[180px] border-0 shadow-none focus:ring-0 bg-transparent">
-              <SelectValue placeholder="Chọn trạng thái" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tất cả đơn hàng</SelectItem>
-              <SelectItem value="pending">Chờ xác nhận</SelectItem>
-              <SelectItem value="preparing">Đang chuẩn bị</SelectItem>
-              <SelectItem value="completed">Hoàn thành</SelectItem>
-              <SelectItem value="cancelled">Đã hủy</SelectItem>
-            </SelectContent>
-          </Select>
+        <div className="rounded-xl border bg-white p-3 sm:p-4 shadow-sm space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3">
+            <div className="space-y-1">
+              <p className="text-xs font-medium text-gray-500">Mã đơn</p>
+              <Input
+                value={orderCodeFilter}
+                onChange={(e) => {
+                  setOrderCodeFilter(e.target.value);
+                  setCurrentPage(1);
+                }}
+                placeholder="Ví dụ: 1025 hoặc #01025"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <p className="text-xs font-medium text-gray-500">Từ ngày</p>
+              <Input
+                type="date"
+                value={startDateFilter}
+                onChange={(e) => {
+                  setStartDateFilter(e.target.value);
+                  setCurrentPage(1);
+                }}
+                max={endDateFilter || undefined}
+              />
+            </div>
+
+            <div className="space-y-1">
+              <p className="text-xs font-medium text-gray-500">Đến ngày</p>
+              <Input
+                type="date"
+                value={endDateFilter}
+                onChange={(e) => {
+                  setEndDateFilter(e.target.value);
+                  setCurrentPage(1);
+                }}
+                min={startDateFilter || undefined}
+              />
+            </div>
+
+            <div className="space-y-1">
+              <p className="text-xs font-medium text-gray-500">Trạng thái</p>
+              <Select value={statusFilter} onValueChange={handleStatusChange}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Chọn trạng thái" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tất cả đơn hàng</SelectItem>
+                  <SelectItem value="pending">Chờ xác nhận</SelectItem>
+                  <SelectItem value="preparing">Đang chuẩn bị</SelectItem>
+                  <SelectItem value="ready">Chờ giao/Nhận</SelectItem>
+                  <SelectItem value="completed">Hoàn thành</SelectItem>
+                  <SelectItem value="cancelled">Đã hủy</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1">
+              <p className="text-xs font-medium text-gray-500">Loại đơn</p>
+              <Select value={orderTypeFilter} onValueChange={handleOrderTypeChange}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Chọn loại đơn" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tất cả loại đơn</SelectItem>
+                  <SelectItem value="dine-in">Tại quán</SelectItem>
+                  <SelectItem value="takeaway">Mang đi</SelectItem>
+                  <SelectItem value="delivery">Giao hàng</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between gap-3">
+            {isInvalidDateRange ? (
+              <p className="text-xs text-red-600">
+                Khoảng ngày không hợp lệ: ngày bắt đầu phải nhỏ hơn hoặc bằng ngày kết thúc.
+              </p>
+            ) : (
+              <p className="text-xs text-gray-500">
+                Lọc theo mã đơn, ngày tạo, trạng thái và loại đơn hàng.
+              </p>
+            )}
+
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={!hasAdvancedFilters}
+              onClick={handleResetFilters}
+            >
+              Xóa bộ lọc
+            </Button>
+          </div>
         </div>
       </div>
 
