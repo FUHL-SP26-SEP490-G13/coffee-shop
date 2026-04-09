@@ -165,32 +165,8 @@ export default function HomePage() {
       <FadeInView delay={0} duration={1200}>
         <div className="w-full bg-white dark:bg-gray-950 pb-4">
           <div className="w-full px-4 lg:px-6 xl:px-8 relative flex items-stretch">
-            {/* STATIC CATEGORY SIDEBAR */}
-            <div
-              className="hidden lg:flex w-[250px] shrink-0 flex-col bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-b-2xl z-20 pb-3 relative"
-            >
-              <div className="h-[480px] overflow-y-auto px-1 pt-1 customized-scrollbar relative">
-                {categories.length === 0 ? (
-                  <div className="text-center py-6 text-sm text-gray-500">Đang tải...</div>
-                ) : (
-                  categories.map((category) => (
-                    <button
-                      key={category.id}
-                      onClick={() => navigate(`/${category.slug || 'products?category=' + category.id}`)}
-                      className="w-full flex items-center justify-between px-5 py-3.5 transition text-[13px] font-bold text-gray-700 dark:text-gray-300 border-b border-dashed border-gray-100 dark:border-gray-800 last:border-0 hover:bg-amber-50 hover:text-amber-600 group"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-1.5 h-1.5 rounded-full bg-gray-300 group-hover:bg-amber-500 transition-colors"></div>
-                        <span className="uppercase tracking-wide">{category.name}</span>
-                      </div>
-                    </button>
-                  ))
-                )}
-              </div>
-            </div>
-
             {/* BANNER */}
-            <div className="flex-1 w-full lg:pl-6 overflow-hidden">
+            <div className="flex-1 w-full overflow-hidden">
               <HomeBanner
                 banners={banners}
                 activeBannerIndex={activeBannerIndex}

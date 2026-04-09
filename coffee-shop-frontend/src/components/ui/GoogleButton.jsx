@@ -4,6 +4,7 @@ import authenticationService from "@/services/authenticationService";
 import { APP_ROUTES, STORAGE_KEYS } from "@/constants";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { cartService } from "@/services/cartService";
 
 export default function GoogleButton() {
   const navigate = useNavigate();
@@ -16,40 +17,49 @@ export default function GoogleButton() {
           tokenResponse.id_token
         );
 
-      if (!res?.success) {
-        throw new Error(res?.message || "Đăng nhập Google thất bại");
-      }
+        if (!res?.success) {
+          throw new Error(res?.message || "Đăng nhập Google thất bại");
+        }
 
-      const { user, token, refreshToken } = res.data || {};
+        const { user, token, refreshToken } = res.data || {};
 
-      // Lưu tokens vào localStorage
-      if (token) {
-        localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, token);
-      }
-      if (refreshToken) {
-        localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, refreshToken);
-      }
+        // Lưu tokens vào localStorage
+        if (token) {
+          localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, token);
+        }
+        if (refreshToken) {
+          localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, refreshToken);
+        }
 
-      toast.success("Đăng nhập Google thành công!");
+        try {
+          await cartService.syncAfterLogin();
+        } catch (cartError) {
+          console.error("Cart sync failed after Google login:", cartError);
+          toast.error(
+            "Đồng bộ giỏ hàng không thành công. Bạn vẫn có thể tiếp tục."
+          );
+        }
 
-      // Điều hướng dựa trên vai trò người dùng
-      switch (user?.role_id) {
-        case 1: // Admin
-          navigate(APP_ROUTES.ADMIN, { replace: true });
-          break;
-        case 2: // Staff
-          navigate(APP_ROUTES.STAFF, { replace: true });
-          break;
-        case 3: // Barista
-          navigate(APP_ROUTES.BARISTA, { replace: true });
-          break;
-        case 4: // Customer
-          navigate(APP_ROUTES.HOME, { replace: true });
-          break;
-        default:
-          navigate(APP_ROUTES.HOME, { replace: true });
-          break;
-      }
+        toast.success("Đăng nhập Google thành công!");
+
+        // Điều hướng dựa trên vai trò người dùng
+        switch (user?.role_id) {
+          case 1: // Admin
+            navigate(APP_ROUTES.ADMIN, { replace: true });
+            break;
+          case 2: // Staff
+            navigate(APP_ROUTES.STAFF, { replace: true });
+            break;
+          case 3: // Barista
+            navigate(APP_ROUTES.BARISTA, { replace: true });
+            break;
+          case 4: // Customer
+            navigate(APP_ROUTES.HOME, { replace: true });
+            break;
+          default:
+            navigate(APP_ROUTES.HOME, { replace: true });
+            break;
+        }
       } catch (err) {
         console.error("GOOGLE LOGIN ERROR:", err.response?.data || err.message);
         const errorMessage =
@@ -63,7 +73,8 @@ export default function GoogleButton() {
       console.log("Google Login Failed");
       toast.error("Đăng nhập Google thất bại. Vui lòng thử lại.");
     },
-    scope: 'openid email profile https://www.googleapis.com/auth/user.birthday.read',
+    scope:
+      "openid email profile https://www.googleapis.com/auth/user.birthday.read",
   });
 
   return (
