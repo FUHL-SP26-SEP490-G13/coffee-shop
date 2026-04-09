@@ -9,12 +9,13 @@ import {
   ChevronRight,
   Clock,
 } from "lucide-react";
-import Header from "@/components/layout/Header";
-import Footer from "@/components/layout/Footer";
+
+
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import socket from "@/lib/socket";
 import orderService from "@/services/orderOnlineService";
+import flashSaleService from "@/services/flashSaleService";
 import { handleBuyAgain } from "@/utils/handleBuyAgain";
 import { useStoreHours } from "@/hooks/useStoreHours";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
@@ -39,7 +40,17 @@ export default function MyOrderOnlinePage() {
   const [buyAgainLoadingId, setBuyAgainLoadingId] = useState(null);
   const [page, setPage] = useState(1);
   const [activeStatus, setActiveStatus] = useState(STATUS_TABS[0]);
+  const [activeSale, setActiveSale] = useState(null);
   const { isOpen } = useStoreHours();
+
+  useEffect(() => {
+    flashSaleService
+      .getCurrentActive()
+      .then((res) => {
+        setActiveSale(res?.data || null);
+      })
+      .catch((err) => console.error("Error fetching active sale:", err));
+  }, []);
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -238,7 +249,7 @@ export default function MyOrderOnlinePage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900">
-      <Header />
+      
 
       <section className="flex-1 w-full px-4 sm:px-6 lg:px-8 py-10">
         <div className="w-full mx-auto">
@@ -305,15 +316,23 @@ export default function MyOrderOnlinePage() {
                             {/* Avatar Group */}
                             {Array.isArray(order.items) && order.items.length > 0 && (
                               <div className="flex -space-x-4 flex-shrink-0">
-                                {order.items.slice(0, 3).map((item, idx) => (
-                                  <img
-                                    key={idx}
-                                    src={item.image_url || "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085"}
-                                    alt={item.name}
-                                    className="w-[4.5rem] h-[4.5rem] md:w-20 md:h-20 rounded-full border-[3px] border-white dark:border-gray-900 object-cover bg-gray-50 dark:bg-gray-800 shadow-sm transition-transform duration-300 group-hover:-translate-y-1"
-                                    style={{ zIndex: 3 - idx }}
-                                  />
-                                ))}
+                                {order.items.slice(0, 3).map((item, idx) => {
+                                  const isFlashSale = activeSale?.product_ids?.includes(Number(item.product_id || item.id));
+                                  return (
+                                    <div key={idx} className="relative" style={{ zIndex: 3 - idx }}>
+                                      <img
+                                        src={item.image_url || "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085"}
+                                        alt={item.name}
+                                        className="w-[4.5rem] h-[4.5rem] md:w-20 md:h-20 rounded-full border-[3px] border-white dark:border-gray-900 object-cover bg-gray-50 dark:bg-gray-800 shadow-sm transition-transform duration-300 group-hover:-translate-y-1"
+                                      />
+                                      {isFlashSale && (
+                                        <span className="absolute -top-1 -right-2 bg-red-500 text-white text-[8px] font-bold px-1 py-0.5 rounded-sm shadow-sm whitespace-nowrap z-10 transition-transform duration-300 group-hover:-translate-y-1">
+                                          -{activeSale.discount_percent}%
+                                        </span>
+                                      )}
+                                    </div>
+                                  );
+                                })}
                                 {order.items.length > 3 && (
                                   <div 
                                     className="w-[4.5rem] h-[4.5rem] md:w-20 md:h-20 rounded-full border-[3px] border-white dark:border-gray-900 bg-gray-50 dark:bg-gray-800 flex items-center justify-center text-sm font-bold text-gray-500 shadow-sm"
@@ -426,7 +445,7 @@ export default function MyOrderOnlinePage() {
         </div>
       </section>
 
-      <Footer />
+      
     </div>
   );
 }

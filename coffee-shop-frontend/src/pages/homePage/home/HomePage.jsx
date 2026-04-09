@@ -17,9 +17,9 @@ import InstagramFeedSection from "@/pages/homePage/follow/InstagramFeedSection";
 import "swiper/css";
 import "swiper/css/pagination";
 import "swiper/css/navigation";
-import Header from "@/components/layout/Header";
-import Footer from "@/components/layout/Footer";
-import AiAssistantWidget from "@/components/layout/AiAssistantWidget";
+
+
+
 
 
 export default function HomePage() {
@@ -160,7 +160,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900 dark:border-gray-800">
-      <Header />
+      
 
       <FadeInView delay={0} duration={1200}>
         <div className="w-full bg-white dark:bg-gray-950 pb-4">
@@ -216,9 +216,9 @@ export default function HomePage() {
         <InstagramFeedSection />
       </FadeInView>
 
-      <AiAssistantWidget />
+      
 
-      <Footer />
+      
 
       {/* Scroll to Top Button */}
       <button

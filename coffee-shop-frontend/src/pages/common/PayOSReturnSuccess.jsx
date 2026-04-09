@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 import confetti from "canvas-confetti";
 import { useSearchParams, useNavigate, Link } from "react-router-dom";
 import { CheckCircle2, XCircle, Clock, ShoppingBag, Home, ReceiptText } from "lucide-react";
-import Header from "@/components/layout/Header";
-import Footer from "@/components/layout/Footer";
+
+
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -90,7 +90,7 @@ export default function PayOSReturnSuccess() {
 
   return (
     <div className="min-h-screen flex flex-col bg-white dark:bg-gray-950 transition-colors duration-300">
-      <Header />
+      
 
       <main className="flex-1 flex items-center justify-center px-4 py-16">
         <Card className="w-full max-w-lg p-8 shadow-md border-border space-y-6">
@@ -181,7 +181,7 @@ export default function PayOSReturnSuccess() {
         </Card>
       </main>
 
-      <Footer />
+      
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import React from 'react';
-import Header from "@/components/layout/Header";
-import Footer from "@/components/layout/Footer";
+
+
 import { Coffee, Users, Award, Sprout } from 'lucide-react';
 
 function AboutSection({ icon, title, children, image, imageLeft }) {
@@ -41,7 +41,7 @@ function AboutSection({ icon, title, children, image, imageLeft }) {
 export default function AboutUsPage() {
   return (
     <div className="min-h-screen flex flex-col bg-white dark:bg-gray-950">
-      <Header />
+      
       
       <div className="flex-1 w-full max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-16 mb-10 overflow-hidden">
         
@@ -114,7 +114,7 @@ export default function AboutUsPage() {
 
       <div className="w-full h-px bg-gradient-to-r from-transparent via-amber-300 to-transparent my-10" />
 
-      <Footer />
+      
     </div>
   );
 }

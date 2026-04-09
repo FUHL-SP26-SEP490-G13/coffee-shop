@@ -1,7 +1,7 @@
 import { CreditCard, ShieldCheck, Clock, Phone } from "lucide-react";
 import { Card } from "@/components/ui/card";
-import Header from "@/components/layout/Header";
-import Footer from "@/components/layout/Footer";
+
+
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { Link } from "react-router-dom";
 
@@ -9,7 +9,7 @@ export default function PaymentPolicyPage() {
   useDocumentTitle("Chính sách thanh toán");
   return (
     <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900">
-      <Header />
+      
       <div className="flex-1 w-full px-4 sm:px-6 lg:px-6 xl:px-8 pt-2 md:pt-4 pb-10 md:pb-16 mb-5">
         <div className="flex items-center gap-2 text-base md:text-lg text-gray-500 dark:text-gray-400 font-medium mb-6">
           <Link to="/" className="hover:text-amber-600 transition">Trang chủ</Link>
@@ -63,7 +63,7 @@ export default function PaymentPolicyPage() {
         </div>
       </div>
       <div className="w-full h-px bg-gradient-to-r from-transparent via-amber-300 to-transparent" />
-      <Footer />
+      
     </div>
   );
 }
