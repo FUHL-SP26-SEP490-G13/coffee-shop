@@ -288,8 +288,8 @@ export default function MyOrderQRDetail() {
 
       {/* MODAL CHỌN PHƯƠNG THỨC THANH TOÁN */}
       {showPaymentModal && (
-        <div className="fixed inset-0 z-50 flex flex-col justify-end bg-black/40 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white dark:bg-gray-900 w-full max-w-lg mx-auto rounded-t-2xl shadow-2xl border-t border-gray-200 dark:border-gray-700 p-6 animate-in slide-in-from-bottom-5 relative">
+        <div className="fixed inset-0 z-50 flex flex-col justify-end bg-black/40 backdrop-blur-sm">
+          <div className="bg-white dark:bg-gray-900 w-full max-w-lg mx-auto rounded-t-2xl shadow-2xl border-t border-gray-200 dark:border-gray-700 p-6 relative">
             <button onClick={() => setShowPaymentModal(false)} className="absolute top-4 right-4 text-2xl text-gray-400 hover:text-red-500 transition">&times;</button>
             <h2 className="font-bold text-xl mb-4 text-center tracking-tight">Thanh toán</h2>
             <div className="grid grid-cols-2 gap-3 mb-6">
@@ -334,7 +334,7 @@ export default function MyOrderQRDetail() {
       {/* GLOBAL MODAL */}
       {modalConfig.show && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
-          <div className="bg-white dark:bg-gray-900 w-full max-w-sm rounded-2xl shadow-2xl p-6 text-center animate-in zoom-in-95">
+          <div className="bg-white dark:bg-gray-900 w-full max-w-sm rounded-2xl shadow-2xl p-6 text-center">
             <div className={`mx-auto flex h-16 w-16 items-center justify-center rounded-full mb-4 ${modalConfig.type === "success" ? "bg-green-100" : "bg-red-100"}`}>
               {modalConfig.type === "success" ? (
                 <svg className="h-10 w-10 text-green-500" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">

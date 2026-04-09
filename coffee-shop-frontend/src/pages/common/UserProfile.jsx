@@ -10,6 +10,7 @@ import { Avatar, AvatarFallback } from '../../components/ui/avatar';
 
 import { toast } from 'sonner';
 import authenticationService from '../../services/authenticationService';
+import receiptSettingService from '../../services/receiptSettingService';
 import { APP_ROUTES } from '../../constants';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
@@ -85,6 +86,30 @@ export function UserProfile() {
     if (!profile) return '';
     return profile.role_name || profile.role || 'staff';
   }, [profile]);
+
+  const [storeName, setStoreName] = useState(() => {
+    return localStorage.getItem("cached_store_name") || "Coffee Shop";
+  });
+
+  useEffect(() => {
+    const fetchStoreName = async () => {
+      try {
+        const res = await receiptSettingService.getActive();
+        const data = res?.data || null;
+        if (data && data.store_name) {
+          setStoreName(data.store_name);
+          localStorage.setItem("cached_store_name", data.store_name);
+        }
+      } catch (error) {
+        // Fallback or ignore
+      }
+    };
+    fetchStoreName();
+
+    const handleReceiptUpdate = () => fetchStoreName();
+    window.addEventListener("receiptSettingsUpdated", handleReceiptUpdate);
+    return () => window.removeEventListener("receiptSettingsUpdated", handleReceiptUpdate);
+  }, []);
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -386,21 +411,7 @@ export function UserProfile() {
       ) : (
         <div className="flex-1 flex items-start justify-center p-4 sm:p-6 lg:p-8 relative z-10 w-full animate-in fade-in duration-500">
           <div className="w-full max-w-5xl">
-            {/* Cover Banner Area */}
-            <div className="w-full h-32 sm:h-48 rounded-t-3xl overflow-hidden relative shadow-sm animate-in slide-in-from-top-4 duration-500">
-              <img 
-                src="https://images.unsplash.com/photo-1497935586351-b67a49e012bf?auto=format&fit=crop&w=1200&q=80" 
-                alt="Banner" 
-                className="w-full h-full object-cover"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-              <div className="absolute bottom-4 left-6 flex items-center gap-2 text-white/90">
-                <Coffee className="w-4 h-4" />
-                <span className="text-sm font-medium tracking-wide shadow-sm">Coffee Shop Member</span>
-              </div>
-            </div>
-
-            <div className="grid gap-6 lg:grid-cols-12 px-2 sm:px-4 -mt-12 sm:-mt-16 pb-12">
+            <div className="grid gap-6 lg:grid-cols-12 px-2 sm:px-4 pt-4 pb-12">
               
               {/* Cột 1: Thông tin cá nhân */}
               <div className="lg:col-span-8 flex flex-col gap-6">
@@ -497,7 +508,7 @@ export function UserProfile() {
                               id="first_name"
                               value={profile?.first_name || ''}
                               disabled={!isEditing}
-                              className={`pl-10 rounded-xl transition-all font-medium ${isEditing ? "bg-white dark:bg-black/40 border-gray-200 dark:border-gray-700 focus-visible:ring-2 focus-visible:ring-amber-500/50 focus-visible:border-amber-500" : "bg-transparent border-transparent px-0 font-semibold text-gray-900 dark:text-gray-100"}`}
+                              className={`pl-10 rounded-xl transition-all font-medium ${isEditing ? "bg-white dark:bg-black/40 border-gray-200 dark:border-gray-700 focus-visible:ring-2 focus-visible:ring-amber-500/50 focus-visible:border-amber-500" : "bg-transparent border-transparent font-semibold text-gray-900 dark:text-gray-100 shadow-none"}`}
                               onChange={(e) =>
                                 setProfile((prev) => ({
                                   ...prev,
@@ -516,7 +527,7 @@ export function UserProfile() {
                               id="last_name"
                               value={profile?.last_name || ''}
                               disabled={!isEditing}
-                              className={`pl-10 rounded-xl transition-all font-medium ${isEditing ? "bg-white dark:bg-black/40 border-gray-200 dark:border-gray-700 focus-visible:ring-2 focus-visible:ring-amber-500/50 focus-visible:border-amber-500" : "bg-transparent border-transparent px-0 font-semibold text-gray-900 dark:text-gray-100"}`}
+                              className={`pl-10 rounded-xl transition-all font-medium ${isEditing ? "bg-white dark:bg-black/40 border-gray-200 dark:border-gray-700 focus-visible:ring-2 focus-visible:ring-amber-500/50 focus-visible:border-amber-500" : "bg-transparent border-transparent font-semibold text-gray-900 dark:text-gray-100 shadow-none"}`}
                               onChange={(e) =>
                                 setProfile((prev) => ({
                                   ...prev,
@@ -536,7 +547,7 @@ export function UserProfile() {
                               type="tel"
                               value={profile?.phone || ''}
                               disabled={!isEditing}
-                              className={`pl-10 rounded-xl transition-all font-medium ${isEditing ? "bg-white dark:bg-black/40 border-gray-200 dark:border-gray-700 focus-visible:ring-2 focus-visible:ring-amber-500/50 focus-visible:border-amber-500" : "bg-transparent border-transparent px-0 font-semibold text-gray-900 dark:text-gray-100"}`}
+                              className={`pl-10 rounded-xl transition-all font-medium ${isEditing ? "bg-white dark:bg-black/40 border-gray-200 dark:border-gray-700 focus-visible:ring-2 focus-visible:ring-amber-500/50 focus-visible:border-amber-500" : "bg-transparent border-transparent font-semibold text-gray-900 dark:text-gray-100 shadow-none"}`}
                               onChange={(e) =>
                                 setProfile((prev) => ({
                                   ...prev,
@@ -667,7 +678,7 @@ export function UserProfile() {
               </div>
 
               {/* Cột 2: Cài đặt tài khoản (Bên phải) */}
-              <div className="lg:col-span-4 flex flex-col gap-6 sm:mt-[100px] lg:mt-[120px] animate-in slide-in-from-right-8 duration-700 delay-200">
+              <div className="lg:col-span-4 flex flex-col gap-6">
                 <Card className="rounded-[24px] border-white/50 dark:border-gray-800/80 bg-white/70 dark:bg-gray-900/70 backdrop-blur-xl shadow-lg border">
                   <CardHeader>
                     <CardTitle className="text-xl">Cài đặt tài khoản</CardTitle>
@@ -699,7 +710,7 @@ export function UserProfile() {
 
                 {/* Widget Information */}
                 <div className="p-5 rounded-[24px] border border-amber-200/50 bg-amber-50/50 dark:bg-amber-900/10 dark:border-amber-900/30 text-center">
-                  <p className="text-sm font-medium text-amber-800 dark:text-amber-400 mb-2">Thành viên Coffee Shop</p>
+                  <p className="text-sm font-medium text-amber-800 dark:text-amber-400 mb-2">Thành viên {storeName}</p>
                   <p className="text-xs text-amber-600/80 dark:text-amber-500/70">
                     Bạn luôn có thể quản lý các thông tin cá nhân và cài đặt ứng dụng ngay tại trang này.
                   </p>
