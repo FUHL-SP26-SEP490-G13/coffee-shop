@@ -38,21 +38,18 @@ class AdminDBRepository {
     return Number(row.total || 0);
   }
 
-  // Biểu đồ doanh thu theo ngày (last N days)
-  async getRevenueSeries({ days = 7 }) {
-    const safeDays = Math.max(1, Math.min(Number(days) || 7, 90));
-
-    // lấy từ (days-1) ngày trước đến hôm nay
+  // Biểu đồ doanh thu theo ngày
+  async getRevenueSeries({ startDate, endDate }) {
     const [rows] = await pool.query(
       `
       SELECT DATE_FORMAT(created_at, '%Y-%m-%d') as date, IFNULL(SUM(total_amount),0) as revenue
       FROM orders
       WHERE is_paid = 1
-        AND created_at >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
+        AND created_at BETWEEN ? AND ?
       GROUP BY DATE_FORMAT(created_at, '%Y-%m-%d')
       ORDER BY date ASC
       `,
-      [safeDays - 1]
+      [startDate, endDate]
     );
 
     return rows.map((r) => ({
@@ -61,9 +58,8 @@ class AdminDBRepository {
     }));
   }
 
-  // Top sản phẩm bán chạy (last N days)
-  async getTopProducts({ days = 7, limit = 5 }) {
-    const safeDays = Math.max(1, Math.min(Number(days) || 7, 90));
+  // Top sản phẩm bán chạy
+  async getTopProducts({ startDate, endDate, limit = 5 }) {
     const safeLimit = Math.max(1, Math.min(Number(limit) || 5, 20));
 
     const [rows] = await pool.query(
@@ -78,12 +74,12 @@ class AdminDBRepository {
       JOIN product_sizes ps ON ps.id = od.product_size_id
       JOIN products p ON p.id = ps.product_id
       WHERE o.is_paid = 1
-        AND o.created_at >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
+        AND o.created_at BETWEEN ? AND ?
       GROUP BY p.id, p.name
       ORDER BY quantity_sold DESC
       LIMIT ?
       `,
-      [safeDays - 1, safeLimit]
+      [startDate, endDate, safeLimit]
     );
 
     return rows.map((r) => ({
@@ -96,19 +92,17 @@ class AdminDBRepository {
 
 
 
-  // Optional: doanh thu theo loại đơn hàng (tại quán, mang về, giao hàng)
-  async getOrderTypeRevenue({ days = 7 }) {
-    const safeDays = Math.max(1, Math.min(Number(days) || 7, 90));
-
+  // Doanh thu theo loại đơn hàng
+  async getOrderTypeRevenue({ startDate, endDate }) {
     const [rows] = await pool.query(
       `
     SELECT order_type, IFNULL(SUM(total_amount),0) as revenue
     FROM orders
     WHERE is_paid = 1
-      AND created_at >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
+      AND created_at BETWEEN ? AND ?
     GROUP BY order_type
     `,
-      [safeDays]
+      [startDate, endDate]
     );
 
     return rows.map((r) => ({
@@ -117,10 +111,8 @@ class AdminDBRepository {
     }));
   }
 
-  // Optional: so sánh tăng trưởng doanh thu và số đơn hàng so với kỳ trước (trước đó N ngày)
-  async getComparison({ days = 7 }) {
-    const safeDays = Math.max(1, Math.min(Number(days) || 7, 90));
-
+  // So sánh tăng trưởng so với kỳ trước đó có cùng độ dài
+  async getComparison({ startDate, endDate, prevStartDate, prevEndDate }) {
     const [[current]] = await pool.query(
       `
     SELECT 
@@ -128,9 +120,9 @@ class AdminDBRepository {
       COUNT(*) as orders
     FROM orders
     WHERE is_paid = 1
-      AND created_at >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
+      AND created_at BETWEEN ? AND ?
     `,
-      [safeDays]
+      [startDate, endDate]
     );
 
     const [[previous]] = await pool.query(
@@ -140,10 +132,9 @@ class AdminDBRepository {
       COUNT(*) as orders
     FROM orders
     WHERE is_paid = 1
-      AND created_at < DATE_SUB(CURDATE(), INTERVAL ? DAY)
-      AND created_at >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
+      AND created_at BETWEEN ? AND ?
     `,
-      [safeDays, safeDays * 2]
+      [prevStartDate, prevEndDate]
     );
 
     const calcGrowth = (cur, prev) => {

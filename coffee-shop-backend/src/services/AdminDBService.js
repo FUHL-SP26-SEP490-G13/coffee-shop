@@ -7,41 +7,35 @@ class AdminDBService {
     const totalUsers = await AdminDBRepository.getTotalUsers();
     const activeDiscounts = await AdminDBRepository.getActiveDiscounts();
 
-    // Bạn có thể thêm vài số “hữu dụng” cho dashboard
-    const revenueSeries7Days = await AdminDBRepository.getRevenueSeries({
-      days: 7,
-    });
-    const topProducts7Days = await AdminDBRepository.getTopProducts({
-      days: 7,
-      limit: 5,
-    });
-
     return {
       revenueToday,
       ordersToday,
       totalUsers,
       activeDiscounts,
-      revenueSeries7Days, // để FE vẽ chart khỏi gọi thêm endpoint cũng được
-      topProducts7Days, // để FE render top 5
     };
   }
 
-  async getRevenueSeries({ days }) {
-    return AdminDBRepository.getRevenueSeries({ days });
+  async getRevenueSeries({ startDate, endDate }) {
+    return AdminDBRepository.getRevenueSeries({ startDate, endDate });
   }
-
-  async getTopProducts({ days, limit }) {
-    return AdminDBRepository.getTopProducts({ days, limit });
+ 
+  async getTopProducts({ startDate, endDate, limit }) {
+    return AdminDBRepository.getTopProducts({ startDate, endDate, limit });
   }
-
+ 
   // Optional: doanh thu theo loại đơn hàng (tại quán, mang về, giao hàng)
-  async getOrderTypeRevenue({ days }) {
-    return AdminDBRepository.getOrderTypeRevenue({ days });
+  async getOrderTypeRevenue({ startDate, endDate }) {
+    return AdminDBRepository.getOrderTypeRevenue({ startDate, endDate });
   }
-
-  // Optional: so sánh doanh thu, số đơn hàng, khách hàng mới,... giữa 2 khoảng thời gian (ví dụ: tuần này vs tuần trước, tháng này vs tháng trước) để xem xu hướng tăng giảm
-  async getComparison({ days }) {
-    return AdminDBRepository.getComparison({ days });
+ 
+  // Optional: so sánh doanh thu, số đơn hàng, khách hàng mới,... giữa 2 khoảng thời gian
+  async getComparison({ startDate, endDate, prevStartDate, prevEndDate }) {
+    return AdminDBRepository.getComparison({
+      startDate,
+      endDate,
+      prevStartDate,
+      prevEndDate,
+    });
   }
 
 
