@@ -650,7 +650,7 @@ export default function ProductListPage({
                               activeSale.product_ids?.includes(item.id) && (
                                 <div className="absolute top-0 left-0 z-10 flex flex-col gap-2">
                                   <span className="bg-red-500 text-white text-[10px] uppercase font-bold px-3 py-1 rounded-full shadow-sm flex items-center gap-1">
-                                    ⚡ Flash Sale
+                                    ⚡ Flash Sale -{activeSale.discount_percent}%
                                   </span>
                                 </div>
                               )}

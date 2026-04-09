@@ -144,7 +144,7 @@ export default function QuickViewModal({ product, isOpen, onClose, activeSale, i
           <div className="relative w-full md:w-1/2 lg:w-3/5 bg-gray-50 dark:bg-gray-950 flex flex-col items-center p-4 md:p-10 justify-center shrink-0 md:shrink border-b md:border-b-0 md:border-r border-gray-100 dark:border-gray-800">
             {isFlashSale && (
               <div className="absolute top-6 left-6 z-20 bg-red-500 text-white text-xs font-bold px-3 py-1.5 rounded-none shadow-lg flex items-center gap-1.5">
-                <Zap className="w-4 h-4 fill-current" /> Flash Sale
+                <Zap className="w-4 h-4 fill-current" /> Flash Sale -{flashSaleDiscount}%
               </div>
             )}
             
