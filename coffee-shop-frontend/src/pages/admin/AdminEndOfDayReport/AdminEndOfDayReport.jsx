@@ -43,13 +43,12 @@ const AdminEndOfDayReport = () => {
       const start = format(startOfDay(dateRange.from), "yyyy-MM-dd HH:mm:ss");
       const end = format(endOfDay(dateRange.to), "yyyy-MM-dd HH:mm:ss");
       
-      const data = await adminDBService.getDetailedReport(start, end);
+      const res = await adminDBService.getDetailedReport(start, end);
       // Since the service already returns the data (array), we set it directly
-      if (Array.isArray(data)) {
-        setData(data);
-      } else if (data && data.success && Array.isArray(data.data)) {
-        // Fallback for different unwrap behavior
-        setData(data.data);
+      if (Array.isArray(res)) {
+        setData(res);
+      } else if (res && res.success && Array.isArray(res.data)) {
+        setData(res.data);
       }
     } catch (error) {
       console.error("Error fetching report data:", error);
@@ -94,10 +93,11 @@ const AdminEndOfDayReport = () => {
     qty: acc.qty + (Number(curr.totalQuantity) || 0),
     itemsPrice: acc.itemsPrice + (Number(curr.totalItemsPrice) || 0),
     discount: acc.discount + (Number(curr.discount) || 0),
+    delivery: acc.delivery + (Number(curr.deliveryFee) || 0),
     revenue: acc.revenue + (Number(curr.revenue) || 0),
     collected: acc.collected + (Number(curr.actualCollected) || 0),
     debt: acc.debt + (Number(curr.debt) || 0),
-  }), { qty: 0, itemsPrice: 0, discount: 0, revenue: 0, collected: 0, debt: 0 });
+  }), { qty: 0, itemsPrice: 0, discount: 0, delivery: 0, revenue: 0, collected: 0, debt: 0 });
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat("vi-VN", {
@@ -204,9 +204,8 @@ const AdminEndOfDayReport = () => {
                 <th className="px-4 py-3 text-right">SL</th>
                 <th className="px-4 py-3 text-right">Tổng tiền hàng</th>
                 <th className="px-4 py-3 text-right">Giảm giá</th>
+                <th className="px-4 py-3 text-right">Phí ship</th>
                 <th className="px-4 py-3 text-right">Doanh thu</th>
-                <th className="px-4 py-3 text-right whitespace-nowrap text-xs">Thu khác</th>
-                <th className="px-4 py-3 text-right whitespace-nowrap text-xs">Phí trả hàng</th>
                 <th className="px-4 py-3 text-right">Thực thu</th>
                 <th className="px-4 py-3 text-right">Ghi nợ</th>
               </tr>
@@ -232,9 +231,8 @@ const AdminEndOfDayReport = () => {
                 <td className="px-4 py-3 text-right">{totals.qty}</td>
                 <td className="px-4 py-3 text-right">{totals.itemsPrice.toLocaleString()}</td>
                 <td className="px-4 py-3 text-right">{totals.discount.toLocaleString()}</td>
+                <td className="px-4 py-3 text-right text-blue-600">{totals.delivery.toLocaleString()}</td>
                 <td className="px-4 py-3 text-right">{totals.revenue.toLocaleString()}</td>
-                <td className="px-4 py-3 text-right">0</td>
-                <td className="px-4 py-3 text-right">0</td>
                 <td className="px-4 py-3 text-right font-bold">{totals.collected.toLocaleString()}</td>
                 <td className="px-4 py-3 text-right text-red-600">{totals.debt.toLocaleString()}</td>
               </tr>
@@ -249,9 +247,8 @@ const AdminEndOfDayReport = () => {
                   <td className="px-4 py-3 text-right">{order.totalQuantity}</td>
                   <td className="px-4 py-3 text-right">{Number(order.totalItemsPrice).toLocaleString()}</td>
                   <td className="px-4 py-3 text-right text-red-500">{Number(order.discount).toLocaleString()}</td>
+                  <td className="px-4 py-3 text-right text-blue-600">{Number(order.deliveryFee).toLocaleString()}</td>
                   <td className="px-4 py-3 text-right font-medium">{Number(order.revenue).toLocaleString()}</td>
-                  <td className="px-4 py-3 text-right text-slate-400">0</td>
-                  <td className="px-4 py-3 text-right text-slate-400">0</td>
                   <td className="px-4 py-3 text-right text-green-700">{Number(order.actualCollected).toLocaleString()}</td>
                   <td className="px-4 py-3 text-right text-red-600">{Number(order.debt).toLocaleString()}</td>
                 </tr>
@@ -259,7 +256,7 @@ const AdminEndOfDayReport = () => {
 
               {data.length === 0 && (
                 <tr>
-                  <td colSpan={13} className="px-4 py-8 text-center text-slate-500 italic">
+                  <td colSpan={12} className="px-4 py-8 text-center text-slate-500 italic">
                     Không tìm thấy dữ liệu trong khoảng thời gian này
                   </td>
                 </tr>
@@ -272,9 +269,8 @@ const AdminEndOfDayReport = () => {
                   <td className="px-4 py-4 text-right border-r">{totals.qty}</td>
                   <td className="px-4 py-4 text-right border-r">{totals.itemsPrice.toLocaleString()}</td>
                   <td className="px-4 py-4 text-right border-r text-red-500">{totals.discount.toLocaleString()}</td>
+                  <td className="px-4 py-4 text-right border-r text-blue-600">{totals.delivery.toLocaleString()}</td>
                   <td className="px-4 py-4 text-right border-r">{totals.revenue.toLocaleString()}</td>
-                  <td className="px-4 py-4 text-right border-r">0</td>
-                  <td className="px-4 py-4 text-right border-r">0</td>
                   <td className="px-4 py-4 text-right border-r text-green-700">{totals.collected.toLocaleString()}</td>
                   <td className="px-4 py-4 text-right text-red-600">{totals.debt.toLocaleString()}</td>
                 </tr>

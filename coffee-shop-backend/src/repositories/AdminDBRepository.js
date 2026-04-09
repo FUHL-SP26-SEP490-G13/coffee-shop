@@ -205,8 +205,9 @@ class AdminDBRepository {
         o.created_at as time,
         COALESCE(op.payment_method, 'N/A') as paymentMethod,
         (SELECT COALESCE(SUM(quantity), 0) FROM order_details WHERE order_id = o.id) as totalQuantity,
-        o.total_amount + COALESCE(o.used_points, 0) as totalItemsPrice,
+        o.total_amount + COALESCE(o.used_points, 0) - COALESCE(o.delivery_fee, 0) as totalItemsPrice,
         COALESCE(o.used_points, 0) as discount,
+        COALESCE(o.delivery_fee, 0) as deliveryFee,
         o.total_amount as revenue,
         CASE WHEN o.is_paid = 1 THEN o.total_amount ELSE 0 END as actualCollected,
         CASE WHEN o.is_paid = 0 THEN o.total_amount ELSE 0 END as debt
