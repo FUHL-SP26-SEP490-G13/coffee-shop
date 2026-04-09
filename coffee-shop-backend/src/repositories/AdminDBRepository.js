@@ -216,7 +216,8 @@ class AdminDBRepository {
       LEFT JOIN users u ON o.created_by = u.id
       LEFT JOIN order_delivery_info odi ON o.id = odi.order_id
       WHERE o.created_at >= ? AND o.created_at <= ?
-      AND o.status IN ('completed', 'served', 'pending')
+      AND o.is_paid = 1
+      AND o.status != 'cancelled'
       ORDER BY o.created_at DESC`,
       [startDate, endDate]
     );

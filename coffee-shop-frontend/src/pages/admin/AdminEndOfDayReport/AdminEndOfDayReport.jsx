@@ -44,7 +44,6 @@ const AdminEndOfDayReport = () => {
       const end = format(endOfDay(dateRange.to), "yyyy-MM-dd HH:mm:ss");
       
       const res = await adminDBService.getDetailedReport(start, end);
-      // Since the service already returns the data (array), we set it directly
       if (Array.isArray(res)) {
         setData(res);
       } else if (res && res.success && Array.isArray(res.data)) {
@@ -95,9 +94,7 @@ const AdminEndOfDayReport = () => {
     discount: acc.discount + (Number(curr.discount) || 0),
     delivery: acc.delivery + (Number(curr.deliveryFee) || 0),
     revenue: acc.revenue + (Number(curr.revenue) || 0),
-    collected: acc.collected + (Number(curr.actualCollected) || 0),
-    debt: acc.debt + (Number(curr.debt) || 0),
-  }), { qty: 0, itemsPrice: 0, discount: 0, delivery: 0, revenue: 0, collected: 0, debt: 0 });
+  }), { qty: 0, itemsPrice: 0, discount: 0, delivery: 0, revenue: 0 });
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat("vi-VN", {
@@ -124,7 +121,7 @@ const AdminEndOfDayReport = () => {
       <div className="flex items-center justify-between print:hidden">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Báo cáo tổng kết</h1>
-          <p className="text-muted-foreground">Chi tiết giao dịch và doanh thu theo thời gian</p>
+          <p className="text-muted-foreground">Chỉ bao gồm các đơn hàng đã thanh toán</p>
         </div>
         <div className="flex items-center gap-3">
           <Button variant="outline" onClick={handlePrint}>
@@ -184,7 +181,7 @@ const AdminEndOfDayReport = () => {
 
       {/* Print Header */}
       <div className="hidden print:block text-center mb-8 border-b pb-4">
-        <h1 className="text-2xl font-bold uppercase">Báo cáo tổng kết doanh thu</h1>
+        <h1 className="text-2xl font-bold uppercase">Báo cáo tổng kết doanh thu (Đã thanh toán)</h1>
         <p className="mt-2 text-sm">
           Từ ngày: {format(dateRange.from, "dd/MM/yyyy")} - Đến ngày: {format(dateRange.to, "dd/MM/yyyy")}
         </p>
@@ -205,13 +202,11 @@ const AdminEndOfDayReport = () => {
                 <th className="px-4 py-3 text-right">Tổng tiền hàng</th>
                 <th className="px-4 py-3 text-right">Giảm giá</th>
                 <th className="px-4 py-3 text-right">Phí ship</th>
-                <th className="px-4 py-3 text-right">Doanh thu</th>
-                <th className="px-4 py-3 text-right">Thực thu</th>
-                <th className="px-4 py-3 text-right">Ghi nợ</th>
+                <th className="px-4 py-3 text-right">Doanh thu (Thực thu)</th>
               </tr>
             </thead>
             <tbody>
-              {/* Grouping row (Mocking the "Hóa đơn: 7" row from screenshot) */}
+              {/* Grouping row */}
               <tr className="bg-[#fefce8] font-medium border-b cursor-pointer hover:bg-[#fff9c4] transition-colors"
                   onClick={() => {
                     const next = new Set(expandedRows);
@@ -230,11 +225,9 @@ const AdminEndOfDayReport = () => {
                 <td colSpan={4}></td>
                 <td className="px-4 py-3 text-right">{totals.qty}</td>
                 <td className="px-4 py-3 text-right">{totals.itemsPrice.toLocaleString()}</td>
-                <td className="px-4 py-3 text-right">{totals.discount.toLocaleString()}</td>
-                <td className="px-4 py-3 text-right text-blue-600">{totals.delivery.toLocaleString()}</td>
-                <td className="px-4 py-3 text-right">{totals.revenue.toLocaleString()}</td>
-                <td className="px-4 py-3 text-right font-bold">{totals.collected.toLocaleString()}</td>
-                <td className="px-4 py-3 text-right text-red-600">{totals.debt.toLocaleString()}</td>
+                <td className="px-4 py-3 text-right font-medium text-red-500">-{totals.discount.toLocaleString()}</td>
+                <td className="px-4 py-3 text-right font-medium text-blue-600">+{totals.delivery.toLocaleString()}</td>
+                <td className="px-4 py-3 text-right font-bold text-green-700">{totals.revenue.toLocaleString()}</td>
               </tr>
 
               {expandedRows.has(0) && data.map((order) => (
@@ -246,18 +239,16 @@ const AdminEndOfDayReport = () => {
                   <td className="px-4 py-3 capitalize">{order.paymentMethod}</td>
                   <td className="px-4 py-3 text-right">{order.totalQuantity}</td>
                   <td className="px-4 py-3 text-right">{Number(order.totalItemsPrice).toLocaleString()}</td>
-                  <td className="px-4 py-3 text-right text-red-500">{Number(order.discount).toLocaleString()}</td>
-                  <td className="px-4 py-3 text-right text-blue-600">{Number(order.deliveryFee).toLocaleString()}</td>
-                  <td className="px-4 py-3 text-right font-medium">{Number(order.revenue).toLocaleString()}</td>
-                  <td className="px-4 py-3 text-right text-green-700">{Number(order.actualCollected).toLocaleString()}</td>
-                  <td className="px-4 py-3 text-right text-red-600">{Number(order.debt).toLocaleString()}</td>
+                  <td className="px-4 py-3 text-right text-red-500">-{Number(order.discount).toLocaleString()}</td>
+                  <td className="px-4 py-3 text-right text-blue-600">+{Number(order.deliveryFee).toLocaleString()}</td>
+                  <td className="px-4 py-3 text-right font-bold text-green-700">{Number(order.revenue).toLocaleString()}</td>
                 </tr>
               ))}
 
               {data.length === 0 && (
                 <tr>
-                  <td colSpan={12} className="px-4 py-8 text-center text-slate-500 italic">
-                    Không tìm thấy dữ liệu trong khoảng thời gian này
+                  <td colSpan={10} className="px-4 py-8 text-center text-slate-500 italic">
+                    Không tìm thấy dữ liệu đã thanh toán trong khoảng thời gian này
                   </td>
                 </tr>
               )}
@@ -268,11 +259,9 @@ const AdminEndOfDayReport = () => {
                   <td colSpan={5} className="px-4 py-4 text-center text-slate-900 border-r">TỔNG CỘNG</td>
                   <td className="px-4 py-4 text-right border-r">{totals.qty}</td>
                   <td className="px-4 py-4 text-right border-r">{totals.itemsPrice.toLocaleString()}</td>
-                  <td className="px-4 py-4 text-right border-r text-red-500">{totals.discount.toLocaleString()}</td>
-                  <td className="px-4 py-4 text-right border-r text-blue-600">{totals.delivery.toLocaleString()}</td>
-                  <td className="px-4 py-4 text-right border-r">{totals.revenue.toLocaleString()}</td>
-                  <td className="px-4 py-4 text-right border-r text-green-700">{totals.collected.toLocaleString()}</td>
-                  <td className="px-4 py-4 text-right text-red-600">{totals.debt.toLocaleString()}</td>
+                  <td className="px-4 py-4 text-right border-r text-red-500">-{totals.discount.toLocaleString()}</td>
+                  <td className="px-4 py-4 text-right border-r text-blue-600">+{totals.delivery.toLocaleString()}</td>
+                  <td className="px-4 py-4 text-right text-green-700 text-lg">{totals.revenue.toLocaleString()}</td>
                 </tr>
               </tfoot>
             )}
