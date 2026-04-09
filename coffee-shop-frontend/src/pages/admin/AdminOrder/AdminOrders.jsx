@@ -10,9 +10,7 @@ import {
 import {
   ShoppingBag,
   Loader2,
-  CalendarClock,
   Eye,
-  Package,
   CreditCard,
   User,
   MapPin,
@@ -267,163 +265,122 @@ export default function AdminOrders() {
             <span className="text-sm font-medium">Chưa có đơn hàng nào</span>
           </div>
         ) : (
-          orders.map((order) => {
-            const statusInfo = getStatusInfo(order.status);
-            const typeInfo = getOrderTypeInfo(order.order_type);
-            const itemCount = Array.isArray(order.items) ? order.items.length : 0;
-            const subtotal = calculateSubtotal(order);
-            const shippingFee = getShippingFee(order, subtotal);
+          <div className="rounded-2xl border bg-white shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-sm">
+                <thead className="bg-gray-50 border-b border-gray-100">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">
+                      Mã đơn
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">
+                      Thời gian
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">
+                      Trạng thái
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">
+                      Loại
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">
+                      Món
+                    </th>
+                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-600">
+                      Tổng tiền
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">
+                      Khách
+                    </th>
+                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-600">
+                      Xem chi tiết
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {orders.map((order) => {
+                    const statusInfo = getStatusInfo(order.status);
+                    const typeInfo = getOrderTypeInfo(order.order_type);
+                    const items = Array.isArray(order.items) ? order.items : [];
+                    const itemCount = items.length;
+                    const itemPreview = items
+                      .slice(0, 2)
+                      .map((item) => item.product?.name || "Sản phẩm")
+                      .join(", ");
+                    const customerName =
+                      order.receiver_name ||
+                      order.user?.full_name ||
+                      order.user?.name ||
+                      "Khách lẻ";
 
-            return (
-              <div
-                key={order.id}
-                className="rounded-2xl border bg-white shadow-sm hover:shadow-md transition-all"
-              >
-                <div className="p-4 sm:p-5 border-b border-gray-100">
-                  <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
-                    <div className="space-y-2 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-mono font-semibold text-gray-700 bg-gray-100 px-2.5 py-1 rounded-md text-xs">
-                          #{String(order.id).padStart(5, "0")}
-                        </span>
-                        <Badge variant="outline" className={`font-medium ${typeInfo.color}`}>
-                          {typeInfo.label}
-                        </Badge>
-                        <Badge
-                          variant="outline"
-                          className={`font-medium inline-flex items-center ${statusInfo.color}`}
-                        >
-                          <span className="w-1.5 h-1.5 rounded-full bg-current mr-1.5 shrink-0 opacity-75" />
-                          {statusInfo.label}
-                        </Badge>
-                      </div>
-
-                      <div className="flex items-center text-sm text-gray-600">
-                        <CalendarClock className="w-4 h-4 mr-1.5 text-gray-400 shrink-0" />
-                        {new Date(order.created_at).toLocaleString("vi-VN", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                          day: "2-digit",
-                          month: "2-digit",
-                          year: "numeric",
-                        })}
-                      </div>
-                    </div>
-
-                    <div className="text-left md:text-right">
-                      <p className="text-xs text-gray-500">Tổng thanh toán</p>
-                      <p className="text-xl font-bold text-primary leading-tight">
-                        {Number(order.total_amount).toLocaleString("vi-VN")}đ
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="p-4 sm:p-5 grid grid-cols-1 lg:grid-cols-12 gap-4">
-                  <div className="lg:col-span-7 rounded-xl border border-gray-100 bg-gray-50/50 p-3.5">
-                    <div className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-3">
-                      <Package className="w-4 h-4 text-gray-500" />
-                      Sản phẩm ({itemCount})
-                    </div>
-
-                    {itemCount > 0 ? (
-                      <div className="space-y-2.5">
-                        {order.items.slice(0, 3).map((item, i) => {
-                          const itemToppings = Array.isArray(item.toppings)
-                            ? item.toppings
-                            : Array.isArray(item.toppings_raw)
-                              ? item.toppings_raw.filter((t) => t)
-                              : [];
-
-                          return (
-                            <div key={i} className="text-sm space-y-1">
-                              <div className="flex items-center justify-between gap-3">
-                                <p className="font-medium text-gray-800 truncate">
-                                  {item.quantity}x {item.product?.name || "Sản phẩm"}
-                                </p>
-                                <p className="text-gray-700 font-semibold shrink-0">
-                                  {Number(
-                                    Number(item.price || 0) * Number(item.quantity || 0),
-                                  ).toLocaleString("vi-VN")}
-                                  đ
-                                </p>
-                              </div>
-                              {itemToppings.length > 0 && (
-                                <p className="text-xs text-gray-500 pl-1 truncate">
-                                  + {itemToppings.map((t) => t.name).join(", ")}
-                                </p>
-                              )}
-                            </div>
-                          );
-                        })}
-
-                        {itemCount > 3 && (
-                          <p className="text-xs text-muted-foreground font-medium">
-                            + {itemCount - 3} sản phẩm khác
-                          </p>
-                        )}
-                      </div>
-                    ) : (
-                      <span className="text-sm text-gray-400 italic">
-                        Không có sản phẩm
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="lg:col-span-5 space-y-3">
-                    <div className="rounded-xl border border-gray-100 p-3.5">
-                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
-                        Khách hàng
-                      </p>
-                      <p className="text-sm font-medium text-gray-800">
-                        {order.receiver_name || "Khách lẻ"}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {order.receiver_phone || "Không có số điện thoại"}
-                      </p>
-                    </div>
-
-                    <div className="rounded-xl border border-gray-100 p-3.5">
-                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
-                        Thanh toán
-                      </p>
-                      <div className="flex items-center justify-between text-sm text-gray-600">
-                        <span>Tạm tính</span>
-                        <span>
-                          {Number(subtotal).toLocaleString("vi-VN")}đ
-                        </span>
-                      </div>
-                      {shippingFee > 0 && (
-                        <div className="flex items-center justify-between text-sm text-gray-600 mt-1.5">
-                          <span>Phí vận chuyển</span>
-                          <span className="text-cyan-700">
-                            +{Number(shippingFee).toLocaleString("vi-VN")}đ
+                    return (
+                      <tr key={order.id} className="hover:bg-gray-50/80 transition-colors">
+                        <td className="px-4 py-3 align-top">
+                          <span className="font-mono font-semibold text-gray-700 bg-gray-100 px-2.5 py-1 rounded-md text-xs">
+                            #{String(order.id).padStart(5, "0")}
                           </span>
-                        </div>
-                      )}
-                      <div className="flex items-center justify-between text-sm font-semibold text-gray-900 mt-1.5">
-                        <span>Thực thu</span>
-                        <span className="text-primary">
-                          {Number(order.total_amount).toLocaleString("vi-VN")}đ
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="px-4 sm:px-5 pb-4 sm:pb-5 flex items-center justify-end">
-                  <Button
-                    variant="outline"
-                    className="h-9"
-                    onClick={() => setSelectedOrder(order)}
-                  >
-                    <Eye className="w-4 h-4 mr-1.5" />
-                    Xem chi tiết
-                  </Button>
-                </div>
-              </div>
-            );
-          })
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-700 align-top whitespace-nowrap">
+                          {new Date(order.created_at).toLocaleString("vi-VN", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                            day: "2-digit",
+                            month: "2-digit",
+                            year: "numeric",
+                          })}
+                        </td>
+                        <td className="px-4 py-3 align-top">
+                          <Badge
+                            variant="outline"
+                            className={`font-medium inline-flex items-center ${statusInfo.color}`}
+                          >
+                            <span className="w-1.5 h-1.5 rounded-full bg-current mr-1.5 shrink-0 opacity-75" />
+                            {statusInfo.label}
+                          </Badge>
+                        </td>
+                        <td className="px-4 py-3 align-top">
+                          <Badge variant="outline" className={`font-medium ${typeInfo.color}`}>
+                            {typeInfo.label}
+                          </Badge>
+                        </td>
+                        <td className="px-4 py-3 align-top max-w-[260px]">
+                          <p className="font-medium text-gray-800 leading-5">
+                            {itemCount} món
+                          </p>
+                          <p className="text-xs text-gray-500 mt-1 truncate" title={itemPreview || "Không có sản phẩm"}>
+                            {itemPreview || "Không có sản phẩm"}
+                            {itemCount > 2 ? ` +${itemCount - 2}` : ""}
+                          </p>
+                        </td>
+                        <td className="px-4 py-3 text-right align-top">
+                          <p className="text-sm font-semibold text-primary whitespace-nowrap">
+                            {Number(order.total_amount || 0).toLocaleString("vi-VN")}đ
+                          </p>
+                        </td>
+                        <td className="px-4 py-3 align-top min-w-[160px]">
+                          <p className="text-sm font-medium text-gray-800 leading-5">
+                            {customerName}
+                          </p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {order.receiver_phone || "Không có số điện thoại"}
+                          </p>
+                        </td>
+                        <td className="px-4 py-3 align-top text-right">
+                          <Button
+                            variant="outline"
+                            className="h-9"
+                            onClick={() => setSelectedOrder(order)}
+                          >
+                            <Eye className="w-4 h-4 mr-1.5" />
+                            Xem chi tiết
+                          </Button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
         )}
       </div>
 
