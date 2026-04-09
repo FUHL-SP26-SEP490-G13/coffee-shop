@@ -10,8 +10,8 @@ import {
 } from "lucide-react";
 import useFetch from "@/hooks/useFetch";
 import newsService from "@/services/newsService";
-import Header from "../../../components/layout/Header";
-import Footer from "../../../components/layout/Footer";
+
+
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
@@ -45,27 +45,12 @@ export default function NewsDetailPage() {
     //}
   };
 
-  if (loading) {
-    return (
-      <>
-        <Header />
-        <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
-          <div className="flex items-center justify-center min-h-[70vh]">
-            <div className="text-center space-y-4">
-              <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto" />
-              <p className="text-muted-foreground">Đang tải nội dung...</p>
-            </div>
-          </div>
-        </div>
-        <Footer />
-      </>
-    );
-  }
+  // removed full-page loading
 
   if (!news) {
     return (
       <>
-        <Header />
+        
         <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
           <div className="flex flex-col items-center justify-center min-h-[70vh] px-4 text-center">
             <div className="space-y-4">
@@ -87,14 +72,14 @@ export default function NewsDetailPage() {
             </div>
           </div>
         </div>
-        <Footer />
+        
       </>
     );
   }
 
   return (
     <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900">
-      <Header />
+      
 
       <main className="flex-1 w-full mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 pt-2 md:pt-4 pb-10 md:pb-16 mb-5">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 min-h-[50px]">
@@ -110,6 +95,11 @@ export default function NewsDetailPage() {
         <div className="flex flex-col lg:flex-row gap-10">
             {/* Main Content */}
             <div className="flex-1 min-w-0">
+              {loading ? (
+                <div className="flex items-center justify-center min-h-[50vh]">
+                  <Loader2 className="h-10 w-10 animate-spin text-amber-600 mx-auto" />
+                </div>
+              ) : (
               <article className="space-y-8">
                 {/* Article Header */}
                 <div className="space-y-6">
@@ -195,6 +185,7 @@ export default function NewsDetailPage() {
                   </div>
                 </Card>
               </article>
+              )}
             </div>
 
             {/* Sidebar: Related News */}
@@ -210,7 +201,6 @@ export default function NewsDetailPage() {
                         key={item.id}
                         to={`/news/${item.slug}`}
                         className="flex gap-4 group"
-                        onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
                       >
                         <div className="w-24 h-16 flex-shrink-0 bg-gray-100 dark:bg-gray-800 overflow-hidden">
                           {item.thumbnail && (
@@ -236,7 +226,7 @@ export default function NewsDetailPage() {
           </div>
       </main>
 
-      <Footer />
+      
     </div>
   );
 }

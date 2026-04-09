@@ -139,15 +139,15 @@ export function BaristaAttendance() {
                         record.status === "present"
                           ? "secondary"
                           : record.status === "late"
-                          ? "outline"
-                          : "destructive"
+                            ? "outline"
+                            : "destructive"
                       }
                       className={
                         record.status === "present"
                           ? "bg-green-500/10 text-green-700 border-transparent"
                           : record.status === "late"
-                          ? "bg-yellow-500/10 text-yellow-700 border-transparent"
-                          : ""
+                            ? "bg-yellow-500/10 text-yellow-700 border-transparent"
+                            : ""
                       }
                     >
                       {record.status}

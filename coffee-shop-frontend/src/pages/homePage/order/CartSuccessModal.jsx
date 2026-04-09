@@ -9,11 +9,11 @@ export default function CartSuccessModal({ addedCartItem, onClose }) {
   if (!addedCartItem) return null;
 
   return createPortal(
-    <div 
+    <div
       className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200"
       onClick={onClose}
     >
-      <div 
+      <div
         className="bg-white dark:bg-gray-900 rounded-2xl w-[400px] max-w-full overflow-hidden shadow-2xl flex flex-col pointer-events-auto transform animate-in zoom-in-95 duration-300"
         onClick={(e) => e.stopPropagation()}
       >
@@ -23,8 +23,8 @@ export default function CartSuccessModal({ addedCartItem, onClose }) {
             <CheckCircle2 className="w-5 h-5 fill-emerald-600 text-white dark:text-gray-900" />
             <span className="font-semibold text-[15px]">Thêm vào giỏ hàng thành công</span>
           </div>
-          <button 
-            onClick={onClose} 
+          <button
+            onClick={onClose}
             className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors p-1 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800"
           >
             <X className="w-5 h-5" />
@@ -39,12 +39,12 @@ export default function CartSuccessModal({ addedCartItem, onClose }) {
             <span className="text-gray-600 dark:text-gray-300 text-[13px] font-medium">Size: {addedCartItem.size}</span>
             {addedCartItem.toppings?.length > 0 && (
               <div className="mt-1 text-gray-500 dark:text-gray-400 text-[13px] max-h-[100px] overflow-y-auto custom-scrollbar pr-2">
-                 <span className="block mb-0.5 font-medium text-gray-600 dark:text-gray-300">Tùy chọn thêm:</span>
-                 <ul className="list-disc pl-4 space-y-0.5">
-                   {addedCartItem.toppings.map((t, idx) => (
-                     <li key={idx} className="truncate">{t.name}</li>
-                   ))}
-                 </ul>
+                <span className="block mb-0.5 font-medium text-gray-600 dark:text-gray-300">Tùy chọn thêm:</span>
+                <ul className="list-disc pl-4 space-y-0.5">
+                  {addedCartItem.toppings.map((t, idx) => (
+                    <li key={idx} className="truncate">{t.name}</li>
+                  ))}
+                </ul>
               </div>
             )}
           </div>
@@ -65,15 +65,15 @@ export default function CartSuccessModal({ addedCartItem, onClose }) {
 
         {/* Footer Buttons */}
         <div className="p-5 pt-0 flex gap-3">
-          <button 
-            className="flex-1 py-3 rounded-xl border-2 border-amber-600 text-amber-600 font-bold text-[14px] hover:bg-amber-50 dark:hover:bg-amber-900/20 active:scale-95 transition-all" 
-            onClick={() => {onClose(); navigate("/checkout");}}
+          <button
+            className="flex-1 py-3 rounded-xl border-2 border-amber-600 text-amber-600 font-bold text-[14px] hover:bg-amber-50 dark:hover:bg-amber-900/20 active:scale-95 transition-all"
+            onClick={() => { onClose(); navigate("/checkout"); }}
           >
             Thanh toán
           </button>
-          <button 
-            className="flex-1 py-3 rounded-xl bg-amber-600 text-white font-bold text-[14px] hover:bg-amber-700 active:scale-95 transition-all shadow-md shadow-amber-600/20" 
-            onClick={() => {onClose(); navigate("/cart");}}
+          <button
+            className="flex-1 py-3 rounded-xl bg-amber-600 text-white font-bold text-[14px] hover:bg-amber-700 active:scale-95 transition-all shadow-md shadow-amber-600/20"
+            onClick={() => { onClose(); navigate("/cart"); }}
           >
             Xem giỏ hàng
           </button>

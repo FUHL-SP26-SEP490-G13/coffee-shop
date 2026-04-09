@@ -103,7 +103,16 @@ class RecipeService {
       ingredientId
     );
     if (exists) {
-      throw new ErrorResponse(400, 'Công thức cho nguyên liệu này đã tồn tại');
+      const existingQuantity = Number(exists.quantity || 0);
+      const incomingQuantity = Number(quantity || 0);
+
+      // Keep idempotent behavior: same quantity should not be accumulated.
+      if (existingQuantity === incomingQuantity) {
+        return RecipeRepository.getRecipeById(exists.id);
+      }
+
+      const mergedQuantity = existingQuantity + incomingQuantity;
+      return RecipeRepository.updateRecipe(exists.id, ingredientId, mergedQuantity);
     }
 
     const recipe = await RecipeRepository.createRecipe(

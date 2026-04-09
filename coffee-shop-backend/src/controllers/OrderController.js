@@ -76,12 +76,24 @@ class OrderController {
 
   async getAllOrders(req, res, next) {
     try {
-      const { page = 1, limit = 20, status = "all" } = req.query;
+      const {
+        page = 1,
+        limit = 20,
+        status = "all",
+        order_type = "all",
+        order_code = "",
+        start_date = "",
+        end_date = "",
+      } = req.query;
 
       const result = await OrderService.getAllOrders({ 
         page: parseInt(page), 
         limit: parseInt(limit), 
-        status 
+        status,
+        order_type,
+        order_code,
+        start_date,
+        end_date,
       });
 
       return res.json({

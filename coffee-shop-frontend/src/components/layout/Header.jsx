@@ -50,6 +50,7 @@ import loyaltyService from "@/services/loyaltyService";
 import flashSaleService from "@/services/flashSaleService";
 import LoyaltyHistoryModal from "@/components/loyalty/LoyaltyHistoryModal";
 import receiptSettingService from "@/services/receiptSettingService";
+import { cartService } from "@/services/cartService";
 import { useStoreHours } from "@/hooks/useStoreHours";
 
 const placeholders = [
@@ -146,10 +147,22 @@ function Header() {
   const [cartItems, setCartItems] = useState([]);
   const [showCartPreview, setShowCartPreview] = useState(false);
   const [activeSale, setActiveSale] = useState(null);
+  const [popularSearches, setPopularSearches] = useState([]);
 
   useEffect(() => {
     flashSaleService.getCurrentActive()
       .then(res => setActiveSale(res?.data || null))
+      .catch(console.error);
+
+    productService.getBestSellers({ limit: 6 })
+      .then(res => {
+        const products = Array.isArray(res?.data) ? res.data : (res?.data?.data || []);
+        if (products.length > 0) {
+          const names = products.slice(0, 6).map(p => p.name);
+          // ensure no duplicates
+          setPopularSearches([...new Set(names)]);
+        }
+      })
       .catch(console.error);
   }, []);
 
@@ -223,16 +236,9 @@ function Header() {
 
   const loadCartItems = useCallback(() => {
     try {
-      const cart = JSON.parse(localStorage.getItem(CART_KEY) || "[]");
-      const list = Array.isArray(cart) ? cart : [];
-
+      const list = cartService.getCart();
       setCartItems(list);
-
-      const total = list.reduce(
-        (sum, item) => sum + (Number(item.quantity) || 1),
-        0
-      );
-
+      const total = list.reduce((sum, item) => sum + (Number(item.quantity) || 1), 0);
       setCartCount(total);
     } catch {
       setCartItems([]);
@@ -265,11 +271,10 @@ function Header() {
 
   const handleRemoveFromCart = (indexToRemove) => {
     try {
-      const cart = JSON.parse(localStorage.getItem(CART_KEY) || "[]");
-      if (!Array.isArray(cart)) return;
-      const newCart = cart.filter((_, idx) => idx !== indexToRemove);
-      localStorage.setItem(CART_KEY, JSON.stringify(newCart));
-      window.dispatchEvent(new Event("cartUpdated"));
+      const cart = cartService.getCart();
+      const item = cart[indexToRemove];
+      if (!item) return;
+      cartService.removeItem(item.cartKey);
       toast.success("Đã xóa sản phẩm khỏi giỏ hàng");
     } catch (e) {
       console.error("Lỗi xóa sản phẩm header preview:", e);
@@ -309,6 +314,10 @@ function Header() {
   }, [fetchCategories]);
 
   useEffect(() => {
+    if (token) {
+      cartService.hydrateFromDatabase().catch(() => undefined);
+    }
+
     loadCartItems();
 
     window.addEventListener("storage", loadCartItems);
@@ -318,12 +327,12 @@ function Header() {
       setCartBump(true);
       setTimeout(() => setCartBump(false), 600);
     };
-    window.addEventListener("cartUpdated", handleCartBump);
+    window.addEventListener("cartAdded", handleCartBump);
 
     return () => {
       window.removeEventListener("storage", loadCartItems);
       window.removeEventListener("cartUpdated", loadCartItems);
-      window.removeEventListener("cartUpdated", handleCartBump);
+      window.removeEventListener("cartAdded", handleCartBump);
     };
   }, [loadCartItems]);
 
@@ -856,28 +865,50 @@ function Header() {
               {searchOpen && (
                 <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-gray-900 dark:border-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl overflow-hidden z-50">
                   {!keyword ? (
-                    recentSearches.length > 0 ? (
-                      <div className="py-2">
-                        <div className="flex justify-between items-center px-4 py-2 border-b border-gray-50 dark:border-gray-800">
-                          <span className="text-xs font-semibold text-gray-500 dark:text-gray-500 uppercase tracking-wider">Tìm kiếm gần đây</span>
-                          <button onClick={() => setRecentSearches([])} className="text-xs text-amber-600 hover:text-amber-700">Xóa</button>
+                    <div className="py-2">
+                      {recentSearches.length > 0 && (
+                        <div className="mb-2">
+                          <div className="flex justify-between items-center px-4 py-2 border-b border-gray-50 dark:border-gray-800">
+                            <span className="text-xs font-semibold text-gray-500 dark:text-gray-500 uppercase tracking-wider">Tìm kiếm gần đây</span>
+                            <button onClick={() => setRecentSearches([])} className="text-xs text-amber-600 hover:text-amber-700">Xóa</button>
+                          </div>
+                          <ul className="py-1">
+                            {recentSearches.map((kw, idx) => (
+                              <li key={idx}>
+                                <button
+                                  onClick={() => goToSearchPage(kw)}
+                                  onMouseEnter={() => setFocusedResultIndex(-1)}
+                                  className={`w-[calc(100%-16px)] mx-2 rounded-lg text-left px-4 py-2.5 text-sm flex items-center gap-2 transition ${focusedResultIndex === idx ? 'bg-amber-50 dark:bg-amber-900/20' : 'hover:bg-amber-50 hover:text-amber-700 dark:hover:bg-amber-900/20'}`}
+                                >
+                                  <Search className="w-3.5 h-3.5 text-gray-400" />
+                                  <span className="text-gray-700 dark:text-gray-300">{kw}</span>
+                                </button>
+                              </li>
+                            ))}
+                          </ul>
                         </div>
-                        <ul className="py-1">
-                          {recentSearches.map((kw, idx) => (
-                            <li key={idx}>
+                      )}
+                      <div>
+                        <div className="px-4 py-2">
+                          <span className="text-xs font-semibold text-gray-500 dark:text-gray-500 uppercase tracking-wider">Tìm kiếm phổ biến</span>
+                        </div>
+                        <div className="px-4 py-1 flex flex-wrap gap-2">
+                          {popularSearches.length > 0 ? (
+                            popularSearches.map((kw, idx) => (
                               <button
+                                key={idx}
                                 onClick={() => goToSearchPage(kw)}
-                                onMouseEnter={() => setFocusedResultIndex(-1)}
-                                className={`w-[calc(100%-16px)] mx-2 rounded-lg text-left px-4 py-2.5 text-sm flex items-center gap-2 transition ${focusedResultIndex === idx ? 'bg-amber-50 dark:bg-amber-900/20' : 'hover:bg-amber-50 dark:bg-amber-900/20'}`}
+                                className="px-3 py-1.5 bg-gray-100 hover:bg-amber-100 text-gray-700 hover:text-amber-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-amber-900/40 dark:hover:text-amber-400 rounded-full text-[13px] transition-colors"
                               >
-                                <Search className="w-3.5 h-3.5 text-gray-400" />
-                                <span className="text-gray-700 dark:text-gray-300">{kw}</span>
+                                {kw}
                               </button>
-                            </li>
-                          ))}
-                        </ul>
+                            ))
+                          ) : (
+                            <span className="text-sm text-gray-400">Chưa có dữ liệu</span>
+                          )}
+                        </div>
                       </div>
-                    ) : null
+                    </div>
                   ) : searchLoading ? (
                     <div className="flex items-center justify-center py-6 text-gray-500 dark:text-gray-500">
                       <Loader2 className="w-5 h-5 animate-spin mr-2" />
@@ -1035,8 +1066,7 @@ function Header() {
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              localStorage.setItem(CART_KEY, "[]");
-                              window.dispatchEvent(new Event("cartUpdated"));
+                              cartService.clearCart();
                               toast.success("Đã làm trống giỏ hàng");
                             }}
                             className="text-xs text-red-500 hover:text-red-700 font-medium transition-colors"
@@ -1106,11 +1136,18 @@ function Header() {
                                   <X className="w-4 h-4" />
                                 </button>
 
-                                <img
-                                  src={image}
-                                  alt={item.name}
-                                  className="w-14 h-14 rounded object-cover border"
-                                />
+                                <div className="relative shrink-0">
+                                  <img
+                                    src={image}
+                                    alt={item.name}
+                                    className="w-14 h-14 rounded object-cover border"
+                                  />
+                                  {activeSale && activeSale.product_ids?.includes(Number(item.product_id || item.id)) && (
+                                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[8px] font-bold px-1 py-0.5 rounded-sm shadow-sm overflow-hidden whitespace-nowrap z-10">
+                                      -{activeSale.discount_percent}%
+                                    </span>
+                                  )}
+                                </div>
 
                                 <div className="flex-1 min-w-0">
                                   <p className="text-sm font-medium text-gray-800 dark:text-gray-200 line-clamp-2">
@@ -1122,7 +1159,7 @@ function Header() {
                                       {item.size}
                                     </p>
                                   )}
-                                  
+
                                   {activeSale && activeSale.product_ids?.includes(Number(item.product_id || item.id)) && (
                                     <div className="mt-0.5 text-[10px] text-red-600 font-bold">
                                       🔥 Flash sale
@@ -1401,7 +1438,7 @@ function Header() {
               value={mobileKeyword}
               onChange={(e) => setMobileKeyword(e.target.value)}
               onFocus={() => {
-                if (mobileSearchResults.length > 0) setMobileResultOpen(true);
+                setMobileResultOpen(true);
               }}
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
@@ -1421,8 +1458,52 @@ function Header() {
             </button>
 
             {mobileResultOpen && (
-              <div className="mt-2 bg-white dark:bg-gray-900 dark:border-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-lg overflow-hidden">
-                {mobileSearchLoading ? (
+              <div className="mt-2 bg-white dark:bg-gray-900 dark:border-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-lg overflow-hidden z-50 relative">
+                {!mobileKeyword ? (
+                  <div className="py-2">
+                    {recentSearches.length > 0 && (
+                      <div className="mb-2">
+                        <div className="flex justify-between items-center px-4 py-2 border-b border-gray-50 dark:border-gray-800">
+                          <span className="text-xs font-semibold text-gray-500 dark:text-gray-500 uppercase tracking-wider">Tìm kiếm gần đây</span>
+                          <button onClick={() => setRecentSearches([])} className="text-xs text-amber-600 hover:text-amber-700">Xóa</button>
+                        </div>
+                        <ul className="py-1">
+                          {recentSearches.map((kw, idx) => (
+                            <li key={idx}>
+                              <button
+                                onClick={() => goToSearchPage(kw, true)}
+                                className={`w-[calc(100%-16px)] mx-2 rounded-lg text-left px-4 py-2.5 text-sm flex items-center gap-2 transition hover:bg-amber-50 hover:text-amber-700 dark:hover:bg-amber-900/20`}
+                              >
+                                <Search className="w-3.5 h-3.5 text-gray-400" />
+                                <span className="text-gray-700 dark:text-gray-300">{kw}</span>
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    <div>
+                      <div className="px-4 py-2">
+                        <span className="text-xs font-semibold text-gray-500 dark:text-gray-500 uppercase tracking-wider">Tìm kiếm phổ biến</span>
+                      </div>
+                      <div className="px-4 py-1 pb-4 flex flex-wrap gap-2">
+                        {popularSearches.length > 0 ? (
+                          popularSearches.map((kw, idx) => (
+                            <button
+                              key={idx}
+                              onClick={() => goToSearchPage(kw, true)}
+                              className="px-3 py-1.5 bg-gray-100 hover:bg-amber-100 text-gray-700 hover:text-amber-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-amber-900/40 dark:hover:text-amber-400 rounded-full text-[13px] transition-colors"
+                            >
+                              {kw}
+                            </button>
+                          ))
+                        ) : (
+                          <span className="text-sm text-gray-400">Chưa có dữ liệu</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ) : mobileSearchLoading ? (
                   <div className="flex items-center justify-center py-6 text-gray-500 dark:text-gray-500">
                     <Loader2 className="w-5 h-5 animate-spin mr-2" />
                     Đang tìm kiếm...

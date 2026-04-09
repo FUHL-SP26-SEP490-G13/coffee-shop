@@ -1,5 +1,6 @@
 import axiosClient from './axiosClient';
 import { API_ENDPOINTS } from '../constants';
+import { cartService } from './cartService';
 
 const authenticationService = {
 
@@ -39,6 +40,7 @@ const authenticationService = {
     localStorage.removeItem('refresh_token');
     sessionStorage.removeItem('access_token');
     sessionStorage.removeItem('refresh_token');
+    cartService.clearCartMemory();
     return Promise.resolve();
   },
 

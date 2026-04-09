@@ -41,7 +41,11 @@ export default function QuickViewModal({ product, isOpen, onClose, activeSale, i
 
       setLoading(true);
       toppingService.getAll()
-        .then((res) => setToppings(res?.data || []))
+        .then((res) => {
+          const list = res?.data || [];
+          const activeToppings = list.filter(t => !t.is_deleted || t.is_deleted === 0 || t.is_deleted === '0');
+          setToppings(activeToppings);
+        })
         .catch(() => {})
         .finally(() => setLoading(false));
     }
@@ -140,7 +144,7 @@ export default function QuickViewModal({ product, isOpen, onClose, activeSale, i
           <div className="relative w-full md:w-1/2 lg:w-3/5 bg-gray-50 dark:bg-gray-950 flex flex-col items-center p-4 md:p-10 justify-center shrink-0 md:shrink border-b md:border-b-0 md:border-r border-gray-100 dark:border-gray-800">
             {isFlashSale && (
               <div className="absolute top-6 left-6 z-20 bg-red-500 text-white text-xs font-bold px-3 py-1.5 rounded-none shadow-lg flex items-center gap-1.5">
-                <Zap className="w-4 h-4 fill-current" /> Flash Sale
+                <Zap className="w-4 h-4 fill-current" /> Flash Sale -{flashSaleDiscount}%
               </div>
             )}
             
@@ -301,7 +305,7 @@ export default function QuickViewModal({ product, isOpen, onClose, activeSale, i
                           Xóa tất cả
                         </button>
                       </div>
-                      <div className="flex flex-col gap-2.5">
+                      <div className="flex flex-col gap-2.5 max-h-[200px] overflow-y-auto custom-scrollbar pr-2">
                         {selectedToppings.map(t => (
                           <div key={t.topping_id} className="flex justify-between items-center text-[13px] group">
                             <span className="font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">

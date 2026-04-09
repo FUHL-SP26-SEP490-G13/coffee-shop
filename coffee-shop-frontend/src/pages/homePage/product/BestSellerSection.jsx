@@ -209,8 +209,8 @@ export default function BestSellerSection({
                         {/* Badges */}
                         <div className="absolute top-0 left-0 z-10 flex flex-col gap-2">
                           {activeSale && activeSale.product_ids?.includes(product.id) ? (
-                            <span className="bg-red-500 text-white text-[10px] uppercase font-bold px-3 py-1 rounded-full shadow-sm">
-                              Flash Sale
+                            <span className="bg-red-500 text-white text-[10px] font-bold px-3 py-1 rounded-full shadow-sm">
+                              Flash Sale -{activeSale.discount_percent}%
                             </span>
                           ) : (
                             <span className={`text-white text-[10px] font-bold px-3 py-1 rounded-full shadow-sm uppercase ${activeTab === "Bán chạy" ? "bg-[#F59E0B]" : activeTab === "Mới nhất" ? "bg-green-500" : "bg-red-500"

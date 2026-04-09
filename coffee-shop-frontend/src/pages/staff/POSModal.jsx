@@ -103,7 +103,7 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange, editingO
         const rawToppings = toppingsRes.data?.data || toppingsRes.data || [];
         setToppings(
           rawToppings
-            .filter((t) => !t.is_deleted)
+            .filter((t) => !t.is_deleted || t.is_deleted === 0 || t.is_deleted === '0')
             .map((t) => ({ id: t.id, name: t.name, price: Number(t.price) }))
         );
       } catch {

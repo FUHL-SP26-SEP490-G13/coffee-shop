@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Loader2, ArrowLeft, RotateCcw, CheckCircle2, Package, Truck, ClipboardList, XCircle, Check } from "lucide-react";
-import Header from "@/components/layout/Header";
-import Footer from "@/components/layout/Footer";
+
+
 import { Button } from "@/components/ui/button";
 import orderService from "@/services/orderOnlineService";
+import flashSaleService from "@/services/flashSaleService";
 import { handleBuyAgain } from "@/utils/handleBuyAgain";
 import { useStoreHours } from "@/hooks/useStoreHours";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
@@ -26,7 +27,17 @@ export default function MyOrderDetailPage() {
   const [loading, setLoading] = useState(true);
   const [buyAgainLoading, setBuyAgainLoading] = useState(false);
   const [cancelLoading, setCancelLoading] = useState(false);
+  const [activeSale, setActiveSale] = useState(null);
   const { isOpen } = useStoreHours();
+
+  useEffect(() => {
+    flashSaleService
+      .getCurrentActive()
+      .then((res) => {
+        setActiveSale(res?.data || null);
+      })
+      .catch((err) => console.error("Error fetching active sale:", err));
+  }, []);
 
   const fetchOrderDetail = useCallback(async () => {
     try {
@@ -136,11 +147,11 @@ export default function MyOrderDetailPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900">
-        <Header />
+
         <div className="flex-1 flex items-center justify-center">
           <Loader2 className="w-8 h-8 animate-spin text-amber-600" />
         </div>
-        <Footer />
+
       </div>
     );
   }
@@ -148,11 +159,11 @@ export default function MyOrderDetailPage() {
   if (!order) {
     return (
       <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900">
-        <Header />
+
         <div className="flex-1 flex items-center justify-center text-gray-600 dark:text-gray-400">
           Không tìm thấy chi tiết đơn hàng
         </div>
-        <Footer />
+
       </div>
     );
   }
@@ -202,7 +213,7 @@ export default function MyOrderDetailPage() {
     0,
     Number(
       order.loyalty_discount_amount ??
-        Math.max(0, Number(order.used_points || 0)) * LOYALTY_MONEY_PER_POINT,
+      Math.max(0, Number(order.used_points || 0)) * LOYALTY_MONEY_PER_POINT,
     ),
   );
   const subtotalAmount = Math.max(
@@ -270,7 +281,7 @@ export default function MyOrderDetailPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900">
-      <Header />
+
 
       <section className="flex-1 w-full px-4 sm:px-6 lg:px-8 py-10">
         <div className="w-full mx-auto">
@@ -478,17 +489,29 @@ export default function MyOrderDetailPage() {
                     >
                       <div className="flex items-start justify-between gap-4 flex-wrap">
                         <div className="flex items-start gap-4">
-                          <img
-                            src={item.image_url || defaultProductImage}
-                            alt={item.name}
-                            onClick={() => navigate(`/products/${item.product_id}`)}
-                            className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl object-cover border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 cursor-pointer hover:opacity-80 transition-opacity"
-                          />
+                          <div className="relative shrink-0">
+                            <img
+                              src={item.image_url || defaultProductImage}
+                              alt={item.name}
+                              onClick={() => navigate(`/products/${item.product_id || item.id}`)}
+                              className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl object-cover border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 cursor-pointer hover:opacity-80 transition-opacity"
+                            />
+                            {activeSale?.product_ids?.includes(Number(item.product_id || item.id)) && (
+                              <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-sm shadow-sm whitespace-nowrap z-10">
+                                -{activeSale.discount_percent}%
+                              </span>
+                            )}
+                          </div>
 
                           <div>
                             <p className="text-md font-semibold text-gray-900 dark:text-gray-100">
                               {item.name}
                             </p>
+                            {activeSale?.product_ids?.includes(Number(item.product_id || item.id)) && (
+                              <div className="mt-0.5 text-[11px] text-red-600 font-bold">
+                                🔥 Flash sale
+                              </div>
+                            )}
 
                             <div className="mt-2 space-y-1 text-sm text-gray-600 dark:text-gray-400">
                               <p>Size: {item.size}</p>
@@ -583,7 +606,7 @@ export default function MyOrderDetailPage() {
         </div>
       </section>
 
-      <Footer />
+
     </div>
   );
 }
