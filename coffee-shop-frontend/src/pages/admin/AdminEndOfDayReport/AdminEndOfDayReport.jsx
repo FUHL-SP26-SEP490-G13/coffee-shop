@@ -25,8 +25,17 @@ import {
 import adminDBService from "../../../services/adminDBService";
 
 const EMPTY_TOTALS = { qty: 0, itemsPrice: 0, discount: 0, delivery: 0, revenue: 0 };
+const moneyFormatter = new Intl.NumberFormat("vi-VN");
 
 const toNumber = (value) => Number(value) || 0;
+
+const formatMoney = (value) => moneyFormatter.format(toNumber(value));
+
+const formatRangeLabel = (range) => {
+  if (!range?.from) return "Chọn ngày";
+  if (!range?.to) return `${format(range.from, "dd/MM/yyyy")} - ...`;
+  return `${format(range.from, "dd/MM/yyyy")} - ${format(range.to, "dd/MM/yyyy")}`;
+};
 
 const parseReportRows = (payload) => {
   if (Array.isArray(payload)) return payload;
@@ -43,10 +52,10 @@ const AdminEndOfDayReport = () => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedRows, setExpandedRows] = useState(new Set([0])); // Start with first group expanded
+  const isRefreshing = loading && data.length > 0;
 
   const fetchReportData = useCallback(async () => {
     if (!dateRange?.from || !dateRange?.to) {
-      setData([]);
       return;
     }
 
@@ -76,10 +85,11 @@ const AdminEndOfDayReport = () => {
       case "today":
         setDateRange({ from: today, to: today });
         break;
-      case "yesterday":
+      case "yesterday": {
         const yesterday = subDays(today, 1);
         setDateRange({ from: yesterday, to: yesterday });
         break;
+      }
       case "7days":
         setDateRange({ from: subDays(today, 7), to: today });
         break;
@@ -97,6 +107,8 @@ const AdminEndOfDayReport = () => {
     }
   };
 
+  const rangeLabel = useMemo(() => formatRangeLabel(dateRange), [dateRange]);
+
   const totals = useMemo(
     () =>
       data.reduce(
@@ -112,34 +124,96 @@ const AdminEndOfDayReport = () => {
     [data]
   );
 
+  const metrics = useMemo(
+    () => [
+      {
+        label: "Hóa đơn",
+        value: data.length,
+        tone: "from-sky-500/15 to-cyan-500/5",
+      },
+      {
+        label: "Sản phẩm",
+        value: totals.qty,
+        tone: "from-emerald-500/15 to-teal-500/5",
+      },
+      {
+        label: "Đã thu",
+        value: formatMoney(totals.revenue),
+        tone: "from-amber-500/15 to-orange-500/5",
+      },
+      {
+        label: "Phải thu",
+        value: formatMoney(totals.debt),
+        tone: "from-rose-500/15 to-red-500/5",
+      },
+    ],
+    [data.length, totals.debt, totals.qty, totals.revenue]
+  );
+
   const handlePrint = () => {
     window.print();
   };
 
   if (loading && data.length === 0) {
     return (
-      <div className="flex h-[400px] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="min-h-screen bg-slate-50/50 p-6">
+        <div className="animate-pulse space-y-6">
+          <div className="rounded-2xl border bg-white p-5 shadow-sm">
+            <div className="h-6 w-48 rounded bg-slate-200" />
+            <div className="mt-3 h-4 w-80 rounded bg-slate-100" />
+            <div className="mt-6 flex flex-wrap gap-3">
+              <div className="h-10 w-36 rounded-xl bg-slate-100" />
+              <div className="h-10 w-48 rounded-xl bg-slate-100" />
+              <div className="h-10 w-52 rounded-xl bg-slate-100" />
+            </div>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <div key={index} className="rounded-2xl border bg-white p-4 shadow-sm">
+                <div className="h-3 w-24 rounded bg-slate-200" />
+                <div className="mt-3 h-8 w-32 rounded bg-slate-100" />
+              </div>
+            ))}
+          </div>
+
+          <div className="overflow-hidden rounded-2xl border bg-white shadow-sm">
+            <div className="h-14 bg-slate-100" />
+            {Array.from({ length: 6 }).map((_, index) => (
+              <div key={index} className="grid grid-cols-10 gap-3 border-t px-4 py-4">
+                {Array.from({ length: 10 }).map((__, cellIndex) => (
+                  <div
+                    key={cellIndex}
+                    className={`h-4 rounded ${cellIndex % 3 === 0 ? "bg-slate-200" : "bg-slate-100"}`}
+                  />
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 p-6 min-h-screen bg-slate-50/50 print:bg-white print:p-0">
+    <div className="report-shell space-y-6 p-6 min-h-screen bg-slate-50/50 print:bg-white print:p-0">
       {/* Header - Hidden on print */}
-      <div className="flex items-center justify-between print:hidden">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Báo cáo tổng kết</h1>
-          <p className="text-muted-foreground">Chỉ bao gồm các đơn hàng đã thanh toán</p>
+      <div className="report-card flex items-center justify-between gap-4 rounded-2xl border bg-gradient-to-br from-white via-slate-50 to-sky-50/60 p-5 shadow-sm print:hidden">
+        <div className="space-y-1">
+          <div className="inline-flex items-center rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-medium text-sky-700">
+            Báo cáo cuối ngày
+          </div>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Báo cáo tổng kết</h1>
+          <p className="text-sm text-muted-foreground">Chỉ bao gồm các đơn hàng đã thanh toán</p>
         </div>
-        <div className="flex items-center gap-3">
-          <Button variant="outline" onClick={handlePrint}>
+        <div className="flex flex-wrap items-center justify-end gap-3">
+          <Button variant="outline" onClick={handlePrint} className="transition-transform duration-200 hover:-translate-y-0.5">
             <Printer className="mr-2 h-4 w-4" />
             In báo cáo
           </Button>
 
-          <Select value={filterType} onValueChange={handleFilterChange}>
-            <SelectTrigger className="w-[180px]">
+          <Select value={filterType} onValueChange={handleFilterChange} disabled={loading}>
+            <SelectTrigger className="w-[180px] transition-shadow duration-200 focus:shadow-md">
               <SelectValue placeholder="Chọn thời gian" />
             </SelectTrigger>
             <SelectContent>
@@ -156,19 +230,9 @@ const AdminEndOfDayReport = () => {
             <div className="flex items-center gap-2">
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" className="w-[240px] justify-start text-left font-normal">
+                  <Button variant="outline" className="w-[240px] justify-start text-left font-normal transition-shadow duration-200 focus:shadow-md">
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dateRange.from ? (
-                      dateRange.to ? (
-                        <>
-                          {format(dateRange.from, "dd/MM/yyyy")} - {format(dateRange.to, "dd/MM/yyyy")}
-                        </>
-                      ) : (
-                        format(dateRange.from, "dd/MM/yyyy")
-                      )
-                    ) : (
-                      <span>Chọn ngày</span>
-                    )}
+                    <span>{rangeLabel}</span>
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="end">
@@ -177,11 +241,7 @@ const AdminEndOfDayReport = () => {
                     mode="range"
                     defaultMonth={dateRange.from}
                     selected={dateRange}
-                    onSelect={(value) => {
-                      if (value?.from && value?.to) {
-                        setDateRange(value);
-                      }
-                    }}
+                    onSelect={(value) => setDateRange(value ?? { from: undefined, to: undefined })}
                     numberOfMonths={2}
                     locale={vi}
                   />
@@ -200,12 +260,31 @@ const AdminEndOfDayReport = () => {
         </p>
       </div>
 
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4 print:hidden">
+        {metrics.map((metric, index) => (
+          <div
+            key={metric.label}
+            className={`report-card rounded-2xl border bg-gradient-to-br ${metric.tone} p-4 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md`}
+            style={{ animationDelay: `${index * 70}ms` }}
+          >
+            <p className="text-xs uppercase tracking-[0.24em] text-slate-500">{metric.label}</p>
+            <div className="mt-2 text-2xl font-semibold tracking-tight text-slate-900">{metric.value}</div>
+          </div>
+        ))}
+      </div>
+
       {/* Main Table */}
-      <div className="overflow-hidden rounded-lg border bg-white shadow-sm print:border-none print:shadow-none">
-        <div className="overflow-x-auto">
+      <div className="report-card relative overflow-hidden rounded-2xl border bg-white shadow-sm transition-all duration-300 print:border-none print:shadow-none">
+        {isRefreshing && (
+          <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-center justify-center bg-white/70 py-3 backdrop-blur-sm">
+            <Loader2 className="mr-2 h-4 w-4 animate-spin text-primary" />
+            <span className="text-sm font-medium text-slate-600">Đang cập nhật dữ liệu</span>
+          </div>
+        )}
+        <div className={`overflow-x-auto transition-opacity duration-300 ${isRefreshing ? "opacity-70" : "opacity-100"}`}>
           <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-[#bce4f5] border-b font-medium text-slate-900">
+            <thead className="sticky top-0 z-[1]">
+              <tr className="border-b font-medium text-slate-900">
                 <th className="px-4 py-3 text-left">Mã chứng từ</th>
                 <th className="px-4 py-3 text-left">Khách hàng</th>
                 <th className="px-4 py-3 text-left">Nhân viên</th>
@@ -220,13 +299,14 @@ const AdminEndOfDayReport = () => {
             </thead>
             <tbody>
               {/* Grouping row */}
-              <tr className="bg-[#fefce8] font-medium border-b cursor-pointer hover:bg-[#fff9c4] transition-colors"
+              <tr className="bg-[#fefce8] font-medium border-b cursor-pointer transition-colors hover:bg-[#fff9c4]"
                 onClick={() => {
                   const next = new Set(expandedRows);
                   if (next.has(0)) next.delete(0);
                   else next.add(0);
                   setExpandedRows(next);
-                }}>
+                }}
+                style={{ animationDelay: "40ms" }}>
                 <td className="px-4 py-3 flex items-center gap-2">
                   {expandedRows.has(0) ? (
                     <Minus className="h-4 w-4 text-slate-500" />
@@ -237,24 +317,28 @@ const AdminEndOfDayReport = () => {
                 </td>
                 <td colSpan={4}></td>
                 <td className="px-4 py-3 text-right">{totals.qty}</td>
-                <td className="px-4 py-3 text-right">{totals.itemsPrice.toLocaleString()}</td>
-                <td className="px-4 py-3 text-right font-medium text-red-500">-{totals.discount.toLocaleString()}</td>
-                <td className="px-4 py-3 text-right font-medium text-blue-600">+{totals.delivery.toLocaleString()}</td>
-                <td className="px-4 py-3 text-right font-bold text-green-700">{totals.revenue.toLocaleString()}</td>
+                <td className="px-4 py-3 text-right">{formatMoney(totals.itemsPrice)}</td>
+                <td className="px-4 py-3 text-right font-medium text-red-500">-{formatMoney(totals.discount)}</td>
+                <td className="px-4 py-3 text-right font-medium text-blue-600">+{formatMoney(totals.delivery)}</td>
+                <td className="px-4 py-3 text-right font-bold text-green-700">{formatMoney(totals.revenue)}</td>
               </tr>
 
-              {expandedRows.has(0) && data.map((order) => (
-                <tr key={order.orderId} className="border-b hover:bg-slate-50 transition-colors">
+              {expandedRows.has(0) && data.map((order, index) => (
+                <tr
+                  key={order.orderId}
+                  className="report-row border-b transition-colors hover:bg-slate-50"
+                  style={{ "--row-index": index }}
+                >
                   <td className="px-4 py-3 font-medium text-slate-700">#{order.orderId}</td>
                   <td className="px-4 py-3">{order.customerName}</td>
                   <td className="px-4 py-3">{order.staffName}</td>
                   <td className="px-4 py-3">{format(new Date(order.time), "HH:mm dd/MM")}</td>
                   <td className="px-4 py-3 capitalize">{order.paymentMethod}</td>
                   <td className="px-4 py-3 text-right">{order.totalQuantity}</td>
-                  <td className="px-4 py-3 text-right">{toNumber(order.totalItemsPrice).toLocaleString()}</td>
-                  <td className="px-4 py-3 text-right text-red-500">-{toNumber(order.discount).toLocaleString()}</td>
-                  <td className="px-4 py-3 text-right text-blue-600">+{toNumber(order.deliveryFee).toLocaleString()}</td>
-                  <td className="px-4 py-3 text-right font-bold text-green-700">{toNumber(order.revenue).toLocaleString()}</td>
+                  <td className="px-4 py-3 text-right">{formatMoney(order.totalItemsPrice)}</td>
+                  <td className="px-4 py-3 text-right text-red-500">-{formatMoney(order.discount)}</td>
+                  <td className="px-4 py-3 text-right text-blue-600">+{formatMoney(order.deliveryFee)}</td>
+                  <td className="px-4 py-3 text-right font-bold text-green-700">{formatMoney(order.revenue)}</td>
                 </tr>
               ))}
 
@@ -271,10 +355,10 @@ const AdminEndOfDayReport = () => {
                 <tr>
                   <td colSpan={5} className="px-4 py-4 text-center text-slate-900 border-r">TỔNG CỘNG</td>
                   <td className="px-4 py-4 text-right border-r">{totals.qty}</td>
-                  <td className="px-4 py-4 text-right border-r">{totals.itemsPrice.toLocaleString()}</td>
-                  <td className="px-4 py-4 text-right border-r text-red-500">-{totals.discount.toLocaleString()}</td>
-                  <td className="px-4 py-4 text-right border-r text-blue-600">+{totals.delivery.toLocaleString()}</td>
-                  <td className="px-4 py-4 text-right text-green-700 text-lg">{totals.revenue.toLocaleString()}</td>
+                  <td className="px-4 py-4 text-right border-r">{formatMoney(totals.itemsPrice)}</td>
+                  <td className="px-4 py-4 text-right border-r text-red-500">-{formatMoney(totals.discount)}</td>
+                  <td className="px-4 py-4 text-right border-r text-blue-600">+{formatMoney(totals.delivery)}</td>
+                  <td className="px-4 py-4 text-right text-green-700 text-lg">{formatMoney(totals.revenue)}</td>
                 </tr>
               </tfoot>
             )}
@@ -290,6 +374,30 @@ const AdminEndOfDayReport = () => {
 
       <style dangerouslySetInnerHTML={{
         __html: `
+        @keyframes reportFadeUp {
+          from {
+            opacity: 0;
+            transform: translateY(10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        .report-shell {
+          animation: reportFadeUp 320ms ease-out;
+        }
+
+        .report-card {
+          animation: reportFadeUp 420ms ease-out both;
+        }
+
+        .report-row {
+          animation: reportFadeUp 280ms ease-out both;
+          animation-delay: calc(var(--row-index) * 18ms);
+        }
+
         @media print {
           body * {
             visibility: hidden;
