@@ -103,7 +103,15 @@ class RecipeService {
       ingredientId
     );
     if (exists) {
-      const mergedQuantity = Number(exists.quantity || 0) + Number(quantity || 0);
+      const existingQuantity = Number(exists.quantity || 0);
+      const incomingQuantity = Number(quantity || 0);
+
+      // Keep idempotent behavior: same quantity should not be accumulated.
+      if (existingQuantity === incomingQuantity) {
+        return RecipeRepository.getRecipeById(exists.id);
+      }
+
+      const mergedQuantity = existingQuantity + incomingQuantity;
       return RecipeRepository.updateRecipe(exists.id, ingredientId, mergedQuantity);
     }
 
