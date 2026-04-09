@@ -94,8 +94,11 @@ class AdminDBController {
   async getOrdersSummary(req, res, next) {
     try {
       const { startDate, endDate } = req.query;
-      const result = await AdminDBService.getOrdersSummary(startDate, endDate);
-      return res.json({ success: true, data: result });
+      const data = await AdminDBService.getOrdersSummary({
+        startDate,
+        endDate,
+      });
+      return response.success(res, data, "Lấy tổng quan đơn hàng thành công");
     } catch (err) {
       next(err);
     }
@@ -104,8 +107,11 @@ class AdminDBController {
   async getDetailedOrdersReport(req, res, next) {
     try {
       const { startDate, endDate } = req.query;
-      const result = await AdminDBService.getDetailedOrdersReport(startDate, endDate);
-      return res.json({ success: true, data: result });
+      const data = await AdminDBService.getDetailedOrdersReport({
+        startDate,
+        endDate,
+      });
+      return response.success(res, data, "Lấy báo cáo chi tiết đơn hàng thành công");
     } catch (err) {
       next(err);
     }

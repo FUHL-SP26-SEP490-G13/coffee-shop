@@ -1,13 +1,10 @@
-import { useEffect, useState, useRef } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { format, startOfDay, endOfDay, subDays } from "date-fns";
 import { vi } from "date-fns/locale";
-import { 
-  Calendar as CalendarIcon, 
-  ChevronDown, 
-  Printer, 
-  FileText,
+import {
+  Calendar as CalendarIcon,
+  Printer,
   Loader2,
-  ChevronRight,
   Plus,
   Minus
 } from "lucide-react";
@@ -27,6 +24,16 @@ import {
 } from "@/components/ui/select";
 import adminDBService from "../../../services/adminDBService";
 
+const EMPTY_TOTALS = { qty: 0, itemsPrice: 0, discount: 0, delivery: 0, revenue: 0 };
+
+const toNumber = (value) => Number(value) || 0;
+
+const parseReportRows = (payload) => {
+  if (Array.isArray(payload)) return payload;
+  if (payload?.success && Array.isArray(payload.data)) return payload.data;
+  return [];
+};
+
 const AdminEndOfDayReport = () => {
   const [dateRange, setDateRange] = useState({
     from: subDays(new Date(), 7),
@@ -37,28 +44,30 @@ const AdminEndOfDayReport = () => {
   const [loading, setLoading] = useState(true);
   const [expandedRows, setExpandedRows] = useState(new Set([0])); // Start with first group expanded
 
-  const fetchReportData = async () => {
+  const fetchReportData = useCallback(async () => {
+    if (!dateRange?.from || !dateRange?.to) {
+      setData([]);
+      return;
+    }
+
     try {
       setLoading(true);
       const start = format(startOfDay(dateRange.from), "yyyy-MM-dd HH:mm:ss");
       const end = format(endOfDay(dateRange.to), "yyyy-MM-dd HH:mm:ss");
-      
+
       const res = await adminDBService.getDetailedReport(start, end);
-      if (Array.isArray(res)) {
-        setData(res);
-      } else if (res && res.success && Array.isArray(res.data)) {
-        setData(res.data);
-      }
+      setData(parseReportRows(res));
     } catch (error) {
       console.error("Error fetching report data:", error);
+      setData([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, [dateRange]);
 
   useEffect(() => {
     fetchReportData();
-  }, [dateRange]);
+  }, [fetchReportData]);
 
   const handleFilterChange = (value) => {
     setFilterType(value);
@@ -88,20 +97,20 @@ const AdminEndOfDayReport = () => {
     }
   };
 
-  const totals = data.reduce((acc, curr) => ({
-    qty: acc.qty + (Number(curr.totalQuantity) || 0),
-    itemsPrice: acc.itemsPrice + (Number(curr.totalItemsPrice) || 0),
-    discount: acc.discount + (Number(curr.discount) || 0),
-    delivery: acc.delivery + (Number(curr.deliveryFee) || 0),
-    revenue: acc.revenue + (Number(curr.revenue) || 0),
-  }), { qty: 0, itemsPrice: 0, discount: 0, delivery: 0, revenue: 0 });
-
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat("vi-VN", {
-      style: "currency",
-      currency: "VND",
-    }).format(amount);
-  };
+  const totals = useMemo(
+    () =>
+      data.reduce(
+        (acc, curr) => ({
+          qty: acc.qty + toNumber(curr.totalQuantity),
+          itemsPrice: acc.itemsPrice + toNumber(curr.totalItemsPrice),
+          discount: acc.discount + toNumber(curr.discount),
+          delivery: acc.delivery + toNumber(curr.deliveryFee),
+          revenue: acc.revenue + toNumber(curr.revenue),
+        }),
+        EMPTY_TOTALS
+      ),
+    [data]
+  );
 
   const handlePrint = () => {
     window.print();
@@ -168,7 +177,11 @@ const AdminEndOfDayReport = () => {
                     mode="range"
                     defaultMonth={dateRange.from}
                     selected={dateRange}
-                    onSelect={setDateRange}
+                    onSelect={(value) => {
+                      if (value?.from && value?.to) {
+                        setDateRange(value);
+                      }
+                    }}
                     numberOfMonths={2}
                     locale={vi}
                   />
@@ -208,12 +221,12 @@ const AdminEndOfDayReport = () => {
             <tbody>
               {/* Grouping row */}
               <tr className="bg-[#fefce8] font-medium border-b cursor-pointer hover:bg-[#fff9c4] transition-colors"
-                  onClick={() => {
-                    const next = new Set(expandedRows);
-                    if (next.has(0)) next.delete(0);
-                    else next.add(0);
-                    setExpandedRows(next);
-                  }}>
+                onClick={() => {
+                  const next = new Set(expandedRows);
+                  if (next.has(0)) next.delete(0);
+                  else next.add(0);
+                  setExpandedRows(next);
+                }}>
                 <td className="px-4 py-3 flex items-center gap-2">
                   {expandedRows.has(0) ? (
                     <Minus className="h-4 w-4 text-slate-500" />
@@ -238,10 +251,10 @@ const AdminEndOfDayReport = () => {
                   <td className="px-4 py-3">{format(new Date(order.time), "HH:mm dd/MM")}</td>
                   <td className="px-4 py-3 capitalize">{order.paymentMethod}</td>
                   <td className="px-4 py-3 text-right">{order.totalQuantity}</td>
-                  <td className="px-4 py-3 text-right">{Number(order.totalItemsPrice).toLocaleString()}</td>
-                  <td className="px-4 py-3 text-right text-red-500">-{Number(order.discount).toLocaleString()}</td>
-                  <td className="px-4 py-3 text-right text-blue-600">+{Number(order.deliveryFee).toLocaleString()}</td>
-                  <td className="px-4 py-3 text-right font-bold text-green-700">{Number(order.revenue).toLocaleString()}</td>
+                  <td className="px-4 py-3 text-right">{toNumber(order.totalItemsPrice).toLocaleString()}</td>
+                  <td className="px-4 py-3 text-right text-red-500">-{toNumber(order.discount).toLocaleString()}</td>
+                  <td className="px-4 py-3 text-right text-blue-600">+{toNumber(order.deliveryFee).toLocaleString()}</td>
+                  <td className="px-4 py-3 text-right font-bold text-green-700">{toNumber(order.revenue).toLocaleString()}</td>
                 </tr>
               ))}
 
@@ -275,7 +288,8 @@ const AdminEndOfDayReport = () => {
         <p className="text-xs text-slate-500 mt-12">(Ký và ghi rõ họ tên)</p>
       </div>
 
-      <style dangerouslySetInnerHTML={{ __html: `
+      <style dangerouslySetInnerHTML={{
+        __html: `
         @media print {
           body * {
             visibility: hidden;

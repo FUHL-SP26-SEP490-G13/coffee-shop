@@ -8,24 +8,24 @@ const adminDBService = {
   },
 
   getRevenueSeries: async ({ startDate, endDate }) => {
-    const res = await axiosClient.get(
-      `/dashboard/revenue?startDate=${startDate}&endDate=${endDate}`
-    );
+    const res = await axiosClient.get(`/dashboard/revenue`, {
+      params: { startDate, endDate },
+    });
     return res.data;
   },
 
   getTopProducts: async ({ startDate, endDate, limit = 5 } = {}) => {
-    const res = await axiosClient.get(
-      `/dashboard/top-products?startDate=${startDate}&endDate=${endDate}&limit=${limit}`
-    );
+    const res = await axiosClient.get(`/dashboard/top-products`, {
+      params: { startDate, endDate, limit },
+    });
     return res.data;
   },
 
   // Optional: doanh thu theo loại đơn hàng (tại quán, mang về, giao hàng)
   getOrderTypeRevenue: async ({ startDate, endDate }) => {
-    const res = await axiosClient.get(
-      `/dashboard/order-type?startDate=${startDate}&endDate=${endDate}`
-    );
+    const res = await axiosClient.get(`/dashboard/order-type`, {
+      params: { startDate, endDate },
+    });
     return res.data;
   },
 
@@ -36,16 +36,16 @@ const adminDBService = {
     prevStartDate,
     prevEndDate,
   }) => {
-    const res = await axiosClient.get(
-      `/dashboard/comparison?startDate=${startDate}&endDate=${endDate}&prevStartDate=${prevStartDate}&prevEndDate=${prevEndDate}`
-    );
+    const res = await axiosClient.get(`/dashboard/comparison`, {
+      params: { startDate, endDate, prevStartDate, prevEndDate },
+    });
     return res.data;
   },
 
   getPaymentMethodRevenue: async ({ startDate, endDate }) => {
-    const res = await axiosClient.get(
-      `/dashboard/payment-method?startDate=${startDate}&endDate=${endDate}`
-    );
+    const res = await axiosClient.get(`/dashboard/payment-method`, {
+      params: { startDate, endDate },
+    });
     return res.data;
   },
 

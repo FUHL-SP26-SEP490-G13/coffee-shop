@@ -173,7 +173,7 @@ class AdminDBRepository {
   }
 
   // Tóm tắt số lượng đơn hàng theo trạng thái
-  async getOrdersSummary(startDate, endDate) {
+  async getOrdersSummary({ startDate, endDate }) {
     const [rows] = await pool.query(
       `
     SELECT 
@@ -196,7 +196,7 @@ class AdminDBRepository {
     }));
   }
 
-  async getDetailedOrdersReport(startDate, endDate) {
+  async getDetailedOrdersReport({ startDate, endDate }) {
     const [rows] = await pool.query(
       `SELECT 
         o.id as orderId,
