@@ -21,8 +21,6 @@ import NewsDetailPage from "@/pages/homePage/news/NewsDetailPage";
 import NewsListPage from "@/pages/homePage/news/NewsListPage";
 import AdminDiscounts from "@/pages/admin/AdminDiscount/AdminDiscounts";
 import AdminRequests from "../pages/admin/AdminRequest/AdminRequests";
-// import AdminDiscountCreate from "@/pages/admin/AdminDiscount/AdminDiscountCreate";
-// import AdminDiscountEdit from "@/pages/admin/AdminDiscount/AdminDiscountEdit";
 import OrderPolicy from "@/pages/common/OrderPolicy";
 import PrivacyPolicy from "@/pages/common/PrivacyPolicy";
 import AdminApp from "../pages/admin/AdminApp";
@@ -67,6 +65,7 @@ import StaffPayOSReturn from "@/pages/staff/StaffPayOSReturn";
 import StoreInfoPage from "@/pages/common/StoreInfoPage";
 import GenericSlugResolver from "../pages/common/GenericSlugResolver";
 import AboutUsPage from "@/pages/common/AboutUsPage";
+import ClientLayout from "@/components/layout/ClientLayout";
 
 const getStoredValue = (key) =>
   localStorage.getItem(key) || sessionStorage.getItem(key);
@@ -124,9 +123,7 @@ const RoleGuard = ({ allowedRoles, children }) => {
 const AppRoutes = () => {
   return (
     <Routes>
-      <Route path="/" element={<HomePage />} />
-      {/* Route /products đã được chuyển vào /:slug (GenericSlugResolver) để chống chớp giật Grid */}
-      <Route path="/products/:id" element={<ProductDetailPage />} />
+      {/* Client Routes are grouped below */}
       <Route path={APP_ROUTES.LOGIN} element={<LoginPage />} />
       <Route path={APP_ROUTES.REGISTER} element={<RegisterPage />} />
       <Route
@@ -218,41 +215,47 @@ const AppRoutes = () => {
         <Route path="flash-sales" element={<AdminFlashSales />} />
         <Route path="newsletter" element={<AdminNewsletterPage />} />
       </Route>
-      <Route path="/news/:slug" element={<NewsDetailPage />} />
-      <Route path="/news" element={<NewsListPage />} />
-      <Route path="/store" element={<StoreInfoPage />} />
-      <Route path="/about-us" element={<AboutUsPage />} />
-      <Route path="/customer/profile" element={<UserProfile />} />
+      <Route element={<ClientLayout />}>
+        <Route path="/" element={<HomePage />} />
+        {/* Route /products đã được chuyển vào /:slug (GenericSlugResolver) để chống chớp giật Grid */}
+        <Route path="/products/:id" element={<ProductDetailPage />} />
+        
+        <Route path="/news/:slug" element={<NewsDetailPage />} />
+        <Route path="/news" element={<NewsListPage />} />
+        <Route path="/store" element={<StoreInfoPage />} />
+        <Route path="/about-us" element={<AboutUsPage />} />
+        <Route path="/customer/profile" element={<UserProfile />} />
 
-      <Route path="/order-policy" element={<OrderPolicy />} />
-      <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-      <Route path="/payment-policy" element={<PaymentPolicyPage />} />
+        <Route path="/order-policy" element={<OrderPolicy />} />
+        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+        <Route path="/payment-policy" element={<PaymentPolicyPage />} />
 
-      <Route path="/cart" element={<CartPage />} />
-      <Route path="/checkout" element={<CheckoutPage />} />
-      <Route path="/payment-result" element={<PayOSReturnSuccess />} />
-      <Route
-        path="/my-orders"
-        element={
-          <RoleGuard allowedRoles={[4]}>
-            <MyOrderOnlinePage />
-          </RoleGuard>
-        }
-      />
-      <Route
-        path="/my-orders/:id"
-        element={
-          <RoleGuard allowedRoles={[4]}>
-            <MyOrderDetailPage />
-          </RoleGuard>
-        }
-      />
+        <Route path="/cart" element={<CartPage />} />
+        <Route path="/checkout" element={<CheckoutPage />} />
+        <Route path="/payment-result" element={<PayOSReturnSuccess />} />
+        <Route
+          path="/my-orders"
+          element={
+            <RoleGuard allowedRoles={[4]}>
+              <MyOrderOnlinePage />
+            </RoleGuard>
+          }
+        />
+        <Route
+          path="/my-orders/:id"
+          element={
+            <RoleGuard allowedRoles={[4]}>
+              <MyOrderDetailPage />
+            </RoleGuard>
+          }
+        />
+
+        <Route path="/404" element={<div className="flex-1 flex flex-col items-center justify-center min-h-[50vh]"><h1 className="text-2xl font-bold text-gray-500">404 - Trang không tồn tại</h1></div>} />
+        <Route path="/:slug" element={<GenericSlugResolver />} />
+      </Route>
 
       <Route path="/order" element={<OrderQRMenu />} />
       <Route path="/order/confirm" element={<MyOrderQRDetail />} />
-
-      {/* SEO Slug Resolver */}
-      <Route path="/:slug" element={<GenericSlugResolver />} />
 
       {/* 404 */}
       <Route

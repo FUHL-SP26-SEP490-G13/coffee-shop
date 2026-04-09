@@ -7,8 +7,8 @@ import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../../components/ui/dialog';
 import { Avatar, AvatarFallback } from '../../components/ui/avatar';
-import Header from '../../components/layout/Header';
-import Footer from '../../components/layout/Footer';
+
+
 import { toast } from 'sonner';
 import authenticationService from '../../services/authenticationService';
 import { APP_ROUTES } from '../../constants';import { useDocumentTitle } from '@/hooks/useDocumentTitle';
@@ -370,7 +370,6 @@ export function UserProfile() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {isCustomer && <Header />}
 
       <div className="flex-1 flex items-start justify-center p-4 sm:p-8">
         <div className="w-full max-w-4xl">
@@ -645,7 +644,6 @@ export function UserProfile() {
           </div>
         </div>
       </div>
-      {isCustomer && <Footer />}
 
       <Dialog
         open={addressDialogOpen}

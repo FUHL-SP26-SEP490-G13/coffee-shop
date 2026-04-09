@@ -50,7 +50,7 @@ export default function MyOrderQRDetail() {
     } else {
       price = Number(menuItem?.price || 0);
     }
-    
+
     let itemTotal = price * (item.qty || 1);
     if (Array.isArray(item.toppings)) {
       item.toppings.forEach(tp => {
@@ -64,12 +64,12 @@ export default function MyOrderQRDetail() {
     if (!form.discountCode) return 0;
     const discount = discounts.find(d => d.code === form.discountCode);
     if (!discount) return 0;
-    
+
     if (discount.min_order_amount && total < Number(discount.min_order_amount)) return 0;
-    
+
     const percentage = Number(discount.percentage || 0);
     let calculated = Math.round((total * percentage) / 100);
-    
+
     if (discount.max_discount_amount) {
       calculated = Math.min(calculated, Number(discount.max_discount_amount));
     }
@@ -83,11 +83,11 @@ export default function MyOrderQRDetail() {
     try {
       setSubmitting(true);
       const itemsPayload = [];
-      
+
       for (const item of selected) {
         const menuItem = menu.find(m => m.id === item.id || m._id === item.id);
         if (!menuItem) continue;
-        
+
         let product_size_id = null;
         if (item.size && Array.isArray(menuItem.sizes)) {
           const sizeObj = menuItem.sizes.find(sz => sz.size === item.size);
@@ -95,26 +95,26 @@ export default function MyOrderQRDetail() {
             product_size_id = sizeObj.id || sizeObj.product_size_id || sizeObj._id;
           }
         } else if (Array.isArray(menuItem.sizes) && menuItem.sizes.length > 0) {
-           setModalConfig({ show: true, type: "warning", title: "Chú ý", message: `Vui lòng chọn size cho món: ${menuItem.name}` });
-           setSubmitting(false);
-           return;
+          setModalConfig({ show: true, type: "warning", title: "Chú ý", message: `Vui lòng chọn size cho món: ${menuItem.name}` });
+          setSubmitting(false);
+          return;
         }
-        
+
         // Ensure we pass a valid string for table_id, even if it's numeric in url
         itemsPayload.push({
           product_size_id: Number(product_size_id),
           quantity: Number(item.qty || 1),
           note: item.note || null,
           toppings: Array.isArray(item.toppings) ? item.toppings.map(t => ({
-             topping_id: Number(t.topping_id),
-             quantity: Number(t.quantity || 1) // default 1
+            topping_id: Number(t.topping_id),
+            quantity: Number(t.quantity || 1) // default 1
           })) : []
         });
       }
 
       // table_id is custom field for dine_in
       const payload = {
-        tableId: tableId, 
+        tableId: tableId,
         items: itemsPayload,
         note: form.note.trim(),
         discountCode: form.discountCode.trim(),
@@ -133,12 +133,12 @@ export default function MyOrderQRDetail() {
           setModalConfig({ show: true, type: "warning", title: "Lỗi thanh toán", message: "Không lấy được link thanh toán PayOS" });
         }
       } else {
-        setModalConfig({ 
-          show: true, 
-          type: "success", 
-          title: "Thành công", 
-          message: "Đặt món thành công! Vui lòng chờ lát nhé.", 
-          onConfirm: () => navigate(`/order?table=${tableId}`) 
+        setModalConfig({
+          show: true,
+          type: "success",
+          title: "Thành công",
+          message: "Đặt món thành công! Vui lòng chờ lát nhé.",
+          onConfirm: () => navigate(`/order?table=${tableId}`)
         });
       }
     } catch (err) {
@@ -155,8 +155,8 @@ export default function MyOrderQRDetail() {
     <div className="max-w-lg mx-auto min-h-screen bg-gray-50 dark:bg-gray-950 flex flex-col pb-24">
       {/* HEADER */}
       <header className="sticky top-0 z-10 bg-white dark:bg-gray-900 border-b py-3 px-4 shadow-sm flex items-center justify-between">
-        <button 
-          onClick={() => navigate(-1)} 
+        <button
+          onClick={() => navigate(-1)}
           className="p-2 -ml-2 text-gray-600 dark:text-gray-400 hover:text-primary transition"
         >
           <ChevronLeft className="w-6 h-6" />
@@ -166,7 +166,7 @@ export default function MyOrderQRDetail() {
 
       {/* CONTENT */}
       <main className="flex-1 px-4 py-4 space-y-4">
-        
+
         {/* Bàn */}
         <div className="bg-white dark:bg-gray-900 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 flex items-center justify-between">
           <span className="text-gray-600 dark:text-gray-400 font-medium">Bàn phục vụ</span>
@@ -195,28 +195,28 @@ export default function MyOrderQRDetail() {
                       {item.size && <span className="mr-2">Size {item.size}</span>}
                       <span>SL: {item.qty || 1}</span>
                     </div>
-                    
+
                     {Array.isArray(item.toppings) && item.toppings.length > 0 && (
                       <div className="mt-1 space-y-0.5">
                         {item.toppings.map((tp, tidx) => {
-                           const tpObj = toppingsList.find(t => t.id === tp.topping_id);
-                           const tName = tpObj?.name || 'Topping';
-                           const tPrice = Number(tpObj?.price || tp.price || 0);
-                           const tPriceStr = tPrice > 0 ? ` (+${tPrice.toLocaleString()}đ)` : '';
-                           return (
-                             <div key={tidx} className="text-xs text-gray-500 dark:text-gray-400 flex justify-between">
-                               <span>+ {tName}{tPriceStr}</span>
-                             </div>
-                           )
+                          const tpObj = toppingsList.find(t => t.id === tp.topping_id);
+                          const tName = tpObj?.name || 'Topping';
+                          const tPrice = Number(tpObj?.price || tp.price || 0);
+                          const tPriceStr = tPrice > 0 ? ` (+${tPrice.toLocaleString()}đ)` : '';
+                          return (
+                            <div key={tidx} className="text-xs text-gray-500 dark:text-gray-400 flex justify-between">
+                              <span>+ {tName}{tPriceStr}</span>
+                            </div>
+                          )
                         })}
                       </div>
                     )}
-                    
+
                     {item.note && (
                       <div className="text-xs italic text-amber-600 mt-1">Ghi chú: {item.note}</div>
                     )}
                   </div>
-                  
+
                   <div className="font-semibold text-sm">
                     {(basePrice * (item.qty || 1)).toLocaleString()}đ
                   </div>
@@ -229,24 +229,24 @@ export default function MyOrderQRDetail() {
         {/* Thông tin bổ sung */}
         <div className="bg-white dark:bg-gray-900 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 space-y-4">
           <h2 className="font-bold text-lg">Thông tin khách (Tùy chọn)</h2>
-          
+
 
           <div>
             <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">Ghi chú chung</label>
-            <Textarea 
-              placeholder="Ghi chú thêm cho quán (tùy chọn)" 
+            <Textarea
+              placeholder="Ghi chú thêm cho quán (tùy chọn)"
               value={form.note}
-              onChange={(e) => setForm(f => ({...f, note: e.target.value}))}
+              onChange={(e) => setForm(f => ({ ...f, note: e.target.value }))}
               rows={2}
             />
           </div>
 
           <div>
             <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">Mã giảm giá</label>
-            <select 
+            <select
               className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               value={form.discountCode}
-              onChange={(e) => setForm(f => ({...f, discountCode: e.target.value}))}
+              onChange={(e) => setForm(f => ({ ...f, discountCode: e.target.value }))}
             >
               <option value="">-- Không áp dụng mã --</option>
               {discounts.map(d => (
@@ -276,7 +276,7 @@ export default function MyOrderQRDetail() {
             <span className="text-xl font-bold text-primary">{finalAmount.toLocaleString()}đ</span>
           </div>
         </div>
-        <Button 
+        <Button
           className="w-full py-4 text-base font-bold rounded-xl bg-primary text-white hover:bg-primary/90 transition shadow-md"
           size="lg"
           onClick={() => setShowPaymentModal(true)}
@@ -296,11 +296,10 @@ export default function MyOrderQRDetail() {
               <button
                 type="button"
                 onClick={() => setPaymentMethod("cash")}
-                className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition ${
-                  paymentMethod === "cash"
+                className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition ${paymentMethod === "cash"
                     ? "border-primary bg-primary/5 text-primary"
                     : "border-gray-100 dark:border-gray-800 text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-950 hover:bg-gray-100 dark:hover:bg-gray-700 dark:bg-gray-800"
-                }`}
+                  }`}
               >
                 <span className="text-3xl mb-2">💵</span>
                 <span className="text-sm font-semibold">Tiền mặt</span>
@@ -308,18 +307,17 @@ export default function MyOrderQRDetail() {
               <button
                 type="button"
                 onClick={() => setPaymentMethod("payos")}
-                className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition ${
-                  paymentMethod === "payos"
+                className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition ${paymentMethod === "payos"
                     ? "border-primary bg-primary/5 text-primary"
                     : "border-gray-100 dark:border-gray-800 text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-950 hover:bg-gray-100 dark:hover:bg-gray-700 dark:bg-gray-800"
-                }`}
+                  }`}
               >
                 <span className="text-3xl mb-2">💳</span>
                 <span className="text-sm font-semibold">PayOS (QR)</span>
               </button>
             </div>
-            
-            <Button 
+
+            <Button
               className="w-full py-4 text-base font-bold rounded-xl bg-primary text-white hover:bg-primary/90 transition shadow-md"
               size="lg"
               onClick={() => {
@@ -350,7 +348,7 @@ export default function MyOrderQRDetail() {
             </div>
             <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">{modalConfig.title || "Thông báo"}</h3>
             <p className="text-gray-600 dark:text-gray-400 mb-6">{modalConfig.message}</p>
-            <Button 
+            <Button
               className={`w-full py-3 rounded-full text-base font-bold text-white transition ${modalConfig.type === "success" ? "bg-green-600 hover:bg-green-700" : "bg-primary hover:bg-primary/90"}`}
               onClick={() => {
                 const onC = modalConfig.onConfirm;

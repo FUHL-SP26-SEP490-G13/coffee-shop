@@ -8,8 +8,8 @@ import {
   Loader2,
   LocateFixed,
 } from "lucide-react";
-import Header from "@/components/layout/Header";
-import Footer from "@/components/layout/Footer";
+
+
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -302,7 +302,7 @@ export default function CheckoutPage() {
         setReputationTier(String(reputation?.reputation_tier || "SILVER"));
         setReputationFrozen(
           Number(reputation?.is_frozen || 0) === 1 ||
-            reputation?.is_frozen === true
+          reputation?.is_frozen === true
         );
       } catch (error) {
         console.error("Lỗi lấy điểm uy tín theo số điện thoại:", error);
@@ -536,12 +536,12 @@ export default function CheckoutPage() {
   const placeOrderLabel = !isOpen
     ? nextOpenMessage || "Đã đóng cửa"
     : isCheckoutBlockedByDistance
-    ? "Ngoài phạm vi giao hàng"
-    : isCheckoutBlockedByCoordinates
-    ? !hasPinnedStoreCoords
-      ? "Cửa hàng chưa ghim tọa độ"
-      : "Ghim vị trí để đặt hàng"
-    : "Đặt hàng";
+      ? "Ngoài phạm vi giao hàng"
+      : isCheckoutBlockedByCoordinates
+        ? !hasPinnedStoreCoords
+          ? "Cửa hàng chưa ghim tọa độ"
+          : "Ghim vị trí để đặt hàng"
+        : "Đặt hàng";
 
   useEffect(() => {
     setForm((prev) => {
@@ -667,7 +667,7 @@ export default function CheckoutPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900">
-      <Header />
+
 
       <section className="flex-1 w-full px-4 sm:px-6 lg:px-8 py-10">
         <div className="w-full mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -733,9 +733,8 @@ export default function CheckoutPage() {
                 )}
                 {!errors.receiver_phone && form.receiver_phone ? (
                   <p
-                    className={`mt-1 text-xs ${
-                      reputationFrozen ? "text-red-600" : "text-emerald-600"
-                    }`}
+                    className={`mt-1 text-xs ${reputationFrozen ? "text-red-600" : "text-emerald-600"
+                      }`}
                   >
                     {reputationFrozen
                       ? "Số điện thoại này đã bị khóa"
@@ -810,8 +809,8 @@ export default function CheckoutPage() {
                       {isAddressLoading
                         ? "Đang tải địa chỉ..."
                         : addresses.length === 0
-                        ? "Chưa có địa chỉ đã lưu"
-                        : "Chọn địa chỉ giao hàng"}
+                          ? "Chưa có địa chỉ đã lưu"
+                          : "Chọn địa chỉ giao hàng"}
                     </Button>
 
                     {addresses.length === 0 && !isAddressLoading && (
@@ -840,9 +839,9 @@ export default function CheckoutPage() {
                           {selectedAddress.address}
                         </p>
                         {selectedAddress.latitude !== null &&
-                        selectedAddress.latitude !== undefined &&
-                        selectedAddress.longitude !== null &&
-                        selectedAddress.longitude !== undefined ? (
+                          selectedAddress.latitude !== undefined &&
+                          selectedAddress.longitude !== null &&
+                          selectedAddress.longitude !== undefined ? (
                           <p className="text-xs text-emerald-600 mt-1">
                             Địa chỉ này đã ghim tọa độ.
                           </p>
@@ -956,11 +955,10 @@ export default function CheckoutPage() {
               </label>
               {paymentValidation && (
                 <div
-                  className={`mb-3 p-3 rounded-lg text-sm ${
-                    paymentValidation.forcePayOS
-                      ? "bg-yellow-50 text-yellow-800 border border-yellow-200"
-                      : "bg-blue-50 text-blue-800 border border-blue-200"
-                  }`}
+                  className={`mb-3 p-3 rounded-lg text-sm ${paymentValidation.forcePayOS
+                    ? "bg-yellow-50 text-yellow-800 border border-yellow-200"
+                    : "bg-blue-50 text-blue-800 border border-blue-200"
+                    }`}
                 >
                   <p className="font-medium">{paymentValidation.message}</p>
                   {paymentValidation.reason && (
@@ -1018,22 +1016,20 @@ export default function CheckoutPage() {
                           }));
                         }
                       }}
-                      className={`flex items-center gap-3 rounded-xl border-2 px-4 py-3 text-left transition-all ${
-                        isDisabled
-                          ? "border-gray-200  bg-gray-100 dark:bg-gray-800 opacity-50 cursor-not-allowed"
-                          : selected
+                      className={`flex items-center gap-3 rounded-xl border-2 px-4 py-3 text-left transition-all ${isDisabled
+                        ? "border-gray-200  bg-gray-100 dark:bg-gray-800 opacity-50 cursor-not-allowed"
+                        : selected
                           ? "border-amber-500 bg-amber-50 dark:bg-amber-900/20"
                           : "border-gray-200  bg-white dark:bg-gray-900 hover:border-gray-300"
-                      }`}
+                        }`}
                     >
                       <span
-                        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
-                          isDisabled
-                            ? "bg-gray-200"
-                            : selected
+                        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${isDisabled
+                          ? "bg-gray-200"
+                          : selected
                             ? "bg-amber-100 dark:bg-amber-900/30"
                             : "bg-gray-100 dark:bg-gray-800"
-                        }`}
+                          }`}
                       >
                         {isDisabled ? (
                           <span className="text-xs text-gray-500 dark:text-gray-400">
@@ -1045,33 +1041,30 @@ export default function CheckoutPage() {
                       </span>
                       <span>
                         <span
-                          className={`block text-sm font-medium ${
-                            isDisabled
-                              ? "text-gray-500 dark:text-gray-400"
-                              : "text-gray-900 dark:text-gray-100"
-                          }`}
+                          className={`block text-sm font-medium ${isDisabled
+                            ? "text-gray-500 dark:text-gray-400"
+                            : "text-gray-900 dark:text-gray-100"
+                            }`}
                         >
                           {opt.label}
                           {isDisabled && " (Không khả dụng)"}
                         </span>
                         <span
-                          className={`block text-xs ${
-                            isDisabled
-                              ? "text-gray-400"
-                              : "text-gray-500 dark:text-gray-400"
-                          }`}
+                          className={`block text-xs ${isDisabled
+                            ? "text-gray-400"
+                            : "text-gray-500 dark:text-gray-400"
+                            }`}
                         >
                           {opt.sub}
                         </span>
                       </span>
                       <span
-                        className={`ml-auto h-4 w-4 shrink-0 rounded-full border-2 ${
-                          isDisabled
-                            ? "border-gray-300 bg-gray-300"
-                            : selected
+                        className={`ml-auto h-4 w-4 shrink-0 rounded-full border-2 ${isDisabled
+                          ? "border-gray-300 bg-gray-300"
+                          : selected
                             ? "border-amber-500 bg-amber-50 dark:bg-amber-900/200"
                             : "border-gray-300"
-                        }`}
+                          }`}
                       />
                     </button>
                   );
@@ -1116,38 +1109,43 @@ export default function CheckoutPage() {
                   className="flex items-start justify-between gap-3"
                 >
                   <div className="flex items-start gap-3 flex-1 text-left">
-                    <div
-                      className="w-12 h-12 shrink-0 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-100 dark:border-gray-800 flex items-center justify-center p-1.5 overflow-hidden mix-blend-multiply dark:mix-blend-normal cursor-pointer transition-opacity hover:opacity-80"
-                      onClick={() =>
-                        navigate(
-                          `/${
-                            item.slug ||
+                    <div className="relative shrink-0">
+                      <div
+                        className="w-12 h-12 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-100 dark:border-gray-800 flex items-center justify-center p-1.5 overflow-hidden mix-blend-multiply dark:mix-blend-normal cursor-pointer transition-opacity hover:opacity-80"
+                        onClick={() =>
+                          navigate(
+                            `/${item.slug ||
                             "products/" + (item.product_id || item.id)
-                          }`
-                        )
-                      }
-                    >
-                      <img
-                        src={
-                          item.image ||
-                          "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085"
+                            }`
+                          )
                         }
-                        alt={item.name}
-                        className="w-full h-full object-contain"
-                        onError={(e) => {
-                          e.currentTarget.src =
-                            "https://images.unsplash.com/photo-1509042239860-f550ce710b93";
-                        }}
-                      />
+                      >
+                        <img
+                          src={
+                            item.image ||
+                            "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085"
+                          }
+                          alt={item.name}
+                          className="w-full h-full object-contain"
+                          onError={(e) => {
+                            e.currentTarget.src =
+                              "https://images.unsplash.com/photo-1509042239860-f550ce710b93";
+                          }}
+                        />
+                      </div>
+                      {activeSale && activeSale.product_ids?.includes(Number(item.product_id || item.id)) && (
+                        <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[8px] font-bold px-1 py-0.5 rounded-sm shadow-sm whitespace-nowrap z-10">
+                          -{activeSale.discount_percent}%
+                        </span>
+                      )}
                     </div>
                     <div>
                       <p
                         className="font-medium text-sm leading-snug cursor-pointer hover:text-amber-600 transition-colors"
                         onClick={() =>
                           navigate(
-                            `/${
-                              item.slug ||
-                              "products/" + (item.product_id || item.id)
+                            `/${item.slug ||
+                            "products/" + (item.product_id || item.id)
                             }`
                           )
                         }
@@ -1390,11 +1388,10 @@ export default function CheckoutPage() {
                     key={item.id}
                     type="button"
                     onClick={() => handleSelectAddress(item)}
-                    className={`w-full text-left border rounded-xl p-4 transition ${
-                      isSelected
-                        ? "border-amber-500 bg-amber-50 dark:bg-amber-900/20"
-                        : "border-gray-200  hover:border-gray-300 bg-white dark:bg-gray-900"
-                    }`}
+                    className={`w-full text-left border rounded-xl p-4 transition ${isSelected
+                      ? "border-amber-500 bg-amber-50 dark:bg-amber-900/20"
+                      : "border-gray-200  hover:border-gray-300 bg-white dark:bg-gray-900"
+                      }`}
                   >
                     <div className="flex items-center justify-between gap-3 mb-2">
                       <div className="flex items-center gap-2">
@@ -1434,7 +1431,7 @@ export default function CheckoutPage() {
         reputationRules={reputationRules}
       />
 
-      <Footer />
+
     </div>
   );
 }

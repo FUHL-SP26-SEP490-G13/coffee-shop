@@ -252,17 +252,17 @@ export default function FlashSaleSection({ products, getThumbnail, getDefaultCar
                               </span>
                             </div>
 
-                            <div className="mt-auto flex items-end justify-between border-t border-transparent pt-1">
-                              <div className="min-w-0">
+                            <div className="mt-auto flex flex-col xl:flex-row xl:items-end justify-between border-t border-transparent pt-2 gap-2.5 xl:gap-0">
+                              <div className="min-w-0 pr-1">
                                 {originalPrice > 0 ? (
                                   <div className="flex flex-col">
-                                    <span className="text-[11px] line-through text-gray-400">{originalPriceText}</span>
-                                    <p className="break-words text-[15px] font-bold leading-tight text-[#8B5A2B] dark:text-amber-500">
+                                    <span className="text-[11px] line-through text-gray-400 truncate">{originalPriceText}</span>
+                                    <p className="text-[13px] sm:text-[14px] font-bold leading-tight text-[#8B5A2B] dark:text-amber-500">
                                       {salePriceText}
                                     </p>
                                   </div>
                                 ) : (
-                                  <p className="break-words text-[17px] font-bold leading-tight text-[#8B5A2B] dark:text-amber-500">
+                                  <p className="text-[14px] sm:text-[15px] font-bold leading-tight text-[#8B5A2B] dark:text-amber-500">
                                     Liên hệ
                                   </p>
                                 )}
