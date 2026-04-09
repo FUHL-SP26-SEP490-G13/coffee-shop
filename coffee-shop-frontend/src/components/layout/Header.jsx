@@ -18,9 +18,7 @@ import {
   Moon,
   Sun,
   Coins,
-  Ticket,
   LayoutList,
-  Info,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -34,7 +32,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useNavigate } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
@@ -55,12 +52,7 @@ import { useStoreHours } from "@/hooks/useStoreHours";
 
 const placeholders = [
   "Xin chào, bạn cần gì hôm nay?",
-  "Cà phê sữa đá",
-  "Trà đào cam sả",
-  "Sinh tố bơ béo ngậy",
 ];
-
-const CART_KEY = "cart_items";
 
 function Header() {
   const navigate = useNavigate();
@@ -101,12 +93,10 @@ function Header() {
   const [open, setOpen] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [mobileUserDropdownOpen, setMobileUserDropdownOpen] = useState(false);
 
   const [categories, setCategories] = useState([]);
   const [categoryOpen, setCategoryOpen] = useState(false);
   const [exploreOpen, setExploreOpen] = useState(false);
-  const [infoOpen, setInfoOpen] = useState(false);
   const [mobileCategoryOpen, setMobileCategoryOpen] = useState(false);
   const [hoveredCategory, setHoveredCategory] = useState(null);
   const [categoryProductsMap, setCategoryProductsMap] = useState({});
@@ -128,12 +118,7 @@ function Header() {
   const [focusedResultIndex, setFocusedResultIndex] = useState(-1);
   const [mobileResultOpen, setMobileResultOpen] = useState(false);
   const [cartCount, setCartCount] = useState(0);
-  const [authDialogOpen, setAuthDialogOpen] = useState(false);
-  const [authMode, setAuthMode] = useState("login");
   const [cartBump, setCartBump] = useState(false);
-
-  // Thêm hook debounce value
-  const [debouncedKeyword, setDebouncedKeyword] = useState(keyword);
 
   const [searchViewMode, setSearchViewMode] = useState("list");
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
@@ -212,7 +197,7 @@ function Header() {
           setStoreName("Coffee Shop");
           localStorage.removeItem("cached_store_name");
         }
-      } catch (error) {
+      } catch {
         setStoreLogo(Logo);
         localStorage.removeItem("cached_store_logo");
         setStoreName("Coffee Shop");
@@ -285,8 +270,11 @@ function Header() {
     try {
       const res = await categoryService.getAll({ with_count: true });
       const list = Array.isArray(res?.data) ? res.data : [];
-      // Lọc bỏ những danh mục không có sản phẩm (chỉ áp dụng trên thanh hiển thị)
-      const validCategories = list.filter(c => c.product_count === undefined || Number(c.product_count) > 0);
+      const validCategories = list.filter(
+        (c) =>
+          Number(c.product_count) > 0 &&
+          (!c.is_deleted || c.is_deleted === 0 || c.is_deleted === "0")
+      );
       setCategories(validCategories);
     } catch (error) {
       console.error("Lỗi lấy danh mục:", error);
@@ -468,8 +456,13 @@ function Header() {
     setHoveredCategory(category.id);
     if (!categoryProductsMap[category.id]) {
       try {
-        const res = await productService.getByCategory(category.id, { limit: 4, status: "available" });
-        const list = Array.isArray(res?.data) ? res.data : (res?.data?.data || []);
+        const res = await productService.getByCategory(category.id, { limit: 50, status: "available" });
+        const rawList = Array.isArray(res?.data) ? res.data : (res?.data?.data || []);
+        const list = rawList.filter(
+          (p) =>
+            p.status === "available" &&
+            (!p.is_deleted || p.is_deleted === 0 || p.is_deleted === "0")
+        );
         setCategoryProductsMap((prev) => ({ ...prev, [category.id]: list }));
       } catch (error) {
         console.error("Lỗi lấy sản phẩm theo danh mục:", error);
@@ -797,9 +790,9 @@ function Header() {
   return (
     <>
       <header className="flex flex-col border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:border-gray-800 sticky top-0 z-50 shadow-sm transition-all duration-300">
-        <div className="w-full px-4 lg:px-6 xl:px-8 py-3 sm:py-4 flex justify-between items-center gap-2 sm:gap-3 lg:gap-0">
+        <div className="w-full px-4 lg:px-6 xl:px-8 py-3 sm:py-4 flex justify-between items-center gap-3 md:gap-4 lg:gap-8">
           <div
-            className="flex-shrink-0 cursor-pointer flex items-center gap-2 sm:gap-3 lg:w-[250px]"
+            className="flex-shrink-0 cursor-pointer flex items-center gap-2 sm:gap-3"
             onClick={() => navigate("/")}
           >
             <img
@@ -813,7 +806,7 @@ function Header() {
             </h1>
           </div>
 
-          <div className="hidden md:flex flex-1 w-full px-4 lg:px-0 lg:pl-6 lg:pr-10">
+          <div className="hidden md:flex flex-1 w-full max-w-[800px] mx-auto">
             <div className="w-full relative" ref={searchRef}>
               <div className="relative">
                 <Input
@@ -966,6 +959,92 @@ function Header() {
           </div>
 
           <div className="flex items-center gap-1 sm:gap-2 lg:gap-4">
+            {/* Nút Sản Phẩm Mega Menu */}
+            <div
+              className="hidden sm:flex items-center relative h-full group"
+              ref={categoryDropdownRef}
+              onMouseEnter={() => setCategoryOpen(true)}
+              onMouseLeave={() => {
+                setCategoryOpen(false);
+                setHoveredCategory(null);
+              }}
+            >
+              <button
+                className={`flex items-center gap-1.5 font-bold px-3 py-2 rounded-xl transition-all border ${categoryOpen
+                  ? "bg-amber-50 dark:bg-amber-900/20 text-amber-600 border-amber-200 dark:border-amber-800"
+                  : "text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 border-transparent hover:border-gray-200 dark:hover:border-gray-700"
+                  }`}
+                onClick={() => {
+                  navigate("/products");
+                  setCategoryOpen(false);
+                }}
+              >
+                <span className="text-[13px] uppercase tracking-wide">Sản phẩm</span>
+                <ChevronDown className="w-4 h-4" />
+              </button>
+
+              {categoryOpen && (
+                <div className="absolute top-full left-0 pt-2 z-[100] flex items-start gap-1.5">
+                  {/* Cột trái: Bảng Danh mục (luôn hiện) */}
+                  <div className="w-[240px] bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl shadow-xl flex flex-col p-2 gap-1 max-h-[70vh] overflow-y-auto custom-scrollbar">
+                    {categories.map((cat) => (
+                      <button
+                        key={cat.id}
+                        onMouseEnter={() => handleCategoryHover(cat)}
+                        onClick={() => goToCategory(cat)}
+                        className={`w-full text-left px-3 py-2 text-[14px] rounded-lg transition-colors flex items-center justify-between ${hoveredCategory === cat.id
+                          ? "bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-500 font-medium"
+                          : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                          }`}
+                      >
+                        <span>{cat.name}</span>
+                        <ChevronDown className="w-4 h-4 -rotate-90 opacity-50" />
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Cột phải: Bảng Products (chỉ hiện khi hover) */}
+                  {hoveredCategory && (
+                    <div className="w-[260px] bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl shadow-xl flex flex-col p-2 gap-1 max-h-[70vh] overflow-y-auto custom-scrollbar">
+                      {categoryProductsMap[hoveredCategory] ? (
+                        categoryProductsMap[hoveredCategory].length > 0 ? (
+                          <>
+                            {categoryProductsMap[hoveredCategory].map(product => (
+                              <button
+                                key={product.id}
+                                onClick={() => {
+                                  navigate(`/${product.slug || 'products/' + product.id}`);
+                                  setCategoryOpen(false);
+                                  setMobileMenuOpen(false);
+                                }}
+                                className="w-full text-left px-3 py-2 text-[14px] text-gray-700 dark:text-gray-300 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20 dark:hover:text-amber-500 rounded-lg transition-colors truncate"
+                              >
+                                {product.name}
+                              </button>
+                            ))}
+                            <button
+                              onClick={() => goToCategory(categories.find(c => c.id === hoveredCategory))}
+                              className="w-full text-left px-3 py-2 text-[13px] text-amber-600 hover:underline font-medium mt-1"
+                            >
+                              Xem tất cả...
+                            </button>
+                          </>
+                        ) : (
+                          <div className="px-3 py-2 text-[14px] text-gray-500">
+                            Chưa có sản phẩm.
+                          </div>
+                        )
+                      ) : (
+                        <div className="flex items-center justify-center p-4 min-h-[100px]">
+                          <Loader2 className="w-5 h-5 text-amber-500 animate-spin" />
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
             <div
               className="hidden sm:flex items-center relative h-full"
               ref={exploreDropdownRef}
@@ -983,7 +1062,7 @@ function Header() {
                 <ChevronDown className="w-4 h-4" />
               </button>
               {exploreOpen && (
-                <div className="absolute top-full right-0 pt-2 z-[100]">
+                <div className="absolute top-full left-0 pt-2 z-[100]">
                   <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-xl w-[200px] py-2">
                     <button
                       onClick={() => {

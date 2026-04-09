@@ -37,34 +37,38 @@ export default function HomeBanner({
               <img
                 src={banner?.image_url || defaultImage}
                 alt={banner?.title || "Banner"}
-                className="absolute inset-0 h-full w-full object-cover transition-transform duration-[8000ms] ease-out hover:scale-105"
+                className="absolute inset-0 h-full w-full object-cover origin-center scale-100 transition-transform duration-[10000ms] ease-out [.swiper-slide-active_&]:scale-110"
               />
 
-              <div className="absolute inset-0 bg-gradient-to-r from-foreground/60 via-foreground/30 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-r from-foreground/70 via-foreground/40 to-transparent" />
 
               <div className="absolute inset-0 flex items-center">
-                <div className="mx-auto w-full w-full px-6 lg:px-8">
+                <div className="mx-auto w-full px-6 lg:px-8">
                   <div className="max-w-lg">
-                    <h1
-                      className="text-3xl font-bold leading-tight text-primary-foreground sm:text-4xl lg:text-5xl"
-                      style={{ lineHeight: "1.1" }}
-                    >
-                      {banner?.title ||
-                        "Chào mừng đến với cửa hàng của chúng tôi"}
-                    </h1>
+                    <div className="opacity-0 translate-y-8 transition-all duration-1000 ease-out [.swiper-slide-active_&]:opacity-100 [.swiper-slide-active_&]:translate-y-0 delay-0 [.swiper-slide-active_&]:delay-[200ms]">
+                      <h1
+                        className="text-3xl font-bold leading-tight text-primary-foreground sm:text-4xl lg:text-5xl"
+                        style={{ lineHeight: "1.1" }}
+                      >
+                        {banner?.title || "Chào mừng đến với cửa hàng của chúng tôi"}
+                      </h1>
+                    </div>
 
-                    <p className="mt-4 text-sm leading-relaxed text-primary-foreground/85 sm:text-base lg:text-lg">
-                      {banner?.subtitle ||
-                        "Khám phá những sản phẩm nổi bật hôm nay"}
-                    </p>
+                    <div className="opacity-0 translate-y-8 transition-all duration-1000 ease-out [.swiper-slide-active_&]:opacity-100 [.swiper-slide-active_&]:translate-y-0 delay-0 [.swiper-slide-active_&]:delay-[400ms]">
+                      <p className="mt-4 text-sm leading-relaxed text-primary-foreground/90 sm:text-base lg:text-lg">
+                        {banner?.subtitle || "Khám phá những sản phẩm nổi bật hôm nay"}
+                      </p>
+                    </div>
 
                     {banner?.button_link && (
-                      <Link
-                        to={banner.button_link}
-                        className="mt-6 inline-block rounded-full bg-primary px-7 py-3 text-sm font-semibold text-primary-foreground shadow-lg transition-all hover:brightness-110 hover:shadow-xl active:scale-[0.97] sm:text-base"
-                      >
-                        {banner?.button_text || "Xem ngay"}
-                      </Link>
+                      <div className="opacity-0 translate-y-8 transition-all duration-1000 ease-out [.swiper-slide-active_&]:opacity-100 [.swiper-slide-active_&]:translate-y-0 delay-0 [.swiper-slide-active_&]:delay-[600ms]">
+                        <Link
+                          to={banner.button_link}
+                          className="mt-6 inline-block rounded-full bg-primary px-7 py-3 text-sm font-semibold text-primary-foreground shadow-lg transition-all hover:brightness-110 hover:shadow-xl active:scale-[0.97] sm:text-base"
+                        >
+                          {banner?.button_text || "Xem ngay"}
+                        </Link>
+                      </div>
                     )}
                   </div>
                 </div>

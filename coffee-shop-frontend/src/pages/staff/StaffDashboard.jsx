@@ -13,11 +13,13 @@ import {
   Package,
 } from "lucide-react";
 import authenticationService from "@/services/authenticationService";
+import staffDBService from "@/services/staffDBService";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
 export function StaffDashboard() {
   const [user, setUser] = useState(null);
+  const [dashboardData, setDashboardData] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -30,13 +32,22 @@ export function StaffDashboard() {
         setUser(userData);
       })
       .catch(console.error);
+
+    staffDBService
+      .getOverview()
+      .then((res) => {
+        if (res?.data?.success) {
+          setDashboardData(res.data.data);
+        }
+      })
+      .catch(console.error);
   }, []);
 
   const stats = [
     {
       title: "Đơn Takeaway",
       description: "Chờ xử lý",
-      value: "N/A",
+      value: dashboardData ? dashboardData.takeawayPending : "...",
       icon: ShoppingBag,
       color: "text-amber-600 dark:text-amber-400",
       bg: "bg-amber-100 dark:bg-amber-900/40/50",
@@ -45,7 +56,7 @@ export function StaffDashboard() {
     {
       title: "Đơn Giao hàng",
       description: "Đang chờ giao",
-      value: "N/A",
+      value: dashboardData ? dashboardData.deliveryWaiting : "...",
       icon: Package,
       color: "text-blue-600 dark:text-blue-400",
       bg: "bg-blue-100 dark:bg-blue-900/40/50",
@@ -54,7 +65,7 @@ export function StaffDashboard() {
     {
       title: "Khu vực Bếp",
       description: "Món đang làm",
-      value: "N/A",
+      value: dashboardData ? dashboardData.kitchenPreparingItems : "...",
       icon: ChefHat,
       color: "text-red-600",
       bg: "bg-red-100 dark:bg-red-900/40/50",
@@ -63,7 +74,7 @@ export function StaffDashboard() {
     {
       title: "Ca của bạn",
       description: "Hôm nay",
-      value: "Sẵn sàng",
+      value: dashboardData ? dashboardData.shiftStatus : "...",
       icon: Clock,
       color: "text-green-600 dark:text-green-400",
       bg: "bg-green-100 dark:bg-green-900/40/50",
@@ -84,12 +95,7 @@ export function StaffDashboard() {
       path: "/staff/schedule",
       color: "bg-white dark:bg-gray-900 border text-foreground hover:bg-accent",
     },
-    {
-      label: "Kiểm kho",
-      icon: ClipboardList,
-      path: "/staff/inventory",
-      color: "bg-white dark:bg-gray-900 border text-foreground hover:bg-accent",
-    },
+
     {
       label: "Danh sách Bàn",
       icon: Users,
@@ -106,12 +112,12 @@ export function StaffDashboard() {
             Chào mừng trở lại, {user?.last_name || user?.first_name || "Trưởng ca"}!
           </h1>
           <p className="text-muted-foreground mt-1">
-            Dưới đây là tổng quan tình trạng hoạt động của cửa hàng lúc này.
+            Dưới đây là tổng quan tình trạng hoạt động của cửa hàng lúc này
           </p>
         </div>
-        <Button onClick={() => navigate("/staff/pos")} className="gap-2">
+        <Button onClick={() => navigate("/staff/takeaway")} className="gap-2">
           <LayoutGrid className="w-4 h-4" />
-          Mở màn hình POS
+          Mở màn hình Takeaway
         </Button>
       </div>
 
@@ -143,7 +149,7 @@ export function StaffDashboard() {
 
       <div className="mt-8">
         <h2 className="text-lg font-semibold mb-4">Lối tắt thao tác nhanh</h2>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
           {quickActions.map((action, idx) => {
             const Icon = action.icon;
             return (

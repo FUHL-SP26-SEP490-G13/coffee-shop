@@ -202,7 +202,6 @@ export function StaffApp() {
     {
       title: 'Vận Hành',
       items: [
-        { id: 'inventory', icon: ClipboardList, label: 'Kho hàng', path: '/staff/inventory' },
         { id: 'requests', icon: ArrowLeftRight, label: 'Đổi ca', path: '/staff/requests' },
       ],
     },

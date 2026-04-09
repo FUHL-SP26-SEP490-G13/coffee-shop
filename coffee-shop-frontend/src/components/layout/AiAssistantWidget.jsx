@@ -241,7 +241,7 @@ export default function AiAssistantWidget() {
       {/* Floating Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`${isOpen ? 'scale-0 opacity-0' : 'scale-100 opacity-100 hover:scale-110'} transition-all duration-300 w-14 h-14 bg-[#7B4B36] rounded-full shadow-lg shadow-amber-900/20 flex items-center justify-center group relative border-2 border-white`}
+        className={`${isOpen ? 'scale-0 opacity-0' : 'scale-100 opacity-100 animate-wiggle hover:bg-[#683f2d]'} transition-all duration-300 w-14 h-14 bg-[#7B4B36] rounded-full shadow-lg shadow-amber-900/20 flex items-center justify-center group relative border-2 border-white cursor-pointer`}
       >
         <Sparkles className="absolute -top-1 -right-1 w-4 h-4 text-amber-300 animate-pulse" />
         <Bot className="w-7 h-7 text-white" />
