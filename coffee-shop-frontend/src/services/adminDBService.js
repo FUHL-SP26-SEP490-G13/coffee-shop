@@ -42,7 +42,26 @@ const adminDBService = {
     return res.data;
   },
 
+  getPaymentMethodRevenue: async ({ startDate, endDate }) => {
+    const res = await axiosClient.get(
+      `/dashboard/payment-method?startDate=${startDate}&endDate=${endDate}`
+    );
+    return res.data;
+  },
 
+  getOrdersSummary: async (startDate, endDate) => {
+    const response = await axiosClient.get(`/dashboard/orders-summary`, {
+      params: { startDate, endDate },
+    });
+    return response.data;
+  },
+
+  getDetailedReport: async (startDate, endDate) => {
+    const response = await axiosClient.get(`/dashboard/detailed-report`, {
+      params: { startDate, endDate },
+    });
+    return response.data;
+  },
 };
 
 export default adminDBService;

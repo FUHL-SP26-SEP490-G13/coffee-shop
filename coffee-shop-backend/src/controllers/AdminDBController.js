@@ -74,6 +74,42 @@ class AdminDBController {
     }
   }
 
+  async getPaymentMethodRevenue(req, res, next) {
+    try {
+      const { startDate, endDate } = req.query;
+      const data = await AdminDBService.getPaymentMethodRevenue({
+        startDate,
+        endDate,
+      });
+      return response.success(
+        res,
+        data,
+        "Lấy doanh thu theo phương thức thanh toán thành công"
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async getOrdersSummary(req, res, next) {
+    try {
+      const { startDate, endDate } = req.query;
+      const result = await AdminDBService.getOrdersSummary(startDate, endDate);
+      return res.json({ success: true, data: result });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async getDetailedOrdersReport(req, res, next) {
+    try {
+      const { startDate, endDate } = req.query;
+      const result = await AdminDBService.getDetailedOrdersReport(startDate, endDate);
+      return res.json({ success: true, data: result });
+    } catch (err) {
+      next(err);
+    }
+  }
 }
 
 module.exports = new AdminDBController();

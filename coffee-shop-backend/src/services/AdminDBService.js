@@ -39,6 +39,18 @@ class AdminDBService {
   }
 
 
+  async getPaymentMethodRevenue({ startDate, endDate }) {
+    return AdminDBRepository.getPaymentMethodRevenue({ startDate, endDate });
+  }
+
+  async getOrdersSummary(startDate, endDate) {
+    return AdminDBRepository.getOrdersSummary(startDate, endDate);
+  }
+
+  async getDetailedOrdersReport(startDate, endDate) {
+    return AdminDBRepository.getDetailedOrdersReport(startDate, endDate);
+  }
+
 }
 
 module.exports = new AdminDBService();

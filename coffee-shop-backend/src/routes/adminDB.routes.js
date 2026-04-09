@@ -46,4 +46,27 @@ router.get(
   AdminDBController.getComparison
 );
 
+// /api/dashboard/payment-method
+router.get(
+  "/payment-method",
+  authenticate,
+  authorize([ROLES_STRING.MANAGER]),
+  AdminDBController.getPaymentMethodRevenue
+);
+
+// /api/dashboard/orders-summary
+router.get(
+  "/orders-summary",
+  authenticate,
+  authorize([ROLES_STRING.MANAGER]),
+  AdminDBController.getOrdersSummary
+);
+
+router.get(
+  "/detailed-report",
+  authenticate,
+  authorize([ROLES_STRING.MANAGER]),
+  AdminDBController.getDetailedOrdersReport
+);
+
 module.exports = router;

@@ -153,6 +153,74 @@ class AdminDBRepository {
   }
 
 
+  // Doanh thu theo phương thức thanh toán
+  async getPaymentMethodRevenue({ startDate, endDate }) {
+    const [rows] = await pool.query(
+      `
+    SELECT payment_method, IFNULL(SUM(total_amount),0) as revenue
+    FROM orders
+    WHERE is_paid = 1
+      AND created_at BETWEEN ? AND ?
+    GROUP BY payment_method
+    `,
+      [startDate, endDate]
+    );
+
+    return rows.map((r) => ({
+      method: r.payment_method,
+      revenue: Number(r.revenue || 0),
+    }));
+  }
+
+  // Tóm tắt số lượng đơn hàng theo trạng thái
+  async getOrdersSummary(startDate, endDate) {
+    const [rows] = await pool.query(
+      `
+    SELECT 
+      status, 
+      is_paid,
+      COUNT(*) as count,
+      IFNULL(SUM(total_amount),0) as revenue
+    FROM orders
+    WHERE created_at BETWEEN ? AND ?
+    GROUP BY status, is_paid
+    `,
+      [startDate, endDate]
+    );
+
+    return rows.map((r) => ({
+      status: r.status,
+      isPaid: Boolean(r.is_paid),
+      count: Number(r.count || 0),
+      revenue: Number(r.revenue || 0),
+    }));
+  }
+
+  async getDetailedOrdersReport(startDate, endDate) {
+    const [rows] = await pool.query(
+      `SELECT 
+        o.id as orderId,
+        COALESCE(odi.receiver_name, 'Khách vãng lai') as customerName,
+        CONCAT(IFNULL(u.first_name, ''), ' ', IFNULL(u.last_name, '')) as staffName,
+        o.created_at as time,
+        COALESCE(op.payment_method, 'N/A') as paymentMethod,
+        (SELECT COALESCE(SUM(quantity), 0) FROM order_details WHERE order_id = o.id) as totalQuantity,
+        o.total_amount + COALESCE(o.used_points, 0) as totalItemsPrice,
+        COALESCE(o.used_points, 0) as discount,
+        o.total_amount as revenue,
+        CASE WHEN o.is_paid = 1 THEN o.total_amount ELSE 0 END as actualCollected,
+        CASE WHEN o.is_paid = 0 THEN o.total_amount ELSE 0 END as debt
+      FROM orders o
+      LEFT JOIN order_payments op ON o.id = op.order_id
+      LEFT JOIN users u ON o.created_by = u.id
+      LEFT JOIN order_delivery_info odi ON o.id = odi.order_id
+      WHERE o.created_at >= ? AND o.created_at <= ?
+      AND o.status IN ('completed', 'served', 'pending')
+      ORDER BY o.created_at DESC`,
+      [startDate, endDate]
+    );
+    return rows;
+  }
 }
 
 module.exports = new AdminDBRepository();

@@ -29,6 +29,7 @@ import {
   Sun,
   Mailbox,
   ArrowLeftRight,
+  FileText,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import authenticationService from '../../services/authenticationService';
@@ -62,6 +63,7 @@ export default function AdminApp() {
    useEffect(() => {
      const routeTitles = {
        "/admin/dashboard": "Bảng điều khiển",
+       "/admin/end-of-day-report": "Báo cáo tổng kết",
        "/admin/orders": "Đơn hàng",
        "/admin/tables": "Quản lý bàn",
        "/admin/menu/categories": "Danh mục",
@@ -372,6 +374,19 @@ export default function AdminApp() {
                 >
                   <LayoutDashboard className="w-4 h-4" />
                   <span className="text-sm tracking-wide">Bảng điều khiển</span>
+                </NavLink>
+                <NavLink
+                  to="/admin/end-of-day-report"
+                  className={({ isActive }) =>
+                    `w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                      isActive
+                        ? "bg-primary text-white"
+                        : "text-muted-foreground hover:bg-secondary"
+                    }`
+                  }
+                >
+                  <FileText className="w-4 h-4" />
+                  <span className="text-sm tracking-wide">Báo cáo tổng kết</span>
                 </NavLink>
               </div>
             </div>
