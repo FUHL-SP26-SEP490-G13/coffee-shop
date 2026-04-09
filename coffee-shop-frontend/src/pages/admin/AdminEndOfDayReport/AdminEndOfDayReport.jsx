@@ -37,6 +37,7 @@ const formatRangeLabel = (range) => {
   return `${format(range.from, "dd/MM/yyyy")} - ${format(range.to, "dd/MM/yyyy")}`;
 };
 
+
 const parseReportRows = (payload) => {
   if (Array.isArray(payload)) return payload;
   if (payload?.success && Array.isArray(payload.data)) return payload.data;
@@ -141,13 +142,8 @@ const AdminEndOfDayReport = () => {
         value: formatMoney(totals.revenue),
         tone: "from-amber-500/15 to-orange-500/5",
       },
-      {
-        label: "Phải thu",
-        value: formatMoney(totals.debt),
-        tone: "from-rose-500/15 to-red-500/5",
-      },
     ],
-    [data.length, totals.debt, totals.qty, totals.revenue]
+    [data.length, totals.qty, totals.revenue]
   );
 
   const handlePrint = () => {
@@ -260,7 +256,7 @@ const AdminEndOfDayReport = () => {
         </p>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4 print:hidden">
+      <div className="grid gap-3 sm:grid-cols-3 print:hidden">
         {metrics.map((metric, index) => (
           <div
             key={metric.label}
