@@ -138,6 +138,30 @@ export default function AdminOrders() {
     }, 0);
   };
 
+  const normalizeOrderType = (value) => {
+    const type = String(value || "").toLowerCase();
+    if (type === "dinein") return "dine-in";
+    if (type === "take-away") return "takeaway";
+    return type;
+  };
+
+  const getShippingFee = (order, subtotal = calculateSubtotal(order)) => {
+    if (normalizeOrderType(order?.order_type) !== "delivery") return 0;
+
+    const feeFromApi = Number(order?.delivery_fee ?? order?.shipping_fee);
+    if (Number.isFinite(feeFromApi) && feeFromApi > 0) {
+      return feeFromApi;
+    }
+
+    const orderTotal = Number(order?.total_amount || 0);
+    const derivedFee = orderTotal - Number(subtotal || 0);
+    if (Number.isFinite(derivedFee) && derivedFee > 0) {
+      return derivedFee;
+    }
+
+    return 0;
+  };
+
   const statusSummary = useMemo(() => {
     const base = {
       all: 0,
@@ -247,6 +271,8 @@ export default function AdminOrders() {
             const statusInfo = getStatusInfo(order.status);
             const typeInfo = getOrderTypeInfo(order.order_type);
             const itemCount = Array.isArray(order.items) ? order.items.length : 0;
+            const subtotal = calculateSubtotal(order);
+            const shippingFee = getShippingFee(order, subtotal);
 
             return (
               <div
@@ -364,9 +390,17 @@ export default function AdminOrders() {
                       <div className="flex items-center justify-between text-sm text-gray-600">
                         <span>Tạm tính</span>
                         <span>
-                          {Number(calculateSubtotal(order)).toLocaleString("vi-VN")}đ
+                          {Number(subtotal).toLocaleString("vi-VN")}đ
                         </span>
                       </div>
+                      {shippingFee > 0 && (
+                        <div className="flex items-center justify-between text-sm text-gray-600 mt-1.5">
+                          <span>Phí vận chuyển</span>
+                          <span className="text-cyan-700">
+                            +{Number(shippingFee).toLocaleString("vi-VN")}đ
+                          </span>
+                        </div>
+                      )}
                       <div className="flex items-center justify-between text-sm font-semibold text-gray-900 mt-1.5">
                         <span>Thực thu</span>
                         <span className="text-primary">
@@ -407,7 +441,10 @@ export default function AdminOrders() {
         open={!!selectedOrder}
         onOpenChange={(open) => !open && setSelectedOrder(null)}
       >
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-0 gap-0">
+        <DialogContent
+          contentWidth="70rem"
+          className="max-h-[90vh] overflow-y-auto p-0 gap-0"
+        >
           {selectedOrder && (
             <>
               <DialogHeader className="p-6 border-b bg-gray-50 dark:bg-gray-800/50 sticky top-0 z-10 backdrop-blur-sm">
@@ -444,9 +481,8 @@ export default function AdminOrders() {
                 </div>
               </DialogHeader>
 
-              <div className="p-6 space-y-6">
-                {/* Info Cards */}
-                <div className="grid grid-cols-1 gap-4">
+              <div className="p-6 grid grid-cols-1 md:grid-cols-12 gap-6">
+                <div className="md:col-span-5 space-y-4">
                   {/* Customer Info */}
                   <div className="rounded-xl border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-900 dark:border-gray-800 p-4 space-y-3 shadow-sm">
                     <div className="flex items-center gap-2 text-primary font-medium border-b border-gray-50 pb-2">
@@ -532,6 +568,7 @@ export default function AdminOrders() {
                   </div>
                 </div>
 
+                <div className="md:col-span-7 space-y-4">
                 {/* Items List */}
                 <div className="rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
                   <div className="bg-gray-50 dark:bg-gray-800/50 p-3 border-b border-gray-100 dark:border-gray-700 flex items-center gap-2 text-primary font-medium">
@@ -628,6 +665,13 @@ export default function AdminOrders() {
                 </div>
 
                 {/* Payment Summary */}
+                {(() => {
+                  const subtotal = calculateSubtotal(selectedOrder);
+                  const shippingFee = getShippingFee(selectedOrder, subtotal);
+                  const total = Number(selectedOrder.total_amount || 0);
+                  const discountAmount = Math.max(0, subtotal + shippingFee - total);
+
+                  return (
                 <div className="rounded-xl bg-gray-50 dark:bg-gray-800 p-4 space-y-3">
                   <div className="flex items-center gap-2 text-gray-700 dark:text-gray-200 font-medium pb-2 border-b border-gray-200 dark:border-gray-700">
                     <CreditCard className="w-4 h-4" />
@@ -636,22 +680,24 @@ export default function AdminOrders() {
                   <div className="flex justify-between text-sm text-gray-600 dark:text-gray-300">
                     <span>Tạm tính</span>
                     <span>
-                      {Number(calculateSubtotal(selectedOrder)).toLocaleString(
-                        "vi-VN",
-                      )}
+                      {Number(subtotal).toLocaleString("vi-VN")}
                       đ
                     </span>
                   </div>
-                  {Number(calculateSubtotal(selectedOrder)) >
-                    Number(selectedOrder.total_amount) && (
+                  {shippingFee > 0 && (
+                    <div className="flex justify-between text-sm text-cyan-700 dark:text-cyan-300">
+                      <span>Phí vận chuyển</span>
+                      <span>
+                        +{Number(shippingFee).toLocaleString("vi-VN")}đ
+                      </span>
+                    </div>
+                  )}
+                  {discountAmount > 0 && (
                       <div className="flex justify-between text-sm text-emerald-600">
                         <span>Giảm giá</span>
                         <span>
                           -
-                          {Number(
-                            calculateSubtotal(selectedOrder) -
-                            selectedOrder.total_amount,
-                          ).toLocaleString("vi-VN")}
+                          {Number(discountAmount).toLocaleString("vi-VN")}
                           đ
                         </span>
                       </div>
@@ -688,6 +734,9 @@ export default function AdminOrders() {
                       </span>
                     )}
                   </div>
+                </div>
+                  );
+                })()}
                 </div>
               </div>
             </>

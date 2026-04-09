@@ -103,7 +103,8 @@ class RecipeService {
       ingredientId
     );
     if (exists) {
-      throw new ErrorResponse(400, 'Công thức cho nguyên liệu này đã tồn tại');
+      const mergedQuantity = Number(exists.quantity || 0) + Number(quantity || 0);
+      return RecipeRepository.updateRecipe(exists.id, ingredientId, mergedQuantity);
     }
 
     const recipe = await RecipeRepository.createRecipe(
