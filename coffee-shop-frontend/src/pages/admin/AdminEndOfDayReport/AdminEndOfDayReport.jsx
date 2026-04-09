@@ -290,7 +290,7 @@ const AdminEndOfDayReport = () => {
                 <th className="px-4 py-3 text-right">Tổng tiền hàng</th>
                 <th className="px-4 py-3 text-right">Giảm giá</th>
                 <th className="px-4 py-3 text-right">Phí ship</th>
-                <th className="px-4 py-3 text-right">Doanh thu (Thực thu)</th>
+                <th className="px-4 py-3 text-right">Doanh thu </th>
               </tr>
             </thead>
             <tbody>
