@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   RefreshCw,
@@ -7,6 +7,9 @@ import {
   Bell,
   Printer,
   Coffee,
+  CheckCircle,
+  Loader2,
+  BookOpen,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -35,6 +38,7 @@ import orderOnlineService from "@/services/orderOnlineService";
 import authenticationService from "@/services/authenticationService";
 import takeawayService from "@/services/takeAwayService";
 import { ReceiptModal } from "./TakeAwayOrder/ReceiptModal";
+import BaristaViewRecipe from "../barista/BaristaOrder/BaristaViewRecipe";
 
 const STAFF_TAB_STATUSES = ["pending", "preparing", "completed", "cancelled"];
 
@@ -164,6 +168,7 @@ export function OrderDelivery() {
   const [newOrderCount, setNewOrderCount] = useState(0);
   const [selectedOrderType, setSelectedOrderType] = useState("all");
   const [viewingReceipt, setViewingReceipt] = useState(null);
+  const [viewRecipeItem, setViewRecipeItem] = useState(null);
   const [cashPaymentDialog, setCashPaymentDialog] = useState({
     open: false,
     order: null,
@@ -228,13 +233,16 @@ export function OrderDelivery() {
   useEffect(() => {
     const notifyAndReload = (label, data) => {
       setNewOrderCount((prev) => prev + 1);
-      toast.success(`Có đơn ${label} mới! (#${data.order_id})`);
+      toast.success(`Có đơn ${label} mới! (#${data.order_id || data.id || ''})`);
       loadOrders();
     };
 
     const handleNewDeliveryOrder = (data) => notifyAndReload("giao hàng", data);
-
     const handleNewTakeawayOrder = (data) => notifyAndReload("mang về", data);
+    
+    const silentReload = () => {
+      loadOrders();
+    };
 
     if (!socket.connected) {
       socket.connect();
@@ -242,10 +250,20 @@ export function OrderDelivery() {
 
     socket.on("new-delivery-order", handleNewDeliveryOrder);
     socket.on("new-takeaway-order", handleNewTakeawayOrder);
+    
+    // Barista-like background refreshing events
+    socket.on("new-order", silentReload);
+    socket.on("new-dine-in-order", silentReload);
+    socket.on("order-online:new", silentReload);
+    socket.on("barista:notification", silentReload);
 
     return () => {
       socket.off("new-delivery-order", handleNewDeliveryOrder);
       socket.off("new-takeaway-order", handleNewTakeawayOrder);
+      socket.off("new-order", silentReload);
+      socket.off("new-dine-in-order", silentReload);
+      socket.off("order-online:new", silentReload);
+      socket.off("barista:notification", silentReload);
     };
   }, [loadOrders]);
 
@@ -649,14 +667,37 @@ export function OrderDelivery() {
             <p className="text-base font-bold color-green-500 leading-none text-slate-900 ">
               {money(order.total_amount)}
             </p>
-            <Button
-              size="sm"
-              className="h-9 w-full px-3 text-sm sm:h-7 sm:w-auto sm:px-2.5 sm:text-xs"
-              variant={activeStatus === "pending" ? "default" : "outline"}
-              onClick={() => openDetailModal(order)}
-            >
-              {activeStatus === "pending" ? "Xác nhận" : "Xem chi tiết"}
-            </Button>
+            <div className="flex w-full items-center gap-2 sm:w-auto">
+              <Button
+                size="sm"
+                className={`h-9 flex-1 text-sm sm:h-7 sm:px-2.5 sm:text-xs ${activeStatus === "preparing" ? "" : "w-full sm:w-auto"}`}
+                variant={activeStatus === "pending" ? "default" : "outline"}
+                onClick={() => openDetailModal(order)}
+              >
+                {activeStatus === "pending" ? "Xác nhận" : "Chi tiết"}
+              </Button>
+              {activeStatus === "preparing" && (
+                <Button
+                  size="sm"
+                  className="h-9 flex-1 px-3 text-sm font-semibold sm:h-7 sm:w-auto sm:px-3 sm:text-xs bg-primary hover:bg-primary/90 text-primary-foreground"
+                  disabled={completingId === order.id}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (!paid) {
+                      openCashPaymentDialog(order);
+                    } else {
+                      handleCompleteDeliveryOrder(order.id);
+                    }
+                  }}
+                >
+                  {completingId === order.id ? (
+                    <Loader2 className="mx-auto h-3 w-3 animate-spin text-white" />
+                  ) : (
+                    "Hoàn thành"
+                  )}
+                </Button>
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -890,36 +931,64 @@ export function OrderDelivery() {
                   selectedOrder.items.map((item) => (
                     <div
                       key={`${selectedOrder.id}-${item.id || item.product_name || item.name}`}
-                      className="rounded-md border p-2 text-sm"
+                      className="flex items-start justify-between gap-2.5 rounded-md border p-2 text-sm"
                     >
-                      <p className="font-medium">
-                        {item.name ||
-                          item.productName ||
-                          item.product_name ||
-                          "Sản phẩm"}
-                      </p>
-                      <p className="text-muted-foreground">
-                        Size {item.size} • x{item.quantity} •{" "}
-                        {money(item.price || item.total_price)}
-                      </p>
-                      {Array.isArray(item.toppings) &&
-                      item.toppings.length > 0 ? (
-                        <p className="text-muted-foreground">
-                          Topping:{" "}
-                          {item.toppings
-                            .map((top) => `${top.name} x${top.quantity || 1}`)
-                            .join(", ")}
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium text-slate-900">
+                          {item.name ||
+                            item.productName ||
+                            item.product_name ||
+                            "Sản phẩm"}
                         </p>
-                      ) : (
-                        <p className="text-muted-foreground">
-                          Không có topping
+                        <p className="text-muted-foreground mt-0.5">
+                          Size {item.size} • x{item.quantity} •{" "}
+                          <span className="font-medium text-slate-700">{money(item.price || item.total_price)}</span>
                         </p>
+                        {Array.isArray(item.toppings) &&
+                        item.toppings.length > 0 ? (
+                          <div className="mt-1 flex flex-wrap gap-1">
+                            {item.toppings.map((top, idx) => (
+                              <span key={idx} className="rounded-sm border bg-slate-50 px-1.5 py-0.5 text-[11px] text-slate-600">
+                                {top.name} {top.quantity > 1 ? `x${top.quantity}` : ''}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-muted-foreground mt-0.5 text-[11px]">
+                            Không có topping
+                          </p>
+                        )}
+                        {item.note ? (
+                          <p className="text-muted-foreground mt-0.5 italic text-[12px]">
+                            Ghi chú: {item.note}
+                          </p>
+                        ) : null}
+                      </div>
+
+                      {activeStatus === "preparing" && (
+                        <div className="flex shrink-0 items-center justify-end">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 rounded-sm border-primary/30 px-2.5 text-xs text-primary shadow-sm hover:bg-primary hover:text-white"
+                            onClick={() =>
+                              setViewRecipeItem({
+                                product: {
+                                  id: item.productId || item.product_id,
+                                  name: item.name || item.productName || item.product_name,
+                                },
+                                size: {
+                                  id: item.productSizeId || item.size_id || item.product_size_id,
+                                  size: item.size,
+                                },
+                              })
+                            }
+                          >
+                            <BookOpen className="mr-1.5 h-3 w-3" />
+                            Công thức
+                          </Button>
+                        </div>
                       )}
-                      {item.note ? (
-                        <p className="text-muted-foreground">
-                          Ghi chú: {item.note}
-                        </p>
-                      ) : null}
                     </div>
                   ))
                 ) : (
@@ -1067,6 +1136,14 @@ export function OrderDelivery() {
           </div>
         </DialogContent>
       </Dialog>
+      {viewRecipeItem && (
+        <BaristaViewRecipe
+          open={!!viewRecipeItem}
+          product={viewRecipeItem.product}
+          size={viewRecipeItem.size}
+          onClose={() => setViewRecipeItem(null)}
+        />
+      )}
     </div>
   );
 }

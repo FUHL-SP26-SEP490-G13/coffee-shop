@@ -10,7 +10,9 @@ import {
   ChevronRight,
   BookOpen,
   Loader2,
-  RefreshCcw
+  RefreshCcw,
+  Calendar as CalendarIcon,
+  Filter
 } from 'lucide-react';
 import { Card, CardContent } from '../../../components/ui/card';
 import { Badge } from '../../../components/ui/badge';
@@ -30,12 +32,26 @@ export function BaristaOrders() {
   const [viewRecipeItem, setViewRecipeItem] = useState(null);
   const [activeTab, setActiveTab] = useState('new');
   const [actionLoadingId, setActionLoadingId] = useState(null);
+  const [filterType, setFilterType] = useState('today'); // 'today' or 'range'
+  const [startDate, setStartDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [endDate, setEndDate] = useState(() => new Date().toISOString().split('T')[0]);
 
   const fetchOrders = useCallback(async () => {
     try {
       setLoading(true);
       const statuses = activeTab === 'new' ? ['pending'] : ['completed'];
-      const response = await baristaDBService.getActiveOrders(statuses);
+      let filters = {};
+
+      if (activeTab === 'completed') {
+        if (filterType === 'today') {
+           filters.today = true;
+        } else if (filterType === 'range') {
+           filters.startDate = startDate;
+           filters.endDate = endDate;
+        }
+      }
+
+      const response = await baristaDBService.getActiveOrders(statuses, filters);
       setOrderList(response.data || []);
     } catch (error) {
       console.error('Fetch orders error:', error);
@@ -43,14 +59,21 @@ export function BaristaOrders() {
     } finally {
       setLoading(false);
     }
-  }, [activeTab]);
+  }, [activeTab, filterType, startDate, endDate]);
 
   useEffect(() => {
-    fetchOrders();
+    // Re-fetch automatically when tab or filter changes,
+    // except for 'range' where we typically want to wait for the user to select dates and click Filter.
+    // However, it's safer to just fetch when 'range' is initially selected too.
+    if (activeTab === 'new' || (activeTab === 'completed' && filterType !== 'range')) {
+       fetchOrders();
+    }
+  }, [fetchOrders, activeTab, filterType]);
 
-    // Socket listeners for real-time updates
+  useEffect(() => {
     const handleNewOrder = () => {
       if (activeTab === 'new') fetchOrders();
+      if (activeTab === 'completed' && filterType === 'today') fetchOrders();
     };
 
     socket.on('new-order', handleNewOrder);
@@ -64,7 +87,7 @@ export function BaristaOrders() {
       socket.off('order-online:new', handleNewOrder);
       socket.off('barista:notification', handleNewOrder);
     };
-  }, [fetchOrders, activeTab]);
+  }, [fetchOrders, activeTab, filterType]);
 
   // Grouping logic for "New Orders"
   const deliveryOrders = useMemo(() => orderList.filter(o => o.order_type === 'delivery'), [orderList]);
@@ -205,8 +228,54 @@ export function BaristaOrders() {
           </div>
         </TabsContent>
 
-        <TabsContent value="completed" className="flex-1 mt-0 outline-none">
-          <ScrollArea className="h-[calc(100vh-220px)] min-h-[500px] pr-4">
+        <TabsContent value="completed" className="flex-1 mt-0 outline-none flex flex-col min-h-0">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-4 p-4 rounded-xl shadow-sm bg-background border border-border flex-none">
+             <div className="font-bold flex items-center gap-2">
+               <Filter className="w-4 h-4 text-primary" />
+               Bộ lọc:
+             </div>
+             
+             <div className="flex bg-muted/50 p-1 rounded-lg">
+                <button 
+                  onClick={() => setFilterType('all')}
+                  className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${filterType === 'all' ? 'bg-background shadow-sm text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+                >
+                  Tất cả
+                </button>
+                <button 
+                  onClick={() => setFilterType('today')}
+                  className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${filterType === 'today' ? 'bg-background shadow-sm text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+                >
+                  Hôm nay
+                </button>
+                <button 
+                  onClick={() => setFilterType('range')}
+                  className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${filterType === 'range' ? 'bg-background shadow-sm text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+                >
+                  Tùy chọn ngày
+                </button>
+             </div>
+
+             {filterType === 'range' && (
+               <div className="flex items-center gap-2">
+                 <input 
+                   type="date" 
+                   value={startDate}
+                   onChange={(e) => setStartDate(e.target.value)}
+                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:opacity-50"
+                 />
+                 <span className="text-muted-foreground">-</span>
+                 <input 
+                   type="date" 
+                   value={endDate}
+                   onChange={(e) => setEndDate(e.target.value)}
+                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:opacity-50"
+                 />
+                 <Button onClick={fetchOrders} size="sm" className="ml-2">Lọc</Button>
+               </div>
+             )}
+          </div>
+          <ScrollArea className="h-[calc(100vh-300px)] min-h-[500px] pr-4">
             {loading ? (
               <div className="flex items-center justify-center py-20">
                 <Loader2 className="w-10 h-10 animate-spin text-primary" />

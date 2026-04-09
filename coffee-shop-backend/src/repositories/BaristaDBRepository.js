@@ -54,7 +54,7 @@ class BaristaDBRepository {
     }));
   }
 
-  async getActiveOrders(statuses = ["pending", "preparing", "served"]) {
+  async getActiveOrders(statuses = ["pending", "preparing", "served"], filters = {}) {
     const normalizedStatuses = Array.isArray(statuses)
       ? statuses
           .map((status) => String(status || "").trim().toLowerCase())
@@ -70,6 +70,16 @@ class BaristaDBRepository {
       : ["pending", "preparing", "served"];
 
     const placeholders = finalStatuses.map(() => "?").join(", ");
+
+    let dateFilterSql = "";
+    const queryParams = [...finalStatuses];
+
+    if (filters.startDate && filters.endDate) {
+      dateFilterSql = " AND o.created_at >= ? AND o.created_at <= ? + INTERVAL 1 DAY - INTERVAL 1 SECOND";
+      queryParams.push(filters.startDate, filters.endDate);
+    } else if (filters.today) {
+      dateFilterSql = " AND DATE(o.created_at) = CURDATE()";
+    }
 
     const [rows] = await pool.query(
       `
@@ -90,7 +100,7 @@ class BaristaDBRepository {
       LEFT JOIN order_details od ON od.order_id = o.id
       LEFT JOIN order_payments op ON op.order_id = o.id
       LEFT JOIN order_delivery_info odi ON odi.order_id = o.id
-      WHERE o.status IN (${placeholders})
+      WHERE o.status IN (${placeholders}) ${dateFilterSql}
       GROUP BY
         o.id,
         o.order_type,
@@ -107,7 +117,7 @@ class BaristaDBRepository {
         FIELD(o.status, 'pending', 'preparing', 'served', 'delivering', 'completed', 'cancelled'),
         o.created_at ASC
     `,
-      finalStatuses
+      queryParams
     );
 
     return rows;
