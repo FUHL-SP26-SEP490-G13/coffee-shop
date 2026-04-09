@@ -1,13 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Badge } from "../../../components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "../../../components/ui/table";
 import {
   Select,
   SelectContent,
@@ -20,6 +12,7 @@ import {
   Loader2,
   CalendarClock,
   Eye,
+  Package,
   CreditCard,
   User,
   MapPin,
@@ -79,26 +72,40 @@ export default function AdminOrders() {
     switch (String(status).toLowerCase()) {
       case "pending":
         return {
+          key: "pending",
           label: "Chờ xác nhận",
           color: "bg-yellow-100 text-yellow-800 border-yellow-200",
         };
       case "preparing":
         return {
+          key: "preparing",
           label: "Đang chuẩn bị",
           color: "bg-blue-100 text-blue-800 border-blue-200",
         };
+      case "ready":
+        return {
+          key: "ready",
+          label: "Chờ giao/Nhận",
+          color: "bg-indigo-100 text-indigo-800 border-indigo-200",
+        };
       case "completed":
         return {
+          key: "completed",
           label: "Hoàn thành",
           color: "bg-green-100 text-green-800 border-green-200",
         };
       case "cancelled":
         return {
+          key: "cancelled",
           label: "Đã hủy",
           color: "bg-red-100 text-red-800 border-red-200",
         };
       default:
-        return { label: status, color: "bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-100" };
+        return {
+          key: String(status).toLowerCase(),
+          label: status,
+          color: "bg-gray-100 text-gray-800",
+        };
     }
   };
 
@@ -131,6 +138,36 @@ export default function AdminOrders() {
     }, 0);
   };
 
+  const statusSummary = useMemo(() => {
+    const base = {
+      all: 0,
+      pending: 0,
+      preparing: 0,
+      ready: 0,
+      completed: 0,
+      cancelled: 0,
+    };
+
+    orders.forEach((order) => {
+      const statusKey = getStatusInfo(order.status).key;
+      if (statusKey in base) {
+        base[statusKey] += 1;
+      }
+      base.all += 1;
+    });
+
+    return base;
+  }, [orders]);
+
+  const quickFilters = [
+    { value: "all", label: "Tất cả" },
+    { value: "pending", label: "Chờ xác nhận" },
+    { value: "preparing", label: "Đang chuẩn bị" },
+    { value: "ready", label: "Chờ giao/Nhận" },
+    { value: "completed", label: "Hoàn thành" },
+    { value: "cancelled", label: "Đã hủy" },
+  ];
+
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -161,194 +198,199 @@ export default function AdminOrders() {
         </div>
       </div>
 
-      <div className="bg-white dark:bg-gray-900 dark:border-gray-800 rounded-2xl border shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader className="bg-gray-50 dark:bg-gray-800/50">
-              <TableRow className="hover:bg-transparent">
-                <TableHead className="font-semibold text-gray-600 dark:text-gray-300 w-[60px]">
-                  STT
-                </TableHead>
-                <TableHead className="font-semibold text-gray-600 dark:text-gray-300 w-[120px]">
-                  Mã đơn
-                </TableHead>
-                <TableHead className="font-semibold text-gray-600 dark:text-gray-300">
-                  Sản phẩm
-                </TableHead>
-                <TableHead className="font-semibold text-gray-600 dark:text-gray-300">
-                  Loại đơn
-                </TableHead>
-                <TableHead className="font-semibold text-gray-600 dark:text-gray-300">
-                  Trạng thái
-                </TableHead>
-                <TableHead className="font-semibold text-gray-600 dark:text-gray-300">
-                  Thời gian
-                </TableHead>
-                <TableHead className="font-semibold text-gray-600 dark:text-gray-300 text-right">
-                  Tổng tiền
-                </TableHead>
-                <TableHead className="w-[50px]"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={8} className="h-64 text-center">
-                    <div className="flex flex-col items-center justify-center text-muted-foreground dark:text-gray-400 gap-3">
-                      <Loader2 className="w-8 h-8 animate-spin text-primary/50" />
-                      <span className="text-sm font-medium">
-                        Đang tải danh sách đơn hàng...
-                      </span>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ) : orders.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={8} className="h-64 text-center">
-                    <div className="flex flex-col items-center justify-center text-muted-foreground dark:text-gray-400 gap-3">
-                      <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-full">
-                        <ShoppingBag className="w-8 h-8 text-gray-400" />
-                      </div>
-                      <span className="text-sm font-medium">
-                        Chưa có đơn hàng nào
-                      </span>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ) : (
-                orders.map((order, index) => {
-                  const statusInfo = getStatusInfo(order.status);
-                  const typeInfo = getOrderTypeInfo(order.order_type);
-                  const stt = (currentPage - 1) * 10 + index + 1;
+      <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
+        {quickFilters.map((filter) => {
+          const isActive = statusFilter === filter.value;
+          const count = statusSummary[filter.value] || 0;
 
-                  return (
-                    <TableRow
-                      key={order.id}
-                      className="group hover:bg-gray-50 dark:hover:bg-gray-800 dark:bg-gray-800/50 transition-colors"
-                    >
-                      <TableCell>
-                        <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
-                          {stt}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <span className="font-mono font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-md text-xs">
+          return (
+            <button
+              key={filter.value}
+              type="button"
+              onClick={() => handleStatusChange(filter.value)}
+              className={`rounded-xl border px-3 py-2 text-left transition-colors ${isActive
+                  ? "border-primary/40 bg-primary/5"
+                  : "border-gray-200 bg-white hover:bg-gray-50"
+                }`}
+            >
+              <p
+                className={`text-xs font-medium ${isActive ? "text-primary" : "text-gray-500"
+                  }`}
+              >
+                {filter.label}
+              </p>
+              <p className="text-xl font-bold text-gray-900 leading-tight mt-1">
+                {count}
+              </p>
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="space-y-3">
+        {loading ? (
+          <div className="h-64 rounded-2xl border bg-white flex flex-col items-center justify-center text-muted-foreground gap-3">
+            <Loader2 className="w-8 h-8 animate-spin text-primary/50" />
+            <span className="text-sm font-medium">
+              Đang tải danh sách đơn hàng...
+            </span>
+          </div>
+        ) : orders.length === 0 ? (
+          <div className="h-64 rounded-2xl border bg-white flex flex-col items-center justify-center text-muted-foreground gap-3">
+            <div className="p-4 bg-gray-50 rounded-full">
+              <ShoppingBag className="w-8 h-8 text-gray-400" />
+            </div>
+            <span className="text-sm font-medium">Chưa có đơn hàng nào</span>
+          </div>
+        ) : (
+          orders.map((order) => {
+            const statusInfo = getStatusInfo(order.status);
+            const typeInfo = getOrderTypeInfo(order.order_type);
+            const itemCount = Array.isArray(order.items) ? order.items.length : 0;
+
+            return (
+              <div
+                key={order.id}
+                className="rounded-2xl border bg-white shadow-sm hover:shadow-md transition-all"
+              >
+                <div className="p-4 sm:p-5 border-b border-gray-100">
+                  <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
+                    <div className="space-y-2 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-mono font-semibold text-gray-700 bg-gray-100 px-2.5 py-1 rounded-md text-xs">
                           #{String(order.id).padStart(5, "0")}
                         </span>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-col max-w-[280px]">
-                          {order.items && order.items.length > 0 ? (
-                            <div className="space-y-1">
-                              {order.items.slice(0, 2).map((item, i) => {
-                                const itemToppings = Array.isArray(
-                                  item.toppings,
-                                )
-                                  ? item.toppings
-                                  : Array.isArray(item.toppings_raw)
-                                    ? item.toppings_raw.filter((t) => t)
-                                    : [];
-                                return (
-                                  <div
-                                    key={i}
-                                    className="flex flex-col text-sm gap-0.5 mb-1"
-                                  >
-                                    <div className="flex items-center gap-1.5">
-                                      <span className="font-medium text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 px-1.5 rounded text-xs min-w-[24px] text-center">
-                                        {item.quantity}x
-                                      </span>
-                                      <span
-                                        className="truncate text-gray-800 dark:text-gray-100"
-                                        title={item.product?.name}
-                                      >
-                                        {item.product?.name || "Sản phẩm"}
-                                      </span>
-                                    </div>
-                                    {itemToppings.length > 0 && (
-                                      <div
-                                        className="text-[11px] text-gray-500 pl-8 leading-tight line-clamp-1"
-                                        title={itemToppings
-                                          .map((t) => t.name)
-                                          .join(", ")}
-                                      >
-                                        +{" "}
-                                        {itemToppings
-                                          .map((t) => t.name)
-                                          .join(", ")}
-                                      </div>
-                                    )}
-                                  </div>
-                                );
-                              })}
-                              {order.items.length > 2 && (
-                                <div className="text-xs text-muted-foreground dark:text-gray-400 font-medium pl-1">
-                                  + {order.items.length - 2} sản phẩm khác
-                                </div>
-                              )}
-                            </div>
-                          ) : (
-                            <span className="text-sm text-gray-400 italic">
-                              Không có sản phẩm
-                            </span>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant="outline"
-                          className={`font-medium ${typeInfo.color}`}
-                        >
+                        <Badge variant="outline" className={`font-medium ${typeInfo.color}`}>
                           {typeInfo.label}
                         </Badge>
-                      </TableCell>
-                      <TableCell>
                         <Badge
                           variant="outline"
-                          className={`font-medium ${statusInfo.color}`}
+                          className={`font-medium inline-flex items-center ${statusInfo.color}`}
                         >
                           <span className="w-1.5 h-1.5 rounded-full bg-current mr-1.5 shrink-0 opacity-75" />
                           {statusInfo.label}
                         </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
-                          <CalendarClock className="w-4 h-4 mr-1.5 text-gray-400 shrink-0" />
-                          <span>
-                            {new Date(order.created_at).toLocaleString(
-                              "vi-VN",
-                              {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                                day: "2-digit",
-                                month: "2-digit",
-                                year: "numeric",
-                              },
-                            )}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <span className="font-semibold text-primary">
+                      </div>
+
+                      <div className="flex items-center text-sm text-gray-600">
+                        <CalendarClock className="w-4 h-4 mr-1.5 text-gray-400 shrink-0" />
+                        {new Date(order.created_at).toLocaleString("vi-VN", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                          day: "2-digit",
+                          month: "2-digit",
+                          year: "numeric",
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="text-left md:text-right">
+                      <p className="text-xs text-gray-500">Tổng thanh toán</p>
+                      <p className="text-xl font-bold text-primary leading-tight">
+                        {Number(order.total_amount).toLocaleString("vi-VN")}đ
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-4 sm:p-5 grid grid-cols-1 lg:grid-cols-12 gap-4">
+                  <div className="lg:col-span-7 rounded-xl border border-gray-100 bg-gray-50/50 p-3.5">
+                    <div className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-3">
+                      <Package className="w-4 h-4 text-gray-500" />
+                      Sản phẩm ({itemCount})
+                    </div>
+
+                    {itemCount > 0 ? (
+                      <div className="space-y-2.5">
+                        {order.items.slice(0, 3).map((item, i) => {
+                          const itemToppings = Array.isArray(item.toppings)
+                            ? item.toppings
+                            : Array.isArray(item.toppings_raw)
+                              ? item.toppings_raw.filter((t) => t)
+                              : [];
+
+                          return (
+                            <div key={i} className="text-sm space-y-1">
+                              <div className="flex items-center justify-between gap-3">
+                                <p className="font-medium text-gray-800 truncate">
+                                  {item.quantity}x {item.product?.name || "Sản phẩm"}
+                                </p>
+                                <p className="text-gray-700 font-semibold shrink-0">
+                                  {Number(
+                                    Number(item.price || 0) * Number(item.quantity || 0),
+                                  ).toLocaleString("vi-VN")}
+                                  đ
+                                </p>
+                              </div>
+                              {itemToppings.length > 0 && (
+                                <p className="text-xs text-gray-500 pl-1 truncate">
+                                  + {itemToppings.map((t) => t.name).join(", ")}
+                                </p>
+                              )}
+                            </div>
+                          );
+                        })}
+
+                        {itemCount > 3 && (
+                          <p className="text-xs text-muted-foreground font-medium">
+                            + {itemCount - 3} sản phẩm khác
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-sm text-gray-400 italic">
+                        Không có sản phẩm
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="lg:col-span-5 space-y-3">
+                    <div className="rounded-xl border border-gray-100 p-3.5">
+                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                        Khách hàng
+                      </p>
+                      <p className="text-sm font-medium text-gray-800">
+                        {order.receiver_name || "Khách lẻ"}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {order.receiver_phone || "Không có số điện thoại"}
+                      </p>
+                    </div>
+
+                    <div className="rounded-xl border border-gray-100 p-3.5">
+                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                        Thanh toán
+                      </p>
+                      <div className="flex items-center justify-between text-sm text-gray-600">
+                        <span>Tạm tính</span>
+                        <span>
+                          {Number(calculateSubtotal(order)).toLocaleString("vi-VN")}đ
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-sm font-semibold text-gray-900 mt-1.5">
+                        <span>Thực thu</span>
+                        <span className="text-primary">
                           {Number(order.total_amount).toLocaleString("vi-VN")}đ
                         </span>
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-gray-400 hover:text-primary hover:bg-primary/10 transition-colors opacity-0 group-hover:opacity-100"
-                          onClick={() => setSelectedOrder(order)}
-                        >
-                          <Eye className="w-4 h-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
-        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="px-4 sm:px-5 pb-4 sm:pb-5 flex items-center justify-end">
+                  <Button
+                    variant="outline"
+                    className="h-9"
+                    onClick={() => setSelectedOrder(order)}
+                  >
+                    <Eye className="w-4 h-4 mr-1.5" />
+                    Xem chi tiết
+                  </Button>
+                </div>
+              </div>
+            );
+          })
+        )}
       </div>
 
       <PaginationControl
@@ -413,22 +455,18 @@ export default function AdminOrders() {
                     </div>
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
-                        <span className="text-gray-500">Loại đơn:</span>
-                        <span className="font-medium text-gray-900">
-                          {getOrderTypeInfo(selectedOrder.order_type).label}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
                         <span className="text-gray-500">Trạng thái:</span>
                         <span className="font-medium text-gray-900">
                           {getStatusInfo(selectedOrder.status).label}
                         </span>
                       </div>
+
                       {(selectedOrder.receiver_name ||
                         selectedOrder.receiver_phone ||
                         selectedOrder.receiver_email) && (
-                          <div className="pt-2 border-t border-dashed border-gray-100" />
-                        )}
+                        <div className="pt-2 border-t border-dashed border-gray-100" />
+                      )}
+
                       {selectedOrder.receiver_name && (
                         <div className="flex justify-between">
                           <span className="text-gray-500">Tên nhận:</span>
@@ -618,7 +656,7 @@ export default function AdminOrders() {
                         </span>
                       </div>
                     )}
-                  <div className="flex justify-between text-base font-bold text-gray-900 dark:text-gray-100 pt-2 border-t border-gray-200 dark:border-gray-700">
+                  <div className="flex justify-between text-base font-bold text-gray-900 pt-2 border-t border-gray-200">
                     <span>Tổng thanh toán</span>
                     <span className="text-primary">
                       {Number(selectedOrder.total_amount).toLocaleString(
