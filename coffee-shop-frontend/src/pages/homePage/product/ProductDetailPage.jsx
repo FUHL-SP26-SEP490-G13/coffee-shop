@@ -36,11 +36,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { useStoreHours } from "@/hooks/useStoreHours";
 import { toast } from "sonner";
 import { slugCache } from "@/pages/common/GenericSlugResolver";
+import { getCurrentUser } from "@/utils/auth";
 
 // Module-level cache: tồn tại xuyên suốt session, không bị xóa khi component unmount
 const productDetailCache = {};
 
-const ReviewItem = ({ item }) => {
+const ReviewItem = ({ item, currentUserId }) => {
   const [expandedIndex, setExpandedIndex] = useState(null);
 
   const isVideo = (url) => {
@@ -55,7 +56,7 @@ const ReviewItem = ({ item }) => {
       </div>
       <div className="flex-1 w-full max-w-full overflow-hidden">
         <div className="text-[13px] text-gray-800 dark:text-gray-200 mb-1 font-medium">
-          {item.full_name}
+          {currentUserId && item.user_id === currentUserId ? "Tôi" : item.full_name}
         </div>
         <div className="flex gap-0.5 text-[#ee4d2d] mb-1.5">
           {Array.from({ length: 5 }).map((_, index) => (
@@ -98,8 +99,8 @@ const ReviewItem = ({ item }) => {
                       setExpandedIndex(expandedIndex === idx ? null : idx)
                     }
                     className={`relative block w-[72px] h-[72px] bg-gray-50 overflow-hidden cursor-zoom-in group ${expandedIndex === idx
-                        ? "border-2 border-[#ee4d2d]"
-                        : "border border-gray-100"
+                      ? "border-2 border-[#ee4d2d]"
+                      : "border border-gray-100"
                       }`}
                   >
                     {videoMode ? (
@@ -187,6 +188,11 @@ export default function ProductDetailPage({ productIdOverride, initialProductDat
     sessionStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
 
   const isLoggedIn = !!token;
+
+  const currentUserId = useMemo(() => {
+    const user = getCurrentUser();
+    return user?.id || null;
+  }, [token]);
 
   const [selectedSize, setSelectedSize] = useState(null);
   const [quantity, setQuantity] = useState(1);
@@ -952,8 +958,8 @@ export default function ProductDetailPage({ productIdOverride, initialProductDat
                       type="button"
                       onClick={() => setSelectedSize(size.size)}
                       className={`px-4 py-2 rounded-full border font-medium ${selectedSize === size.size
-                          ? "bg-amber-600 text-white border-amber-600"
-                          : "bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 border-gray-300"
+                        ? "bg-amber-600 text-white border-amber-600"
+                        : "bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 border-gray-300"
                         }`}
                     >
                       {size.size}
@@ -1357,7 +1363,7 @@ export default function ProductDetailPage({ productIdOverride, initialProductDat
             ) : (
               <div className="flex flex-col max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
                 {filteredReviews.map((item) => (
-                  <ReviewItem key={item.id} item={item} />
+                  <ReviewItem key={item.id} item={item} currentUserId={currentUserId} />
                 ))}
               </div>
             )}
@@ -1411,8 +1417,8 @@ export default function ProductDetailPage({ productIdOverride, initialProductDat
                         >
                           <Star
                             className={`w-8 h-8 ${starValue <= myRating
-                                ? "text-[#ee4d2d] fill-current"
-                                : "text-gray-300"
+                              ? "text-[#ee4d2d] fill-current"
+                              : "text-gray-300"
                               }`}
                           />
                         </button>
