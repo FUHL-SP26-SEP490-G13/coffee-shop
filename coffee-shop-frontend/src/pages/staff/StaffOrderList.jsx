@@ -40,7 +40,7 @@ import takeawayService from "@/services/takeAwayService";
 import { ReceiptModal } from "./TakeAwayOrder/ReceiptModal";
 import BaristaViewRecipe from "../barista/BaristaOrder/BaristaViewRecipe";
 
-const STAFF_TAB_STATUSES = ["pending", "preparing", "completed", "cancelled"];
+const STAFF_TAB_STATUSES = ["pending", "preparing", "served", "completed", "cancelled"];
 
 const statusLabelMap = {
   pending: "Đang chờ",
@@ -169,6 +169,7 @@ export function OrderDelivery() {
   const [selectedOrderType, setSelectedOrderType] = useState("all");
   const [viewingReceipt, setViewingReceipt] = useState(null);
   const [viewRecipeItem, setViewRecipeItem] = useState(null);
+  const [preparingSubTab, setPreparingSubTab] = useState("preparing");
   const [cashPaymentDialog, setCashPaymentDialog] = useState({
     open: false,
     order: null,
@@ -268,9 +269,14 @@ export function OrderDelivery() {
   }, [loadOrders]);
 
   const activeStatusOrders = useMemo(() => {
-    const list = orders.filter((order) => order?.status === activeStatus);
+    const list = orders.filter((order) => {
+      if (activeStatus === "preparing") {
+        return order?.status === preparingSubTab;
+      }
+      return order?.status === activeStatus;
+    });
     return sortOrdersByStatus(activeStatus, list);
-  }, [activeStatus, orders]);
+  }, [activeStatus, preparingSubTab, orders]);
 
   const delayedOrdersCount = useMemo(() => {
     if (!["pending", "preparing"].includes(activeStatus)) return 0;
@@ -459,12 +465,13 @@ export function OrderDelivery() {
     }
   };
 
-  const handleCompleteDeliveryOrder = async (orderId) => {
+  const handleCompleteDeliveryOrder = async (orderId, autoCashReceived = undefined) => {
     setCompletingId(orderId);
     let success = false;
 
     try {
-      await orderOnlineService.completeDeliveryByStaff(orderId);
+      const payload = autoCashReceived !== undefined ? { cash_received: autoCashReceived } : undefined;
+      await orderOnlineService.completeDeliveryByStaff(orderId, payload);
       toast.success("Đơn đã chuyển sang Completed");
       await loadOrders();
       success = true;
@@ -529,6 +536,7 @@ export function OrderDelivery() {
 
   const selectedOrderIsPending = selectedOrder?.status === "pending";
   const selectedOrderIsPreparing = selectedOrder?.status === "preparing";
+  const selectedOrderIsServed = selectedOrder?.status === "served";
   const selectedOrderPaid = isOrderPaid(selectedOrder);
   const selectedOrderIsPendingUnpaidDelivery =
     selectedOrderIsPending &&
@@ -548,7 +556,10 @@ export function OrderDelivery() {
 
   const handleCompleteFromDetail = async () => {
     if (!selectedOrder) return;
-    const success = await handleCompleteDeliveryOrder(selectedOrder.id);
+    const success = await handleCompleteDeliveryOrder(
+      selectedOrder.id,
+      !selectedOrderPaid ? Number(selectedOrder.total_amount || 0) : undefined
+    );
     if (success) {
       setIsDetailOpen(false);
     }
@@ -597,7 +608,7 @@ export function OrderDelivery() {
       );
     }
 
-    if (selectedOrderIsPreparing) {
+    if (selectedOrderIsPreparing || selectedOrderIsServed) {
       if (!selectedOrderHasPrintedReceipt) {
         return (
           <Button onClick={() => handlePrintReceipt(selectedOrder.id)}>
@@ -610,16 +621,12 @@ export function OrderDelivery() {
       return (
         <>
           <Button
-            onClick={() =>
-              !selectedOrderPaid
-                ? openCashPaymentDialog(selectedOrder)
-                : handleCompleteFromDetail()
-            }
+            onClick={() => handleCompleteFromDetail()}
             disabled={completingId === selectedOrder.id}
           >
             {completingId === selectedOrder.id
               ? "Đang cập nhật..."
-              : "Thành công"}
+              : "Hoàn thành"}
           </Button>
 
           <Button
@@ -683,11 +690,10 @@ export function OrderDelivery() {
                   disabled={completingId === order.id}
                   onClick={(e) => {
                     e.stopPropagation();
-                    if (!paid) {
-                      openCashPaymentDialog(order);
-                    } else {
-                      handleCompleteDeliveryOrder(order.id);
-                    }
+                    handleCompleteDeliveryOrder(
+                      order.id, 
+                      !paid ? Number(order.total_amount || 0) : undefined
+                    );
                   }}
                 >
                   {completingId === order.id ? (
@@ -747,6 +753,23 @@ export function OrderDelivery() {
         </div>
 
         <div className="mt-2.5 flex items-center gap-1.5 overflow-x-auto border-t border-slate-100 pb-0.5 pt-2.5 md:flex-wrap md:overflow-visible md:pb-0">
+          {activeStatus === "preparing" && (
+            <div className="flex bg-slate-100/80 p-0.5 rounded-lg mr-2 shrink-0 border border-slate-200/60 shadow-sm">
+               <button 
+                 onClick={() => setPreparingSubTab('preparing')}
+                 className={`px-3.5 py-1.5 rounded-md text-sm font-semibold transition-all ${preparingSubTab === 'preparing' ? 'bg-white shadow-sm text-primary' : 'text-slate-600 hover:text-slate-900'}`}
+               >
+                 Đang làm
+               </button>
+               <button 
+                 onClick={() => setPreparingSubTab('served')}
+                 className={`px-3.5 py-1.5 rounded-md text-sm font-semibold transition-all ${preparingSubTab === 'served' ? 'bg-white shadow-sm text-primary' : 'text-slate-600 hover:text-slate-900'}`}
+               >
+                 Đã xong
+               </button>
+            </div>
+          )}
+
           {Object.entries(orderTypeLabelMap).map(([typeKey, label]) => (
             <Button
               key={typeKey}
