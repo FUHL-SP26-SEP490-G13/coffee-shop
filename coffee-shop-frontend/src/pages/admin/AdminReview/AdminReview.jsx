@@ -2,9 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import {
   Loader2,
   Search,
-  ChevronLeft,
-  ChevronRight,
-  MessageSquare,
   Star,
 } from "lucide-react";
 import reviewService from "@/services/reviewService";
@@ -20,9 +17,10 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import PaginationControl from "@/components/common/PaginationControl";
+import AdminReviewReplyModal from "./AdminReviewReplyModal";
 
-const isVideoUrl = (url) => 
-  typeof url === "string" && 
+const isVideoUrl = (url) =>
+  typeof url === "string" &&
   (url.match(/\.(mp4|webm|ogg|mov)$/i) || url.includes("video/upload"));
 
 export default function AdminReviews() {
@@ -34,6 +32,7 @@ export default function AdminReviews() {
   const [error, setError] = useState(null);
 
   const [keyword, setKeyword] = useState("");
+  const [selectedReplyReview, setSelectedReplyReview] = useState(null);
 
   const abortRef = useRef(null);
 
@@ -97,11 +96,10 @@ export default function AdminReviews() {
         {Array.from({ length: 5 }).map((_, index) => (
           <Star
             key={index}
-            className={`h-4 w-4 ${
-              index < Number(rating)
+            className={`h-4 w-4 ${index < Number(rating)
                 ? "text-amber-500 fill-current"
                 : "text-gray-300"
-            }`}
+              }`}
           />
         ))}
       </div>
@@ -173,6 +171,9 @@ export default function AdminReviews() {
                 </TableHead>
                 <TableHead className="text-center min-w-[170px]">
                   Ngày tạo
+                </TableHead>
+                <TableHead className="text-center min-w-[120px]">
+                  Hành động
                 </TableHead>
               </TableRow>
             </TableHeader>
@@ -248,9 +249,39 @@ export default function AdminReviews() {
                       </TableCell>
 
                       <TableCell className="text-center">
-                        {item.created_at
-                          ? new Date(item.created_at).toLocaleString("vi-VN")
-                          : "—"}
+                        <div className="flex text-xs flex-col items-center justify-center">
+                          <span>
+                            {item.updated_at || item.created_at
+                              ? new Date(item.updated_at || item.created_at).toLocaleString("vi-VN")
+                              : "—"}
+                          </span>
+                          {item.category_name && (
+                            <span className="text-xs text-gray-400 mt-1">
+                              Phân loại hàng: {item.category_name}
+                            </span>
+                          )}
+                        </div>
+                      </TableCell>
+
+                      <TableCell className="text-center">
+                        <div className="flex flex-col items-center justify-center gap-1.5 mt-1 relative">
+                          <Button 
+                            size="sm" 
+                            onClick={() => setSelectedReplyReview(item)}
+                            className={
+                              item.reply_comment || (item.reply_images && item.reply_images.length > 0) 
+                                ? "bg-amber-50 text-amber-600 border border-amber-200 hover:bg-amber-100 hover:text-amber-700 shadow-none" 
+                                : "bg-amber-600 text-white hover:bg-amber-700 shadow-sm transition-colors"
+                            }
+                          >
+                            {item.reply_comment || (item.reply_images && item.reply_images.length > 0) ? "Đã phản hồi" : "Trả lời"}
+                          </Button>
+                          {item.replied_at && (
+                            <span className="text-[10px] text-gray-400 font-medium">
+                              {new Date(item.replied_at).toLocaleString("vi-VN")}
+                            </span>
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   );
@@ -269,6 +300,14 @@ export default function AdminReviews() {
           totalItems={totalItems}
           itemsPerPage={PAGE_SIZE}
           itemName="đánh giá"
+        />
+      )}
+
+      {selectedReplyReview && (
+        <AdminReviewReplyModal 
+          review={selectedReplyReview} 
+          onClose={() => setSelectedReplyReview(null)} 
+          onRefresh={() => fetchReviews(page, keyword)}
         />
       )}
     </div>

@@ -276,7 +276,7 @@ export default function AdminDiscountModal({
                       value={form.percentage}
                       onChange={handleChange}
                       placeholder="10"
-                      min="0"
+                      min="1"
                       max="100"
                       className="pl-10"
                       disabled={isLockedByUsedCount}

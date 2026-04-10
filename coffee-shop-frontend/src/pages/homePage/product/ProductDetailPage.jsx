@@ -41,7 +41,7 @@ import { getCurrentUser } from "@/utils/auth";
 // Module-level cache: tồn tại xuyên suốt session, không bị xóa khi component unmount
 const productDetailCache = {};
 
-const ReviewItem = ({ item, currentUserId }) => {
+const ReviewItem = ({ item, currentUserId, categoryName }) => {
   const [expandedIndex, setExpandedIndex] = useState(null);
 
   const isVideo = (url) => {
@@ -67,10 +67,16 @@ const ReviewItem = ({ item, currentUserId }) => {
             />
           ))}
         </div>
-        <div className="text-gray-400 text-xs mb-3 flex items-center gap-1.5">
+        <div className="text-gray-400 text-xs mb-3 flex items-center gap-1.5 flex-wrap">
           <span>
-            {new Date(item.created_at || Date.now()).toLocaleString("vi-VN")}
+            {new Date(item.updated_at || item.created_at || Date.now()).toLocaleString("vi-VN")}
           </span>
+          {categoryName && (
+            <>
+              <span className="text-gray-300 mx-0.5">|</span>
+              <span>Phân loại hàng: {categoryName}</span>
+            </>
+          )}
           {item.updated_at &&
             item.created_at &&
             item.updated_at !== item.created_at && (
@@ -168,6 +174,45 @@ const ReviewItem = ({ item, currentUserId }) => {
                     </button>
                   </>
                 )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {(item.reply_comment || (item.reply_images && item.reply_images.length > 0)) && (
+          <div className="mt-4 bg-[#fcfcfc] dark:bg-gray-900 border-l-[3px] border-[#ee4d2d] p-3 shadow-sm">
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className="font-semibold text-gray-800 dark:text-gray-200 text-[13px]">Phản hồi của Người Bán</span>
+              {item.replied_at && (
+                <span className="text-gray-400 text-[11px] font-medium">
+                  vào lúc {new Date(item.replied_at).toLocaleString("vi-VN")}
+                </span>
+              )}
+            </div>
+            {item.reply_comment && (
+              <div className="text-gray-600 dark:text-gray-400 text-[13px] whitespace-pre-line mb-2 leading-relaxed">
+                {item.reply_comment}
+              </div>
+            )}
+            {item.reply_images && item.reply_images.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {item.reply_images.map((img, idx) => {
+                  const videoMode = isVideo(img.url);
+                  return (
+                    <a key={idx} href={img.url} target="_blank" rel="noopener noreferrer" className="relative block w-[60px] h-[60px] border border-gray-200 hover:border-gray-400 transition-colors cursor-zoom-in overflow-hidden">
+                      {videoMode ? (
+                        <>
+                          <video src={img.url} className="w-full h-full object-cover pointer-events-none" />
+                          <div className="absolute inset-0 bg-black/10 flex items-center justify-center">
+                            <span className="w-0 h-0 border-t-[5px] border-t-transparent border-l-[8px] border-l-white border-b-[5px] border-b-transparent ml-0.5 shadow-sm" />
+                          </div>
+                        </>
+                      ) : (
+                        <img src={img.url} className="w-full h-full object-cover" alt="reply img" />
+                      )}
+                    </a>
+                  )
+                })}
               </div>
             )}
           </div>
@@ -1363,7 +1408,7 @@ export default function ProductDetailPage({ productIdOverride, initialProductDat
             ) : (
               <div className="flex flex-col max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
                 {filteredReviews.map((item) => (
-                  <ReviewItem key={item.id} item={item} currentUserId={currentUserId} />
+                  <ReviewItem key={item.id} item={item} currentUserId={currentUserId} categoryName={product?.category_name} />
                 ))}
               </div>
             )}

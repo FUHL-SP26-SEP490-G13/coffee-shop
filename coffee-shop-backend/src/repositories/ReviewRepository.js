@@ -16,6 +16,9 @@ class ReviewRepository extends BaseRepository {
         r.images,
         r.created_at,
         r.updated_at,
+        r.reply_comment,
+        r.reply_images,
+        r.replied_at,
         u.first_name,
         u.last_name
       FROM reviews r
@@ -35,6 +38,17 @@ class ReviewRepository extends BaseRepository {
       LIMIT 1
     `;
     const [rows] = await this.db.query(query, [userId, productId]);
+    return rows[0] || null;
+  }
+
+  async findById(id) {
+    const query = `
+      SELECT *
+      FROM reviews
+      WHERE id = ?
+      LIMIT 1
+    `;
+    const [rows] = await this.db.query(query, [id]);
     return rows[0] || null;
   }
 
@@ -85,6 +99,20 @@ class ReviewRepository extends BaseRepository {
     return result;
   }
 
+  async replyReview(id, replyComment, replyImages = []) {
+    const query = `
+      UPDATE reviews
+      SET reply_comment = ?, reply_images = ?, replied_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `;
+    const [result] = await this.db.query(query, [
+      replyComment || null,
+      JSON.stringify(replyImages),
+      id,
+    ]);
+    return result;
+  }
+
   async getAllReviews({ keyword = "", page = 1, limit = 7 }) {
     const currentPage = Math.max(1, Number(page) || 1);
     const pageSize = Math.max(1, Number(limit) || 7);
@@ -113,12 +141,17 @@ class ReviewRepository extends BaseRepository {
       r.images,
       r.created_at,
       r.updated_at,
+      r.reply_comment,
+      r.reply_images,
+      r.replied_at,
       u.first_name,
       u.last_name,
-      p.name AS product_name
+      p.name AS product_name,
+      c.name AS category_name
     FROM reviews r
     INNER JOIN users u ON u.id = r.user_id
     INNER JOIN products p ON p.id = r.product_id
+    LEFT JOIN category c ON p.category_id = c.id
     WHERE 
       p.name LIKE ?
       OR CONCAT(COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, '')) LIKE ?
@@ -155,6 +188,9 @@ class ReviewRepository extends BaseRepository {
         r.comment,
         r.images,
         r.created_at,
+        r.reply_comment,
+        r.reply_images,
+        r.replied_at,
         u.first_name,
         u.last_name
       FROM reviews r
