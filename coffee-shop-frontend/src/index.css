@@ -85,6 +85,17 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+
+  --animate-wiggle: wiggle 2s linear infinite;
+
+  @keyframes wiggle {
+    0%, 10% { transform: rotate(0deg); }
+    15% { transform: rotate(-15deg); }
+    20% { transform: rotate(10deg); }
+    25% { transform: rotate(-10deg); }
+    30% { transform: rotate(5deg); }
+    35%, 100% { transform: rotate(0deg); }
+  }
 }
 
 /* =========================
@@ -265,3 +276,12 @@
   margin: 0.75rem 0;
   max-width: 100%;
 }
+
+/* Custom Thin Scrollbar */
+.custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: #E5E7EB; border-radius: 4px; }
+.dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #374151; }
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #D1D5DB; }
+.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #4B5563; }
+

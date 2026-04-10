@@ -3,7 +3,6 @@ import {
   Eye,
   Loader2,
   Search,
-  ShieldCheck,
   Phone,
   TrendingUp,
   TrendingDown,
@@ -12,7 +11,7 @@ import {
   Trash2,
 } from "lucide-react";
 import reputationService from "@/services/reputationService";
-import appSettingService from "@/services/appSettingService";
+import receiptSettingService from "@/services/receiptSettingService";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -72,7 +71,7 @@ export default function AdminReputation() {
     setIsSettingsOpen(true);
     setSettingsLoading(true);
     try {
-      const res = await appSettingService.getSettings();
+      const res = await receiptSettingService.getSettings();
       let parsedRules = [];
       if (res?.data?.reputation_rules) {
         try {
@@ -130,7 +129,7 @@ export default function AdminReputation() {
         return;
       }
 
-      await appSettingService.upsertSettings({
+      await receiptSettingService.upsertSettings({
         reputation_rules: JSON.stringify(sorted.map(r => ({ minScore: r.minScore, maxCash: r.maxCash })))
       });
       toast.success("Lưu cấu hình thành công");
@@ -241,14 +240,8 @@ export default function AdminReputation() {
     <div className="space-y-6 p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="rounded-lg bg-primary/10 p-2">
-            <ShieldCheck className="h-6 w-6 text-primary" />
-          </div>
           <div>
-            <h2 className="text-2xl font-semibold">Quản lý điểm uy tín</h2>
-            <p className="text-sm text-muted-foreground">
-              Theo dõi số điện thoại, điểm hiện tại và thiết lập hạn mức thanh toán.
-            </p>
+            <h2 className="text-xl font-semibold">Quản lý điểm uy tín</h2>
           </div>
         </div>
         
@@ -478,27 +471,27 @@ export default function AdminReputation() {
                   <strong>Quy tắc:</strong> Hệ thống sẽ tìm Mốc có điểm yêu cầu cao nhất mà Quý khách đạt được để áp dụng. Bạn bắt buộc phải có 1 dòng quy định mức <strong>Từ 0 điểm trở lên</strong> dành cho người dùng mới. 
                 </div>
 
-                <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
+                <div className="space-y-3 max-h-[400px] overflow-y-auto overflow-x-hidden pr-2 custom-scrollbar">
                   {rules.map((rule, idx) => (
-                    <div key={rule.id} className="flex flex-col sm:flex-row items-center gap-4 bg-gray-50 dark:bg-gray-900 border rounded-xl p-4 relative">
-                      <div className="flex-1 space-y-1 w-full">
-                        <label className="text-xs font-semibold uppercase text-muted-foreground">Điều kiện điểm</label>
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium">Từ</span>
+                    <div key={rule.id} className="flex flex-col sm:flex-row items-start sm:items-center gap-4 bg-gray-50 dark:bg-gray-900 border rounded-xl p-4 relative">
+                      <div className="flex-1 space-y-1 min-w-0 w-full sm:w-auto">
+                        <label className="text-xs font-semibold uppercase text-muted-foreground truncate block">Điều kiện điểm</label>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-sm font-medium whitespace-nowrap">Từ</span>
                           <Input 
                             type="number" 
                             min="0" max="100" 
                             value={rule.minScore} 
                             onChange={(e) => updateRule(rule.id, "minScore", e.target.value)}
-                            className="w-24 bg-white dark:bg-black"
+                            className="w-20 bg-white dark:bg-black"
                           />
-                          <span className="text-sm font-medium">trở lên</span>
+                          <span className="text-sm font-medium whitespace-nowrap">trở lên</span>
                         </div>
                       </div>
 
-                      <div className="flex-1 space-y-1 w-full">
-                        <label className="text-xs font-semibold uppercase text-muted-foreground">Giới hạn COD (Tiền mặt)</label>
-                        <div className="flex items-center gap-3">
+                      <div className="flex-1 space-y-1 min-w-0 w-full sm:w-auto">
+                        <label className="text-xs font-semibold uppercase text-muted-foreground truncate block">Giới hạn COD (Tiền mặt)</label>
+                        <div className="flex items-center gap-3 flex-wrap">
                           <Input 
                             type="number" 
                             min="0"
@@ -506,14 +499,14 @@ export default function AdminReputation() {
                             value={rule.maxCash === null ? "" : rule.maxCash} 
                             onChange={(e) => updateRule(rule.id, "maxCash", e.target.value)}
                             disabled={rule.maxCash === null}
-                            className="bg-white dark:bg-black w-32"
+                            className="bg-white dark:bg-black w-28 sm:w-32 flex-shrink-0"
                           />
-                          <label className="flex items-center gap-2 cursor-pointer whitespace-nowrap">
+                          <label className="flex items-center gap-2 cursor-pointer">
                             <input 
                               type="checkbox" 
                               checked={rule.maxCash === null}
                               onChange={(e) => updateRule(rule.id, "maxCash", e.target.checked ? null : 0)}
-                              className="w-4 h-4"
+                              className="w-4 h-4 flex-shrink-0"
                             />
                             <span className="text-sm text-gray-700 dark:text-gray-300">Không giới hạn</span>
                           </label>
@@ -521,7 +514,7 @@ export default function AdminReputation() {
                       </div>
 
                       <Button 
-                        variant="destructive" size="icon" className="shrink-0 sm:self-end" 
+                        variant="destructive" size="icon" className="shrink-0 sm:self-end mt-2 sm:mt-0" 
                         onClick={() => removeRule(rule.id)}
                         disabled={rules.length <= 1}
                       >

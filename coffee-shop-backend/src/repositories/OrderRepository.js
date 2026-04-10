@@ -65,6 +65,14 @@ class OrderRepository {
   }
 
   async createOrder(connection, data) {
+    const safeStatus = data.status || "pending";
+    const safeUsedPoints = Math.max(0, Number(data.used_points) || 0);
+    const safeAmount = Math.max(
+      0,
+      Number(data.amount ?? data.total_amount) || 0
+    );
+    const safeDiscountAmount = Math.max(0, Number(data.discount_amount) || 0);
+
     const [result] = await connection.query(
       `
       INSERT INTO orders (
@@ -76,9 +84,13 @@ class OrderRepository {
         status,
         is_paid,
         total_amount,
+        amount,
+        discount_amount,
+        delivery_fee,
+        used_points,
         session_id
       )
-      VALUES (?, ?, ?, ?, ?, 'pending', 0, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?)
       `,
       [
         data.user_id,
@@ -86,7 +98,12 @@ class OrderRepository {
         data.customer_type,
         data.order_type,
         data.table_id || null,
+        safeStatus,
         data.total_amount,
+        safeAmount,
+        safeDiscountAmount,
+        Math.max(0, Number(data.delivery_fee) || 0),
+        safeUsedPoints,
         data.session_id || null,
       ]
     );
@@ -135,9 +152,14 @@ class OrderRepository {
         receiver_phone,
         receiver_email,
         address,
-        note
+        note,
+        store_latitude,
+        store_longitude,
+        customer_latitude,
+        customer_longitude,
+        coordinates_source
       )
-      VALUES (?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `,
       [
         data.order_id,
@@ -146,11 +168,38 @@ class OrderRepository {
         data.receiver_email,
         data.address,
         data.note,
+        data.store_latitude,
+        data.store_longitude,
+        data.customer_latitude,
+        data.customer_longitude,
+        data.coordinates_source,
       ]
     );
   }
 
   async createOrderPayment(connection, data) {
+    const amount = Number(data.amount) || 0;
+    const paymentStatus = data.payment_status || "pending";
+    const isPaid = paymentStatus === "paid";
+
+    const normalizedPaidAmount = Number.isFinite(Number(data.paid_amount))
+      ? Number(data.paid_amount)
+      : isPaid
+      ? amount
+      : 0;
+
+    const normalizedCashReceived = Number.isFinite(Number(data.cash_received))
+      ? Number(data.cash_received)
+      : isPaid
+      ? normalizedPaidAmount
+      : 0;
+
+    const normalizedChangeAmount = Number.isFinite(Number(data.change_amount))
+      ? Math.max(0, Number(data.change_amount))
+      : isPaid
+      ? Math.max(0, normalizedCashReceived - normalizedPaidAmount)
+      : 0;
+
     await connection.query(
       `
       INSERT INTO order_payments (
@@ -158,18 +207,24 @@ class OrderRepository {
         payment_method,
         payment_status,
         amount,
+        paid_amount,
+        cash_received,
+        change_amount,
         transaction_id,
         paid_at
       )
-      VALUES (?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `,
       [
         data.order_id,
         data.payment_method,
-        data.payment_status || "pending",
-        data.amount,
+        paymentStatus,
+        amount,
+        normalizedPaidAmount,
+        normalizedCashReceived,
+        normalizedChangeAmount,
         data.transaction_id || null,
-        data.payment_status === "paid" ? new Date() : null,
+        isPaid ? new Date() : null,
       ]
     );
   }
@@ -199,6 +254,9 @@ class OrderRepository {
       params.push(payment_status);
       if (payment_status === "paid") {
         setParts.push("paid_at = NOW()");
+        setParts.push("paid_amount = amount");
+        setParts.push("cash_received = amount");
+        setParts.push("change_amount = 0");
       }
     }
 
@@ -240,14 +298,59 @@ class OrderRepository {
     );
   }
 
-  async updatePaymentStatusByOrderId(orderId, paymentStatus) {
+  async updatePaymentStatusByOrderId(orderId, paymentStatus, paymentMeta = {}) {
+    const setParts = ["payment_status = ?"];
+    const params = [paymentStatus];
+
+    if (paymentStatus === "paid") {
+      const paidAmount = Number(paymentMeta.paid_amount);
+      const hasPaidAmount = Number.isFinite(paidAmount);
+
+      const cashReceived = Number(paymentMeta.cash_received);
+      const hasCashReceived = Number.isFinite(cashReceived);
+
+      const changeAmount = Number(paymentMeta.change_amount);
+      const hasChangeAmount = Number.isFinite(changeAmount);
+
+      setParts.push("paid_at = NOW()");
+
+      if (hasPaidAmount) {
+        setParts.push("paid_amount = ?");
+        params.push(paidAmount);
+      } else {
+        setParts.push("paid_amount = amount");
+      }
+
+      if (hasCashReceived) {
+        setParts.push("cash_received = ?");
+        params.push(cashReceived);
+      } else {
+        setParts.push("cash_received = amount");
+      }
+
+      if (hasChangeAmount) {
+        setParts.push("change_amount = ?");
+        params.push(Math.max(0, changeAmount));
+      } else if (hasCashReceived) {
+        if (hasPaidAmount) {
+          setParts.push("change_amount = ?");
+          params.push(Math.max(0, cashReceived - paidAmount));
+        } else {
+          setParts.push("change_amount = GREATEST(? - amount, 0)");
+          params.push(cashReceived);
+        }
+      } else {
+        setParts.push("change_amount = 0");
+      }
+    }
+
     await db.query(
       `
       UPDATE order_payments
-      SET payment_status = ?
+      SET ${setParts.join(", ")}
       WHERE order_id = ?
       `,
-      [paymentStatus, orderId]
+      [...params, orderId]
     );
   }
 
@@ -276,6 +379,8 @@ class OrderRepository {
         status,
         is_paid,
         total_amount,
+        delivery_fee,
+        used_points,
         created_at,
         paid_at
       FROM orders
@@ -299,6 +404,10 @@ class OrderRepository {
         o.print_status,
         o.is_paid,
         o.total_amount,
+        o.amount,
+        o.discount_amount,
+        o.delivery_fee,
+        o.used_points,
         o.created_at,
         o.paid_at,
         odi.receiver_name,
@@ -308,7 +417,7 @@ class OrderRepository {
         odi.note,
         op.payment_method,
         op.payment_status,
-        op.amount
+        op.amount AS payment_amount
       FROM orders o
       LEFT JOIN order_delivery_info odi ON odi.order_id = o.id
       LEFT JOIN order_payments op ON op.order_id = o.id
@@ -332,6 +441,10 @@ class OrderRepository {
         o.status,
         o.is_paid,
         o.total_amount,
+        o.amount,
+        o.discount_amount,
+        o.delivery_fee,
+        o.used_points,
         o.created_at,
         op.payment_method,
         op.payment_status
@@ -356,6 +469,10 @@ class OrderRepository {
         o.status,
         o.is_paid,
         o.total_amount,
+        o.amount,
+        o.discount_amount,
+        o.delivery_fee,
+        o.used_points,
         o.created_at,
         o.paid_at,
         odi.receiver_name,
@@ -365,7 +482,7 @@ class OrderRepository {
         odi.note,
         op.payment_method,
         op.payment_status,
-        op.amount
+        op.amount AS payment_amount
       FROM orders o
       LEFT JOIN order_delivery_info odi ON odi.order_id = o.id
       LEFT JOIN order_payments op ON op.order_id = o.id
@@ -436,7 +553,7 @@ class OrderRepository {
   async findActiveOrderByTableId(connection, tableId) {
     const [rows] = await connection.query(
       `
-      SELECT id, total_amount
+      SELECT id, total_amount, amount, discount_amount
       FROM orders
       WHERE table_id = ? AND status IN ('pending', 'processing')
       ORDER BY created_at DESC
@@ -448,14 +565,20 @@ class OrderRepository {
     return rows[0] || null;
   }
 
-  async updateOrderTotalAmount(connection, orderId, finalAmount) {
+  async updateOrderTotalAmount(
+    connection,
+    orderId,
+    { totalAmount, amount, discountAmount }
+  ) {
     await connection.query(
       `
       UPDATE orders
-      SET total_amount = ?
+      SET total_amount = ?,
+          amount = ?,
+          discount_amount = ?
       WHERE id = ?
       `,
-      [finalAmount, orderId]
+      [totalAmount, amount, discountAmount, orderId]
     );
   }
 
@@ -512,7 +635,64 @@ class OrderRepository {
     return Number(rows[0]?.total || 0);
   }
 
-  async findAllOrders({ limit = 20, offset = 0, status = "all" } = {}) {
+  buildAdminOrderFilters({
+    status = "all",
+    order_type = "all",
+    order_code = "",
+    start_date = "",
+    end_date = "",
+  } = {}) {
+    const whereClauses = [];
+    const params = [];
+
+    if (status && status !== "all") {
+      whereClauses.push("o.status = ?");
+      params.push(String(status).trim().toLowerCase());
+    }
+
+    if (order_type && order_type !== "all") {
+      whereClauses.push("o.order_type = ?");
+      params.push(String(order_type).trim().toLowerCase());
+    }
+
+    const normalizedOrderCode = String(order_code || "")
+      .replace(/^#/, "")
+      .replace(/[^0-9]/g, "")
+      .trim();
+
+    if (normalizedOrderCode) {
+      whereClauses.push("CAST(o.id AS CHAR) LIKE ?");
+      params.push(`%${normalizedOrderCode}%`);
+    }
+
+    const normalizedStartDate = String(start_date || "").trim();
+    const normalizedEndDate = String(end_date || "").trim();
+
+    if (normalizedStartDate) {
+      whereClauses.push("DATE(o.created_at) >= ?");
+      params.push(normalizedStartDate);
+    }
+
+    if (normalizedEndDate) {
+      whereClauses.push("DATE(o.created_at) <= ?");
+      params.push(normalizedEndDate);
+    }
+
+    return {
+      whereSql: whereClauses.length > 0 ? ` WHERE ${whereClauses.join(" AND ")}` : "",
+      params,
+    };
+  }
+
+  async findAllOrders({
+    limit = 20,
+    offset = 0,
+    status = "all",
+    order_type = "all",
+    order_code = "",
+    start_date = "",
+    end_date = "",
+  } = {}) {
     let query = `
       SELECT 
         o.id,
@@ -521,6 +701,10 @@ class OrderRepository {
         o.status,
         o.is_paid,
         o.total_amount,
+        o.amount,
+        o.discount_amount,
+        o.delivery_fee,
+        o.used_points,
         o.created_at,
         o.paid_at,
         t.code as table_code,
@@ -536,12 +720,15 @@ class OrderRepository {
       LEFT JOIN order_delivery_info odi ON odi.order_id = o.id
       LEFT JOIN order_payments op ON op.order_id = o.id
     `;
-    const params = [];
+    const { whereSql, params } = this.buildAdminOrderFilters({
+      status,
+      order_type,
+      order_code,
+      start_date,
+      end_date,
+    });
 
-    if (status && status !== "all") {
-      query += " WHERE o.status = ?";
-      params.push(status);
-    }
+    query += whereSql;
 
     query += " ORDER BY o.created_at DESC LIMIT ? OFFSET ?";
     params.push(parseInt(limit), parseInt(offset));
@@ -550,14 +737,23 @@ class OrderRepository {
     return rows;
   }
 
-  async countAllOrders({ status = "all" } = {}) {
+  async countAllOrders({
+    status = "all",
+    order_type = "all",
+    order_code = "",
+    start_date = "",
+    end_date = "",
+  } = {}) {
     let query = "SELECT COUNT(*) as count FROM orders o";
-    const params = [];
+    const { whereSql, params } = this.buildAdminOrderFilters({
+      status,
+      order_type,
+      order_code,
+      start_date,
+      end_date,
+    });
 
-    if (status && status !== "all") {
-      query += " WHERE o.status = ?";
-      params.push(status);
-    }
+    query += whereSql;
 
     const [rows] = await db.query(query, params);
     return rows[0].count;

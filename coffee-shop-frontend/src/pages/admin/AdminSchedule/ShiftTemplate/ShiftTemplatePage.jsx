@@ -11,6 +11,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '../../../../components/ui/alert-dialog';
+import { TimePicker, TimeRangePreview } from '../../../../components/ui/time-picker';
 import shiftTemplateService from '../../../../services/shiftTemplateService';
 
 const COLOR_OPTIONS = [
@@ -111,10 +112,10 @@ export default function ShiftTemplatePage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="p-4 sm:p-6 lg:p-8 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Quản lý ca làm</h1>
+          <h1 className="text-xl font-semibold mb-1">Quản lý ca làm</h1>
           <p className="text-sm text-muted-foreground mt-0.5">Thiết lập các ca làm việc cho quán</p>
         </div>
         <Button onClick={openCreate} className="gap-2">
@@ -193,21 +194,32 @@ export default function ShiftTemplatePage() {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Giờ bắt đầu <span className="text-red-500">*</span></Label>
-                <Input type="time" value={form.start_time}
-                  onChange={(e) => { setForm((f) => ({ ...f, start_time: e.target.value })); setErrors((e2) => ({ ...e2, start_time: null })); }}
-                  className={errors.start_time ? 'border-red-500' : ''}
+                <TimePicker
+                  id="start-time-picker"
+                  value={form.start_time}
+                  onChange={(v) => { setForm((f) => ({ ...f, start_time: v })); setErrors((e2) => ({ ...e2, start_time: null })); }}
+                  error={errors.start_time}
                 />
                 {errors.start_time && <p className="text-xs text-red-500">{errors.start_time}</p>}
               </div>
               <div className="space-y-1.5">
                 <Label>Giờ kết thúc <span className="text-red-500">*</span></Label>
-                <Input type="time" value={form.end_time}
-                  onChange={(e) => { setForm((f) => ({ ...f, end_time: e.target.value })); setErrors((e2) => ({ ...e2, end_time: null })); }}
-                  className={errors.end_time ? 'border-red-500' : ''}
+                <TimePicker
+                  id="end-time-picker"
+                  value={form.end_time}
+                  onChange={(v) => { setForm((f) => ({ ...f, end_time: v })); setErrors((e2) => ({ ...e2, end_time: null })); }}
+                  error={errors.end_time}
                 />
                 {errors.end_time && <p className="text-xs text-red-500">{errors.end_time}</p>}
               </div>
             </div>
+
+            {/* Visual timeline preview */}
+            <TimeRangePreview
+              startTime={form.start_time}
+              endTime={form.end_time}
+              color={form.color}
+            />
 
             <div className="space-y-2">
               <Label>Màu sắc</Label>

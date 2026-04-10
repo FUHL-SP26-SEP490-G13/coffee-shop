@@ -13,9 +13,10 @@ class AdminDBController {
 
   async getRevenueSeries(req, res, next) {
     try {
-      const { days = 7 } = req.query;
+      const { startDate, endDate } = req.query;
       const data = await AdminDBService.getRevenueSeries({
-        days: parseInt(days),
+        startDate,
+        endDate,
       });
       return response.success(res, data, "Lấy biểu đồ doanh thu thành công");
     } catch (error) {
@@ -25,9 +26,10 @@ class AdminDBController {
 
   async getTopProducts(req, res, next) {
     try {
-      const { days = 7, limit = 5 } = req.query;
+      const { startDate, endDate, limit = 5 } = req.query;
       const data = await AdminDBService.getTopProducts({
-        days: parseInt(days),
+        startDate,
+        endDate,
         limit: parseInt(limit),
       });
       return response.success(
@@ -40,12 +42,12 @@ class AdminDBController {
     }
   }
 
-  // Optional: doanh thu theo loại đơn hàng (tại quán, mang về, giao hàng)
   async getOrderTypeRevenue(req, res, next) {
     try {
-      const { days = 7 } = req.query;
+      const { startDate, endDate } = req.query;
       const data = await AdminDBService.getOrderTypeRevenue({
-        days: parseInt(days),
+        startDate,
+        endDate,
       });
       return response.success(
         res,
@@ -57,12 +59,14 @@ class AdminDBController {
     }
   }
 
-  // Optional: tóm tắt tình trạng bàn (occupied, available) để dashboard có thêm vài số liệu hữu ích, hợp DB vì có status trong bảng tables rồi, khỏi phải đoán dựa vào order hay gì đó
   async getComparison(req, res, next) {
     try {
-      const { days = 7 } = req.query;
+      const { startDate, endDate, prevStartDate, prevEndDate } = req.query;
       const data = await AdminDBService.getComparison({
-        days: parseInt(days),
+        startDate,
+        endDate,
+        prevStartDate,
+        prevEndDate,
       });
       return response.success(res, data, "So sánh kỳ trước thành công");
     } catch (err) {
@@ -70,6 +74,48 @@ class AdminDBController {
     }
   }
 
+  async getPaymentMethodRevenue(req, res, next) {
+    try {
+      const { startDate, endDate } = req.query;
+      const data = await AdminDBService.getPaymentMethodRevenue({
+        startDate,
+        endDate,
+      });
+      return response.success(
+        res,
+        data,
+        "Lấy doanh thu theo phương thức thanh toán thành công"
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async getOrdersSummary(req, res, next) {
+    try {
+      const { startDate, endDate } = req.query;
+      const data = await AdminDBService.getOrdersSummary({
+        startDate,
+        endDate,
+      });
+      return response.success(res, data, "Lấy tổng quan đơn hàng thành công");
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async getDetailedOrdersReport(req, res, next) {
+    try {
+      const { startDate, endDate } = req.query;
+      const data = await AdminDBService.getDetailedOrdersReport({
+        startDate,
+        endDate,
+      });
+      return response.success(res, data, "Lấy báo cáo chi tiết đơn hàng thành công");
+    } catch (err) {
+      next(err);
+    }
+  }
 }
 
 module.exports = new AdminDBController();

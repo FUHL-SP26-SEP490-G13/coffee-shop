@@ -39,14 +39,27 @@ import authenticationService from "@/services/authenticationService";
 import takeawayService from "@/services/takeAwayService";
 import { ReceiptModal } from "./TakeAwayOrder/ReceiptModal";
 import BaristaViewRecipe from "../barista/BaristaOrder/BaristaViewRecipe";
+import { PrintableReceipt } from "./PrintableReceipt";
 
 const STAFF_TAB_STATUSES = ["pending", "preparing", "served", "completed", "cancelled"];
 
 const statusLabelMap = {
-  pending: "Đang chờ",
-  preparing: "Đang chuẩn bị",
-  completed: "Hoàn thành",
-  cancelled: "Đã hủy",
+  pending: {
+    label: "Đang chờ",
+    className: "text-amber-600 dark:text-amber-300",
+  },
+  preparing: {
+    label: "Đang chuẩn bị",
+    className: "text-blue-600 dark:text-blue-300",
+  },
+  completed: {
+    label: "Hoàn thành",
+    className: "text-emerald-600 dark:text-emerald-300",
+  },
+  cancelled: {
+    label: "Đã hủy",
+    className: "text-gray-600 dark:text-gray-400",
+  },
 };
 
 const orderTypeLabelMap = {
@@ -62,7 +75,10 @@ const ORDER_TYPE_COLUMNS = [
   { key: "takeaway", label: "Mang về", icon: ShoppingBag },
 ];
 
-const DELIVERY_FEE = 20000;
+const LOYALTY_MONEY_PER_POINT = 100;
+const MONEY_ROUNDING_UNIT = 100;
+const LEGACY_DELIVERY_SHIPPING_FEE = 20000;
+const DYNAMIC_SHIPPING_ROLLOUT_AT = new Date("2026-04-07T00:00:00.000Z").getTime();
 
 const normalizeOrderType = (value) => {
   const type = String(value || "").toLowerCase();
@@ -83,6 +99,78 @@ const isDeliveryOrder = (order) =>
   normalizeOrderType(order?.order_type) === "delivery";
 
 const money = (value) => Number(value || 0).toLocaleString("vi-VN") + " đ";
+
+const calculateOrderItemsSubtotal = (items = []) => {
+  if (!Array.isArray(items)) return 0;
+
+  return items.reduce((sum, item) => {
+    const itemQuantity = Math.max(1, Number(item?.quantity) || 1);
+    const unitPrice = Number(item?.price ?? item?.unit_price ?? 0);
+    return sum + Math.max(0, unitPrice * itemQuantity);
+  }, 0);
+};
+
+const shouldUseLegacyShippingFallback = (order) => {
+  const createdAtMs = new Date(order?.created_at || 0).getTime();
+  return Number.isFinite(createdAtMs) && createdAtMs < DYNAMIC_SHIPPING_ROLLOUT_AT;
+};
+
+const getShippingFee = (order) => {
+  if (!isDeliveryOrder(order)) return 0;
+
+  const feeFromApi = Number(order?.shipping_fee);
+  if (Number.isFinite(feeFromApi) && feeFromApi > 0) {
+    return Math.round(feeFromApi / MONEY_ROUNDING_UNIT) * MONEY_ROUNDING_UNIT;
+  }
+
+  const loyaltyDiscountAmount =
+    Math.max(0, Number(order?.used_points || 0)) * LOYALTY_MONEY_PER_POINT;
+  const orderTotal = Math.max(0, Number(order?.total_amount || 0));
+  const itemsSubtotal = calculateOrderItemsSubtotal(order?.items);
+
+  const derived =
+    Math.round((orderTotal + loyaltyDiscountAmount - itemsSubtotal) / MONEY_ROUNDING_UNIT) *
+    MONEY_ROUNDING_UNIT;
+  if (Number.isFinite(derived) && derived > 0) {
+    return derived;
+  }
+
+  if (shouldUseLegacyShippingFallback(order)) {
+    return LEGACY_DELIVERY_SHIPPING_FEE;
+  }
+
+  return 0;
+};
+
+const getOrderAmount = (order) => {
+  return Math.max(0, Number(order?.amount || 0));
+};
+
+const getOrderDeliveryFee = (order) => {
+  if (!isDeliveryOrder(order)) return 0;
+
+  const feeFromApi = Number(order?.delivery_fee ?? order?.shipping_fee);
+  if (Number.isFinite(feeFromApi) && feeFromApi >= 0) {
+    return Math.round(feeFromApi / MONEY_ROUNDING_UNIT) * MONEY_ROUNDING_UNIT;
+  }
+
+  return getShippingFee(order);
+};
+
+const getOrderDiscountAmount = (order) => {
+  const discountFromApi = Number(order?.discount_amount);
+  if (Number.isFinite(discountFromApi) && discountFromApi >= 0) {
+    return discountFromApi;
+  }
+
+  const amountForDiscountCalc = Math.max(
+    0,
+    Number(order?.amount || 0) || calculateOrderItemsSubtotal(order?.items)
+  );
+  const total = Math.max(0, Number(order?.total_amount || 0));
+  const deliveryFee = Math.max(0, getOrderDeliveryFee(order));
+  return Math.max(0, amountForDiscountCalc + deliveryFee - total);
+};
 
 const getDisplayName = (user) => {
   const firstName = String(user?.first_name || "").trim();
@@ -150,6 +238,11 @@ export function OrderDelivery() {
   const activeStatus = STAFF_TAB_STATUSES.includes(routeStatus)
     ? routeStatus
     : "pending";
+  const activeStatusMeta =
+    statusLabelMap[activeStatus] || {
+      label: "Không xác định",
+      className: "text-slate-600 dark:text-slate-300",
+    };
 
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -645,16 +738,19 @@ export function OrderDelivery() {
 
   const renderCompactOrderCard = (order) => {
     const paid = isOrderPaid(order);
+    const amount = getOrderAmount(order);
+    const discountAmount = getOrderDiscountAmount(order);
+    const deliveryFee = getOrderDeliveryFee(order);
 
     return (
-      <Card key={order.id} className="border-slate-200 bg-white shadow-sm">
+      <Card key={order.id} className="border-slate-200 dark:border-slate-700 bg-white dark:bg-gray-900 shadow-sm dark:shadow-none">
         <CardContent className="p-3 md:p-2.5">
           <div className="flex items-start justify-between gap-2">
             <div>
-              <p className="text-sm font-semibold leading-none text-slate-900">
+              <p className="text-sm font-semibold leading-none text-slate-900 dark:text-slate-100">
                 Đơn #{order.id}
               </p>
-              <p className="mt-1 text-xs text-slate-500">
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-300">
                 {getRelativeTimeLabel(order.created_at)}
               </p>
             </div>
@@ -663,7 +759,7 @@ export function OrderDelivery() {
               className={`h-6 px-2 text-[11px] font-medium ${
                 paid
                   ? "bg-emerald-500 text-white hover:bg-emerald-500"
-                  : "border-slate-300 text-slate-600"
+                  : "border-slate-300 text-slate-600 dark:border-slate-600 dark:text-slate-200"
               }`}
             >
               {paid ? "Đã thanh toán" : "Chưa thanh toán"}
@@ -711,15 +807,18 @@ export function OrderDelivery() {
   };
 
   return (
-    <div className="mx-auto max-w-[1600px] space-y-3 px-4 pb-1 pt-1 md:px-6 md:pb-3 md:pt-2">
-      <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm md:px-4 md:py-2.5">
+    <div className="p-4 sm:p-6 lg:p-8 space-y-6">
+      <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+        Danh sách đơn hàng
+      </h1>
+      <div className="px-3 py-2 md:px-4 md:py-2.5">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
-            <h2 className="truncate text-lg font-bold tracking-tight text-slate-900 md:text-xl">
-              Danh sách đơn hàng
-            </h2>
-            <p className="text-xs text-slate-500 md:text-sm">
-              Trạng thái hiện tại: {statusLabelMap[activeStatus]}
+            <p className="text-xs text-slate-500 dark:text-slate-300 md:text-sm">
+              Trạng thái hiện tại:{" "}
+              <strong className={activeStatusMeta.className}>
+                {activeStatusMeta.label}
+              </strong>
             </p>
           </div>
 
@@ -727,7 +826,7 @@ export function OrderDelivery() {
             {newOrderCount > 0 ? (
               <Badge
                 variant="destructive"
-                className="px-2.5 py-1 text-xs font-semibold shadow-sm"
+                className="px-2.5 py-1 text-xs font-semibold shadow-sm dark:shadow-none"
               >
                 <Bell className="mr-1 h-3.5 w-3.5" />
                 {newOrderCount} đơn mới
@@ -742,10 +841,10 @@ export function OrderDelivery() {
               disabled={loading}
               variant="outline"
               size="sm"
-              className="h-9 gap-1.5 border-slate-200 bg-white px-3 text-xs font-medium hover:bg-slate-50 md:h-8 md:px-2.5"
+              className="h-9 gap-1.5 border-slate-200 dark:border-slate-700 bg-white dark:bg-gray-900 px-3 text-xs font-medium dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800 md:h-8 md:px-2.5"
             >
               <RefreshCw
-                className={`h-4 w-4 ${loading ? "animate-spin text-primary" : "text-slate-500"}`}
+                className={`h-4 w-4 ${loading ? "animate-spin text-primary" : "text-slate-500 dark:text-slate-300"}`}
               />
               Cập nhật
             </Button>
@@ -790,7 +889,7 @@ export function OrderDelivery() {
 
           {["pending", "preparing"].includes(activeStatus) ? (
             <div className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-2.5 md:ml-auto md:h-8">
-              <span className="text-xs font-medium text-rose-700">
+              <span className="text-xs font-medium text-rose-700 dark:text-rose-300">
                 Trễ &gt; 10 phút
               </span>
               <Badge variant="secondary" className="h-5 px-1.5 text-[11px]">
@@ -812,12 +911,12 @@ export function OrderDelivery() {
             return (
               <div
                 key={column.key}
-                className="rounded-xl border border-slate-200 bg-white shadow-sm"
+                className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-gray-900 shadow-sm dark:shadow-none"
               >
-                <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50 px-3 py-2">
+                <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 px-3 py-2">
                   <div className="flex items-center gap-2">
-                    <Icon className="h-4 w-4 text-slate-600" />
-                    <span className="text-sm font-semibold text-slate-800">
+                    <Icon className="h-4 w-4 text-slate-600 dark:text-slate-200" />
+                    <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">
                       {column.label}
                     </span>
                   </div>
@@ -855,7 +954,7 @@ export function OrderDelivery() {
           }
         }}
       >
-        <DialogContent className="sm:max-w-2xl">
+        <DialogContent contentWidth="70rem" className="sm:max-w-4xl">
           <DialogHeader>
             <DialogTitle>
               Chi tiết đơn {getOrderTypeLabel(selectedOrder?.order_type)} #
@@ -868,81 +967,150 @@ export function OrderDelivery() {
               Đang tải chi tiết...
             </p>
           ) : selectedOrder ? (
-            <div className="max-h-[70vh] space-y-4 overflow-y-auto pr-1">
-              <div className="grid gap-2 rounded-md border p-3 text-sm sm:grid-cols-2">
-                <p>
-                  Người nhận:{" "}
-                  <span className="font-medium">
-                    {selectedOrder.receiver_name || "Không có tên người nhận"}
-                  </span>
-                </p>
-                <p>
-                  Số điện thoại:{" "}
-                  <span className="font-medium">
-                    {selectedOrder.receiver_phone || "Không có số điện thoại"}
-                  </span>
-                </p>
-                <p>
-                  Email:{" "}
-                  <span className="font-medium">
-                    {selectedOrder.receiver_email || "Không có email"}
-                  </span>
-                </p>
-                <p>
-                  Địa chỉ:{" "}
-                  <span className="font-medium">
-                    {selectedOrder.address || "Không có địa chỉ"}
-                  </span>
-                </p>
-                <p>
-                  Phương thức thanh toán:{" "}
-                  <span className="font-medium">
-                    {getPaymentMethodLabel(selectedOrder)}
-                  </span>
-                </p>
-                <p>
-                  Trạng thái thanh toán:{" "}
-                  <span className="font-medium">
-                    {selectedOrderPaid ? "Đã thanh toán" : "Chưa thanh toán"}
-                  </span>
-                </p>
-                {selectedOrder.note ? (
-                  <p className="sm:col-span-2">
-                    Ghi chú đơn hàng:{" "}
-                    <span className="font-medium">{selectedOrder.note}</span>
-                  </p>
-                ) : null}
-
-                {selectedOrderIsPendingUnpaidDelivery ? (
-                  <div className="sm:col-span-2 mt-2 rounded-md border border-amber-200 bg-amber-50 p-3">
-                    <p className="mb-2 text-sm font-semibold text-amber-900">
-                      Xử lý đơn giao hàng chưa thanh toán
+            <div className="max-h-[70vh] overflow-y-auto pr-1">
+              <div className="grid gap-4 md:grid-cols-12">
+                <div className="md:col-span-5 space-y-4">
+                  <div className="space-y-2 rounded-md border p-3 text-sm">
+                    <p className="text-sm font-semibold">Thông tin người nhận</p>
+                    <p>
+                      Người nhận:{" "}
+                      <span className="font-medium">
+                        {selectedOrder.receiver_name || "Khách lẻ"}
+                      </span>
                     </p>
-                    <div className="grid gap-2 sm:grid-cols-2">
-                      <label className="flex items-center gap-2 text-sm text-amber-900">
-                        <input
-                          type="radio"
-                          name="modal-pending-action"
-                          className="h-4 w-4"
-                          checked={detailPendingAction === "confirm"}
-                          onChange={() => setDetailPendingAction("confirm")}
-                        />
-                        <span>Nhận đơn</span>
-                      </label>
+                    <p>
+                      Số điện thoại:{" "}
+                      <span className="font-medium">
+                        {selectedOrder.receiver_phone || "Không có số điện thoại"}
+                      </span>
+                    </p>
+                    <p>
+                      Email:{" "}
+                      <span className="font-medium">
+                        {selectedOrder.receiver_email || "Không có email"}
+                      </span>
+                    </p>
+                    <p>
+                      Địa chỉ:{" "}
+                      <span className="font-medium">
+                        {selectedOrder.address || "Không có địa chỉ"}
+                      </span>
+                    </p>
+                    {selectedOrder.note ? (
+                      <p>
+                        Ghi chú đơn hàng:{" "}
+                        <span className="font-medium">{selectedOrder.note}</span>
+                      </p>
+                    ) : null}
+                  </div>
 
-                      <label className="flex items-center gap-2 text-sm text-amber-900">
-                        <input
-                          type="radio"
-                          name="modal-pending-action"
-                          className="h-4 w-4"
-                          checked={detailPendingAction === "cancel"}
-                          onChange={() => setDetailPendingAction("cancel")}
-                        />
-                        <span>Hủy đơn</span>
-                      </label>
+                  {selectedOrderIsPendingUnpaidDelivery ? (
+                    <div className="rounded-md border border-amber-200 bg-amber-50 p-3 dark:border-amber-800/50 dark:bg-amber-900/30">
+                      <p className="mb-2 text-sm font-semibold text-amber-900 dark:text-amber-200">
+                        Xử lý đơn giao hàng chưa thanh toán
+                      </p>
+                      <div className="grid gap-2 sm:grid-cols-2">
+                        <label className="flex items-center gap-2 text-sm text-amber-900 dark:text-amber-200">
+                          <input
+                            type="radio"
+                            name="modal-pending-action"
+                            className="h-4 w-4"
+                            checked={detailPendingAction === "confirm"}
+                            onChange={() => setDetailPendingAction("confirm")}
+                          />
+                          <span>Nhận đơn</span>
+                        </label>
+
+                        <label className="flex items-center gap-2 text-sm text-amber-900 dark:text-amber-200">
+                          <input
+                            type="radio"
+                            name="modal-pending-action"
+                            className="h-4 w-4"
+                            checked={detailPendingAction === "cancel"}
+                            onChange={() => setDetailPendingAction("cancel")}
+                          />
+                          <span>Hủy đơn</span>
+                        </label>
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+
+                <div className="md:col-span-7 space-y-4">
+                  <div className="space-y-2 rounded-md border p-3">
+                    <p className="text-sm font-semibold">Danh sách món và topping</p>
+                    {Array.isArray(selectedOrder.items) &&
+                    selectedOrder.items.length > 0 ? (
+                      selectedOrder.items.map((item) => (
+                        <div
+                          key={`${selectedOrder.id}-${item.id || item.product_name || item.name}`}
+                          className="rounded-md border p-2 text-sm"
+                        >
+                          <p className="font-medium">
+                            {item.name ||
+                              item.productName ||
+                              item.product_name ||
+                              "Sản phẩm"}
+                          </p>
+                          <p className="text-muted-foreground">
+                            Size {item.size} • x{item.quantity} •{" "}
+                            {money(item.price || item.total_price)}
+                          </p>
+                          {Array.isArray(item.toppings) &&
+                          item.toppings.length > 0 ? (
+                            <p className="text-muted-foreground">
+                              Topping:{" "}
+                              {item.toppings
+                                .map((top) => `${top.name} x${top.quantity || 1}`)
+                                .join(", ")}
+                            </p>
+                          ) : (
+                            <p className="text-muted-foreground">Không có topping</p>
+                          )}
+                          {item.note ? (
+                            <p className="text-muted-foreground">Ghi chú: {item.note}</p>
+                          ) : null}
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-sm text-muted-foreground">
+                        Đơn chưa có sản phẩm.
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2 rounded-md border bg-slate-50 p-3 text-sm dark:bg-slate-800/40">
+                    <p className="text-sm font-semibold">Thông tin thanh toán</p>
+                    <div className="flex justify-between text-slate-600 dark:text-slate-300">
+                      <span>Tạm tính</span>
+                      <span className="font-medium">{money(getOrderAmount(selectedOrder))}</span>
+                    </div>
+                    <div className="flex justify-between text-rose-600 dark:text-rose-300">
+                      <span>Giảm giá</span>
+                      <span className="font-medium">-{money(getOrderDiscountAmount(selectedOrder))}</span>
+                    </div>
+                    <div className="flex justify-between text-sky-600 dark:text-sky-300">
+                      <span>Phí vận chuyển</span>
+                      <span className="font-medium">+{money(getOrderDeliveryFee(selectedOrder))}</span>
+                    </div>
+                    <div className="flex justify-between border-t pt-2 font-semibold">
+                      <span>Tổng thanh toán</span>
+                      <span>{money(selectedOrder.total_amount)}</span>
+                    </div>
+                    <div className="flex justify-between text-muted-foreground">
+                      <span>Phương thức thanh toán</span>
+                      <span className="font-medium text-foreground">
+                        {getPaymentMethodLabel(selectedOrder)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-muted-foreground">
+                      <span>Trạng thái thanh toán</span>
+                      <span className="font-medium text-foreground">
+                        {selectedOrderPaid ? "Đã thanh toán" : "Chưa thanh toán"}
+                      </span>
                     </div>
                   </div>
-                ) : null}
+                </div>
               </div>
 
               <div className="space-y-2 rounded-md border p-3">
@@ -1055,11 +1223,10 @@ export function OrderDelivery() {
       </Dialog>
 
       {viewingReceipt && (
-        <ReceiptModal
-          autoPrint={viewingReceipt.autoPrint}
+        <PrintableReceipt
           order={viewingReceipt}
-          onPrint={handleMarkPrintSuccess}
-          onClose={() => setViewingReceipt(null)}
+          onPrintSuccess={handleMarkPrintSuccess}
+          onDone={() => setViewingReceipt(null)}
         />
       )}
 
@@ -1128,13 +1295,13 @@ export function OrderDelivery() {
 
             {cashPaymentDialog.cashReceived !== "" &&
             cashReceivedAmount < requiredAmount ? (
-              <p className="text-sm text-red-600">
+              <p className="text-sm text-red-600 dark:text-red-400">
                 Số tiền nhập vào nhỏ hơn số tiền cần thanh toán.
               </p>
             ) : null}
 
             {isCashInputValid ? (
-              <p className="text-sm text-emerald-700">
+              <p className="text-sm text-emerald-700 dark:text-emerald-300">
                 Tiền thừa trả khách:{" "}
                 <span className="font-semibold">{money(changeAmount)}</span>
               </p>

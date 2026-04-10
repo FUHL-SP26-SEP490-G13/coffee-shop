@@ -14,61 +14,96 @@ import {
   BarChart,
   Bar,
 } from "recharts";
-import { LayoutDashboard } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { format, subDays, startOfYear, endOfDay, startOfDay, differenceInDays } from "date-fns";
+import { CalendarIcon, LayoutDashboard, RefreshCcw } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const formatMoney = (n) => `${Number(n || 0).toLocaleString()}đ`;
 
-function fillMissingDates(series, days) {
-  // series: [{date:'YYYY-MM-DD', revenue:number}]
+function fillMissingDates(series, startDateStr, endDateStr) {
+  if (!startDateStr || !endDateStr) return series;
   const map = new Map(series.map((x) => [x.date, x.revenue]));
   const result = [];
 
-  const today = new Date();
-  for (let i = days - 1; i >= 0; i--) {
-    const d = new Date(today);
-    d.setDate(today.getDate() - i);
-    const m = d.getMonth() + 1;
-    const day = d.getDate();
-    const key = `${d.getFullYear()}-${m < 10 ? "0" + m : m}-${day < 10 ? "0" + day : day}`;
+  let current = startOfDay(new Date(startDateStr));
+  const end = startOfDay(new Date(endDateStr));
+
+  while (current <= end) {
+    const key = format(current, "yyyy-MM-dd");
     result.push({ date: key, revenue: map.get(key) ?? 0 });
+    current.setDate(current.getDate() + 1);
   }
   return result;
 }
 
 export default function AdminDB() {
-  const [rangeDays, setRangeDays] = useState(7);
+  const [rangeType, setRangeType] = useState("7"); // '7', '30', 'year', 'custom'
+  const [customRange, setCustomRange] = useState({
+    from: subDays(new Date(), 6),
+    to: new Date(),
+  });
+
+  const [dateInfo, setDateInfo] = useState({
+    startDate: "",
+    endDate: "",
+    displayDays: 7
+  });
 
   const [overview, setOverview] = useState(null);
   const [revenueSeries, setRevenueSeries] = useState([]);
   const [topProducts, setTopProducts] = useState([]);
 
   const [loading, setLoading] = useState(true);
-  const [errors, setErrors] = useState({});
+  const [errors, setErrors] = useState(null);
 
   const [orderTypeRevenue, setOrderTypeRevenue] = useState([]);
   const [comparison, setComparison] = useState(null);
 
-  const loadData = async () => {
+  const loadData = async (dates) => {
     try {
       setLoading(true);
       setErrors(null);
 
-      const ov = await adminDBService.getOverview();
+      const [ov, series, top, orderType, cmp] = await Promise.all([
+        adminDBService.getOverview(),
+        adminDBService.getRevenueSeries({
+          startDate: dates.startDate,
+          endDate: dates.endDate,
+        }),
+        adminDBService.getTopProducts({
+          startDate: dates.startDate,
+          endDate: dates.endDate,
+          limit: 5,
+        }),
+        adminDBService.getOrderTypeRevenue({
+          startDate: dates.startDate,
+          endDate: dates.endDate,
+        }),
+        adminDBService.getComparison({
+          startDate: dates.startDate,
+          endDate: dates.endDate,
+          prevStartDate: dates.prevStartDate,
+          prevEndDate: dates.prevEndDate,
+        }),
+      ]);
+
       setOverview(ov);
-
-      const series = await adminDBService.getRevenueSeries(rangeDays);
       setRevenueSeries(series);
-
-      const top = await adminDBService.getTopProducts({
-        days: rangeDays,
-        limit: 5,
-      });
       setTopProducts(top);
-
-      const orderType = await adminDBService.getOrderTypeRevenue(rangeDays);
       setOrderTypeRevenue(orderType);
-
-      const cmp = await adminDBService.getComparison(rangeDays);
       setComparison(cmp);
     } catch (err) {
       console.error("Dashboard error:", err);
@@ -78,14 +113,63 @@ export default function AdminDB() {
     }
   };
 
+  const getFilterDates = (type, custom) => {
+    let start, end;
+    const now = new Date();
+
+    if (type === "7") {
+      start = subDays(now, 6);
+      end = now;
+    } else if (type === "30") {
+      start = subDays(now, 29);
+      end = now;
+    } else if (type === "year") {
+      start = startOfYear(now);
+      end = now;
+    } else if (type === "custom" && custom?.from) {
+      start = custom.from;
+      end = custom.to || now;
+    } else {
+      start = subDays(now, 6);
+      end = now;
+    }
+
+    const startDate = format(startOfDay(start), "yyyy-MM-dd HH:mm:ss");
+    const endDate = format(endOfDay(end), "yyyy-MM-dd HH:mm:ss");
+
+    const duration = differenceInDays(end, start) + 1;
+    const prevStart = subDays(start, duration);
+    const prevEnd = subDays(start, 1);
+
+    const prevStartDate = format(startOfDay(prevStart), "yyyy-MM-dd HH:mm:ss");
+    const prevEndDate = format(endOfDay(prevEnd), "yyyy-MM-dd HH:mm:ss");
+
+    return {
+      startDate,
+      endDate,
+      prevStartDate,
+      prevEndDate,
+      displayDays: duration,
+    };
+  };
+
+  const handleApplyFilter = () => {
+    const dates = getFilterDates(rangeType, customRange);
+    setDateInfo(dates);
+    loadData(dates);
+  };
+
   useEffect(() => {
-    loadData();
+    // Initial load
+    const initialDates = getFilterDates("7", null);
+    setDateInfo(initialDates);
+    loadData(initialDates);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rangeDays]);
+  }, []);
 
   const chartData = useMemo(
-    () => fillMissingDates(revenueSeries || [], rangeDays),
-    [revenueSeries, rangeDays]
+    () => fillMissingDates(revenueSeries || [], dateInfo.startDate, dateInfo.endDate),
+    [revenueSeries, dateInfo]
   );
 
   if (loading) {
@@ -109,36 +193,83 @@ export default function AdminDB() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="p-4 sm:p-6 lg:p-8 space-y-6">
       {/* Header controls */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-primary/10 rounded-lg">
-            <LayoutDashboard className="h-6 w-6 text-primary" />
-          </div>
           <div>
-            <h2 className="text-2xl font-semibold mb-1">Tổng quan cửa hàng</h2>
-            <p className="text-sm text-muted-foreground">
-              Khái quát chung cửa hàng của bạn
-            </p>
+            <h2 className="text-xl font-semibold">Tổng quan cửa hàng</h2>
           </div>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-2">
+          {rangeType === "custom" && (
+            <div className={cn("grid gap-2")}>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    id="date"
+                    variant={"outline"}
+                    className={cn(
+                      "w-[260px] justify-start text-left font-normal",
+                      !customRange && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {customRange?.from ? (
+                      customRange.to ? (
+                        <>
+                          {format(customRange.from, "dd/MM/yyyy")} -{" "}
+                          {format(customRange.to, "dd/MM/yyyy")}
+                        </>
+                      ) : (
+                        format(customRange.from, "dd/MM/yyyy")
+                      )
+                    ) : (
+                      <span>Chọn ngày</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="end">
+                  <Calendar
+                    initialFocus
+                    mode="range"
+                    defaultMonth={customRange?.from}
+                    selected={customRange}
+                    onSelect={setCustomRange}
+                    numberOfMonths={2}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+          )}
+
+          <Select value={rangeType} onValueChange={setRangeType}>
+            <SelectTrigger className="w-[150px]">
+              <SelectValue placeholder="Chọn thời gian" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="7">7 ngày qua</SelectItem>
+              <SelectItem value="30">30 ngày qua</SelectItem>
+              <SelectItem value="year">Năm nay</SelectItem>
+              <SelectItem value="custom">Tùy chọn</SelectItem>
+            </SelectContent>
+          </Select>
+
           <Button
-            variant={rangeDays === 7 ? "default" : "outline"}
-            onClick={() => setRangeDays(7)}
+            onClick={handleApplyFilter}
+            className="flex items-center gap-2"
           >
-            7 ngày
+            Lọc
           </Button>
+
           <Button
-            variant={rangeDays === 30 ? "default" : "outline"}
-            onClick={() => setRangeDays(30)}
+            variant="outline"
+            size="icon"
+            onClick={handleApplyFilter}
+            title="Làm mới"
           >
-            30 ngày
-          </Button>
-          <Button variant="outline" onClick={loadData}>
-            Refresh
+            <RefreshCcw className="h-4 w-4" />
           </Button>
         </div>
       </div>
@@ -180,7 +311,7 @@ export default function AdminDB() {
           <div className="flex items-end justify-between mb-4">
             <div>
               <h3 className="text-lg font-semibold">
-                Doanh thu {rangeDays} ngày
+                Doanh thu {dateInfo.displayDays} ngày
               </h3>
               <p className="text-sm text-muted-foreground">
                 Tính theo đơn đã thanh toán (orders.is_paid = 1)
@@ -214,7 +345,7 @@ export default function AdminDB() {
         <Card className="p-6">
           <h3 className="text-lg font-semibold mb-1">Top 5 bán chạy</h3>
           <p className="text-sm text-muted-foreground mb-4">
-            {rangeDays} ngày gần nhất
+            {dateInfo.displayDays} ngày gần nhất
           </p>
 
           {topProducts.length === 0 ? (
@@ -247,7 +378,7 @@ export default function AdminDB() {
       <Card className="p-6">
         <h3 className="text-lg font-semibold mb-1">Doanh thu theo loại đơn</h3>
         <p className="text-sm text-muted-foreground mb-4">
-          {rangeDays} ngày gần nhất
+          {dateInfo.displayDays} ngày gần nhất
         </p>
 
         {orderTypeRevenue.length === 0 ? (
@@ -277,9 +408,8 @@ export default function AdminDB() {
           <div className="text-sm text-muted-foreground">...</div>
         ) : (
           <div
-            className={`text-2xl font-bold ${
-              comparison.revenueGrowth >= 0 ? "text-green-600" : "text-red-600"
-            }`}
+            className={`text-2xl font-bold ${comparison.revenueGrowth >= 0 ? "text-green-600" : "text-red-600"
+              }`}
           >
             {comparison.revenueGrowth >= 0 ? "↑" : "↓"}{" "}
             {Math.abs(comparison.revenueGrowth)}%

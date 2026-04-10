@@ -24,6 +24,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import PaginationControl from "@/components/common/PaginationControl";
+import AdminNewsModal from "./AdminNewsModal";
 
 const PAGE_SIZE = 7;
 
@@ -36,7 +37,8 @@ export default function AdminNewsList() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [keyword, setKeyword] = useState("");
-  const navigate = useNavigate();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedNewsId, setSelectedNewsId] = useState(null);
 
   const fetchNews = async (currentPage = 1, search = "") => {
     try {
@@ -116,18 +118,15 @@ export default function AdminNewsList() {
       <div className="mb-6">
         <div className="flex justify-between items-start mb-6">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-primary/10 rounded-lg">
-              <Newspaper className="h-6 w-6 text-primary" />
-            </div>
             <div>
-              <h2 className="text-2xl font-semibold mb-1">Quản lý bài viết</h2>
-              <p className="text-sm text-muted-foreground">
-                Tạo và quản lý bài viết của bạn
-              </p>
+              <h2 className="text-xl font-semibold">Quản lý bài viết</h2>
             </div>
           </div>
 
-          <Button onClick={() => navigate("/admin/create-news")}>
+          <Button onClick={() => {
+            setSelectedNewsId(null);
+            setIsModalOpen(true);
+          }}>
             <Plus className="w-4 h-4 mr-2" />
             Thêm Mới
           </Button>
@@ -218,23 +217,14 @@ export default function AdminNewsList() {
 
                       <TableCell>
                         <div className="flex items-center justify-center gap-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() =>
-                              navigate(`/admin/news-detail/${item.slug}`)
-                            }
-                            title="Xem chi tiết"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
 
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() =>
-                              navigate(`/admin/edit-news/${item.id}`)
-                            }
+                            onClick={() => {
+                              setSelectedNewsId(item.id);
+                              setIsModalOpen(true);
+                            }}
                             title="Chỉnh sửa"
                           >
                             <Edit className="h-4 w-4" />
@@ -275,6 +265,16 @@ export default function AdminNewsList() {
           itemName="bài viết"
         />
       )}
+
+      <AdminNewsModal
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false);
+          setSelectedNewsId(null);
+        }}
+        newsId={selectedNewsId}
+        onSuccess={() => fetchNews(page, keyword)}
+      />
     </div>
   );
 }

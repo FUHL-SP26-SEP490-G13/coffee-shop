@@ -8,6 +8,7 @@ import {
   Clock,
   ClipboardList,
   FileText,
+  ArrowLeftRight,
   User,
   LogOut,
   Menu,
@@ -17,6 +18,8 @@ import {
   LayoutDashboard,
   ChevronLeft,
   ChevronRight,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import {
   AlertDialog,
@@ -40,6 +43,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import Logo from '/logo/Logo.png';
+import receiptSettingService from "@/services/receiptSettingService";
 
 const STAFF_SIDEBAR_PREF_KEY = 'staff_sidebar_collapsed_by_page';
 const STAFF_SIDEBAR_DEFAULTS = {
@@ -61,14 +65,88 @@ export function StaffApp() {
     }
   });
 
-  // Force disable dark mode for staff
+  const [storeLogo, setStoreLogo] = useState(() => {
+    return localStorage.getItem("cached_store_logo") || Logo;
+  });
+
   useEffect(() => {
-    document.documentElement.classList.remove('dark');
+    const fetchLogo = async () => {
+      try {
+        const res = await receiptSettingService.getActive();
+        const data = res?.data || null;
+        if (data && data.logo_url) {
+          setStoreLogo(data.logo_url);
+          localStorage.setItem("cached_store_logo", data.logo_url);
+        } else {
+          setStoreLogo(Logo);
+          localStorage.removeItem("cached_store_logo");
+        }
+      } catch (error) {
+        setStoreLogo(Logo);
+        localStorage.removeItem("cached_store_logo");
+      }
+    };
+    fetchLogo();
+
+    const handleReceiptUpdate = () => {
+      fetchLogo();
+    };
+
+    window.addEventListener("receiptSettingsUpdated", handleReceiptUpdate);
+    return () => {
+      window.removeEventListener("receiptSettingsUpdated", handleReceiptUpdate);
+    };
   }, []);
+
+  // Quản lý Dark Mode thay cho force disable
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    return localStorage.getItem("theme") === "dark";
+  });
+
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add("dark");
+      localStorage.setItem("theme", "dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+      localStorage.setItem("theme", "light");
+    }
+  }, [isDarkMode]);
+
+  const toggleTheme = () => setIsDarkMode((prev) => !prev);
 
   const navigate = useNavigate();
   const location = useLocation();
   const notificationRef = useRef(null);
+
+  useEffect(() => {
+    const routeTitles = {
+        "/staff/dashboard": "Tổng quan",
+        "/staff/tables": "Phòng bàn",
+        "/staff/takeaway": "Đặt mang đi",
+        "/staff/orders/pending": "Đơn chờ",
+        "/staff/orders/preparing": "Đơn đang làm",
+        "/staff/orders/completed": "Đơn đã xong",
+        "/staff/orders/cancelled": "Đơn đã hủy",
+        "/staff/kitchen": "Bếp",
+        "/staff/inventory": "Kho hàng",
+        "/staff/requests": "Đổi ca",
+        "/staff/attendance": "Điểm danh ca làm",
+        "/staff/schedule": "Lịch làm việc",
+        "/staff/profile": "Thông tin cá nhân",
+    };
+
+    let matchedTitle = "Cổng Nhân viên";
+    if (routeTitles[location.pathname]) {
+      matchedTitle = routeTitles[location.pathname];
+    } else {
+      const match = Object.keys(routeTitles).find(path => location.pathname.startsWith(path));
+      if (match) matchedTitle = routeTitles[match];
+    }
+
+    const shopName = localStorage.getItem("cached_store_name") || "Coffee Shop";
+    document.title = `${matchedTitle} | ${shopName}`;
+  }, [location.pathname]);
 
   const unreadCount = notifications.filter(
     (item) => Number(item.is_read) === 0,
@@ -124,8 +202,7 @@ export function StaffApp() {
     {
       title: 'Vận Hành',
       items: [
-        { id: 'inventory', icon: ClipboardList, label: 'Kho hàng', path: '/staff/inventory' },
-        { id: 'requests', icon: FileText, label: 'Yêu cầu', path: '/staff/requests' },
+        { id: 'requests', icon: ArrowLeftRight, label: 'Đổi ca', path: '/staff/requests' },
       ],
     },
     {
@@ -315,10 +392,10 @@ export function StaffApp() {
   };
 
   return (
-    <div className='flex min-h-screen bg-background'>
+    <div className='flex h-screen w-full bg-background overflow-hidden relative'>
       <button
         onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-        className='md:hidden fixed top-4 left-4 z-50 p-2 bg-card border border-border rounded-lg shadow-lg'
+        className='md:hidden fixed top-4 left-4 z-50 p-2 bg-card border border-border rounded-lg shadow-lg dark:shadow-none'
       >
         {mobileMenuOpen ? (
           <X className='w-5 h-5' />
@@ -370,9 +447,10 @@ export function StaffApp() {
             )}
           </button>
           <img
-            src={Logo}
+            src={storeLogo}
+            onError={(e) => { e.currentTarget.src = Logo; }}
             alt='Coffee Shop Logo'
-            className={`w-auto ${isSidebarCompact ? 'h-12' : 'h-20'}`}
+            className={`w-auto object-contain rounded-2xl ${isSidebarCompact ? 'h-12' : 'h-20'}`}
           />
           <p className={`text-sm text-muted-foreground mt-1 ${isSidebarCompact ? 'md:hidden' : ''}`}>
             Cổng Nhân viên
@@ -397,7 +475,7 @@ export function StaffApp() {
                       }}
                       className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all mb-1 ${isSidebarCompact ? 'md:justify-center md:px-2' : ''} ${
                         currentPage === item.id
-                          ? 'bg-primary text-primary-foreground shadow-sm'
+                          ? 'bg-primary text-primary-foreground shadow-sm dark:shadow-none'
                           : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
                       }`}
                       title={isSidebarCompact ? item.label : undefined}
@@ -456,14 +534,22 @@ export function StaffApp() {
         </TooltipProvider>
       </div>
 
-      <div className={`flex-1 w-full md:w-auto ${currentPage === 'pos' ? 'overflow-hidden flex flex-col h-screen' : 'overflow-auto'}`}>
+      <div className="flex-1 flex flex-col h-full w-full overflow-hidden bg-background">
         <div
           ref={notificationRef}
-          className='flex justify-end px-4 md:px-8 pt-4 md:pt-4 pb-0 relative'
+          className='flex-shrink-0 flex justify-end items-center gap-3 px-4 md:px-8 pt-4 md:pt-4 pb-0 relative'
         >
           <button
-            onClick={() => setShowNotifications((prev) => !prev)}
-            className='relative p-2 rounded-full border bg-white hover:bg-gray-50 shadow-sm'
+            onClick={toggleTheme}
+            className="p-2 rounded-full border bg-card text-foreground hover:bg-accent shadow-sm dark:shadow-none transition"
+            title="Đổi giao diện Sáng/Tối"
+          >
+            {isDarkMode ? <Sun className="w-5 h-5 text-yellow-500" /> : <Moon className="w-5 h-5" />}
+          </button>
+
+          <button
+             onClick={() => setShowNotifications((prev) => !prev)}
+            className="relative p-2 rounded-full border bg-card text-foreground hover:bg-accent shadow-sm dark:shadow-none"
           >
             <Bell className='w-5 h-5' />
             {unreadCount > 0 && (
@@ -474,8 +560,8 @@ export function StaffApp() {
           </button>
 
           {showNotifications && (
-            <div className='absolute top-14 right-4 md:right-8 w-[360px] bg-white border rounded-xl shadow-xl z-50 overflow-hidden'>
-              <div className='flex items-center justify-between px-4 py-3 border-b'>
+            <div className='absolute top-14 right-4 md:right-8 w-[360px] bg-card text-card-foreground border border-border rounded-xl shadow-xl dark:shadow-none z-50 overflow-hidden'>
+              <div className='flex items-center justify-between px-4 py-3 border-b border-border'>
                 <h3 className='font-semibold'>Thông báo</h3>
                 {notifications.length > 0 && (
                   <button
@@ -499,8 +585,9 @@ export function StaffApp() {
                     <button
                       key={item.recipient_id || `${item.id}-${item.created_at}`}
                       onClick={() => handleReadNotification(item)}
-                      className={`w-full text-left px-4 py-3 border-b hover:bg-gray-50 ${Number(item.is_read) === 0 ? 'bg-orange-50' : 'bg-white'
-                        }`}
+                      className={`w-full text-left px-4 py-3 border-b border-border hover:bg-accent ${
+                        Number(item.is_read) === 0 ? "bg-accent/50 dark:bg-accent/20" : "bg-transparent"
+                      }`}
                     >
                       <div className='flex items-start justify-between gap-3'>
                         <div className='flex-1'>
@@ -533,8 +620,7 @@ export function StaffApp() {
             </div>
           )}
         </div>
-
-        <div className={`p-4 md:p-8 pt-2 md:pt-2 ${currentPage === 'pos' ? 'flex-1 overflow-hidden flex flex-col' : ''}`}>
+        <div className={`flex-1 w-full flex flex-col ${currentPage === 'pos' ? 'overflow-hidden' : 'overflow-y-auto h-full'}`}>
           <Outlet />
         </div>
       </div>

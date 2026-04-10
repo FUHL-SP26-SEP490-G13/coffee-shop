@@ -1,4 +1,4 @@
-import { X } from 'lucide-react';
+import { Check } from 'lucide-react';
 
 const fmt = (n) => Number(n).toLocaleString('vi-VN') + 'đ';
 
@@ -11,85 +11,63 @@ export function ToppingPicker({ selected, onChange, toppings = [] }) {
     );
   }
 
+  const toggle = (topping) => {
+    const exists = selected.find((s) => s.topping_id === topping.id);
+    if (exists) {
+      // Bỏ chọn
+      onChange(selected.filter((s) => s.topping_id !== topping.id));
+    } else {
+      // Chọn — quantity luôn = 1
+      onChange([
+        ...selected,
+        {
+          topping_id: topping.id,
+          quantity: 1,
+          price: Number(topping.price),
+          name: topping.name,
+        },
+      ]);
+    }
+  };
+
   return (
     <div className="space-y-1.5">
       {toppings.map((t) => {
-        const found = selected.find((s) => s.topping_id === t.id);
+        const isSelected = selected.some((s) => s.topping_id === t.id);
         return (
-          <div
+          <button
             key={t.id}
-            className="flex items-center justify-between p-2 rounded-lg bg-gray-50 border border-gray-100"
+            type="button"
+            onClick={() => toggle(t)}
+            className={`w-full flex items-center gap-3 p-2.5 rounded-lg border transition-all text-left
+              ${isSelected
+                ? 'border-amber-400 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-500/50'
+                : 'border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 hover:border-gray-200 dark:hover:border-gray-700'
+              }`}
           >
-            <div>
-              <p className="text-sm font-medium text-gray-800">{t.name}</p>
-              <p className="text-xs text-amber-600">+{fmt(t.price)}</p>
+            {/* Checkbox */}
+            <div
+              className={`w-5 h-5 rounded flex-shrink-0 flex items-center justify-center border-2 transition-colors
+                ${isSelected
+                  ? 'bg-amber-500 border-amber-500 text-white'
+                  : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900'
+                }`}
+            >
+              {isSelected && <Check size={12} strokeWidth={3} />}
             </div>
 
-            {found ? (
-              <div className="flex items-center gap-1.5">
-                <button
-                  onClick={() =>
-                    onChange(
-                      selected
-                        .map((s) =>
-                          s.topping_id === t.id
-                            ? { ...s, quantity: Math.max(1, s.quantity - 1) }
-                            : s,
-                        )
-                        .filter(
-                          (s) => !(s.topping_id === t.id && s.quantity === 0),
-                        ),
-                    )
-                  }
-                  className="w-6 h-6 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center text-xs font-bold hover:bg-amber-200"
-                >
-                  −
-                </button>
-                <span className="text-sm font-semibold w-4 text-center">
-                  {found.quantity}
-                </span>
-                <button
-                  onClick={() =>
-                    onChange(
-                      selected.map((s) =>
-                        s.topping_id === t.id
-                          ? { ...s, quantity: s.quantity + 1 }
-                          : s,
-                      ),
-                    )
-                  }
-                  className="w-6 h-6 rounded-full bg-amber-500 text-white flex items-center justify-center text-xs font-bold hover:bg-amber-600"
-                >
-                  +
-                </button>
-                <button
-                  onClick={() =>
-                    onChange(selected.filter((s) => s.topping_id !== t.id))
-                  }
-                  className="w-5 h-5 rounded-full bg-red-100 text-red-500 flex items-center justify-center ml-1 hover:bg-red-200"
-                >
-                  <X size={10} />
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={() =>
-                  onChange([
-                    ...selected,
-                    {
-                      topping_id: t.id,
-                      quantity:   1,
-                      price:      Number(t.price),
-                      name:       t.name,
-                    },
-                  ])
-                }
-                className="text-xs px-2.5 py-1 rounded-full bg-amber-500 text-white font-medium hover:bg-amber-600"
-              >
-                Thêm
-              </button>
-            )}
-          </div>
+            {/* Info */}
+            <div className="flex-1 min-w-0">
+              <p className={`text-sm font-medium ${isSelected ? 'text-amber-800 dark:text-amber-300' : 'text-gray-800 dark:text-gray-200'}`}>
+                {t.name}
+              </p>
+            </div>
+
+            {/* Price */}
+            <span className={`text-xs font-semibold flex-shrink-0 ${isSelected ? 'text-amber-600 dark:text-amber-400' : 'text-gray-500 dark:text-gray-400'}`}>
+              +{fmt(t.price)}
+            </span>
+          </button>
         );
       })}
     </div>

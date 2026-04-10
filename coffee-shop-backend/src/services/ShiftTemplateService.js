@@ -47,10 +47,15 @@ class ShiftTemplateService {
 
         const usedColor = await ShiftRepository.findTemplateByColor(color || 'blue');
         if (usedColor)
-            throw new ErrorResponse(400, `Màu ${color || 'blue'} đã được dùng cho ca khác`);
+            throw new ErrorResponse(400, `Màu đã được dùng cho ca khác`);
+
+        // Kiểm tra trùng khung giờ với ca khác
+        const overlapping = await ShiftRepository.findOverlappingTemplate(start_time, end_time);
+        if (overlapping)
+            throw new ErrorResponse(400, `Khung giờ bị trùng với ca khác`);
 
         return ShiftRepository.createTemplate({
-            name: name.trim(),
+            name: name.trim().toUpperCase(),
             start_time,
             end_time,
             color: color || 'blue',
@@ -92,8 +97,13 @@ class ShiftTemplateService {
         if (toMinutes(finalEnd) - toMinutes(finalStart) < MIN_SHIFT_MINUTES)
             throw new ErrorResponse(400, `Ca làm việc phải dài ít nhất ${MIN_SHIFT_HOURS} tiếng`);
 
+        // Kiểm tra trùng khung giờ với ca khác (trừ chính nó)
+        const overlapping = await ShiftRepository.findOverlappingTemplate(finalStart, finalEnd, id);
+        if (overlapping)
+            throw new ErrorResponse(400, `Khung giờ bị trùng với ca khác`);
+
         return ShiftRepository.updateTemplate(id, {
-            name: name?.trim() ?? template.name,
+            name: name?.trim().toUpperCase() ?? template.name.toUpperCase(),
             start_time: finalStart,
             end_time: finalEnd,
             color: color ?? template.color,

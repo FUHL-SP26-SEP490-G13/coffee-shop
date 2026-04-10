@@ -41,13 +41,19 @@ class ReviewController {
 
       if (req.files && req.files.length > 0) {
         for (const file of req.files) {
-          const result = await cloudinary.uploader.upload(file.path, {
+          const isVideo = file.mimetype && file.mimetype.startsWith("video/");
+          const uploadOptions = {
             folder: "reviews",
-            transformation: [
+            resource_type: "auto",
+          };
+          if (!isVideo) {
+            uploadOptions.transformation = [
               { width: 800, height: 800, crop: "limit" },
               { quality: "auto" },
-            ],
-          });
+            ];
+          }
+
+          const result = await cloudinary.uploader.upload(file.path, uploadOptions);
 
           uploadedImages.push({
             url: result.secure_url,

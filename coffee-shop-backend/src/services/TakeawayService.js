@@ -194,6 +194,8 @@ class TakeawayService {
         created_by: staffUser.id,
         order_type: 'takeaway',
         total_amount: finalAmount,
+        amount: subtotal,
+        discount_amount: discountAmount,
         discount_id: discountId,
       });
 
@@ -250,6 +252,7 @@ class TakeawayService {
 
       const response = {
         order_id: orderId,
+        amount: subtotal,
         subtotal_amount: subtotal,
         discount_amount: discountAmount,
         discount_code: discountCode,
@@ -547,10 +550,21 @@ class TakeawayService {
     const items = await TakeawayRepository.findOrderItems(orderId);
     const payment = await TakeawayRepository.findOrderPayment(orderId);
 
-    const subtotal = items.reduce(
+    const fallbackSubtotal = items.reduce(
       (sum, item) => sum + Number(item.price) * Number(item.quantity),
       0,
     );
+      const subtotal = Math.max(0, Number(order.amount || 0));
+    const amountForDiscountCalc = Math.max(
+      0,
+      Number(order.amount || 0) || fallbackSubtotal,
+    );
+    const discountAmount = Math.max(
+      0,
+      Number(order.discount_amount || 0) ||
+        Math.max(0, amountForDiscountCalc + Number(order.delivery_fee || 0) - Number(order.total_amount || 0)),
+    );
+    const deliveryFee = Math.max(0, Number(order.delivery_fee || 0));
 
     const paidAmount = payment ? Number(payment.paid_amount || 0) : 0;
     const cashReceived = payment ? Number(payment.cash_received || 0) : 0;
@@ -592,12 +606,14 @@ class TakeawayService {
             toppings,
           };
         }),
+        amount: subtotal,
         subtotal_amount: subtotal,
         discount_code: order.discount_code || null,
         discount_percentage: order.discount_percentage
           ? Number(order.discount_percentage)
           : null,
-        discount_amount: subtotal - Number(order.total_amount),
+        discount_amount: discountAmount,
+        delivery_fee: deliveryFee,
         total_amount: Number(order.total_amount),
         receiver_name: order.receiver_name || null,
         receiver_phone: order.receiver_phone || null,

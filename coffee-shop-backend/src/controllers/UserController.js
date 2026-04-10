@@ -203,12 +203,16 @@ class UserController {
         return response.error(res, 'Mật khẩu là bắt buộc', 400);
       }
 
-      await UserService.deactivateUser(id, adminId, password);
+      const result = await UserService.deactivateUser(id, adminId, password);
+
+      const msg = result.cancelledShifts > 0
+        ? `Vô hiệu hóa user thành công. Đã hủy ${result.cancelledShifts} ca làm việc sắp tới.`
+        : 'Vô hiệu hóa user thành công';
 
       return response.success(
         res,
-        null,
-        'Vô hiệu hóa user thành công'
+        { cancelledShifts: result.cancelledShifts },
+        msg
       );
     } catch (error) {
       next(error);

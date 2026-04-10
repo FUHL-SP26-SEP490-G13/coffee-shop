@@ -16,14 +16,14 @@ export function StaffKitchen() {
   };
 
   return (
-    <div className="p-4">
-      <h2 className="text-xl mb-6">Kitchen Display</h2>
+    <div className="p-4 sm:p-6 lg:p-8 space-y-6">
+      <h1 className="text-xl font-bold tracking-tight mb-6">Kitchen Display</h1>
 
       <div className="grid grid-cols-3 gap-4">
         {activeOrders.map((order) => (
           <div
             key={order.id}
-            className="bg-card rounded-xl p-4 border-2 border-border shadow-lg"
+            className="bg-card rounded-xl p-4 border-2 border-border shadow-lg dark:shadow-none"
           >
             <div className="flex items-start justify-between mb-4">
               <div>

@@ -184,7 +184,7 @@ export function BaristaOrders() {
   );
 
   return (
-    <div className="h-full flex flex-col p-0 space-y-6">
+    <div className="p-4 sm:p-6 lg:p-8 h-full flex flex-col space-y-6">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col space-y-6">
         <div className="flex items-center justify-between m-0">
           <TabsList className="bg-muted p-1 h-14 rounded-2xl w-fit">

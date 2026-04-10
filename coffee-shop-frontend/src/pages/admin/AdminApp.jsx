@@ -1,4 +1,4 @@
-import { Outlet, NavLink, useNavigate } from 'react-router-dom';
+import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
   Package,
@@ -16,16 +16,18 @@ import {
   ChevronDown,
   Menu,
   X,
-  MapPin,
   LayoutGrid,
   Bell,
-  Settings,
   MessageSquare,
   Shield,
+  Coins,
   Zap,
   Clock,
   Moon,
   Sun,
+  Mailbox,
+  ArrowLeftRight,
+  FileText,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import authenticationService from '../../services/authenticationService';
@@ -44,15 +46,97 @@ import Logo from "/logo/Logo.png";
 import notificationService from "@/services/notificationService";
 import socket from "@/lib/socket";
 import { getNotificationLink } from "@/utils/getNotificationLink";
+import receiptSettingService from "@/services/receiptSettingService";
 
 export default function AdminApp() {
-   const [openMenu, setOpenMenu] = useState(false);
-   const [openScheduleMenu, setOpenScheduleMenu] = useState(false);
+   const navigate = useNavigate();
+   const location = useLocation();
+
+   const [openMenu, setOpenMenu] = useState(() => 
+     location.pathname.includes('/admin/menu') || location.pathname.includes('/admin/toppings')
+   );
+   const [openScheduleMenu, setOpenScheduleMenu] = useState(() => 
+     location.pathname.includes('/admin/schedule/templates') || location.pathname.includes('/admin/schedule/list')
+   );
    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
    const [notifications, setNotifications] = useState([]);
    const [showNotifications, setShowNotifications] = useState(false);
    const notificationRef = useRef(null);
-   const navigate = useNavigate();
+
+   useEffect(() => {
+     if (location.pathname.includes('/admin/menu') || location.pathname.includes('/admin/toppings')) setOpenMenu(true);
+     if (location.pathname.includes('/admin/schedule/templates') || location.pathname.includes('/admin/schedule/list')) setOpenScheduleMenu(true);
+   }, [location.pathname]);
+
+   useEffect(() => {
+     const routeTitles = {
+       "/admin/dashboard": "Bảng điều khiển",
+       "/admin/end-of-day-report": "Báo cáo tổng kết",
+       "/admin/orders": "Đơn hàng",
+       "/admin/tables": "Quản lý bàn",
+       "/admin/menu/categories": "Danh mục",
+       "/admin/menu/products": "Sản phẩm",
+       "/admin/toppings": "Topping",
+       "/admin/ingredients": "Nguyên liệu",
+       "/admin/users": "Người dùng",
+       "/admin/reviews": "Đánh giá",
+       "/admin/discounts": "Mã giảm giá",
+       "/admin/reputation": "Điểm uy tín",
+       "/admin/loyalty": "Điểm loyalty",
+       "/admin/flash-sales": "Flash sale",
+       "/admin/banners": "Quảng cáo",
+       "/admin/news-list": "Bài viết",
+       "/admin/newsletter": "Email",
+       "/admin/schedule/templates": "Quản lý ca làm",
+       "/admin/schedule/list": "Lịch làm việc",
+       "/admin/receipt-settings": "Cấu hình hóa đơn",
+       "/admin/profile": "Thông tin cá nhân"
+     };
+
+     let matchedTitle = "Quản trị viên";
+     if (routeTitles[location.pathname]) {
+       matchedTitle = routeTitles[location.pathname];
+     } else {
+       const match = Object.keys(routeTitles).find(path => location.pathname.startsWith(path));
+       if (match) matchedTitle = routeTitles[match];
+     }
+
+     const shopName = localStorage.getItem("cached_store_name") || "Coffee Shop";
+     document.title = `${matchedTitle} | ${shopName}`;
+   }, [location.pathname]);
+
+   const [storeLogo, setStoreLogo] = useState(() => {
+     return localStorage.getItem("cached_store_logo") || Logo;
+   });
+
+   useEffect(() => {
+     const fetchLogo = async () => {
+       try {
+         const res = await receiptSettingService.getActive();
+         const data = res?.data || null;
+         if (data && data.logo_url) {
+           setStoreLogo(data.logo_url);
+           localStorage.setItem("cached_store_logo", data.logo_url);
+         } else {
+           setStoreLogo(Logo);
+           localStorage.removeItem("cached_store_logo");
+         }
+       } catch (error) {
+         setStoreLogo(Logo);
+         localStorage.removeItem("cached_store_logo");
+       }
+     };
+     fetchLogo();
+
+     const handleReceiptUpdate = () => {
+       fetchLogo();
+     };
+
+     window.addEventListener("receiptSettingsUpdated", handleReceiptUpdate);
+     return () => {
+       window.removeEventListener("receiptSettingsUpdated", handleReceiptUpdate);
+     };
+   }, []);
 
    const [isDarkMode, setIsDarkMode] = useState(() => {
      return document.documentElement.classList.contains("dark");
@@ -273,11 +357,11 @@ export default function AdminApp() {
             alignItems: "center",
           }}
         >
-          <img src={Logo} alt="Coffee Shop Logo" className="h-20 w-auto" />
+          <img src={storeLogo} onError={(e) => { e.currentTarget.src = Logo; }} alt="Coffee Shop Logo" className="h-20 w-auto object-contain rounded-2xl" />
           <p className="text-sm text-muted-foreground">Cổng Quản lý</p>
         </div>
 
-        <nav className="p-4 overflow-y-auto flex-1 pb-24">
+        <nav className="p-4 overflow-y-auto flex-1 pb-24 custom-scrollbar">
           <div className="space-y-6">
             {/* ================= TỔNG QUAN ================= */}
             <div>
@@ -298,6 +382,19 @@ export default function AdminApp() {
                 >
                   <LayoutDashboard className="w-4 h-4" />
                   <span className="text-sm tracking-wide">Bảng điều khiển</span>
+                </NavLink>
+                <NavLink
+                  to="/admin/end-of-day-report"
+                  className={({ isActive }) =>
+                    `w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                      isActive
+                        ? "bg-primary text-white"
+                        : "text-muted-foreground hover:bg-secondary"
+                    }`
+                  }
+                >
+                  <FileText className="w-4 h-4" />
+                  <span className="text-sm tracking-wide">Báo cáo tổng kết</span>
                 </NavLink>
               </div>
             </div>
@@ -344,7 +441,11 @@ export default function AdminApp() {
                 <div>
                   <button
                     onClick={() => setOpenMenu(!openMenu)}
-                    className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:bg-secondary transition-colors"
+                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                      location.pathname.includes('/admin/menu') || location.pathname.includes('/admin/toppings')
+                        ? 'text-primary font-bold bg-primary/5'
+                        : 'text-muted-foreground hover:bg-secondary'
+                    }`}
                   >
                     <Package className="w-4 h-4" />
                     <span className="text-sm tracking-wide flex-1 text-left">Thực đơn</span>
@@ -353,8 +454,9 @@ export default function AdminApp() {
                     />
                   </button>
 
-                  {openMenu && (
-                    <div className="ml-6 mt-1 space-y-1">
+                  <div className={`grid transition-all duration-300 ease-in-out ${openMenu ? "grid-rows-[1fr] opacity-100 mt-1" : "grid-rows-[0fr] opacity-0"}`}>
+                    <div className="overflow-hidden">
+                      <div className="ml-6 space-y-1 flex flex-col">
                       <NavLink
                         to="/admin/menu/categories"
                         className={({ isActive }) =>
@@ -388,8 +490,9 @@ export default function AdminApp() {
                         <PlusCircle className="w-4 h-4" />
                         Topping
                       </NavLink>
+                      </div>
                     </div>
-                  )}
+                  </div>
                 </div>
                 
                 <NavLink
@@ -462,6 +565,18 @@ export default function AdminApp() {
                   <span className="text-sm tracking-wide">Điểm uy tín</span>
                 </NavLink>
                 <NavLink
+                  to="/admin/loyalty"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={({ isActive }) =>
+                    `w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                      isActive ? "bg-primary text-white" : "text-muted-foreground hover:bg-secondary"
+                    }`
+                  }
+                >
+                  <Coins className="w-4 h-4" />
+                  <span className="text-sm tracking-wide">Điểm loyalty</span>
+                </NavLink>
+                <NavLink
                   to="/admin/flash-sales"
                   onClick={() => setMobileMenuOpen(false)}
                   className={({ isActive }) =>
@@ -471,7 +586,7 @@ export default function AdminApp() {
                   }
                 >
                   <Zap className="w-4 h-4 text-amber-500" />
-                  <span className="text-sm tracking-wide">Flash Sales</span>
+                  <span className="text-sm tracking-wide">Flash sale</span>
                 </NavLink>
                 <NavLink
                   to="/admin/banners"
@@ -497,6 +612,18 @@ export default function AdminApp() {
                   <ClipboardList className="w-4 h-4" />
                   <span className="text-sm tracking-wide">Bài viết</span>
                 </NavLink>
+                <NavLink
+                  to="/admin/newsletter"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={({ isActive }) =>
+                    `w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                      isActive ? "bg-primary text-white" : "text-muted-foreground hover:bg-secondary"
+                    }`
+                  }
+                >
+                  <Mailbox className="w-4 h-4" />
+                  <span className="text-sm tracking-wide">Email</span>
+                </NavLink>
               </div>
             </div>
 
@@ -511,7 +638,11 @@ export default function AdminApp() {
                 <div>
                   <button
                     onClick={() => setOpenScheduleMenu(!openScheduleMenu)}
-                    className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:bg-secondary transition-colors"
+                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                      location.pathname.includes('/admin/schedule/templates') || location.pathname.includes('/admin/schedule/list')
+                        ? 'text-primary font-bold bg-primary/5'
+                        : 'text-muted-foreground hover:bg-secondary'
+                    }`}
                   >
                     <Calendar className="w-4 h-4" />
                     <span className="text-sm tracking-wide flex-1 text-left">Lịch làm việc</span>
@@ -520,8 +651,9 @@ export default function AdminApp() {
                     />
                   </button>
 
-                  {openScheduleMenu && (
-                    <div className="ml-6 mt-1 space-y-1">
+                  <div className={`grid transition-all duration-300 ease-in-out ${openScheduleMenu ? "grid-rows-[1fr] opacity-100 mt-1" : "grid-rows-[0fr] opacity-0"}`}>
+                    <div className="overflow-hidden">
+                      <div className="ml-6 space-y-1 flex flex-col">
                       <NavLink
                         to="/admin/schedule/templates"
                         onClick={() => setMobileMenuOpen(false)}
@@ -546,9 +678,22 @@ export default function AdminApp() {
                         <Calendar className="w-4 h-4" />
                         Lịch làm việc
                       </NavLink>
+                      </div>
                     </div>
-                  )}
+                  </div>
                 </div>
+                <NavLink
+                  to="/admin/schedule/requests"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={({ isActive }) =>
+                    `w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                      isActive ? "bg-primary text-white" : "text-muted-foreground hover:bg-secondary"
+                    }`
+                  }
+                >
+                  <ArrowLeftRight className="w-4 h-4" />
+                  <span className="text-sm tracking-wide">Đơn đổi ca</span>
+                </NavLink>
                 <NavLink
                   to="/admin/receipt-settings"
                   onClick={() => setMobileMenuOpen(false)}

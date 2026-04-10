@@ -242,6 +242,8 @@ class QrOrderService {
         order_type: "dine-in",
         table_id: tableId,
         total_amount: finalAmount,
+        amount: totalAmount,
+        discount_amount: discountAmount,
         discount_id: discountIdApplied,
       });
 

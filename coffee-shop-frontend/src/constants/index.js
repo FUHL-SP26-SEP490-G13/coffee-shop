@@ -93,6 +93,14 @@ export const API_ENDPOINTS = {
     CHECK: (productId) => `/favorites/check/${productId}`,
     REMOVE: (productId) => `/favorites/${productId}`,
   },
+  LOYALTY: {
+    ME: '/loyalty/me',
+    MY_TRANSACTIONS: '/loyalty/me/transactions',
+    ADMIN_CUSTOMERS: '/loyalty/admin/customers',
+    ADMIN_USER_DETAIL: (userId) => `/loyalty/admin/users/${userId}`,
+    ADMIN_USER_TRANSACTIONS: (userId) => `/loyalty/admin/users/${userId}/transactions`,
+    ADMIN_USER_ADJUST: (userId) => `/loyalty/admin/users/${userId}/adjust`,
+  },
   ORDER_ONLINES: '/order-online',
   TOPPINGS: '/toppings',
   TOPPINGS_ADMIN: '/admin/toppings',
@@ -135,6 +143,13 @@ export const API_ENDPOINTS = {
     REGISTRATION_BY_ID: (id) => `/shifts/registrations/${id}`,
     SCHEDULE: '/shifts/schedule',
     MY_SCHEDULE: '/shifts/schedule/me',
+  },
+  SWAP_REQUESTS: {
+    BASE: '/swap-requests',
+    BY_ID: (id) => `/swap-requests/${id}`,
+    ACCEPT: (id) => `/swap-requests/${id}/accept`,
+    REJECT: (id) => `/swap-requests/${id}/reject`,
+    CANCEL: (id) => `/swap-requests/${id}/cancel`,
   },
   APP_SETTINGS: {
     BASE: '/settings',

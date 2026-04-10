@@ -299,8 +299,7 @@ export default function AdminUsers() {
     <div className="p-4 sm:p-6">
       <div className="mb-4 sm:mb-6 flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <Users className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
-          <h1 className="text-xl sm:text-2xl font-semibold">Quản lý người dùng</h1>
+          <h1 className="text-xl font-semibold">Quản lý người dùng</h1>
         </div>
         <Button onClick={() => setIsCreateOpen(true)} className="w-full sm:w-auto hover:bg-amber-600 text-white">
           <Plus className="h-4 w-4 mr-2" />
@@ -358,6 +357,7 @@ export default function AdminUsers() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className='w-16'>STT</TableHead>
                     <TableHead>Người dùng</TableHead>
                     <TableHead>Tên đăng nhập</TableHead>
                     <TableHead>Email</TableHead>
@@ -369,17 +369,19 @@ export default function AdminUsers() {
                 <TableBody>
                   {paginatedUsers.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                         Không tìm thấy người dùng nào
                       </TableCell>
                     </TableRow>
                   ) : (
-                    paginatedUsers.map((user) => {
+                    paginatedUsers.map((user, index) => {
                       const roleInfo = getRoleInfo(user.role_id);
                       const fullName = `${user.first_name} ${user.last_name}`;
+                      const stt = (currentPage - 1) * USERS_PER_PAGE + index + 1;
 
                       return (
                         <TableRow key={user.id}>
+                          <TableCell>{stt}</TableCell>
                           <TableCell>
                             <div className="flex items-center gap-3">
                               <Avatar>
@@ -389,7 +391,6 @@ export default function AdminUsers() {
                               </Avatar>
                               <div className="flex flex-col">
                                 <span className="font-medium">{fullName}</span>
-                                <span className="text-xs text-muted-foreground">ID người dùng: {user.id}</span>
                               </div>
                             </div>
                           </TableCell>

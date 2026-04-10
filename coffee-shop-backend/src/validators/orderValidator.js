@@ -78,6 +78,14 @@ const checkoutOrderSchema = Joi.object({
       "string.empty": "Phương thức thanh toán không được để trống",
     }),
 
+  cash_received: Joi.alternatives()
+    .try(Joi.number(), Joi.string())
+    .allow(null, "")
+    .optional()
+    .messages({
+      "alternatives.match": "Số tiền khách đưa không hợp lệ",
+    }),
+
   receiver_name: Joi.string().trim().min(2).max(100).required().messages({
     "string.empty": "Tên người nhận không được để trống",
     "any.required": "Tên người nhận là bắt buộc",
@@ -110,9 +118,48 @@ const checkoutOrderSchema = Joi.object({
       "string.email": "Email không đúng định dạng",
     }),
 
-  address: Joi.string().trim().allow("").max(255).messages({
-    "string.max": "Địa chỉ không được vượt quá 255 ký tự",
+  address: Joi.alternatives().conditional("order_type", {
+    is: "delivery",
+    then: Joi.string().trim().min(1).max(255).required().messages({
+      "string.empty": "Địa chỉ không được để trống",
+      "string.min": "Địa chỉ không được để trống",
+      "any.required": "Địa chỉ là bắt buộc",
+      "string.max": "Địa chỉ không được vượt quá 255 ký tự",
+    }),
+    otherwise: Joi.string().trim().allow("").max(255).messages({
+      "string.max": "Địa chỉ không được vượt quá 255 ký tự",
+    }),
   }),
+
+  customer_latitude: Joi.alternatives().conditional("order_type", {
+    is: "delivery",
+    then: Joi.number().min(-90).max(90).required().messages({
+      "number.base": "Vĩ độ giao hàng không hợp lệ",
+      "number.min": "Vĩ độ giao hàng không hợp lệ",
+      "number.max": "Vĩ độ giao hàng không hợp lệ",
+      "any.required": "Vui lòng ghim vị trí giao hàng",
+    }),
+    otherwise: Joi.number().min(-90).max(90).allow(null).optional(),
+  }),
+
+  customer_longitude: Joi.alternatives().conditional("order_type", {
+    is: "delivery",
+    then: Joi.number().min(-180).max(180).required().messages({
+      "number.base": "Kinh độ giao hàng không hợp lệ",
+      "number.min": "Kinh độ giao hàng không hợp lệ",
+      "number.max": "Kinh độ giao hàng không hợp lệ",
+      "any.required": "Vui lòng ghim vị trí giao hàng",
+    }),
+    otherwise: Joi.number().min(-180).max(180).allow(null).optional(),
+  }),
+
+  customer_location_source: Joi.string()
+    .valid("manual_pin", "gps", "geocode")
+    .allow("", null)
+    .optional()
+    .messages({
+      "any.only": "Nguồn tọa độ giao hàng không hợp lệ",
+    }),
 
   note: Joi.string().trim().allow("").max(500).messages({
     "string.max": "Ghi chú không được vượt quá 500 ký tự",
@@ -120,6 +167,12 @@ const checkoutOrderSchema = Joi.object({
 
   discount_code: Joi.string().trim().allow("").max(50).messages({
     "string.max": "Mã giảm giá không được vượt quá 50 ký tự",
+  }),
+
+  used_points: Joi.number().integer().min(0).optional().messages({
+    "number.base": "Điểm sử dụng không hợp lệ",
+    "number.integer": "Điểm sử dụng phải là số nguyên",
+    "number.min": "Điểm sử dụng không được âm",
   }),
 
   items: itemsSchema,

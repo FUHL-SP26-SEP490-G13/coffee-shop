@@ -11,6 +11,8 @@ import {
   X,
   LayoutDashboard,
   Bell,
+  Sun,
+  Moon,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -36,6 +38,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import Logo from "/logo/Logo.png";
+import receiptSettingService from "@/services/receiptSettingService";
 
 const BARISTA_SIDEBAR_PREF_KEY = "barista_sidebar_collapsed_by_page";
 const BARISTA_SIDEBAR_DEFAULTS = {};
@@ -55,14 +58,81 @@ export function BaristaApp() {
     }
   });
 
-  // Force disable dark mode for barista
+  const [storeLogo, setStoreLogo] = useState(() => {
+    return localStorage.getItem("cached_store_logo") || Logo;
+  });
+
   useEffect(() => {
-    document.documentElement.classList.remove("dark");
+    const fetchLogo = async () => {
+      try {
+        const res = await receiptSettingService.getActive();
+        const data = res?.data || null;
+        if (data && data.logo_url) {
+          setStoreLogo(data.logo_url);
+          localStorage.setItem("cached_store_logo", data.logo_url);
+        } else {
+          setStoreLogo(Logo);
+          localStorage.removeItem("cached_store_logo");
+        }
+      } catch (error) {
+        setStoreLogo(Logo);
+        localStorage.removeItem("cached_store_logo");
+      }
+    };
+    fetchLogo();
+
+    const handleReceiptUpdate = () => {
+      fetchLogo();
+    };
+
+    window.addEventListener("receiptSettingsUpdated", handleReceiptUpdate);
+    return () => {
+      window.removeEventListener("receiptSettingsUpdated", handleReceiptUpdate);
+    };
   }, []);
+
+  // Quản lý Dark Mode thay cho force disable
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    return localStorage.getItem("theme") === "dark";
+  });
+
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add("dark");
+      localStorage.setItem("theme", "dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+      localStorage.setItem("theme", "light");
+    }
+  }, [isDarkMode]);
+
+  const toggleTheme = () => setIsDarkMode((prev) => !prev);
 
   const navigate = useNavigate();
   const location = useLocation();
   const notificationRef = useRef(null);
+
+  useEffect(() => {
+    const routeTitles = {
+      "/barista/dashboard": "Bảng điều khiển",
+      "/barista/orders": "Đơn hàng",
+      "/barista/attendance": "Chấm công",
+      "/barista/schedule": "Lịch làm việc",
+      "/barista/requests": "Yêu cầu",
+      "/barista/profile": "Thông tin cá nhân"
+    };
+
+    let matchedTitle = "Cổng Pha chế";
+    if (routeTitles[location.pathname]) {
+      matchedTitle = routeTitles[location.pathname];
+    } else {
+      const match = Object.keys(routeTitles).find(path => location.pathname.startsWith(path));
+      if (match) matchedTitle = routeTitles[match];
+    }
+
+    const shopName = localStorage.getItem("cached_store_name") || "Coffee Shop";
+    document.title = `${matchedTitle} | ${shopName}`;
+  }, [location.pathname]);
 
   const unreadCount = notifications.filter(
     (item) => Number(item.is_read) === 0
@@ -325,6 +395,8 @@ export function BaristaApp() {
             position: "relative",
           }}
         >
+          <img src={storeLogo} onError={(e) => { e.currentTarget.src = Logo; }} alt="Coffee Shop Logo" className="h-20 w-auto object-contain rounded-2xl" />
+          <p className="text-sm text-muted-foreground mt-1">Cổng Pha chế</p>
           <button
             type="button"
             onClick={toggleSidebar}
@@ -334,14 +406,6 @@ export function BaristaApp() {
           >
             {isSidebarCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
           </button>
-          <img
-            src={Logo}
-            alt="Coffee Shop Logo"
-            className={`w-auto ${isSidebarCompact ? "h-12" : "h-20"}`}
-          />
-          <p className={`text-sm text-muted-foreground mt-1 ${isSidebarCompact ? "md:hidden" : ""}`}>
-            Cổng Pha chế
-          </p>
         </div>
 
         <TooltipProvider>
@@ -429,11 +493,19 @@ export function BaristaApp() {
       <div className="flex-1 w-full md:w-auto overflow-auto">
         <div
           ref={notificationRef}
-          className="flex justify-end px-4 md:px-8 pt-4 md:pt-4 pb-0 relative"
+          className="flex-shrink-0 flex justify-end items-center gap-3 px-4 md:px-8 pt-4 md:pt-4 pb-0 relative"
         >
           <button
+            onClick={toggleTheme}
+            className="p-2 rounded-full border bg-card text-foreground hover:bg-accent shadow-sm transition"
+            title="Đổi giao diện Sáng/Tối"
+          >
+            {isDarkMode ? <Sun className="w-5 h-5 text-yellow-500" /> : <Moon className="w-5 h-5" />}
+          </button>
+
+          <button
             onClick={() => setShowNotifications((prev) => !prev)}
-            className="relative p-2 rounded-full border bg-white hover:bg-gray-50 shadow-sm"
+            className="relative p-2 rounded-full border bg-card text-foreground hover:bg-accent shadow-sm"
           >
             <Bell className="w-5 h-5" />
             {unreadCount > 0 && (
@@ -444,8 +516,8 @@ export function BaristaApp() {
           </button>
 
           {showNotifications && (
-            <div className="absolute top-14 right-4 md:right-8 w-[360px] bg-white border rounded-xl shadow-xl z-50 overflow-hidden">
-              <div className="flex items-center justify-between px-4 py-3 border-b">
+            <div className="absolute top-14 right-4 md:right-8 w-[360px] bg-card text-card-foreground border border-border rounded-xl shadow-xl z-50 overflow-hidden">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-border">
                 <h3 className="font-semibold">Thông báo</h3>
                 {notifications.length > 0 && (
                   <button
@@ -469,8 +541,8 @@ export function BaristaApp() {
                     <button
                       key={item.recipient_id || `${item.id}-${item.created_at}`}
                       onClick={() => handleReadNotification(item)}
-                      className={`w-full text-left px-4 py-3 border-b hover:bg-gray-50 ${
-                        Number(item.is_read) === 0 ? "bg-orange-50" : "bg-white"
+                      className={`w-full text-left px-4 py-3 border-b border-border hover:bg-accent ${
+                        Number(item.is_read) === 0 ? "bg-accent/50 dark:bg-accent/20" : "bg-transparent"
                       }`}
                     >
                       <div className="flex items-start justify-between gap-3">
@@ -503,7 +575,7 @@ export function BaristaApp() {
           )}
         </div>
 
-        <div className="p-4 md:p-8 pt-2 md:pt-2">
+        <div className="flex-1 w-full overflow-y-auto p-4 md:p-8 pt-2 md:pt-2">
           <Outlet />
         </div>
       </div>

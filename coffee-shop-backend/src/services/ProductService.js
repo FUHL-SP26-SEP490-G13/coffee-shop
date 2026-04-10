@@ -79,7 +79,7 @@ class ProductService {
       throw new ErrorResponse(400, 'Tối đa chỉ được upload 3 ảnh');
     }
 
-    let baseSlug = slugify(data.name, { lower: true, strict: true });
+    let baseSlug = slugify(data.name.replace(/đ/g, 'd').replace(/Đ/g, 'D'), { lower: true, strict: true, locale: 'vi' });
     let slug = baseSlug;
     let counter = 1;
     while (await ProductRepository.findBySlug(slug)) {
@@ -135,7 +135,7 @@ class ProductService {
       }
       updateData.name = data.name.trim();
 
-      let baseSlug = slugify(data.name, { lower: true, strict: true });
+      let baseSlug = slugify(data.name.replace(/đ/g, 'd').replace(/Đ/g, 'D'), { lower: true, strict: true, locale: 'vi' });
       let slug = baseSlug;
       let counter = 1;
       let isUnique = false;

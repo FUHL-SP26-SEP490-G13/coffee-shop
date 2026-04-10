@@ -3,10 +3,10 @@ import { Navigate, Routes, Route } from "react-router-dom";
 import { APP_ROUTES, STORAGE_KEYS } from "../constants";
 import LoginPage from "../pages/authentication/LoginPage";
 import RegisterPage from "../pages/authentication/RegisterPage";
-import AdminOrders from "../pages/admin/AdminOrders";
+import AdminOrders from "../pages/admin/AdminOrder/AdminOrders";
 import AdminUsers from "../pages/admin/AdminUser/AdminUsers";
 import authenticationService from "../services/authenticationService";
-import HomePage from "@/pages/homePage/HomePage";
+import HomePage from "@/pages/homePage/home/HomePage";
 import ChangePasswordPage from "../pages/authentication/ChangePasswordPage";
 import ForgotPasswordPage from "../pages/authentication/ForgotPasswordPage";
 import AdminIngredients from "../pages/admin/AdminIngredient/AdminIngredients";
@@ -14,17 +14,13 @@ import AdminSchedulePage from "../pages/admin/AdminSchedule/AdminSchedulePage";
 import ShiftTemplatePage from "../pages/admin/AdminSchedule/ShiftTemplate/ShiftTemplatePage";
 import WorkSchedulePage from "../pages/admin/AdminSchedule/WorkSchedule/WorkSchedulePage";
 import { UserProfile } from "../pages/common/UserProfile";
-import AdminNewsCreatePage from "../pages/admin/AdminNew/AdminNewsCreatePage";
 import AdminNewsList from "../pages/admin/AdminNew/AdminNewsList";
 import AdminProducts from "@/pages/admin/AdminProduct/AdminProducts";
 import AdminCategories from "@/pages/admin/AdminCategory/AdminCategories";
 import NewsDetailPage from "@/pages/homePage/news/NewsDetailPage";
-import AdminEditNewsPage from "@/pages/admin/AdminNew/AdminEditNewsPage";
-import AdminNewsDetailPage from "@/pages/admin/AdminNew/AdminNewsDetailPage";
 import NewsListPage from "@/pages/homePage/news/NewsListPage";
 import AdminDiscounts from "@/pages/admin/AdminDiscount/AdminDiscounts";
-import AdminDiscountCreate from "@/pages/admin/AdminDiscount/AdminDiscountCreate";
-import AdminDiscountEdit from "@/pages/admin/AdminDiscount/AdminDiscountEdit";
+import AdminRequests from "../pages/admin/AdminRequest/AdminRequests";
 import OrderPolicy from "@/pages/common/OrderPolicy";
 import PrivacyPolicy from "@/pages/common/PrivacyPolicy";
 import AdminApp from "../pages/admin/AdminApp";
@@ -54,19 +50,23 @@ import OrderQRMenu from "@/pages/homePage/order/OrderQRMenu";
 import MyOrderQRDetail from "@/pages/homePage/order/MyOrderQRDetail";
 import PayOSReturnSuccess from "@/pages/common/PayOSReturnSuccess";
 import AdminDB from "@/pages/admin/AdminDB/AdminDB";
-import FavoritePage from "@/pages/homePage/favorite/FavoritePage";
 import AdminReviews from "@/pages/admin/AdminReview/AdminReview";
 import MyOrderOnlinePage from "../pages/homePage/order/MyOrderOnlinePage";
 import MyOrderDetailPage from "../pages/homePage/order/MyOrderDetailPage";
 import AdminReceiptSettings from "@/pages/admin/AdminReceiptSettings/AdminReceiptSettings";
 import AdminFlashSales from "@/pages/admin/AdminFlashSale/AdminFlashSales";
 import AdminReputation from "@/pages/admin/AdminReputation/AdminReputation";
+import AdminLoyalty from "@/pages/admin/AdminLoyalty/AdminLoyalty";
+import AdminNewsletterPage from "@/pages/admin/AdminNewsletter/AdminNewsletterPage";
+import AdminEndOfDayReport from "@/pages/admin/AdminEndOfDayReport/AdminEndOfDayReport";
 import TakeawayPOS from '../pages/staff/TakeawayPOS'
 import { OrderDelivery } from '@/pages/staff/StaffOrderList';
-import { StaffDashboard } from "@/pages/staff/StaffDashboard";
+import { StaffDashboard } from "@/pages/staff/StaffDashboard/StaffDashboard";
 import StaffPayOSReturn from "@/pages/staff/StaffPayOSReturn";
 import StoreInfoPage from "@/pages/common/StoreInfoPage";
 import GenericSlugResolver from "../pages/common/GenericSlugResolver";
+import AboutUsPage from "@/pages/common/AboutUsPage";
+import ClientLayout from "@/components/layout/ClientLayout";
 
 const getStoredValue = (key) =>
   localStorage.getItem(key) || sessionStorage.getItem(key);
@@ -124,9 +124,7 @@ const RoleGuard = ({ allowedRoles, children }) => {
 const AppRoutes = () => {
   return (
     <Routes>
-      <Route path="/" element={<HomePage />} />
-      <Route path="/products" element={<ProductListPage />} />
-      <Route path="/products/:id" element={<ProductDetailPage />} />
+      {/* Client Routes are grouped below */}
       <Route path={APP_ROUTES.LOGIN} element={<LoginPage />} />
       <Route path={APP_ROUTES.REGISTER} element={<RegisterPage />} />
       <Route
@@ -193,6 +191,7 @@ const AppRoutes = () => {
       >
         <Route index element={<Navigate to="dashboard" replace />} />
         <Route path="dashboard" element={<AdminDB />} />
+        <Route path="end-of-day-report" element={<AdminEndOfDayReport />} />
         <Route path="menu/products" element={<AdminProducts />} />
         <Route path="menu/categories" element={<AdminCategories />} />
         <Route path="orders" element={<AdminOrders />} />
@@ -202,66 +201,63 @@ const AppRoutes = () => {
           <Route index element={<ShiftTemplatePage />} />
           <Route path="templates" element={<ShiftTemplatePage />} />
           <Route path="list" element={<WorkSchedulePage />} />
+          <Route path="requests" element={<AdminRequests />} />
         </Route>
         <Route path="inventory" element={<AdminIngredients />} />
-        <Route path="create-news" element={<AdminNewsCreatePage />} />
         <Route path="profile" element={<UserProfile />} />
         <Route path="news-list" element={<AdminNewsList />} />
-        <Route path="edit-news/:id" element={<AdminEditNewsPage />} />
-        <Route path="news-detail/:slug" element={<AdminNewsDetailPage />} />
         <Route path="discounts" element={<AdminDiscounts />} />
-        <Route path="discounts/create" element={<AdminDiscountCreate />} />
-        <Route path="discounts/edit/:id" element={<AdminDiscountEdit />} />
         <Route path="banners" element={<AdminBanner />} />
         <Route path="tables" element={<AdminTables />} />
         <Route path="toppings" element={<AdminToppings />} />
         <Route path="reviews" element={<AdminReviews />} />
         <Route path="reputation" element={<AdminReputation />} />
+        <Route path="loyalty" element={<AdminLoyalty />} />
         <Route path="receipt-settings" element={<AdminReceiptSettings />} />
         <Route path="flash-sales" element={<AdminFlashSales />} />
+        <Route path="newsletter" element={<AdminNewsletterPage />} />
       </Route>
-      <Route path="/news/:slug" element={<NewsDetailPage />} />
-      <Route path="/news" element={<NewsListPage />} />
-      <Route path="/store" element={<StoreInfoPage />} />
-      <Route path="/customer/profile" element={<UserProfile />} />
-      {/* Only allow customers to access favorites */}
-      <Route
-        path="/favorites"
-        element={
-          <RoleGuard allowedRoles={[4]}>
-            <FavoritePage />
-          </RoleGuard>
-        }
-      />
-      <Route path="/order-policy" element={<OrderPolicy />} />
-      <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-      <Route path="/payment-policy" element={<PaymentPolicyPage />} />
+      <Route element={<ClientLayout />}>
+        <Route path="/" element={<HomePage />} />
+        {/* Route /products đã được chuyển vào /:slug (GenericSlugResolver) để chống chớp giật Grid */}
+        <Route path="/products/:id" element={<ProductDetailPage />} />
+        
+        <Route path="/news/:slug" element={<NewsDetailPage />} />
+        <Route path="/news" element={<NewsListPage />} />
+        <Route path="/store" element={<StoreInfoPage />} />
+        <Route path="/about-us" element={<AboutUsPage />} />
+        <Route path="/customer/profile" element={<UserProfile />} />
 
-      <Route path="/cart" element={<CartPage />} />
-      <Route path="/checkout" element={<CheckoutPage />} />
-      <Route path="/payment-result" element={<PayOSReturnSuccess />} />
-      <Route
-        path="/my-orders"
-        element={
-          <RoleGuard allowedRoles={[4]}>
-            <MyOrderOnlinePage />
-          </RoleGuard>
-        }
-      />
-      <Route
-        path="/my-orders/:id"
-        element={
-          <RoleGuard allowedRoles={[4]}>
-            <MyOrderDetailPage />
-          </RoleGuard>
-        }
-      />
+        <Route path="/order-policy" element={<OrderPolicy />} />
+        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+        <Route path="/payment-policy" element={<PaymentPolicyPage />} />
+
+        <Route path="/cart" element={<CartPage />} />
+        <Route path="/checkout" element={<CheckoutPage />} />
+        <Route path="/payment-result" element={<PayOSReturnSuccess />} />
+        <Route
+          path="/my-orders"
+          element={
+            <RoleGuard allowedRoles={[4]}>
+              <MyOrderOnlinePage />
+            </RoleGuard>
+          }
+        />
+        <Route
+          path="/my-orders/:id"
+          element={
+            <RoleGuard allowedRoles={[4]}>
+              <MyOrderDetailPage />
+            </RoleGuard>
+          }
+        />
+
+        <Route path="/404" element={<div className="flex-1 flex flex-col items-center justify-center min-h-[50vh]"><h1 className="text-2xl font-bold text-gray-500">404 - Trang không tồn tại</h1></div>} />
+        <Route path="/:slug" element={<GenericSlugResolver />} />
+      </Route>
 
       <Route path="/order" element={<OrderQRMenu />} />
       <Route path="/order/confirm" element={<MyOrderQRDetail />} />
-
-      {/* SEO Slug Resolver */}
-      <Route path="/:slug" element={<GenericSlugResolver />} />
 
       {/* 404 */}
       <Route

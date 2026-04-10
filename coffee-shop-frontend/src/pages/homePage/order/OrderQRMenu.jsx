@@ -179,7 +179,7 @@ export default function OrderQRMenu() {
       {/* CART MODAL */}
       {showCart && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="bg-white dark:bg-gray-900 w-full max-w-lg mx-auto rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 p-6 animate-in slide-in-from-bottom-10 fade-in relative">
+          <div className="bg-white dark:bg-gray-900 w-full max-w-lg mx-auto rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 p-6 relative">
             <button onClick={() => setShowCart(false)} className="absolute top-3 right-3 text-2xl text-gray-400 hover:text-red-500 transition">&times;</button>
             <h2 className="font-bold text-xl mb-4 text-center tracking-tight">🛒 Giỏ hàng</h2>
             <div className="divide-y divide-gray-200 max-h-[60vh] overflow-y-auto mb-4">
@@ -314,7 +314,7 @@ export default function OrderQRMenu() {
       {/* WARNING MODAL */}
       {warningMessage && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
-          <div className="bg-white dark:bg-gray-900 w-full max-w-sm rounded-2xl shadow-2xl p-6 text-center animate-in zoom-in-95">
+          <div className="bg-white dark:bg-gray-900 w-full max-w-sm rounded-2xl shadow-2xl p-6 text-center">
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-100 mb-4">
               <svg className="h-10 w-10 text-red-500" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />

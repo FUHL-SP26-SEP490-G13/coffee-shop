@@ -146,6 +146,12 @@ class ProductRepository extends BaseRepository {
             WHERE ps.product_id = p.id AND ps.is_deleted = 0
           ) DESC, p.id DESC
         `;
+      case "rating_desc":
+        return `
+          ORDER BY (
+            SELECT COALESCE(AVG(rating), 0) FROM reviews WHERE product_id = p.id
+          ) DESC, p.id DESC
+        `;
       default:
         return "ORDER BY p.id DESC";
     }
@@ -236,7 +242,8 @@ class ProductRepository extends BaseRepository {
     let query = `
       SELECT 
         p.*,
-        c.name as category_name
+        c.name as category_name,
+        (SELECT COALESCE(AVG(rating), 0) FROM reviews WHERE product_id = p.id) as rating
       FROM products p
       LEFT JOIN category c ON p.category_id = c.id
       WHERE p.is_deleted = 0
@@ -270,7 +277,8 @@ class ProductRepository extends BaseRepository {
     let query = `
       SELECT 
         p.*,
-        c.name as category_name
+        c.name as category_name,
+        (SELECT COALESCE(AVG(rating), 0) FROM reviews WHERE product_id = p.id) as rating
       FROM products p
       LEFT JOIN category c ON p.category_id = c.id
       WHERE p.category_id = ?
@@ -322,7 +330,8 @@ class ProductRepository extends BaseRepository {
     let query = `
       SELECT 
         p.*,
-        c.name as category_name
+        c.name as category_name,
+        (SELECT COALESCE(AVG(rating), 0) FROM reviews WHERE product_id = p.id) as rating
       FROM products p
       LEFT JOIN category c ON p.category_id = c.id
       WHERE p.name LIKE ?
@@ -410,7 +419,8 @@ class ProductRepository extends BaseRepository {
     SELECT
       p.*,
       c.name AS category_name,
-      SUM(od.quantity) AS total_sold
+      SUM(od.quantity) AS total_sold,
+      (SELECT COALESCE(AVG(rating), 0) FROM reviews WHERE product_id = p.id) as rating
     FROM order_details od
     JOIN product_sizes ps ON ps.id = od.product_size_id
     JOIN products p ON p.id = ps.product_id

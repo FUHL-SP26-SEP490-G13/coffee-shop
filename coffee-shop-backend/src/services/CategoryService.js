@@ -41,7 +41,7 @@ class CategoryService {
       throw new ErrorResponse(409, 'Mã code category đã tồn tại');
     }
 
-    let baseSlug = slugify(data.name, { lower: true, strict: true });
+    let baseSlug = slugify(data.name.replace(/đ/g, 'd').replace(/Đ/g, 'D'), { lower: true, strict: true, locale: 'vi' });
     let slug = baseSlug;
     let counter = 1;
     while (await CategoryRepository.findBySlug(slug)) {
@@ -73,7 +73,7 @@ class CategoryService {
       }
       updateData.name = data.name.trim();
 
-      let baseSlug = slugify(data.name, { lower: true, strict: true });
+      let baseSlug = slugify(data.name.replace(/đ/g, 'd').replace(/Đ/g, 'D'), { lower: true, strict: true, locale: 'vi' });
       let slug = baseSlug;
       let counter = 1;
       let isUnique = false;

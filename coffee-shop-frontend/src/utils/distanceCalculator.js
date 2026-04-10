@@ -5,35 +5,168 @@
 
 const NOMINATIM_BASE_URL = "https://nominatim.openstreetmap.org/search";
 const OSRM_BASE_URL = "https://router.project-osrm.org/route/v1/driving";
+const HANOI_VIEWBOX = "105.28,21.35,106.03,20.8";
+const MONEY_ROUNDING_UNIT = 100;
+export const MAX_DELIVERY_DISTANCE_KM = 10;
+
+const GEOCODE_STOP_WORDS = new Set([
+  "viet",
+  "nam",
+  "việt",
+  "ha",
+  "noi",
+  "hanoi",
+  "thanh",
+  "pho",
+  "tp",
+  "quan",
+  "huyen",
+  "xa",
+  "phuong",
+  "thon",
+  "duong",
+]);
+
+const toAsciiLower = (value) =>
+  String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+
+const buildImportantTokens = (queryStr) =>
+  toAsciiLower(queryStr)
+    .split(/[^\p{L}\p{N}]+/u)
+    .map((word) => word.trim())
+    .filter((word) => word.length >= 3 && !GEOCODE_STOP_WORDS.has(word));
+
+const scoreGeocodeCandidate = (candidate, tokens, referenceCoords) => {
+  let score = 0;
+  const candidateText = toAsciiLower(
+    `${candidate.display_name || ""} ${candidate.address?.city || ""} ${candidate.address?.county || ""}`
+  );
+
+  if (candidateText.includes("ha noi") || candidateText.includes("hanoi")) {
+    score += 8;
+  }
+
+  for (const token of tokens) {
+    if (candidateText.includes(token)) {
+      score += 1.4;
+    }
+  }
+
+  if (referenceCoords && Array.isArray(referenceCoords) && referenceCoords.length === 2) {
+    const [refLat, refLng] = referenceCoords;
+    const straightKm =
+      getHaversineDistance(refLat, refLng, candidate.lat, candidate.lng) / 1000;
+
+    if (straightKm <= 5) score += 8;
+    else if (straightKm <= 10) score += 6;
+    else if (straightKm <= 20) score += 3;
+    else if (straightKm <= 40) score += 1;
+    else score -= Math.min(8, (straightKm - 40) / 8);
+  }
+
+  return score;
+};
+
+const stripAdministrativePrefix = (value) =>
+  String(value || "")
+    .replace(/\b(thành\s*phố|tp\.?|quận|huyện|xã|phường|thị\s*trấn|thôn)\b\s*/giu, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+
+const buildGeocodeQueries = (address) => {
+  const cleanAddress = String(address || "").replace(/việt\s*nam/giu, "").trim();
+  const parts = cleanAddress.split(",").map((part) => part.trim()).filter(Boolean);
+
+  const queries = [];
+  if (parts.length > 0) {
+    queries.push(`${parts.join(", ")}, Việt Nam`);
+
+    const strippedParts = parts.map(stripAdministrativePrefix);
+    queries.push(`${strippedParts.join(", ")}, Việt Nam`);
+
+    for (let i = 1; i < parts.length; i += 1) {
+      queries.push(`${parts.slice(i).join(", ")}, Việt Nam`);
+      queries.push(`${strippedParts.slice(i).join(", ")}, Việt Nam`);
+    }
+  }
+
+  return [...new Set(queries.filter(Boolean))];
+};
 
 /**
  * Geocode - Biến đổi Địa chỉ thành Tọa độ [Vĩ độ, Kinh độ]
  * @param {string} address - Chuỗi địa chỉ đầu vào 
  * @returns {Promise<[number, number] | null>} - Tọa độ [Lat, Lng] hoặc null nếu lỗi
  */
-export const geocodeAddress = async (address) => {
-  if (!address || address.trim().length < 5) return null;
-  
-  // Nối thêm quốc gia để OpenStreetMap tìm hiểu cảnh chính xác hơn
-  const query = encodeURIComponent(`${address.replace(/Việt Nam/gi, '').trim()}, Việt Nam`);
-  const url = `${NOMINATIM_BASE_URL}?format=json&q=${query}&limit=1`;
+const performGeocode = async (queryStr) => {
+  const params = new URLSearchParams({
+    format: "jsonv2",
+    q: queryStr,
+    limit: "8",
+    addressdetails: "1",
+    dedupe: "1",
+    countrycodes: "vn",
+    bounded: "1",
+    viewbox: HANOI_VIEWBOX,
+  });
 
-  try {
-    const response = await fetch(url, {
-      method: "GET",
-      // Đặt headers theo chính sách của Nominatim (bắt buộc User-Agent hợp lệ)
-      headers: {
-        "Accept-Language": "vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7",
-        "User-Agent": "CoffeeShopDeliveryApp/1.0"
-      }
-    });
-
-    if (!response.ok) return null;
-
-    const data = await response.json();
-    if (data && data.length > 0) {
-      return [parseFloat(data[0].lat), parseFloat(data[0].lon)];
+  const url = `${NOMINATIM_BASE_URL}?${params.toString()}`;
+  const response = await fetch(url, {
+    method: "GET",
+    headers: {
+      "Accept-Language": "vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7",
+      "User-Agent": "CoffeeShopDeliveryApp/1.0"
     }
+  });
+
+  if (!response.ok) return null;
+
+  const data = await response.json();
+  if (!Array.isArray(data) || data.length === 0) return null;
+
+  const candidates = data
+    .map((item) => ({
+      lat: parseFloat(item.lat),
+      lng: parseFloat(item.lon),
+      display_name: item.display_name,
+      address: item.address || {},
+    }))
+    .filter((item) => Number.isFinite(item.lat) && Number.isFinite(item.lng));
+
+  return candidates.length > 0 ? candidates : null;
+};
+
+export const geocodeAddress = async (address, options = {}) => {
+  if (!address || address.trim().length < 5) return null;
+
+  const queries = buildGeocodeQueries(address);
+  const tokens = buildImportantTokens(address);
+  const referenceCoords = options?.referenceCoords || null;
+  let bestCandidate = null;
+  let bestScore = Number.NEGATIVE_INFINITY;
+  
+  try {
+    for (const query of queries) {
+      const candidates = await performGeocode(query);
+      if (!candidates) continue;
+
+      for (const candidate of candidates) {
+        const score = scoreGeocodeCandidate(candidate, tokens, referenceCoords);
+        if (score > bestScore) {
+          bestScore = score;
+          bestCandidate = candidate;
+        }
+      }
+    }
+
+    if (bestCandidate) {
+      return [bestCandidate.lat, bestCandidate.lng];
+    }
+
     return null;
   } catch (error) {
     console.error("Geocoding Error:", error);
@@ -95,21 +228,34 @@ export const getDrivingDistance = async (origin, destination) => {
 /**
  * Tính giá cước vận chuyển dựa vào khoảng cách.
  * Quy tắc gía:
- * - 0 - 2km: 15,000đ
- * - Mỗi km tiếp theo: 5,000đ/km (Tính theo phân số của km)
+ * - 0 - 5km: 2,000đ/km
+ * - Trên 5km: 1,500đ/km từ km thứ 6
+ * - Từ 10km trở lên: không hỗ trợ đặt giao hàng
  * @param {number} distanceMeters - Khoảng cách theo mét
- * @returns {number} - Phí giao hàng (làm tròn lên hàng nghìn)
+ * @returns {{isDeliverable: boolean, fee: number, distanceKm: number, exceededByKm: number}}
  */
-export const calculateShippingFee = (distanceMeters) => {
-  const km = distanceMeters / 1000;
-  let fee = 0;
+export const getShippingQuote = (distanceMeters) => {
+  const km = Math.max(0, Number(distanceMeters || 0) / 1000);
 
-  if (km <= 2) {
-    fee = 15000;
-  } else {
-    fee = 15000 + (km - 2) * 5000;
+  if (km >= MAX_DELIVERY_DISTANCE_KM) {
+    return {
+      isDeliverable: false,
+      fee: 0,
+      distanceKm: km,
+      exceededByKm: km - MAX_DELIVERY_DISTANCE_KM,
+    };
   }
 
-  // Làm tròn tới tiền nghìn (Ví dụ 16,345đ -> 16,000đ)
-  return Math.round(fee / 1000) * 1000;
+  const tierOneKm = Math.min(km, 5);
+  const tierTwoKm = Math.max(0, km - 5);
+  const fee = tierOneKm * 2000 + tierTwoKm * 1500;
+
+  return {
+    isDeliverable: true,
+    fee: Math.round(fee / MONEY_ROUNDING_UNIT) * MONEY_ROUNDING_UNIT,
+    distanceKm: km,
+    exceededByKm: 0,
+  };
 };
+
+export const calculateShippingFee = (distanceMeters) => getShippingQuote(distanceMeters).fee;

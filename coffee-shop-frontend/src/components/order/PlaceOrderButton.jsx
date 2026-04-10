@@ -30,6 +30,8 @@ export default function PlaceOrderButton({
   backLabel = "← Quay lại giỏ hàng",
   label = "Đặt hàng",
   shippingFee = 0,
+  customerCoords = null,
+  customerLocationSource = "gps",
   disabled = false,
 }) {
   const navigate = useNavigate();
@@ -54,6 +56,7 @@ export default function PlaceOrderButton({
         address: form.address.trim(),
         note: form.note.trim(),
         discount_code: (form.discount_code || "").trim(),
+        used_points: Math.max(0, Number(form.used_points) || 0),
         items: cart.map((item) => ({
           product_size_id: item.productSizeId || item.product_size_id,
           quantity: Number(item.quantity),
@@ -65,6 +68,12 @@ export default function PlaceOrderButton({
             : [],
         })),
       };
+
+      if (form.order_type === "delivery" && Array.isArray(customerCoords) && customerCoords.length === 2) {
+        payload.customer_latitude = Number(customerCoords[0]);
+        payload.customer_longitude = Number(customerCoords[1]);
+        payload.customer_location_source = customerLocationSource || "gps";
+      }
 
       console.log("Checkout payload:", payload);
 

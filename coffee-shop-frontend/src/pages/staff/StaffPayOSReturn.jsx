@@ -10,11 +10,11 @@ import takeawayService from "@/services/takeAwayService";
 import tableService from "@/services/tableService";
 import authenticationService from '@/services/authenticationService';
 import { toast } from 'sonner';
-import { ReceiptModal } from './TakeAwayOrder/ReceiptModal';
+import { PrintableReceipt } from './PrintableReceipt';
 
 const STATUS_MAP = {
-  PAID: { label: "Đã thanh toán", color: "bg-green-100 text-green-700" },
-  CANCELLED: { label: "Đã huỷ", color: "bg-red-100 text-red-700" },
+  PAID: { label: "Đã thanh toán", color: "bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400" },
+  CANCELLED: { label: "Đã huỷ", color: "bg-red-100 dark:bg-red-900/40 text-red-700" },
   PENDING: { label: "Đang chờ xử lý", color: "bg-yellow-100 text-yellow-700" },
 };
 
@@ -217,14 +217,14 @@ export default function StaffPayOSReturn() {
   };
 
   return (
-    <div className="flex-1 p-6 md:p-8 overflow-auto bg-gray-50 flex items-center justify-center min-h-[calc(100vh-80px)]">
-      <Card className="w-full max-w-lg p-8 shadow-sm border-border space-y-6">
+    <div className="flex-1 p-6 md:p-8 overflow-auto bg-gray-50 dark:bg-gray-800/50 flex items-center justify-center min-h-[calc(100vh-80px)]">
+      <Card className="w-full max-w-lg p-8 shadow-sm dark:shadow-none border-border space-y-6">
         <div className="flex flex-col items-center gap-3 text-center">
             {isSuccess && <CheckCircle2 className="w-20 h-20 text-green-500" strokeWidth={1.5} />}
             {isCancelled && <XCircle className="w-20 h-20 text-red-500" strokeWidth={1.5} />}
             {isPending && <Clock className="w-20 h-20 text-yellow-500" strokeWidth={1.5} />}
 
-            <h1 className="text-2xl font-semibold text-gray-800 mt-2">
+            <h1 className="text-2xl font-semibold text-gray-800 dark:text-gray-200 mt-2">
               {isSuccess  && "Thanh toán PAYOS thành công"}
               {isCancelled && "Thanh toán PAYOS đã huỷ"}
               {isPending  && "Đang chờ xác nhận thanh toán PAYOS"}
@@ -232,13 +232,13 @@ export default function StaffPayOSReturn() {
         </div>
 
         {(orderCode || payosId || status) && (
-            <div className="rounded-lg bg-white border border-gray-100 divide-y divide-gray-100 text-sm shadow-sm mt-4">
+            <div className="rounded-lg bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 divide-y divide-gray-100 text-sm shadow-sm dark:shadow-none mt-4">
                 {orderCode && <InfoRow label="Mã đơn hàng" value={`#${orderCode}`} />}
             {debtPay && tableId > 0 && <InfoRow label="Bàn" value={tableCode || `#${tableId}`} />}
                 {status && (
                 <div className="flex items-center justify-between px-4 py-3">
-                    <span className="text-gray-500 font-medium">Trạng thái</span>
-                    <Badge className={STATUS_MAP[status]?.color || "bg-gray-100 text-gray-600"}>
+                    <span className="text-gray-500 dark:text-gray-400 font-medium">Trạng thái</span>
+                    <Badge className={STATUS_MAP[status]?.color || "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400"}>
                     {STATUS_MAP[status]?.label || status}
                     </Badge>
                 </div>
@@ -247,7 +247,7 @@ export default function StaffPayOSReturn() {
         )}
 
         {debtPay && isSuccess && (
-          <div className="rounded-lg border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-700">
+          <div className="rounded-lg border border-blue-100 bg-blue-50 dark:bg-blue-900/30 px-4 py-3 text-sm text-blue-700 dark:text-blue-400">
             {isSettlingDebt
               ? "Đang chốt thanh toán sau PayOS..."
               : "Đã chốt thanh toán thành công. Bạn có thể in hóa đơn."}
@@ -271,10 +271,9 @@ export default function StaffPayOSReturn() {
       </Card>
 
       {viewingReceipt && (
-        <ReceiptModal
-          autoPrint={viewingReceipt.autoPrint}
+        <PrintableReceipt
           order={viewingReceipt}
-          onClose={() => setViewingReceipt(null)}
+          onDone={() => setViewingReceipt(null)}
         />
       )}
     </div>
@@ -284,8 +283,8 @@ export default function StaffPayOSReturn() {
 function InfoRow({ label, value }) {
   return (
     <div className="flex items-center justify-between px-4 py-3">
-      <span className="text-gray-500 font-medium">{label}</span>
-      <span className="font-semibold text-gray-800">{value}</span>
+      <span className="text-gray-500 dark:text-gray-400 font-medium">{label}</span>
+      <span className="font-semibold text-gray-800 dark:text-gray-200">{value}</span>
     </div>
   );
 }

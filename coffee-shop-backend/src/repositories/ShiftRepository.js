@@ -35,6 +35,21 @@ class ShiftRepository {
         return row || null;
     }
 
+    async findOverlappingTemplate(startTime, endTime, excludeId = null) {
+        const query = excludeId
+            ? `SELECT id, name, start_time, end_time FROM shift_templates
+               WHERE start_time < ? AND end_time > ? AND id != ?
+               LIMIT 1`
+            : `SELECT id, name, start_time, end_time FROM shift_templates
+               WHERE start_time < ? AND end_time > ?
+               LIMIT 1`;
+        const params = excludeId
+            ? [endTime, startTime, excludeId]
+            : [endTime, startTime];
+        const [[row]] = await pool.query(query, params);
+        return row || null;
+    }
+
     async createTemplate({ name, start_time, end_time, color }) {
         const [result] = await pool.query(
             `INSERT INTO shift_templates (name, start_time, end_time, color) VALUES (?, ?, ?, ?)`,
@@ -90,7 +105,7 @@ class ShiftRepository {
              JOIN shift_templates st ON s.template_id = st.id
              WHERE sr.user_id = ?
                AND s.shift_date = ?
-               AND sr.status NOT IN ('cancelled')
+               AND sr.status NOT IN ('cancelled', 'swapped_out')
                AND st.start_time < ? AND st.end_time > ?`,
             [userId, date, endTime, startTime],
         );
@@ -100,7 +115,7 @@ class ShiftRepository {
     // SHIFT REGISTRATIONS
     async findRegistration(userId, shiftId) {
         const [[row]] = await pool.query(
-            `SELECT id, user_id, shift_id, status, leave_request_id
+            `SELECT id, user_id, shift_id, status
        FROM shift_registrations
        WHERE user_id = ? AND shift_id = ?`,
             [userId, shiftId],
@@ -154,7 +169,7 @@ class ShiftRepository {
     async reactivateRegistration(registrationId) {
         await pool.query(
             `UPDATE shift_registrations
-       SET status = 'registered', leave_request_id = NULL
+       SET status = 'registered'
        WHERE id = ?`,
             [registrationId],
         );
@@ -170,6 +185,20 @@ class ShiftRepository {
             `UPDATE shift_registrations SET status = 'cancelled' WHERE id = ?`,
             [registrationId],
         );
+    }
+
+    // Hủy tất cả ca từ ngày fromDate trở đi cho 1 user
+    async cancelFutureRegistrations(userId, fromDate) {
+        const [result] = await pool.query(
+            `UPDATE shift_registrations sr
+             JOIN shifts s ON sr.shift_id = s.id
+             SET sr.status = 'cancelled'
+             WHERE sr.user_id = ?
+               AND s.shift_date >= ?
+               AND sr.status NOT IN ('cancelled', 'swapped_out')`,
+            [userId, fromDate],
+        );
+        return result.affectedRows;
     }
 
     // =============================================
@@ -195,20 +224,9 @@ class ShiftRepository {
          st.start_time,
          st.end_time,
          st.color,
-         -- Tính display_status cho calendar
+         -- display_status: chỉ còn 'registered' và 'swapped_in' do WHERE đã lọc các trạng thái khác
          CASE
-           WHEN sr.status = 'cancelled' AND sr.leave_request_id IS NOT NULL
-             THEN 'on_leave'
-           WHEN sr.status = 'swapped_out'
-             THEN 'swapped_out'
-           WHEN sr.status = 'swapped_in'
-             THEN 'swapped_in'
-           WHEN sr.status = 'registered' AND EXISTS (
-             SELECT 1 FROM leave_requests lr
-             WHERE lr.shift_id = sr.shift_id
-               AND lr.user_id = sr.user_id
-               AND lr.status = 'pending'
-           ) THEN 'pending_leave'
+           WHEN sr.status = 'swapped_in' THEN 'swapped_in'
            ELSE 'working'
          END AS display_status
        FROM shift_registrations sr
@@ -217,7 +235,7 @@ class ShiftRepository {
        JOIN shifts s ON sr.shift_id = s.id
        JOIN shift_templates st ON s.template_id = st.id
        WHERE s.shift_date BETWEEN ? AND ?
-         AND sr.status != 'cancelled'
+         AND sr.status IN ('registered', 'swapped_in')
          ${userFilter}
        ORDER BY u.last_name, s.shift_date, st.start_time`,
             params,

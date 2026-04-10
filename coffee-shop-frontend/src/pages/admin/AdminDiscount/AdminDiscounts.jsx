@@ -24,6 +24,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import PaginationControl from "@/components/common/PaginationControl";
+import AdminDiscountModal from "./AdminDiscountModal";
 
 export default function AdminDiscounts() {
   const [data, setData] = useState([]);
@@ -36,9 +37,10 @@ export default function AdminDiscounts() {
 
   const [keyword, setKeyword] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedDiscountId, setSelectedDiscountId] = useState(null);
 
   const abortRef = useRef(null);
-  const navigate = useNavigate();
 
   const PAGE_SIZE = 7;
 
@@ -169,20 +171,17 @@ export default function AdminDiscounts() {
       <div className="mb-6">
         <div className="flex justify-between items-start mb-6 gap-4">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-primary/10 rounded-lg">
-              <Ticket className="h-6 w-6 text-primary" />
-            </div>
             <div>
-              <h2 className="text-2xl font-semibold mb-1">
+              <h2 className="text-xl font-semibold">
                 Quản lý mã giảm giá
               </h2>
-              <p className="text-sm text-muted-foreground">
-                Tạo và quản lý mã giảm giá của bạn
-              </p>
             </div>
           </div>
 
-          <Button onClick={() => navigate("/admin/discounts/create")}>
+          <Button onClick={() => {
+            setSelectedDiscountId(null);
+            setIsModalOpen(true);
+          }}>
             <Plus className="w-4 h-4 mr-2" />
             Thêm Mới
           </Button>
@@ -308,9 +307,10 @@ export default function AdminDiscounts() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() =>
-                              navigate(`/admin/discounts/edit/${item.id}`)
-                            }
+                            onClick={() => {
+                              setSelectedDiscountId(item.id);
+                              setIsModalOpen(true);
+                            }}
                             title="Chỉnh sửa"
                           >
                             <Edit className="h-4 w-4" />
@@ -352,6 +352,16 @@ export default function AdminDiscounts() {
           itemName="mã giảm giá"
         />
       )}
+
+      <AdminDiscountModal
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false);
+          setSelectedDiscountId(null);
+        }}
+        discountId={selectedDiscountId}
+        onSuccess={() => fetchDiscounts(page, keyword, statusFilter)}
+      />
     </div>
   );
 }
