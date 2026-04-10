@@ -900,7 +900,7 @@ export function OrderDelivery() {
           }
         }}
       >
-        <DialogContent className="sm:max-w-2xl">
+        <DialogContent contentWidth="70rem" className="sm:max-w-4xl">
           <DialogHeader>
             <DialogTitle>
               Chi tiết đơn {getOrderTypeLabel(selectedOrder?.order_type)} #
@@ -913,183 +913,153 @@ export function OrderDelivery() {
               Đang tải chi tiết...
             </p>
           ) : selectedOrder ? (
-            <div className="max-h-[70vh] space-y-4 overflow-y-auto pr-1">
-              {(() => {
-                const amount = getOrderAmount(selectedOrder);
-                const discountAmount = getOrderDiscountAmount(selectedOrder);
-                const deliveryFee = getOrderDeliveryFee(selectedOrder);
-
-                return (
-                  <div className="grid gap-2 rounded-md border bg-slate-50 dark:bg-slate-800/40 p-3 text-sm sm:grid-cols-2">
+            <div className="max-h-[70vh] overflow-y-auto pr-1">
+              <div className="grid gap-4 md:grid-cols-12">
+                <div className="md:col-span-5 space-y-4">
+                  <div className="space-y-2 rounded-md border p-3 text-sm">
+                    <p className="text-sm font-semibold">Thông tin người nhận</p>
                     <p>
-                      Tạm tính (amount):{" "}
-                      <span className="font-semibold">{money(amount)}</span>
-                    </p>
-                    <p>
-                      Giảm giá (discount_amount):{" "}
-                      <span className="font-semibold text-rose-600 dark:text-rose-300">
-                        -{money(discountAmount)}
+                      Người nhận:{" "}
+                      <span className="font-medium">
+                        {selectedOrder.receiver_name || "Khách lẻ"}
                       </span>
                     </p>
                     <p>
-                      Phí vận chuyển (delivery_fee):{" "}
-                      <span className="font-semibold text-sky-600 dark:text-sky-300">
-                        +{money(deliveryFee)}
+                      Số điện thoại:{" "}
+                      <span className="font-medium">
+                        {selectedOrder.receiver_phone || "Không có số điện thoại"}
                       </span>
                     </p>
                     <p>
-                      Tổng thanh toán (total_amount):{" "}
-                      <span className="font-semibold text-emerald-600 dark:text-emerald-300">
-                        {money(selectedOrder.total_amount)}
+                      Email:{" "}
+                      <span className="font-medium">
+                        {selectedOrder.receiver_email || "Không có email"}
                       </span>
                     </p>
+                    <p>
+                      Địa chỉ:{" "}
+                      <span className="font-medium">
+                        {selectedOrder.address || "Không có địa chỉ"}
+                      </span>
+                    </p>
+                    {selectedOrder.note ? (
+                      <p>
+                        Ghi chú đơn hàng:{" "}
+                        <span className="font-medium">{selectedOrder.note}</span>
+                      </p>
+                    ) : null}
                   </div>
-                );
-              })()}
 
-              <div className="grid gap-2 rounded-md border p-3 text-sm sm:grid-cols-2">
-                <p>
-                  Người nhận:{" "}
-                  <span className="font-medium">
-                    {selectedOrder.receiver_name || "Không có tên người nhận"}
-                  </span>
-                </p>
-                <p>
-                  Số điện thoại:{" "}
-                  <span className="font-medium">
-                    {selectedOrder.receiver_phone || "Không có số điện thoại"}
-                  </span>
-                </p>
-                <p>
-                  Email:{" "}
-                  <span className="font-medium">
-                    {selectedOrder.receiver_email || "Không có email"}
-                  </span>
-                </p>
-                <p>
-                  Địa chỉ:{" "}
-                  <span className="font-medium">
-                    {selectedOrder.address || "Không có địa chỉ"}
-                  </span>
-                </p>
-                <p>
-                  Phương thức thanh toán:{" "}
-                  <span className="font-medium">
-                    {getPaymentMethodLabel(selectedOrder)}
-                  </span>
-                </p>
-                <p>
-                  Trạng thái thanh toán:{" "}
-                  <span className="font-medium">
-                    {selectedOrderPaid ? "Đã thanh toán" : "Chưa thanh toán"}
-                  </span>
-                </p>
-                {selectedOrder.note ? (
-                  <p className="sm:col-span-2">
-                    Ghi chú đơn hàng:{" "}
-                    <span className="font-medium">{selectedOrder.note}</span>
-                  </p>
-                ) : null}
+                  {selectedOrderIsPendingUnpaidDelivery ? (
+                    <div className="rounded-md border border-amber-200 bg-amber-50 p-3 dark:border-amber-800/50 dark:bg-amber-900/30">
+                      <p className="mb-2 text-sm font-semibold text-amber-900 dark:text-amber-200">
+                        Xử lý đơn giao hàng chưa thanh toán
+                      </p>
+                      <div className="grid gap-2 sm:grid-cols-2">
+                        <label className="flex items-center gap-2 text-sm text-amber-900 dark:text-amber-200">
+                          <input
+                            type="radio"
+                            name="modal-pending-action"
+                            className="h-4 w-4"
+                            checked={detailPendingAction === "confirm"}
+                            onChange={() => setDetailPendingAction("confirm")}
+                          />
+                          <span>Nhận đơn</span>
+                        </label>
 
-                {selectedOrderIsPendingUnpaidDelivery ? (
-                  <div className="sm:col-span-2 mt-2 rounded-md border border-amber-200 dark:border-amber-800/50 bg-amber-50 dark:bg-amber-900/30 p-3">
-                    <p className="mb-2 text-sm font-semibold text-amber-900 dark:text-amber-200">
-                      Xử lý đơn giao hàng chưa thanh toán
-                    </p>
-                    <div className="grid gap-2 sm:grid-cols-2">
-                      <label className="flex items-center gap-2 text-sm text-amber-900 dark:text-amber-200">
-                        <input
-                          type="radio"
-                          name="modal-pending-action"
-                          className="h-4 w-4"
-                          checked={detailPendingAction === "confirm"}
-                          onChange={() => setDetailPendingAction("confirm")}
-                        />
-                        <span>Nhận đơn</span>
-                      </label>
+                        <label className="flex items-center gap-2 text-sm text-amber-900 dark:text-amber-200">
+                          <input
+                            type="radio"
+                            name="modal-pending-action"
+                            className="h-4 w-4"
+                            checked={detailPendingAction === "cancel"}
+                            onChange={() => setDetailPendingAction("cancel")}
+                          />
+                          <span>Hủy đơn</span>
+                        </label>
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
 
-                      <label className="flex items-center gap-2 text-sm text-amber-900 dark:text-amber-200">
-                        <input
-                          type="radio"
-                          name="modal-pending-action"
-                          className="h-4 w-4"
-                          checked={detailPendingAction === "cancel"}
-                          onChange={() => setDetailPendingAction("cancel")}
-                        />
-                        <span>Hủy đơn</span>
-                      </label>
+                <div className="md:col-span-7 space-y-4">
+                  <div className="space-y-2 rounded-md border p-3">
+                    <p className="text-sm font-semibold">Danh sách món và topping</p>
+                    {Array.isArray(selectedOrder.items) &&
+                    selectedOrder.items.length > 0 ? (
+                      selectedOrder.items.map((item) => (
+                        <div
+                          key={`${selectedOrder.id}-${item.id || item.product_name || item.name}`}
+                          className="rounded-md border p-2 text-sm"
+                        >
+                          <p className="font-medium">
+                            {item.name ||
+                              item.productName ||
+                              item.product_name ||
+                              "Sản phẩm"}
+                          </p>
+                          <p className="text-muted-foreground">
+                            Size {item.size} • x{item.quantity} •{" "}
+                            {money(item.price || item.total_price)}
+                          </p>
+                          {Array.isArray(item.toppings) &&
+                          item.toppings.length > 0 ? (
+                            <p className="text-muted-foreground">
+                              Topping:{" "}
+                              {item.toppings
+                                .map((top) => `${top.name} x${top.quantity || 1}`)
+                                .join(", ")}
+                            </p>
+                          ) : (
+                            <p className="text-muted-foreground">Không có topping</p>
+                          )}
+                          {item.note ? (
+                            <p className="text-muted-foreground">Ghi chú: {item.note}</p>
+                          ) : null}
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-sm text-muted-foreground">
+                        Đơn chưa có sản phẩm.
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2 rounded-md border bg-slate-50 p-3 text-sm dark:bg-slate-800/40">
+                    <p className="text-sm font-semibold">Thông tin thanh toán</p>
+                    <div className="flex justify-between text-slate-600 dark:text-slate-300">
+                      <span>Tạm tính</span>
+                      <span className="font-medium">{money(getOrderAmount(selectedOrder))}</span>
+                    </div>
+                    <div className="flex justify-between text-rose-600 dark:text-rose-300">
+                      <span>Giảm giá</span>
+                      <span className="font-medium">-{money(getOrderDiscountAmount(selectedOrder))}</span>
+                    </div>
+                    <div className="flex justify-between text-sky-600 dark:text-sky-300">
+                      <span>Phí vận chuyển</span>
+                      <span className="font-medium">+{money(getOrderDeliveryFee(selectedOrder))}</span>
+                    </div>
+                    <div className="flex justify-between border-t pt-2 font-semibold">
+                      <span>Tổng thanh toán</span>
+                      <span>{money(selectedOrder.total_amount)}</span>
+                    </div>
+                    <div className="flex justify-between text-muted-foreground">
+                      <span>Phương thức thanh toán</span>
+                      <span className="font-medium text-foreground">
+                        {getPaymentMethodLabel(selectedOrder)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-muted-foreground">
+                      <span>Trạng thái thanh toán</span>
+                      <span className="font-medium text-foreground">
+                        {selectedOrderPaid ? "Đã thanh toán" : "Chưa thanh toán"}
+                      </span>
                     </div>
                   </div>
-                ) : null}
+                </div>
               </div>
 
-              <div className="space-y-2 rounded-md border p-3">
-                <p className="text-sm font-semibold">
-                  Danh sách món và topping
-                </p>
-                {Array.isArray(selectedOrder.items) &&
-                selectedOrder.items.length > 0 ? (
-                  selectedOrder.items.map((item) => (
-                    <div
-                      key={`${selectedOrder.id}-${item.id || item.product_name || item.name}`}
-                      className="rounded-md border p-2 text-sm"
-                    >
-                      <p className="font-medium">
-                        {item.name ||
-                          item.productName ||
-                          item.product_name ||
-                          "Sản phẩm"}
-                      </p>
-                      <p className="text-muted-foreground">
-                        Size {item.size} • x{item.quantity} •{" "}
-                        {money(item.price || item.total_price)}
-                      </p>
-                      {Array.isArray(item.toppings) &&
-                      item.toppings.length > 0 ? (
-                        <p className="text-muted-foreground">
-                          Topping:{" "}
-                          {item.toppings
-                            .map((top) => `${top.name} x${top.quantity || 1}`)
-                            .join(", ")}
-                        </p>
-                      ) : (
-                        <p className="text-muted-foreground">
-                          Không có topping
-                        </p>
-                      )}
-                      {item.note ? (
-                        <p className="text-muted-foreground">
-                          Ghi chú: {item.note}
-                        </p>
-                      ) : null}
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-sm text-muted-foreground">
-                    Đơn chưa có sản phẩm.
-                  </p>
-                )}
-              </div>
-
-              <div className="flex flex-col items-end gap-1">
-                <p className="text-sm text-slate-600 dark:text-slate-300">
-                  Tạm tính: <span className="font-medium">{money(getOrderAmount(selectedOrder))}</span>
-                </p>
-                <p className="text-sm text-rose-600 dark:text-rose-300">
-                  Giảm giá: <span className="font-medium">-{money(getOrderDiscountAmount(selectedOrder))}</span>
-                </p>
-                <p className="text-sm text-sky-600 dark:text-sky-300">
-                  Phí vận chuyển: <span className="font-medium">+{money(getOrderDeliveryFee(selectedOrder))}</span>
-                </p>
-                <p className="text-sm">
-                  Tổng thanh toán:{" "}
-                  <span className="font-semibold">
-                    {money(selectedOrder.total_amount)}
-                  </span>
-                </p>
-              </div>
-
-              <div className="flex flex-wrap justify-end gap-2 border-t pt-3">
+              <div className="mt-4 flex flex-wrap justify-end gap-2 border-t pt-3">
                 <Button
                   variant="outline"
                   onClick={() => setIsDetailOpen(false)}
