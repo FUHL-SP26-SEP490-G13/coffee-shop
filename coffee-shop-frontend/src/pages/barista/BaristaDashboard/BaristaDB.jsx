@@ -3,7 +3,6 @@ import {
   PackageOpen,
   TrendingUp,
   Clock,
-  Coffee,
   AlertCircle,
   CheckCircle,
   Activity,

@@ -12,7 +12,6 @@ import HomeBanner from "@/pages/homePage/banner/HomeBanner";
 import FlashSaleSection from "@/pages/homePage/product/FlashSaleSection";
 import BestSellerSection from "@/pages/homePage/product/BestSellerSection";
 import ReviewSection from "@/pages/homePage/review/ReviewSection";
-import OrderGuideSection from "@/pages/homePage/order/OrderGuideSection";
 
 import "swiper/css";
 import "swiper/css/pagination";
@@ -206,10 +205,6 @@ export default function HomePage() {
 
       <FadeInView>
         <ReviewSection />
-      </FadeInView>
-
-      <FadeInView>
-        <OrderGuideSection />
       </FadeInView>
 
       <FadeInView delay={200}>

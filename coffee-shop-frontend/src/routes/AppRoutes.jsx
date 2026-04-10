@@ -61,7 +61,7 @@ import AdminNewsletterPage from "@/pages/admin/AdminNewsletter/AdminNewsletterPa
 import AdminEndOfDayReport from "@/pages/admin/AdminEndOfDayReport/AdminEndOfDayReport";
 import TakeawayPOS from '../pages/staff/TakeawayPOS'
 import { OrderDelivery } from '@/pages/staff/StaffOrderList';
-import { StaffDashboard } from "@/pages/staff/StaffDashboard";
+import { StaffDashboard } from "@/pages/staff/StaffDashboard/StaffDashboard";
 import StaffPayOSReturn from "@/pages/staff/StaffPayOSReturn";
 import StoreInfoPage from "@/pages/common/StoreInfoPage";
 import GenericSlugResolver from "../pages/common/GenericSlugResolver";

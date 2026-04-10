@@ -4,11 +4,8 @@ import {
   MapPin,
   Phone,
   Facebook,
-  Youtube,
-  Instagram,
   ShieldCheck,
   CheckCircle2,
-  Send,
   Loader2,
 } from "lucide-react";
 import Logo from "/logo/Logo.png";
@@ -151,24 +148,6 @@ function Footer() {
                   aria-label="Zalo"
                 >
                   Zalo
-                </a>
-                <a
-                  href="https://youtube.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-9 h-9 rounded-full bg-red-600 hover:bg-red-700 text-white flex items-center justify-center transition-all hover:-translate-y-1 shadow-md"
-                  aria-label="Youtube"
-                >
-                  <Youtube size={18} />
-                </a>
-                <a
-                  href="https://instagram.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-9 h-9 rounded-full bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-600 hover:opacity-90 text-white flex items-center justify-center transition-all hover:-translate-y-1 shadow-md"
-                  aria-label="Instagram"
-                >
-                  <Instagram size={18} />
                 </a>
               </div>
             </div>
