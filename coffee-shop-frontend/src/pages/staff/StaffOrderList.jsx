@@ -742,15 +742,6 @@ export function OrderDelivery() {
 
           <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <div className="space-y-1">
-              <p className="text-xs text-slate-500 dark:text-slate-300">
-                Tạm tính: <span className="font-medium">{money(amount)}</span>
-              </p>
-              <p className="text-xs text-rose-600 dark:text-rose-300">
-                Giảm giá: <span className="font-medium">-{money(discountAmount)}</span>
-              </p>
-              <p className="text-xs text-sky-600 dark:text-sky-300">
-                Phí ship: <span className="font-medium">+{money(deliveryFee)}</span>
-              </p>
               <p className="text-base font-bold leading-none text-emerald-600 dark:text-emerald-300">
                 Tổng thu: {money(order.total_amount)}
               </p>
