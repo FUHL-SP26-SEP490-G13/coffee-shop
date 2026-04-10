@@ -266,7 +266,7 @@ export default function ForgotPasswordPage() {
 								<div className="w-16 h-16 bg-amber-100 dark:bg-amber-900/30 rounded-2xl flex items-center justify-center mx-auto mb-2 shadow-inner">
 									<Lock className="w-8 h-8 text-amber-600 dark:text-amber-500" />
 								</div>
-								<h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">Đặt lại mật khẩu</h1>
+								<h1 className="text-xl font-bold tracking-tight text-gray-900 dark:text-white">Đặt lại mật khẩu</h1>
 								<p className="text-sm font-medium text-gray-500 dark:text-gray-400">Hoàn thành 3 bước đơn giản dưới đây</p>
 							</div>
 

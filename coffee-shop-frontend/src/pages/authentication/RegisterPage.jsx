@@ -327,7 +327,7 @@ export default function RegisterPage() {
 								<div className="w-16 h-16 bg-amber-100 dark:bg-amber-900/30 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-inner -rotate-3 transition-transform hover:rotate-3">
 									<User className="w-8 h-8 text-amber-600 dark:text-amber-500" />
 								</div>
-								<h2 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">Tạo tài khoản mới</h2>
+								<h2 className="text-xl font-bold tracking-tight text-gray-900 dark:text-white">Tạo tài khoản mới</h2>
 								<p className="text-sm font-medium text-gray-500 dark:text-gray-400">
 									Nhập thông tin của bạn bên dưới để bắt đầu
 								</p>

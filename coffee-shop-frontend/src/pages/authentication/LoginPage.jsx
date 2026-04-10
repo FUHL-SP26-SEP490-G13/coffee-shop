@@ -129,8 +129,8 @@ export default function LoginPage() {
 			const errorData = error?.response?.data;
 			const validationMessages = Array.isArray(errorData?.errors)
 				? errorData.errors
-						.map((item) => item?.message)
-						.filter(Boolean)
+					.map((item) => item?.message)
+					.filter(Boolean)
 				: [];
 			const message =
 				(validationMessages.length > 0
@@ -207,7 +207,7 @@ export default function LoginPage() {
 								<div className="w-16 h-16 bg-amber-100 dark:bg-amber-900/30 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-inner rotate-3 transition-transform hover:rotate-6">
 									<Coffee className="w-8 h-8 text-amber-600 dark:text-amber-500" />
 								</div>
-								<h2 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">Đăng nhập</h2>
+								<h2 className="text-xl font-bold tracking-tight text-gray-900 dark:text-white">Đăng nhập</h2>
 								<p className="text-sm font-medium text-gray-500 dark:text-gray-400">
 									Trải nghiệm hành trình cà phê tuyệt đỉnh
 								</p>
@@ -302,35 +302,24 @@ export default function LoginPage() {
 								) : null}
 
 								<div className="animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both" style={{ animationDelay: '500ms' }}>
-									<Button 
-										type="submit" 
-										className="w-full h-12 rounded-xl text-base font-bold text-white shadow-lg bg-amber-600 hover:bg-amber-700 dark:hover:bg-amber-600/90 hover:shadow-amber-600/30 transition-all hover:-translate-y-0.5 active:translate-y-0" 
+									<Button
+										type="submit"
+										className="w-full h-12 rounded-xl text-base font-bold text-white shadow-lg bg-amber-600 hover:bg-amber-700 dark:hover:bg-amber-600/90 hover:shadow-amber-600/30 transition-all hover:-translate-y-0.5 active:translate-y-0"
 										disabled={isSubmitting}
 									>
 										{isSubmitting ? "Đang xử lý..." : "Đăng nhập ngay"}
 									</Button>
 								</div>
 							</form>
-							
+
 							<div className="mt-8 animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both" style={{ animationDelay: '600ms' }}>
-								<div className="relative mb-6">
-									<div className="absolute inset-0 flex items-center">
-										<span className="w-full border-t border-gray-200 dark:border-gray-700" />
-									</div>
-									<div className="relative flex justify-center text-xs uppercase">
-										<span className="bg-white/80 dark:bg-gray-900/80 px-4 text-gray-500 font-semibold tracking-wider">
-											Hoặc đăng nhập bằng
-										</span>
-									</div>
-								</div>
-								
 								<GoogleButton />
-								
+
 								<div className="mt-8 text-center text-sm font-medium text-gray-600 dark:text-gray-400">
 									Chưa có tài khoản?{" "}
-									<button 
-										type="button" 
-										className="text-amber-600 dark:text-amber-500 font-bold hover:underline ml-1" 
+									<button
+										type="button"
+										className="text-amber-600 dark:text-amber-500 font-bold hover:underline ml-1"
 										onClick={() => navigate(APP_ROUTES.REGISTER)}
 									>
 										Tạo tài khoản mới
