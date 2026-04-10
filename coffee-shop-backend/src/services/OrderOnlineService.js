@@ -345,6 +345,7 @@ class OrderOnlineService {
 
       let activeOrderId = null;
       let existingOrderAmount = 0;
+      let activeOrderSnapshot = null;
 
       if (order_type === "dine-in") {
         const activeOrder = await OrderRepository.findActiveOrderByTableId(
@@ -352,6 +353,7 @@ class OrderOnlineService {
           payload.table_id
         );
         if (activeOrder) {
+          activeOrderSnapshot = activeOrder;
           activeOrderId = activeOrder.id;
           existingOrderAmount = Number(activeOrder.total_amount);
 
@@ -366,12 +368,28 @@ class OrderOnlineService {
 
       const cartTotals = await this.calculateCartAmounts(connection, items);
       let totalAmount = cartTotals.totalAmount;
+      const itemSubtotalAmount = cartTotals.totalAmount;
       let regularAmount = cartTotals.regularAmount;
       const normalizedItems = cartTotals.normalizedItems;
       let storeLatitude = null;
       let storeLongitude = null;
       let deliveryDistanceKm = 0;
       let shippingFee = 0;
+      let existingAmount = 0;
+      let existingDiscountAmount = 0;
+
+      if (activeOrderId) {
+        existingAmount = Math.max(
+          0,
+          Number(
+            activeOrderSnapshot?.amount ?? activeOrderSnapshot?.total_amount
+          ) || 0
+        );
+        existingDiscountAmount = Math.max(
+          0,
+          Number(activeOrderSnapshot?.discount_amount) || 0
+        );
+      }
 
       if (order_type === "delivery") {
         const ReceiptSettingService = require("./ReceiptSettingService");
@@ -490,6 +508,10 @@ class OrderOnlineService {
       }
 
       const finalAmount = Math.max(0, amountAfterVoucher - loyaltyDiscountAmount);
+      const totalDiscountAmount = Math.max(
+        0,
+        discountAmount + loyaltyDiscountAmount
+      );
 
       let orderId = activeOrderId;
       if (!orderId) {
@@ -501,6 +523,8 @@ class OrderOnlineService {
           table_id: order_type === "dine-in" ? payload.table_id : null,
           status: "pending",
           total_amount: finalAmount,
+          amount: itemSubtotalAmount,
+          discount_amount: totalDiscountAmount,
           delivery_fee: shippingFee,
           used_points: normalizedUsedPoints,
         });
@@ -513,7 +537,14 @@ class OrderOnlineService {
         }
       } else {
         const newTotal = existingOrderAmount + finalAmount;
-        await OrderRepository.updateOrderTotalAmount(connection, orderId, newTotal);
+        const newAmount = existingAmount + itemSubtotalAmount;
+        const newDiscountAmount = existingDiscountAmount + totalDiscountAmount;
+
+        await OrderRepository.updateOrderTotalAmount(connection, orderId, {
+          totalAmount: newTotal,
+          amount: newAmount,
+          discountAmount: newDiscountAmount,
+        });
       }
 
       for (const item of normalizedItems) {

@@ -137,6 +137,36 @@ const getShippingFee = (order) => {
   return 0;
 };
 
+const getOrderAmount = (order) => {
+  return Math.max(0, Number(order?.amount || 0));
+};
+
+const getOrderDeliveryFee = (order) => {
+  if (!isDeliveryOrder(order)) return 0;
+
+  const feeFromApi = Number(order?.delivery_fee ?? order?.shipping_fee);
+  if (Number.isFinite(feeFromApi) && feeFromApi >= 0) {
+    return Math.round(feeFromApi / MONEY_ROUNDING_UNIT) * MONEY_ROUNDING_UNIT;
+  }
+
+  return getShippingFee(order);
+};
+
+const getOrderDiscountAmount = (order) => {
+  const discountFromApi = Number(order?.discount_amount);
+  if (Number.isFinite(discountFromApi) && discountFromApi >= 0) {
+    return discountFromApi;
+  }
+
+  const amountForDiscountCalc = Math.max(
+    0,
+    Number(order?.amount || 0) || calculateOrderItemsSubtotal(order?.items)
+  );
+  const total = Math.max(0, Number(order?.total_amount || 0));
+  const deliveryFee = Math.max(0, getOrderDeliveryFee(order));
+  return Math.max(0, amountForDiscountCalc + deliveryFee - total);
+};
+
 const getDisplayName = (user) => {
   const firstName = String(user?.first_name || "").trim();
   const lastName = String(user?.last_name || "").trim();
@@ -682,7 +712,9 @@ export function OrderDelivery() {
 
   const renderCompactOrderCard = (order) => {
     const paid = isOrderPaid(order);
-    const shippingFee = getShippingFee(order);
+    const amount = getOrderAmount(order);
+    const discountAmount = getOrderDiscountAmount(order);
+    const deliveryFee = getOrderDeliveryFee(order);
 
     return (
       <Card key={order.id} className="border-slate-200 dark:border-slate-700 bg-white dark:bg-gray-900 shadow-sm dark:shadow-none">
@@ -710,14 +742,18 @@ export function OrderDelivery() {
 
           <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <div className="space-y-1">
-              <p className="text-base font-bold leading-none text-emerald-600 dark:text-emerald-300">
-                {money(order.total_amount)}
+              <p className="text-xs text-slate-500 dark:text-slate-300">
+                Tạm tính: <span className="font-medium">{money(amount)}</span>
               </p>
-              {isDeliveryOrder(order) && (
-                <p className="text-xs text-slate-500 dark:text-slate-300">
-                  Phí ship: {money(shippingFee)}
-                </p>
-              )}
+              <p className="text-xs text-rose-600 dark:text-rose-300">
+                Giảm giá: <span className="font-medium">-{money(discountAmount)}</span>
+              </p>
+              <p className="text-xs text-sky-600 dark:text-sky-300">
+                Phí ship: <span className="font-medium">+{money(deliveryFee)}</span>
+              </p>
+              <p className="text-base font-bold leading-none text-emerald-600 dark:text-emerald-300">
+                Tổng thu: {money(order.total_amount)}
+              </p>
             </div>
             <Button
               size="sm"
@@ -878,6 +914,39 @@ export function OrderDelivery() {
             </p>
           ) : selectedOrder ? (
             <div className="max-h-[70vh] space-y-4 overflow-y-auto pr-1">
+              {(() => {
+                const amount = getOrderAmount(selectedOrder);
+                const discountAmount = getOrderDiscountAmount(selectedOrder);
+                const deliveryFee = getOrderDeliveryFee(selectedOrder);
+
+                return (
+                  <div className="grid gap-2 rounded-md border bg-slate-50 dark:bg-slate-800/40 p-3 text-sm sm:grid-cols-2">
+                    <p>
+                      Tạm tính (amount):{" "}
+                      <span className="font-semibold">{money(amount)}</span>
+                    </p>
+                    <p>
+                      Giảm giá (discount_amount):{" "}
+                      <span className="font-semibold text-rose-600 dark:text-rose-300">
+                        -{money(discountAmount)}
+                      </span>
+                    </p>
+                    <p>
+                      Phí vận chuyển (delivery_fee):{" "}
+                      <span className="font-semibold text-sky-600 dark:text-sky-300">
+                        +{money(deliveryFee)}
+                      </span>
+                    </p>
+                    <p>
+                      Tổng thanh toán (total_amount):{" "}
+                      <span className="font-semibold text-emerald-600 dark:text-emerald-300">
+                        {money(selectedOrder.total_amount)}
+                      </span>
+                    </p>
+                  </div>
+                );
+              })()}
+
               <div className="grid gap-2 rounded-md border p-3 text-sm sm:grid-cols-2">
                 <p>
                   Người nhận:{" "}
@@ -1003,14 +1072,17 @@ export function OrderDelivery() {
               </div>
 
               <div className="flex flex-col items-end gap-1">
-                {isDeliveryOrder(selectedOrder) ? (
-                  <p className="text-sm text-slate-600 dark:text-slate-300">
-                    Phí vận chuyển:{" "}
-                    <span className="font-medium">{money(getShippingFee(selectedOrder))}</span>
-                  </p>
-                ) : null}
+                <p className="text-sm text-slate-600 dark:text-slate-300">
+                  Tạm tính: <span className="font-medium">{money(getOrderAmount(selectedOrder))}</span>
+                </p>
+                <p className="text-sm text-rose-600 dark:text-rose-300">
+                  Giảm giá: <span className="font-medium">-{money(getOrderDiscountAmount(selectedOrder))}</span>
+                </p>
+                <p className="text-sm text-sky-600 dark:text-sky-300">
+                  Phí vận chuyển: <span className="font-medium">+{money(getOrderDeliveryFee(selectedOrder))}</span>
+                </p>
                 <p className="text-sm">
-                  Tổng tiền:{" "}
+                  Tổng thanh toán:{" "}
                   <span className="font-semibold">
                     {money(selectedOrder.total_amount)}
                   </span>

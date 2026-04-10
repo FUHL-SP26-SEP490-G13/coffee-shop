@@ -96,30 +96,6 @@ function TakeawayPOS() {
     loadProfile();
   }, []);
 
-  // ─── Socket listener PayOS ────────────────────────────────────────────────
-  useEffect(() => {
-    if (!socket.connected) socket.connect();
-
-    const handlePaymentCompleted = (data) => {
-      const orderId = data.order_id;
-      // Socket event handler is no longer primarily used to render the receipt for PayOS 
-      // because we redirect the page, but we keep it here just in case another client completes it.
-      if (orderId && checkoutResult && (checkoutResult.order_id === orderId || checkoutResult.id === orderId)) {
-        toast.success(`Thanh toán PayOS thành công cho đơn #${orderId}!`);
-        setViewingReceipt({
-          ...checkoutResult,
-          order_id: checkoutResult.order_id || checkoutResult.id,
-          order_code: `DH-${String(checkoutResult.order_id || checkoutResult.id).padStart(6, '0')}`,
-          printed_by: printerName,
-        });
-        setCheckoutResult(null);
-      }
-    };
-
-    socket.on('order:payment-completed', handlePaymentCompleted);
-    return () => socket.off('order:payment-completed', handlePaymentCompleted);
-  }, [printerName, checkoutResult]);
-
   // ─── Load orders ──────────────────────────────────────────────────────────
   const loadOrders = useCallback(async () => {
     setOrdersLoading(true);
@@ -137,6 +113,73 @@ function TakeawayPOS() {
   useEffect(() => {
     loadOrders();
   }, [loadOrders]);
+
+  const openReceiptFromOrder = useCallback(
+    async (orderSeed) => {
+      const orderId = Number(orderSeed?.order_id || orderSeed?.id || 0);
+      if (!orderId) {
+        toast.error('Không xác định được đơn để in hóa đơn');
+        return;
+      }
+
+      try {
+        toast.info('Đang lấy dữ liệu hóa đơn...');
+        const res = await takeawayService.getReceipt(orderId);
+        const receipt = res?.data?.receipt;
+
+        if (!receipt) {
+          throw new Error('Receipt data is empty');
+        }
+
+        setViewingReceipt({
+          ...orderSeed,
+          ...receipt,
+          amount: Math.max(
+            0,
+            Number(
+              receipt?.amount ??
+                receipt?.subtotal_amount ??
+                orderSeed?.amount ??
+                orderSeed?.subtotal_amount ??
+                0,
+            ),
+          ),
+          printed_by: printerName,
+          autoPrint: true,
+        });
+      } catch (error) {
+        console.error('Lỗi lấy dữ liệu hóa đơn:', error);
+        toast.error('Không thể lấy dữ liệu in hóa đơn');
+      }
+    },
+    [printerName],
+  );
+
+  // ─── Socket listener PayOS ────────────────────────────────────────────────
+  useEffect(() => {
+    if (!socket.connected) socket.connect();
+
+    const handlePaymentCompleted = async (data) => {
+      const orderId = data.order_id;
+      // Socket event handler is no longer primarily used to render the receipt for PayOS
+      // because we redirect the page, but we keep it here just in case another client completes it.
+      if (
+        orderId &&
+        checkoutResult &&
+        (checkoutResult.order_id === orderId || checkoutResult.id === orderId)
+      ) {
+        toast.success(`Thanh toán PayOS thành công cho đơn #${orderId}!`);
+        await openReceiptFromOrder({
+          ...checkoutResult,
+          order_id: checkoutResult.order_id || checkoutResult.id,
+        });
+        setCheckoutResult(null);
+      }
+    };
+
+    socket.on('order:payment-completed', handlePaymentCompleted);
+    return () => socket.off('order:payment-completed', handlePaymentCompleted);
+  }, [checkoutResult, openReceiptFromOrder]);
 
   // ─── Computed ─────────────────────────────────────────────────────────────
   const subtotal = cart.reduce((s, item) => {
@@ -185,7 +228,7 @@ function TakeawayPOS() {
         discount_code: discountCode || '',
         returnUrl,
         cancelUrl: returnUrl,
-        cash_received: paymentMethod === 'cash' ? receivedAmount || 0 : 0, 
+        cash_received: paymentMethod === 'cash' ? receivedAmount || 0 : 0,
         items: cart.map((item) => ({
           product_size_id: item.product_size_id,
           quantity: item.quantity,
@@ -201,6 +244,10 @@ function TakeawayPOS() {
 
       const newOrder = {
         ...data,
+        amount: Math.max(
+          0,
+          Number(data?.amount ?? data?.subtotal_amount ?? subtotal),
+        ),
         items: cart.map((i) => ({
           product_name: i.productName,
           size: i.size,
@@ -211,10 +258,11 @@ function TakeawayPOS() {
         })),
         discount_code: discountCode || null,
         discount_amount: discountAmount || data.discount_amount || 0,
-        is_paid: paymentMethod === 'cash' ? 1 : (data.is_paid ? 1 : 0),
+        is_paid: paymentMethod === 'cash' ? 1 : data.is_paid ? 1 : 0,
         payment: {
           method: paymentMethod,
-          status: paymentMethod === 'cash' ? 'paid' : (data.is_paid ? 'paid' : 'pending'),
+          status:
+            paymentMethod === 'cash' ? 'paid' : data.is_paid ? 'paid' : 'pending',
         },
       };
 
@@ -228,7 +276,7 @@ function TakeawayPOS() {
         toast.success(
           `Tạo đơn #${data.order_id} thành công · ${fmt(data.total_amount)}`,
         );
-        setViewingReceipt({ ...newOrder, autoPrint: true });
+        await openReceiptFromOrder(newOrder);
       }
     } catch (e) {
       toast.error(e?.response?.data?.message || 'Lỗi tạo đơn');

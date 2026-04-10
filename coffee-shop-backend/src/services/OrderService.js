@@ -216,6 +216,10 @@ class OrderService {
       }
 
       const finalAmount = Math.max(0, amountAfterVoucher - loyaltyDiscountAmount);
+      const totalDiscountAmount = Math.max(
+        0,
+        discountAmount + loyaltyDiscountAmount
+      );
 
       const normalizedCashReceived =
         payment_method === "cash"
@@ -247,6 +251,8 @@ class OrderService {
         order_type,
         table_id: order_type === "dine-in" ? payload.table_id : null,
         total_amount: finalAmount,
+        amount: totalAmount,
+        discount_amount: totalDiscountAmount,
         used_points: normalizedUsedPoints,
         session_id: sessionId
       });
@@ -602,8 +608,11 @@ class OrderService {
         }
       }
 
-      // Update order total and payment amount
-      await connection.query('UPDATE orders SET total_amount = ? WHERE id = ?', [totalAmount, orderId]);
+      // Keep order amount fields aligned after staff edits unpaid items.
+      await connection.query(
+        'UPDATE orders SET total_amount = ?, amount = ?, discount_amount = 0 WHERE id = ?',
+        [totalAmount, totalAmount, orderId]
+      );
       await connection.query('UPDATE order_payments SET amount = ? WHERE order_id = ?', [totalAmount, orderId]);
 
       await connection.commit();

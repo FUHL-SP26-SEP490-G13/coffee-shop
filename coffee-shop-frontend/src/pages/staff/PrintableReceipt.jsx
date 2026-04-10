@@ -57,8 +57,27 @@ const getBaseUnitPrice = (item) => {
 const calcSubtotal = (order) =>
   (order.items || []).reduce((sum, item) => sum + getItemLineTotal(item), 0);
 
+const getDiscountAmount = (order, fallbackSubtotal, deliveryFee) => {
+  const discountFromApi = Number(order?.discount_amount);
+  if (Number.isFinite(discountFromApi) && discountFromApi >= 0) {
+    return discountFromApi;
+  }
+
+  const amountForDiscountCalc =
+    Number(order?.amount) > 0
+      ? Number(order.amount)
+      : Math.max(0, Number(fallbackSubtotal || 0));
+  const total = Math.max(0, Number(order?.total_amount || 0));
+  return Math.max(0, amountForDiscountCalc + deliveryFee - total);
+};
+
 const getShippingFee = (order, subtotal) => {
   if (String(order?.order_type || '').toLowerCase() !== 'delivery') return 0;
+
+  const feeByDeliveryColumn = Number(order?.delivery_fee);
+  if (Number.isFinite(feeByDeliveryColumn) && feeByDeliveryColumn >= 0) {
+    return Math.round(feeByDeliveryColumn / MONEY_ROUNDING_UNIT) * MONEY_ROUNDING_UNIT;
+  }
 
   const feeFromApi = Number(order?.shipping_fee);
   if (Number.isFinite(feeFromApi) && feeFromApi > 0) {
@@ -146,12 +165,16 @@ export function PrintableReceipt({ order, onDone, onPrintSuccess }) {
   const orderCode = `#${String(
     Number.isFinite(orderId) && orderId > 0 ? orderId : 0
   ).padStart(5, '0')}`;
-  const subtotal = calcSubtotal(order);
+  const fallbackSubtotal = calcSubtotal(order);
+  const subtotal = Math.max(
+    0,
+    Number(order?.amount ?? order?.subtotal_amount ?? 0),
+  );
   const totalAmount = Number(order.total_amount || 0);
-  const computedDiscount = Math.max(0, subtotal - totalAmount);
   const normalizedOrderType = String(order?.order_type || '').toLowerCase();
   const isDeliveryOrder = normalizedOrderType === 'delivery';
-  const shippingFee = getShippingFee(order, subtotal);
+  const shippingFee = getShippingFee(order, fallbackSubtotal);
+  const discountAmount = getDiscountAmount(order, fallbackSubtotal, shippingFee);
   const hasReceiverInfo = Boolean(
     order?.receiver_name || order?.receiver_phone || order?.address || order?.receiver_email
   );
@@ -498,16 +521,6 @@ export function PrintableReceipt({ order, onDone, onPrintSuccess }) {
           ))}
         </div>
 
-        {/* Discount */}
-        {computedDiscount > 0 && (
-          <div className="receipt-section">
-            <div className="receipt-item">
-              <span>Giảm giá{order.discount_code ? ` (${order.discount_code})` : ''}</span>
-              <span>-{fmt(computedDiscount)}</span>
-            </div>
-          </div>
-        )}
-
         {/* Ghi chú */}
         {order.note && (
           <div className="receipt-section">
@@ -518,19 +531,25 @@ export function PrintableReceipt({ order, onDone, onPrintSuccess }) {
           </div>
         )}
 
-        {isDeliveryOrder && shippingFee > 0 && (
-          <div className="receipt-section">
-            <div className="receipt-item">
-              <span>Phí vận chuyển</span>
-              <span>{fmt(shippingFee)}</span>
-            </div>
+        <div className="receipt-section">
+          <div className="receipt-item">
+            <span>Tạm tính</span>
+            <span>{fmt(subtotal)}</span>
           </div>
-        )}
+          <div className="receipt-item">
+            <span>Giảm giá{order.discount_code ? ` (${order.discount_code})` : ''}</span>
+            <span>-{fmt(discountAmount)}</span>
+          </div>
+          <div className="receipt-item">
+            <span>Phí vận chuyển</span>
+            <span>+{fmt(isDeliveryOrder ? shippingFee : 0)}</span>
+          </div>
+        </div>
 
         {/* Total */}
         <div className="receipt-total">
           <span>Tổng cộng</span>
-          <span>{fmt(order.total_amount)}</span>
+          <span>{fmt(totalAmount)}</span>
         </div>
 
         {/* Payment Status */}

@@ -36,18 +36,28 @@ class TakeawayRepository {
 
   async createOrder(
     connection,
-    { user_id, created_by, order_type, total_amount, discount_id },
+    {
+      user_id,
+      created_by,
+      order_type,
+      total_amount,
+      amount,
+      discount_amount,
+      discount_id,
+    },
   ) {
     const [result] = await connection.query(
       `INSERT INTO orders 
-         (user_id, created_by, order_type, total_amount, discount_id,
+         (user_id, created_by, order_type, total_amount, amount, discount_amount, discount_id,
           status, is_paid, customer_type, created_at)
-       VALUES (?, ?, ?, ?, ?, 'pending', 0, 'guest', NOW())`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', 0, 'guest', NOW())`,
       [
         user_id || null,
         created_by,
         order_type,
         total_amount,
+        amount,
+        discount_amount,
         discount_id || null,
       ],
     );
@@ -223,10 +233,13 @@ class TakeawayRepository {
     ]);
   }
 
-  async updateOrderAmounts(connection, { orderId, total_amount, discount_id }) {
+  async updateOrderAmounts(
+    connection,
+    { orderId, total_amount, amount, discount_amount, discount_id },
+  ) {
     await connection.query(
-      `UPDATE orders SET total_amount = ?, discount_id = ? WHERE id = ?`,
-      [total_amount, discount_id || null, orderId],
+      `UPDATE orders SET total_amount = ?, amount = ?, discount_amount = ?, discount_id = ? WHERE id = ?`,
+      [total_amount, amount, discount_amount, discount_id || null, orderId],
     );
   }
 

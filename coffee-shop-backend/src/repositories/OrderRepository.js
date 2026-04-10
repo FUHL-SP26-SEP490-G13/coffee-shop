@@ -67,6 +67,11 @@ class OrderRepository {
   async createOrder(connection, data) {
     const safeStatus = data.status || "pending";
     const safeUsedPoints = Math.max(0, Number(data.used_points) || 0);
+    const safeAmount = Math.max(
+      0,
+      Number(data.amount ?? data.total_amount) || 0
+    );
+    const safeDiscountAmount = Math.max(0, Number(data.discount_amount) || 0);
 
     const [result] = await connection.query(
       `
@@ -79,11 +84,13 @@ class OrderRepository {
         status,
         is_paid,
         total_amount,
+        amount,
+        discount_amount,
         delivery_fee,
         used_points,
         session_id
       )
-      VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?)
       `,
       [
         data.user_id,
@@ -93,6 +100,8 @@ class OrderRepository {
         data.table_id || null,
         safeStatus,
         data.total_amount,
+        safeAmount,
+        safeDiscountAmount,
         Math.max(0, Number(data.delivery_fee) || 0),
         safeUsedPoints,
         data.session_id || null,
@@ -395,6 +404,8 @@ class OrderRepository {
         o.print_status,
         o.is_paid,
         o.total_amount,
+        o.amount,
+        o.discount_amount,
         o.delivery_fee,
         o.used_points,
         o.created_at,
@@ -406,7 +417,7 @@ class OrderRepository {
         odi.note,
         op.payment_method,
         op.payment_status,
-        op.amount
+        op.amount AS payment_amount
       FROM orders o
       LEFT JOIN order_delivery_info odi ON odi.order_id = o.id
       LEFT JOIN order_payments op ON op.order_id = o.id
@@ -430,6 +441,8 @@ class OrderRepository {
         o.status,
         o.is_paid,
         o.total_amount,
+        o.amount,
+        o.discount_amount,
         o.delivery_fee,
         o.used_points,
         o.created_at,
@@ -456,6 +469,8 @@ class OrderRepository {
         o.status,
         o.is_paid,
         o.total_amount,
+        o.amount,
+        o.discount_amount,
         o.delivery_fee,
         o.used_points,
         o.created_at,
@@ -467,7 +482,7 @@ class OrderRepository {
         odi.note,
         op.payment_method,
         op.payment_status,
-        op.amount
+        op.amount AS payment_amount
       FROM orders o
       LEFT JOIN order_delivery_info odi ON odi.order_id = o.id
       LEFT JOIN order_payments op ON op.order_id = o.id
@@ -538,7 +553,7 @@ class OrderRepository {
   async findActiveOrderByTableId(connection, tableId) {
     const [rows] = await connection.query(
       `
-      SELECT id, total_amount
+      SELECT id, total_amount, amount, discount_amount
       FROM orders
       WHERE table_id = ? AND status IN ('pending', 'processing')
       ORDER BY created_at DESC
@@ -550,14 +565,20 @@ class OrderRepository {
     return rows[0] || null;
   }
 
-  async updateOrderTotalAmount(connection, orderId, finalAmount) {
+  async updateOrderTotalAmount(
+    connection,
+    orderId,
+    { totalAmount, amount, discountAmount }
+  ) {
     await connection.query(
       `
       UPDATE orders
-      SET total_amount = ?
+      SET total_amount = ?,
+          amount = ?,
+          discount_amount = ?
       WHERE id = ?
       `,
-      [finalAmount, orderId]
+      [totalAmount, amount, discountAmount, orderId]
     );
   }
 
@@ -680,6 +701,8 @@ class OrderRepository {
         o.status,
         o.is_paid,
         o.total_amount,
+        o.amount,
+        o.discount_amount,
         o.delivery_fee,
         o.used_points,
         o.created_at,
