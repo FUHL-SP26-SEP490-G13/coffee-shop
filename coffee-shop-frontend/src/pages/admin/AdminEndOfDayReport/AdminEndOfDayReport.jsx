@@ -329,7 +329,7 @@ const AdminEndOfDayReport = () => {
                   <td className="px-4 py-3">{order.customerName}</td>
                   <td className="px-4 py-3">{order.staffName}</td>
                   <td className="px-4 py-3">{format(new Date(order.time), "HH:mm dd/MM")}</td>
-                  <td className="px-4 py-3 capitalize">{order.paymentMethod}</td>
+                  <td className="px-4 py-3 capitalize">{order.paymentMethod === 'cash' ? 'Tiền mặt' : order.paymentMethod === 'payos' ? 'Chuyển khoản bằng PayOS' : 'Khác'}</td>
                   <td className="px-4 py-3 text-right">{order.totalQuantity}</td>
                   <td className="px-4 py-3 text-right">{formatMoney(order.totalItemsPrice)}</td>
                   <td className="px-4 py-3 text-right text-red-500">-{formatMoney(order.discount)}</td>
