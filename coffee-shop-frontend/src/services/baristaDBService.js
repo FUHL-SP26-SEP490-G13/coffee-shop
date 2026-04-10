@@ -17,11 +17,22 @@ const baristaDBService = {
     return await axiosClient.get(`/barista/dashboard/trends?hours=${hours}`);
   },
 
-  getActiveOrders: async (statuses = null) => {
-    const query = Array.isArray(statuses) && statuses.length
-      ? `?statuses=${encodeURIComponent(statuses.join(","))}`
-      : "";
+  getActiveOrders: async (statuses = null, filters = {}) => {
+    const params = new URLSearchParams();
+    if (Array.isArray(statuses) && statuses.length) {
+      params.append("statuses", statuses.join(","));
+    }
+    if (filters.today) {
+      params.append("today", "true");
+    }
+    if (filters.startDate) {
+      params.append("startDate", filters.startDate);
+    }
+    if (filters.endDate) {
+      params.append("endDate", filters.endDate);
+    }
 
+    const query = params.toString() ? `?${params.toString()}` : "";
     return await axiosClient.get(`/barista/dashboard/active-orders${query}`);
   },
 

@@ -10,7 +10,9 @@ import {
   ChevronRight,
   BookOpen,
   Loader2,
-  RefreshCcw
+  RefreshCcw,
+  Calendar as CalendarIcon,
+  Filter
 } from 'lucide-react';
 import { Card, CardContent } from '../../../components/ui/card';
 import { Badge } from '../../../components/ui/badge';
@@ -30,12 +32,26 @@ export function BaristaOrders() {
   const [viewRecipeItem, setViewRecipeItem] = useState(null);
   const [activeTab, setActiveTab] = useState('new');
   const [actionLoadingId, setActionLoadingId] = useState(null);
+  const [filterType, setFilterType] = useState('today'); // 'today' or 'range'
+  const [startDate, setStartDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [endDate, setEndDate] = useState(() => new Date().toISOString().split('T')[0]);
 
   const fetchOrders = useCallback(async () => {
     try {
       setLoading(true);
-      const statuses = activeTab === 'new' ? ['pending'] : ['completed'];
-      const response = await baristaDBService.getActiveOrders(statuses);
+      const statuses = activeTab === 'new' ? ['pending'] : ['served', 'completed'];
+      let filters = {};
+
+      if (activeTab === 'completed') {
+        if (filterType === 'today') {
+           filters.today = true;
+        } else if (filterType === 'range') {
+           filters.startDate = startDate;
+           filters.endDate = endDate;
+        }
+      }
+
+      const response = await baristaDBService.getActiveOrders(statuses, filters);
       setOrderList(response.data || []);
     } catch (error) {
       console.error('Fetch orders error:', error);
@@ -43,14 +59,21 @@ export function BaristaOrders() {
     } finally {
       setLoading(false);
     }
-  }, [activeTab]);
+  }, [activeTab, filterType, startDate, endDate]);
 
   useEffect(() => {
-    fetchOrders();
+    // Re-fetch automatically when tab or filter changes,
+    // except for 'range' where we typically want to wait for the user to select dates and click Filter.
+    // However, it's safer to just fetch when 'range' is initially selected too.
+    if (activeTab === 'new' || (activeTab === 'completed' && filterType !== 'range')) {
+       fetchOrders();
+    }
+  }, [fetchOrders, activeTab, filterType]);
 
-    // Socket listeners for real-time updates
+  useEffect(() => {
     const handleNewOrder = () => {
       if (activeTab === 'new') fetchOrders();
+      if (activeTab === 'completed' && filterType === 'today') fetchOrders();
     };
 
     socket.on('new-order', handleNewOrder);
@@ -64,7 +87,7 @@ export function BaristaOrders() {
       socket.off('order-online:new', handleNewOrder);
       socket.off('barista:notification', handleNewOrder);
     };
-  }, [fetchOrders, activeTab]);
+  }, [fetchOrders, activeTab, filterType]);
 
   // Grouping logic for "New Orders"
   const deliveryOrders = useMemo(() => orderList.filter(o => o.order_type === 'delivery'), [orderList]);
@@ -120,7 +143,7 @@ export function BaristaOrders() {
             group-hover:bg-primary/90 group-hover:text-primary-foreground"
           onClick={(e) => {
             e.stopPropagation();
-            handleUpdateStatus(order.id, 'completed');
+            handleUpdateStatus(order.id, 'served');
           }}
         >
           {actionLoadingId === order.id ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Xác nhận hoàn thành'}
@@ -130,14 +153,20 @@ export function BaristaOrders() {
   );
 
   const KanbanColumn = ({ title, count, icon: Icon, orders: columnOrders, colorClass }) => (
-    <div className="flex flex-col h-full bg-muted/20 rounded-2xl border border-border p-4">
+    <div className="flex flex-col h-[calc(100vh-220px)] min-h-[500px] bg-muted/20 rounded-2xl border border-border p-4 overflow-hidden">
       <div className={`flex items-center gap-3 mb-6 p-4 rounded-xl shadow-sm bg-background border border-border`}>
-        <div className={`p-2 rounded-lg ${colorClass} text-white`}>
+        <div className={`p-2 rounded-lg ${colorClass} text-white relative`}>
           <Icon className="w-5 h-5" />
+          {count > 0 && (
+            <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-4 w-4 bg-red-600 border-2 border-background"></span>
+            </span>
+          )}
         </div>
         <h2 className="font-bold text-lg flex-1">{title} ({count})</h2>
       </div>
-      <ScrollArea className="flex-1 pr-2">
+      <ScrollArea className="flex-1 pr-2 min-h-0">
         {loading ? (
           <div className="flex items-center justify-center h-full py-12">
             <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
@@ -157,7 +186,7 @@ export function BaristaOrders() {
   return (
     <div className="p-4 sm:p-6 lg:p-8 h-full flex flex-col space-y-6">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between m-0">
           <TabsList className="bg-muted p-1 h-14 rounded-2xl w-fit">
             <TabsTrigger value="new" className="px-8 h-full rounded-xl data-[state=active]:bg-background data-[state=active]:shadow-sm text-base font-bold">
               Đơn hàng mới {activeTab === 'new' && `(${orderList.length})`}
@@ -174,7 +203,7 @@ export function BaristaOrders() {
         </div>
 
         <TabsContent value="new" className="flex-1 mt-0 outline-none">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-[calc(100vh-280px)] min-h-[500px]">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <KanbanColumn 
               title="Giao hàng" 
               count={deliveryOrders.length} 
@@ -199,8 +228,54 @@ export function BaristaOrders() {
           </div>
         </TabsContent>
 
-        <TabsContent value="completed" className="flex-1 mt-0 outline-none">
-          <ScrollArea className="h-[calc(100vh-280px)] pr-4">
+        <TabsContent value="completed" className="flex-1 mt-0 outline-none flex flex-col min-h-0">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-4 p-4 rounded-xl shadow-sm bg-background border border-border flex-none">
+             <div className="font-bold flex items-center gap-2">
+               <Filter className="w-4 h-4 text-primary" />
+               Bộ lọc:
+             </div>
+             
+             <div className="flex bg-muted/50 p-1 rounded-lg">
+                <button 
+                  onClick={() => setFilterType('all')}
+                  className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${filterType === 'all' ? 'bg-background shadow-sm text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+                >
+                  Tất cả
+                </button>
+                <button 
+                  onClick={() => setFilterType('today')}
+                  className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${filterType === 'today' ? 'bg-background shadow-sm text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+                >
+                  Hôm nay
+                </button>
+                <button 
+                  onClick={() => setFilterType('range')}
+                  className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${filterType === 'range' ? 'bg-background shadow-sm text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+                >
+                  Tùy chọn ngày
+                </button>
+             </div>
+
+             {filterType === 'range' && (
+               <div className="flex items-center gap-2">
+                 <input 
+                   type="date" 
+                   value={startDate}
+                   onChange={(e) => setStartDate(e.target.value)}
+                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:opacity-50"
+                 />
+                 <span className="text-muted-foreground">-</span>
+                 <input 
+                   type="date" 
+                   value={endDate}
+                   onChange={(e) => setEndDate(e.target.value)}
+                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:opacity-50"
+                 />
+                 <Button onClick={fetchOrders} size="sm" className="ml-2">Lọc</Button>
+               </div>
+             )}
+          </div>
+          <ScrollArea className="h-[calc(100vh-300px)] min-h-[500px] pr-4">
             {loading ? (
               <div className="flex items-center justify-center py-20">
                 <Loader2 className="w-10 h-10 animate-spin text-primary" />
@@ -241,96 +316,118 @@ export function BaristaOrders() {
 
       {/* Order Detail Modal */}
       <Dialog open={!!selectedOrder} onOpenChange={(v) => !v && setSelectedOrder(null)}>
-        <DialogContent className="max-w-xl max-h-[90vh] flex flex-col p-0 overflow-hidden rounded-3xl border-none shadow-2xl">
-          <div className="bg-primary p-6 text-primary-foreground">
-            <DialogHeader className="space-y-1">
-              <div className="flex items-center justify-between">
-                <DialogTitle className="text-2xl font-black">Chi tiết đơn #{selectedOrder?.id}</DialogTitle>
-                <Badge variant="secondary" className="bg-white/20 hover:bg-white/30 text-white border-none flex gap-2">
-                  <Clock className="w-3 h-3" />
-                  {selectedOrder && new Date(selectedOrder.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </Badge>
-              </div>
-              <p className="opacity-80 text-sm italic">
-                {selectedOrder?.order_type === 'delivery' ? 'Giao hàng tận nơi' : 
-                 selectedOrder?.order_type === 'takeaway' ? 'Khách mang về' : 'Phục vụ tại bàn'}
-              </p>
-            </DialogHeader>
-          </div>
+          <DialogContent className="max-w-xl h-[90vh] flex flex-col p-0 overflow-hidden rounded-3xl border-none shadow-2xl">
+            {/* Header - Fixed */}
+            <div className="flex-none bg-primary p-6 text-primary-foreground">
+              <DialogHeader className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <DialogTitle className="text-2xl font-black">Chi tiết đơn #{selectedOrder?.id}</DialogTitle>
+                  <Badge variant="secondary" className="bg-white/20 hover:bg-white/30 text-white border-none flex gap-2">
+                    <Clock className="w-3 h-3" />
+                    {selectedOrder && new Date(selectedOrder.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </Badge>
+                </div>
+                <p className="opacity-80 text-sm italic">
+                  {selectedOrder?.order_type === 'delivery' ? 'Giao hàng tận nơi' : 
+                   selectedOrder?.order_type === 'takeaway' ? 'Khách mang về' : 'Phục vụ tại bàn'}
+                </p>
+              </DialogHeader>
+            </div>
 
-          <ScrollArea className="flex-1 p-6">
-            <div className="space-y-6">
-              <div className="space-y-4">
-                <h4 className="font-bold text-lg flex items-center gap-2 border-b pb-2">
-                  <Package className="w-5 h-5 text-primary" />
-                  Món trong đơn ({selectedOrder?.items?.length || 0})
-                </h4>
-                {selectedOrder?.items?.map((item, idx) => (
-                  <div key={idx} className="bg-muted/30 p-4 rounded-2xl space-y-2 group relative border border-transparent hover:border-primary/20 transition-all">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <p className="font-bold text-lg">{item.productName}</p>
-                        <Badge variant="outline" className="mt-1 bg-background">Size {item.size}</Badge>
-                      </div>
-                      <div className="flex flex-col items-end gap-2">
-                        <span className="font-black text-xl text-primary">x {item.quantity}</span>
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
-                          className="h-8 rounded-full border-primary/30 text-primary hover:bg-primary hover:text-white"
-                          onClick={() => setViewRecipeItem({ 
-                            product: { id: item.productId, name: item.productName }, 
-                            size: { id: item.productSizeId, size: item.size } 
-                          })}
-                        >
-                          <BookOpen className="w-3 h-3 mr-1" />
-                          Công thức
-                        </Button>
-                      </div>
-                    </div>
-                    {item.toppings && item.toppings.length > 0 && (
-                      <div className="pt-2 border-t border-dashed">
-                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2">Topping thêm:</p>
-                        <div className="flex flex-wrap gap-2">
-                          {item.toppings.map((t, tid) => (
-                            <span key={tid} className="text-xs bg-background border border-border px-3 py-1 rounded-full shadow-sm">
-                              {t.name}
-                            </span>
-                          ))}
+            {/* Content - Scrollable */}
+            <div className="flex-1 overflow-y-auto p-6 bg-background custom-scrollbar">
+              <div className="space-y-6">
+                <div className="space-y-4">
+                  <h4 className="font-bold text-lg flex items-center gap-2 border-b pb-2">
+                    <Package className="w-5 h-5 text-primary" />
+                    Món trong đơn ({selectedOrder?.items?.length || 0})
+                  </h4>
+                  {selectedOrder?.items?.map((item, idx) => (
+                    <div key={idx} className="bg-muted/30 p-4 rounded-2xl space-y-2 group relative border border-transparent hover:border-primary/20 transition-all">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="font-bold text-lg">{item.productName}</p>
+                          <Badge variant="outline" className="mt-1 bg-background">Size {item.size}</Badge>
+                        </div>
+                        <div className="flex flex-col items-end gap-2">
+                          <span className="font-black text-xl text-primary">x {item.quantity}</span>
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            className="h-8 rounded-full border-primary/30 text-primary hover:bg-primary hover:text-white"
+                            onClick={() => setViewRecipeItem({ 
+                              product: { id: item.productId, name: item.productName }, 
+                              size: { id: item.productSizeId, size: item.size } 
+                            })}
+                          >
+                            <BookOpen className="w-3 h-3 mr-1" />
+                            Công thức
+                          </Button>
                         </div>
                       </div>
-                    )}
-                  </div>
-                ))}
-              </div>
+                      {item.toppings && item.toppings.length > 0 && (
+                        <div className="pt-2 border-t border-dashed">
+                          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2">Topping thêm:</p>
+                          <div className="flex flex-wrap gap-2">
+                            {item.toppings.map((t, tid) => (
+                              <span key={tid} className="text-xs bg-background border border-border px-3 py-1 rounded-full shadow-sm">
+                                {t.name}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
 
-              <div className="space-y-3 bg-blue-50 p-6 rounded-3xl border border-blue-100 shadow-inner">
-                <h4 className="font-bold text-blue-900 flex items-center gap-2">
-                  <PackageCheck className="w-5 h-5" />
-                  Ghi chú từ khách
-                </h4>
-                <div className="text-blue-800 text-sm italic py-2 leading-relaxed">
-                  {selectedOrder?.note || "Không có ghi chú"}
+                <div className="space-y-3 bg-blue-50 p-6 rounded-3xl border border-blue-100 shadow-inner">
+                  <h4 className="font-bold text-blue-900 flex items-center gap-2">
+                    <PackageCheck className="w-5 h-5" />
+                    Ghi chú từ khách
+                  </h4>
+                  <div className="text-blue-800 text-sm italic py-2 leading-relaxed">
+                    {selectedOrder?.note || "Không có ghi chú"}
+                  </div>
                 </div>
               </div>
             </div>
-          </ScrollArea>
 
-          <DialogFooter className="p-6 bg-background border-t border-border mt-auto sm:justify-center flex-col gap-2">
-            {selectedOrder?.status === 'pending' && (
+            {/* Footer - Fixed */}
+            <DialogFooter className="flex-none p-6 bg-background border-t border-border flex flex-row gap-3">
+              <DialogClose asChild>
+                <Button 
+                  variant="outline" 
+                  className="flex-1 h-14 rounded-2xl text-muted-foreground font-bold text-lg border-2 hover:bg-muted transition-all"
+                >
+                  Đóng
+                </Button>
+              </DialogClose>
+              
               <Button 
-                className="w-full h-16 text-xl font-bold rounded-2xl shadow-lg hover:scale-[1.02] transition-transform"
-                disabled={actionLoadingId === selectedOrder.id}
-                onClick={() => handleUpdateStatus(selectedOrder.id, 'completed')}
+                className="flex-[2] h-14 text-lg font-bold rounded-2xl shadow-lg hover:scale-[1.02] transition-transform bg-primary hover:bg-primary/90"
+                disabled={actionLoadingId === selectedOrder?.id || selectedOrder?.status === 'served' || selectedOrder?.status === 'completed'}
+                onClick={() => handleUpdateStatus(selectedOrder.id, 'served')}
               >
-                {actionLoadingId === selectedOrder.id ? <Loader2 className="w-6 h-6 animate-spin" /> : 'Xác nhận hoàn thành'}
+                {actionLoadingId === selectedOrder?.id ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                    Đang xử lý...
+                  </>
+                ) : (selectedOrder?.status === 'served' || selectedOrder?.status === 'completed') ? (
+                  <>
+                    <CheckCircle className="w-5 h-5 mr-2" />
+                    Đã chuẩn bị xong
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="w-5 h-5 mr-2" />
+                    Xác nhận xong
+                  </>
+                )}
               </Button>
-            )}
-            <DialogClose asChild>
-              <Button variant="ghost" className="w-full h-12 rounded-xl text-muted-foreground font-medium">Đóng cửa sổ</Button>
-            </DialogClose>
-          </DialogFooter>
-        </DialogContent>
+            </DialogFooter>
+          </DialogContent>
       </Dialog>
 
       {/* Recipe Modal */}

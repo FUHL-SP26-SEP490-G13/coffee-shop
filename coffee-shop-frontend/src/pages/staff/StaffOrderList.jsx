@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   RefreshCw,
@@ -7,6 +7,9 @@ import {
   Bell,
   Printer,
   Coffee,
+  CheckCircle,
+  Loader2,
+  BookOpen,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -34,9 +37,11 @@ import baristaDBService from "@/services/baristaDBService";
 import orderOnlineService from "@/services/orderOnlineService";
 import authenticationService from "@/services/authenticationService";
 import takeawayService from "@/services/takeAwayService";
+import { ReceiptModal } from "./TakeAwayOrder/ReceiptModal";
+import BaristaViewRecipe from "../barista/BaristaOrder/BaristaViewRecipe";
 import { PrintableReceipt } from "./PrintableReceipt";
 
-const STAFF_TAB_STATUSES = ["pending", "preparing", "completed", "cancelled"];
+const STAFF_TAB_STATUSES = ["pending", "preparing", "served", "completed", "cancelled"];
 
 const statusLabelMap = {
   pending: {
@@ -256,6 +261,8 @@ export function OrderDelivery() {
   const [newOrderCount, setNewOrderCount] = useState(0);
   const [selectedOrderType, setSelectedOrderType] = useState("all");
   const [viewingReceipt, setViewingReceipt] = useState(null);
+  const [viewRecipeItem, setViewRecipeItem] = useState(null);
+  const [preparingSubTab, setPreparingSubTab] = useState("preparing");
   const [cashPaymentDialog, setCashPaymentDialog] = useState({
     open: false,
     order: null,
@@ -320,13 +327,16 @@ export function OrderDelivery() {
   useEffect(() => {
     const notifyAndReload = (label, data) => {
       setNewOrderCount((prev) => prev + 1);
-      toast.success(`Có đơn ${label} mới! (#${data.order_id})`);
+      toast.success(`Có đơn ${label} mới! (#${data.order_id || data.id || ''})`);
       loadOrders();
     };
 
     const handleNewDeliveryOrder = (data) => notifyAndReload("giao hàng", data);
-
     const handleNewTakeawayOrder = (data) => notifyAndReload("mang về", data);
+    
+    const silentReload = () => {
+      loadOrders();
+    };
 
     if (!socket.connected) {
       socket.connect();
@@ -334,17 +344,32 @@ export function OrderDelivery() {
 
     socket.on("new-delivery-order", handleNewDeliveryOrder);
     socket.on("new-takeaway-order", handleNewTakeawayOrder);
+    
+    // Barista-like background refreshing events
+    socket.on("new-order", silentReload);
+    socket.on("new-dine-in-order", silentReload);
+    socket.on("order-online:new", silentReload);
+    socket.on("barista:notification", silentReload);
 
     return () => {
       socket.off("new-delivery-order", handleNewDeliveryOrder);
       socket.off("new-takeaway-order", handleNewTakeawayOrder);
+      socket.off("new-order", silentReload);
+      socket.off("new-dine-in-order", silentReload);
+      socket.off("order-online:new", silentReload);
+      socket.off("barista:notification", silentReload);
     };
   }, [loadOrders]);
 
   const activeStatusOrders = useMemo(() => {
-    const list = orders.filter((order) => order?.status === activeStatus);
+    const list = orders.filter((order) => {
+      if (activeStatus === "preparing") {
+        return order?.status === preparingSubTab;
+      }
+      return order?.status === activeStatus;
+    });
     return sortOrdersByStatus(activeStatus, list);
-  }, [activeStatus, orders]);
+  }, [activeStatus, preparingSubTab, orders]);
 
   const delayedOrdersCount = useMemo(() => {
     if (!["pending", "preparing"].includes(activeStatus)) return 0;
@@ -533,12 +558,13 @@ export function OrderDelivery() {
     }
   };
 
-  const handleCompleteDeliveryOrder = async (orderId) => {
+  const handleCompleteDeliveryOrder = async (orderId, autoCashReceived = undefined) => {
     setCompletingId(orderId);
     let success = false;
 
     try {
-      await orderOnlineService.completeDeliveryByStaff(orderId);
+      const payload = autoCashReceived !== undefined ? { cash_received: autoCashReceived } : undefined;
+      await orderOnlineService.completeDeliveryByStaff(orderId, payload);
       toast.success("Đơn đã chuyển sang Completed");
       await loadOrders();
       success = true;
@@ -603,6 +629,7 @@ export function OrderDelivery() {
 
   const selectedOrderIsPending = selectedOrder?.status === "pending";
   const selectedOrderIsPreparing = selectedOrder?.status === "preparing";
+  const selectedOrderIsServed = selectedOrder?.status === "served";
   const selectedOrderPaid = isOrderPaid(selectedOrder);
   const selectedOrderIsPendingUnpaidDelivery =
     selectedOrderIsPending &&
@@ -622,7 +649,10 @@ export function OrderDelivery() {
 
   const handleCompleteFromDetail = async () => {
     if (!selectedOrder) return;
-    const success = await handleCompleteDeliveryOrder(selectedOrder.id);
+    const success = await handleCompleteDeliveryOrder(
+      selectedOrder.id,
+      !selectedOrderPaid ? Number(selectedOrder.total_amount || 0) : undefined
+    );
     if (success) {
       setIsDetailOpen(false);
     }
@@ -671,7 +701,7 @@ export function OrderDelivery() {
       );
     }
 
-    if (selectedOrderIsPreparing) {
+    if (selectedOrderIsPreparing || selectedOrderIsServed) {
       if (!selectedOrderHasPrintedReceipt) {
         return (
           <Button onClick={() => handlePrintReceipt(selectedOrder.id)}>
@@ -684,16 +714,12 @@ export function OrderDelivery() {
       return (
         <>
           <Button
-            onClick={() =>
-              !selectedOrderPaid
-                ? openCashPaymentDialog(selectedOrder)
-                : handleCompleteFromDetail()
-            }
+            onClick={() => handleCompleteFromDetail()}
             disabled={completingId === selectedOrder.id}
           >
             {completingId === selectedOrder.id
               ? "Đang cập nhật..."
-              : "Thành công"}
+              : "Hoàn thành"}
           </Button>
 
           <Button
@@ -741,19 +767,39 @@ export function OrderDelivery() {
           </div>
 
           <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-            <div className="space-y-1">
-              <p className="text-base font-bold leading-none text-emerald-600 dark:text-emerald-300">
-                Tổng thu: {money(order.total_amount)}
-              </p>
+            <p className="text-base font-bold color-green-500 leading-none text-slate-900 ">
+              {money(order.total_amount)}
+            </p>
+            <div className="flex w-full items-center gap-2 sm:w-auto">
+              <Button
+                size="sm"
+                className={`h-9 flex-1 text-sm sm:h-7 sm:px-2.5 sm:text-xs ${activeStatus === "preparing" ? "" : "w-full sm:w-auto"}`}
+                variant={activeStatus === "pending" ? "default" : "outline"}
+                onClick={() => openDetailModal(order)}
+              >
+                {activeStatus === "pending" ? "Xác nhận" : "Chi tiết"}
+              </Button>
+              {activeStatus === "preparing" && (
+                <Button
+                  size="sm"
+                  className="h-9 flex-1 px-3 text-sm font-semibold sm:h-7 sm:w-auto sm:px-3 sm:text-xs bg-primary hover:bg-primary/90 text-primary-foreground"
+                  disabled={completingId === order.id}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleCompleteDeliveryOrder(
+                      order.id, 
+                      !paid ? Number(order.total_amount || 0) : undefined
+                    );
+                  }}
+                >
+                  {completingId === order.id ? (
+                    <Loader2 className="mx-auto h-3 w-3 animate-spin text-white" />
+                  ) : (
+                    "Hoàn thành"
+                  )}
+                </Button>
+              )}
             </div>
-            <Button
-              size="sm"
-              className="h-9 w-full px-3 text-sm sm:h-7 sm:w-auto sm:px-2.5 sm:text-xs"
-              variant={activeStatus === "pending" ? "default" : "outline"}
-              onClick={() => openDetailModal(order)}
-            >
-              {activeStatus === "pending" ? "Xác nhận" : "Xem chi tiết"}
-            </Button>
           </div>
         </CardContent>
       </Card>
@@ -805,7 +851,24 @@ export function OrderDelivery() {
           </div>
         </div>
 
-        <div className="mt-2.5 flex items-center gap-1.5 overflow-x-auto border-t border-slate-100 dark:border-slate-700/70 pb-0.5 pt-2.5 md:flex-wrap md:overflow-visible md:pb-0">
+        <div className="mt-2.5 flex items-center gap-1.5 overflow-x-auto border-t border-slate-100 pb-0.5 pt-2.5 md:flex-wrap md:overflow-visible md:pb-0">
+          {activeStatus === "preparing" && (
+            <div className="flex bg-slate-100/80 p-0.5 rounded-lg mr-2 shrink-0 border border-slate-200/60 shadow-sm">
+               <button 
+                 onClick={() => setPreparingSubTab('preparing')}
+                 className={`px-3.5 py-1.5 rounded-md text-sm font-semibold transition-all ${preparingSubTab === 'preparing' ? 'bg-white shadow-sm text-primary' : 'text-slate-600 hover:text-slate-900'}`}
+               >
+                 Đang làm
+               </button>
+               <button 
+                 onClick={() => setPreparingSubTab('served')}
+                 className={`px-3.5 py-1.5 rounded-md text-sm font-semibold transition-all ${preparingSubTab === 'served' ? 'bg-white shadow-sm text-primary' : 'text-slate-600 hover:text-slate-900'}`}
+               >
+                 Đã xong
+               </button>
+            </div>
+          )}
+
           {Object.entries(orderTypeLabelMap).map(([typeKey, label]) => (
             <Button
               key={typeKey}
@@ -1050,7 +1113,98 @@ export function OrderDelivery() {
                 </div>
               </div>
 
-              <div className="mt-4 flex flex-wrap justify-end gap-2 border-t pt-3">
+              <div className="space-y-2 rounded-md border p-3">
+                <p className="text-sm font-semibold">
+                  Danh sách món và topping
+                </p>
+                {Array.isArray(selectedOrder.items) &&
+                selectedOrder.items.length > 0 ? (
+                  selectedOrder.items.map((item) => (
+                    <div
+                      key={`${selectedOrder.id}-${item.id || item.product_name || item.name}`}
+                      className="flex items-start justify-between gap-2.5 rounded-md border p-2 text-sm"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium text-slate-900">
+                          {item.name ||
+                            item.productName ||
+                            item.product_name ||
+                            "Sản phẩm"}
+                        </p>
+                        <p className="text-muted-foreground mt-0.5">
+                          Size {item.size} • x{item.quantity} •{" "}
+                          <span className="font-medium text-slate-700">{money(item.price || item.total_price)}</span>
+                        </p>
+                        {Array.isArray(item.toppings) &&
+                        item.toppings.length > 0 ? (
+                          <div className="mt-1 flex flex-wrap gap-1">
+                            {item.toppings.map((top, idx) => (
+                              <span key={idx} className="rounded-sm border bg-slate-50 px-1.5 py-0.5 text-[11px] text-slate-600">
+                                {top.name} {top.quantity > 1 ? `x${top.quantity}` : ''}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-muted-foreground mt-0.5 text-[11px]">
+                            Không có topping
+                          </p>
+                        )}
+                        {item.note ? (
+                          <p className="text-muted-foreground mt-0.5 italic text-[12px]">
+                            Ghi chú: {item.note}
+                          </p>
+                        ) : null}
+                      </div>
+
+                      {activeStatus === "preparing" && (
+                        <div className="flex shrink-0 items-center justify-end">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 rounded-sm border-primary/30 px-2.5 text-xs text-primary shadow-sm hover:bg-primary hover:text-white"
+                            onClick={() =>
+                              setViewRecipeItem({
+                                product: {
+                                  id: item.productId || item.product_id,
+                                  name: item.name || item.productName || item.product_name,
+                                },
+                                size: {
+                                  id: item.productSizeId || item.size_id || item.product_size_id,
+                                  size: item.size,
+                                },
+                              })
+                            }
+                          >
+                            <BookOpen className="mr-1.5 h-3 w-3" />
+                            Công thức
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Đơn chưa có sản phẩm.
+                  </p>
+                )}
+              </div>
+
+              <div className="flex flex-col items-end gap-1">
+                {isDeliveryOrder(selectedOrder) ? (
+                  <p className="text-sm text-slate-600">
+                    Phí vận chuyển:{" "}
+                    <span className="font-medium">{money(DELIVERY_FEE)}</span>
+                  </p>
+                ) : null}
+                <p className="text-sm">
+                  Tổng tiền:{" "}
+                  <span className="font-semibold">
+                    {money(selectedOrder.total_amount)}
+                  </span>
+                </p>
+              </div>
+
+              <div className="flex flex-wrap justify-end gap-2 border-t pt-3">
                 <Button
                   variant="outline"
                   onClick={() => setIsDetailOpen(false)}
@@ -1172,6 +1326,14 @@ export function OrderDelivery() {
           </div>
         </DialogContent>
       </Dialog>
+      {viewRecipeItem && (
+        <BaristaViewRecipe
+          open={!!viewRecipeItem}
+          product={viewRecipeItem.product}
+          size={viewRecipeItem.size}
+          onClose={() => setViewRecipeItem(null)}
+        />
+      )}
     </div>
   );
 }

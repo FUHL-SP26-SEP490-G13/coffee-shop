@@ -170,12 +170,12 @@ export function BaristaApp() {
           label: "Bảng điều khiển",
           path: "/barista",
         },
-        {
-          id: "orders",
-          icon: PackageOpen,
-          label: "Đơn hàng",
-          path: "/barista/orders",
-        },
+        // {
+        //   id: "orders",
+        //   icon: PackageOpen,
+        //   label: "Đơn hàng",
+        //   path: "/barista/orders",
+        // },
       ],
     },
     {
