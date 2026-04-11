@@ -729,19 +729,7 @@ export default function CheckoutPage() {
                 <label className="text-sm font-medium mb-2 block">
                   Hình thức nhận hàng
                 </label>
-                <select
-                  value={form.order_type}
-                  onChange={(e) =>
-                    setForm((prev) => ({
-                      ...prev,
-                      order_type: e.target.value,
-                    }))
-                  }
-                  className="w-full border rounded-md h-10 px-3"
-                >
-                  <option value="delivery">Giao hàng</option>
-                  <option value="takeaway">Mang đi</option>
-                </select>
+                <Input value="Giao hàng" disabled className="bg-gray-100 dark:bg-gray-800" />
               </div>
             </div>
 

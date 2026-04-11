@@ -16,17 +16,13 @@ class ReceiptSettingRepository {
     async create(data) {
         const sql = `
             INSERT INTO receipt_settings
-            (store_name, address, latitude, longitude, location_source, location_verified_at, phone, header_lines, footer_lines, logo_url, is_active, open_time, close_time, reputation_rules)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (store_name, address, phone, header_lines, footer_lines, logo_url, is_active, open_time, close_time, reputation_rules)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `;
 
         const [result] = await db.query(sql, [
             data.store_name ?? null,
             data.address ?? null,
-            data.latitude ?? null,
-            data.longitude ?? null,
-            data.location_source ?? null,
-            data.location_verified_at ?? null,
             data.phone ?? null,
             JSON.stringify(data.header_lines ?? []),
             JSON.stringify(data.footer_lines ?? []),
@@ -59,26 +55,6 @@ class ReceiptSettingRepository {
         if (data.phone !== undefined) {
             fields.push("phone = ?");
             values.push(data.phone);
-        }
-
-        if (data.latitude !== undefined) {
-            fields.push("latitude = ?");
-            values.push(data.latitude);
-        }
-
-        if (data.longitude !== undefined) {
-            fields.push("longitude = ?");
-            values.push(data.longitude);
-        }
-
-        if (data.location_source !== undefined) {
-            fields.push("location_source = ?");
-            values.push(data.location_source);
-        }
-
-        if (data.location_verified_at !== undefined) {
-            fields.push("location_verified_at = ?");
-            values.push(data.location_verified_at);
         }
 
         if (data.header_lines !== undefined) {
