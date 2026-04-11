@@ -65,6 +65,18 @@ export default function AiAssistantWidget() {
     }
   }, [messages, isOpen]);
 
+  useEffect(() => {
+    if (!isOpen) {
+      setMessages(prev => {
+        // Tránh vòng lặp vô hạn do thay đổi state: chỉ set nếu thực sự có tin nhắn còn isNew
+        if (prev.some(m => m.isNew)) {
+          return prev.map(m => ({ ...m, isNew: false }));
+        }
+        return prev;
+      });
+    }
+  }, [isOpen]);
+
   const handleSend = async (text = inputValue) => {
     if (!text.trim() || isLoading) return;
 
