@@ -32,7 +32,7 @@ const swapRequestRoutes = require('./swapRequest.routes');
 const loyaltyRoutes = require('./loyalty.routes');
 const cashSessionRoutes = require('./cashSession.routes');
 const aiRoutes = require('./ai.routes');
-const newsletterRoutes = require('./newsletter.routes');
+
 const cartRoutes = require('./cart.routes');
 const deliveryAreaRoutes = require('./deliveryArea.routes');
 
@@ -91,7 +91,7 @@ router.use('/swap-requests', swapRequestRoutes);
 router.use('/loyalty', loyaltyRoutes);
 router.use('/ai', aiRoutes);
 router.use('/cash-sessions', cashSessionRoutes);
-router.use('/newsletters', newsletterRoutes);
+
 router.use('/cart', cartRoutes);
 router.use('/delivery-areas', deliveryAreaRoutes);
 

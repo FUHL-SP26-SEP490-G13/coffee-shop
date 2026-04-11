@@ -86,7 +86,7 @@ export default function AdminApp() {
        "/admin/flash-sales": "Flash sale",
        "/admin/banners": "Quảng cáo",
        "/admin/news-list": "Bài viết",
-       "/admin/newsletter": "Email",
+
        "/admin/schedule/templates": "Quản lý ca làm",
        "/admin/schedule/list": "Lịch làm việc",
        "/admin/receipt-settings": "Cấu hình hệ thống",
@@ -612,18 +612,7 @@ export default function AdminApp() {
                   <ClipboardList className="w-4 h-4" />
                   <span className="text-sm tracking-wide">Bài viết</span>
                 </NavLink>
-                <NavLink
-                  to="/admin/newsletter"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={({ isActive }) =>
-                    `w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
-                      isActive ? "bg-primary text-white" : "text-muted-foreground hover:bg-secondary"
-                    }`
-                  }
-                >
-                  <Mailbox className="w-4 h-4" />
-                  <span className="text-sm tracking-wide">Email</span>
-                </NavLink>
+
               </div>
             </div>
 

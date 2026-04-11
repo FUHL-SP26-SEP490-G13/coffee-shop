@@ -21,7 +21,7 @@ describe('AdminDashboardService', () => {
       AdminDashboardRepository.getOrdersToday.mockResolvedValue(25);
       AdminDashboardRepository.getTotalUsers.mockResolvedValue(150);
       AdminDashboardRepository.getActiveDiscounts.mockResolvedValue(5);
-      AdminDashboardRepository.getTotalNewsletterSubscribers.mockResolvedValue(80);
+
       
       const mockRevenueSeries = [
         { date: '2026-03-01', revenue: 4500000 },
@@ -49,7 +49,7 @@ describe('AdminDashboardService', () => {
       expect(result.ordersToday).toBe(25);
       expect(result.totalUsers).toBe(150);
       expect(result.activeDiscounts).toBe(5);
-      expect(result.totalNewsletterSubscribers).toBe(80);
+
       expect(result.revenueSeries7Days).toHaveLength(2);
       expect(result.topProducts7Days).toHaveLength(2);
       

@@ -30,26 +30,7 @@ function Footer() {
   const [storePhone, setStorePhone] = useState("");
   const [storeName, setStoreName] = useState("Coffee Shop");
 
-  const [newsletterEmail, setNewsletterEmail] = useState("");
-  const [isSubscribing, setIsSubscribing] = useState(false);
 
-  const handleSubscribeNewsletter = async (e) => {
-    e.preventDefault();
-    if (!newsletterEmail) return;
-
-    try {
-      setIsSubscribing(true);
-      await axiosClient.post("/newsletters/subscribe", {
-        email: newsletterEmail,
-      });
-      toast.success("Cảm ơn bạn đã đăng ký nhận tin!");
-      setNewsletterEmail("");
-    } catch (error) {
-      toast.error(error?.response?.data?.message || "Đăng ký thất bại");
-    } finally {
-      setIsSubscribing(false);
-    }
-  };
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -122,35 +103,7 @@ function Footer() {
               </div>
             </div>
 
-            <div>
-              <h4 className="text-sm font-semibold uppercase tracking-wider text-foreground">
-                Kết nối với chúng tôi
-              </h4>
-              <div className="mt-4 flex flex-wrap gap-3">
-                <a
-                  href="https://facebook.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-9 h-9 rounded-full bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center transition-all hover:-translate-y-1 shadow-md"
-                  aria-label="Facebook"
-                >
-                  <Facebook
-                    size={18}
-                    fill="currentColor"
-                    className="text-white"
-                  />
-                </a>
-                <a
-                  href="https://zalo.me"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-9 h-9 rounded-full bg-blue-500 hover:bg-blue-600 text-white flex items-center justify-center transition-all hover:-translate-y-1 shadow-md font-bold text-[11px]"
-                  aria-label="Zalo"
-                >
-                  Zalo
-                </a>
-              </div>
-            </div>
+
           </div>
 
           {/* Cột 2: Chính sách & Hỗ trợ */}
@@ -314,33 +267,32 @@ function Footer() {
 
             <div className="mt-8">
               <h4 className="text-sm font-semibold uppercase tracking-wider text-foreground">
-                Đăng ký nhận tin
+                Kết nối với chúng tôi
               </h4>
-              <p className="mt-2 text-[13px] text-muted-foreground dark:text-gray-400">
-                Nhận thông tin ưu đãi và sản phẩm mới sớm nhất
-              </p>
-              <form onSubmit={handleSubscribeNewsletter} className="mt-3 flex">
-                <input
-                  type="email"
-                  placeholder="Nhập địa chỉ email"
-                  required
-                  value={newsletterEmail}
-                  onChange={(e) => setNewsletterEmail(e.target.value)}
-                  disabled={isSubscribing}
-                  className="w-full bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm rounded-l focus:outline-none focus:border-amber-500 disabled:opacity-70 text-gray-800 dark:text-gray-200"
-                />
-                <button
-                  type="submit"
-                  disabled={isSubscribing}
-                  className="bg-amber-600 hover:bg-amber-700 text-white px-3 py-2 rounded-r text-sm font-semibold transition-colors disabled:opacity-70 disabled:cursor-not-allowed flex items-center gap-1"
+              <div className="mt-4 flex flex-wrap gap-3">
+                <a
+                  href="https://facebook.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-9 h-9 rounded-full bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center transition-all hover:-translate-y-1 shadow-md"
+                  aria-label="Facebook"
                 >
-                  {isSubscribing ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    "Đăng ký"
-                  )}
-                </button>
-              </form>
+                  <Facebook
+                    size={18}
+                    fill="currentColor"
+                    className="text-white"
+                  />
+                </a>
+                <a
+                  href="https://zalo.me"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-9 h-9 rounded-full bg-blue-500 hover:bg-blue-600 text-white flex items-center justify-center transition-all hover:-translate-y-1 shadow-md font-bold text-[11px]"
+                  aria-label="Zalo"
+                >
+                  Zalo
+                </a>
+              </div>
             </div>
           </div>
         </div>
