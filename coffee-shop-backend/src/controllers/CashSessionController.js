@@ -4,8 +4,10 @@ class CashSessionController {
   async getCurrent(req, res, next) {
     try {
       const userId = req.user.id;
+      const fullName = [req.user.last_name, req.user.first_name].filter(Boolean).join(' ');
+      const userName = fullName || req.user.username || 'Nhân viên';
       const data = await service.getCurrentSession(userId);
-      res.json({ success: true, data });
+      res.json({ success: true, data: { ...data, userName } });
     } catch (error) {
       next(error);
     }
@@ -41,6 +43,21 @@ class CashSessionController {
 
       const result = await service.closeSession(userId, id, closing_cash_actual, closing_note);
       res.json({ success: true, data: result, message: "Đóng ca thành công" });
+    } catch (error) {
+      next(error);
+    }
+  }
+  async getHistory(req, res, next) {
+    try {
+      const user = req.user;
+      let { startDate, endDate, userId } = req.query;
+      
+      if (user.role_id !== 1) { // Không phải admin/manager thì chỉ lấy được của bản thân
+         userId = user.id; 
+      }
+
+      const data = await service.getSessionsHistory({ startDate, endDate, userId });
+      res.json({ success: true, data });
     } catch (error) {
       next(error);
     }

@@ -9,6 +9,7 @@ const { ROLES_STRING } = require('../config/constants');
 router.use(authenticate);
 router.use(authorize([ROLES_STRING.STAFF, ROLES_STRING.MANAGER]));
 
+router.get('/history', controller.getHistory);
 router.get('/current', controller.getCurrent);
 router.post('/open', controller.openSession);
 router.post('/close', controller.closeSession);
