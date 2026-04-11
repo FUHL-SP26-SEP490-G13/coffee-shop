@@ -82,6 +82,8 @@ export default function CheckoutPage() {
   const [isAddressLoading, setIsAddressLoading] = useState(false);
   const [isAddressDialogOpen, setIsAddressDialogOpen] = useState(false);
   const [isReputationDialogOpen, setIsReputationDialogOpen] = useState(false);
+  const [isEnableLocationDialogOpen, setIsEnableLocationDialogOpen] =
+    useState(false);
   const [reputationScore, setReputationScore] = useState(50);
   const [reputationTier, setReputationTier] = useState("SILVER");
   const [reputationFrozen, setReputationFrozen] = useState(false);
@@ -563,14 +565,23 @@ export default function CheckoutPage() {
     Array.isArray(pinnedCustomerCoords) && pinnedCustomerCoords.length === 2;
   const hasPinnedStoreCoords =
     Array.isArray(storeCoords) && storeCoords.length === 2;
+  const isPayOSBlockedByMissingCoords =
+    isDeliveryOrder && !hasPinnedCustomerCoords;
+  const isCashBlockedByReputationWithoutCoords =
+    isDeliveryOrder &&
+    !hasPinnedCustomerCoords &&
+    Boolean(paymentValidation?.forcePayOS);
   const isCheckoutBlockedByDistance =
     isDeliveryOrder && Boolean(deliveryDistanceBlockMessage);
-  const isCheckoutBlocked = isCheckoutBlockedByDistance;
+  const isCheckoutBlocked =
+    isCheckoutBlockedByDistance || isCashBlockedByReputationWithoutCoords;
 
   const placeOrderLabel = !isOpen
     ? nextOpenMessage || "Đã đóng cửa"
     : isCheckoutBlockedByDistance
       ? "Ngoài phạm vi giao hàng"
+      : isCashBlockedByReputationWithoutCoords
+        ? "Cần bật vị trí để tiếp tục"
       : "Đặt hàng";
 
   useEffect(() => {
@@ -604,13 +615,15 @@ export default function CheckoutPage() {
 
       // Force PayOS nếu bắt buộc
       if (validation.forcePayOS && form.payment_method === "cash") {
-        setForm((prev) => ({
-          ...prev,
-          payment_method: "payos",
-        }));
-        toast.warning(`Chuyển sang PayOS: ${validation.message}`, {
-          duration: 5000,
-        });
+        if (hasPinnedCustomerCoords) {
+          setForm((prev) => ({
+            ...prev,
+            payment_method: "payos",
+          }));
+          toast.warning(`Chuyển sang PayOS: ${validation.message}`, {
+            duration: 5000,
+          });
+        }
       }
     } catch (error) {
       // Account blocked
@@ -626,7 +639,20 @@ export default function CheckoutPage() {
     fetchedPhone,
     form.receiver_phone,
     isReputationLoading,
+    hasPinnedCustomerCoords,
   ]);
+
+  useEffect(() => {
+    if (isDeliveryOrder && !hasPinnedCustomerCoords && form.payment_method === "payos") {
+      setForm((prev) => ({
+        ...prev,
+        payment_method: "cash",
+      }));
+      toast.info("Vui lòng ghim vị trí để bật thanh toán PayOS", {
+        duration: 4000,
+      });
+    }
+  }, [isDeliveryOrder, hasPinnedCustomerCoords, form.payment_method]);
 
   const handleApplyDiscount = async () => {
     const code = discountCode.trim();
@@ -1005,6 +1031,33 @@ export default function CheckoutPage() {
                   </button>
                 </div>
               )}
+
+              {isPayOSBlockedByMissingCoords && (
+                <div className="mb-3 p-3 rounded-lg text-sm bg-amber-50 text-amber-800 border border-amber-200">
+                  <p className="font-medium">
+                    PayOS tạm thời không khả dụng khi bạn chưa ghim tọa độ giao hàng.
+                  </p>
+                  <p className="text-xs mt-1 opacity-80">
+                    Hãy bật vị trí để hệ thống xác minh khoảng cách và mở thanh toán PayOS.
+                  </p>
+                </div>
+              )}
+
+              {isCashBlockedByReputationWithoutCoords && (
+                <div className="mb-3 p-3 rounded-lg text-sm bg-red-50 text-red-800 border border-red-200">
+                  <p className="font-medium">
+                    Mức uy tín hiện tại chưa đủ điều kiện thanh toán tiền mặt cho đơn này.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setIsEnableLocationDialogOpen(true)}
+                    className="mt-2 font-semibold underline underline-offset-2"
+                  >
+                    Bật vị trí để tiếp tục
+                  </button>
+                </div>
+              )}
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {[
                   {
@@ -1026,10 +1079,15 @@ export default function CheckoutPage() {
                     ),
                   },
                 ].map((opt) => {
-                  const isDisabled =
+                  const isPayOSDisabled =
+                    opt.value === "payos" && isPayOSBlockedByMissingCoords;
+                  const isCashDisabledByReputationWithCoords =
                     opt.value === "cash" &&
                     paymentValidation &&
-                    !paymentValidation.canUseCash;
+                    !paymentValidation.canUseCash &&
+                    hasPinnedCustomerCoords;
+                  const isDisabled =
+                    isPayOSDisabled || isCashDisabledByReputationWithCoords;
 
                   const selected = form.payment_method === opt.value;
                   return (
@@ -1038,12 +1096,28 @@ export default function CheckoutPage() {
                       type="button"
                       disabled={isDisabled}
                       onClick={() => {
-                        if (!isDisabled) {
-                          setForm((prev) => ({
-                            ...prev,
-                            payment_method: opt.value,
-                          }));
+                        if (opt.value === "payos" && isPayOSBlockedByMissingCoords) {
+                          setIsEnableLocationDialogOpen(true);
+                          return;
                         }
+
+                        if (
+                          opt.value === "cash" &&
+                          paymentValidation &&
+                          !paymentValidation.canUseCash
+                        ) {
+                          if (!hasPinnedCustomerCoords) {
+                            setIsEnableLocationDialogOpen(true);
+                          }
+                          return;
+                        }
+
+                        if (isDisabled) return;
+
+                        setForm((prev) => ({
+                          ...prev,
+                          payment_method: opt.value,
+                        }));
                       }}
                       className={`flex items-center gap-3 rounded-xl border-2 px-4 py-3 text-left transition-all ${isDisabled
                           ? "border-gray-200  bg-gray-100 dark:bg-gray-800 opacity-50 cursor-not-allowed"
@@ -1463,6 +1537,38 @@ export default function CheckoutPage() {
         currentTier={normalizedReputationTier}
         reputationRules={reputationRules}
       />
+
+      <Dialog
+        open={isEnableLocationDialogOpen}
+        onOpenChange={setIsEnableLocationDialogOpen}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Bật vị trí để tiếp tục</DialogTitle>
+            <DialogDescription>
+              Hiện tại bạn chưa đủ điều kiện thanh toán tiền mặt theo mức uy tín. Vui lòng bật vị trí để ghim tọa độ giao hàng, sau đó hệ thống sẽ xác minh khoảng cách để bạn tiếp tục đặt đơn.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsEnableLocationDialogOpen(false)}
+            >
+              Để sau
+            </Button>
+            <Button
+              type="button"
+              onClick={() => {
+                setIsEnableLocationDialogOpen(false);
+                handleUseCurrentLocation();
+              }}
+            >
+              Bật vị trí ngay
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
 
     </div>
