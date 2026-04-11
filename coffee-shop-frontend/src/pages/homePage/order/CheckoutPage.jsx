@@ -52,6 +52,7 @@ import { useStoreHours } from "@/hooks/useStoreHours";
 
 const LOYALTY_MONEY_PER_POINT = 100;
 const LOYALTY_MAX_REDEEM_RATIO = 0.5;
+const DEFAULT_DELIVERY_SHIPPING_FEE = 15000;
 
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
@@ -107,6 +108,7 @@ export default function CheckoutPage() {
   const [storeAddress, setStoreAddress] = useState("");
   const [storeCoords, setStoreCoords] = useState(null);
   const [shippingFee, setShippingFee] = useState(0);
+  const [shippingFeeSource, setShippingFeeSource] = useState("none");
   const [deliveryDistanceKm, setDeliveryDistanceKm] = useState(null);
   const [deliveryDistanceBlockMessage, setDeliveryDistanceBlockMessage] =
     useState("");
@@ -180,10 +182,9 @@ export default function CheckoutPage() {
         setAddresses(addressList);
         setSelectedAddressId(defaultAddress?.id || null);
 
-        const defaultLat = Number(defaultAddress?.latitude);
-        const defaultLng = Number(defaultAddress?.longitude);
-        if (Number.isFinite(defaultLat) && Number.isFinite(defaultLng)) {
-          setPinnedCustomerCoords([defaultLat, defaultLng]);
+        const defaultCoords = getValidCoordsFromAddress(defaultAddress);
+        if (defaultCoords) {
+          setPinnedCustomerCoords(defaultCoords);
           setCustomerLocationSource(
             defaultAddress?.location_source || "manual_pin"
           );
@@ -220,6 +221,36 @@ export default function CheckoutPage() {
     }
     if (digits.length === 9) return `0${digits}`;
     return digits;
+  };
+
+  const getValidCoordsFromAddress = (addressItem) => {
+    const rawLat = addressItem?.latitude;
+    const rawLng = addressItem?.longitude;
+
+    const hasLat =
+      rawLat !== null && rawLat !== undefined && String(rawLat).trim() !== "";
+    const hasLng =
+      rawLng !== null && rawLng !== undefined && String(rawLng).trim() !== "";
+
+    if (!hasLat || !hasLng) {
+      return null;
+    }
+
+    const lat = Number(rawLat);
+    const lng = Number(rawLng);
+
+    if (
+      !Number.isFinite(lat) ||
+      !Number.isFinite(lng) ||
+      lat < -90 ||
+      lat > 90 ||
+      lng < -180 ||
+      lng > 180
+    ) {
+      return null;
+    }
+
+    return [lat, lng];
   };
 
   const unwrapApiResponse = (response) => {
@@ -362,7 +393,13 @@ export default function CheckoutPage() {
       !hasCustomerPinnedCoords ||
       (!hasStorePinnedCoords && !hasStoreAddress)
     ) {
-      setShippingFee(0);
+      if (form.order_type === "delivery") {
+        setShippingFee(DEFAULT_DELIVERY_SHIPPING_FEE);
+        setShippingFeeSource("default");
+      } else {
+        setShippingFee(0);
+        setShippingFeeSource("none");
+      }
       setDeliveryDistanceKm(null);
       setDeliveryDistanceBlockMessage("");
       return;
@@ -386,6 +423,7 @@ export default function CheckoutPage() {
 
           if (!quote.isDeliverable) {
             setShippingFee(0);
+            setShippingFeeSource("blocked");
             setDeliveryDistanceBlockMessage(
               `Khoảng cách ${quote.distanceKm.toFixed(
                 1
@@ -397,20 +435,19 @@ export default function CheckoutPage() {
           }
 
           setShippingFee(quote.fee);
+          setShippingFeeSource("distance");
           setDeliveryDistanceBlockMessage("");
         } else {
-          setShippingFee(0);
+          setShippingFee(DEFAULT_DELIVERY_SHIPPING_FEE);
+          setShippingFeeSource("default");
           setDeliveryDistanceKm(null);
-          setDeliveryDistanceBlockMessage(
-            "Không thể tính khoảng cách giao hàng. Vui lòng ghim lại vị trí."
-          );
+          setDeliveryDistanceBlockMessage("");
         }
       } catch {
-        setShippingFee(0);
+        setShippingFee(DEFAULT_DELIVERY_SHIPPING_FEE);
+        setShippingFeeSource("default");
         setDeliveryDistanceKm(null);
-        setDeliveryDistanceBlockMessage(
-          "Không thể tính khoảng cách giao hàng. Vui lòng thử lại."
-        );
+        setDeliveryDistanceBlockMessage("");
       } finally {
         setIsShippingCalculating(false);
       }
@@ -427,10 +464,9 @@ export default function CheckoutPage() {
 
   const handleSelectAddress = (item) => {
     setSelectedAddressId(item.id);
-    const itemLat = Number(item?.latitude);
-    const itemLng = Number(item?.longitude);
-    if (Number.isFinite(itemLat) && Number.isFinite(itemLng)) {
-      setPinnedCustomerCoords([itemLat, itemLng]);
+    const itemCoords = getValidCoordsFromAddress(item);
+    if (itemCoords) {
+      setPinnedCustomerCoords(itemCoords);
       setCustomerLocationSource(item?.location_source || "manual_pin");
     } else {
       setPinnedCustomerCoords(null);
@@ -459,6 +495,9 @@ export default function CheckoutPage() {
 
   const selectedAddress =
     addresses.find((item) => item.id === selectedAddressId) || null;
+  const selectedAddressHasCoords = Boolean(
+    getValidCoordsFromAddress(selectedAddress)
+  );
 
   const normalizedReputationTier = useMemo(() => {
     const tier = String(reputationTier || "").toUpperCase();
@@ -524,22 +563,15 @@ export default function CheckoutPage() {
     Array.isArray(pinnedCustomerCoords) && pinnedCustomerCoords.length === 2;
   const hasPinnedStoreCoords =
     Array.isArray(storeCoords) && storeCoords.length === 2;
-  const isCheckoutBlockedByCoordinates =
-    isDeliveryOrder && (!hasPinnedCustomerCoords || !hasPinnedStoreCoords);
   const isCheckoutBlockedByDistance =
     isDeliveryOrder && Boolean(deliveryDistanceBlockMessage);
-  const isCheckoutBlocked =
-    isCheckoutBlockedByCoordinates || isCheckoutBlockedByDistance;
+  const isCheckoutBlocked = isCheckoutBlockedByDistance;
 
   const placeOrderLabel = !isOpen
     ? nextOpenMessage || "Đã đóng cửa"
     : isCheckoutBlockedByDistance
       ? "Ngoài phạm vi giao hàng"
-      : isCheckoutBlockedByCoordinates
-        ? !hasPinnedStoreCoords
-          ? "Cửa hàng chưa ghim tọa độ"
-          : "Ghim vị trí để đặt hàng"
-        : "Đặt hàng";
+      : "Đặt hàng";
 
   useEffect(() => {
     setForm((prev) => {
@@ -844,9 +876,8 @@ export default function CheckoutPage() {
                             Địa chỉ này đã ghim tọa độ.
                           </p>
                         ) : (
-                          <p className="text-xs text-red-500 mt-1">
-                            Địa chỉ này chưa có tọa độ, vui lòng ghim vị trí
-                            hiện tại trước khi đặt hàng.
+                          <p className="text-xs text-amber-600 mt-1">
+                            Địa chỉ này chưa có tọa độ. Hệ thống sẽ áp dụng phí ship mặc định 15.000đ nếu bạn đặt bằng địa chỉ này.
                           </p>
                         )}
                       </div>
@@ -898,7 +929,7 @@ export default function CheckoutPage() {
                       ) : (
                         <>
                           <LocateFixed className="w-4 h-4 mr-2" />
-                          Dùng vị trí hiện tại
+                          Ghim vị trí hiện tại (tùy chọn)
                         </>
                       )}
                     </Button>
@@ -925,16 +956,16 @@ export default function CheckoutPage() {
                   )}
 
                   {!Array.isArray(pinnedCustomerCoords) && (
-                    <p className="text-xs text-red-500 mt-2">
-                      Bạn cần ghim vị trí (hoặc chọn địa chỉ đã có tọa độ) trước
-                      khi đặt đơn giao hàng.
+                    <p className="text-xs text-amber-600 mt-2">
+                      {!selectedAddressHasCoords
+                        ? "Địa chỉ đã chọn chưa có tọa độ. Bạn vẫn có thể đặt hàng, hệ thống sẽ áp dụng phí ship mặc định 15.000đ."
+                        : "Bạn chưa ghim vị trí. Hệ thống sẽ áp dụng phí ship mặc định 15.000đ. Ghim vị trí (tùy chọn) để tính phí chính xác theo khoảng cách."}
                     </p>
                   )}
 
                   {!hasPinnedStoreCoords && (
-                    <p className="text-xs text-red-500 mt-1">
-                      Cửa hàng chưa ghim tọa độ trong cấu hình, tạm thời chưa
-                      thể nhận đơn giao hàng.
+                    <p className="text-xs text-amber-600 mt-1">
+                      Cửa hàng chưa ghim tọa độ trong cấu hình. Hệ thống đang dùng phí ship mặc định 15.000đ.
                     </p>
                   )}
 
@@ -1307,7 +1338,11 @@ export default function CheckoutPage() {
                 <div className="flex justify-between text-sm text-gray-700 dark:text-gray-300">
                   <span className="flex items-center gap-2">
                     Phí vận chuyển{" "}
-                    {deliveryDistanceKm ? `(${deliveryDistanceKm} km)` : ""}
+                    {shippingFeeSource === "distance" && deliveryDistanceKm
+                      ? `(${deliveryDistanceKm} km)`
+                      : shippingFeeSource === "default"
+                      ? "(mặc định)"
+                      : ""}
                     {isShippingCalculating && (
                       <Loader2 className="w-3 h-3 animate-spin text-amber-600" />
                     )}

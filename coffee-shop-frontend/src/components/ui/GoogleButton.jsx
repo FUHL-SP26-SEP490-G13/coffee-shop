@@ -30,6 +30,8 @@ export default function GoogleButton() {
         if (refreshToken) {
           localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, refreshToken);
         }
+        localStorage.setItem(STORAGE_KEYS.AUTH_PROVIDER, "google");
+        sessionStorage.removeItem(STORAGE_KEYS.AUTH_PROVIDER);
 
         try {
           await cartService.syncAfterLogin();

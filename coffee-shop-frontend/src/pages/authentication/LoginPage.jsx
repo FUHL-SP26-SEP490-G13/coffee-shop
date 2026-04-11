@@ -91,6 +91,10 @@ export default function LoginPage() {
 			if (refreshToken) {
 				storage.setItem(STORAGE_KEYS.REFRESH_TOKEN, refreshToken);
 			}
+			storage.setItem(STORAGE_KEYS.AUTH_PROVIDER, "password");
+			if (storage !== localStorage) {
+				localStorage.removeItem(STORAGE_KEYS.AUTH_PROVIDER);
+			}
 
 			// Save credentials if remember is checked
 			if (remember) {

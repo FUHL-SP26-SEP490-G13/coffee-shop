@@ -60,10 +60,7 @@ class AddressService {
 
     const latitude = this.normalizeCoordinate(payload.latitude, "lat");
     const longitude = this.normalizeCoordinate(payload.longitude, "lng");
-
-    if (latitude === null || longitude === null) {
-      throw new ErrorResponse(400, "Vui lòng ghim vị trí để lấy tọa độ địa chỉ");
-    }
+    const hasCoordinates = latitude !== null && longitude !== null;
 
     const created = await AddressRepository.create({
       user_id: userId,
@@ -72,8 +69,10 @@ class AddressService {
       address: payload.address.trim(),
       latitude,
       longitude,
-      location_source: this.normalizeLocationSource(payload.location_source),
-      location_verified_at: new Date(),
+      location_source: hasCoordinates
+        ? this.normalizeLocationSource(payload.location_source)
+        : null,
+      location_verified_at: hasCoordinates ? new Date() : null,
       address_type: this.normalizeAddressType(payload.address_type),
       is_default: shouldSetDefault ? 1 : 0,
       is_deleted: 0,
@@ -111,27 +110,24 @@ class AddressService {
       updateData.address = payload.address.trim();
     }
 
-    const hasLatInput = payload.latitude !== undefined && payload.latitude !== null;
-    const hasLngInput = payload.longitude !== undefined && payload.longitude !== null;
+    const hasLatInput = Object.prototype.hasOwnProperty.call(payload, 'latitude');
+    const hasLngInput = Object.prototype.hasOwnProperty.call(payload, 'longitude');
 
     if (hasLatInput !== hasLngInput) {
       throw new ErrorResponse(400, 'Vui lòng cung cấp đầy đủ cả vĩ độ và kinh độ');
     }
 
-    const hasAddressInput = typeof payload.address === 'string';
-    const newAddress = hasAddressInput ? payload.address.trim() : existing.address;
-    const oldAddress = String(existing.address || '').trim();
-    const isAddressChanged = hasAddressInput && newAddress !== oldAddress;
-
-    if (isAddressChanged && !hasLatInput) {
-      throw new ErrorResponse(400, 'Khi thay đổi địa chỉ, vui lòng ghim tọa độ mới');
-    }
-
     if (hasLatInput && hasLngInput) {
-      updateData.latitude = this.normalizeCoordinate(payload.latitude, 'lat');
-      updateData.longitude = this.normalizeCoordinate(payload.longitude, 'lng');
-      updateData.location_source = this.normalizeLocationSource(payload.location_source);
-      updateData.location_verified_at = new Date();
+      const normalizedLat = this.normalizeCoordinate(payload.latitude, 'lat');
+      const normalizedLng = this.normalizeCoordinate(payload.longitude, 'lng');
+      const hasCoordinates = normalizedLat !== null && normalizedLng !== null;
+
+      updateData.latitude = normalizedLat;
+      updateData.longitude = normalizedLng;
+      updateData.location_source = hasCoordinates
+        ? this.normalizeLocationSource(payload.location_source)
+        : null;
+      updateData.location_verified_at = hasCoordinates ? new Date() : null;
     }
 
     if (typeof payload.address_type === 'string') {

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import authenticationService from "@/services/authenticationService";
+import { STORAGE_KEYS } from "@/constants";
 import { toast } from "sonner";
 
 const calculatePasswordStrength = (pwd) => {
@@ -48,6 +49,16 @@ export default function ChangePasswordPage() {
 	const [capsLockActive, setCapsLockActive] = useState(false);
 
 	useEffect(() => {
+		const authProvider =
+			localStorage.getItem(STORAGE_KEYS.AUTH_PROVIDER) ||
+			sessionStorage.getItem(STORAGE_KEYS.AUTH_PROVIDER);
+
+		if (authProvider === "google") {
+			toast.error("Tài khoản Google không hỗ trợ đổi mật khẩu tại đây");
+			navigate(-1);
+			return;
+		}
+
 		const handleGlobalKeyDown = (e) => {
 			if (e.getModifierState && e.getModifierState("CapsLock")) {
 				setCapsLockActive(true);
@@ -61,7 +72,7 @@ export default function ChangePasswordPage() {
 			window.removeEventListener("keydown", handleGlobalKeyDown);
 			window.removeEventListener("keyup", handleGlobalKeyDown);
 		};
-	}, []);
+	}, [navigate]);
 
 	const handleSubmit = async (event) => {
 		event.preventDefault();

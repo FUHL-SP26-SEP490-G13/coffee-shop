@@ -262,25 +262,33 @@ const createAddressSchema = Joi.object({
   address_type: Joi.string().valid('home', 'work', 'other').default('home').messages({
     'any.only': 'Loại địa chỉ không hợp lệ',
   }),
-  latitude: Joi.number().min(-90).max(90).required().messages({
+  latitude: Joi.number().min(-90).max(90).optional().allow(null).messages({
     'number.base': 'Vĩ độ không hợp lệ',
     'number.min': 'Vĩ độ không hợp lệ',
     'number.max': 'Vĩ độ không hợp lệ',
-    'any.required': 'Vui lòng ghim vị trí để lấy tọa độ',
   }),
-  longitude: Joi.number().min(-180).max(180).required().messages({
+  longitude: Joi.number().min(-180).max(180).optional().allow(null).messages({
     'number.base': 'Kinh độ không hợp lệ',
     'number.min': 'Kinh độ không hợp lệ',
     'number.max': 'Kinh độ không hợp lệ',
-    'any.required': 'Vui lòng ghim vị trí để lấy tọa độ',
   }),
   location_source: Joi.string()
     .valid('manual_pin', 'gps', 'geocode', 'imported')
+    .allow(null, '')
     .optional()
     .messages({
       'any.only': 'Nguồn tọa độ không hợp lệ',
     }),
   is_default: Joi.number().integer().valid(0, 1).optional(),
+}).custom((value, helpers) => {
+  const hasLat = value.latitude !== undefined && value.latitude !== null;
+  const hasLng = value.longitude !== undefined && value.longitude !== null;
+
+  if (hasLat !== hasLng) {
+    return helpers.message('Vui lòng cung cấp đầy đủ cả vĩ độ và kinh độ');
+  }
+
+  return value;
 });
 
 /**
@@ -317,6 +325,7 @@ const updateAddressSchema = Joi.object({
   }),
   location_source: Joi.string()
     .valid('manual_pin', 'gps', 'geocode', 'imported')
+    .allow(null, '')
     .optional()
     .messages({
       'any.only': 'Nguồn tọa độ không hợp lệ',

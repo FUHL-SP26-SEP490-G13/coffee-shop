@@ -133,22 +133,20 @@ const checkoutOrderSchema = Joi.object({
 
   customer_latitude: Joi.alternatives().conditional("order_type", {
     is: "delivery",
-    then: Joi.number().min(-90).max(90).required().messages({
+    then: Joi.number().min(-90).max(90).optional().allow(null).messages({
       "number.base": "Vĩ độ giao hàng không hợp lệ",
       "number.min": "Vĩ độ giao hàng không hợp lệ",
       "number.max": "Vĩ độ giao hàng không hợp lệ",
-      "any.required": "Vui lòng ghim vị trí giao hàng",
     }),
     otherwise: Joi.number().min(-90).max(90).allow(null).optional(),
   }),
 
   customer_longitude: Joi.alternatives().conditional("order_type", {
     is: "delivery",
-    then: Joi.number().min(-180).max(180).required().messages({
+    then: Joi.number().min(-180).max(180).optional().allow(null).messages({
       "number.base": "Kinh độ giao hàng không hợp lệ",
       "number.min": "Kinh độ giao hàng không hợp lệ",
       "number.max": "Kinh độ giao hàng không hợp lệ",
-      "any.required": "Vui lòng ghim vị trí giao hàng",
     }),
     otherwise: Joi.number().min(-180).max(180).allow(null).optional(),
   }),
@@ -176,6 +174,21 @@ const checkoutOrderSchema = Joi.object({
   }),
 
   items: itemsSchema,
+}).custom((value, helpers) => {
+  if (value.order_type !== "delivery") {
+    return value;
+  }
+
+  const hasLat =
+    value.customer_latitude !== undefined && value.customer_latitude !== null;
+  const hasLng =
+    value.customer_longitude !== undefined && value.customer_longitude !== null;
+
+  if (hasLat !== hasLng) {
+    return helpers.message("Vui lòng cung cấp đầy đủ cả vĩ độ và kinh độ giao hàng");
+  }
+
+  return value;
 });
 
 const validateDiscountSchema = Joi.object({
