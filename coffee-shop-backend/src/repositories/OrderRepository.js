@@ -1,4 +1,5 @@
 const db = require("../config/database");
+const CashSessionRepository = require("./CashSessionRepository");
 
 class OrderRepository {
   async getConnection() {
@@ -71,6 +72,9 @@ class OrderRepository {
     const safeAmount = Math.max(0, Number(data.amount ?? data.total_amount) || 0);
     const safeDiscountAmount = Math.max(0, Number(data.discount_amount) || 0);
 
+    const currentSession = await CashSessionRepository.getCurrentSession();
+    const cashSessionId = currentSession ? currentSession.id : null;
+
     const [result] = await connection.query(
       `
       INSERT INTO orders (
@@ -84,13 +88,12 @@ class OrderRepository {
         amount,
         discount_amount,
         total_amount,
-        amount,
-        discount_amount,
         delivery_fee,
         used_points,
+        session_id,
         cash_session_id
       )
-      VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?)
       `,
       [
         data.user_id,
@@ -102,11 +105,10 @@ class OrderRepository {
         safeAmount,
         safeDiscountAmount,
         data.total_amount,
-        safeAmount,
-        safeDiscountAmount,
         Math.max(0, Number(data.delivery_fee) || 0),
         safeUsedPoints,
-        data.cash_session_id || null,
+        data.session_id || null,
+        cashSessionId,
       ]
     );
 

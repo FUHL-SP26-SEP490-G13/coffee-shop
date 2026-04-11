@@ -1,5 +1,5 @@
-﻿import { useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   RefreshCw,
   ShoppingBag,
@@ -10,6 +10,10 @@ import {
   CheckCircle,
   Loader2,
   BookOpen,
+  User,
+  Phone,
+  MapPin,
+  Clock,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -40,12 +44,12 @@ import takeawayService from "@/services/takeAwayService";
 import BaristaViewRecipe from "../barista/BaristaOrder/BaristaViewRecipe";
 import { PrintableReceipt } from "./PrintableReceipt";
 
-const STAFF_TAB_STATUSES = ["pending", "preparing", "served", "completed", "cancelled"];
+const STAFF_TAB_STATUSES = ["pending", "preparing", "served", "completed", "cancelled", "barista-window"];
 
 const statusLabelMap = {
   pending: {
-    label: "Đang chờ",
-    className: "text-amber-600 dark:text-amber-300",
+    label: "Online chờ xác nhận",
+    className: "text-rose-600 dark:text-rose-300",
   },
   preparing: {
     label: "Đang chuẩn bị",
@@ -58,6 +62,10 @@ const statusLabelMap = {
   cancelled: {
     label: "Đã hủy",
     className: "text-gray-600 dark:text-gray-400",
+  },
+  "barista-window": {
+    label: "Cửa sổ pha chế",
+    className: "text-amber-600 dark:text-amber-300",
   },
 };
 
@@ -72,6 +80,17 @@ const ORDER_TYPE_COLUMNS = [
   { key: "delivery", label: "Giao hàng", icon: Truck },
   { key: "dine-in", label: "Tại bàn", icon: Coffee },
   { key: "takeaway", label: "Mang về", icon: ShoppingBag },
+];
+
+const gridStatusLabelMap = {
+  all: "Tất cả",
+  preparing: "Đang làm",
+  completed: "Hoàn thành",
+};
+
+const GRID_STATUS_COLUMNS = [
+  { key: "preparing", label: "Đang làm", icon: Clock },
+  { key: "completed", label: "Hoàn thành", icon: CheckCircle },
 ];
 
 const LOYALTY_MONEY_PER_POINT = 100;
@@ -182,11 +201,24 @@ const isOrderPaid = (order) => {
   const paymentStatus = String(
     order?.payment_status || order?.payment?.status || "",
   ).toLowerCase();
-  if (paymentStatus === "paid") return true;
+  
+  let paid = false;
+  if (paymentStatus === "paid") {
+    paid = true;
+  } else {
+    paid = order?.is_paid === true || order?.is_paid === 1 || order?.is_paid === "1";
+  }
 
-  return (
-    order?.is_paid === true || order?.is_paid === 1 || order?.is_paid === "1"
-  );
+  // Đơn online (delivery hoặc order đang ở trạng thái pending) nếu chưa in hóa đơn thì xem như chưa thanh toán
+  const isOnline = 
+    String(order?.order_type || "").toLowerCase() === "delivery" || 
+    String(order?.status || "").toLowerCase() === "pending";
+
+  if (isOnline && String(order?.print_status || "").toUpperCase() !== "SUCCESS") {
+    return false;
+  }
+
+  return paid;
 };
 
 const getElapsedMinutes = (value) => {
@@ -217,14 +249,33 @@ const getPaymentMethodLabel = (order) => {
   return "--";
 };
 
+const getStatusWeight = (orderStatus) => {
+  const s = String(orderStatus || "").toLowerCase();
+  if (s === "preparing") return 1;
+  if (s === "pending") return 2;
+  if (s === "served") return 3;
+  if (s === "completed") return 4;
+  return 5;
+};
+
 const sortOrdersByStatus = (status, list) => {
   const sorted = [...list];
   const toTime = (order) => new Date(order?.created_at || 0).getTime();
 
-  if (status === "completed" || status === "cancelled") {
-    sorted.sort((a, b) => toTime(b) - toTime(a));
+  if (status === "preparing") {
+    // View tổng hợp "Quản lý đơn hàng": ưu tiên theo trạng thái, sau đó mới đến thời gian
+    sorted.sort((a, b) => {
+      const weightA = getStatusWeight(a.status);
+      const weightB = getStatusWeight(b.status);
+      if (weightA !== weightB) {
+        return weightA - weightB;
+      }
+      return toTime(a) - toTime(b); // Cùng trạng thái thì đơn gọi trước (cũ hơn) xếp trên
+    });
+  } else if (status === "pending" || status === "completed" || status === "cancelled") {
+    sorted.sort((a, b) => toTime(b) - toTime(a)); // Mới nhất xếp trên
   } else {
-    sorted.sort((a, b) => toTime(a) - toTime(b));
+    sorted.sort((a, b) => toTime(a) - toTime(b)); // Cũ xếp trên
   }
 
   return sorted;
@@ -232,11 +283,15 @@ const sortOrdersByStatus = (status, list) => {
 
 export function OrderDelivery() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { status: routeStatus } = useParams();
 
-  const activeStatus = STAFF_TAB_STATUSES.includes(routeStatus)
-    ? routeStatus
-    : "pending";
+  const isBaristaWindow = location.pathname.includes("barista-window");
+  const activeStatus = isBaristaWindow 
+    ? "barista-window"
+    : STAFF_TAB_STATUSES.includes(routeStatus)
+      ? routeStatus
+      : "pending";
   const activeStatusMeta =
     statusLabelMap[activeStatus] || {
       label: "Không xác định",
@@ -258,7 +313,7 @@ export function OrderDelivery() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailPendingAction, setDetailPendingAction] = useState("");
   const [newOrderCount, setNewOrderCount] = useState(0);
-  const [selectedOrderType, setSelectedOrderType] = useState("all");
+  const [selectedGridStatus, setSelectedGridStatus] = useState("all");
   const [viewingReceipt, setViewingReceipt] = useState(null);
   const [viewRecipeItem, setViewRecipeItem] = useState(null);
   const [preparingSubTab, setPreparingSubTab] = useState("preparing");
@@ -268,25 +323,44 @@ export function OrderDelivery() {
     cashReceived: "",
   });
   const [printerName, setPrinterName] = useState("Nhân viên");
+  const [overview, setOverview] = useState({
+    totalOrders: 0,
+    onlineWaiting: 0,
+    displayPreparing: 0,
+    readyOrders: 0,
+  });
 
   useEffect(() => {
-    if (!STAFF_TAB_STATUSES.includes(routeStatus)) {
+    const isBaristaWindow = location.pathname.includes("barista-window");
+    if (!isBaristaWindow && routeStatus && !STAFF_TAB_STATUSES.includes(routeStatus)) {
       navigate("/staff/orders/pending", { replace: true });
     }
-  }, [navigate, routeStatus]);
+  }, [navigate, routeStatus, location.pathname]);
 
   useEffect(() => {
-    setSelectedOrderType("all");
+    setSelectedGridStatus("all");
   }, [activeStatus]);
 
   const loadOrders = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await baristaDBService.getActiveOrders(STAFF_TAB_STATUSES);
+      const res = await baristaDBService.getActiveOrders(
+        STAFF_TAB_STATUSES.filter(s => s !== "barista-window")
+      );
       const list = res?.data?.data || res?.data || [];
 
-      const activeOrders = (Array.isArray(list) ? list : [])
-        .filter((order) => STAFF_TAB_STATUSES.includes(order?.status))
+      const filtered = list.filter((order) => {
+        if (activeStatus === "barista-window") {
+          const s = String(order?.status || "").toLowerCase();
+          return s === "preparing" || s === "served" || s === "completed";
+        }
+        if (activeStatus === "preparing") {
+          return true; // Quản lý đơn hàng: hiển thị tất cả
+        }
+        return String(order?.status || "").toLowerCase() === activeStatus.toLowerCase();
+      });
+
+      const activeOrders = filtered
         .sort((a, b) => {
           const createdDiff =
             new Date(a?.created_at || 0).getTime() -
@@ -297,6 +371,22 @@ export function OrderDelivery() {
         });
 
       setOrders(activeOrders);
+
+      // Compute stats for the top bar from the FULL list (not just activeOrders)
+      const onlineWaiting = (Array.isArray(list) ? list : []).filter(o => 
+        String(o.status || "").toLowerCase() === 'pending' && (o.order_type === 'delivery' || o.order_type === 'takeaway')
+      ).length;
+      
+      const preparingCount = (Array.isArray(list) ? list : []).filter(o => String(o.status || "").toLowerCase() === 'preparing').length;
+      const dineInPending = (Array.isArray(list) ? list : []).filter(o => String(o.status || "").toLowerCase() === 'pending' && o.order_type === 'dine-in').length;
+      const ready = (Array.isArray(list) ? list : []).filter(o => String(o.status || "").toLowerCase() === 'served').length;
+
+      setOverview({
+        totalOrders: activeOrders.length,
+        onlineWaiting: onlineWaiting,
+        displayPreparing: preparingCount + dineInPending,
+        readyOrders: ready
+      });
     } catch (error) {
       toast.error("Không tải được danh sách đơn hàng");
       console.error("Load order list failed:", error);
@@ -363,7 +453,16 @@ export function OrderDelivery() {
   const activeStatusOrders = useMemo(() => {
     const list = orders.filter((order) => {
       if (activeStatus === "preparing") {
-        return order?.status === preparingSubTab;
+        if (
+          String(order?.status).toLowerCase() === "cancelled" &&
+          (order?.order_type === "delivery" || order?.order_type === "takeaway")
+        ) {
+          return false;
+        }
+        return true; // Quản lý đơn hàng: hiển thị tất cả trừ online đã hủy
+      }
+      if (activeStatus === "pending") {
+        return order?.status === "pending" && (order.order_type === "delivery" || order.order_type === "takeaway");
       }
       return order?.status === activeStatus;
     });
@@ -377,17 +476,16 @@ export function OrderDelivery() {
     }).length;
   }, [activeStatus, activeStatusOrders]);
 
-  const orderTypeCounts = useMemo(() => {
+  const gridStatusCounts = useMemo(() => {
     return activeStatusOrders.reduce(
       (acc, order) => {
         acc.all += 1;
-        const type = normalizeOrderType(order?.order_type);
-        if (type in acc) {
-          acc[type] += 1;
-        }
+        const s = String(order?.status || "").toLowerCase();
+        if (s === "pending" || s === "preparing") acc.preparing += 1;
+        else if (["served", "completed"].includes(s)) acc.completed += 1;
         return acc;
       },
-      { all: 0, delivery: 0, "dine-in": 0, takeaway: 0 },
+      { all: 0, preparing: 0, completed: 0 },
     );
   }, [activeStatusOrders]);
 
@@ -399,23 +497,47 @@ export function OrderDelivery() {
     };
 
     activeStatusOrders.forEach((order) => {
-      const type = normalizeOrderType(order?.order_type);
-      if (type in grouped) {
-        grouped[type].push(order);
+      const s = String(order?.status || "").toLowerCase();
+      let matchStatus = false;
+      
+      if (selectedGridStatus === "all") {
+        matchStatus = true;
+      } else if (selectedGridStatus === "preparing" && (s === "pending" || s === "preparing")) {
+        matchStatus = true;
+      } else if (selectedGridStatus === "completed" && (s === "served" || s === "completed")) {
+        matchStatus = true;
+      }
+
+      if (matchStatus) {
+        const type = normalizeOrderType(order?.order_type);
+        if (type in grouped) {
+          grouped[type].push(order);
+        }
       }
     });
 
     return grouped;
-  }, [activeStatusOrders]);
+  }, [activeStatusOrders, selectedGridStatus]);
 
   const visibleOrderTypeColumns = useMemo(() => {
-    if (selectedOrderType === "all") {
-      return ORDER_TYPE_COLUMNS;
+    let columns = ORDER_TYPE_COLUMNS;
+    
+    if (activeStatus === "pending") {
+      columns = columns.filter(col => col.key !== "dine-in");
     }
-    return ORDER_TYPE_COLUMNS.filter(
-      (column) => column.key === selectedOrderType,
-    );
-  }, [selectedOrderType]);
+
+    return columns;
+  }, [activeStatus]);
+
+  const handleStatusChange = async (orderId, status) => {
+    try {
+      await baristaDBService.updateOrderStatus(orderId, status);
+      toast.success("Cập nhật trạng thái thành công");
+      await loadOrders();
+    } catch (error) {
+      toast.error(error?.response?.data?.message || "Cập nhật trạng thái thất bại");
+    }
+  };
 
   const handleConfirmOrder = async (order) => {
     setConfirmingId(order.id);
@@ -428,6 +550,10 @@ export function OrderDelivery() {
       } else {
         toast.success("Đơn đã chuyển sang Preparing");
       }
+      
+      // Tự động in nhãn/hóa đơn sau khi xác nhận thành công
+      handlePrintReceipt(order.id);
+      
       await loadOrders();
       success = true;
     } catch (error) {
@@ -668,8 +794,8 @@ export function OrderDelivery() {
             disabled={confirmingId === selectedOrder.id}
           >
             {confirmingId === selectedOrder.id
-              ? "Đang nhận đơn..."
-              : "Nhận đơn"}
+              ? "Đang xác nhận..."
+              : "Xác nhận đơn"}
           </Button>
         );
       }
@@ -695,7 +821,7 @@ export function OrderDelivery() {
           onClick={handleConfirmFromDetail}
           disabled={confirmingId === selectedOrder.id}
         >
-          {confirmingId === selectedOrder.id ? "Đang nhận đơn..." : "Nhận đơn"}
+          {confirmingId === selectedOrder.id ? "Đang xác nhận..." : "Xác nhận đơn"}
         </Button>
       );
     }
@@ -710,26 +836,8 @@ export function OrderDelivery() {
         );
       }
 
-      return (
-        <>
-          <Button
-            onClick={() => handleCompleteFromDetail()}
-            disabled={completingId === selectedOrder.id}
-          >
-            {completingId === selectedOrder.id
-              ? "Đang cập nhật..."
-              : "Hoàn thành"}
-          </Button>
-
-          <Button
-            variant="destructive"
-            onClick={() => openCancelConfirm(selectedOrder.id, "preparing")}
-            disabled={cancelingId === selectedOrder.id}
-          >
-            {cancelingId === selectedOrder.id ? "Đang hủy..." : "Hủy đơn"}
-          </Button>
-        </>
-      );
+      // Chỉ hiển thị trạng thái đang pha chế, không có thao tác hoàn thành/hủy
+      return null;
     }
 
     return null;
@@ -752,17 +860,56 @@ export function OrderDelivery() {
               <p className="mt-1 text-xs text-slate-500 dark:text-slate-300">
                 {getRelativeTimeLabel(order.created_at)}
               </p>
+              {String(order.order_type || "").toLowerCase() === "dine-in" && (order.table_code || order.table_id) && (
+                <p className="mt-1.5 text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 w-max px-2 py-0.5 rounded-md border border-indigo-100 dark:border-indigo-800">
+                   Bàn: {order.table_code || order.table_id}
+                </p>
+              )}
             </div>
-            <Badge
-              variant={paid ? "default" : "outline"}
-              className={`h-6 px-2 text-[11px] font-medium ${
-                paid
-                  ? "bg-emerald-500 text-white hover:bg-emerald-500"
-                  : "border-slate-300 text-slate-600 dark:border-slate-600 dark:text-slate-200"
-              }`}
-            >
-              {paid ? "Đã thanh toán" : "Chưa thanh toán"}
-            </Badge>
+            <div className="flex flex-col gap-1 items-end">
+              {(() => {
+                const statusStr = String(order.status || "").toLowerCase();
+                let label = "Không rõ";
+                let colorClass = "bg-slate-100 text-slate-600";
+                
+                if (statusStr === "pending") {
+                  label = "Chờ xác nhận";
+                  colorClass = "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400";
+                } else if (statusStr === "preparing") {
+                  label = "Đang làm";
+                  colorClass = "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400";
+                } else if (statusStr === "served") {
+                  label = "Đã xong";
+                  colorClass = "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400";
+                } else if (statusStr === "completed") {
+                  label = "Hoàn thành";
+                  colorClass = "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400";
+                } else if (statusStr === "cancelled") {
+                  label = "Đã hủy";
+                  colorClass = "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400";
+                }
+
+                return (
+                  <Badge
+                    variant="outline"
+                    className={`h-6 px-2 text-[11px] font-bold border-0 ${colorClass}`}
+                  >
+                    {label}
+                  </Badge>
+                );
+              })()}
+              
+              <Badge
+                variant={paid ? "default" : "outline"}
+                className={`h-5 px-1.5 text-[10px] font-medium leading-none tracking-wide ${
+                  paid
+                    ? "bg-emerald-500 text-white hover:bg-emerald-500"
+                    : "border-slate-300 text-slate-600 dark:border-slate-600 dark:text-slate-200"
+                }`}
+              >
+                {paid ? "Đã thanh toán" : "Chưa thanh toán"}
+              </Badge>
+            </div>
           </div>
 
           <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
@@ -778,26 +925,7 @@ export function OrderDelivery() {
               >
                 {activeStatus === "pending" ? "Xác nhận" : "Chi tiết"}
               </Button>
-              {activeStatus === "preparing" && (
-                <Button
-                  size="sm"
-                  className="h-9 flex-1 px-3 text-sm font-semibold sm:h-7 sm:w-auto sm:px-3 sm:text-xs bg-primary hover:bg-primary/90 text-primary-foreground"
-                  disabled={completingId === order.id}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleCompleteDeliveryOrder(
-                      order.id, 
-                      !paid ? Number(order.total_amount || 0) : undefined
-                    );
-                  }}
-                >
-                  {completingId === order.id ? (
-                    <Loader2 className="mx-auto h-3 w-3 animate-spin text-white" />
-                  ) : (
-                    "Hoàn thành"
-                  )}
-                </Button>
-              )}
+
             </div>
           </div>
         </CardContent>
@@ -806,19 +934,19 @@ export function OrderDelivery() {
   };
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 space-y-6">
-      <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
-        Danh sách đơn hàng
-      </h1>
-      <div className="px-3 py-2 md:px-4 md:py-2.5">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+    <div className={`h-full flex flex-col overflow-hidden pt-0 ${activeStatus === 'barista-window' ? 'px-2 pb-2 sm:px-4 sm:pb-4' : 'px-4 pb-4 sm:px-6 sm:pb-6 lg:px-8 lg:pb-8'}`}>
+      {/* {activeStatus !== "barista-window" && (
+        <div className="flex-shrink-0">
+          <h1 className="text-2xl font-bold">Danh sách đơn hàng</h1>
+        </div>
+      )} */}
+
+
+
+      {activeStatus !== "barista-window" && (
+        <div className="flex-shrink-0 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between px-3 md:px-4">
           <div className="min-w-0">
-            <p className="text-xs text-slate-500 dark:text-slate-300 md:text-sm">
-              Trạng thái hiện tại:{" "}
-              <strong className={activeStatusMeta.className}>
-                {activeStatusMeta.label}
-              </strong>
-            </p>
+
           </div>
 
           <div className="flex items-center gap-2 self-start sm:self-auto">
@@ -832,7 +960,7 @@ export function OrderDelivery() {
               </Badge>
             ) : null}
 
-            <Button
+            {/* <Button
               onClick={() => {
                 setNewOrderCount(0);
                 loadOrders();
@@ -846,103 +974,339 @@ export function OrderDelivery() {
                 className={`h-4 w-4 ${loading ? "animate-spin text-primary" : "text-slate-500 dark:text-slate-300"}`}
               />
               Cập nhật
-            </Button>
+            </Button> */}
           </div>
         </div>
+      )}
 
-        <div className="mt-2.5 flex items-center gap-1.5 overflow-x-auto border-t border-slate-100 pb-0.5 pt-2.5 md:flex-wrap md:overflow-visible md:pb-0">
-          {activeStatus === "preparing" && (
-            <div className="flex bg-slate-100/80 p-0.5 rounded-lg mr-2 shrink-0 border border-slate-200/60 shadow-sm">
-               <button 
-                 onClick={() => setPreparingSubTab('preparing')}
-                 className={`px-3.5 py-1.5 rounded-md text-sm font-semibold transition-all ${preparingSubTab === 'preparing' ? 'bg-white shadow-sm text-primary' : 'text-slate-600 hover:text-slate-900'}`}
-               >
-                 Đang làm
-               </button>
-               <button 
-                 onClick={() => setPreparingSubTab('served')}
-                 className={`px-3.5 py-1.5 rounded-md text-sm font-semibold transition-all ${preparingSubTab === 'served' ? 'bg-white shadow-sm text-primary' : 'text-slate-600 hover:text-slate-900'}`}
-               >
-                 Đã xong
-               </button>
-            </div>
-          )}
+      {activeStatus !== "barista-window" && !(activeStatus === "pending" || activeStatus === "cancelled") && (
+        <div className="mt-2.5 flex items-center gap-1.5 overflow-x-auto border-t border-slate-100 pb-1 pt-2.5 md:flex-wrap md:overflow-visible md:pb-1">
 
-          {Object.entries(orderTypeLabelMap).map(([typeKey, label]) => (
+            {Object.entries(gridStatusLabelMap)
+              .map(([typeKey, label]) => (
+              <Button
+                key={typeKey}
+                size="sm"
+                variant={selectedGridStatus === typeKey ? "default" : "outline"}
+                onClick={() => setSelectedGridStatus(typeKey)}
+                className="h-9 shrink-0 gap-1.5 px-2.5 text-xs md:h-8"
+              >
+                {label}
+                <Badge
+                  variant="secondary"
+                  className="ml-0.5 h-5 px-1.5 text-[11px]"
+                >
+                  {gridStatusCounts[typeKey] || 0}
+                </Badge>
+              </Button>
+            ))}
+
+            {["pending", "preparing"].includes(activeStatus) ? (
+              <div className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-2.5 md:ml-auto md:h-8">
+                <span className="text-xs font-medium text-rose-700 dark:text-rose-300">
+                  Trễ &gt; 10 phút
+                </span>
+                <Badge variant="secondary" className="h-5 px-1.5 text-[11px]">
+                  {delayedOrdersCount}
+                </Badge>
+              </div>
+            ) : null}
+          </div>
+        )}
+
+      {activeStatus !== "barista-window" && (activeStatus === "pending" || activeStatus === "cancelled") && (
+        <div className="flex-shrink-0 flex gap-4 mb-4">
+          <div className="relative group">
             <Button
-              key={typeKey}
-              size="sm"
-              variant={selectedOrderType === typeKey ? "default" : "outline"}
-              onClick={() => setSelectedOrderType(typeKey)}
-              className="h-9 shrink-0 gap-1.5 px-2.5 text-xs md:h-8"
+              variant={activeStatus === "pending" ? "default" : "outline"}
+              className={`h-12 px-10 rounded-2xl font-black text-sm transition-all shadow-md ${activeStatus === "pending" ? "shadow-primary/30 scale-105" : "bg-card hover:bg-muted"}`}
+              onClick={() => navigate("/staff/orders/pending")}
             >
-              {label}
-              <Badge
-                variant="secondary"
-                className="ml-0.5 h-5 px-1.5 text-[11px]"
-              >
-                {orderTypeCounts[typeKey] || 0}
-              </Badge>
+              <ShoppingBag className="mr-2 h-4 w-4" />
+              ĐƠN ONLINE MỚI
             </Button>
-          ))}
+            {overview.onlineWaiting > 0 && (
+              <>
+                <span className="absolute -top-2 -right-2 flex h-6 w-6 items-center justify-center rounded-full bg-rose-600 text-[11px] font-black text-white shadow-lg ring-4 ring-background z-10">
+                  {overview.onlineWaiting}
+                </span>
+                <span className="absolute -top-2 -right-2 flex h-6 w-6 rounded-full bg-rose-600 animate-ping opacity-75 ring-4 ring-background"></span>
+              </>
+            )}
+          </div>
 
-          {["pending", "preparing"].includes(activeStatus) ? (
-            <div className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-2.5 md:ml-auto md:h-8">
-              <span className="text-xs font-medium text-rose-700 dark:text-rose-300">
-                Trễ &gt; 10 phút
-              </span>
-              <Badge variant="secondary" className="h-5 px-1.5 text-[11px]">
-                {delayedOrdersCount}
-              </Badge>
-            </div>
-          ) : null}
+          <Button
+            variant={activeStatus === "cancelled" ? "default" : "outline"}
+            className={`h-12 px-10 rounded-2xl font-black text-sm transition-all shadow-sm ${activeStatus === "cancelled" ? "shadow-rose-500/20 scale-105" : "bg-card hover:bg-muted"}`}
+            onClick={() => navigate("/staff/orders/cancelled")}
+          >
+            ĐƠN ĐÃ HỦY
+          </Button>
         </div>
-      </div>
+      )}
 
-      <div className="overflow-x-auto">
-        <div
-          className={`grid gap-3 ${selectedOrderType === "all" ? "grid-cols-1 md:grid-cols-3" : "grid-cols-1"}`}
-        >
-          {visibleOrderTypeColumns.map((column) => {
-            const Icon = column.icon;
-            const columnOrders = groupedOrdersByType[column.key] || [];
+      {activeStatus === "barista-window" ? (
+        <div className="flex-1 min-h-0 flex flex-col gap-6">
+          <div className="flex-shrink-0 bg-white dark:bg-slate-900 border-2 border-primary/20 rounded-2xl py-6 px-10 shadow-sm flex items-center justify-center">
+            <h2 className="text-3xl font-black tracking-[0.2em] text-primary dark:text-primary uppercase">
+              DANH SÁCH ĐƠN PHA CHẾ
+            </h2>
+          </div>
 
-            return (
-              <div
-                key={column.key}
-                className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-gray-900 shadow-sm dark:shadow-none"
-              >
-                <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 px-3 py-2">
-                  <div className="flex items-center gap-2">
-                    <Icon className="h-4 w-4 text-slate-600 dark:text-slate-200" />
-                    <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">
-                      {column.label}
-                    </span>
-                  </div>
-                  <Badge variant="secondary">{columnOrders.length}</Badge>
-                </div>
-
-                <div className="max-h-none min-h-[220px] space-y-2 overflow-visible p-3 md:max-h-[calc(100vh-300px)] md:min-h-[400px] md:overflow-y-auto">
-                  {loading ? (
-                    <p className="py-8 text-center text-sm text-muted-foreground">
-                      Đang tải dữ liệu...
-                    </p>
-                  ) : columnOrders.length > 0 ? (
-                    columnOrders.map((order) => renderCompactOrderCard(order))
-                  ) : (
-                    <div className="flex flex-col items-center justify-center gap-2 py-10 text-center">
-                      <ShoppingBag className="h-7 w-7 text-muted-foreground" />
-                      <p className="text-sm text-muted-foreground">
-                        Không có đơn trong cột này.
-                      </p>
-                    </div>
-                  )}
+          <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-8 min-h-0">
+            {/* COLUMN LEFT: Đơn mới */}
+            <div className="flex flex-col min-h-0 bg-primary/5 dark:bg-primary/10 rounded-[2.5rem] border-2 border-primary/20 p-6">
+              <div className="flex-shrink-0 mb-6 flex justify-center">
+                <div className="bg-primary border-2 border-primary/30 px-12 py-3 rounded-full shadow-md">
+                  <span className="text-lg font-bold text-white tracking-wide uppercase">Đơn mới</span>
                 </div>
               </div>
-            );
-          })}
+              
+              <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-4">
+                {orders.filter(o => String(o.status || "").toLowerCase() === 'preparing').length > 0 ? (
+                  orders.filter(o => String(o.status || "").toLowerCase() === 'preparing').map((order) => (
+                    <Card 
+                      key={order.id} 
+                      className="rounded-2xl border-2 border-primary/20 dark:border-primary/30 bg-white dark:bg-slate-900 hover:shadow-lg hover:border-primary/50 transition-all cursor-pointer group"
+                      onClick={() => {
+                        setSelectedOrder(order);
+                        setIsDetailOpen(true);
+                      }}
+                    >
+                      <CardContent className="p-5 flex items-center justify-between gap-4">
+                        <div className="flex flex-col gap-1">
+                          <span className="text-xl font-black text-primary italic">Đơn #{order.id}</span>
+                          <span className="text-sm font-medium text-slate-500 flex items-center gap-1">
+                            <Clock className="w-3.5 h-3.5" />
+                            {getRelativeTimeLabel(order.created_at)}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                           <span className="text-lg font-bold text-slate-600 dark:text-slate-300">{money(order.total_amount)}</span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+                ) : (
+                  <div className="h-full flex flex-col items-center justify-center text-slate-400 gap-2 opacity-50">
+                    <Coffee className="h-10 w-10" />
+                    <p className="font-medium">Chưa có đơn hàng mới</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* COLUMN RIGHT: Đã xong */}
+            <div className="flex flex-col min-h-0 bg-primary/5 dark:bg-primary/10 rounded-[2.5rem] border-2 border-primary/20 p-6">
+              <div className="flex-shrink-0 mb-6 flex justify-center">
+                <div className="bg-primary/90 border-2 border-primary/30 px-12 py-3 rounded-full shadow-md">
+                  <span className="text-lg font-bold text-white tracking-wide uppercase">Đã xong</span>
+                </div>
+              </div>
+
+              <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-4">
+                {orders.filter(o => String(o.status || "").toLowerCase() === 'completed').length > 0 ? (
+                  orders.filter(o => String(o.status || "").toLowerCase() === 'completed')
+                    .sort((a, b) => b.id - a.id)
+                    .map((order) => (
+                    <Card 
+                      key={order.id} 
+                      className="rounded-2xl border-2 border-emerald-500/20 dark:border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-900/10 hover:shadow-lg transition-all cursor-pointer group"
+                      onClick={() => {
+                        setSelectedOrder(order);
+                        setIsDetailOpen(true);
+                      }}
+                    >
+                      <CardContent className="p-5 flex items-center justify-between gap-4">
+                        <div className="flex flex-col gap-1">
+                          <span className="text-xl font-black text-emerald-700 dark:text-emerald-400 italic">Đơn #{order.id}</span>
+                          <span className="text-sm font-medium text-slate-500 flex items-center gap-1">
+                            <Clock className="w-3.5 h-3.5" />
+                            {getRelativeTimeLabel(order.created_at)}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 text-emerald-600 font-bold">
+                          <CheckCircle className="w-6 h-6" />
+                          <span>Hoàn tất</span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+                ) : (
+                  <div className="h-full flex flex-col items-center justify-center text-slate-400 gap-2 opacity-50">
+                    <CheckCircle className="h-10 w-10" />
+                    <p className="font-medium">Chưa có đơn hoàn thành</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
+      ) : ["pending", "cancelled"].includes(activeStatus) ? (
+        <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
+          <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar pb-10">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {activeStatusOrders.length > 0 ? (
+                activeStatusOrders.map((order) => {
+                  const items = order.items || order.orderItems || [];
+                  const isCancelled = order.status === "cancelled" || order.status === "REFUNDED";
+                  
+                  return (
+                    <Card 
+                      key={order.id} 
+                      className={`rounded-[2.5rem] border-2 bg-card overflow-hidden transition-all hover:shadow-xl cursor-pointer ${isCancelled ? 'border-rose-100/50 bg-rose-50/10' : 'border-border/60 hover:border-primary/20 hover:scale-[1.02]'}`}
+                      onClick={() => {
+                        setSelectedOrder(order);
+                        setIsDetailOpen(true);
+                      }}
+                    >
+                      <CardContent className="p-8 space-y-5">
+                        {/* Top Row */}
+                        <div className="flex justify-between items-start">
+                          <div className="flex flex-col gap-0.5">
+                             <span className={`text-xl font-black italic ${isCancelled ? 'text-rose-600/70' : activeStatus === 'barista-window' ? 'text-amber-600' : 'text-foreground'}`}>
+                               {isCancelled ? "Đơn Hủy" : activeStatus === 'barista-window' ? "ĐƠN PHA CHẾ" : "Đơn"} #{order.id}
+                             </span>
+                            <div className="flex items-center gap-1.5 text-[11px] font-black text-muted-foreground/60 bg-muted/30 px-2 py-0.5 rounded-lg w-fit">
+                              <Clock className="h-3 w-3" />
+                              <span>{new Date(order.created_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span>
+                            </div>
+                          </div>
+                          <span className={`text-xl font-black italic ${isCancelled ? 'text-rose-400' : 'text-foreground'}`}>
+                            {money(order.total_amount)}
+                          </span>
+                        </div>
+
+                        {/* Product List */}
+                        <div className="space-y-4 py-2 min-h-[140px] max-h-[200px] overflow-y-auto pr-2 custom-scrollbar-thin">
+                          {items.map((item, idx) => (
+                            <div key={idx} className="space-y-1 opacity-80">
+                               <div className="flex justify-between font-bold text-sm">
+                                  <span className="truncate mr-2 max-w-[65%]">
+                                    {item.product_name || item.productName || item.name}
+                                    <span className="ml-1 text-[9px] px-1 py-0.5 rounded bg-muted text-muted-foreground uppercase">
+                                      {item.size || item.product_size}
+                                    </span>
+                                  </span>
+                                  <span className="text-muted-foreground whitespace-nowrap text-xs font-black">
+                                    {money(item.price || item.unit_price)} × {item.quantity}
+                                  </span>
+                               </div>
+                               {item.toppings && item.toppings.length > 0 && (
+                                 <div className="pl-4 border-l-2 border-muted/50 space-y-0.5 mt-1">
+                                    {item.toppings.map((t, tid) => (
+                                      <div key={tid} className="flex justify-between items-center text-[10px] font-bold text-muted-foreground/60 italic">
+                                        <span>• {t.topping_name || t.name} x{t.quantity}</span>
+                                        <span>{money(t.price)}</span>
+                                      </div>
+                                    ))}
+                                 </div>
+                               )}
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Customer Info (Only show if not cancelled or if requested) */}
+                        <div className="space-y-2 p-4 bg-muted/20 rounded-[2rem] border-2 border-dotted border-muted/30">
+                          <div className="flex items-center gap-3">
+                             <User className="h-3.5 w-3.5 text-muted-foreground/40" />
+                             <span className="text-[xs] font-black text-muted-foreground italic uppercase truncate">{order.receiver_name || order.customer_name || "N/A"}</span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                             <MapPin className="h-3.5 w-3.5 text-muted-foreground/40" />
+                             <span className="text-[10px] font-bold text-muted-foreground italic truncate">{order.address || "K/O Địa chỉ"}</span>
+                          </div>
+                        </div>
+
+                        {/* Footer Buttons (Hidden for cancelled or barista-window) */}
+                        {!isCancelled && activeStatus !== "barista-window" && (
+                          <div className="flex gap-2 pt-2 h-12">
+                             <Button 
+                               variant="outline" 
+                               className="flex-1 rounded-2xl border-2 border-destructive/20 font-bold text-destructive hover:bg-destructive hover:text-white text-xs"
+                               onClick={() => {
+                                 setCancelConfirm({ open: true, orderId: order.id, mode: "pending" });
+                               }}
+                               disabled={cancelingId === order.id}
+                             >
+                               Hủy
+                             </Button>
+
+                             <Button 
+                               className="flex-[2] rounded-2xl font-black text-xs shadow-lg shadow-primary/20"
+                               onClick={() => handleConfirmOrder(order.id)}
+                               disabled={confirmingId === order.id}
+                             >
+                               {confirmingId === order.id ? (
+                                 <RefreshCw className="h-4 w-4 animate-spin" />
+                               ) : (
+                                 "Xác nhận & In nhãn"
+                               )}
+                             </Button>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })
+              ) : (
+                <div className="col-span-full py-20 text-center bg-slate-50/50 rounded-3xl border-2 border-dashed border-slate-200">
+                  <p className="text-slate-400 font-medium">
+                    {activeStatus === "barista-window" 
+                      ? "Hiện tại không có đơn hàng nào cần pha chế. Bạn có thể thư giãn một chút! ☕" 
+                      : "Không có đơn hàng hàng nào trong mục này."}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="flex-1 min-h-0 overflow-x-auto">
+          <div
+            className={`grid gap-3 h-full ${activeStatus === "pending" ? "grid-cols-1 md:grid-cols-2" : "grid-cols-1 md:grid-cols-3"}`}
+          >
+            {visibleOrderTypeColumns.map((column) => {
+              const Icon = column.icon;
+              const columnOrders = groupedOrdersByType[column.key] || [];
+
+              return (
+                <div
+                  key={column.key}
+                  className="flex flex-col min-h-0 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-gray-900 shadow-sm dark:shadow-none"
+                >
+                  <div className="flex-shrink-0 flex items-center justify-between border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 px-3 py-2">
+                    <div className="flex items-center gap-2">
+                      <Icon className="h-4 w-4 text-slate-600 dark:text-slate-200" />
+                      <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+                        {column.label}
+                      </span>
+                    </div>
+                    <Badge variant="secondary">{columnOrders.length}</Badge>
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto overflow-x-hidden p-3 space-y-2 custom-scrollbar">
+                    {loading ? (
+                      <p className="py-8 text-center text-sm text-muted-foreground">
+                        Đang tải dữ liệu...
+                      </p>
+                    ) : columnOrders.length > 0 ? (
+                      columnOrders.map((order) => renderCompactOrderCard(order))
+                    ) : (
+                      <div className="flex flex-col items-center justify-center gap-2 py-10 text-center">
+                        <ShoppingBag className="h-7 w-7 text-muted-foreground" />
+                        <p className="text-sm text-muted-foreground">
+                          Không có đơn trong cột này.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <Dialog
         open={isDetailOpen}
@@ -954,18 +1318,85 @@ export function OrderDelivery() {
         }}
       >
         <DialogContent contentWidth="70rem" className="sm:max-w-4xl">
-          <DialogHeader>
-            <DialogTitle>
-              Chi tiết đơn {getOrderTypeLabel(selectedOrder?.order_type)} #
-              {selectedOrder?.id || "--"}
-            </DialogTitle>
-          </DialogHeader>
+          {activeStatus !== "barista-window" && (
+            <DialogHeader>
+              <DialogTitle>
+                Chi tiết đơn {getOrderTypeLabel(selectedOrder?.order_type)} #
+                {selectedOrder?.id || "--"}
+              </DialogTitle>
+            </DialogHeader>
+          )}
 
           {detailLoading ? (
             <p className="text-sm text-muted-foreground">
               Đang tải chi tiết...
             </p>
           ) : selectedOrder ? (
+            activeStatus === "barista-window" ? (
+              <div className="flex flex-col gap-4 font-sans text-slate-800">
+                <h3 className="text-xl font-bold mb-2">Đơn #{selectedOrder.id}</h3>
+                
+                <div className="flex flex-col gap-4 max-h-[50vh] overflow-y-auto pr-2 custom-scrollbar">
+                  {selectedOrder.items && selectedOrder.items.length > 0 ? (
+                    selectedOrder.items.map((item, idx) => (
+                      <div key={idx} className="border-2 border-slate-700 bg-white p-4 flex flex-col gap-2 shadow-sm">
+                        <div className="flex justify-between font-bold text-lg">
+                           <span>{item.name || item.productName || item.product_name}</span>
+                           <span>Size {item.size}</span>
+                        </div>
+                        {Array.isArray(item.toppings) && item.toppings.length > 0 && (
+                          <div className="flex flex-col text-slate-700 text-base leading-relaxed">
+                             {item.toppings.map((top, tIdx) => (
+                                <span key={tIdx}>{top.name} {top.quantity > 1 ? `x${top.quantity}` : ''}</span>
+                             ))}
+                          </div>
+                        )}
+                        <div className="flex justify-end mt-2">
+                          <button 
+                            className="border-2 border-slate-700 px-5 py-2 rounded-xl font-bold text-sm hover:bg-slate-100 transition-colors bg-white shadow-sm"
+                            onClick={() =>
+                              setViewRecipeItem({
+                                product: { id: item.productId || item.product_id, name: item.name || item.productName || item.product_name },
+                                size: { id: item.productSizeId || item.size_id || item.product_size_id, size: item.size }
+                              })
+                            }
+                          >
+                             Xem công thức
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="italic text-slate-500">Đơn chưa có thực đơn.</p>
+                  )}
+                </div>
+
+                <div className="border-2 border-slate-700 p-4 min-h-[80px] bg-white shadow-sm mt-2">
+                  <span className="font-bold">Ghi chú: </span>
+                  {selectedOrder.note || "(Không có ghi chú)"}
+                </div>
+
+                <div className="flex justify-center gap-6 mt-6">
+                   <button 
+                     className="border-2 border-slate-700 px-8 py-2.5 rounded-2xl font-bold hover:bg-slate-100 transition-colors bg-white shadow-sm"
+                     onClick={() => setIsDetailOpen(false)}
+                   >
+                     Đóng
+                   </button>
+                   {String(selectedOrder?.status || "").toLowerCase() !== 'completed' && (
+                     <button 
+                       className="border-2 border-emerald-600 text-emerald-700 px-8 py-2.5 rounded-2xl font-bold hover:bg-emerald-50 transition-colors bg-white shadow-sm"
+                       onClick={() => {
+                          handleStatusChange(selectedOrder.id, 'completed');
+                          setIsDetailOpen(false);
+                       }}
+                     >
+                       Xác nhận xong
+                     </button>
+                   )}
+                </div>
+              </div>
+            ) : (
             <div className="max-h-[70vh] overflow-y-auto pr-1">
               <div className="grid gap-4 md:grid-cols-12">
                 <div className="md:col-span-5 space-y-4">
@@ -1046,13 +1477,10 @@ export function OrderDelivery() {
                           className="rounded-md border p-2 text-sm"
                         >
                           <p className="font-medium">
-                            {item.name ||
-                              item.productName ||
-                              item.product_name ||
-                              "Sản phẩm"}
+                            {item.name || item.productName || item.product_name} - {item.size}
                           </p>
                           <p className="text-muted-foreground">
-                            Size {item.size} • x{item.quantity} •{" "}
+                            x{item.quantity} •{" "}
                             {money(item.price || item.total_price)}
                           </p>
                           {Array.isArray(item.toppings) &&
@@ -1112,96 +1540,6 @@ export function OrderDelivery() {
                 </div>
               </div>
 
-              <div className="space-y-2 rounded-md border p-3">
-                <p className="text-sm font-semibold">
-                  Danh sách món và topping
-                </p>
-                {Array.isArray(selectedOrder.items) &&
-                selectedOrder.items.length > 0 ? (
-                  selectedOrder.items.map((item) => (
-                    <div
-                      key={`${selectedOrder.id}-${item.id || item.product_name || item.name}`}
-                      className="flex items-start justify-between gap-2.5 rounded-md border p-2 text-sm"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <p className="font-medium text-slate-900">
-                          {item.name ||
-                            item.productName ||
-                            item.product_name ||
-                            "Sản phẩm"}
-                        </p>
-                        <p className="text-muted-foreground mt-0.5">
-                          Size {item.size} • x{item.quantity} •{" "}
-                          <span className="font-medium text-slate-700">{money(item.price || item.total_price)}</span>
-                        </p>
-                        {Array.isArray(item.toppings) &&
-                        item.toppings.length > 0 ? (
-                          <div className="mt-1 flex flex-wrap gap-1">
-                            {item.toppings.map((top, idx) => (
-                              <span key={idx} className="rounded-sm border bg-slate-50 px-1.5 py-0.5 text-[11px] text-slate-600">
-                                {top.name} {top.quantity > 1 ? `x${top.quantity}` : ''}
-                              </span>
-                            ))}
-                          </div>
-                        ) : (
-                          <p className="text-muted-foreground mt-0.5 text-[11px]">
-                            Không có topping
-                          </p>
-                        )}
-                        {item.note ? (
-                          <p className="text-muted-foreground mt-0.5 italic text-[12px]">
-                            Ghi chú: {item.note}
-                          </p>
-                        ) : null}
-                      </div>
-
-                      {activeStatus === "preparing" && (
-                        <div className="flex shrink-0 items-center justify-end">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-7 rounded-sm border-primary/30 px-2.5 text-xs text-primary shadow-sm hover:bg-primary hover:text-white"
-                            onClick={() =>
-                              setViewRecipeItem({
-                                product: {
-                                  id: item.productId || item.product_id,
-                                  name: item.name || item.productName || item.product_name,
-                                },
-                                size: {
-                                  id: item.productSizeId || item.size_id || item.product_size_id,
-                                  size: item.size,
-                                },
-                              })
-                            }
-                          >
-                            <BookOpen className="mr-1.5 h-3 w-3" />
-                            Công thức
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-sm text-muted-foreground">
-                    Đơn chưa có sản phẩm.
-                  </p>
-                )}
-              </div>
-
-              <div className="flex flex-col items-end gap-1">
-                {isDeliveryOrder(selectedOrder) ? (
-                  <p className="text-sm text-slate-600">
-                    Phí vận chuyển:{" "}
-                    <span className="font-medium">{money(DELIVERY_FEE)}</span>
-                  </p>
-                ) : null}
-                <p className="text-sm">
-                  Tổng tiền:{" "}
-                  <span className="font-semibold">
-                    {money(selectedOrder.total_amount)}
-                  </span>
-                </p>
-              </div>
 
               <div className="flex flex-wrap justify-end gap-2 border-t pt-3">
                 <Button
@@ -1213,6 +1551,7 @@ export function OrderDelivery() {
                 {renderDetailActionButtons()}
               </div>
             </div>
+            )
           ) : (
             <p className="text-sm text-muted-foreground">
               Không có dữ liệu chi tiết.
