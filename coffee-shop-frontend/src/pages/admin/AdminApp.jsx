@@ -16,10 +16,8 @@ import {
   ChevronDown,
   Menu,
   X,
-  MapPin,
   LayoutGrid,
   Bell,
-  Settings,
   MessageSquare,
   Shield,
   Coins,
@@ -29,6 +27,7 @@ import {
   Sun,
   Mailbox,
   ArrowLeftRight,
+  FileText,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import authenticationService from '../../services/authenticationService';
@@ -50,18 +49,29 @@ import { getNotificationLink } from "@/utils/getNotificationLink";
 import receiptSettingService from "@/services/receiptSettingService";
 
 export default function AdminApp() {
-   const [openMenu, setOpenMenu] = useState(false);
-   const [openScheduleMenu, setOpenScheduleMenu] = useState(false);
+   const navigate = useNavigate();
+   const location = useLocation();
+
+   const [openMenu, setOpenMenu] = useState(() => 
+     location.pathname.includes('/admin/menu') || location.pathname.includes('/admin/toppings')
+   );
+   const [openScheduleMenu, setOpenScheduleMenu] = useState(() => 
+     location.pathname.includes('/admin/schedule/templates') || location.pathname.includes('/admin/schedule/list')
+   );
    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
    const [notifications, setNotifications] = useState([]);
    const [showNotifications, setShowNotifications] = useState(false);
    const notificationRef = useRef(null);
-   const navigate = useNavigate();
-   const location = useLocation();
+
+   useEffect(() => {
+     if (location.pathname.includes('/admin/menu') || location.pathname.includes('/admin/toppings')) setOpenMenu(true);
+     if (location.pathname.includes('/admin/schedule/templates') || location.pathname.includes('/admin/schedule/list')) setOpenScheduleMenu(true);
+   }, [location.pathname]);
 
    useEffect(() => {
      const routeTitles = {
        "/admin/dashboard": "Bảng điều khiển",
+       "/admin/end-of-day-report": "Báo cáo tổng kết",
        "/admin/orders": "Đơn hàng",
        "/admin/tables": "Quản lý bàn",
        "/admin/menu/categories": "Danh mục",
@@ -76,10 +86,10 @@ export default function AdminApp() {
        "/admin/flash-sales": "Flash sale",
        "/admin/banners": "Quảng cáo",
        "/admin/news-list": "Bài viết",
-       "/admin/newsletters": "Email",
+       "/admin/newsletter": "Email",
        "/admin/schedule/templates": "Quản lý ca làm",
        "/admin/schedule/list": "Lịch làm việc",
-       "/admin/receipt-settings": "Cấu hình hóa đơn",
+       "/admin/receipt-settings": "Cấu hình hệ thống",
        "/admin/profile": "Thông tin cá nhân"
      };
 
@@ -351,7 +361,7 @@ export default function AdminApp() {
           <p className="text-sm text-muted-foreground">Cổng Quản lý</p>
         </div>
 
-        <nav className="p-4 overflow-y-auto flex-1 pb-24">
+        <nav className="p-4 overflow-y-auto flex-1 pb-24 custom-scrollbar">
           <div className="space-y-6">
             {/* ================= TỔNG QUAN ================= */}
             <div>
@@ -372,6 +382,19 @@ export default function AdminApp() {
                 >
                   <LayoutDashboard className="w-4 h-4" />
                   <span className="text-sm tracking-wide">Bảng điều khiển</span>
+                </NavLink>
+                <NavLink
+                  to="/admin/end-of-day-report"
+                  className={({ isActive }) =>
+                    `w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                      isActive
+                        ? "bg-primary text-white"
+                        : "text-muted-foreground hover:bg-secondary"
+                    }`
+                  }
+                >
+                  <FileText className="w-4 h-4" />
+                  <span className="text-sm tracking-wide">Báo cáo tổng kết</span>
                 </NavLink>
               </div>
             </div>
@@ -418,7 +441,11 @@ export default function AdminApp() {
                 <div>
                   <button
                     onClick={() => setOpenMenu(!openMenu)}
-                    className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:bg-secondary transition-colors"
+                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                      location.pathname.includes('/admin/menu') || location.pathname.includes('/admin/toppings')
+                        ? 'text-primary font-bold bg-primary/5'
+                        : 'text-muted-foreground hover:bg-secondary'
+                    }`}
                   >
                     <Package className="w-4 h-4" />
                     <span className="text-sm tracking-wide flex-1 text-left">Thực đơn</span>
@@ -427,8 +454,9 @@ export default function AdminApp() {
                     />
                   </button>
 
-                  {openMenu && (
-                    <div className="ml-6 mt-1 space-y-1">
+                  <div className={`grid transition-all duration-300 ease-in-out ${openMenu ? "grid-rows-[1fr] opacity-100 mt-1" : "grid-rows-[0fr] opacity-0"}`}>
+                    <div className="overflow-hidden">
+                      <div className="ml-6 space-y-1 flex flex-col">
                       <NavLink
                         to="/admin/menu/categories"
                         className={({ isActive }) =>
@@ -462,8 +490,9 @@ export default function AdminApp() {
                         <PlusCircle className="w-4 h-4" />
                         Topping
                       </NavLink>
+                      </div>
                     </div>
-                  )}
+                  </div>
                 </div>
                 
                 <NavLink
@@ -584,7 +613,7 @@ export default function AdminApp() {
                   <span className="text-sm tracking-wide">Bài viết</span>
                 </NavLink>
                 <NavLink
-                  to="/admin/newsletters"
+                  to="/admin/newsletter"
                   onClick={() => setMobileMenuOpen(false)}
                   className={({ isActive }) =>
                     `w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
@@ -609,7 +638,11 @@ export default function AdminApp() {
                 <div>
                   <button
                     onClick={() => setOpenScheduleMenu(!openScheduleMenu)}
-                    className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:bg-secondary transition-colors"
+                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                      location.pathname.includes('/admin/schedule/templates') || location.pathname.includes('/admin/schedule/list')
+                        ? 'text-primary font-bold bg-primary/5'
+                        : 'text-muted-foreground hover:bg-secondary'
+                    }`}
                   >
                     <Calendar className="w-4 h-4" />
                     <span className="text-sm tracking-wide flex-1 text-left">Lịch làm việc</span>
@@ -618,8 +651,9 @@ export default function AdminApp() {
                     />
                   </button>
 
-                  {openScheduleMenu && (
-                    <div className="ml-6 mt-1 space-y-1">
+                  <div className={`grid transition-all duration-300 ease-in-out ${openScheduleMenu ? "grid-rows-[1fr] opacity-100 mt-1" : "grid-rows-[0fr] opacity-0"}`}>
+                    <div className="overflow-hidden">
+                      <div className="ml-6 space-y-1 flex flex-col">
                       <NavLink
                         to="/admin/schedule/templates"
                         onClick={() => setMobileMenuOpen(false)}
@@ -644,8 +678,9 @@ export default function AdminApp() {
                         <Calendar className="w-4 h-4" />
                         Lịch làm việc
                       </NavLink>
+                      </div>
                     </div>
-                  )}
+                  </div>
                 </div>
                 <NavLink
                   to="/admin/schedule/requests"
@@ -669,7 +704,7 @@ export default function AdminApp() {
                   }
                 >
                   <ClipboardList className="w-4 h-4" />
-                  <span className="text-sm tracking-wide">Cấu hình hóa đơn</span>
+                  <span className="text-sm tracking-wide">Cấu hình hệ thống</span>
                 </NavLink>
                 <NavLink
                   to="/admin/profile"

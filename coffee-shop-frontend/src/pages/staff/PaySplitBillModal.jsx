@@ -22,7 +22,7 @@ const formatVND = (amount) =>
 const BILLS = [10000, 20000, 50000, 100000, 200000, 500000];
 
 
-export function PaySplitBillModal({ isOpen, onClose, table, onSuccess }) {
+export function PaySplitBillModal({ isOpen, onClose, table, onSuccess, onPartialPayment }) {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [payingOrderId, setPayingOrderId] = useState(null);
@@ -62,7 +62,7 @@ export function PaySplitBillModal({ isOpen, onClose, table, onSuccess }) {
     try {
       const res = await tableService.getUnpaidOrders(table.id);
       const unpaidOrders = res.data || [];
-      
+
       // Fetch details for each order to get items
       const detailedOrders = await Promise.all(
         unpaidOrders.map(async (order) => {
@@ -75,7 +75,7 @@ export function PaySplitBillModal({ isOpen, onClose, table, onSuccess }) {
           }
         })
       );
-      
+
       setOrders(detailedOrders);
     } catch (err) {
       toast.error("Không thể tải danh sách đơn hàng");
@@ -112,7 +112,7 @@ export function PaySplitBillModal({ isOpen, onClose, table, onSuccess }) {
 
     setIsSubmitting(true);
     try {
-      const orderIdsToSettle = isPayingAll 
+      const orderIdsToSettle = isPayingAll
         ? orders.map(o => o.id)
         : [activePayingOrder.id];
 
@@ -123,7 +123,7 @@ export function PaySplitBillModal({ isOpen, onClose, table, onSuccess }) {
       });
 
       toast.success(isPayingAll ? "Đã thanh toán tất cả đơn hàng" : `Thanh toán thành công đơn #${activePayingOrder.id}`);
-      
+
       if (isPayingAll) {
         setOrders([]);
         onSuccess?.();
@@ -132,10 +132,13 @@ export function PaySplitBillModal({ isOpen, onClose, table, onSuccess }) {
         const remainingOrders = orders.filter(o => o.id !== activePayingOrder.id);
         setOrders(remainingOrders);
         setPayingOrderId(null);
-        
+
         if (remainingOrders.length === 0) {
           onSuccess?.();
           onClose();
+        } else {
+          // Still more orders to pay — notify parent to refresh debt badge
+          onPartialPayment?.();
         }
       }
     } catch (err) {
@@ -158,11 +161,18 @@ export function PaySplitBillModal({ isOpen, onClose, table, onSuccess }) {
     try {
       const returnUrl = `${window.location.origin}/staff/tables?debtPay=1&tableId=${table.id}&orderId=${orderToPay.id}`;
       const cancelUrl = `${window.location.origin}/staff/tables?debtPay=0&tableId=${table.id}&orderId=${orderToPay.id}`;
-      
+
       const res = await orderService.createPaymentLink({
         orderCode: Number(orderToPay.id),
-        amount: Number(orderToPay.total_amount),
-        description: `Thanh toan don #${orderToPay.id}`,
+        amount: Math.round(Number(orderToPay.total_amount || 0)),
+        description: `DH${orderToPay.id}`.slice(0, 25),
+        items: [
+          {
+            name: `Order #${orderToPay.id}`.slice(0, 100),
+            quantity: 1,
+            price: Math.round(Number(orderToPay.total_amount || 0)),
+          },
+        ],
         returnUrl,
         cancelUrl,
       });
@@ -206,10 +216,10 @@ export function PaySplitBillModal({ isOpen, onClose, table, onSuccess }) {
                 {/* Orders List */}
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
-                    <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Danh sách đơn chờ</h3>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
+                    <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Danh sách đơn chờ</h3>
+                    <Button
+                      variant="outline"
+                      size="sm"
                       onClick={handleStartPayAll}
                       className={isPayingAll ? "border-orange-500 text-orange-600 bg-orange-50 dark:bg-orange-900/30" : ""}
                     >
@@ -217,8 +227,8 @@ export function PaySplitBillModal({ isOpen, onClose, table, onSuccess }) {
                     </Button>
                   </div>
                   {orders.map((order) => (
-                    <div 
-                      key={order.id} 
+                    <div
+                      key={order.id}
                       onClick={() => handleStartPayment(order)}
                       className={`p-4 rounded-xl border-2 transition-all cursor-pointer ${
                         payingOrderId === order.id 
@@ -251,7 +261,7 @@ export function PaySplitBillModal({ isOpen, onClose, table, onSuccess }) {
                           {isPayingAll ? "Thanh toán tất cả" : `Thanh toán đơn #${payingOrderId}`}
                         </h3>
                         <p className="text-orange-500 text-2xl font-black">
-                          {formatVND(isPayingAll 
+                          {formatVND(isPayingAll
                             ? orders.reduce((sum, o) => sum + Number(o.total_amount || 0), 0)
                             : activePayingOrder?.total_amount
                           )}
@@ -325,15 +335,15 @@ export function PaySplitBillModal({ isOpen, onClose, table, onSuccess }) {
                       )}
 
                       <div className="flex flex-col gap-2 pt-4">
-                        <Button 
-                          onClick={paymentMethod === 'cash' ? handleConfirmPayment : handlePayOS} 
+                        <Button
+                          onClick={paymentMethod === 'cash' ? handleConfirmPayment : handlePayOS}
                           disabled={isSubmitting}
                           className="w-full h-12 bg-green-500 hover:bg-green-600 text-white font-bold text-lg rounded-xl shadow-lg dark:shadow-none shadow-green-200"
                         >
                           {isSubmitting ? <Loader2 className="animate-spin" /> : 'Xác nhận thanh toán'}
                         </Button>
-                        <Button 
-                          variant="ghost" 
+                        <Button
+                          variant="ghost"
                           onClick={() => {
                             setPayingOrderId(null);
                             setIsPayingAll(false);
@@ -350,7 +360,7 @@ export function PaySplitBillModal({ isOpen, onClose, table, onSuccess }) {
                       <div className="w-16 h-16 bg-gray-50 dark:bg-gray-800/50 rounded-full flex items-center justify-center">
                         <Wallet className="w-8 h-8 text-gray-300" />
                       </div>
-                      <p className="text-sm">Vui lòng chọn một đơn hàng<br/>ở bên trái để tiến hành thanh toán</p>
+                      <p className="text-sm">Vui lòng chọn một đơn hàng<br />ở bên trái để tiến hành thanh toán</p>
                     </div>
                   )}
                 </div>

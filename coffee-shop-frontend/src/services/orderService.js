@@ -46,6 +46,10 @@ const orderService = {
   getOrderDetailForStaff(id) {
     return axiosClient.get(`/orders/${id}`);
   },
+
+  updateOrderItems(orderId, items) {
+    return axiosClient.put(`/orders/${orderId}/items`, { items });
+  },
 };
 
 export default orderService;

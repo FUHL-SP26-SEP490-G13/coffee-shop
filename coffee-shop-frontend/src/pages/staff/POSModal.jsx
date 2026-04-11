@@ -18,7 +18,7 @@ import {
 } from '../../components/ui/dialog';
 import authenticationService from '../../services/authenticationService';
 import socket from '../../lib/socket';
-import { ReceiptModal } from './TakeAwayOrder/ReceiptModal';
+import { PrintableReceipt } from './PrintableReceipt';
 import { useNavigate } from 'react-router-dom';
 import PayOSLogo from "/logo/payOS.svg";
 
@@ -64,7 +64,7 @@ const getSortedSizes = (product) => {
 
 const TABLE_MANAGEMENT_PATH = '/staff/tables';
 
-export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
+export function POSModal({ isOpen, onClose, table, onTableStatusChange, editingOrder }) {
   const navigate = useNavigate();
   const [editingCartItem, setEditingCartItem] = useState(null);
   const [cart, setCart] = useState([]);
@@ -103,7 +103,7 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
         const rawToppings = toppingsRes.data?.data || toppingsRes.data || [];
         setToppings(
           rawToppings
-            .filter((t) => !t.is_deleted)
+            .filter((t) => !t.is_deleted || t.is_deleted === 0 || t.is_deleted === '0')
             .map((t) => ({ id: t.id, name: t.name, price: Number(t.price) }))
         );
       } catch {
@@ -151,15 +151,38 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
     return () => socket.off('order:payment-completed', handlePaymentCompleted);
   }, [navigate, pendingPayosOrderId]);
 
-  // Reset cart khi đổi bàn
+  // Reset cart when table changes or modal opens; pre-load from editingOrder if provided
   useEffect(() => {
     if (isOpen) {
-      setCart([]);
       setNote('');
       setSearchQuery('');
       setActiveCategory('all');
+      if (editingOrder?.items?.length > 0) {
+        // Map existing order items -> cart format
+        const preloaded = editingOrder.items.map((item) => ({
+          id: `existing-${item.id}-${Date.now()}`,
+          productId: item.product_size_id,
+          originalProductId: item.product_id,
+          product: { name: item.name || item.product_name, sizes: [] },
+          size: item.size || 'M',
+          price: Number(item.price),
+          quantity: Number(item.quantity),
+          toppings: (item.toppings || []).map((t) => ({
+            id: t.topping_id || t.id,
+            topping_id: t.topping_id || t.id,
+            name: t.name,
+            price: Number(t.price),
+            quantity: t.quantity || 1,
+          })),
+          note: item.note || '',
+        }));
+        setCart(preloaded);
+        if (editingOrder.note) setNote(editingOrder.note);
+      } else {
+        setCart([]);
+      }
     }
-  }, [isOpen, table?.id]);
+  }, [isOpen, table?.id, editingOrder]);
 
   const handleAddFromModal = (modalItem, isEditing = false) => {
     setCart((prev) => {
@@ -267,7 +290,7 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
     return orderService.checkout(payload);
   };
 
-  const handleSaveForLaterPayment = async () => {
+  const _handleSaveForLaterPayment = async () => {
     if (!table) {
       toast.error('Không tìm thấy thông tin bàn');
       return;
@@ -364,6 +387,7 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
         order_type: 'dine-in',
         table_id: Number(table.id),
         payment_method: resolvedPaymentMethod,
+        cash_received: resolvedPaymentMethod === 'cash' ? Number(customerCash) : undefined,
         receiver_name: `Khách Bàn ${table.code || ''}`,
         receiver_phone: '0000000000',
         items,
@@ -480,6 +504,27 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
       return;
     }
     await handleSubmitOrder({ deferredPayment: true, notifyBarista: true });
+  };
+
+  const handleUpdateOrder = async () => {
+    if (!editingOrder?.id) return;
+    if (cart.length === 0) {
+      toast.error('Giỏ hàng trống');
+      return;
+    }
+    setIsSubmittingOrder(true);
+    try {
+      const items = buildOrderItemsPayload();
+      await orderService.updateOrderItems(editingOrder.id, items);
+      toast.success('Cập nhật đơn hàng thành công');
+      setCart([]);
+      setNote('');
+      onClose();
+    } catch (error) {
+      toast.error(error?.response?.data?.message || 'Không cập nhật được đơn hàng');
+    } finally {
+      setIsSubmittingOrder(false);
+    }
   };
 
   const filteredProducts = useMemo(() => {
@@ -764,24 +809,35 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
                 <span className="text-sm text-slate-600 dark:text-slate-300">Tổng cộng</span>
                 <span className="text-xl font-black text-amber-600 dark:text-amber-400">{formatVND(total)}</span>
               </div>
-              <div className="grid grid-cols-2 gap-2">
+              {editingOrder ? (
+                // Edit mode: only show Update button
                 <Button
-                  onClick={handleSendToBarista}
+                  onClick={handleUpdateOrder}
                   disabled={cart.length === 0 || isSubmittingOrder}
-                  variant="outline"
-                  className="h-11 border-sky-200 text-sky-700 hover:bg-sky-50 rounded-xl text-sm"
+                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl h-11 text-sm"
                 >
-                  <Send className="w-4 h-4 mr-1.5" />
-                  Gửi barista
+                  {isSubmittingOrder ? 'Đang cập nhật...' : `Cập nhật đơn #${editingOrder.id} · ${formatVND(total)}`}
                 </Button>
-                <Button
-                  onClick={handleOpenPaymentModal}
-                  disabled={cart.length === 0 || isSubmittingOrder}
-                  className="bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl h-11 text-sm"
-                >
-                  Thanh toán · {formatVND(total)}
-                </Button>
-              </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    onClick={handleSendToBarista}
+                    disabled={cart.length === 0 || isSubmittingOrder}
+                    variant="outline"
+                    className="h-11 border-sky-200 text-sky-700 hover:bg-sky-50 rounded-xl text-sm"
+                  >
+                    <Send className="w-4 h-4 mr-1.5" />
+                    Gửi barista
+                  </Button>
+                  <Button
+                    onClick={handleOpenPaymentModal}
+                    disabled={cart.length === 0 || isSubmittingOrder}
+                    className="bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl h-11 text-sm"
+                  >
+                    Thanh toán · {formatVND(total)}
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -960,14 +1016,11 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
       </Dialog>
 
       {viewingReceipt && (
-        <ReceiptModal
+        <PrintableReceipt
           order={viewingReceipt}
-          onClose={() => {
+          onDone={() => {
             setViewingReceipt(null);
             onClose();
-          }}
-          onPrint={() => {
-            // Optional: call markPrintSuccess if needed
           }}
         />
       )}

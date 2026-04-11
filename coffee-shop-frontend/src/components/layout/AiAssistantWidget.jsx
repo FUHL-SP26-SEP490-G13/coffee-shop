@@ -76,43 +76,43 @@ export default function AiAssistantWidget() {
     try {
       // Create history array exactly as the backend expects (excluding the current msg)
       const history = messages.map(m => ({ role: m.role, text: m.text }));
-      
+
       const res = await aiService.chat(history, text.trim());
       const data = res.data; // The returned AiService structure
 
       if (data?.type === "action" && data?.action?.type === "add_to_cart_multiple") {
-         const items = data.action.payload || [];
-         items.forEach(item => {
-           cartService.addItem({
-             id: item.product_id,
-             product_id: item.product_id,
-             name: item.product_name,
-             price: Number(item.price) || 0,
-             basePrice: Number(item.price) || 0,
-             size: item.size || "S",
-             productSizeId: item.productSizeId || 0,
-             product_size_id: item.productSizeId || 0,
-             image: item.image || "",
-             quantity: item.quantity || 1,
-             note: item.note || ""
-           });
-         });
+        const items = data.action.payload || [];
+        items.forEach(item => {
+          cartService.addItem({
+            id: item.product_id,
+            product_id: item.product_id,
+            name: item.product_name,
+            price: Number(item.price) || 0,
+            basePrice: Number(item.price) || 0,
+            size: item.size || "S",
+            productSizeId: item.productSizeId || 0,
+            product_size_id: item.productSizeId || 0,
+            image: item.image || "",
+            quantity: item.quantity || 1,
+            note: item.note || ""
+          });
+        });
 
-         const systemMsg = { 
-           role: 'ai', 
-           text: data.text || `Đã thêm các món vào giỏ hàng!`, 
-           id: Date.now() + 1,
-           isNew: true
-         };
-         setMessages(prev => [...prev, systemMsg]);
+        const systemMsg = {
+          role: 'ai',
+          text: data.text || `Đã thêm các món vào giỏ hàng!`,
+          id: Date.now() + 1,
+          isNew: true
+        };
+        setMessages(prev => [...prev, systemMsg]);
       } else {
-         const modelMsg = { 
-           role: 'ai', 
-           text: data?.text || "Xin lỗi, hiện tại mình đang bận, bạn vui lòng thử lại sau nhé!", 
-           id: Date.now() + 1,
-           isNew: true
-         };
-         setMessages(prev => [...prev, modelMsg]);
+        const modelMsg = {
+          role: 'ai',
+          text: data?.text || "Xin lỗi, hiện tại mình đang bận, bạn vui lòng thử lại sau nhé!",
+          id: Date.now() + 1,
+          isNew: true
+        };
+        setMessages(prev => [...prev, modelMsg]);
       }
     } catch (error) {
       console.error("AI Chat Error:", error);
@@ -144,11 +144,11 @@ export default function AiAssistantWidget() {
                 <p className="text-xs text-amber-100/80">AI gợi ý & đặt hàng</p>
               </div>
             </div>
-            <button 
+            <button
               onClick={() => setIsOpen(false)}
-              className="p-2 hover:bg-white dark:bg-gray-900/10 rounded-full transition-colors"
+              className="p-2 hover:bg-white/20 dark:hover:bg-white/10 rounded-full transition-colors group"
             >
-              <X className="w-5 h-5 text-amber-50" />
+              <X className="w-5 h-5 text-amber-50 group-hover:text-white" />
             </button>
           </div>
 
@@ -156,8 +156,8 @@ export default function AiAssistantWidget() {
           <div className="flex-1 p-4 overflow-y-auto max-h-[400px] min-h-[300px] bg-[#FAF9F6] dark:bg-stone-900 custom-scrollbar">
             <div className="flex flex-col gap-4">
               {messages.map((msg) => (
-                <div 
-                  key={msg.id} 
+                <div
+                  key={msg.id}
                   className={`flex items-start gap-2 max-w-[85%] ${msg.role === 'user' ? 'self-end flex-row-reverse' : 'self-start'}`}
                 >
                   <div className={`w-8 h-8 rounded-full flex shrink-0 items-center justify-center ${msg.role === 'user' ? 'bg-amber-100 dark:bg-amber-900/30/50' : 'bg-[#7B4B36]/10'}`}>
@@ -169,9 +169,9 @@ export default function AiAssistantWidget() {
                   </div>
                   <div className={`
                     px-4 py-2.5 rounded-2xl text-[14.5px] whitespace-pre-wrap word-break
-                    ${msg.role === 'user' 
-                      ? 'bg-[#7B4B36] text-white rounded-tr-sm' 
-                      : msg.isError 
+                    ${msg.role === 'user'
+                      ? 'bg-[#7B4B36] text-white rounded-tr-sm'
+                      : msg.isError
                         ? 'bg-red-50 text-red-600 rounded-tl-sm border border-red-100'
                         : 'bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 rounded-tl-sm border border-gray-100 dark:border-gray-800 shadow-sm leading-relaxed'
                     }
@@ -180,7 +180,7 @@ export default function AiAssistantWidget() {
                   </div>
                 </div>
               ))}
-              
+
               {isLoading && (
                 <div className="flex items-start gap-2 max-w-[85%] self-start">
                   <div className="w-8 h-8 rounded-full bg-[#7B4B36]/10 flex shrink-0 items-center justify-center">
@@ -214,7 +214,7 @@ export default function AiAssistantWidget() {
 
           {/* Input Area */}
           <div className="p-3 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800">
-            <form 
+            <form
               onSubmit={(e) => { e.preventDefault(); handleSend(); }}
               className="flex items-center gap-2 bg-gray-50 dark:bg-gray-950 rounded-full pr-1 pl-4 rtl:pl-1 rtl:pr-4 focus-within:ring-1 focus-within:ring-[#7B4B36] focus-within:bg-white dark:focus-within:bg-gray-900 transition-all shadow-inner"
             >
@@ -226,8 +226,8 @@ export default function AiAssistantWidget() {
                 className="flex-1 bg-transparent py-3 text-[14.5px] outline-none text-gray-800 dark:text-gray-200 placeholder:text-gray-400"
                 disabled={isLoading}
               />
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 disabled={!inputValue.trim() || isLoading}
                 className="p-2 w-10 h-10 flex flex-shrink-0 items-center justify-center bg-[#7B4B36] text-white rounded-full hover:bg-[#683f2d] disabled:bg-gray-300 disabled:text-gray-500 dark:text-gray-400 transition-colors shadow-sm"
               >
@@ -241,7 +241,7 @@ export default function AiAssistantWidget() {
       {/* Floating Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`${isOpen ? 'scale-0 opacity-0' : 'scale-100 opacity-100 hover:scale-110'} transition-all duration-300 w-14 h-14 bg-[#7B4B36] rounded-full shadow-lg shadow-amber-900/20 flex items-center justify-center group relative border-2 border-white`}
+        className={`${isOpen ? 'scale-0 opacity-0' : 'scale-100 opacity-100 animate-wiggle hover:bg-[#683f2d]'} transition-all duration-300 w-14 h-14 bg-[#7B4B36] rounded-full shadow-lg shadow-amber-900/20 flex items-center justify-center group relative border-2 border-white cursor-pointer`}
       >
         <Sparkles className="absolute -top-1 -right-1 w-4 h-4 text-amber-300 animate-pulse" />
         <Bot className="w-7 h-7 text-white" />

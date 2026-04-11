@@ -64,8 +64,11 @@ export default function ReviewSection() {
             {initials}
           </div>
           <div>
-            <h3 className="font-bold text-gray-900 dark:text-gray-100 text-base lg:text-lg">
-              {review.full_name || "Khách hàng"}
+            <h3 className="font-bold text-gray-900 dark:text-gray-100 text-base lg:text-lg flex flex-wrap items-center gap-2">
+              <span>{review.full_name || "Khách hàng"}</span>
+              {review.updated_at && review.created_at && review.updated_at !== review.created_at && (
+                 <span className="text-gray-500 italic text-[11px] bg-gray-200/50 dark:bg-gray-800 px-1.5 py-0.5 rounded font-normal">(Đã chỉnh sửa)</span>
+              )}
             </h3>
             <div className="flex gap-0.5 mt-1">
               {[...Array(5)].map((_, i) => (
@@ -84,11 +87,21 @@ export default function ReviewSection() {
 
         <div className="flex gap-2 mt-auto w-full h-24 sm:h-32">
           {imgs && imgs.length > 0 ? (
-            imgs.map((img, idx) => (
-              <a key={idx} href={img.url} target="_blank" rel="noopener noreferrer" className="flex-1 rounded-xl overflow-hidden shadow-sm border border-amber-100 block hover:opacity-90 transition-opacity">
-                <img src={img.url} alt={`Review ${idx}`} className="w-full h-full object-cover" loading="lazy" />
-              </a>
-            ))
+            imgs.map((img, idx) => {
+              const isVideo = img.url?.match(/\.(mp4|webm|ogg)$/i) || img.url?.includes("video/upload");
+              if (isVideo) {
+                return (
+                  <div key={idx} className="flex-1 rounded-xl overflow-hidden shadow-sm border border-amber-100 bg-black">
+                    <video src={img.url} controls className="w-full h-full object-cover" />
+                  </div>
+                );
+              }
+              return (
+                <a key={idx} href={img.url} target="_blank" rel="noopener noreferrer" className="flex-1 rounded-xl overflow-hidden shadow-sm border border-amber-100 block hover:opacity-90 transition-opacity">
+                  <img src={img.url} alt={`Review ${idx}`} className="w-full h-full object-cover" loading="lazy" />
+                </a>
+              );
+            })
           ) : (
             <div className="w-full h-full rounded-xl overflow-hidden shadow-sm border border-amber-100">
               <img src="https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=500&q=80" alt="Review default" className="w-full h-full object-cover opacity-80 filter brightness-90" loading="lazy" />
@@ -100,7 +113,7 @@ export default function ReviewSection() {
   };
 
   return (
-    <section className="py-8 md:py-12 bg-white dark:bg-gray-950 overflow-hidden">
+    <section className="py-8 md:py-12 lg:py-16 bg-white dark:bg-gray-950 overflow-hidden">
       <div className="w-full px-4 lg:px-6 xl:px-8">
         <div className="bg-[#EFE8D8] dark:bg-[#1f1b1a] rounded-none sm:rounded-3xl py-12 md:py-16 px-4 sm:px-8 lg:px-12 w-full">
         <div className="text-center pb-8">

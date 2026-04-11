@@ -1,5 +1,5 @@
-import Header from "@/components/layout/Header";
-import Footer from "@/components/layout/Footer";
+
+
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -21,10 +21,10 @@ function OrderPolicy() {
   useDocumentTitle("Chính sách đặt hàng");
   return (
     <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900">
-      <Header />
+      
 
-      <div className="flex-1 w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-10 mb-10">
-        <div className="flex items-center gap-2 text-base md:text-lg text-gray-500 dark:text-gray-400 font-medium mb-8 mt-[-10px]">
+      <div className="flex-1 w-full px-4 sm:px-6 lg:px-6 xl:px-8 pt-2 md:pt-4 pb-10 md:pb-16 mb-5">
+        <div className="flex items-center gap-2 text-base md:text-lg text-gray-500 dark:text-gray-400 font-medium mb-6">
           <Link to="/" className="hover:text-amber-600 transition">Trang chủ</Link>
           <span className="text-gray-400">/</span>
           <span className="text-amber-600 font-bold">Chính sách đặt hàng</span>
@@ -122,13 +122,25 @@ function OrderPolicy() {
               </li>
             </ul>
           </PolicyCard>
+
+          {/* 8 */}
+          <PolicyCard icon={<MapPin />} title="8. Chính sách phí giao hàng theo khoảng cách">
+            <ul className="space-y-2">
+              <li>• Hệ thống tính phí theo khoảng cách thực tế từ quán đến điểm giao hàng.</li>
+              <li>• Từ 1km đến 5km: <strong>2.000đ/km</strong>.</li>
+              <li>• Từ km thứ 6 trở đi: <strong>1.500đ/km</strong> cho phần vượt 5km.</li>
+              <li>• Đơn hàng có khoảng cách từ <strong>10km trở lên</strong> sẽ không thể đặt giao hàng để không làm ảnh hưởng đến chất lượng dịch vụ.</li>
+              <li>• Ví dụ: khoảng cách 7km =&gt; phí giao hàng = 5 x 2.000 + 2 x 1.500 = <strong>13.000đ</strong>.</li>
+              <li>• Ví dụ: khoảng cách 60km =&gt; vượt ngưỡng tối đa 10km là 50km, hệ thống sẽ báo <strong>ngoài phạm vi giao hàng</strong>.</li>
+            </ul>
+          </PolicyCard>
         </div>
       </div>
 
       {/* Divider giống Home */}
       <div className="w-full h-px bg-gradient-to-r from-transparent via-amber-300 to-transparent" />
 
-      <Footer />
+      
     </div>
   );
 }

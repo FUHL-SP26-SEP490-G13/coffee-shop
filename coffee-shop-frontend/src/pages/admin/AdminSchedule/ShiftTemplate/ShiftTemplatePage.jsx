@@ -112,10 +112,10 @@ export default function ShiftTemplatePage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="p-4 sm:p-6 lg:p-8 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Quản lý ca làm</h1>
+          <h1 className="text-xl font-semibold mb-1">Quản lý ca làm</h1>
           <p className="text-sm text-muted-foreground mt-0.5">Thiết lập các ca làm việc cho quán</p>
         </div>
         <Button onClick={openCreate} className="gap-2">

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Zap, Clock, ShoppingCart, Star, Heart } from "lucide-react";
+import { Zap, Clock, ShoppingCart, Star } from "lucide-react";
 import { toast } from "sonner";
 import flashSaleService from "@/services/flashSaleService";
 import { cartService } from "@/services/cartService";
@@ -8,13 +8,16 @@ import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, Navigation } from "swiper/modules";
 import { useStoreHours } from "@/hooks/useStoreHours";
 import productService from "@/services/productService";
-import favoriteService from "@/services/favoriteService";
 import { STORAGE_KEYS } from "@/constants";
+import CartSuccessModal from "@/pages/homePage/order/CartSuccessModal";
+import QuickViewModal from "@/pages/homePage/product/QuickViewModal";
 
 export default function FlashSaleSection({ products, getThumbnail, getDefaultCartSize }) {
   const { isOpen, storeSchedule, nextOpenMessage } = useStoreHours();
   const [activeSale, setActiveSale] = useState(null);
   const [timeLeft, setTimeLeft] = useState({ hours: 0, minutes: 0, seconds: 0 });
+  const [addedCartItem, setAddedCartItem] = useState(null);
+  const [quickViewProduct, setQuickViewProduct] = useState(null);
 
   const token =
     localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN) ||
@@ -22,7 +25,6 @@ export default function FlashSaleSection({ products, getThumbnail, getDefaultCar
 
   const isLoggedIn = !!token;
 
-  const [favoriteMap, setFavoriteMap] = useState({});
 
   useEffect(() => {
     const fetchFlashSale = async () => {
@@ -75,89 +77,6 @@ export default function FlashSaleSection({ products, getThumbnail, getDefaultCar
     return () => clearInterval(timer);
   }, [activeSale]);
 
-  useEffect(() => {
-    const fetchFavoriteStatus = async () => {
-      if (!isLoggedIn || !flashProducts || flashProducts.length === 0) {
-        setFavoriteMap({});
-        return;
-      }
-
-      try {
-        const results = await Promise.all(
-          flashProducts.map(async (product) => {
-            try {
-              const res = await favoriteService.checkFavorite(product.id);
-              const payload = res?.data?.data || res?.data || res || {};
-
-              return {
-                productId: product.id,
-                isFavorite: Boolean(payload.isFavorite),
-              };
-            } catch (error) {
-              return {
-                productId: product.id,
-                isFavorite: false,
-              };
-            }
-          })
-        );
-
-        const nextMap = {};
-        results.forEach((item) => {
-          nextMap[item.productId] = item.isFavorite;
-        });
-
-        setFavoriteMap(nextMap);
-      } catch (error) {
-        console.error("Lỗi kiểm tra trạng thái yêu thích:", error);
-        setFavoriteMap({});
-      }
-    };
-
-    fetchFavoriteStatus();
-  }, [flashProducts, isLoggedIn]);
-
-  const handleToggleFavorite = async (e, productId) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    if (!isLoggedIn) {
-      alert("Bạn phải đăng nhập để thêm sản phẩm yêu thích");
-      return;
-    }
-
-    const currentFavorite = Boolean(favoriteMap[productId]);
-
-    setFavoriteMap((prev) => ({
-      ...prev,
-      [productId]: !currentFavorite,
-    }));
-
-    try {
-      const res = await favoriteService.toggleFavorite(
-        productId,
-        currentFavorite
-      );
-
-      const payload = res?.data?.data || res?.data || res || {};
-
-      if (typeof payload.isFavorite === "boolean") {
-        setFavoriteMap((prev) => ({
-          ...prev,
-          [productId]: payload.isFavorite,
-        }));
-      }
-
-      window.dispatchEvent(new Event("favoriteUpdated"));
-    } catch (error) {
-      console.error("Lỗi cập nhật yêu thích:", error);
-      setFavoriteMap((prev) => ({
-        ...prev,
-        [productId]: currentFavorite,
-      }));
-    }
-  };
-
   if (!activeSale || !flashProducts || flashProducts.length === 0) return null;
 
   const handleAddToCart = (e, product) => {
@@ -180,6 +99,9 @@ export default function FlashSaleSection({ products, getThumbnail, getDefaultCar
 
     const cartItem = {
       productSizeId: cartSize.id,
+      id: product.id,
+      product_id: product.id,
+      slug: product.slug,
       name: product.name,
       image: getThumbnail(product),
       size: cartSize.size,
@@ -190,11 +112,12 @@ export default function FlashSaleSection({ products, getThumbnail, getDefaultCar
     };
 
     cartService.addItem(cartItem);
-    toast.success(`Đã thêm ${product.name} (giá Flash Sale) vào giỏ hàng`);
+    setAddedCartItem(cartItem);
+    window.dispatchEvent(new Event("cartUpdated"));
   };
 
   return (
-    <section className="py-6 sm:py-8 lg:pt-12 lg:pb-12">
+    <section className="py-8 md:py-12 lg:py-16">
       <div className="w-full px-4 lg:px-6 xl:px-8">
         <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-red-600 via-orange-600 to-amber-500 dark:from-red-950 dark:via-orange-950 dark:to-amber-950 px-5 py-8 sm:px-8 lg:px-12 shadow-2xl">
           <div className="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 pointer-events-none"></div>
@@ -295,25 +218,6 @@ export default function FlashSaleSection({ products, getThumbnail, getDefaultCar
                               </span>
                             </div>
 
-                            <button
-                              type="button"
-                              onClick={(e) => handleToggleFavorite(e, product.id)}
-                              className={`absolute right-0 top-0 z-10 flex items-center justify-center transition-all ${Boolean(favoriteMap[product.id])
-                                ? "text-red-500 drop-shadow-sm"
-                                : "text-[#DCD5CD] hover:text-red-400 dark:text-gray-600"
-                                }`}
-                              title={
-                                Boolean(favoriteMap[product.id])
-                                  ? "Bỏ khỏi yêu thích"
-                                  : "Thêm vào yêu thích"
-                              }
-                            >
-                              <Heart
-                                className={`h-5 w-5 ${Boolean(favoriteMap[product.id]) ? "fill-current" : ""
-                                  }`}
-                                strokeWidth={1.5}
-                              />
-                            </button>
 
                             <Link to={`/${product.slug || 'products/' + product.id}`} className="block mt-6 mb-2">
                               <div className="relative h-48 w-full flex items-center justify-center">
@@ -348,38 +252,53 @@ export default function FlashSaleSection({ products, getThumbnail, getDefaultCar
                               </span>
                             </div>
 
-                            <div className="mt-auto flex items-end justify-between border-t border-transparent pt-1">
-                              <div className="min-w-0">
+                            <div className="mt-auto flex flex-col xl:flex-row xl:items-end justify-between border-t border-transparent pt-2 gap-2.5 xl:gap-0">
+                              <div className="min-w-0 pr-1">
                                 {originalPrice > 0 ? (
                                   <div className="flex flex-col">
-                                    <span className="text-[11px] line-through text-gray-400">{originalPriceText}</span>
-                                    <p className="break-words text-[15px] font-bold leading-tight text-[#8B5A2B] dark:text-amber-500">
+                                    <span className="text-[11px] line-through text-gray-400 truncate">{originalPriceText}</span>
+                                    <p className="text-[13px] sm:text-[14px] font-bold leading-tight text-[#8B5A2B] dark:text-amber-500">
                                       {salePriceText}
                                     </p>
                                   </div>
                                 ) : (
-                                  <p className="break-words text-[17px] font-bold leading-tight text-[#8B5A2B] dark:text-amber-500">
+                                  <p className="text-[14px] sm:text-[15px] font-bold leading-tight text-[#8B5A2B] dark:text-amber-500">
                                     Liên hệ
                                   </p>
                                 )}
                               </div>
 
                               {originalPrice > 0 && (
-                                isOpen ? (
+                                <div className="flex gap-2 items-center">
                                   <button
-                                    onClick={(e) => handleAddToCart(e, product)}
-                                    className="w-8 h-8 rounded-md flex items-center justify-center shrink-0 transition-colors shadow-sm bg-[#8B5A2B] hover:bg-[#69421c] text-white"
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      setQuickViewProduct(product);
+                                    }}
+                                    className="w-8 h-8 rounded-md flex items-center justify-center shrink-0 transition-colors shadow-sm bg-amber-100 dark:bg-amber-900/30 hover:bg-amber-200 dark:hover:bg-amber-800/50 text-amber-700 dark:text-amber-500"
+                                    title="Xem nhanh"
                                   >
-                                    <ShoppingCart className="w-[15px] h-[15px] xl:ml-[-1px]" />
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-eye"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0" /><circle cx="12" cy="12" r="3" /></svg>
                                   </button>
-                                ) : (
-                                  <div
-                                    onClick={(e) => e.stopPropagation()}
-                                    className="flex items-center text-[11px] font-bold text-rose-600 bg-rose-50 px-2 py-1.5 rounded-lg border border-rose-100 whitespace-nowrap shadow-sm cursor-not-allowed"
-                                  >
-                                    {nextOpenMessage}
-                                  </div>
-                                )
+                                  {isOpen ? (
+                                    <button
+                                      onClick={(e) => handleAddToCart(e, product)}
+                                      className="w-8 h-8 rounded-md flex items-center justify-center shrink-0 transition-colors shadow-sm bg-[#8B5A2B] hover:bg-[#69421c] text-white"
+                                      title="Thêm vào giỏ"
+                                    >
+                                      <ShoppingCart className="w-[15px] h-[15px] xl:ml-[-1px]" />
+                                    </button>
+                                  ) : (
+                                    <div
+                                      onClick={(e) => e.stopPropagation()}
+                                      className="flex items-center justify-center text-[11px] font-bold text-rose-600 bg-rose-50 px-2 h-8 rounded-md border border-rose-100 whitespace-nowrap shadow-sm cursor-not-allowed"
+                                      title={nextOpenMessage}
+                                    >
+                                      Đóng cửa
+                                    </div>
+                                  )}
+                                </div>
                               )}
                             </div>
                           </div>
@@ -413,6 +332,16 @@ export default function FlashSaleSection({ products, getThumbnail, getDefaultCar
           background: rgba(0,0,0,0.6);
         }
       `}</style>
+      <CartSuccessModal addedCartItem={addedCartItem} onClose={() => setAddedCartItem(null)} />
+      <QuickViewModal
+        product={quickViewProduct}
+        isOpen={!!quickViewProduct}
+        onClose={() => setQuickViewProduct(null)}
+        activeSale={activeSale}
+        isStoreOpen={isOpen}
+        nextOpenMessage={nextOpenMessage}
+        notifySuccess={(item) => setAddedCartItem(item)}
+      />
     </section>
   );
 }

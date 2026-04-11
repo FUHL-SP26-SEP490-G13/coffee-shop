@@ -8,16 +8,16 @@ import { Button } from "@/components/ui/button";
 
 export default function FeaturedNews() {
   const fetchNews = useCallback(() => {
-    return newsService.getFeatured({ limit: 6 });
+    return newsService.getAll({ limit: 6 });
   }, []);
 
   const { data: newsData, loading } = useFetch(fetchNews);
 
-  const featuredNews = newsData?.data || [];
+  const featuredNews = newsData?.data?.items || [];
 
   if (loading) {
     return (
-      <div className="bg-gradient-to-b from-background to-muted/30 py-16 md:py-20">
+      <div className="bg-gradient-to-b from-background to-muted/30 py-8 md:py-12 lg:py-16">
         <div className="w-full w-full mx-auto px-4 sm:px-6 lg:px-8 xl:px-12">
           <div className="flex items-center justify-center py-12">
             <div className="text-center space-y-4">
@@ -33,7 +33,7 @@ export default function FeaturedNews() {
   if (!featuredNews.length) return null;
 
   return (
-    <div className="py-8 md:py-4 bg-white dark:bg-gray-950 overflow-hidden">
+    <div className="py-8 md:py-12 lg:py-16 bg-white dark:bg-gray-950 overflow-hidden">
       <div className="w-full px-4 lg:px-6 xl:px-8">
         <div className="relative bg-gradient-to-b from-background via-muted/20 to-background rounded-none sm:rounded-3xl py-12 md:py-16 px-4 sm:px-8 lg:px-12 w-full">
           {/* Decorative Background Elements */}

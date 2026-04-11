@@ -7,6 +7,9 @@ import {
   Bell,
   Printer,
   Coffee,
+  CheckCircle,
+  Loader2,
+  BookOpen,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -34,9 +37,10 @@ import baristaDBService from "@/services/baristaDBService";
 import orderOnlineService from "@/services/orderOnlineService";
 import authenticationService from "@/services/authenticationService";
 import takeawayService from "@/services/takeAwayService";
-import { ReceiptModal } from "./TakeAwayOrder/ReceiptModal";
+import BaristaViewRecipe from "../barista/BaristaOrder/BaristaViewRecipe";
+import { PrintableReceipt } from "./PrintableReceipt";
 
-const STAFF_TAB_STATUSES = ["pending", "preparing", "completed", "cancelled"];
+const STAFF_TAB_STATUSES = ["pending", "preparing", "served", "completed", "cancelled"];
 
 const statusLabelMap = {
   pending: {
@@ -70,7 +74,10 @@ const ORDER_TYPE_COLUMNS = [
   { key: "takeaway", label: "Mang về", icon: ShoppingBag },
 ];
 
-const DELIVERY_FEE = 20000;
+const LOYALTY_MONEY_PER_POINT = 100;
+const MONEY_ROUNDING_UNIT = 100;
+const LEGACY_DELIVERY_SHIPPING_FEE = 20000;
+const DYNAMIC_SHIPPING_ROLLOUT_AT = new Date("2026-04-07T00:00:00.000Z").getTime();
 
 const normalizeOrderType = (value) => {
   const type = String(value || "").toLowerCase();
@@ -91,6 +98,78 @@ const isDeliveryOrder = (order) =>
   normalizeOrderType(order?.order_type) === "delivery";
 
 const money = (value) => Number(value || 0).toLocaleString("vi-VN") + " đ";
+
+const calculateOrderItemsSubtotal = (items = []) => {
+  if (!Array.isArray(items)) return 0;
+
+  return items.reduce((sum, item) => {
+    const itemQuantity = Math.max(1, Number(item?.quantity) || 1);
+    const unitPrice = Number(item?.price ?? item?.unit_price ?? 0);
+    return sum + Math.max(0, unitPrice * itemQuantity);
+  }, 0);
+};
+
+const shouldUseLegacyShippingFallback = (order) => {
+  const createdAtMs = new Date(order?.created_at || 0).getTime();
+  return Number.isFinite(createdAtMs) && createdAtMs < DYNAMIC_SHIPPING_ROLLOUT_AT;
+};
+
+const getShippingFee = (order) => {
+  if (!isDeliveryOrder(order)) return 0;
+
+  const feeFromApi = Number(order?.shipping_fee);
+  if (Number.isFinite(feeFromApi) && feeFromApi > 0) {
+    return Math.round(feeFromApi / MONEY_ROUNDING_UNIT) * MONEY_ROUNDING_UNIT;
+  }
+
+  const loyaltyDiscountAmount =
+    Math.max(0, Number(order?.used_points || 0)) * LOYALTY_MONEY_PER_POINT;
+  const orderTotal = Math.max(0, Number(order?.total_amount || 0));
+  const itemsSubtotal = calculateOrderItemsSubtotal(order?.items);
+
+  const derived =
+    Math.round((orderTotal + loyaltyDiscountAmount - itemsSubtotal) / MONEY_ROUNDING_UNIT) *
+    MONEY_ROUNDING_UNIT;
+  if (Number.isFinite(derived) && derived > 0) {
+    return derived;
+  }
+
+  if (shouldUseLegacyShippingFallback(order)) {
+    return LEGACY_DELIVERY_SHIPPING_FEE;
+  }
+
+  return 0;
+};
+
+const getOrderAmount = (order) => {
+  return Math.max(0, Number(order?.amount || 0));
+};
+
+const getOrderDeliveryFee = (order) => {
+  if (!isDeliveryOrder(order)) return 0;
+
+  const feeFromApi = Number(order?.delivery_fee ?? order?.shipping_fee);
+  if (Number.isFinite(feeFromApi) && feeFromApi >= 0) {
+    return Math.round(feeFromApi / MONEY_ROUNDING_UNIT) * MONEY_ROUNDING_UNIT;
+  }
+
+  return getShippingFee(order);
+};
+
+const getOrderDiscountAmount = (order) => {
+  const discountFromApi = Number(order?.discount_amount);
+  if (Number.isFinite(discountFromApi) && discountFromApi >= 0) {
+    return discountFromApi;
+  }
+
+  const amountForDiscountCalc = Math.max(
+    0,
+    Number(order?.amount || 0) || calculateOrderItemsSubtotal(order?.items)
+  );
+  const total = Math.max(0, Number(order?.total_amount || 0));
+  const deliveryFee = Math.max(0, getOrderDeliveryFee(order));
+  return Math.max(0, amountForDiscountCalc + deliveryFee - total);
+};
 
 const getDisplayName = (user) => {
   const firstName = String(user?.first_name || "").trim();
@@ -181,6 +260,8 @@ export function OrderDelivery() {
   const [newOrderCount, setNewOrderCount] = useState(0);
   const [selectedOrderType, setSelectedOrderType] = useState("all");
   const [viewingReceipt, setViewingReceipt] = useState(null);
+  const [viewRecipeItem, setViewRecipeItem] = useState(null);
+  const [preparingSubTab, setPreparingSubTab] = useState("preparing");
   const [cashPaymentDialog, setCashPaymentDialog] = useState({
     open: false,
     order: null,
@@ -245,13 +326,16 @@ export function OrderDelivery() {
   useEffect(() => {
     const notifyAndReload = (label, data) => {
       setNewOrderCount((prev) => prev + 1);
-      toast.success(`Có đơn ${label} mới! (#${data.order_id})`);
+      toast.success(`Có đơn ${label} mới! (#${data.order_id || data.id || ''})`);
       loadOrders();
     };
 
     const handleNewDeliveryOrder = (data) => notifyAndReload("giao hàng", data);
-
     const handleNewTakeawayOrder = (data) => notifyAndReload("mang về", data);
+    
+    const silentReload = () => {
+      loadOrders();
+    };
 
     if (!socket.connected) {
       socket.connect();
@@ -259,17 +343,32 @@ export function OrderDelivery() {
 
     socket.on("new-delivery-order", handleNewDeliveryOrder);
     socket.on("new-takeaway-order", handleNewTakeawayOrder);
+    
+    // Barista-like background refreshing events
+    socket.on("new-order", silentReload);
+    socket.on("new-dine-in-order", silentReload);
+    socket.on("order-online:new", silentReload);
+    socket.on("barista:notification", silentReload);
 
     return () => {
       socket.off("new-delivery-order", handleNewDeliveryOrder);
       socket.off("new-takeaway-order", handleNewTakeawayOrder);
+      socket.off("new-order", silentReload);
+      socket.off("new-dine-in-order", silentReload);
+      socket.off("order-online:new", silentReload);
+      socket.off("barista:notification", silentReload);
     };
   }, [loadOrders]);
 
   const activeStatusOrders = useMemo(() => {
-    const list = orders.filter((order) => order?.status === activeStatus);
+    const list = orders.filter((order) => {
+      if (activeStatus === "preparing") {
+        return order?.status === preparingSubTab;
+      }
+      return order?.status === activeStatus;
+    });
     return sortOrdersByStatus(activeStatus, list);
-  }, [activeStatus, orders]);
+  }, [activeStatus, preparingSubTab, orders]);
 
   const delayedOrdersCount = useMemo(() => {
     if (!["pending", "preparing"].includes(activeStatus)) return 0;
@@ -458,12 +557,13 @@ export function OrderDelivery() {
     }
   };
 
-  const handleCompleteDeliveryOrder = async (orderId) => {
+  const handleCompleteDeliveryOrder = async (orderId, autoCashReceived = undefined) => {
     setCompletingId(orderId);
     let success = false;
 
     try {
-      await orderOnlineService.completeDeliveryByStaff(orderId);
+      const payload = autoCashReceived !== undefined ? { cash_received: autoCashReceived } : undefined;
+      await orderOnlineService.completeDeliveryByStaff(orderId, payload);
       toast.success("Đơn đã chuyển sang Completed");
       await loadOrders();
       success = true;
@@ -528,6 +628,7 @@ export function OrderDelivery() {
 
   const selectedOrderIsPending = selectedOrder?.status === "pending";
   const selectedOrderIsPreparing = selectedOrder?.status === "preparing";
+  const selectedOrderIsServed = selectedOrder?.status === "served";
   const selectedOrderPaid = isOrderPaid(selectedOrder);
   const selectedOrderIsPendingUnpaidDelivery =
     selectedOrderIsPending &&
@@ -547,7 +648,10 @@ export function OrderDelivery() {
 
   const handleCompleteFromDetail = async () => {
     if (!selectedOrder) return;
-    const success = await handleCompleteDeliveryOrder(selectedOrder.id);
+    const success = await handleCompleteDeliveryOrder(
+      selectedOrder.id,
+      !selectedOrderPaid ? Number(selectedOrder.total_amount || 0) : undefined
+    );
     if (success) {
       setIsDetailOpen(false);
     }
@@ -596,7 +700,7 @@ export function OrderDelivery() {
       );
     }
 
-    if (selectedOrderIsPreparing) {
+    if (selectedOrderIsPreparing || selectedOrderIsServed) {
       if (!selectedOrderHasPrintedReceipt) {
         return (
           <Button onClick={() => handlePrintReceipt(selectedOrder.id)}>
@@ -609,16 +713,12 @@ export function OrderDelivery() {
       return (
         <>
           <Button
-            onClick={() =>
-              !selectedOrderPaid
-                ? openCashPaymentDialog(selectedOrder)
-                : handleCompleteFromDetail()
-            }
+            onClick={() => handleCompleteFromDetail()}
             disabled={completingId === selectedOrder.id}
           >
             {completingId === selectedOrder.id
               ? "Đang cập nhật..."
-              : "Thành công"}
+              : "Hoàn thành"}
           </Button>
 
           <Button
@@ -637,6 +737,9 @@ export function OrderDelivery() {
 
   const renderCompactOrderCard = (order) => {
     const paid = isOrderPaid(order);
+    const amount = getOrderAmount(order);
+    const discountAmount = getOrderDiscountAmount(order);
+    const deliveryFee = getOrderDeliveryFee(order);
 
     return (
       <Card key={order.id} className="border-slate-200 dark:border-slate-700 bg-white dark:bg-gray-900 shadow-sm dark:shadow-none">
@@ -663,17 +766,39 @@ export function OrderDelivery() {
           </div>
 
           <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-            <p className="text-base font-bold leading-none text-emerald-600 dark:text-emerald-300">
+            <p className="text-base font-bold color-green-500 leading-none text-slate-900 ">
               {money(order.total_amount)}
             </p>
-            <Button
-              size="sm"
-              className="h-9 w-full px-3 text-sm sm:h-7 sm:w-auto sm:px-2.5 sm:text-xs"
-              variant={activeStatus === "pending" ? "default" : "outline"}
-              onClick={() => openDetailModal(order)}
-            >
-              {activeStatus === "pending" ? "Xác nhận" : "Xem chi tiết"}
-            </Button>
+            <div className="flex w-full items-center gap-2 sm:w-auto">
+              <Button
+                size="sm"
+                className={`h-9 flex-1 text-sm sm:h-7 sm:px-2.5 sm:text-xs ${activeStatus === "preparing" ? "" : "w-full sm:w-auto"}`}
+                variant={activeStatus === "pending" ? "default" : "outline"}
+                onClick={() => openDetailModal(order)}
+              >
+                {activeStatus === "pending" ? "Xác nhận" : "Chi tiết"}
+              </Button>
+              {activeStatus === "preparing" && (
+                <Button
+                  size="sm"
+                  className="h-9 flex-1 px-3 text-sm font-semibold sm:h-7 sm:w-auto sm:px-3 sm:text-xs bg-primary hover:bg-primary/90 text-primary-foreground"
+                  disabled={completingId === order.id}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleCompleteDeliveryOrder(
+                      order.id, 
+                      !paid ? Number(order.total_amount || 0) : undefined
+                    );
+                  }}
+                >
+                  {completingId === order.id ? (
+                    <Loader2 className="mx-auto h-3 w-3 animate-spin text-white" />
+                  ) : (
+                    "Hoàn thành"
+                  )}
+                </Button>
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -681,10 +806,10 @@ export function OrderDelivery() {
   };
 
   return (
-    <div className="mx-auto space-y-3 px-4 pb-1 pt-1 md:px-6 md:pb-3 md:pt-2">
-      <h2 className="truncate text-lg font-bold tracking-tight text-slate-900 dark:text-slate-100 md:text-xl">
-              Danh sách đơn hàng
-            </h2>
+    <div className="p-4 sm:p-6 lg:p-8 space-y-6">
+      <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+        Danh sách đơn hàng
+      </h1>
       <div className="px-3 py-2 md:px-4 md:py-2.5">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
@@ -725,7 +850,24 @@ export function OrderDelivery() {
           </div>
         </div>
 
-        <div className="mt-2.5 flex items-center gap-1.5 overflow-x-auto border-t border-slate-100 dark:border-slate-700/70 pb-0.5 pt-2.5 md:flex-wrap md:overflow-visible md:pb-0">
+        <div className="mt-2.5 flex items-center gap-1.5 overflow-x-auto border-t border-slate-100 pb-0.5 pt-2.5 md:flex-wrap md:overflow-visible md:pb-0">
+          {activeStatus === "preparing" && (
+            <div className="flex bg-slate-100/80 p-0.5 rounded-lg mr-2 shrink-0 border border-slate-200/60 shadow-sm">
+               <button 
+                 onClick={() => setPreparingSubTab('preparing')}
+                 className={`px-3.5 py-1.5 rounded-md text-sm font-semibold transition-all ${preparingSubTab === 'preparing' ? 'bg-white shadow-sm text-primary' : 'text-slate-600 hover:text-slate-900'}`}
+               >
+                 Đang làm
+               </button>
+               <button 
+                 onClick={() => setPreparingSubTab('served')}
+                 className={`px-3.5 py-1.5 rounded-md text-sm font-semibold transition-all ${preparingSubTab === 'served' ? 'bg-white shadow-sm text-primary' : 'text-slate-600 hover:text-slate-900'}`}
+               >
+                 Đã xong
+               </button>
+            </div>
+          )}
+
           {Object.entries(orderTypeLabelMap).map(([typeKey, label]) => (
             <Button
               key={typeKey}
@@ -811,7 +953,7 @@ export function OrderDelivery() {
           }
         }}
       >
-        <DialogContent className="sm:max-w-2xl">
+        <DialogContent contentWidth="70rem" className="sm:max-w-4xl">
           <DialogHeader>
             <DialogTitle>
               Chi tiết đơn {getOrderTypeLabel(selectedOrder?.order_type)} #
@@ -824,81 +966,150 @@ export function OrderDelivery() {
               Đang tải chi tiết...
             </p>
           ) : selectedOrder ? (
-            <div className="max-h-[70vh] space-y-4 overflow-y-auto pr-1">
-              <div className="grid gap-2 rounded-md border p-3 text-sm sm:grid-cols-2">
-                <p>
-                  Người nhận:{" "}
-                  <span className="font-medium">
-                    {selectedOrder.receiver_name || "Không có tên người nhận"}
-                  </span>
-                </p>
-                <p>
-                  Số điện thoại:{" "}
-                  <span className="font-medium">
-                    {selectedOrder.receiver_phone || "Không có số điện thoại"}
-                  </span>
-                </p>
-                <p>
-                  Email:{" "}
-                  <span className="font-medium">
-                    {selectedOrder.receiver_email || "Không có email"}
-                  </span>
-                </p>
-                <p>
-                  Địa chỉ:{" "}
-                  <span className="font-medium">
-                    {selectedOrder.address || "Không có địa chỉ"}
-                  </span>
-                </p>
-                <p>
-                  Phương thức thanh toán:{" "}
-                  <span className="font-medium">
-                    {getPaymentMethodLabel(selectedOrder)}
-                  </span>
-                </p>
-                <p>
-                  Trạng thái thanh toán:{" "}
-                  <span className="font-medium">
-                    {selectedOrderPaid ? "Đã thanh toán" : "Chưa thanh toán"}
-                  </span>
-                </p>
-                {selectedOrder.note ? (
-                  <p className="sm:col-span-2">
-                    Ghi chú đơn hàng:{" "}
-                    <span className="font-medium">{selectedOrder.note}</span>
-                  </p>
-                ) : null}
-
-                {selectedOrderIsPendingUnpaidDelivery ? (
-                  <div className="sm:col-span-2 mt-2 rounded-md border border-amber-200 dark:border-amber-800/50 bg-amber-50 dark:bg-amber-900/30 p-3">
-                    <p className="mb-2 text-sm font-semibold text-amber-900 dark:text-amber-200">
-                      Xử lý đơn giao hàng chưa thanh toán
+            <div className="max-h-[70vh] overflow-y-auto pr-1">
+              <div className="grid gap-4 md:grid-cols-12">
+                <div className="md:col-span-5 space-y-4">
+                  <div className="space-y-2 rounded-md border p-3 text-sm">
+                    <p className="text-sm font-semibold">Thông tin người nhận</p>
+                    <p>
+                      Người nhận:{" "}
+                      <span className="font-medium">
+                        {selectedOrder.receiver_name || "Khách lẻ"}
+                      </span>
                     </p>
-                    <div className="grid gap-2 sm:grid-cols-2">
-                      <label className="flex items-center gap-2 text-sm text-amber-900 dark:text-amber-200">
-                        <input
-                          type="radio"
-                          name="modal-pending-action"
-                          className="h-4 w-4"
-                          checked={detailPendingAction === "confirm"}
-                          onChange={() => setDetailPendingAction("confirm")}
-                        />
-                        <span>Nhận đơn</span>
-                      </label>
+                    <p>
+                      Số điện thoại:{" "}
+                      <span className="font-medium">
+                        {selectedOrder.receiver_phone || "Không có số điện thoại"}
+                      </span>
+                    </p>
+                    <p>
+                      Email:{" "}
+                      <span className="font-medium">
+                        {selectedOrder.receiver_email || "Không có email"}
+                      </span>
+                    </p>
+                    <p>
+                      Địa chỉ:{" "}
+                      <span className="font-medium">
+                        {selectedOrder.address || "Không có địa chỉ"}
+                      </span>
+                    </p>
+                    {selectedOrder.note ? (
+                      <p>
+                        Ghi chú đơn hàng:{" "}
+                        <span className="font-medium">{selectedOrder.note}</span>
+                      </p>
+                    ) : null}
+                  </div>
 
-                      <label className="flex items-center gap-2 text-sm text-amber-900 dark:text-amber-200">
-                        <input
-                          type="radio"
-                          name="modal-pending-action"
-                          className="h-4 w-4"
-                          checked={detailPendingAction === "cancel"}
-                          onChange={() => setDetailPendingAction("cancel")}
-                        />
-                        <span>Hủy đơn</span>
-                      </label>
+                  {selectedOrderIsPendingUnpaidDelivery ? (
+                    <div className="rounded-md border border-amber-200 bg-amber-50 p-3 dark:border-amber-800/50 dark:bg-amber-900/30">
+                      <p className="mb-2 text-sm font-semibold text-amber-900 dark:text-amber-200">
+                        Xử lý đơn giao hàng chưa thanh toán
+                      </p>
+                      <div className="grid gap-2 sm:grid-cols-2">
+                        <label className="flex items-center gap-2 text-sm text-amber-900 dark:text-amber-200">
+                          <input
+                            type="radio"
+                            name="modal-pending-action"
+                            className="h-4 w-4"
+                            checked={detailPendingAction === "confirm"}
+                            onChange={() => setDetailPendingAction("confirm")}
+                          />
+                          <span>Nhận đơn</span>
+                        </label>
+
+                        <label className="flex items-center gap-2 text-sm text-amber-900 dark:text-amber-200">
+                          <input
+                            type="radio"
+                            name="modal-pending-action"
+                            className="h-4 w-4"
+                            checked={detailPendingAction === "cancel"}
+                            onChange={() => setDetailPendingAction("cancel")}
+                          />
+                          <span>Hủy đơn</span>
+                        </label>
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+
+                <div className="md:col-span-7 space-y-4">
+                  <div className="space-y-2 rounded-md border p-3">
+                    <p className="text-sm font-semibold">Danh sách món và topping</p>
+                    {Array.isArray(selectedOrder.items) &&
+                    selectedOrder.items.length > 0 ? (
+                      selectedOrder.items.map((item) => (
+                        <div
+                          key={`${selectedOrder.id}-${item.id || item.product_name || item.name}`}
+                          className="rounded-md border p-2 text-sm"
+                        >
+                          <p className="font-medium">
+                            {item.name ||
+                              item.productName ||
+                              item.product_name ||
+                              "Sản phẩm"}
+                          </p>
+                          <p className="text-muted-foreground">
+                            Size {item.size} • x{item.quantity} •{" "}
+                            {money(item.price || item.total_price)}
+                          </p>
+                          {Array.isArray(item.toppings) &&
+                          item.toppings.length > 0 ? (
+                            <p className="text-muted-foreground">
+                              Topping:{" "}
+                              {item.toppings
+                                .map((top) => `${top.name} x${top.quantity || 1}`)
+                                .join(", ")}
+                            </p>
+                          ) : (
+                            <p className="text-muted-foreground">Không có topping</p>
+                          )}
+                          {item.note ? (
+                            <p className="text-muted-foreground">Ghi chú: {item.note}</p>
+                          ) : null}
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-sm text-muted-foreground">
+                        Đơn chưa có sản phẩm.
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2 rounded-md border bg-slate-50 p-3 text-sm dark:bg-slate-800/40">
+                    <p className="text-sm font-semibold">Thông tin thanh toán</p>
+                    <div className="flex justify-between text-slate-600 dark:text-slate-300">
+                      <span>Tạm tính</span>
+                      <span className="font-medium">{money(getOrderAmount(selectedOrder))}</span>
+                    </div>
+                    <div className="flex justify-between text-rose-600 dark:text-rose-300">
+                      <span>Giảm giá</span>
+                      <span className="font-medium">-{money(getOrderDiscountAmount(selectedOrder))}</span>
+                    </div>
+                    <div className="flex justify-between text-sky-600 dark:text-sky-300">
+                      <span>Phí vận chuyển</span>
+                      <span className="font-medium">+{money(getOrderDeliveryFee(selectedOrder))}</span>
+                    </div>
+                    <div className="flex justify-between border-t pt-2 font-semibold">
+                      <span>Tổng thanh toán</span>
+                      <span>{money(selectedOrder.total_amount)}</span>
+                    </div>
+                    <div className="flex justify-between text-muted-foreground">
+                      <span>Phương thức thanh toán</span>
+                      <span className="font-medium text-foreground">
+                        {getPaymentMethodLabel(selectedOrder)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-muted-foreground">
+                      <span>Trạng thái thanh toán</span>
+                      <span className="font-medium text-foreground">
+                        {selectedOrderPaid ? "Đã thanh toán" : "Chưa thanh toán"}
+                      </span>
                     </div>
                   </div>
-                ) : null}
+                </div>
               </div>
 
               <div className="space-y-2 rounded-md border p-3">
@@ -910,36 +1121,64 @@ export function OrderDelivery() {
                   selectedOrder.items.map((item) => (
                     <div
                       key={`${selectedOrder.id}-${item.id || item.product_name || item.name}`}
-                      className="rounded-md border p-2 text-sm"
+                      className="flex items-start justify-between gap-2.5 rounded-md border p-2 text-sm"
                     >
-                      <p className="font-medium">
-                        {item.name ||
-                          item.productName ||
-                          item.product_name ||
-                          "Sản phẩm"}
-                      </p>
-                      <p className="text-muted-foreground">
-                        Size {item.size} • x{item.quantity} •{" "}
-                        {money(item.price || item.total_price)}
-                      </p>
-                      {Array.isArray(item.toppings) &&
-                      item.toppings.length > 0 ? (
-                        <p className="text-muted-foreground">
-                          Topping:{" "}
-                          {item.toppings
-                            .map((top) => `${top.name} x${top.quantity || 1}`)
-                            .join(", ")}
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium text-slate-900">
+                          {item.name ||
+                            item.productName ||
+                            item.product_name ||
+                            "Sản phẩm"}
                         </p>
-                      ) : (
-                        <p className="text-muted-foreground">
-                          Không có topping
+                        <p className="text-muted-foreground mt-0.5">
+                          Size {item.size} • x{item.quantity} •{" "}
+                          <span className="font-medium text-slate-700">{money(item.price || item.total_price)}</span>
                         </p>
+                        {Array.isArray(item.toppings) &&
+                        item.toppings.length > 0 ? (
+                          <div className="mt-1 flex flex-wrap gap-1">
+                            {item.toppings.map((top, idx) => (
+                              <span key={idx} className="rounded-sm border bg-slate-50 px-1.5 py-0.5 text-[11px] text-slate-600">
+                                {top.name} {top.quantity > 1 ? `x${top.quantity}` : ''}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-muted-foreground mt-0.5 text-[11px]">
+                            Không có topping
+                          </p>
+                        )}
+                        {item.note ? (
+                          <p className="text-muted-foreground mt-0.5 italic text-[12px]">
+                            Ghi chú: {item.note}
+                          </p>
+                        ) : null}
+                      </div>
+
+                      {activeStatus === "preparing" && (
+                        <div className="flex shrink-0 items-center justify-end">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 rounded-sm border-primary/30 px-2.5 text-xs text-primary shadow-sm hover:bg-primary hover:text-white"
+                            onClick={() =>
+                              setViewRecipeItem({
+                                product: {
+                                  id: item.productId || item.product_id,
+                                  name: item.name || item.productName || item.product_name,
+                                },
+                                size: {
+                                  id: item.productSizeId || item.size_id || item.product_size_id,
+                                  size: item.size,
+                                },
+                              })
+                            }
+                          >
+                            <BookOpen className="mr-1.5 h-3 w-3" />
+                            Công thức
+                          </Button>
+                        </div>
                       )}
-                      {item.note ? (
-                        <p className="text-muted-foreground">
-                          Ghi chú: {item.note}
-                        </p>
-                      ) : null}
                     </div>
                   ))
                 ) : (
@@ -951,7 +1190,7 @@ export function OrderDelivery() {
 
               <div className="flex flex-col items-end gap-1">
                 {isDeliveryOrder(selectedOrder) ? (
-                  <p className="text-sm text-slate-600 dark:text-slate-300">
+                  <p className="text-sm text-slate-600">
                     Phí vận chuyển:{" "}
                     <span className="font-medium">{money(DELIVERY_FEE)}</span>
                   </p>
@@ -983,11 +1222,10 @@ export function OrderDelivery() {
       </Dialog>
 
       {viewingReceipt && (
-        <ReceiptModal
-          autoPrint={viewingReceipt.autoPrint}
+        <PrintableReceipt
           order={viewingReceipt}
-          onPrint={handleMarkPrintSuccess}
-          onClose={() => setViewingReceipt(null)}
+          onPrintSuccess={handleMarkPrintSuccess}
+          onDone={() => setViewingReceipt(null)}
         />
       )}
 
@@ -1087,6 +1325,14 @@ export function OrderDelivery() {
           </div>
         </DialogContent>
       </Dialog>
+      {viewRecipeItem && (
+        <BaristaViewRecipe
+          open={!!viewRecipeItem}
+          product={viewRecipeItem.product}
+          size={viewRecipeItem.size}
+          onClose={() => setViewRecipeItem(null)}
+        />
+      )}
     </div>
   );
 }

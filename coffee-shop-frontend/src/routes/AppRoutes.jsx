@@ -19,11 +19,8 @@ import AdminProducts from "@/pages/admin/AdminProduct/AdminProducts";
 import AdminCategories from "@/pages/admin/AdminCategory/AdminCategories";
 import NewsDetailPage from "@/pages/homePage/news/NewsDetailPage";
 import NewsListPage from "@/pages/homePage/news/NewsListPage";
-import DiscountListPage from "@/pages/homePage/discount/DiscountListPage";
 import AdminDiscounts from "@/pages/admin/AdminDiscount/AdminDiscounts";
 import AdminRequests from "../pages/admin/AdminRequest/AdminRequests";
-// import AdminDiscountCreate from "@/pages/admin/AdminDiscount/AdminDiscountCreate";
-// import AdminDiscountEdit from "@/pages/admin/AdminDiscount/AdminDiscountEdit";
 import OrderPolicy from "@/pages/common/OrderPolicy";
 import PrivacyPolicy from "@/pages/common/PrivacyPolicy";
 import AdminApp from "../pages/admin/AdminApp";
@@ -43,7 +40,7 @@ import { BaristaOrders } from "@/pages/barista/BaristaOrder/BaristaOrders";
 import { BaristaAttendance } from "@/pages/barista/BaristaAttendance/BaristaAttendance";
 import { BaristaSchedule } from "@/pages/barista/BaristaSchedule/BaristaSchedule";
 import { BaristaRequests } from "@/pages/barista/BaristaRequest/BaristaRequests";
-import { StaffApp } from "@/pages/staff/StaffApp";
+import { StaffAppWrapped } from "../pages/staff/StaffApp";
 import { BaristaApp } from "@/pages/barista/BaristaApp";
 import ProductListPage from "../pages/homePage/product/ProductListPage";
 import ProductDetailPage from "../pages/homePage/product/ProductDetailPage";
@@ -53,7 +50,6 @@ import OrderQRMenu from "@/pages/homePage/order/OrderQRMenu";
 import MyOrderQRDetail from "@/pages/homePage/order/MyOrderQRDetail";
 import PayOSReturnSuccess from "@/pages/common/PayOSReturnSuccess";
 import AdminDB from "@/pages/admin/AdminDB/AdminDB";
-import FavoritePage from "@/pages/homePage/favorite/FavoritePage";
 import AdminReviews from "@/pages/admin/AdminReview/AdminReview";
 import MyOrderOnlinePage from "../pages/homePage/order/MyOrderOnlinePage";
 import MyOrderDetailPage from "../pages/homePage/order/MyOrderDetailPage";
@@ -62,13 +58,15 @@ import AdminFlashSales from "@/pages/admin/AdminFlashSale/AdminFlashSales";
 import AdminReputation from "@/pages/admin/AdminReputation/AdminReputation";
 import AdminLoyalty from "@/pages/admin/AdminLoyalty/AdminLoyalty";
 import AdminNewsletterPage from "@/pages/admin/AdminNewsletter/AdminNewsletterPage";
+import AdminEndOfDayReport from "@/pages/admin/AdminEndOfDayReport/AdminEndOfDayReport";
 import TakeawayPOS from '../pages/staff/TakeawayPOS'
 import { OrderDelivery } from '@/pages/staff/StaffOrderList';
-import { StaffDashboard } from "@/pages/staff/StaffDashboard";
+import { StaffDashboard } from "@/pages/staff/StaffDashboard/StaffDashboard";
 import StaffPayOSReturn from "@/pages/staff/StaffPayOSReturn";
 import StoreInfoPage from "@/pages/common/StoreInfoPage";
 import GenericSlugResolver from "../pages/common/GenericSlugResolver";
 import AboutUsPage from "@/pages/common/AboutUsPage";
+import ClientLayout from "@/components/layout/ClientLayout";
 
 const getStoredValue = (key) =>
   localStorage.getItem(key) || sessionStorage.getItem(key);
@@ -123,12 +121,47 @@ const RoleGuard = ({ allowedRoles, children }) => {
   return children;
 };
 
+const HomeEntryGuard = () => {
+  const token = getStoredValue(STORAGE_KEYS.ACCESS_TOKEN);
+  const [roleId, setRoleId] = useState(null);
+  const [isLoading, setIsLoading] = useState(Boolean(token));
+
+  useEffect(() => {
+    if (!token) {
+      return;
+    }
+
+    authenticationService
+      .getProfile()
+      .then((res) => {
+        setRoleId(Number(res?.data?.role_id));
+      })
+      .catch(() => {
+        setRoleId(null);
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
+  }, [token]);
+
+  if (isLoading)
+    return (
+      <div className="flex h-screen items-center justify-center">
+        Đang tải...
+      </div>
+    );
+
+  if ([1, 2, 3].includes(roleId)) {
+    return <Navigate to={getRoleHomeRoute(roleId)} replace />;
+  }
+
+  return <HomePage />;
+};
+
 const AppRoutes = () => {
   return (
     <Routes>
-      <Route path="/" element={<HomePage />} />
-      {/* Route /products đã được chuyển vào /:slug (GenericSlugResolver) để chống chớp giật Grid */}
-      <Route path="/products/:id" element={<ProductDetailPage />} />
+      {/* Client Routes are grouped below */}
       <Route path={APP_ROUTES.LOGIN} element={<LoginPage />} />
       <Route path={APP_ROUTES.REGISTER} element={<RegisterPage />} />
       <Route
@@ -148,7 +181,7 @@ const AppRoutes = () => {
         path="/staff"
         element={
           <RoleGuard allowedRoles={[2]}>
-            <StaffApp />
+            <StaffAppWrapped />
           </RoleGuard>
         }
       >
@@ -195,6 +228,7 @@ const AppRoutes = () => {
       >
         <Route index element={<Navigate to="dashboard" replace />} />
         <Route path="dashboard" element={<AdminDB />} />
+        <Route path="end-of-day-report" element={<AdminEndOfDayReport />} />
         <Route path="menu/products" element={<AdminProducts />} />
         <Route path="menu/categories" element={<AdminCategories />} />
         <Route path="orders" element={<AdminOrders />} />
@@ -218,52 +252,49 @@ const AppRoutes = () => {
         <Route path="loyalty" element={<AdminLoyalty />} />
         <Route path="receipt-settings" element={<AdminReceiptSettings />} />
         <Route path="flash-sales" element={<AdminFlashSales />} />
-        <Route path="newsletters" element={<AdminNewsletterPage />} />
+        <Route path="newsletter" element={<AdminNewsletterPage />} />
       </Route>
-      <Route path="/news/:slug" element={<NewsDetailPage />} />
-      <Route path="/news" element={<NewsListPage />} />
-      <Route path="/discounts" element={<DiscountListPage />} />
-      <Route path="/store" element={<StoreInfoPage />} />
-      <Route path="/about-us" element={<AboutUsPage />} />
-      <Route path="/customer/profile" element={<UserProfile />} />
-      {/* Only allow customers to access favorites */}
-      <Route
-        path="/favorites"
-        element={
-          <RoleGuard allowedRoles={[4]}>
-            <FavoritePage />
-          </RoleGuard>
-        }
-      />
-      <Route path="/order-policy" element={<OrderPolicy />} />
-      <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-      <Route path="/payment-policy" element={<PaymentPolicyPage />} />
+      <Route element={<ClientLayout />}>
+        <Route path="/" element={<HomeEntryGuard />} />
+        {/* Route /products đã được chuyển vào /:slug (GenericSlugResolver) để chống chớp giật Grid */}
+        <Route path="/products/:id" element={<ProductDetailPage />} />
+        
+        <Route path="/news/:slug" element={<NewsDetailPage />} />
+        <Route path="/news" element={<NewsListPage />} />
+        <Route path="/store" element={<StoreInfoPage />} />
+        <Route path="/about-us" element={<AboutUsPage />} />
+        <Route path="/customer/profile" element={<UserProfile />} />
 
-      <Route path="/cart" element={<CartPage />} />
-      <Route path="/checkout" element={<CheckoutPage />} />
-      <Route path="/payment-result" element={<PayOSReturnSuccess />} />
-      <Route
-        path="/my-orders"
-        element={
-          <RoleGuard allowedRoles={[4]}>
-            <MyOrderOnlinePage />
-          </RoleGuard>
-        }
-      />
-      <Route
-        path="/my-orders/:id"
-        element={
-          <RoleGuard allowedRoles={[4]}>
-            <MyOrderDetailPage />
-          </RoleGuard>
-        }
-      />
+        <Route path="/order-policy" element={<OrderPolicy />} />
+        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+        <Route path="/payment-policy" element={<PaymentPolicyPage />} />
+
+        <Route path="/cart" element={<CartPage />} />
+        <Route path="/checkout" element={<CheckoutPage />} />
+        <Route path="/payment-result" element={<PayOSReturnSuccess />} />
+        <Route
+          path="/my-orders"
+          element={
+            <RoleGuard allowedRoles={[4]}>
+              <MyOrderOnlinePage />
+            </RoleGuard>
+          }
+        />
+        <Route
+          path="/my-orders/:id"
+          element={
+            <RoleGuard allowedRoles={[4]}>
+              <MyOrderDetailPage />
+            </RoleGuard>
+          }
+        />
+
+        <Route path="/404" element={<div className="flex-1 flex flex-col items-center justify-center min-h-[50vh]"><h1 className="text-2xl font-bold text-gray-500">404 - Trang không tồn tại</h1></div>} />
+        <Route path="/:slug" element={<GenericSlugResolver />} />
+      </Route>
 
       <Route path="/order" element={<OrderQRMenu />} />
       <Route path="/order/confirm" element={<MyOrderQRDetail />} />
-
-      {/* SEO Slug Resolver */}
-      <Route path="/:slug" element={<GenericSlugResolver />} />
 
       {/* 404 */}
       <Route

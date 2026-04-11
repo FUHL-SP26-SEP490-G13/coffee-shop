@@ -166,13 +166,13 @@ export default function AdminProducts() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className='w-16'>STT</TableHead>
-              <TableHead>Sản phẩm</TableHead>
-              <TableHead>Mã code</TableHead>
-              <TableHead>Danh mục</TableHead>
-              <TableHead>Kích cỡ & Giá</TableHead>
-              <TableHead>Trạng thái</TableHead>
-              <TableHead className='text-right'>Hành động</TableHead>
+              <TableHead className="text-center w-[60px]">STT</TableHead>
+              <TableHead className="min-w-[200px]">Sản phẩm</TableHead>
+              <TableHead className="text-center min-w-[100px]">Mã code</TableHead>
+              <TableHead className="text-center min-w-[120px]">Danh mục</TableHead>
+              <TableHead className="min-w-[130px]">Kích cỡ & Giá</TableHead>
+              <TableHead className="text-center min-w-[120px]">Trạng thái</TableHead>
+              <TableHead className="text-center min-w-[200px]">Hành động</TableHead>
             </TableRow>
           </TableHeader>
 
@@ -202,7 +202,7 @@ export default function AdminProducts() {
                 return (
                   <TableRow key={product.id}>
                     {/* STT */}
-                    <TableCell>
+                    <TableCell className="text-center font-medium">
                       {(currentPage - 1) * PAGE_SIZE + index + 1}
                     </TableCell>
 
@@ -222,15 +222,15 @@ export default function AdminProducts() {
                       </div>
                     </TableCell>
 
-                    {/* ✅ CODE (đưa lên đây) */}
-                    <TableCell>
+                    {/* CODE */}
+                    <TableCell className="text-center">
                       <Badge variant='secondary' className='font-mono'>
                         {product.code || 'N/A'}
                       </Badge>
                     </TableCell>
 
                     {/* CATEGORY */}
-                    <TableCell>
+                    <TableCell className="text-center">
                       <Badge variant='secondary'>
                         {category?.name || 'Không có'}
                       </Badge>
@@ -240,7 +240,7 @@ export default function AdminProducts() {
                     <TableCell>{formatSizes(product.sizes)}</TableCell>
 
                     {/* STATUS */}
-                    <TableCell>
+                    <TableCell className="text-center">
                       <Badge
                         className={
                           product.status === 'available'
@@ -255,30 +255,33 @@ export default function AdminProducts() {
                     </TableCell>
 
                     {/* ACTION */}
-                    <TableCell className='text-right'>
-                      <div className='flex items-center justify-end gap-2'>
+                    <TableCell>
+                      <div className='flex items-center justify-center gap-1'>
                         <Button
                           variant='outline'
                           size='sm'
                           className='cursor-pointer'
+                          title="Thêm công thức"
                           onClick={() => openModal('recipe', product)}
                         >
-                          Thêm công thức
+                          Thêm CT
                         </Button>
 
                         <Button
                           variant='secondary'
                           size='sm'
                           className='cursor-pointer'
+                          title="Xem công thức"
                           onClick={() => openModal('view-recipe', product)}
                         >
-                          Xem công thức
+                          Xem CT
                         </Button>
 
                         <Button
                           variant='ghost'
                           size='sm'
                           className='cursor-pointer'
+                          title="Chỉnh sửa"
                           onClick={() => openModal('update', product)}
                         >
                           <Edit className='w-4 h-4' />
@@ -287,7 +290,8 @@ export default function AdminProducts() {
                         <Button
                           variant='ghost'
                           size='sm'
-                          className='text-destructive cursor-pointer'
+                          className='text-destructive hover:text-red-600 cursor-pointer'
+                          title="Xóa"
                           onClick={() => openModal('delete', product)}
                         >
                           <Trash2 className='w-4 h-4' />

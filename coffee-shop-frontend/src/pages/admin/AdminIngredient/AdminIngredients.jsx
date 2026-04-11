@@ -91,13 +91,7 @@ export default function AdminIngredients() {
       {/* ===== HEADER ===== */}
       <div className='flex items-center justify-between mb-6'>
         <div>
-          <h2 className='text-2xl font-semibold mb-1 flex items-center gap-2'>
-            <Package className="w-6 h-6 text-primary" />
-            Nguyên liệu
-          </h2>
-          <p className='text-sm text-muted-foreground'>
-            Quản lý nguyên liệu pha chế
-          </p>
+          <h1 className="text-xl font-semibold mb-1">Quản lý nguyên liệu</h1>
         </div>
 
         <Button
@@ -134,11 +128,11 @@ export default function AdminIngredients() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className='w-16'>STT</TableHead>
-              <TableHead>Tên nguyên liệu</TableHead>
-              <TableHead>Loại đơn vị</TableHead>
-              <TableHead>Đơn vị</TableHead>
-              <TableHead className='text-right'>Hành động</TableHead>
+              <TableHead className="text-center w-[60px]">STT</TableHead>
+              <TableHead className="min-w-[180px]">Tên nguyên liệu</TableHead>
+              <TableHead className="text-center min-w-[130px]">Loại đơn vị</TableHead>
+              <TableHead className="text-center min-w-[120px]">Đơn vị</TableHead>
+              <TableHead className="text-center min-w-[140px]">Hành động</TableHead>
             </TableRow>
           </TableHeader>
 
@@ -162,24 +156,25 @@ export default function AdminIngredients() {
             {!loading &&
               paginatedIngredients.map((ingredient, index) => (
                 <TableRow key={ingredient.id}>
-                  <TableCell>
+                  <TableCell className="text-center font-medium">
                     {(currentPage - 1) * ITEMS_PER_PAGE + index + 1}
                   </TableCell>
                   <TableCell>
                     <div className='font-medium'>{ingredient.name}</div>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="text-center">
                     <div className='text-muted-foreground'>{ingredient.unit_type}</div>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="text-center">
                     <div className='text-muted-foreground'>{ingredient.unit}</div>
                   </TableCell>
-                  <TableCell className='text-right'>
-                    <div className='flex items-center justify-end gap-2'>
+                  <TableCell>
+                    <div className='flex items-center justify-center gap-1'>
                       <Button
                         variant='ghost'
                         className={'cursor-pointer'}
                         size='sm'
+                        title="Chỉnh sửa"
                         onClick={() => openModal('update', ingredient)}
                       >
                         <Edit className='w-4 h-4' />
@@ -188,7 +183,8 @@ export default function AdminIngredients() {
                       <Button
                         variant='ghost'
                         size='sm'
-                        className='text-destructive hover:text-destructive cursor-pointer'
+                        className='text-destructive hover:text-red-600 cursor-pointer'
+                        title="Xóa"
                         onClick={() => openModal('delete', ingredient)}
                       >
                         <Trash2 className='w-4 h-4' />

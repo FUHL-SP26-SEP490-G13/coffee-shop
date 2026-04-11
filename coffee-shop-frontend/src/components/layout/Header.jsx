@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import {
   ShoppingCart,
+  ShoppingBag,
   Search,
   User,
   LogOut,
@@ -13,16 +14,14 @@ import {
   Grid3X3,
   Loader2,
   Bell,
-  Heart,
   MapPin,
   Moon,
   Sun,
   Coins,
-  Ticket,
   LayoutList,
-  Info,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import {
   AlertDialog,
@@ -33,7 +32,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useNavigate } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
@@ -45,22 +43,20 @@ import productService from "@/services/productService";
 import notificationService from "@/services/notificationService";
 import socket from "@/lib/socket";
 import { getNotificationLink } from "@/utils/getNotificationLink";
-import favoriteService from "@/services/favoriteService";
 import loyaltyService from "@/services/loyaltyService";
+import flashSaleService from "@/services/flashSaleService";
 import LoyaltyHistoryModal from "@/components/loyalty/LoyaltyHistoryModal";
 import receiptSettingService from "@/services/receiptSettingService";
+import { cartService } from "@/services/cartService";
+import { useStoreHours } from "@/hooks/useStoreHours";
 
 const placeholders = [
   "Xin chào, bạn cần gì hôm nay?",
-  "Cà phê sữa đá",
-  "Trà đào cam sả",
-  "Sinh tố bơ béo ngậy",
 ];
-
-const CART_KEY = "cart_items";
 
 function Header() {
   const navigate = useNavigate();
+  const { isOpen: isStoreOpen, nextOpenMessage } = useStoreHours();
   const dropdownRef = useRef(null);
   const categoryDropdownRef = useRef(null);
   const exploreDropdownRef = useRef(null);
@@ -97,12 +93,10 @@ function Header() {
   const [open, setOpen] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [mobileUserDropdownOpen, setMobileUserDropdownOpen] = useState(false);
 
   const [categories, setCategories] = useState([]);
   const [categoryOpen, setCategoryOpen] = useState(false);
   const [exploreOpen, setExploreOpen] = useState(false);
-  const [infoOpen, setInfoOpen] = useState(false);
   const [mobileCategoryOpen, setMobileCategoryOpen] = useState(false);
   const [hoveredCategory, setHoveredCategory] = useState(null);
   const [categoryProductsMap, setCategoryProductsMap] = useState({});
@@ -124,12 +118,7 @@ function Header() {
   const [focusedResultIndex, setFocusedResultIndex] = useState(-1);
   const [mobileResultOpen, setMobileResultOpen] = useState(false);
   const [cartCount, setCartCount] = useState(0);
-  const [authDialogOpen, setAuthDialogOpen] = useState(false);
-  const [authMode, setAuthMode] = useState("login");
   const [cartBump, setCartBump] = useState(false);
-
-  // Thêm hook debounce value
-  const [debouncedKeyword, setDebouncedKeyword] = useState(keyword);
 
   const [searchViewMode, setSearchViewMode] = useState("list");
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
@@ -137,13 +126,30 @@ function Header() {
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
 
-  const [favoriteCount, setFavoriteCount] = useState(0);
-  const [favoriteLoading, setFavoriteLoading] = useState(false);
   const [loyaltyPoints, setLoyaltyPoints] = useState(0);
   const [loyaltyModalOpen, setLoyaltyModalOpen] = useState(false);
 
   const [cartItems, setCartItems] = useState([]);
   const [showCartPreview, setShowCartPreview] = useState(false);
+  const [activeSale, setActiveSale] = useState(null);
+  const [popularSearches, setPopularSearches] = useState([]);
+
+  useEffect(() => {
+    flashSaleService.getCurrentActive()
+      .then(res => setActiveSale(res?.data || null))
+      .catch(console.error);
+
+    productService.getBestSellers({ limit: 6 })
+      .then(res => {
+        const products = Array.isArray(res?.data) ? res.data : (res?.data?.data || []);
+        if (products.length > 0) {
+          const names = products.slice(0, 6).map(p => p.name);
+          // ensure no duplicates
+          setPopularSearches([...new Set(names)]);
+        }
+      })
+      .catch(console.error);
+  }, []);
 
   const [isDarkMode, setIsDarkMode] = useState(() => {
     return document.documentElement.classList.contains("dark");
@@ -191,7 +197,7 @@ function Header() {
           setStoreName("Coffee Shop");
           localStorage.removeItem("cached_store_name");
         }
-      } catch (error) {
+      } catch {
         setStoreLogo(Logo);
         localStorage.removeItem("cached_store_logo");
         setStoreName("Coffee Shop");
@@ -215,16 +221,9 @@ function Header() {
 
   const loadCartItems = useCallback(() => {
     try {
-      const cart = JSON.parse(localStorage.getItem(CART_KEY) || "[]");
-      const list = Array.isArray(cart) ? cart : [];
-
+      const list = cartService.getCart();
       setCartItems(list);
-
-      const total = list.reduce(
-        (sum, item) => sum + (Number(item.quantity) || 1),
-        0
-      );
-
+      const total = list.reduce((sum, item) => sum + (Number(item.quantity) || 1), 0);
       setCartCount(total);
     } catch {
       setCartItems([]);
@@ -257,11 +256,11 @@ function Header() {
 
   const handleRemoveFromCart = (indexToRemove) => {
     try {
-      const cart = JSON.parse(localStorage.getItem(CART_KEY) || "[]");
-      if (!Array.isArray(cart)) return;
-      const newCart = cart.filter((_, idx) => idx !== indexToRemove);
-      localStorage.setItem(CART_KEY, JSON.stringify(newCart));
-      window.dispatchEvent(new Event("cartUpdated"));
+      const cart = cartService.getCart();
+      const item = cart[indexToRemove];
+      if (!item) return;
+      cartService.removeItem(item.cartKey);
+      toast.success("Đã xóa sản phẩm khỏi giỏ hàng");
     } catch (e) {
       console.error("Lỗi xóa sản phẩm header preview:", e);
     }
@@ -271,41 +270,16 @@ function Header() {
     try {
       const res = await categoryService.getAll({ with_count: true });
       const list = Array.isArray(res?.data) ? res.data : [];
-      // Lọc bỏ những danh mục không có sản phẩm (chỉ áp dụng trên thanh hiển thị)
-      const validCategories = list.filter(c => c.product_count === undefined || Number(c.product_count) > 0);
+      const validCategories = list.filter(
+        (c) =>
+          Number(c.product_count) > 0 &&
+          (!c.is_deleted || c.is_deleted === 0 || c.is_deleted === "0")
+      );
       setCategories(validCategories);
     } catch (error) {
       console.error("Lỗi lấy danh mục:", error);
     }
   }, []);
-
-  const loadFavorites = useCallback(async () => {
-    if (!user?.id) {
-      setFavoriteCount(0);
-      return;
-    }
-
-    try {
-      setFavoriteLoading(true);
-
-      const res = await favoriteService.getMyFavorites({
-        page: 1,
-        limit: 100,
-        keyword: "",
-      });
-
-      const payload = res?.data?.data || res?.data || {};
-      const items = Array.isArray(payload?.items) ? payload.items : [];
-      const total = Number(payload?.total ?? items.length ?? 0);
-
-      setFavoriteCount(total);
-    } catch (error) {
-      console.error("Lỗi lấy danh sách yêu thích:", error);
-      setFavoriteCount(0);
-    } finally {
-      setFavoriteLoading(false);
-    }
-  }, [user?.id]);
 
   const loadLoyalty = useCallback(async () => {
     if (!user?.id) {
@@ -328,6 +302,10 @@ function Header() {
   }, [fetchCategories]);
 
   useEffect(() => {
+    if (token) {
+      cartService.hydrateFromDatabase().catch(() => undefined);
+    }
+
     loadCartItems();
 
     window.addEventListener("storage", loadCartItems);
@@ -337,12 +315,12 @@ function Header() {
       setCartBump(true);
       setTimeout(() => setCartBump(false), 600);
     };
-    window.addEventListener("cartUpdated", handleCartBump);
+    window.addEventListener("cartAdded", handleCartBump);
 
     return () => {
       window.removeEventListener("storage", loadCartItems);
       window.removeEventListener("cartUpdated", loadCartItems);
-      window.removeEventListener("cartUpdated", handleCartBump);
+      window.removeEventListener("cartAdded", handleCartBump);
     };
   }, [loadCartItems]);
 
@@ -447,17 +425,7 @@ function Header() {
     };
   }, [user?.id]);
 
-  useEffect(() => {
-    loadFavorites(); // Load lần đầu khi vừa vào web
 
-    // Dựng ăng-ten để hóng sự kiện
-    window.addEventListener("favoriteUpdated", loadFavorites);
-
-    return () => {
-      // Nhổ ăng-ten ra khi tắt web
-      window.removeEventListener("favoriteUpdated", loadFavorites);
-    };
-  }, [loadFavorites]);
 
   useEffect(() => {
     loadLoyalty();
@@ -488,8 +456,13 @@ function Header() {
     setHoveredCategory(category.id);
     if (!categoryProductsMap[category.id]) {
       try {
-        const res = await productService.getByCategory(category.id, { limit: 4, status: "available" });
-        const list = Array.isArray(res?.data) ? res.data : (res?.data?.data || []);
+        const res = await productService.getByCategory(category.id, { limit: 50, status: "available" });
+        const rawList = Array.isArray(res?.data) ? res.data : (res?.data?.data || []);
+        const list = rawList.filter(
+          (p) =>
+            p.status === "available" &&
+            (!p.is_deleted || p.is_deleted === 0 || p.is_deleted === "0")
+        );
         setCategoryProductsMap((prev) => ({ ...prev, [category.id]: list }));
       } catch (error) {
         console.error("Lỗi lấy sản phẩm theo danh mục:", error);
@@ -817,9 +790,9 @@ function Header() {
   return (
     <>
       <header className="flex flex-col border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:border-gray-800 sticky top-0 z-50 shadow-sm transition-all duration-300">
-        <div className="w-full px-4 lg:px-6 xl:px-8 py-3 sm:py-4 flex justify-between items-center gap-2 sm:gap-3 lg:gap-0">
+        <div className="w-full px-4 lg:px-6 xl:px-8 py-3 sm:py-4 flex justify-between items-center gap-3 md:gap-4 lg:gap-8">
           <div
-            className="flex-shrink-0 cursor-pointer flex items-center gap-2 sm:gap-3 lg:w-[250px]"
+            className="flex-shrink-0 cursor-pointer flex items-center gap-2 sm:gap-3"
             onClick={() => navigate("/")}
           >
             <img
@@ -833,7 +806,7 @@ function Header() {
             </h1>
           </div>
 
-          <div className="hidden md:flex flex-1 w-full max-w-md lg:max-w-2xl mx-auto px-4 lg:px-6">
+          <div className="hidden md:flex flex-1 w-full max-w-[800px] mx-auto">
             <div className="w-full relative" ref={searchRef}>
               <div className="relative">
                 <Input
@@ -885,28 +858,50 @@ function Header() {
               {searchOpen && (
                 <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-gray-900 dark:border-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl overflow-hidden z-50">
                   {!keyword ? (
-                    recentSearches.length > 0 ? (
-                      <div className="py-2">
-                        <div className="flex justify-between items-center px-4 py-2 border-b border-gray-50 dark:border-gray-800">
-                          <span className="text-xs font-semibold text-gray-500 dark:text-gray-500 uppercase tracking-wider">Tìm kiếm gần đây</span>
-                          <button onClick={() => setRecentSearches([])} className="text-xs text-amber-600 hover:text-amber-700">Xóa</button>
+                    <div className="py-2">
+                      {recentSearches.length > 0 && (
+                        <div className="mb-2">
+                          <div className="flex justify-between items-center px-4 py-2 border-b border-gray-50 dark:border-gray-800">
+                            <span className="text-xs font-semibold text-gray-500 dark:text-gray-500 uppercase tracking-wider">Tìm kiếm gần đây</span>
+                            <button onClick={() => setRecentSearches([])} className="text-xs text-amber-600 hover:text-amber-700">Xóa</button>
+                          </div>
+                          <ul className="py-1">
+                            {recentSearches.map((kw, idx) => (
+                              <li key={idx}>
+                                <button
+                                  onClick={() => goToSearchPage(kw)}
+                                  onMouseEnter={() => setFocusedResultIndex(-1)}
+                                  className={`w-[calc(100%-16px)] mx-2 rounded-lg text-left px-4 py-2.5 text-sm flex items-center gap-2 transition ${focusedResultIndex === idx ? 'bg-amber-50 dark:bg-amber-900/20' : 'hover:bg-amber-50 hover:text-amber-700 dark:hover:bg-amber-900/20'}`}
+                                >
+                                  <Search className="w-3.5 h-3.5 text-gray-400" />
+                                  <span className="text-gray-700 dark:text-gray-300">{kw}</span>
+                                </button>
+                              </li>
+                            ))}
+                          </ul>
                         </div>
-                        <ul className="py-1">
-                          {recentSearches.map((kw, idx) => (
-                            <li key={idx}>
+                      )}
+                      <div>
+                        <div className="px-4 py-2">
+                          <span className="text-xs font-semibold text-gray-500 dark:text-gray-500 uppercase tracking-wider">Tìm kiếm phổ biến</span>
+                        </div>
+                        <div className="px-4 py-1 flex flex-wrap gap-2">
+                          {popularSearches.length > 0 ? (
+                            popularSearches.map((kw, idx) => (
                               <button
+                                key={idx}
                                 onClick={() => goToSearchPage(kw)}
-                                onMouseEnter={() => setFocusedResultIndex(-1)}
-                                className={`w-[calc(100%-16px)] mx-2 rounded-lg text-left px-4 py-2.5 text-sm flex items-center gap-2 transition ${focusedResultIndex === idx ? 'bg-amber-50 dark:bg-amber-900/20' : 'hover:bg-amber-50 dark:bg-amber-900/20'}`}
+                                className="px-3 py-1.5 bg-gray-100 hover:bg-amber-100 text-gray-700 hover:text-amber-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-amber-900/40 dark:hover:text-amber-400 rounded-full text-[13px] transition-colors"
                               >
-                                <Search className="w-3.5 h-3.5 text-gray-400" />
-                                <span className="text-gray-700 dark:text-gray-300">{kw}</span>
+                                {kw}
                               </button>
-                            </li>
-                          ))}
-                        </ul>
+                            ))
+                          ) : (
+                            <span className="text-sm text-gray-400">Chưa có dữ liệu</span>
+                          )}
+                        </div>
                       </div>
-                    ) : null
+                    </div>
                   ) : searchLoading ? (
                     <div className="flex items-center justify-center py-6 text-gray-500 dark:text-gray-500">
                       <Loader2 className="w-5 h-5 animate-spin mr-2" />
@@ -964,8 +959,94 @@ function Header() {
           </div>
 
           <div className="flex items-center gap-1 sm:gap-2 lg:gap-4">
+            {/* Nút Sản Phẩm Mega Menu */}
             <div
-              className="hidden lg:flex items-center relative h-full"
+              className="hidden sm:flex items-center relative h-full group"
+              ref={categoryDropdownRef}
+              onMouseEnter={() => setCategoryOpen(true)}
+              onMouseLeave={() => {
+                setCategoryOpen(false);
+                setHoveredCategory(null);
+              }}
+            >
+              <button
+                className={`flex items-center gap-1.5 font-bold px-3 py-2 rounded-xl transition-all border ${categoryOpen
+                  ? "bg-amber-50 dark:bg-amber-900/20 text-amber-600 border-amber-200 dark:border-amber-800"
+                  : "text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 border-transparent hover:border-gray-200 dark:hover:border-gray-700"
+                  }`}
+                onClick={() => {
+                  navigate("/products");
+                  setCategoryOpen(false);
+                }}
+              >
+                <span className="text-[13px] uppercase tracking-wide">Sản phẩm</span>
+                <ChevronDown className="w-4 h-4" />
+              </button>
+
+              {categoryOpen && (
+                <div className="absolute top-full left-0 pt-2 z-[100] flex items-start gap-1.5">
+                  {/* Cột trái: Bảng Danh mục (luôn hiện) */}
+                  <div className="w-[240px] bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl shadow-xl flex flex-col p-2 gap-1 max-h-[70vh] overflow-y-auto custom-scrollbar">
+                    {categories.map((cat) => (
+                      <button
+                        key={cat.id}
+                        onMouseEnter={() => handleCategoryHover(cat)}
+                        onClick={() => goToCategory(cat)}
+                        className={`w-full text-left px-3 py-2 text-[14px] rounded-lg transition-colors flex items-center justify-between ${hoveredCategory === cat.id
+                          ? "bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-500 font-medium"
+                          : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                          }`}
+                      >
+                        <span>{cat.name}</span>
+                        <ChevronDown className="w-4 h-4 -rotate-90 opacity-50" />
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Cột phải: Bảng Products (chỉ hiện khi hover) */}
+                  {hoveredCategory && (
+                    <div className="w-[260px] bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl shadow-xl flex flex-col p-2 gap-1 max-h-[70vh] overflow-y-auto custom-scrollbar">
+                      {categoryProductsMap[hoveredCategory] ? (
+                        categoryProductsMap[hoveredCategory].length > 0 ? (
+                          <>
+                            {categoryProductsMap[hoveredCategory].map(product => (
+                              <button
+                                key={product.id}
+                                onClick={() => {
+                                  navigate(`/${product.slug || 'products/' + product.id}`);
+                                  setCategoryOpen(false);
+                                  setMobileMenuOpen(false);
+                                }}
+                                className="w-full text-left px-3 py-2 text-[14px] text-gray-700 dark:text-gray-300 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20 dark:hover:text-amber-500 rounded-lg transition-colors truncate"
+                              >
+                                {product.name}
+                              </button>
+                            ))}
+                            <button
+                              onClick={() => goToCategory(categories.find(c => c.id === hoveredCategory))}
+                              className="w-full text-left px-3 py-2 text-[13px] text-amber-600 hover:underline font-medium mt-1"
+                            >
+                              Xem tất cả...
+                            </button>
+                          </>
+                        ) : (
+                          <div className="px-3 py-2 text-[14px] text-gray-500">
+                            Chưa có sản phẩm.
+                          </div>
+                        )
+                      ) : (
+                        <div className="flex items-center justify-center p-4 min-h-[100px]">
+                          <Loader2 className="w-5 h-5 text-amber-500 animate-spin" />
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div
+              className="hidden sm:flex items-center relative h-full"
               ref={exploreDropdownRef}
               onMouseEnter={() => setExploreOpen(true)}
               onMouseLeave={() => setExploreOpen(false)}
@@ -981,7 +1062,7 @@ function Header() {
                 <ChevronDown className="w-4 h-4" />
               </button>
               {exploreOpen && (
-                <div className="absolute top-full right-0 pt-2 z-[100]">
+                <div className="absolute top-full left-0 pt-2 z-[100]">
                   <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-xl w-[200px] py-2">
                     <button
                       onClick={() => {
@@ -1002,16 +1083,6 @@ function Header() {
                     >
                       <Newspaper className="w-4 h-4" />
                       <span>Tin tức</span>
-                    </button>
-                    <button
-                      onClick={() => {
-                        setExploreOpen(false);
-                        navigate("/discounts");
-                      }}
-                      className="w-full flex items-center gap-3 px-4 py-2 hover:bg-amber-50 dark:hover:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 transition hover:text-amber-600"
-                    >
-                      <Ticket className="w-4 h-4" />
-                      <span>Khuyến mãi</span>
                     </button>
 
                   </div>
@@ -1074,8 +1145,8 @@ function Header() {
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              localStorage.setItem(CART_KEY, "[]");
-                              window.dispatchEvent(new Event("cartUpdated"));
+                              cartService.clearCart();
+                              toast.success("Đã làm trống giỏ hàng");
                             }}
                             className="text-xs text-red-500 hover:text-red-700 font-medium transition-colors"
                           >
@@ -1085,8 +1156,15 @@ function Header() {
                       )}
                       <div className="max-h-80 overflow-y-auto">
                         {cartItems.length === 0 ? (
-                          <div className="p-4 text-sm text-gray-500 dark:text-gray-500">
-                            Giỏ hàng đang trống
+                          <div className="py-10 flex flex-col items-center justify-center text-center">
+                            <div className="relative w-24 h-24 flex items-center justify-center mb-3">
+                              <div className="absolute top-2 left-2 w-2.5 h-2.5 bg-amber-500 rounded-full opacity-80" />
+                              <div className="absolute top-0 left-6 w-1.5 h-1.5 bg-amber-300 rounded-full opacity-60" />
+                              <div className="absolute top-4 right-4 w-2 h-2 bg-amber-400 rounded-full opacity-70" />
+                              <div className="absolute inset-0 bg-amber-100 dark:bg-amber-900/30 rounded-full scale-[0.8]" />
+                              <ShoppingBag className="relative z-10 w-12 h-12 text-amber-700 dark:text-amber-500" strokeWidth={1.5} />
+                            </div>
+                            <p className="text-[14px] text-gray-700 dark:text-gray-300 font-medium">Chưa có sản phẩm nào hết</p>
                           </div>
                         ) : (
                           cartItems.map((item, idx) => {
@@ -1137,11 +1215,18 @@ function Header() {
                                   <X className="w-4 h-4" />
                                 </button>
 
-                                <img
-                                  src={image}
-                                  alt={item.name}
-                                  className="w-14 h-14 rounded object-cover border"
-                                />
+                                <div className="relative shrink-0">
+                                  <img
+                                    src={image}
+                                    alt={item.name}
+                                    className="w-14 h-14 rounded object-cover border"
+                                  />
+                                  {activeSale && activeSale.product_ids?.includes(Number(item.product_id || item.id)) && (
+                                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[8px] font-bold px-1 py-0.5 rounded-sm shadow-sm overflow-hidden whitespace-nowrap z-10">
+                                      -{activeSale.discount_percent}%
+                                    </span>
+                                  )}
+                                </div>
 
                                 <div className="flex-1 min-w-0">
                                   <p className="text-sm font-medium text-gray-800 dark:text-gray-200 line-clamp-2">
@@ -1152,6 +1237,12 @@ function Header() {
                                     <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
                                       {item.size}
                                     </p>
+                                  )}
+
+                                  {activeSale && activeSale.product_ids?.includes(Number(item.product_id || item.id)) && (
+                                    <div className="mt-0.5 text-[10px] text-red-600 font-bold">
+                                      🔥 Flash sale
+                                    </div>
                                   )}
 
                                   {Array.isArray(item.toppings) &&
@@ -1187,14 +1278,21 @@ function Header() {
                             </span>
                           </p>
 
+                          {!isStoreOpen && (
+                            <div className="mb-3 p-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 rounded-lg flex items-center justify-center gap-2">
+                              <span className="font-medium text-xs text-center">Cửa hàng đóng cửa. {nextOpenMessage}.</span>
+                            </div>
+                          )}
+
                           <Button
                             onClick={() => {
                               setShowCartPreview(false);
                               navigate("/checkout");
                             }}
-                            className="w-full bg-red-600 hover:bg-red-700 text-white"
+                            disabled={!isStoreOpen}
+                            className="w-full bg-red-600 hover:bg-red-700 text-white disabled:bg-gray-400 disabled:opacity-100"
                           >
-                            Tiến hành thanh toán
+                            {isStoreOpen ? "Tiến hành thanh toán" : "Đóng cửa"}
                           </Button>
                         </div>
                       )}
@@ -1346,22 +1444,7 @@ function Header() {
                           <span>Đơn hàng</span>
                         </Button>
 
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            navigate("/favorites");
-                            setOpen(false);
-                          }}
-                          className="w-full text-left px-3 py-2 text-gray-700 dark:text-gray-300 transition text-xs sm:text-sm justify-start"
-                        >
-                          <Heart className="w-4 h-4 mr-2" />
-                          <span className="flex-1 text-left">Yêu thích</span>
 
-                          <span className="text-xs font-semibold text-red-500">
-                            {favoriteLoading ? "..." : favoriteCount}
-                          </span>
-                        </Button>
 
                         <Button
                           variant="ghost"
@@ -1376,31 +1459,21 @@ function Header() {
                           <span>Hồ sơ cá nhân</span>
                         </Button>
 
-                        <div className="mx-2 my-1 rounded-xl border border-amber-200/70 bg-gradient-to-r from-amber-50 to-orange-50 px-3 py-2 text-amber-900 dark:border-amber-900/40 dark:from-amber-900/20 dark:to-orange-900/10 dark:text-amber-100">
-                          <div className="flex items-center justify-between gap-3">
-                            <div className="flex items-center gap-2">
-                              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-amber-100 text-amber-700 dark:bg-amber-800/40 dark:text-amber-200">
-                                <Coins className="h-4 w-4" />
-                              </span>
-                              <span className="text-[11px] font-medium uppercase tracking-wide text-amber-700/90 dark:text-amber-300">
-                                Điểm thưởng
-                              </span>
-                            </div>
-                            <span className="text-sm font-bold tabular-nums">
-                              {Number(loyaltyPoints || 0).toLocaleString("vi-VN")}
-                            </span>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setOpen(false);
-                              setLoyaltyModalOpen(true);
-                            }}
-                            className="mt-2 w-full rounded-md border border-amber-300/60 bg-white/70 px-2.5 py-1.5 text-center text-[11px] font-semibold text-amber-700 transition hover:bg-white dark:border-amber-700/40 dark:bg-amber-950/30 dark:text-amber-200"
-                          >
-                            Xem biểu đồ lịch sử điểm
-                          </button>
-                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="w-full text-left px-3 py-2 text-gray-700 dark:text-gray-300 transition text-xs sm:text-sm justify-start"
+                          onClick={() => {
+                            setOpen(false);
+                            setLoyaltyModalOpen(true);
+                          }}
+                        >
+                          <Coins className="w-4 h-4 mr-2" />
+                          <span className="flex-1 text-left">Điểm thưởng</span>
+                          <span className="font-bold text-amber-600 dark:text-amber-500">
+                            {Number(loyaltyPoints || 0).toLocaleString("vi-VN")}
+                          </span>
+                        </Button>
 
                         <div className="my-0.5 border-t border-gray-200 dark:border-gray-700" />
 
@@ -1444,7 +1517,7 @@ function Header() {
               value={mobileKeyword}
               onChange={(e) => setMobileKeyword(e.target.value)}
               onFocus={() => {
-                if (mobileSearchResults.length > 0) setMobileResultOpen(true);
+                setMobileResultOpen(true);
               }}
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
@@ -1464,8 +1537,52 @@ function Header() {
             </button>
 
             {mobileResultOpen && (
-              <div className="mt-2 bg-white dark:bg-gray-900 dark:border-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-lg overflow-hidden">
-                {mobileSearchLoading ? (
+              <div className="mt-2 bg-white dark:bg-gray-900 dark:border-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-lg overflow-hidden z-50 relative">
+                {!mobileKeyword ? (
+                  <div className="py-2">
+                    {recentSearches.length > 0 && (
+                      <div className="mb-2">
+                        <div className="flex justify-between items-center px-4 py-2 border-b border-gray-50 dark:border-gray-800">
+                          <span className="text-xs font-semibold text-gray-500 dark:text-gray-500 uppercase tracking-wider">Tìm kiếm gần đây</span>
+                          <button onClick={() => setRecentSearches([])} className="text-xs text-amber-600 hover:text-amber-700">Xóa</button>
+                        </div>
+                        <ul className="py-1">
+                          {recentSearches.map((kw, idx) => (
+                            <li key={idx}>
+                              <button
+                                onClick={() => goToSearchPage(kw, true)}
+                                className={`w-[calc(100%-16px)] mx-2 rounded-lg text-left px-4 py-2.5 text-sm flex items-center gap-2 transition hover:bg-amber-50 hover:text-amber-700 dark:hover:bg-amber-900/20`}
+                              >
+                                <Search className="w-3.5 h-3.5 text-gray-400" />
+                                <span className="text-gray-700 dark:text-gray-300">{kw}</span>
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    <div>
+                      <div className="px-4 py-2">
+                        <span className="text-xs font-semibold text-gray-500 dark:text-gray-500 uppercase tracking-wider">Tìm kiếm phổ biến</span>
+                      </div>
+                      <div className="px-4 py-1 pb-4 flex flex-wrap gap-2">
+                        {popularSearches.length > 0 ? (
+                          popularSearches.map((kw, idx) => (
+                            <button
+                              key={idx}
+                              onClick={() => goToSearchPage(kw, true)}
+                              className="px-3 py-1.5 bg-gray-100 hover:bg-amber-100 text-gray-700 hover:text-amber-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-amber-900/40 dark:hover:text-amber-400 rounded-full text-[13px] transition-colors"
+                            >
+                              {kw}
+                            </button>
+                          ))
+                        ) : (
+                          <span className="text-sm text-gray-400">Chưa có dữ liệu</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ) : mobileSearchLoading ? (
                   <div className="flex items-center justify-center py-6 text-gray-500 dark:text-gray-500">
                     <Loader2 className="w-5 h-5 animate-spin mr-2" />
                     Đang tìm kiếm...
@@ -1652,7 +1769,18 @@ function Header() {
               </div>
             )}
 
-
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                navigate("/store");
+                setMobileMenuOpen(false);
+              }}
+              className="w-full justify-start text-gray-700 dark:text-gray-300 text-xs"
+            >
+              <MapPin className="w-4 h-4 mr-2" />
+              Cửa hàng
+            </Button>
 
             <Button
               variant="ghost"
@@ -1667,18 +1795,6 @@ function Header() {
               Tin tức
             </Button>
 
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                navigate("/discounts");
-                setMobileMenuOpen(false);
-              }}
-              className="w-full justify-start text-gray-700 dark:text-gray-300 text-xs"
-            >
-              <Ticket className="w-4 h-4 mr-2" />
-              Mã khuyến mãi
-            </Button>
           </div>
         </div>
       )}

@@ -53,7 +53,7 @@ export function SplitBillModal({ isOpen, onClose, table, activeOrder, onSplitSuc
       if (bill.id === billId) {
         const currentQty = bill.items[item.id] || 0;
         if (currentQty <= 0) return bill;
-        
+
         const newItems = { ...bill.items };
         if (currentQty === 1) {
           delete newItems[item.id];
@@ -91,18 +91,17 @@ export function SplitBillModal({ isOpen, onClose, table, activeOrder, onSplitSuc
     }
 
     setSplitting(true);
-    const createdOrderIds = [];
     try {
-      for (const bill of validBills) {
-        const itemsPayload = Object.entries(bill.items).map(([id, quantity]) => ({
+      const billsPayload = validBills.map(bill => ({
+        name: bill.name,
+        items: Object.entries(bill.items).map(([id, quantity]) => ({
           order_detail_id: Number(id),
-          quantity
-        }));
-        const res = await tableService.splitBill(table.id, { items: itemsPayload });
-        if (res.data?.new_order_id) {
-          createdOrderIds.push(res.data.new_order_id);
-        }
-      }
+          quantity,
+        })),
+      }));
+
+      await tableService.splitBill(table.id, { bills: billsPayload });
+
       toast.success(`Đã tách thành công ${validBills.length} đơn. Vui lòng thanh toán trong cửa sổ tiếp theo.`);
       onSplitSuccess(); // No need for orderIds, the next modal will fetch all unpaid
       onClose();
@@ -135,10 +134,10 @@ export function SplitBillModal({ isOpen, onClose, table, activeOrder, onSplitSuc
               {activeOrder.items?.map(item => {
                 const remaining = getRemainingQty(item.id, item.quantity);
                 if (remaining === 0) return null;
-                
+
                 return (
-                  <div 
-                    key={item.id} 
+                  <div
+                    key={item.id}
                     onClick={() => handleMoveToNewBill(item)}
                     className="p-2 border rounded-lg bg-background hover:border-amber-400 cursor-pointer transition-colors flex items-center justify-between group"
                   >
@@ -164,14 +163,14 @@ export function SplitBillModal({ isOpen, onClose, table, activeOrder, onSplitSuc
           {/* Target Bills */}
           <div className="flex-1 flex gap-4 overflow-x-auto pt-4 pl-4 pb-4 items-start h-full scrollbar-thin scrollbar-thumb-muted-foreground/20">
             {splitBills.map(bill => (
-              <div 
-                key={bill.id} 
-                className={`w-64 max-h-full flex flex-col bg-card border rounded-xl overflow-hidden flex-shrink-0 transition-all ${activeBillId === bill.id ? 'ring-2 ring-amber-500 shadow-md dark:shadow-none transform scale-[1.02]' : 'opacity-80 hover:opacity-100 hover:shadow-sm dark:shadow-none cursor-pointer'}`}
+              <div
+                key={bill.id}
+                className={`w-64 max-h-full flex flex-col bg-card border rounded-xl overflow-hidden flex-shrink-0 transition-all ${activeBillId === bill.id ? 'ring-2 ring-amber-500 shadow-md transform scale-[1.02]' : 'opacity-80 hover:opacity-100 hover:shadow-sm cursor-pointer'}`}
                 onClick={() => setActiveBillId(bill.id)}
               >
                 <div className={`p-3 border-b border-border flex justify-between items-center ${activeBillId === bill.id ? 'bg-amber-100 dark:bg-amber-900/40' : 'bg-muted'}`}>
                   <h3 className={`font-bold text-sm ${activeBillId === bill.id ? 'text-amber-800' : 'text-foreground'}`}>{bill.name}</h3>
-                  <button 
+                  <button
                     onClick={(e) => { e.stopPropagation(); removeTargetBill(bill.id); }}
                     className="p-1 text-muted-foreground hover:text-red-500 rounded transition-colors"
                   >
@@ -185,7 +184,7 @@ export function SplitBillModal({ isOpen, onClose, table, activeOrder, onSplitSuc
                     </div>
                   ) : (
                     activeOrder.items?.filter(i => bill.items[i.id]).map(item => (
-                      <div 
+                      <div
                         key={item.id}
                         onClick={(e) => { e.stopPropagation(); handleMoveToOriginal(bill.id, item); }}
                         className="p-2 border border-amber-200 dark:border-amber-800/50 rounded-lg bg-background hover:bg-amber-50 dark:bg-amber-900/30 cursor-pointer transition-colors flex items-center justify-between group shadow-sm dark:shadow-none"
@@ -203,7 +202,7 @@ export function SplitBillModal({ isOpen, onClose, table, activeOrder, onSplitSuc
                 </div>
               </div>
             ))}
-            
+
             <button
               onClick={addTargetBill}
               className="w-16 h-24 mt-0 rounded-xl border-2 border-dashed border-muted hover:border-amber-400 hover:bg-amber-50 dark:bg-amber-900/30 flex items-center justify-center flex-shrink-0 transition-all text-muted-foreground hover:text-amber-500 shadow-sm dark:shadow-none"
@@ -215,8 +214,8 @@ export function SplitBillModal({ isOpen, onClose, table, activeOrder, onSplitSuc
 
         <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-border flex-shrink-0 bg-background -mx-4 -mb-4 px-4 pb-4">
           <Button variant="outline" onClick={onClose} disabled={splitting}>Quay lại</Button>
-          <Button 
-            className="bg-indigo-600 hover:bg-indigo-700 font-bold" 
+          <Button
+            className="bg-indigo-600 hover:bg-indigo-700 font-bold"
             onClick={handleConfirmSplit}
             disabled={splitting || splitBills.every(b => Object.keys(b.items).length === 0)}
           >

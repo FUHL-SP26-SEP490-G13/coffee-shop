@@ -9,7 +9,8 @@ const storage = new CloudinaryStorage({
 
     return {
       folder: `coffee-shop/${type}`,
-      allowed_formats: ["jpg", "png", "jpeg", "webp"],
+      allowed_formats: ["jpg", "png", "jpeg", "webp", "mp4", "mov", "webm"],
+      resource_type: "auto",
     };
   },
 });

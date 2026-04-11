@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, Printer, ReceiptText, Save } from "lucide-react";
+import { Loader2, Printer, ReceiptText, Save, LocateFixed, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,9 @@ import receiptSettingService from "@/services/receiptSettingService";
 const DEFAULT_FORM = {
   store_name: "Coffee Shop",
   address: "",
+  latitude: "",
+  longitude: "",
+  location_source: "manual_pin",
   phone: "",
   logo_url: "",
   header_text: "",
@@ -32,6 +35,8 @@ export default function AdminReceiptSettings() {
   const [form, setForm] = useState(DEFAULT_FORM);
   const [logoFile, setLogoFile] = useState(null);
   const [logoPreview, setLogoPreview] = useState("");
+  const [initialAddress, setInitialAddress] = useState("");
+  const [isPinningLocation, setIsPinningLocation] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -49,6 +54,15 @@ export default function AdminReceiptSettings() {
           setForm({
             store_name: data.store_name || "",
             address: data.address || "",
+            latitude:
+              data.latitude === null || data.latitude === undefined
+                ? ""
+                : String(data.latitude),
+            longitude:
+              data.longitude === null || data.longitude === undefined
+                ? ""
+                : String(data.longitude),
+            location_source: data.location_source || "manual_pin",
             phone: data.phone || "",
             logo_url: data.logo_url || "",
             header_text: fromLines(data.header_lines),
@@ -57,6 +71,7 @@ export default function AdminReceiptSettings() {
             open_time: data.open_time || "07:00",
             close_time: data.close_time || "22:30",
           });
+          setInitialAddress(data.address || "");
           setLogoPreview(data.logo_url || "");
         }
       } catch (error) {
@@ -79,19 +94,84 @@ export default function AdminReceiptSettings() {
   }, [logoPreview]);
 
   const handleChange = (key, value) => {
-    setForm((prev) => ({
-      ...prev,
-      [key]: value,
-    }));
+    setForm((prev) => {
+      const next = {
+        ...prev,
+        [key]: value,
+      };
+
+      if (key === "address" && value.trim() !== String(initialAddress || "").trim()) {
+        next.latitude = "";
+        next.longitude = "";
+      }
+
+      return next;
+    });
+  };
+
+  const handleUseCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      toast.error("Trình duyệt không hỗ trợ định vị");
+      return;
+    }
+
+    setIsPinningLocation(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setForm((prev) => ({
+          ...prev,
+          latitude: String(Number(position.coords.latitude.toFixed(7))),
+          longitude: String(Number(position.coords.longitude.toFixed(7))),
+          location_source: "gps",
+        }));
+        toast.success("Đã ghim tọa độ cửa hàng thành công");
+        setIsPinningLocation(false);
+      },
+      (error) => {
+        const message =
+          error?.code === 1
+            ? "Bạn đã từ chối quyền truy cập vị trí"
+            : "Không lấy được vị trí hiện tại, vui lòng thử lại";
+        toast.error(message);
+        setIsPinningLocation(false);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 12000,
+        maximumAge: 0,
+      }
+    );
   };
 
   const handleSave = async () => {
     try {
+      const normalizedAddress = String(form.address || "").trim();
+      const isAddressChanged = normalizedAddress !== String(initialAddress || "").trim();
+      const hasCoords = form.latitude !== "" && form.longitude !== "";
+
+      if (normalizedAddress && isAddressChanged && !hasCoords) {
+        toast.error("Bạn vừa đổi địa chỉ cửa hàng. Vui lòng ghim lại tọa độ trước khi lưu.");
+        return;
+      }
+
       setIsSaving(true);
 
       const formData = new FormData();
       formData.append("store_name", form.store_name?.trim() || "");
-      formData.append("address", form.address?.trim() || "");
+      formData.append("address", normalizedAddress);
+
+      if (form.latitude !== "") {
+        formData.append("latitude", String(form.latitude));
+      }
+
+      if (form.longitude !== "") {
+        formData.append("longitude", String(form.longitude));
+      }
+
+      if (form.location_source) {
+        formData.append("location_source", String(form.location_source));
+      }
+
       formData.append("phone", form.phone?.trim() || "");
       formData.append("header_lines", JSON.stringify(toLines(form.header_text)));
       formData.append("footer_lines", JSON.stringify(toLines(form.footer_text)));
@@ -110,6 +190,8 @@ export default function AdminReceiptSettings() {
       if (saved?.logo_url) {
         setLogoPreview(saved.logo_url);
       }
+
+      setInitialAddress(saved?.address || normalizedAddress);
 
       setLogoFile(null);
 
@@ -256,6 +338,63 @@ export default function AdminReceiptSettings() {
               onChange={(e) => handleChange("address", e.target.value)}
               placeholder="Ví dụ: 123 Nguyễn Huệ, Q1, TP.HCM"
             />
+          </div>
+
+          <div className="space-y-2 rounded-lg border border-amber-200 bg-amber-50/60 p-3 dark:border-amber-900/30 dark:bg-amber-900/10">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                <MapPin className="w-4 h-4 text-amber-600" />
+                Tọa độ cửa hàng
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleUseCurrentLocation}
+                disabled={isPinningLocation}
+              >
+                {isPinningLocation ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Đang lấy vị trí...
+                  </>
+                ) : (
+                  <>
+                    <LocateFixed className="w-4 h-4 mr-2" />
+                    Ghim vị trí hiện tại
+                  </>
+                )}
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <Input
+                value={form.latitude}
+                onChange={(e) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    latitude: e.target.value,
+                    location_source: "manual_pin",
+                  }))
+                }
+                placeholder="Vĩ độ (ví dụ: 21.0123456)"
+              />
+              <Input
+                value={form.longitude}
+                onChange={(e) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    longitude: e.target.value,
+                    location_source: "manual_pin",
+                  }))
+                }
+                placeholder="Kinh độ (ví dụ: 105.8123456)"
+              />
+            </div>
+
+            <p className="text-xs text-muted-foreground dark:text-gray-400">
+              Khi thay đổi địa chỉ cửa hàng, bạn bắt buộc phải ghim lại tọa độ hoặc nhập tay một điểm tọa độ hợp lệ.
+            </p>
           </div>
 
           <div className="space-y-2">

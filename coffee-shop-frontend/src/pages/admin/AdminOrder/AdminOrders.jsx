@@ -1,13 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Badge } from "../../../components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "../../../components/ui/table";
 import {
   Select,
   SelectContent,
@@ -18,7 +10,6 @@ import {
 import {
   ShoppingBag,
   Loader2,
-  CalendarClock,
   Eye,
   CreditCard,
   User,
@@ -28,6 +19,7 @@ import {
 import orderService from "../../../services/orderService";
 import { toast } from "sonner";
 import { Button } from "../../../components/ui/button";
+import { Input } from "../../../components/ui/input";
 import {
   Dialog,
   DialogContent,
@@ -41,20 +33,60 @@ export default function AdminOrders() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("all");
+  const [orderTypeFilter, setOrderTypeFilter] = useState("all");
+  const [orderCodeFilter, setOrderCodeFilter] = useState("");
+  const [startDateFilter, setStartDateFilter] = useState("");
+  const [endDateFilter, setEndDateFilter] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
   const [selectedOrder, setSelectedOrder] = useState(null);
 
+  const hasAdvancedFilters =
+    statusFilter !== "all" ||
+    orderTypeFilter !== "all" ||
+    Boolean(orderCodeFilter.trim()) ||
+    Boolean(startDateFilter) ||
+    Boolean(endDateFilter);
+  const isInvalidDateRange =
+    Boolean(startDateFilter) &&
+    Boolean(endDateFilter) &&
+    startDateFilter > endDateFilter;
+
   useEffect(() => {
     const fetchOrders = async () => {
       try {
+        if (isInvalidDateRange) {
+          setOrders([]);
+          setTotalPages(1);
+          setTotalItems(0);
+          return;
+        }
+
         setLoading(true);
-        const res = await orderService.getAllOrders({
+        const params = {
           page: currentPage,
           limit: 10,
           status: statusFilter,
-        });
+        };
+
+        if (orderTypeFilter !== "all") {
+          params.order_type = orderTypeFilter;
+        }
+
+        if (orderCodeFilter.trim()) {
+          params.order_code = orderCodeFilter.trim().replace(/^#/, "");
+        }
+
+        if (startDateFilter) {
+          params.start_date = startDateFilter;
+        }
+
+        if (endDateFilter) {
+          params.end_date = endDateFilter;
+        }
+
+        const res = await orderService.getAllOrders(params);
         setOrders(res.data || []);
         if (res.pagination) {
           setTotalPages(res.pagination.totalPages);
@@ -68,37 +100,73 @@ export default function AdminOrders() {
       }
     };
     fetchOrders();
-  }, [currentPage, statusFilter]);
+  }, [
+    currentPage,
+    statusFilter,
+    orderTypeFilter,
+    orderCodeFilter,
+    startDateFilter,
+    endDateFilter,
+    isInvalidDateRange,
+  ]);
 
   const handleStatusChange = (val) => {
     setStatusFilter(val);
     setCurrentPage(1); // reset to page 1 always on filter change
   };
 
+  const handleOrderTypeChange = (val) => {
+    setOrderTypeFilter(val);
+    setCurrentPage(1);
+  };
+
+  const handleResetFilters = () => {
+    setStatusFilter("all");
+    setOrderTypeFilter("all");
+    setOrderCodeFilter("");
+    setStartDateFilter("");
+    setEndDateFilter("");
+    setCurrentPage(1);
+  };
+
   const getStatusInfo = (status) => {
     switch (String(status).toLowerCase()) {
       case "pending":
         return {
+          key: "pending",
           label: "Chờ xác nhận",
           color: "bg-yellow-100 text-yellow-800 border-yellow-200",
         };
       case "preparing":
         return {
+          key: "preparing",
           label: "Đang chuẩn bị",
           color: "bg-blue-100 text-blue-800 border-blue-200",
         };
+      case "preparing_done":
+        return {
+          key: "preparing_done",
+          label: "Đã chuẩn bị xong",
+          color: "bg-indigo-100 text-indigo-800 border-indigo-200",
+        };
       case "completed":
         return {
+          key: "completed",
           label: "Hoàn thành",
           color: "bg-green-100 text-green-800 border-green-200",
         };
       case "cancelled":
         return {
+          key: "cancelled",
           label: "Đã hủy",
           color: "bg-red-100 text-red-800 border-red-200",
         };
       default:
-        return { label: status, color: "bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-100" };
+        return {
+          key: String(status).toLowerCase(),
+          label: status,
+          color: "bg-gray-100 text-gray-800",
+        };
     }
   };
 
@@ -131,9 +199,64 @@ export default function AdminOrders() {
     }, 0);
   };
 
+  const normalizeOrderType = (value) => {
+    const type = String(value || "").toLowerCase();
+    if (type === "dinein") return "dine-in";
+    if (type === "take-away") return "takeaway";
+    return type;
+  };
+
+  const getShippingFee = (order, subtotal = calculateSubtotal(order)) => {
+    if (normalizeOrderType(order?.order_type) !== "delivery") return 0;
+
+    const feeFromApi = Number(order?.delivery_fee ?? order?.shipping_fee);
+    if (Number.isFinite(feeFromApi) && feeFromApi > 0) {
+      return feeFromApi;
+    }
+
+    const orderTotal = Number(order?.total_amount || 0);
+    const derivedFee = orderTotal - Number(subtotal || 0);
+    if (Number.isFinite(derivedFee) && derivedFee > 0) {
+      return derivedFee;
+    }
+
+    return 0;
+  };
+
+  const statusSummary = useMemo(() => {
+    const base = {
+      all: 0,
+      pending: 0,
+      preparing: 0,
+      preparing_done: 0,
+      completed: 0,
+      cancelled: 0,
+    };
+
+    orders.forEach((order) => {
+      const statusKey = getStatusInfo(order.status).key;
+      if (statusKey in base) {
+        base[statusKey] += 1;
+      }
+      base.all += 1;
+    });
+
+    return base;
+  }, [orders]);
+
+  const quickFilters = [
+    { value: "all", label: "Tất cả" },
+    { value: "pending", label: "Chờ xác nhận" },
+    { value: "preparing", label: "Đang chuẩn bị" },
+    { value: "preparing_done", label: "Đã chuẩn bị xong" },
+    { value: "completed", label: "Hoàn thành" },
+    { value: "cancelled", label: "Đã hủy" },
+  ];
+
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="space-y-4">
+        <div className="flex items-center justify-between gap-4">
         <div className="space-y-1">
           <div className="flex items-center gap-3">
             <h1 className="text-xl font-semibold">
@@ -141,214 +264,266 @@ export default function AdminOrders() {
             </h1>
           </div>
         </div>
+        </div>
 
-        <div className="flex items-center gap-3 w-full sm:w-auto bg-white dark:bg-gray-900 dark:border-gray-800 p-1 rounded-xl border shadow-sm">
-          <span className="text-sm font-medium text-gray-500 pl-3">
-            Trạng thái:
-          </span>
-          <Select value={statusFilter} onValueChange={handleStatusChange}>
-            <SelectTrigger className="w-full sm:w-[180px] border-0 shadow-none focus:ring-0 bg-transparent">
-              <SelectValue placeholder="Chọn trạng thái" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tất cả đơn hàng</SelectItem>
-              <SelectItem value="pending">Chờ xác nhận</SelectItem>
-              <SelectItem value="preparing">Đang chuẩn bị</SelectItem>
-              <SelectItem value="completed">Hoàn thành</SelectItem>
-              <SelectItem value="cancelled">Đã hủy</SelectItem>
-            </SelectContent>
-          </Select>
+        <div className="rounded-xl border bg-white p-3 sm:p-4 shadow-sm space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3">
+            <div className="space-y-1">
+              <p className="text-xs font-medium text-gray-500">Mã đơn</p>
+              <Input
+                value={orderCodeFilter}
+                onChange={(e) => {
+                  setOrderCodeFilter(e.target.value);
+                  setCurrentPage(1);
+                }}
+                placeholder="Ví dụ: 1025 hoặc #01025"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <p className="text-xs font-medium text-gray-500">Từ ngày</p>
+              <Input
+                type="date"
+                value={startDateFilter}
+                onChange={(e) => {
+                  setStartDateFilter(e.target.value);
+                  setCurrentPage(1);
+                }}
+                max={endDateFilter || undefined}
+              />
+            </div>
+
+            <div className="space-y-1">
+              <p className="text-xs font-medium text-gray-500">Đến ngày</p>
+              <Input
+                type="date"
+                value={endDateFilter}
+                onChange={(e) => {
+                  setEndDateFilter(e.target.value);
+                  setCurrentPage(1);
+                }}
+                min={startDateFilter || undefined}
+              />
+            </div>
+
+            <div className="space-y-1">
+              <p className="text-xs font-medium text-gray-500">Trạng thái</p>
+              <Select value={statusFilter} onValueChange={handleStatusChange}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Chọn trạng thái" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tất cả đơn hàng</SelectItem>
+                  <SelectItem value="pending">Chờ xác nhận</SelectItem>
+                  <SelectItem value="preparing">Đang chuẩn bị</SelectItem>
+                  <SelectItem value="preparing_done">Đã chuẩn bị xong</SelectItem>
+                  <SelectItem value="completed">Hoàn thành</SelectItem>
+                  <SelectItem value="cancelled">Đã hủy</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1">
+              <p className="text-xs font-medium text-gray-500">Loại đơn</p>
+              <Select value={orderTypeFilter} onValueChange={handleOrderTypeChange}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Chọn loại đơn" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tất cả loại đơn</SelectItem>
+                  <SelectItem value="dine-in">Tại quán</SelectItem>
+                  <SelectItem value="takeaway">Mang đi</SelectItem>
+                  <SelectItem value="delivery">Giao hàng</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between gap-3">
+            {isInvalidDateRange ? (
+              <p className="text-xs text-red-600">
+                Khoảng ngày không hợp lệ: ngày bắt đầu phải nhỏ hơn hoặc bằng ngày kết thúc.
+              </p>
+            ) : (
+              <p className="text-xs text-gray-500">
+                Lọc theo mã đơn, ngày tạo, trạng thái và loại đơn hàng.
+              </p>
+            )}
+
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={!hasAdvancedFilters}
+              onClick={handleResetFilters}
+            >
+              Xóa bộ lọc
+            </Button>
+          </div>
         </div>
       </div>
 
-      <div className="bg-white dark:bg-gray-900 dark:border-gray-800 rounded-2xl border shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader className="bg-gray-50 dark:bg-gray-800/50">
-              <TableRow className="hover:bg-transparent">
-                <TableHead className="font-semibold text-gray-600 dark:text-gray-300 w-[60px]">
-                  STT
-                </TableHead>
-                <TableHead className="font-semibold text-gray-600 dark:text-gray-300 w-[120px]">
-                  Mã đơn
-                </TableHead>
-                <TableHead className="font-semibold text-gray-600 dark:text-gray-300">
-                  Sản phẩm
-                </TableHead>
-                <TableHead className="font-semibold text-gray-600 dark:text-gray-300">
-                  Loại đơn
-                </TableHead>
-                <TableHead className="font-semibold text-gray-600 dark:text-gray-300">
-                  Trạng thái
-                </TableHead>
-                <TableHead className="font-semibold text-gray-600 dark:text-gray-300">
-                  Thời gian
-                </TableHead>
-                <TableHead className="font-semibold text-gray-600 dark:text-gray-300 text-right">
-                  Tổng tiền
-                </TableHead>
-                <TableHead className="w-[50px]"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={8} className="h-64 text-center">
-                    <div className="flex flex-col items-center justify-center text-muted-foreground dark:text-gray-400 gap-3">
-                      <Loader2 className="w-8 h-8 animate-spin text-primary/50" />
-                      <span className="text-sm font-medium">
-                        Đang tải danh sách đơn hàng...
-                      </span>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ) : orders.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={8} className="h-64 text-center">
-                    <div className="flex flex-col items-center justify-center text-muted-foreground dark:text-gray-400 gap-3">
-                      <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-full">
-                        <ShoppingBag className="w-8 h-8 text-gray-400" />
-                      </div>
-                      <span className="text-sm font-medium">
-                        Chưa có đơn hàng nào
-                      </span>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ) : (
-                orders.map((order, index) => {
-                  const statusInfo = getStatusInfo(order.status);
-                  const typeInfo = getOrderTypeInfo(order.order_type);
-                  const stt = (currentPage - 1) * 10 + index + 1;
+      <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
+        {quickFilters.map((filter) => {
+          const isActive = statusFilter === filter.value;
+          const count = statusSummary[filter.value] || 0;
 
-                  return (
-                    <TableRow
-                      key={order.id}
-                      className="group hover:bg-gray-50 dark:hover:bg-gray-800 dark:bg-gray-800/50 transition-colors"
-                    >
-                      <TableCell>
-                        <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
-                          {stt}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <span className="font-mono font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-md text-xs">
-                          #{String(order.id).padStart(5, "0")}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-col max-w-[280px]">
-                          {order.items && order.items.length > 0 ? (
-                            <div className="space-y-1">
-                              {order.items.slice(0, 2).map((item, i) => {
-                                const itemToppings = Array.isArray(
-                                  item.toppings,
-                                )
-                                  ? item.toppings
-                                  : Array.isArray(item.toppings_raw)
-                                    ? item.toppings_raw.filter((t) => t)
-                                    : [];
-                                return (
-                                  <div
-                                    key={i}
-                                    className="flex flex-col text-sm gap-0.5 mb-1"
-                                  >
-                                    <div className="flex items-center gap-1.5">
-                                      <span className="font-medium text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 px-1.5 rounded text-xs min-w-[24px] text-center">
-                                        {item.quantity}x
-                                      </span>
-                                      <span
-                                        className="truncate text-gray-800 dark:text-gray-100"
-                                        title={item.product?.name}
-                                      >
-                                        {item.product?.name || "Sản phẩm"}
-                                      </span>
-                                    </div>
-                                    {itemToppings.length > 0 && (
-                                      <div
-                                        className="text-[11px] text-gray-500 pl-8 leading-tight line-clamp-1"
-                                        title={itemToppings
-                                          .map((t) => t.name)
-                                          .join(", ")}
-                                      >
-                                        +{" "}
-                                        {itemToppings
-                                          .map((t) => t.name)
-                                          .join(", ")}
-                                      </div>
-                                    )}
-                                  </div>
-                                );
-                              })}
-                              {order.items.length > 2 && (
-                                <div className="text-xs text-muted-foreground dark:text-gray-400 font-medium pl-1">
-                                  + {order.items.length - 2} sản phẩm khác
-                                </div>
-                              )}
-                            </div>
-                          ) : (
-                            <span className="text-sm text-gray-400 italic">
-                              Không có sản phẩm
-                            </span>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant="outline"
-                          className={`font-medium ${typeInfo.color}`}
-                        >
-                          {typeInfo.label}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant="outline"
-                          className={`font-medium ${statusInfo.color}`}
-                        >
-                          <span className="w-1.5 h-1.5 rounded-full bg-current mr-1.5 shrink-0 opacity-75" />
-                          {statusInfo.label}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
-                          <CalendarClock className="w-4 h-4 mr-1.5 text-gray-400 shrink-0" />
-                          <span>
-                            {new Date(order.created_at).toLocaleString(
-                              "vi-VN",
-                              {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                                day: "2-digit",
-                                month: "2-digit",
-                                year: "numeric",
-                              },
-                            )}
+          return (
+            <button
+              key={filter.value}
+              type="button"
+              onClick={() => handleStatusChange(filter.value)}
+              className={`rounded-xl border px-3 py-2 text-left transition-colors ${isActive
+                  ? "border-primary/40 bg-primary/5"
+                  : "border-gray-200 bg-white hover:bg-gray-50"
+                }`}
+            >
+              <p
+                className={`text-xs font-medium ${isActive ? "text-primary" : "text-gray-500"
+                  }`}
+              >
+                {filter.label}
+              </p>
+              <p className="text-xl font-bold text-gray-900 leading-tight mt-1">
+                {count}
+              </p>
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="space-y-3">
+        {loading ? (
+          <div className="h-64 rounded-2xl border bg-white flex flex-col items-center justify-center text-muted-foreground gap-3">
+            <Loader2 className="w-8 h-8 animate-spin text-primary/50" />
+            <span className="text-sm font-medium">
+              Đang tải danh sách đơn hàng...
+            </span>
+          </div>
+        ) : orders.length === 0 ? (
+          <div className="h-64 rounded-2xl border bg-white flex flex-col items-center justify-center text-muted-foreground gap-3">
+            <div className="p-4 bg-gray-50 rounded-full">
+              <ShoppingBag className="w-8 h-8 text-gray-400" />
+            </div>
+            <span className="text-sm font-medium">Chưa có đơn hàng nào</span>
+          </div>
+        ) : (
+          <div className="rounded-2xl border bg-white shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-sm">
+                <thead className="bg-gray-50 border-b border-gray-100">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">
+                      Mã đơn
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">
+                      Thời gian
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">
+                      Trạng thái
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">
+                      Loại
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">
+                      Món
+                    </th>
+                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-600">
+                      Tổng tiền
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">
+                      Khách
+                    </th>
+                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-600">
+                      Xem chi tiết
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {orders.map((order) => {
+                    const statusInfo = getStatusInfo(order.status);
+                    const typeInfo = getOrderTypeInfo(order.order_type);
+                    const items = Array.isArray(order.items) ? order.items : [];
+                    const itemCount = items.length;
+                    const itemPreview = items
+                      .slice(0, 2)
+                      .map((item) => item.product?.name || "Sản phẩm")
+                      .join(", ");
+                    const customerName =
+                      order.receiver_name ||
+                      order.user?.full_name ||
+                      order.user?.name ||
+                      "Khách lẻ";
+
+                    return (
+                      <tr key={order.id} className="hover:bg-gray-50/80 transition-colors">
+                        <td className="px-4 py-3 align-top">
+                          <span className="font-mono font-semibold text-gray-700 bg-gray-100 px-2.5 py-1 rounded-md text-xs">
+                            #{String(order.id).padStart(5, "0")}
                           </span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <span className="font-semibold text-primary">
-                          {Number(order.total_amount).toLocaleString("vi-VN")}đ
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-gray-400 hover:text-primary hover:bg-primary/10 transition-colors opacity-0 group-hover:opacity-100"
-                          onClick={() => setSelectedOrder(order)}
-                        >
-                          <Eye className="w-4 h-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
-        </div>
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-700 align-top whitespace-nowrap">
+                          {new Date(order.created_at).toLocaleString("vi-VN", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                            day: "2-digit",
+                            month: "2-digit",
+                            year: "numeric",
+                          })}
+                        </td>
+                        <td className="px-4 py-3 align-top">
+                          <Badge
+                            variant="outline"
+                            className={`font-medium inline-flex items-center ${statusInfo.color}`}
+                          >
+                            <span className="w-1.5 h-1.5 rounded-full bg-current mr-1.5 shrink-0 opacity-75" />
+                            {statusInfo.label}
+                          </Badge>
+                        </td>
+                        <td className="px-4 py-3 align-top">
+                          <Badge variant="outline" className={`font-medium ${typeInfo.color}`}>
+                            {typeInfo.label}
+                          </Badge>
+                        </td>
+                        <td className="px-4 py-3 align-top max-w-[260px]">
+                          <p className="font-medium text-gray-800 leading-5">
+                            {itemCount} món
+                          </p>
+                          <p className="text-xs text-gray-500 mt-1 truncate" title={itemPreview || "Không có sản phẩm"}>
+                            {itemPreview || "Không có sản phẩm"}
+                            {itemCount > 2 ? ` +${itemCount - 2}` : ""}
+                          </p>
+                        </td>
+                        <td className="px-4 py-3 text-right align-top">
+                          <p className="text-sm font-semibold text-primary whitespace-nowrap">
+                            {Number(order.total_amount || 0).toLocaleString("vi-VN")}đ
+                          </p>
+                        </td>
+                        <td className="px-4 py-3 align-top min-w-[160px]">
+                          <p className="text-sm font-medium text-gray-800 leading-5">
+                            {customerName}
+                          </p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {order.receiver_phone || "Không có số điện thoại"}
+                          </p>
+                        </td>
+                        <td className="px-4 py-3 align-top text-right">
+                          <Button
+                            variant="outline"
+                            className="h-9"
+                            onClick={() => setSelectedOrder(order)}
+                          >
+                            <Eye className="w-4 h-4 mr-1.5" />
+                            Xem chi tiết
+                          </Button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </div>
 
       <PaginationControl
@@ -365,7 +540,10 @@ export default function AdminOrders() {
         open={!!selectedOrder}
         onOpenChange={(open) => !open && setSelectedOrder(null)}
       >
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-0 gap-0">
+        <DialogContent
+          contentWidth="70rem"
+          className="max-h-[90vh] overflow-y-auto p-0 gap-0"
+        >
           {selectedOrder && (
             <>
               <DialogHeader className="p-6 border-b bg-gray-50 dark:bg-gray-800/50 sticky top-0 z-10 backdrop-blur-sm">
@@ -402,9 +580,8 @@ export default function AdminOrders() {
                 </div>
               </DialogHeader>
 
-              <div className="p-6 space-y-6">
-                {/* Info Cards */}
-                <div className="grid grid-cols-1 gap-4">
+              <div className="p-6 grid grid-cols-1 md:grid-cols-12 gap-6">
+                <div className="md:col-span-5 space-y-4">
                   {/* Customer Info */}
                   <div className="rounded-xl border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-900 dark:border-gray-800 p-4 space-y-3 shadow-sm">
                     <div className="flex items-center gap-2 text-primary font-medium border-b border-gray-50 pb-2">
@@ -413,22 +590,18 @@ export default function AdminOrders() {
                     </div>
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
-                        <span className="text-gray-500">Loại đơn:</span>
-                        <span className="font-medium text-gray-900">
-                          {getOrderTypeInfo(selectedOrder.order_type).label}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
                         <span className="text-gray-500">Trạng thái:</span>
                         <span className="font-medium text-gray-900">
                           {getStatusInfo(selectedOrder.status).label}
                         </span>
                       </div>
+
                       {(selectedOrder.receiver_name ||
                         selectedOrder.receiver_phone ||
                         selectedOrder.receiver_email) && (
-                          <div className="pt-2 border-t border-dashed border-gray-100" />
-                        )}
+                        <div className="pt-2 border-t border-dashed border-gray-100" />
+                      )}
+
                       {selectedOrder.receiver_name && (
                         <div className="flex justify-between">
                           <span className="text-gray-500">Tên nhận:</span>
@@ -494,6 +667,7 @@ export default function AdminOrders() {
                   </div>
                 </div>
 
+                <div className="md:col-span-7 space-y-4">
                 {/* Items List */}
                 <div className="rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
                   <div className="bg-gray-50 dark:bg-gray-800/50 p-3 border-b border-gray-100 dark:border-gray-700 flex items-center gap-2 text-primary font-medium">
@@ -590,6 +764,13 @@ export default function AdminOrders() {
                 </div>
 
                 {/* Payment Summary */}
+                {(() => {
+                  const subtotal = calculateSubtotal(selectedOrder);
+                  const shippingFee = getShippingFee(selectedOrder, subtotal);
+                  const total = Number(selectedOrder.total_amount || 0);
+                  const discountAmount = Math.max(0, subtotal + shippingFee - total);
+
+                  return (
                 <div className="rounded-xl bg-gray-50 dark:bg-gray-800 p-4 space-y-3">
                   <div className="flex items-center gap-2 text-gray-700 dark:text-gray-200 font-medium pb-2 border-b border-gray-200 dark:border-gray-700">
                     <CreditCard className="w-4 h-4" />
@@ -598,27 +779,29 @@ export default function AdminOrders() {
                   <div className="flex justify-between text-sm text-gray-600 dark:text-gray-300">
                     <span>Tạm tính</span>
                     <span>
-                      {Number(calculateSubtotal(selectedOrder)).toLocaleString(
-                        "vi-VN",
-                      )}
+                      {Number(subtotal).toLocaleString("vi-VN")}
                       đ
                     </span>
                   </div>
-                  {Number(calculateSubtotal(selectedOrder)) >
-                    Number(selectedOrder.total_amount) && (
+                  {shippingFee > 0 && (
+                    <div className="flex justify-between text-sm text-cyan-700 dark:text-cyan-300">
+                      <span>Phí vận chuyển</span>
+                      <span>
+                        +{Number(shippingFee).toLocaleString("vi-VN")}đ
+                      </span>
+                    </div>
+                  )}
+                  {discountAmount > 0 && (
                       <div className="flex justify-between text-sm text-emerald-600">
                         <span>Giảm giá</span>
                         <span>
                           -
-                          {Number(
-                            calculateSubtotal(selectedOrder) -
-                            selectedOrder.total_amount,
-                          ).toLocaleString("vi-VN")}
+                          {Number(discountAmount).toLocaleString("vi-VN")}
                           đ
                         </span>
                       </div>
                     )}
-                  <div className="flex justify-between text-base font-bold text-gray-900 dark:text-gray-100 pt-2 border-t border-gray-200 dark:border-gray-700">
+                  <div className="flex justify-between text-base font-bold text-gray-900 pt-2 border-t border-gray-200">
                     <span>Tổng thanh toán</span>
                     <span className="text-primary">
                       {Number(selectedOrder.total_amount).toLocaleString(
@@ -650,6 +833,9 @@ export default function AdminOrders() {
                       </span>
                     )}
                   </div>
+                </div>
+                  );
+                })()}
                 </div>
               </div>
             </>

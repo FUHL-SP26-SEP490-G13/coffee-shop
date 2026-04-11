@@ -161,6 +161,7 @@ export const API_ENDPOINTS = {
 export const STORAGE_KEYS = {
   ACCESS_TOKEN: 'access_token',
   REFRESH_TOKEN: 'refresh_token',
+  AUTH_PROVIDER: 'auth_provider',
 };
 
 export const DEFAULT_PAGINATION = {

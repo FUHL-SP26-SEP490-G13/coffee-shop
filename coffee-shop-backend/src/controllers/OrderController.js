@@ -76,12 +76,24 @@ class OrderController {
 
   async getAllOrders(req, res, next) {
     try {
-      const { page = 1, limit = 20, status = "all" } = req.query;
+      const {
+        page = 1,
+        limit = 20,
+        status = "all",
+        order_type = "all",
+        order_code = "",
+        start_date = "",
+        end_date = "",
+      } = req.query;
 
       const result = await OrderService.getAllOrders({ 
         page: parseInt(page), 
         limit: parseInt(limit), 
-        status 
+        status,
+        order_type,
+        order_code,
+        start_date,
+        end_date,
       });
 
       return res.json({
@@ -104,6 +116,21 @@ class OrderController {
         success: true,
         data: result,
         message: "Lấy chi tiết đơn hàng (staff) thành công",
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async updateOrderItems(req, res, next) {
+    try {
+      const orderId = Number(req.params.id);
+      const { items } = req.body;
+      const result = await OrderService.updateOrderItems(orderId, items);
+      return res.json({
+        success: true,
+        data: result,
+        message: 'Cập nhật đơn hàng thành công',
       });
     } catch (error) {
       next(error);

@@ -12,6 +12,7 @@ import { Label } from '../../../components/ui/label';
 import { Switch } from '../../../components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../components/ui/tabs';
 import PaginationControl from '../../../components/common/PaginationControl';
+import { toast } from 'sonner';
 
 export default function AdminUsers() {
   const [users, setUsers] = useState([]);
@@ -181,6 +182,8 @@ export default function AdminUsers() {
       );
 
       if (response.success) {
+        const isDeactivating = selectedUser?.isActive === 1;
+
         // Update local state
         setUsers(prevUsers =>
           prevUsers.map(u =>
@@ -189,6 +192,10 @@ export default function AdminUsers() {
               : u
           )
         );
+
+        if (isDeactivating) {
+          toast.success('Đã tạm khóa người dùng thành công');
+        }
 
         setIsPasswordOpen(false);
         setSelectedUser(null);

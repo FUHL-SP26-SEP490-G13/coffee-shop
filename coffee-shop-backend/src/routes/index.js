@@ -13,6 +13,7 @@ const { publicToppingRoutes, adminToppingRoutes } = require("./topping.routes");
 const recipeRoutes = require("./recipe.routes");
 const adminDBRoutes = require("./adminDB.routes");
 const baristaDBRoutes = require("./baristaDB.routes");
+const staffDBRoutes = require("./staffDBRoutes");
 const areaRoutes = require("./area.routes");
 const tableRoutes = require("./table.routes");
 const notificationRoutes = require("./notification.routes");
@@ -21,7 +22,6 @@ const productSizeRoutes = require("./productSize.routes");
 const orderOnlineRoutes = require("./orderOnline.routes");
 const reputationRoutes = require("./reputation.routes");
 const orderRoutes = require("./order.routes");
-const favoriteRoutes = require("./favorite.routes");
 const reviewRoutes = require("./review.routes");
 const receiptSettingRoutes = require("./receiptSetting.routes");
 const takeawayRoutes = require("./takeaway.routes");
@@ -33,6 +33,8 @@ const loyaltyRoutes = require('./loyalty.routes');
 const cashSessionRoutes = require('./cashSession.routes');
 const aiRoutes = require('./ai.routes');
 const newsletterRoutes = require('./newsletter.routes');
+const cartRoutes = require('./cart.routes');
+const cashSessionRoutes = require('./cashSession.routes');
 
 const CategoryRepository = require('../repositories/CategoryRepository');
 const ProductRepository = require('../repositories/ProductRepository');
@@ -72,12 +74,12 @@ router.use("/ingredients", ingredientRoutes);
 router.use("/product-sizes", productSizeRoutes);
 router.use("/dashboard", adminDBRoutes);
 router.use("/barista", baristaDBRoutes);
+router.use("/staff-db", staffDBRoutes);
 router.use("/banners", bannerRoutes);
 router.use("/notifications", notificationRoutes);
 router.use("/discounts", discountRoutes);
 router.use("/order-online", orderOnlineRoutes);
 router.use("/reputation", reputationRoutes);
-router.use("/favorites", favoriteRoutes);
 router.use("/reviews", reviewRoutes);
 router.use("/receipt-settings", receiptSettingRoutes);
 router.use("/takeaway", takeawayRoutes);
@@ -90,6 +92,8 @@ router.use('/loyalty', loyaltyRoutes);
 router.use('/ai', aiRoutes);
 router.use('/cash-sessions', cashSessionRoutes);
 router.use('/newsletters', newsletterRoutes);
+router.use('/cart', cartRoutes);
+router.use('/cash-sessions', cashSessionRoutes);
 
 // Health check endpoint
 router.get("/health", (req, res) => {

@@ -64,8 +64,8 @@ class ReviewService {
       currentImages = currentImages.filter(img => !deleteImageIds.includes(img.public_id));
       const finalImages = [...currentImages, ...newImages];
 
-      if (finalImages.length > 3) {
-        throw new Error("Tối đa 3 ảnh cho mỗi bài đánh giá");
+      if (finalImages.length > 4) {
+        throw new Error("Tối đa 3 ảnh và 1 video cho mỗi bài đánh giá");
       }
 
       await ReviewRepository.updateReview(userId, productId, rating, comment, finalImages);
@@ -74,8 +74,8 @@ class ReviewService {
       };
     }
 
-    if (newImages.length > 3) {
-      throw new Error("Tối đa 3 ảnh cho mỗi bài đánh giá");
+    if (newImages.length > 4) {
+      throw new Error("Tối đa 3 ảnh và 1 video cho mỗi bài đánh giá");
     }
 
     await ReviewRepository.createReview(userId, productId, rating, comment, newImages);

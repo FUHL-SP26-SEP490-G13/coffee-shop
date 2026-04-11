@@ -1,5 +1,6 @@
 import axiosClient from './axiosClient';
-import { API_ENDPOINTS } from '../constants';
+import { API_ENDPOINTS, STORAGE_KEYS } from '../constants';
+import { cartService } from './cartService';
 
 const authenticationService = {
 
@@ -35,10 +36,13 @@ const authenticationService = {
 // Đăng xuất người dùng
   logout() {
     // Xoá token, refresh token và role_id khỏi local storage hoặc session storage
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-    sessionStorage.removeItem('access_token');
-    sessionStorage.removeItem('refresh_token');
+    localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
+    localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
+    localStorage.removeItem(STORAGE_KEYS.AUTH_PROVIDER);
+    sessionStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
+    sessionStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
+    sessionStorage.removeItem(STORAGE_KEYS.AUTH_PROVIDER);
+    cartService.clearCartMemory();
     return Promise.resolve();
   },
 

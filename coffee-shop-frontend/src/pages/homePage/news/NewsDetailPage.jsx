@@ -10,8 +10,8 @@ import {
 } from "lucide-react";
 import useFetch from "@/hooks/useFetch";
 import newsService from "@/services/newsService";
-import Header from "../../../components/layout/Header";
-import Footer from "../../../components/layout/Footer";
+
+
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
@@ -45,27 +45,12 @@ export default function NewsDetailPage() {
     //}
   };
 
-  if (loading) {
-    return (
-      <>
-        <Header />
-        <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
-          <div className="flex items-center justify-center min-h-[70vh]">
-            <div className="text-center space-y-4">
-              <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto" />
-              <p className="text-muted-foreground">Đang tải nội dung...</p>
-            </div>
-          </div>
-        </div>
-        <Footer />
-      </>
-    );
-  }
+  // removed full-page loading
 
   if (!news) {
     return (
       <>
-        <Header />
+        
         <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
           <div className="flex flex-col items-center justify-center min-h-[70vh] px-4 text-center">
             <div className="space-y-4">
@@ -87,35 +72,38 @@ export default function NewsDetailPage() {
             </div>
           </div>
         </div>
-        <Footer />
+        
       </>
     );
   }
 
   return (
-    <>
-      <Header />
+    <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900">
+      
 
-      <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/20">
-
-
-        <div className="w-full w-full mx-auto py-8 md:py-12 px-4 sm:px-6 lg:px-8 xl:px-12">
+      <main className="flex-1 w-full mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 pt-2 md:pt-4 pb-10 md:pb-16 mb-5">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 min-h-[50px]">
+          <div className="text-base md:text-lg text-gray-500 dark:text-gray-400 flex items-center flex-wrap gap-2 font-medium">
+            <Link to="/" className="cursor-pointer hover:text-amber-600 transition-colors">Trang chủ</Link>
+            <span className="text-gray-400">/</span>
+            <Link to="/news" className="cursor-pointer hover:text-amber-600 transition-colors">Tin tức</Link>
+            <span className="text-gray-400">/</span>
+            <span className="text-amber-600 font-bold line-clamp-1 break-all text-ellipsis max-w-[200px] sm:max-w-sm md:max-w-md lg:max-w-xl">{news.title}</span>
+          </div>
+        </div>
           
-          <div className="flex flex-col lg:flex-row gap-10">
+        <div className="flex flex-col lg:flex-row gap-10">
             {/* Main Content */}
             <div className="flex-1 min-w-0">
+              {loading ? (
+                <div className="flex items-center justify-center min-h-[50vh]">
+                  <Loader2 className="h-10 w-10 animate-spin text-amber-600 mx-auto" />
+                </div>
+              ) : (
               <article className="space-y-8">
                 {/* Article Header */}
                 <div className="space-y-6">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
-                    <div className="text-base md:text-lg text-gray-500 dark:text-gray-400 flex items-center flex-wrap gap-2 font-medium">
-                      <Link to="/" className="cursor-pointer hover:text-amber-600 transition-colors">Trang chủ</Link>
-                      <span className="text-gray-400">/</span>
-                      <Link to="/news" className="cursor-pointer hover:text-amber-600 transition-colors">Tin tức</Link>
-                      <span className="text-gray-400">/</span>
-                      <span className="text-amber-600 font-bold line-clamp-1 break-all">{news.title}</span>
-                    </div>
-                  </div>
+
                   <h4 className="text-lg md:text-xl font-bold leading-snug tracking-tight">
                     {news.title}
                   </h4>
@@ -145,14 +133,12 @@ export default function NewsDetailPage() {
 
                 {/* Featured Image */}
                 {news.thumbnail && (
-                  <div className="relative max-w-4xl mx-auto rounded-2xl overflow-hidden shadow-xl border border-border bg-muted">
-                    <div className="aspect-video md:aspect-[16/7]">
-                      <img
-                        src={news.thumbnail}
-                        alt={news.title}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
+                  <div className="relative w-full aspect-video md:aspect-[16/7] flex items-center justify-center rounded-2xl overflow-hidden shadow-xl border border-border bg-muted">
+                    <img
+                      src={news.thumbnail}
+                      alt={news.title}
+                      className="w-full h-full object-contain"
+                    />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
                   </div>
                 )}
@@ -199,6 +185,7 @@ export default function NewsDetailPage() {
                   </div>
                 </Card>
               </article>
+              )}
             </div>
 
             {/* Sidebar: Related News */}
@@ -214,7 +201,6 @@ export default function NewsDetailPage() {
                         key={item.id}
                         to={`/news/${item.slug}`}
                         className="flex gap-4 group"
-                        onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
                       >
                         <div className="w-24 h-16 flex-shrink-0 bg-gray-100 dark:bg-gray-800 overflow-hidden">
                           {item.thumbnail && (
@@ -238,10 +224,9 @@ export default function NewsDetailPage() {
             </div>
 
           </div>
-        </div>
-      </div>
+      </main>
 
-      <Footer />
-    </>
+      
+    </div>
   );
 }

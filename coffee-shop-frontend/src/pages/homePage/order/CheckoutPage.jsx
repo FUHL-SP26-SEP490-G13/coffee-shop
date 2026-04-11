@@ -1,8 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Banknote, CircleHelp, MapPin } from "lucide-react";
-import Header from "@/components/layout/Header";
-import Footer from "@/components/layout/Footer";
+import { useNavigate, Link } from "react-router-dom";
+import {
+  Banknote,
+  CircleHelp,
+  MapPin,
+  Clock,
+  Loader2,
+  LocateFixed,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,19 +42,33 @@ import {
 import { toast } from "sonner";
 import flashSaleService from "@/services/flashSaleService";
 import receiptSettingService from "@/services/receiptSettingService";
-import { geocodeAddress, getDrivingDistance, calculateShippingFee } from "@/utils/distanceCalculator";
-import { Loader2 } from "lucide-react";
+import {
+  geocodeAddress,
+  getDrivingDistance,
+  getShippingQuote,
+  MAX_DELIVERY_DISTANCE_KM,
+} from "@/utils/distanceCalculator";
+import { useStoreHours } from "@/hooks/useStoreHours";
 
-const DELIVERY_SHIPPING_FEE = 20000;
 const LOYALTY_MONEY_PER_POINT = 100;
 const LOYALTY_MAX_REDEEM_RATIO = 0.5;
+const DEFAULT_DELIVERY_SHIPPING_FEE = 15000;
 
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 export default function CheckoutPage() {
   useDocumentTitle("Thanh toán");
   const navigate = useNavigate();
-  const cart = useMemo(() => cartService.getCart(), []);
+  const [cart, setCart] = useState(() => cartService.getCart());
+  const { isOpen, nextOpenMessage } = useStoreHours();
+
+  useEffect(() => {
+    const handleCartUpdate = () => {
+      setCart(cartService.getCart());
+    };
+    window.addEventListener("cartUpdated", handleCartUpdate);
+    return () => window.removeEventListener("cartUpdated", handleCartUpdate);
+  }, []);
   const token =
     localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN) ||
     sessionStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
@@ -87,9 +106,16 @@ export default function CheckoutPage() {
   const [activeSale, setActiveSale] = useState(null);
 
   const [storeAddress, setStoreAddress] = useState("");
-  const [shippingFee, setShippingFee] = useState(DELIVERY_SHIPPING_FEE);
+  const [storeCoords, setStoreCoords] = useState(null);
+  const [shippingFee, setShippingFee] = useState(0);
+  const [shippingFeeSource, setShippingFeeSource] = useState("none");
   const [deliveryDistanceKm, setDeliveryDistanceKm] = useState(null);
+  const [deliveryDistanceBlockMessage, setDeliveryDistanceBlockMessage] =
+    useState("");
   const [isShippingCalculating, setIsShippingCalculating] = useState(false);
+  const [pinnedCustomerCoords, setPinnedCustomerCoords] = useState(null);
+  const [customerLocationSource, setCustomerLocationSource] = useState(null);
+  const [isPinningLocation, setIsPinningLocation] = useState(false);
 
   useEffect(() => {
     flashSaleService
@@ -107,34 +133,41 @@ export default function CheckoutPage() {
   }, [cart, navigate]);
 
   useEffect(() => {
+    receiptSettingService
+      .getSettings()
+      .then((settingsRes) => {
+        if (settingsRes?.data?.reputation_rules) {
+          try {
+            let parsed = settingsRes.data.reputation_rules;
+            if (typeof parsed === "string") parsed = JSON.parse(parsed);
+            if (typeof parsed === "string") parsed = JSON.parse(parsed);
+            if (Array.isArray(parsed)) setReputationRules(parsed);
+          } catch (e) {
+            console.error("Error parsing rules:", e);
+          }
+        }
+        if (settingsRes?.data?.address) {
+          setStoreAddress(settingsRes.data.address);
+        }
+
+        const rawStoreLat = Number(settingsRes?.data?.latitude);
+        const rawStoreLng = Number(settingsRes?.data?.longitude);
+        if (Number.isFinite(rawStoreLat) && Number.isFinite(rawStoreLng)) {
+          setStoreCoords([rawStoreLat, rawStoreLng]);
+        } else {
+          setStoreCoords(null);
+        }
+      })
+      .catch(console.error);
+
     const loadCheckoutData = async () => {
       if (!token) return;
 
       try {
-        const [profileRes, addressesRes, settingsRes] = await Promise.all([
+        const [profileRes, addressesRes] = await Promise.all([
           authenticationService.getProfile(),
           authenticationService.getMyAddresses(),
-          receiptSettingService.getSettings(),
         ]);
-        
-        if (settingsRes?.data?.reputation_rules) {
-          try {
-            let parsed = settingsRes.data.reputation_rules;
-            if (typeof parsed === 'string') {
-               parsed = JSON.parse(parsed);
-            }
-            if (typeof parsed === 'string') {
-               parsed = JSON.parse(parsed);
-            }
-            if (Array.isArray(parsed)) {
-               setReputationRules(parsed);
-            }
-          } catch (e) { console.error("Error parsing rules:", e) }
-        }
-
-        if (settingsRes?.data?.address) {
-          setStoreAddress(settingsRes.data.address);
-        }
 
         const user = profileRes?.data;
 
@@ -148,6 +181,17 @@ export default function CheckoutPage() {
 
         setAddresses(addressList);
         setSelectedAddressId(defaultAddress?.id || null);
+
+        const defaultCoords = getValidCoordsFromAddress(defaultAddress);
+        if (defaultCoords) {
+          setPinnedCustomerCoords(defaultCoords);
+          setCustomerLocationSource(
+            defaultAddress?.location_source || "manual_pin"
+          );
+        } else {
+          setPinnedCustomerCoords(null);
+          setCustomerLocationSource(null);
+        }
 
         setForm((prev) => ({
           ...prev,
@@ -177,6 +221,36 @@ export default function CheckoutPage() {
     }
     if (digits.length === 9) return `0${digits}`;
     return digits;
+  };
+
+  const getValidCoordsFromAddress = (addressItem) => {
+    const rawLat = addressItem?.latitude;
+    const rawLng = addressItem?.longitude;
+
+    const hasLat =
+      rawLat !== null && rawLat !== undefined && String(rawLat).trim() !== "";
+    const hasLng =
+      rawLng !== null && rawLng !== undefined && String(rawLng).trim() !== "";
+
+    if (!hasLat || !hasLng) {
+      return null;
+    }
+
+    const lat = Number(rawLat);
+    const lng = Number(rawLng);
+
+    if (
+      !Number.isFinite(lat) ||
+      !Number.isFinite(lng) ||
+      lat < -90 ||
+      lat > 90 ||
+      lng < -180 ||
+      lng > 180
+    ) {
+      return null;
+    }
+
+    return [lat, lng];
   };
 
   const unwrapApiResponse = (response) => {
@@ -248,15 +322,16 @@ export default function CheckoutPage() {
     const timeoutId = setTimeout(async () => {
       setIsReputationLoading(true);
       try {
-        const res =
-          await reputationService.getReputationProfile(normalizedPhone);
+        const res = await reputationService.getReputationProfile(
+          normalizedPhone
+        );
         const reputation = res?.data?.data || res?.data || {};
 
         setReputationScore(Number(reputation?.current_score ?? 50));
         setReputationTier(String(reputation?.reputation_tier || "SILVER"));
         setReputationFrozen(
           Number(reputation?.is_frozen || 0) === 1 ||
-            reputation?.is_frozen === true,
+          reputation?.is_frozen === true
         );
       } catch (error) {
         console.error("Lỗi lấy điểm uy tín theo số điện thoại:", error);
@@ -272,42 +347,114 @@ export default function CheckoutPage() {
     return () => clearTimeout(timeoutId);
   }, [form.receiver_phone]);
 
+  const handleUseCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      toast.error("Trình duyệt không hỗ trợ định vị GPS");
+      return;
+    }
+
+    setIsPinningLocation(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setPinnedCustomerCoords([
+          position.coords.latitude,
+          position.coords.longitude,
+        ]);
+        setCustomerLocationSource("gps");
+        toast.success("Đã ghim vị trí hiện tại để tính phí giao hàng");
+        setIsPinningLocation(false);
+      },
+      (error) => {
+        const message =
+          error?.code === 1
+            ? "Bạn đã từ chối quyền truy cập vị trí"
+            : "Không lấy được vị trí hiện tại, vui lòng thử lại";
+        toast.error(message);
+        setIsPinningLocation(false);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 12000,
+        maximumAge: 0,
+      }
+    );
+  };
+
   // Handle dynamic distance and shipping fee
   useEffect(() => {
-    if (form.order_type !== "delivery" || !form.address || form.address.trim().length < 5 || !storeAddress) {
-      setShippingFee(form.order_type === "delivery" ? DELIVERY_SHIPPING_FEE : 0);
+    const hasCustomerPinnedCoords =
+      Array.isArray(pinnedCustomerCoords) && pinnedCustomerCoords.length === 2;
+    const hasStoreAddress = storeAddress && storeAddress.trim().length >= 5;
+    const hasStorePinnedCoords =
+      Array.isArray(storeCoords) && storeCoords.length === 2;
+
+    if (
+      form.order_type !== "delivery" ||
+      !hasCustomerPinnedCoords ||
+      (!hasStorePinnedCoords && !hasStoreAddress)
+    ) {
+      if (form.order_type === "delivery") {
+        setShippingFee(DEFAULT_DELIVERY_SHIPPING_FEE);
+        setShippingFeeSource("default");
+      } else {
+        setShippingFee(0);
+        setShippingFeeSource("none");
+      }
       setDeliveryDistanceKm(null);
+      setDeliveryDistanceBlockMessage("");
       return;
     }
 
     const timer = setTimeout(async () => {
       setIsShippingCalculating(true);
       try {
-        const [storeCoords, customerCoords] = await Promise.all([
-          geocodeAddress(storeAddress),
-          geocodeAddress(form.address)
-        ]);
+        const resolvedStoreCoords = hasStorePinnedCoords
+          ? storeCoords
+          : await geocodeAddress(storeAddress);
+        const customerCoords = pinnedCustomerCoords;
 
-        if (storeCoords && customerCoords) {
-          const distMeters = await getDrivingDistance(storeCoords, customerCoords);
-          const fee = calculateShippingFee(distMeters);
-          setShippingFee(fee);
-          setDeliveryDistanceKm((distMeters / 1000).toFixed(1));
+        if (resolvedStoreCoords && customerCoords) {
+          const distMeters = await getDrivingDistance(
+            resolvedStoreCoords,
+            customerCoords
+          );
+          const quote = getShippingQuote(distMeters);
+          setDeliveryDistanceKm(quote.distanceKm.toFixed(1));
+
+          if (!quote.isDeliverable) {
+            setShippingFee(0);
+            setShippingFeeSource("blocked");
+            setDeliveryDistanceBlockMessage(
+              `Khoảng cách ${quote.distanceKm.toFixed(
+                1
+              )}km vượt quá giới hạn giao hàng ${MAX_DELIVERY_DISTANCE_KM}km (vượt ${quote.exceededByKm.toFixed(
+                1
+              )}km).`
+            );
+            return;
+          }
+
+          setShippingFee(quote.fee);
+          setShippingFeeSource("distance");
+          setDeliveryDistanceBlockMessage("");
         } else {
-          // Fallback if address not found
-          setShippingFee(DELIVERY_SHIPPING_FEE);
+          setShippingFee(DEFAULT_DELIVERY_SHIPPING_FEE);
+          setShippingFeeSource("default");
           setDeliveryDistanceKm(null);
+          setDeliveryDistanceBlockMessage("");
         }
       } catch {
-         setShippingFee(DELIVERY_SHIPPING_FEE);
-         setDeliveryDistanceKm(null);
+        setShippingFee(DEFAULT_DELIVERY_SHIPPING_FEE);
+        setShippingFeeSource("default");
+        setDeliveryDistanceKm(null);
+        setDeliveryDistanceBlockMessage("");
       } finally {
         setIsShippingCalculating(false);
       }
     }, 1500);
 
     return () => clearTimeout(timer);
-  }, [form.address, form.order_type, storeAddress]);
+  }, [form.order_type, storeAddress, pinnedCustomerCoords, storeCoords]);
 
   const getAddressTypeLabel = (type) => {
     if (type === "work") return "Văn phòng";
@@ -317,6 +464,14 @@ export default function CheckoutPage() {
 
   const handleSelectAddress = (item) => {
     setSelectedAddressId(item.id);
+    const itemCoords = getValidCoordsFromAddress(item);
+    if (itemCoords) {
+      setPinnedCustomerCoords(itemCoords);
+      setCustomerLocationSource(item?.location_source || "manual_pin");
+    } else {
+      setPinnedCustomerCoords(null);
+      setCustomerLocationSource(null);
+    }
     setForm((prev) => ({
       ...prev,
       receiver_name: item.receiver_name || prev.receiver_name,
@@ -327,11 +482,11 @@ export default function CheckoutPage() {
       ...prev,
       receiver_name: validateOrderField(
         "receiver_name",
-        item.receiver_name || form.receiver_name,
+        item.receiver_name || form.receiver_name
       ),
       receiver_phone: validateOrderField(
         "receiver_phone",
-        item.receiver_phone || form.receiver_phone,
+        item.receiver_phone || form.receiver_phone
       ),
       address: validateOrderField("address", item.address || ""),
     }));
@@ -340,6 +495,9 @@ export default function CheckoutPage() {
 
   const selectedAddress =
     addresses.find((item) => item.id === selectedAddressId) || null;
+  const selectedAddressHasCoords = Boolean(
+    getValidCoordsFromAddress(selectedAddress)
+  );
 
   const normalizedReputationTier = useMemo(() => {
     const tier = String(reputationTier || "").toUpperCase();
@@ -352,14 +510,14 @@ export default function CheckoutPage() {
   const subtotalAmount = useMemo(() => {
     return cart.reduce(
       (sum, item) => sum + cartService.getItemSubtotal(item),
-      0,
+      0
     );
   }, [cart]);
 
   const regularAmount = useMemo(() => {
     return cart.reduce((sum, item) => {
       const isFlashSale = activeSale?.product_ids?.some(
-        (id) => Number(id) === Number(item.product_id || item.id),
+        (id) => Number(id) === Number(item.product_id || item.id)
       );
       if (isFlashSale) {
         return sum; // Do not include in regular amount
@@ -371,29 +529,49 @@ export default function CheckoutPage() {
   const discountAmount = Number(appliedDiscount?.discount_amount || 0);
   const amountAfterDiscount = Math.max(
     0,
-    subtotalAmount - discountAmount + shippingFee,
+    subtotalAmount - discountAmount + shippingFee
   );
 
-  const parsedUsedPoints = Math.max(0, Math.floor(Number(usedPointsInput) || 0));
-  const maxRedeemablePointsByWallet = Math.max(0, Number(loyaltyWalletPoints || 0));
+  const parsedUsedPoints = Math.max(
+    0,
+    Math.floor(Number(usedPointsInput) || 0)
+  );
+  const maxRedeemablePointsByWallet = Math.max(
+    0,
+    Number(loyaltyWalletPoints || 0)
+  );
   const maxRedeemablePointsByAmount = Math.floor(
-    amountAfterDiscount / LOYALTY_MONEY_PER_POINT,
+    amountAfterDiscount / LOYALTY_MONEY_PER_POINT
   );
   const maxRedeemablePointsByPolicy = Math.floor(
-    (amountAfterDiscount * LOYALTY_MAX_REDEEM_RATIO) / LOYALTY_MONEY_PER_POINT,
+    (amountAfterDiscount * LOYALTY_MAX_REDEEM_RATIO) / LOYALTY_MONEY_PER_POINT
   );
   const maxRedeemablePoints = Math.max(
     0,
     Math.min(
       maxRedeemablePointsByWallet,
       maxRedeemablePointsByAmount,
-      maxRedeemablePointsByPolicy,
-    ),
+      maxRedeemablePointsByPolicy
+    )
   );
   const usedPoints = Math.min(parsedUsedPoints, maxRedeemablePoints);
   const loyaltyDiscountAmount = usedPoints * LOYALTY_MONEY_PER_POINT;
   const totalAmount = Math.max(0, amountAfterDiscount - loyaltyDiscountAmount);
   const isPointsInputExceeded = parsedUsedPoints > maxRedeemablePoints;
+  const isDeliveryOrder = form.order_type === "delivery";
+  const hasPinnedCustomerCoords =
+    Array.isArray(pinnedCustomerCoords) && pinnedCustomerCoords.length === 2;
+  const hasPinnedStoreCoords =
+    Array.isArray(storeCoords) && storeCoords.length === 2;
+  const isCheckoutBlockedByDistance =
+    isDeliveryOrder && Boolean(deliveryDistanceBlockMessage);
+  const isCheckoutBlocked = isCheckoutBlockedByDistance;
+
+  const placeOrderLabel = !isOpen
+    ? nextOpenMessage || "Đã đóng cửa"
+    : isCheckoutBlockedByDistance
+      ? "Ngoài phạm vi giao hàng"
+      : "Đặt hàng";
 
   useEffect(() => {
     setForm((prev) => {
@@ -412,7 +590,7 @@ export default function CheckoutPage() {
     const currentPhone = normalizePhoneNumber(form.receiver_phone);
     // Không ép phương thức nếu vẫn đang trong quá trình lấy điểm của SĐT hiện tại
     if (currentPhone !== fetchedPhone || isReputationLoading) {
-       return;
+      return;
     }
 
     try {
@@ -439,7 +617,16 @@ export default function CheckoutPage() {
       toast.error(error.message, { duration: 5000 });
       setPaymentValidation(null);
     }
-  }, [reputationScore, reputationFrozen, totalAmount, form.payment_method, reputationRules, fetchedPhone, form.receiver_phone, isReputationLoading]);
+  }, [
+    reputationScore,
+    reputationFrozen,
+    totalAmount,
+    form.payment_method,
+    reputationRules,
+    fetchedPhone,
+    form.receiver_phone,
+    isReputationLoading,
+  ]);
 
   const handleApplyDiscount = async () => {
     const code = discountCode.trim();
@@ -451,7 +638,7 @@ export default function CheckoutPage() {
 
     if (regularAmount === 0) {
       alert(
-        "Mã giảm giá không áp dụng cho đơn hàng chỉ có sản phẩm Flash Sale!",
+        "Mã giảm giá không áp dụng cho đơn hàng chỉ có sản phẩm Flash Sale!"
       );
       return;
     }
@@ -510,12 +697,15 @@ export default function CheckoutPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900">
-      <Header />
+
 
       <section className="flex-1 w-full px-4 sm:px-6 lg:px-8 py-10">
         <div className="w-full mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 border rounded-2xl p-6 bg-white dark:bg-gray-900">
-            <h1 className="text-xl md:text-xl font-semibold text-amber-900 dark:text-amber-500 mb-4" style={{ fontFamily: 'serif' }}>
+            <h1
+              className="text-xl md:text-xl font-semibold text-amber-900 dark:text-amber-500 mb-4"
+              style={{ fontFamily: "serif" }}
+            >
               Thanh toán
             </h1>
 
@@ -561,7 +751,7 @@ export default function CheckoutPage() {
                       ...prev,
                       receiver_phone: validateOrderField(
                         "receiver_phone",
-                        value,
+                        value
                       ),
                     }));
                   }}
@@ -573,9 +763,8 @@ export default function CheckoutPage() {
                 )}
                 {!errors.receiver_phone && form.receiver_phone ? (
                   <p
-                    className={`mt-1 text-xs ${
-                      reputationFrozen ? "text-red-600" : "text-emerald-600"
-                    }`}
+                    className={`mt-1 text-xs ${reputationFrozen ? "text-red-600" : "text-emerald-600"
+                      }`}
                   >
                     {reputationFrozen
                       ? "Số điện thoại này đã bị khóa"
@@ -598,7 +787,7 @@ export default function CheckoutPage() {
                       ...prev,
                       receiver_email: validateOrderField(
                         "receiver_email",
-                        value,
+                        value
                       ),
                     }));
                   }}
@@ -650,8 +839,8 @@ export default function CheckoutPage() {
                       {isAddressLoading
                         ? "Đang tải địa chỉ..."
                         : addresses.length === 0
-                          ? "Chưa có địa chỉ đã lưu"
-                          : "Chọn địa chỉ giao hàng"}
+                        ? "Chưa có địa chỉ đã lưu"
+                        : "Chọn địa chỉ giao hàng"}
                     </Button>
 
                     {addresses.length === 0 && !isAddressLoading && (
@@ -679,6 +868,18 @@ export default function CheckoutPage() {
                         <p className="text-sm text-gray-800 dark:text-gray-200 mt-1">
                           {selectedAddress.address}
                         </p>
+                        {selectedAddress.latitude !== null &&
+                        selectedAddress.latitude !== undefined &&
+                        selectedAddress.longitude !== null &&
+                        selectedAddress.longitude !== undefined ? (
+                          <p className="text-xs text-emerald-600 mt-1">
+                            Địa chỉ này đã ghim tọa độ.
+                          </p>
+                        ) : (
+                          <p className="text-xs text-amber-600 mt-1">
+                            Địa chỉ này chưa có tọa độ. Hệ thống sẽ áp dụng phí ship mặc định 15.000đ nếu bạn đặt bằng địa chỉ này.
+                          </p>
+                        )}
                       </div>
                     )}
                   </div>
@@ -686,13 +887,16 @@ export default function CheckoutPage() {
 
                 <div>
                   <label className="text-sm font-medium mb-2 block">
-                    Địa chỉ giao hàng
+                    Địa chỉ giao hàng *
                   </label>
                   <Input
+                    required
                     value={form.address}
                     onChange={(e) => {
                       const value = e.target.value;
                       setSelectedAddressId(null);
+                      setPinnedCustomerCoords(null);
+                      setCustomerLocationSource(null);
                       setForm((prev) => ({
                         ...prev,
                         address: value,
@@ -708,6 +912,68 @@ export default function CheckoutPage() {
                       {errors.address}
                     </p>
                   )}
+
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleUseCurrentLocation}
+                      disabled={isPinningLocation}
+                    >
+                      {isPinningLocation ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Đang lấy vị trí...
+                        </>
+                      ) : (
+                        <>
+                          <LocateFixed className="w-4 h-4 mr-2" />
+                          Ghim vị trí hiện tại (tùy chọn)
+                        </>
+                      )}
+                    </Button>
+
+                    {Array.isArray(pinnedCustomerCoords) && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setPinnedCustomerCoords(null);
+                          setCustomerLocationSource(null);
+                        }}
+                      >
+                        Bỏ ghim vị trí
+                      </Button>
+                    )}
+                  </div>
+
+                  {Array.isArray(pinnedCustomerCoords) && (
+                    <p className="text-xs text-emerald-600 mt-2">
+                      Đang dùng tọa độ GPS của bạn để tính khoảng cách.
+                    </p>
+                  )}
+
+                  {!Array.isArray(pinnedCustomerCoords) && (
+                    <p className="text-xs text-amber-600 mt-2">
+                      {!selectedAddressHasCoords
+                        ? "Địa chỉ đã chọn chưa có tọa độ. Bạn vẫn có thể đặt hàng, hệ thống sẽ áp dụng phí ship mặc định 15.000đ."
+                        : "Bạn chưa ghim vị trí. Hệ thống sẽ áp dụng phí ship mặc định 15.000đ. Ghim vị trí (tùy chọn) để tính phí chính xác theo khoảng cách."}
+                    </p>
+                  )}
+
+                  {!hasPinnedStoreCoords && (
+                    <p className="text-xs text-amber-600 mt-1">
+                      Cửa hàng chưa ghim tọa độ trong cấu hình. Hệ thống đang dùng phí ship mặc định 15.000đ.
+                    </p>
+                  )}
+
+                  {deliveryDistanceBlockMessage && (
+                    <p className="text-xs text-red-500 mt-1">
+                      {deliveryDistanceBlockMessage}
+                    </p>
+                  )}
                 </div>
               </div>
             )}
@@ -718,11 +984,10 @@ export default function CheckoutPage() {
               </label>
               {paymentValidation && (
                 <div
-                  className={`mb-3 p-3 rounded-lg text-sm ${
-                    paymentValidation.forcePayOS
-                      ? "bg-yellow-50 text-yellow-800 border border-yellow-200"
-                      : "bg-blue-50 text-blue-800 border border-blue-200"
-                  }`}
+                  className={`mb-3 p-3 rounded-lg text-sm ${paymentValidation.forcePayOS
+                    ? "bg-yellow-50 text-yellow-800 border border-yellow-200"
+                    : "bg-blue-50 text-blue-800 border border-blue-200"
+                    }`}
                 >
                   <p className="font-medium">{paymentValidation.message}</p>
                   {paymentValidation.reason && (
@@ -784,8 +1049,8 @@ export default function CheckoutPage() {
                         isDisabled
                           ? "border-gray-200  bg-gray-100 dark:bg-gray-800 opacity-50 cursor-not-allowed"
                           : selected
-                            ? "border-amber-500 bg-amber-50 dark:bg-amber-900/20"
-                            : "border-gray-200  bg-white dark:bg-gray-900 hover:border-gray-300"
+                          ? "border-amber-500 bg-amber-50 dark:bg-amber-900/20"
+                          : "border-gray-200  bg-white dark:bg-gray-900 hover:border-gray-300"
                       }`}
                     >
                       <span
@@ -793,12 +1058,14 @@ export default function CheckoutPage() {
                           isDisabled
                             ? "bg-gray-200"
                             : selected
-                              ? "bg-amber-100 dark:bg-amber-900/30"
-                              : "bg-gray-100 dark:bg-gray-800"
+                            ? "bg-amber-100 dark:bg-amber-900/30"
+                            : "bg-gray-100 dark:bg-gray-800"
                         }`}
                       >
                         {isDisabled ? (
-                          <span className="text-xs text-gray-500 dark:text-gray-400">✕</span>
+                          <span className="text-xs text-gray-500 dark:text-gray-400">
+                            ✕
+                          </span>
                         ) : (
                           opt.icon
                         )}
@@ -806,7 +1073,9 @@ export default function CheckoutPage() {
                       <span>
                         <span
                           className={`block text-sm font-medium ${
-                            isDisabled ? "text-gray-500 dark:text-gray-400" : "text-gray-900 dark:text-gray-100"
+                            isDisabled
+                              ? "text-gray-500 dark:text-gray-400"
+                              : "text-gray-900 dark:text-gray-100"
                           }`}
                         >
                           {opt.label}
@@ -814,7 +1083,9 @@ export default function CheckoutPage() {
                         </span>
                         <span
                           className={`block text-xs ${
-                            isDisabled ? "text-gray-400" : "text-gray-500 dark:text-gray-400"
+                            isDisabled
+                              ? "text-gray-400"
+                              : "text-gray-500 dark:text-gray-400"
                           }`}
                         >
                           {opt.sub}
@@ -825,8 +1096,8 @@ export default function CheckoutPage() {
                           isDisabled
                             ? "border-gray-300 bg-gray-300"
                             : selected
-                              ? "border-amber-500 bg-amber-50 dark:bg-amber-900/200"
-                              : "border-gray-300"
+                            ? "border-amber-500 bg-amber-50 dark:bg-amber-900/200"
+                            : "border-gray-300"
                         }`}
                       />
                     </button>
@@ -858,7 +1129,12 @@ export default function CheckoutPage() {
           </div>
 
           <div className="border rounded-2xl p-5 bg-gray-50 dark:bg-gray-950 h-fit lg:sticky lg:top-24">
-            <h2 className="text-xl md:text-xl font-semibold text-amber-900 dark:text-amber-500 mb-4" style={{ fontFamily: 'serif' }}>Đơn hàng</h2>
+            <h2
+              className="text-xl md:text-xl font-semibold text-amber-900 dark:text-amber-500 mb-4"
+              style={{ fontFamily: "serif" }}
+            >
+              Đơn hàng
+            </h2>
 
             <div className="space-y-3 mb-5 max-h-[40vh] overflow-y-auto pr-2">
               {cart.map((item) => (
@@ -867,19 +1143,58 @@ export default function CheckoutPage() {
                   className="flex items-start justify-between gap-3"
                 >
                   <div className="flex items-start gap-3 flex-1 text-left">
-                    <div className="w-12 h-12 shrink-0 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-100 dark:border-gray-800 flex items-center justify-center p-1.5 overflow-hidden mix-blend-multiply dark:mix-blend-normal">
-                      <img
-                        src={item.image || "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085"}
-                        alt={item.name}
-                        className="w-full h-full object-contain"
-                        onError={(e) => {
-                          e.currentTarget.src =
-                            "https://images.unsplash.com/photo-1509042239860-f550ce710b93";
-                        }}
-                      />
+                    <div className="relative shrink-0">
+                      <div
+                        className="w-12 h-12 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-100 dark:border-gray-800 flex items-center justify-center p-1.5 overflow-hidden mix-blend-multiply dark:mix-blend-normal cursor-pointer transition-opacity hover:opacity-80"
+                        onClick={() =>
+                          navigate(
+                            `/${item.slug ||
+                            "products/" + (item.product_id || item.id)
+                            }`
+                          )
+                        }
+                      >
+                        <img
+                          src={
+                            item.image ||
+                            "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085"
+                          }
+                          alt={item.name}
+                          className="w-full h-full object-contain"
+                          onError={(e) => {
+                            e.currentTarget.src =
+                              "https://images.unsplash.com/photo-1509042239860-f550ce710b93";
+                          }}
+                        />
+                      </div>
+                      {activeSale && activeSale.product_ids?.includes(Number(item.product_id || item.id)) && (
+                        <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[8px] font-bold px-1 py-0.5 rounded-sm shadow-sm whitespace-nowrap z-10">
+                          -{activeSale.discount_percent}%
+                        </span>
+                      )}
                     </div>
                     <div>
-                      <p className="font-medium text-sm leading-snug">{item.name}</p>
+                      <p
+                        className="font-medium text-sm leading-snug cursor-pointer hover:text-amber-600 transition-colors"
+                        onClick={() =>
+                          navigate(
+                            `/${
+                              item.slug ||
+                              "products/" + (item.product_id || item.id)
+                            }`
+                          )
+                        }
+                      >
+                        {item.name}
+                      </p>
+                      {activeSale &&
+                        activeSale.product_ids?.includes(
+                          Number(item.product_id || item.id)
+                        ) && (
+                          <div className="mt-0.5 text-[11px] text-red-600 font-bold">
+                            🔥 Flash sale
+                          </div>
+                        )}
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                         {item.size} x {item.quantity}
                       </p>
@@ -950,7 +1265,9 @@ export default function CheckoutPage() {
                       Đổi điểm loyalty để giảm giá
                     </p>
                     <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                      1 điểm = 100đ. Bạn đang có {Number(loyaltyWalletPoints || 0).toLocaleString("vi-VN")} điểm.
+                      1 điểm = 100đ. Bạn đang có{" "}
+                      {Number(loyaltyWalletPoints || 0).toLocaleString("vi-VN")}{" "}
+                      điểm.
                     </p>
                   </div>
                   <Button
@@ -977,15 +1294,18 @@ export default function CheckoutPage() {
                 </div>
 
                 <p className="mt-2 text-xs text-gray-600 dark:text-gray-400">
-                  Tối đa có thể dùng: {maxRedeemablePoints.toLocaleString("vi-VN")} điểm
-                  {" "}(={" "}
-                  {(maxRedeemablePoints * LOYALTY_MONEY_PER_POINT).toLocaleString("vi-VN")}đ)
-                  {" "}- không vượt quá 50% tổng giá trị đơn.
+                  Tối đa có thể dùng:{" "}
+                  {maxRedeemablePoints.toLocaleString("vi-VN")} điểm (={" "}
+                  {(
+                    maxRedeemablePoints * LOYALTY_MONEY_PER_POINT
+                  ).toLocaleString("vi-VN")}
+                  đ) - không vượt quá 50% tổng giá trị đơn.
                 </p>
 
                 {isPointsInputExceeded && (
                   <p className="mt-1 text-xs text-red-600">
-                    Số điểm nhập vượt quá mức cho phép, hệ thống sẽ tự giới hạn khi đặt hàng.
+                    Số điểm nhập vượt quá mức cho phép, hệ thống sẽ tự giới hạn
+                    khi đặt hàng.
                   </p>
                 )}
               </div>
@@ -1004,15 +1324,25 @@ export default function CheckoutPage() {
 
               {loyaltyDiscountAmount > 0 ? (
                 <div className="flex justify-between text-sm text-gray-700 dark:text-gray-300">
-                  <span>Giảm từ điểm loyalty ({usedPoints.toLocaleString("vi-VN")} điểm)</span>
-                  <span>- {loyaltyDiscountAmount.toLocaleString("vi-VN")}đ</span>
+                  <span>
+                    Giảm từ điểm loyalty ({usedPoints.toLocaleString("vi-VN")}{" "}
+                    điểm)
+                  </span>
+                  <span>
+                    - {loyaltyDiscountAmount.toLocaleString("vi-VN")}đ
+                  </span>
                 </div>
               ) : null}
 
               {shippingFee > 0 ? (
                 <div className="flex justify-between text-sm text-gray-700 dark:text-gray-300">
                   <span className="flex items-center gap-2">
-                    Phí vận chuyển {deliveryDistanceKm ? `(${deliveryDistanceKm} km)` : ""}
+                    Phí vận chuyển{" "}
+                    {shippingFeeSource === "distance" && deliveryDistanceKm
+                      ? `(${deliveryDistanceKm} km)`
+                      : shippingFeeSource === "default"
+                      ? "(mặc định)"
+                      : ""}
                     {isShippingCalculating && (
                       <Loader2 className="w-3 h-3 animate-spin text-amber-600" />
                     )}
@@ -1021,10 +1351,24 @@ export default function CheckoutPage() {
                 </div>
               ) : null}
 
+              {!isShippingCalculating &&
+                deliveryDistanceKm &&
+                form.order_type === "delivery" &&
+                !deliveryDistanceBlockMessage && (
+                  <div className="bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 px-3 py-2.5 rounded-lg flex items-center gap-2 text-sm font-medium border border-emerald-100 dark:border-emerald-800/50 mt-2 mb-1">
+                    <Clock className="w-4 h-4 shrink-0" />
+                    <span>
+                      Dự kiến giao hàng trong vòng{" "}
+                      <strong>
+                        {10 + Math.ceil(Number(deliveryDistanceKm) * 4)} phút
+                      </strong>
+                    </span>
+                  </div>
+                )}
+
               <div className="flex justify-between text-base font-bold">
                 <div className="flex flex-col">
                   <span>Tổng cộng</span>
-                  <span className="text-xs font-normal text-gray-500 mt-2">(Đã bao gồm VAT nếu có)</span>
                 </div>
                 <span className="text-amber-600">
                   {totalAmount.toLocaleString("vi-VN")}đ
@@ -1032,12 +1376,27 @@ export default function CheckoutPage() {
               </div>
             </div>
 
+            <p className="mb-4 text-[13px] text-gray-500 dark:text-gray-400">
+              Nhấn "Đặt hàng" đồng nghĩa với việc bạn đồng ý tuân theo{" "}
+              <Link
+                to="/order-policy"
+                className="text-amber-600 hover:text-amber-700 hover:underline transition-colors font-medium"
+              >
+                Điều khoản Cửa Hàng
+              </Link>
+            </p>
+
             <PlaceOrderButton
               form={form}
               cart={cart}
               totalAmount={totalAmount}
               shippingFee={shippingFee}
-              disabled={isShippingCalculating}
+              customerCoords={
+                hasPinnedCustomerCoords ? pinnedCustomerCoords : null
+              }
+              customerLocationSource={customerLocationSource || "gps"}
+              disabled={isShippingCalculating || !isOpen || isCheckoutBlocked}
+              label={placeOrderLabel}
               onValidateError={(errs) => setErrors(errs)}
               onSuccess={() => navigate("/", { state: { orderSuccess: true } })}
             />
@@ -1068,11 +1427,10 @@ export default function CheckoutPage() {
                     key={item.id}
                     type="button"
                     onClick={() => handleSelectAddress(item)}
-                    className={`w-full text-left border rounded-xl p-4 transition ${
-                      isSelected
-                        ? "border-amber-500 bg-amber-50 dark:bg-amber-900/20"
-                        : "border-gray-200  hover:border-gray-300 bg-white dark:bg-gray-900"
-                    }`}
+                    className={`w-full text-left border rounded-xl p-4 transition ${isSelected
+                      ? "border-amber-500 bg-amber-50 dark:bg-amber-900/20"
+                      : "border-gray-200  hover:border-gray-300 bg-white dark:bg-gray-900"
+                      }`}
                   >
                     <div className="flex items-center justify-between gap-3 mb-2">
                       <div className="flex items-center gap-2">
@@ -1093,7 +1451,9 @@ export default function CheckoutPage() {
                     <p className="text-sm text-gray-600 dark:text-gray-400">
                       {item.receiver_phone || "Chưa có số điện thoại"}
                     </p>
-                    <p className="text-sm text-gray-800 dark:text-gray-200 mt-1">{item.address}</p>
+                    <p className="text-sm text-gray-800 dark:text-gray-200 mt-1">
+                      {item.address}
+                    </p>
                   </button>
                 );
               })
@@ -1110,7 +1470,7 @@ export default function CheckoutPage() {
         reputationRules={reputationRules}
       />
 
-      <Footer />
+
     </div>
   );
 }

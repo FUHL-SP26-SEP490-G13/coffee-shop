@@ -10,18 +10,15 @@ import categoryService from "@/services/categoryService";
 import FeaturedNews from "@/pages/homePage/news/FeaturedNews";
 import HomeBanner from "@/pages/homePage/banner/HomeBanner";
 import FlashSaleSection from "@/pages/homePage/product/FlashSaleSection";
-import DiscountSection from "@/pages/homePage/discount/DiscountSection";
-import CategorySection from "@/pages/homePage/product/CategorySection";
 import BestSellerSection from "@/pages/homePage/product/BestSellerSection";
 import ReviewSection from "@/pages/homePage/review/ReviewSection";
-import OrderGuideSection from "@/pages/homePage/order/OrderGuideSection";
-import InstagramFeedSection from "@/pages/homePage/follow/InstagramFeedSection";
+
 import "swiper/css";
 import "swiper/css/pagination";
 import "swiper/css/navigation";
-import Header from "@/components/layout/Header";
-import Footer from "@/components/layout/Footer";
-import AiAssistantWidget from "@/components/layout/AiAssistantWidget";
+
+
+
 
 
 export default function HomePage() {
@@ -79,22 +76,31 @@ export default function HomePage() {
   };
 
   const fetchProducts = useCallback(() => {
-    return productService.getBestSellers({ limit: 8 });
+    return productService.getBestSellers({ limit: 20, status: 'available' });
   }, []);
 
   const { data, loading } = useFetch(fetchProducts);
 
   const products = useMemo(() => {
-    return Array.isArray(data?.data) ? data.data : [];
+    const rawList = Array.isArray(data?.data) ? data.data : [];
+    // Lọc kỹ: đang bán (available) và chưa bị xoá (is_deleted = 0)
+    return rawList
+      .filter(
+        (p) =>
+          p.status === "available" &&
+          (!p.is_deleted || p.is_deleted === 0 || p.is_deleted === "0")
+      )
+      .slice(0, 8);
   }, [data]);
 
   const fetchCategories = useCallback(() => {
-    return categoryService.getAll({ page: 1, limit: 100 });
+    return categoryService.getAll({ page: 1, limit: 100, is_deleted: 0 });
   }, []);
   const { data: catData } = useFetch(fetchCategories);
 
   const categories = useMemo(() => {
-    return Array.isArray(catData?.data) ? catData.data : [];
+    const rawList = Array.isArray(catData?.data) ? catData.data : [];
+    return rawList.filter((c) => !c.is_deleted || c.is_deleted === 0 || c.is_deleted === "0");
   }, [catData]);
 
   const fetchBanners = useCallback(() => {
@@ -162,37 +168,13 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900 dark:border-gray-800">
-      <Header />
+
 
       <FadeInView delay={0} duration={1200}>
-        <div className="w-full bg-[#fcfaf9] dark:bg-gray-950 border-b border-gray-100 dark:border-gray-900 pb-0">
+        <div className="w-full bg-white dark:bg-gray-950 pb-4">
           <div className="w-full px-4 lg:px-6 xl:px-8 relative flex items-stretch">
-            {/* STATIC CATEGORY SIDEBAR */}
-            <div
-              className="hidden lg:flex w-[250px] shrink-0 flex-col bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-xl rounded-b-2xl z-20 pb-3 relative"
-            >
-              <div className="h-[480px] overflow-y-auto px-1 pt-1 customized-scrollbar relative">
-                {categories.length === 0 ? (
-                  <div className="text-center py-6 text-sm text-gray-500">Đang tải...</div>
-                ) : (
-                  categories.map((category) => (
-                    <button
-                      key={category.id}
-                      onClick={() => navigate(`/${category.slug || 'products?category=' + category.id}`)}
-                      className="w-full flex items-center justify-between px-5 py-3.5 transition text-[13px] font-bold text-gray-700 dark:text-gray-300 border-b border-dashed border-gray-100 dark:border-gray-800 last:border-0 hover:bg-amber-50 hover:text-amber-600 group"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-1.5 h-1.5 rounded-full bg-gray-300 group-hover:bg-amber-500 transition-colors"></div>
-                        <span className="uppercase tracking-wide">{category.name}</span>
-                      </div>
-                    </button>
-                  ))
-                )}
-              </div>
-            </div>
-
             {/* BANNER */}
-            <div className="flex-1 w-full lg:pl-6 overflow-hidden">
+            <div className="flex-1 w-full overflow-hidden">
               <HomeBanner
                 banners={banners}
                 activeBannerIndex={activeBannerIndex}
@@ -213,10 +195,6 @@ export default function HomePage() {
       </FadeInView>
 
       <FadeInView>
-        <DiscountSection />
-      </FadeInView>
-
-      <FadeInView>
         <BestSellerSection
           loading={loading}
           products={products}
@@ -229,29 +207,18 @@ export default function HomePage() {
         <ReviewSection />
       </FadeInView>
 
-      <FadeInView>
-        <OrderGuideSection />
-      </FadeInView>
-
       <FadeInView delay={200}>
         <div className="w-full h-px bg-gradient-to-r from-transparent via-amber-300 to-transparent" />
       </FadeInView>
 
-      <FadeInView>
-        <CategorySection />
-      </FadeInView>
 
       <FadeInView>
         <FeaturedNews />
       </FadeInView>
 
-      <FadeInView>
-        <InstagramFeedSection />
-      </FadeInView>
 
-      <AiAssistantWidget />
 
-      <Footer />
+
 
       {/* Scroll to Top Button */}
       <button

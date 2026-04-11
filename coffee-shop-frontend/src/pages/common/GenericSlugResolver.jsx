@@ -3,30 +3,47 @@ import { useParams, Navigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import ProductListPage from "../homePage/product/ProductListPage";
 import ProductDetailPage from "../homePage/product/ProductDetailPage";
-import Header from "@/components/layout/Header";
-import Footer from "@/components/layout/Footer";
+
+
 
 export const slugCache = {};
 
 export default function GenericSlugResolver() {
   const { slug } = useParams();
-  const [data, setData] = useState(slugCache[slug]?.data || null);
-  const [type, setType] = useState(slugCache[slug]?.type || null);
-  const [loading, setLoading] = useState(!slugCache[slug]);
+
+  // Bắt cache đồng bộ ngay khi đổi URL để tránh giật frame
+  let syncData = null;
+  let syncType = null;
+  let syncLoading = false;
+
+  if (slug === 'products') {
+    syncType = 'all_products';
+  } else if (slugCache[slug]) {
+    syncData = slugCache[slug].data;
+    syncType = slugCache[slug].type;
+  } else {
+    syncLoading = true;
+  }
+
+  const [asyncData, setData] = useState(syncData);
+  const [asyncType, setType] = useState(syncType);
+  const [asyncLoading, setLoading] = useState(syncLoading);
+
+  const data = syncData || asyncData;
+  const type = syncType || asyncType;
+  const loading = syncLoading === false ? false : asyncLoading;
+
+  // LƯU LẠI giao diện cũ để hiển thị mờ trong lúc chờ API (Stale-while-revalidate ở cấp độ Route)
+  const [lastGoodProps, setLastGoodProps] = useState(null);
 
   useEffect(() => {
-    if (slug === 'products') {
-      setType('all_products');
-      setLoading(false);
-      return;
+    if (!loading && type) {
+      setLastGoodProps({ type, data });
     }
+  }, [loading, type, data]);
 
-    if (slugCache[slug]) {
-       setData(slugCache[slug].data);
-       setType(slugCache[slug].type);
-       setLoading(false);
-       return;
-    }
+  useEffect(() => {
+    if (slug === 'products' || slugCache[slug]) return;
 
     setLoading(true);
     fetch(`http://localhost:5000/api/public/slugs/${slug}`)
@@ -45,31 +62,42 @@ export default function GenericSlugResolver() {
       .finally(() => setLoading(false));
   }, [slug]);
 
-  if (loading) {
+  const isTransitioning = loading && !!lastGoodProps;
+
+  // Nếu đang loading mà chưa có giao diện cũ (VD: truy cập thẳng link mới từ bên ngoài)
+  if (loading && !lastGoodProps) {
      return (
        <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
-         <Header />
          <div className="flex-1 flex items-center justify-center">
             <Loader2 className="w-8 h-8 animate-spin text-amber-600" />
          </div>
-         <Footer />
        </div>
      );
   }
 
-  if (type === 'all_products') {
-    return <ProductListPage />;
-  }
+  // Xác định dữ liệu sẽ hiển thị (nếu đang load thì lấy cái cũ giả lập)
+  const renderType = isTransitioning ? lastGoodProps.type : type;
+  const renderData = isTransitioning ? lastGoodProps.data : data;
 
-  if (!data) return <Navigate to="/404" />;
+  const renderContent = () => {
+    if (renderType === 'all_products') {
+      return <ProductListPage />;
+    }
+    if (!renderData && !isTransitioning) {
+      return <Navigate to="/404" />;
+    }
+    if (renderType === 'category') {
+      return <ProductListPage categoryIdOverride={renderData.id} categoryName={renderData.name} categorySlug={renderData.slug} />;
+    }
+    if (renderType === 'product') {
+      return <ProductDetailPage productIdOverride={renderData.id} initialProductData={renderData} />;
+    }
+    return <Navigate to="/404" />;
+  };
 
-  if (type === 'category') {
-    return <ProductListPage categoryIdOverride={data.id} categoryName={data.name} categorySlug={data.slug} />;
-  }
-  
-  if (type === 'product') {
-    return <ProductDetailPage productIdOverride={data.id} productData={data} />;
-  }
-
-  return <Navigate to="/404" />;
+  return (
+    <div className={`transition-opacity duration-300 ${isTransitioning ? 'opacity-50 pointer-events-none' : ''}`}>
+      {renderContent()}
+    </div>
+  );
 }

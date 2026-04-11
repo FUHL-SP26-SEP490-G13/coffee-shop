@@ -21,6 +21,10 @@ import {
 import { Badge } from "@/components/ui/badge";
 import PaginationControl from "@/components/common/PaginationControl";
 
+const isVideoUrl = (url) => 
+  typeof url === "string" && 
+  (url.match(/\.(mp4|webm|ogg|mov)$/i) || url.includes("video/upload"));
+
 export default function AdminReviews() {
   const [data, setData] = useState([]);
   const [page, setPage] = useState(1);
@@ -210,11 +214,25 @@ export default function AdminReviews() {
                           {item.comment || "—"}
                           {item.images && item.images.length > 0 && (
                             <div className="flex gap-2 mt-2">
-                              {item.images.map((img, idx) => (
-                                <a key={idx} href={img.url} target="_blank" rel="noopener noreferrer" className="shrink-0 hover:opacity-80 transition-opacity">
-                                  <img src={img.url} alt="Review attachment" className="w-10 h-10 rounded border border-gray-200 object-cover" />
-                                </a>
-                              ))}
+                              {item.images.map((img, idx) => {
+                                const isVideo = isVideoUrl(img.url);
+                                return (
+                                  <a key={idx} href={img.url} target="_blank" rel="noopener noreferrer" className="shrink-0 hover:opacity-80 transition-opacity block w-10 h-10 relative">
+                                    {isVideo ? (
+                                      <>
+                                        <video src={img.url} className="w-full h-full rounded border border-gray-200 object-cover" muted playsInline />
+                                        <div className="absolute inset-0 flex items-center justify-center bg-black/20 rounded pointer-events-none">
+                                          <div className="w-4 h-4 bg-white/80 rounded-full flex items-center justify-center">
+                                            <div className="w-0 h-0 border-t-2 border-t-transparent border-l-[3px] border-l-black border-b-2 border-b-transparent ml-0.5" />
+                                          </div>
+                                        </div>
+                                      </>
+                                    ) : (
+                                      <img src={img.url} alt="Review attachment" className="w-full h-full rounded border border-gray-200 object-cover" />
+                                    )}
+                                  </a>
+                                );
+                              })}
                             </div>
                           )}
                         </div>

@@ -159,13 +159,13 @@ class RecipeRepository {
    */
   async recipeExists(productSizeId, ingredientId) {
     const query = `
-      SELECT id FROM recipes_by_size 
+      SELECT id, quantity FROM recipes_by_size 
       WHERE product_size_id = ? AND ingredient_id = ?
       LIMIT 1
     `;
 
     const [rows] = await db.query(query, [productSizeId, ingredientId]);
-    return rows.length > 0;
+    return rows[0] || null;
   }
 
   /**

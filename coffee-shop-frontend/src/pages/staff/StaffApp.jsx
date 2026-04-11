@@ -44,6 +44,7 @@ import {
 } from '@/components/ui/tooltip';
 import Logo from '/logo/Logo.png';
 import receiptSettingService from "@/services/receiptSettingService";
+import { CashSessionProvider, useCashSession } from '../../components/staff/CashSessionContext';
 
 const STAFF_SIDEBAR_PREF_KEY = 'staff_sidebar_collapsed_by_page';
 const STAFF_SIDEBAR_DEFAULTS = {
@@ -202,7 +203,6 @@ export function StaffApp() {
     {
       title: 'Vận Hành',
       items: [
-        { id: 'inventory', icon: ClipboardList, label: 'Kho hàng', path: '/staff/inventory' },
         { id: 'requests', icon: ArrowLeftRight, label: 'Đổi ca', path: '/staff/requests' },
       ],
     },
@@ -504,6 +504,8 @@ export function StaffApp() {
               </div>
             ))}
 
+            <CashSessionButton isSidebarCompact={isSidebarCompact} />
+
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <button
@@ -621,11 +623,50 @@ export function StaffApp() {
             </div>
           )}
         </div>
-
-        <div className={`flex-1 w-full p-4 md:p-8 pt-2 md:pt-2 ${currentPage === 'pos' ? 'overflow-hidden flex flex-col p-2 md:p-2' : 'overflow-y-auto'}`}>
+        <div className={`flex-1 w-full flex flex-col ${currentPage === 'pos' ? 'overflow-hidden' : 'overflow-y-auto h-full'}`}>
           <Outlet />
         </div>
       </div>
     </div>
+  );
+}
+
+const CashSessionButton = ({ isSidebarCompact }) => {
+  const { session, handleTriggerClose, isTimeToClose } = useCashSession();
+  
+  if (!session) return null;
+
+  const content = (
+    <button
+      onClick={handleTriggerClose}
+      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all mb-2 text-rose-600 bg-rose-50 hover:bg-rose-100 dark:bg-rose-900/20 dark:text-rose-400 dark:hover:bg-rose-900/40 ${isSidebarCompact ? 'md:justify-center md:px-2' : ''}`}
+      title={isSidebarCompact ? 'Đóng ca' : undefined}
+    >
+      <Clock className='w-5 h-5 flex-shrink-0' />
+      <span className={`text-sm font-semibold ${isSidebarCompact ? 'md:hidden' : ''}`}>
+        Đóng ca làm
+      </span>
+    </button>
+  );
+
+  if (isSidebarCompact) {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>{content}</TooltipTrigger>
+        <TooltipContent side='right' sideOffset={10}>
+          Đóng ca làm
+        </TooltipContent>
+      </Tooltip>
+    );
+  }
+  
+  return content;
+}
+
+export function StaffAppWrapped() {
+  return (
+    <CashSessionProvider>
+      <StaffApp />
+    </CashSessionProvider>
   );
 }

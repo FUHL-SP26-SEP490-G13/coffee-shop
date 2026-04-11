@@ -33,7 +33,7 @@ export default function BannerFormDialog({
         onOpenChange(nextOpen);
       }}
     >
-      <DialogContent className="max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[800px] w-[95vw] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {editingBanner ? "Chỉnh sửa quảng cáo" : "Tạo quảng cáo mới"}
@@ -167,11 +167,13 @@ export default function BannerFormDialog({
           {previewImage && (
             <div className="space-y-2">
               <Label>Xem trước ảnh</Label>
-              <img
-                src={previewImage}
-                alt="Preview"
-                className="w-full h-48 object-cover rounded-lg border"
-              />
+              <div className="w-full h-48 md:h-64 rounded-lg border bg-muted flex items-center justify-center p-2">
+                <img
+                  src={previewImage}
+                  alt="Preview"
+                  className="w-full h-full object-contain"
+                />
+              </div>
             </div>
           )}
 

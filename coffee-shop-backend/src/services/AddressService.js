@@ -19,6 +19,33 @@ class AddressService {
     return ADDRESS_TYPES.HOME;
   }
 
+  normalizeCoordinate(value, type) {
+    if (value === null || value === undefined || value === "") return null;
+
+    const num = Number(value);
+    if (!Number.isFinite(num)) {
+      throw new ErrorResponse(400, `${type === "lat" ? "Vĩ độ" : "Kinh độ"} không hợp lệ`);
+    }
+
+    if (type === "lat" && (num < -90 || num > 90)) {
+      throw new ErrorResponse(400, "Vĩ độ không hợp lệ");
+    }
+
+    if (type === "lng" && (num < -180 || num > 180)) {
+      throw new ErrorResponse(400, "Kinh độ không hợp lệ");
+    }
+
+    return Number(num.toFixed(7));
+  }
+
+  normalizeLocationSource(source) {
+    const normalized = String(source || "").trim().toLowerCase();
+    if (["manual_pin", "gps", "geocode", "imported"].includes(normalized)) {
+      return normalized;
+    }
+    return "manual_pin";
+  }
+
   async getMyAddresses(userId) {
     return AddressRepository.findByUserId(userId);
   }
@@ -31,11 +58,21 @@ class AddressService {
       await AddressRepository.clearDefaultByUserId(userId);
     }
 
+    const latitude = this.normalizeCoordinate(payload.latitude, "lat");
+    const longitude = this.normalizeCoordinate(payload.longitude, "lng");
+    const hasCoordinates = latitude !== null && longitude !== null;
+
     const created = await AddressRepository.create({
       user_id: userId,
       receiver_name: this.normalizeNullableText(payload.receiver_name),
       receiver_phone: this.normalizeNullableText(payload.receiver_phone),
       address: payload.address.trim(),
+      latitude,
+      longitude,
+      location_source: hasCoordinates
+        ? this.normalizeLocationSource(payload.location_source)
+        : null,
+      location_verified_at: hasCoordinates ? new Date() : null,
       address_type: this.normalizeAddressType(payload.address_type),
       is_default: shouldSetDefault ? 1 : 0,
       is_deleted: 0,
@@ -71,6 +108,26 @@ class AddressService {
 
     if (typeof payload.address === 'string') {
       updateData.address = payload.address.trim();
+    }
+
+    const hasLatInput = Object.prototype.hasOwnProperty.call(payload, 'latitude');
+    const hasLngInput = Object.prototype.hasOwnProperty.call(payload, 'longitude');
+
+    if (hasLatInput !== hasLngInput) {
+      throw new ErrorResponse(400, 'Vui lòng cung cấp đầy đủ cả vĩ độ và kinh độ');
+    }
+
+    if (hasLatInput && hasLngInput) {
+      const normalizedLat = this.normalizeCoordinate(payload.latitude, 'lat');
+      const normalizedLng = this.normalizeCoordinate(payload.longitude, 'lng');
+      const hasCoordinates = normalizedLat !== null && normalizedLng !== null;
+
+      updateData.latitude = normalizedLat;
+      updateData.longitude = normalizedLng;
+      updateData.location_source = hasCoordinates
+        ? this.normalizeLocationSource(payload.location_source)
+        : null;
+      updateData.location_verified_at = hasCoordinates ? new Date() : null;
     }
 
     if (typeof payload.address_type === 'string') {
