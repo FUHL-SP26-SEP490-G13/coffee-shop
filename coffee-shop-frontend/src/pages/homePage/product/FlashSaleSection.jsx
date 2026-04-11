@@ -8,23 +8,15 @@ import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, Navigation } from "swiper/modules";
 import { useStoreHours } from "@/hooks/useStoreHours";
 import productService from "@/services/productService";
-import { STORAGE_KEYS } from "@/constants";
 import CartSuccessModal from "@/pages/homePage/order/CartSuccessModal";
 import QuickViewModal from "@/pages/homePage/product/QuickViewModal";
 
 export default function FlashSaleSection({ products, getThumbnail, getDefaultCartSize }) {
-  const { isOpen, storeSchedule, nextOpenMessage } = useStoreHours();
+  const { isOpen, nextOpenMessage } = useStoreHours();
   const [activeSale, setActiveSale] = useState(null);
   const [timeLeft, setTimeLeft] = useState({ hours: 0, minutes: 0, seconds: 0 });
   const [addedCartItem, setAddedCartItem] = useState(null);
   const [quickViewProduct, setQuickViewProduct] = useState(null);
-
-  const token =
-    localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN) ||
-    sessionStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
-
-  const isLoggedIn = !!token;
-
 
   useEffect(() => {
     const fetchFlashSale = async () => {

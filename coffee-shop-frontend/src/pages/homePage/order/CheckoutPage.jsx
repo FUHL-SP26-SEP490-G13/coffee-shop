@@ -807,8 +807,8 @@ export default function CheckoutPage() {
                       {isAddressLoading
                         ? "Đang tải địa chỉ..."
                         : addresses.length === 0
-                        ? "Chưa có địa chỉ đã lưu"
-                        : "Chọn địa chỉ giao hàng"}
+                          ? "Chưa có địa chỉ đã lưu"
+                          : "Chọn địa chỉ giao hàng"}
                     </Button>
 
                     {addresses.length === 0 && !isAddressLoading && (
@@ -837,9 +837,9 @@ export default function CheckoutPage() {
                           {selectedAddress.address}
                         </p>
                         {selectedAddress.latitude !== null &&
-                        selectedAddress.latitude !== undefined &&
-                        selectedAddress.longitude !== null &&
-                        selectedAddress.longitude !== undefined ? (
+                          selectedAddress.latitude !== undefined &&
+                          selectedAddress.longitude !== null &&
+                          selectedAddress.longitude !== undefined ? (
                           <p className="text-xs text-emerald-600 mt-1">
                             Địa chỉ này đã ghim tọa độ.
                           </p>
@@ -1014,22 +1014,20 @@ export default function CheckoutPage() {
                           }));
                         }
                       }}
-                      className={`flex items-center gap-3 rounded-xl border-2 px-4 py-3 text-left transition-all ${
-                        isDisabled
+                      className={`flex items-center gap-3 rounded-xl border-2 px-4 py-3 text-left transition-all ${isDisabled
                           ? "border-gray-200  bg-gray-100 dark:bg-gray-800 opacity-50 cursor-not-allowed"
                           : selected
-                          ? "border-amber-500 bg-amber-50 dark:bg-amber-900/20"
-                          : "border-gray-200  bg-white dark:bg-gray-900 hover:border-gray-300"
-                      }`}
+                            ? "border-amber-500 bg-amber-50 dark:bg-amber-900/20"
+                            : "border-gray-200  bg-white dark:bg-gray-900 hover:border-gray-300"
+                        }`}
                     >
                       <span
-                        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
-                          isDisabled
+                        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${isDisabled
                             ? "bg-gray-200"
                             : selected
-                            ? "bg-amber-100 dark:bg-amber-900/30"
-                            : "bg-gray-100 dark:bg-gray-800"
-                        }`}
+                              ? "bg-amber-100 dark:bg-amber-900/30"
+                              : "bg-gray-100 dark:bg-gray-800"
+                          }`}
                       >
                         {isDisabled ? (
                           <span className="text-xs text-gray-500 dark:text-gray-400">
@@ -1041,33 +1039,30 @@ export default function CheckoutPage() {
                       </span>
                       <span>
                         <span
-                          className={`block text-sm font-medium ${
-                            isDisabled
+                          className={`block text-sm font-medium ${isDisabled
                               ? "text-gray-500 dark:text-gray-400"
                               : "text-gray-900 dark:text-gray-100"
-                          }`}
+                            }`}
                         >
                           {opt.label}
                           {isDisabled && " (Không khả dụng)"}
                         </span>
                         <span
-                          className={`block text-xs ${
-                            isDisabled
+                          className={`block text-xs ${isDisabled
                               ? "text-gray-400"
                               : "text-gray-500 dark:text-gray-400"
-                          }`}
+                            }`}
                         >
                           {opt.sub}
                         </span>
                       </span>
                       <span
-                        className={`ml-auto h-4 w-4 shrink-0 rounded-full border-2 ${
-                          isDisabled
+                        className={`ml-auto h-4 w-4 shrink-0 rounded-full border-2 ${isDisabled
                             ? "border-gray-300 bg-gray-300"
                             : selected
-                            ? "border-amber-500 bg-amber-50 dark:bg-amber-900/200"
-                            : "border-gray-300"
-                        }`}
+                              ? "border-amber-500 bg-amber-50 dark:bg-amber-900/200"
+                              : "border-gray-300"
+                          }`}
                       />
                     </button>
                   );
@@ -1147,9 +1142,8 @@ export default function CheckoutPage() {
                         className="font-medium text-sm leading-snug cursor-pointer hover:text-amber-600 transition-colors"
                         onClick={() =>
                           navigate(
-                            `/${
-                              item.slug ||
-                              "products/" + (item.product_id || item.id)
+                            `/${item.slug ||
+                            "products/" + (item.product_id || item.id)
                             }`
                           )
                         }

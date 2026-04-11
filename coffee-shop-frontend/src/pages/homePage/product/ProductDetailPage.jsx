@@ -43,6 +43,7 @@ const productDetailCache = {};
 
 const ReviewItem = ({ item, currentUserId, categoryName }) => {
   const [expandedIndex, setExpandedIndex] = useState(null);
+  const [expandedReplyIndex, setExpandedReplyIndex] = useState(null);
 
   const isVideo = (url) => {
     if (!url) return false;
@@ -195,24 +196,78 @@ const ReviewItem = ({ item, currentUserId, categoryName }) => {
               </div>
             )}
             {item.reply_images && item.reply_images.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 mt-2">
-                {item.reply_images.map((img, idx) => {
-                  const videoMode = isVideo(img.url);
-                  return (
-                    <a key={idx} href={img.url} target="_blank" rel="noopener noreferrer" className="relative block w-[60px] h-[60px] border border-gray-200 hover:border-gray-400 transition-colors cursor-zoom-in overflow-hidden">
-                      {videoMode ? (
-                        <>
-                          <video src={img.url} className="w-full h-full object-cover pointer-events-none" />
-                          <div className="absolute inset-0 bg-black/10 flex items-center justify-center">
-                            <span className="w-0 h-0 border-t-[5px] border-t-transparent border-l-[8px] border-l-white border-b-[5px] border-b-transparent ml-0.5 shadow-sm" />
-                          </div>
-                        </>
-                      ) : (
-                        <img src={img.url} className="w-full h-full object-cover" alt="reply img" />
-                      )}
-                    </a>
-                  )
-                })}
+              <div className="mt-2">
+                <div className="flex flex-wrap gap-1.5">
+                  {item.reply_images.map((img, idx) => {
+                    const videoMode = isVideo(img.url);
+                    return (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() =>
+                          setExpandedReplyIndex(expandedReplyIndex === idx ? null : idx)
+                        }
+                        className={`relative block w-[60px] h-[60px] bg-gray-50 overflow-hidden cursor-zoom-in group ${expandedReplyIndex === idx
+                          ? "border-2 border-[#ee4d2d]"
+                          : "border border-gray-200 hover:border-gray-400 transition-colors"
+                          }`}
+                      >
+                        {videoMode ? (
+                          <>
+                            <video src={img.url} className="w-full h-full object-cover pointer-events-none group-hover:scale-110 transition-transform duration-300" />
+                            <div className="absolute inset-0 bg-black/10 flex items-center justify-center pointer-events-none">
+                              <span className="w-0 h-0 border-t-[5px] border-t-transparent border-l-[8px] border-l-white border-b-[5px] border-b-transparent ml-0.5 shadow-sm" />
+                            </div>
+                          </>
+                        ) : (
+                          <img src={img.url} className="w-full h-full object-cover pointer-events-none group-hover:scale-110 transition-transform duration-300" alt="reply img" />
+                        )}
+                      </button>
+                    )
+                  })}
+                </div>
+                {expandedReplyIndex !== null && (
+                  <div className="relative w-full max-w-[400px] mt-3 bg-black flex items-center justify-center border border-gray-200 dark:border-gray-800 overflow-hidden group/large">
+                    {isVideo(item.reply_images[expandedReplyIndex].url) ? (
+                      <video
+                        src={item.reply_images[expandedReplyIndex].url}
+                        controls
+                        autoPlay
+                        className="w-full max-h-[400px] object-contain"
+                      />
+                    ) : (
+                      <img
+                        src={item.reply_images[expandedReplyIndex].url}
+                        alt="Expanded reply"
+                        className="w-full max-h-[400px] object-contain"
+                      />
+                    )}
+                    {item.reply_images.length > 1 && (
+                      <>
+                        <button
+                          onClick={() =>
+                            setExpandedReplyIndex((prev) =>
+                              prev === 0 ? item.reply_images.length - 1 : prev - 1
+                            )
+                          }
+                          className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center bg-white/50 hover:bg-white text-gray-800 rounded-full shadow-sm transition opacity-0 group-hover/large:opacity-100"
+                        >
+                          <ChevronLeft className="w-5 h-5" />
+                        </button>
+                        <button
+                          onClick={() =>
+                            setExpandedReplyIndex((prev) =>
+                              prev === item.reply_images.length - 1 ? 0 : prev + 1
+                            )
+                          }
+                          className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center bg-white/50 hover:bg-white text-gray-800 rounded-full shadow-sm transition opacity-0 group-hover/large:opacity-100"
+                        >
+                          <ChevronRight className="w-5 h-5" />
+                        </button>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </div>

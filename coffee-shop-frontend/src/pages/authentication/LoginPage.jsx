@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { APP_ROUTES, STORAGE_KEYS } from "@/constants";
 import authenticationService from "@/services/authenticationService";
 import { cartService } from "@/services/cartService";
+import receiptSettingService from "@/services/receiptSettingService";
 import { toast } from "sonner";
 
 const REMEMBER_ME_KEYS = {
@@ -25,6 +26,25 @@ export default function LoginPage() {
 	const [errorMessage, setErrorMessage] = useState("");
 	const [showPassword, setShowPassword] = useState(false);
 	const [capsLockActive, setCapsLockActive] = useState(false);
+	const [storeName, setStoreName] = useState(() => {
+		return localStorage.getItem("cached_store_name") || "Coffee Shop";
+	});
+
+	useEffect(() => {
+		const fetchLogo = async () => {
+			try {
+				const res = await receiptSettingService.getActive();
+				const data = res?.data || null;
+				if (data && data.store_name) {
+					setStoreName(data.store_name);
+					localStorage.setItem("cached_store_name", data.store_name);
+				}
+			} catch (e) {
+				// ignore
+			}
+		};
+		fetchLogo();
+	}, []);
 
 	// Tự động detect Caps Lock
 	useEffect(() => {
@@ -177,7 +197,7 @@ export default function LoginPage() {
 							</div>
 							<div className="space-y-4">
 								<h1 className="text-4xl font-extrabold text-white lg:text-6xl leading-tight drop-shadow-md">
-									Coffee Shop
+									{storeName}
 								</h1>
 								<p className="text-base font-medium text-gray-200 drop-shadow-sm leading-relaxed">
 									Khám phá thế giới cà phê đầy hương vị. Đặt món nhanh, tích điểm thưởng và quản lý đơn hàng ngay hôm nay.

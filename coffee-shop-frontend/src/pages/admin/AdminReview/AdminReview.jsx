@@ -3,6 +3,9 @@ import {
   Loader2,
   Search,
   Star,
+  ChevronLeft,
+  ChevronRight,
+  X,
 } from "lucide-react";
 import reviewService from "@/services/reviewService";
 import { Button } from "@/components/ui/button";
@@ -33,6 +36,7 @@ export default function AdminReviews() {
 
   const [keyword, setKeyword] = useState("");
   const [selectedReplyReview, setSelectedReplyReview] = useState(null);
+  const [expandedImage, setExpandedImage] = useState(null);
 
   const abortRef = useRef(null);
 
@@ -218,7 +222,11 @@ export default function AdminReviews() {
                               {item.images.map((img, idx) => {
                                 const isVideo = isVideoUrl(img.url);
                                 return (
-                                  <a key={idx} href={img.url} target="_blank" rel="noopener noreferrer" className="shrink-0 hover:opacity-80 transition-opacity block w-10 h-10 relative">
+                                  <button 
+                                    key={idx} 
+                                    onClick={() => setExpandedImage({ images: item.images, index: idx })} 
+                                    className="shrink-0 hover:opacity-80 transition-opacity block w-10 h-10 relative cursor-zoom-in"
+                                  >
                                     {isVideo ? (
                                       <>
                                         <video src={img.url} className="w-full h-full rounded border border-gray-200 object-cover" muted playsInline />
@@ -229,9 +237,9 @@ export default function AdminReviews() {
                                         </div>
                                       </>
                                     ) : (
-                                      <img src={img.url} alt="Review attachment" className="w-full h-full rounded border border-gray-200 object-cover" />
+                                      <img src={img.url} alt="Review attachment" className="w-full h-full rounded border border-gray-200 object-cover pointer-events-none" />
                                     )}
-                                  </a>
+                                  </button>
                                 );
                               })}
                             </div>
@@ -309,6 +317,51 @@ export default function AdminReviews() {
           onClose={() => setSelectedReplyReview(null)} 
           onRefresh={() => fetchReviews(page, keyword)}
         />
+      )}
+
+      {expandedImage && (
+        <div className="fixed inset-0 z-[9999] bg-black/90 flex items-center justify-center animate-in fade-in duration-200" onClick={() => setExpandedImage(null)}>
+          <button onClick={() => setExpandedImage(null)} className="absolute top-6 right-6 text-white/50 hover:text-white transition-colors">
+            <X className="w-10 h-10" />
+          </button>
+          
+          <div className="relative max-w-[90vw] max-h-[90vh] flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+            {isVideoUrl(expandedImage.images[expandedImage.index].url) ? (
+              <video src={expandedImage.images[expandedImage.index].url} controls autoPlay className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl" />
+            ) : (
+              <img src={expandedImage.images[expandedImage.index].url} className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl" />
+            )}
+            
+            {expandedImage.images.length > 1 && (
+              <>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setExpandedImage(prev => ({
+                      ...prev,
+                      index: prev.index === 0 ? prev.images.length - 1 : prev.index - 1
+                    }))
+                  }}
+                  className="absolute -left-16 top-1/2 -translate-y-1/2 w-12 h-12 flex items-center justify-center bg-white/10 hover:bg-white/30 text-white rounded-full shadow-lg transition"
+                >
+                  <ChevronLeft className="w-8 h-8" />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setExpandedImage(prev => ({
+                      ...prev,
+                      index: prev.index === prev.images.length - 1 ? 0 : prev.index + 1
+                    }))
+                  }}
+                  className="absolute -right-16 top-1/2 -translate-y-1/2 w-12 h-12 flex items-center justify-center bg-white/10 hover:bg-white/30 text-white rounded-full shadow-lg transition"
+                >
+                  <ChevronRight className="w-8 h-8" />
+                </button>
+              </>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );

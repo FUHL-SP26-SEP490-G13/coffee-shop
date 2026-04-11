@@ -4,9 +4,7 @@ import {
   ChevronLeft,
   Loader2,
   Calendar,
-  Clock,
   Tag,
-  ArrowRight,
 } from "lucide-react";
 import useFetch from "@/hooks/useFetch";
 import newsService from "@/services/newsService";

@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { APP_ROUTES, STORAGE_KEYS } from "@/constants";
 import authenticationService from "@/services/authenticationService";
+import receiptSettingService from "@/services/receiptSettingService";
 
 export default function RegisterPage() {
 	const navigate = useNavigate();
@@ -31,6 +32,25 @@ export default function RegisterPage() {
 	const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
 	const [registrationData, setRegistrationData] = useState(null);
 	const [capsLockActive, setCapsLockActive] = useState(false);
+	const [storeName, setStoreName] = useState(() => {
+		return localStorage.getItem("cached_store_name") || "Coffee Shop";
+	});
+
+	useEffect(() => {
+		const fetchLogo = async () => {
+			try {
+				const res = await receiptSettingService.getActive();
+				const data = res?.data || null;
+				if (data && data.store_name) {
+					setStoreName(data.store_name);
+					localStorage.setItem("cached_store_name", data.store_name);
+				}
+			} catch (e) {
+				// ignore
+			}
+		};
+		fetchLogo();
+	}, []);
 
 	// Detect Caps Lock globally
 	useEffect(() => {
@@ -294,7 +314,7 @@ export default function RegisterPage() {
 						<div className="relative z-10 max-w-md space-y-6">
 							<div className="inline-flex items-center gap-3 rounded-full border border-white/20 bg-white/10 backdrop-blur-md px-5 py-2 text-sm text-white shadow-lg">
 								<Coffee className="h-4 w-4 text-amber-400 animate-pulse" />
-								<span className="font-medium tracking-wide">Coffee Shop Member</span>
+								<span className="font-medium tracking-wide">{storeName} Member</span>
 							</div>
 							<div className="space-y-4">
 								<h1 className="text-4xl font-extrabold text-white lg:text-5xl leading-tight drop-shadow-md">
