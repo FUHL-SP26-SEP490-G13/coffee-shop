@@ -64,6 +64,22 @@ export const validateOrderField = (name, value) => {
       return "";
     }
 
+    case "province_id": {
+      const v = Number(value);
+      if (!Number.isInteger(v) || v <= 0) {
+        return "Vui lòng chọn Tỉnh/Thành";
+      }
+      return "";
+    }
+
+    case "ward_id": {
+      const v = Number(value);
+      if (!Number.isInteger(v) || v <= 0) {
+        return "Vui lòng chọn Xã/Phường";
+      }
+      return "";
+    }
+
     default:
       return "";
   }
@@ -87,6 +103,14 @@ export const validateOrderForm = (form) => {
   } else {
     const addressError = validateOrderField("address", form.address);
     if (addressError) errors.address = addressError;
+  }
+
+  if (form.order_type === "delivery") {
+    const provinceError = validateOrderField("province_id", form.province_id);
+    if (provinceError) errors.province_id = provinceError;
+
+    const wardError = validateOrderField("ward_id", form.ward_id);
+    if (wardError) errors.ward_id = wardError;
   }
 
   const noteError = validateOrderField("note", form.note);

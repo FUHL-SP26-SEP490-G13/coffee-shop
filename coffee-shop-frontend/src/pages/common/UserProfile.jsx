@@ -1,17 +1,16 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Mail, Phone, Edit2, Save, MapPin, Plus, Trash2, LocateFixed, Loader2, Lock, Navigation, Home, Briefcase, Star, BriefcaseBusiness, Coffee, AlertCircle } from 'lucide-react';
+import { User, Mail, Phone, Edit2, Save, MapPin, Plus, Trash2, Loader2, Lock, Navigation, Home, Star, BriefcaseBusiness } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../../components/ui/dialog';
 import { Avatar, AvatarFallback } from '../../components/ui/avatar';
-import { CircleMarker, MapContainer, TileLayer, useMap, useMapEvents } from 'react-leaflet';
-import 'leaflet/dist/leaflet.css';
 
 import { toast } from 'sonner';
 import authenticationService from '../../services/authenticationService';
+import deliveryAreaService from '../../services/deliveryAreaService';
 import receiptSettingService from '../../services/receiptSettingService';
 import { APP_ROUTES, STORAGE_KEYS } from '../../constants';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
@@ -19,31 +18,17 @@ import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 const getStoredValue = (key) =>
   localStorage.getItem(key) || sessionStorage.getItem(key);
 
-const DEFAULT_ADDRESS_MAP_CENTER = [10.7769, 106.7009];
+const unwrapApiData = (response) => {
+  if (
+    response &&
+    typeof response.data === 'object' &&
+    response.data !== null &&
+    Object.prototype.hasOwnProperty.call(response.data, 'data')
+  ) {
+    return response.data.data;
+  }
 
-const parseCoordinate = (value) => {
-  const numericValue = Number(value);
-  return Number.isFinite(numericValue) ? numericValue : null;
-};
-
-const AddressMapClickHandler = ({ onPick }) => {
-  useMapEvents({
-    click(event) {
-      onPick(event.latlng.lat, event.latlng.lng);
-    },
-  });
-
-  return null;
-};
-
-const AddressMapRecenter = ({ center, zoom }) => {
-  const map = useMap();
-
-  useEffect(() => {
-    map.setView(center, zoom, { animate: false });
-  }, [map, center, zoom]);
-
-  return null;
+  return response?.data;
 };
 
 export function UserProfile() {
@@ -61,14 +46,15 @@ export function UserProfile() {
     receiver_name: '',
     receiver_phone: '',
     address: '',
-    latitude: '',
-    longitude: '',
-    location_source: 'manual_pin',
+    province_id: '',
+    ward_id: '',
     address_type: 'home',
   });
   const [editingAddressId, setEditingAddressId] = useState(null);
-  const [editingAddressOriginal, setEditingAddressOriginal] = useState('');
-  const [isPinningAddressLocation, setIsPinningAddressLocation] = useState(false);
+  const [provinces, setProvinces] = useState([]);
+  const [wards, setWards] = useState([]);
+  const [isAreaLoading, setIsAreaLoading] = useState(false);
+  const [isWardLoading, setIsWardLoading] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -218,18 +204,98 @@ export function UserProfile() {
     loadAddresses();
   }, [loadAddresses]);
 
+  const loadProvinces = useCallback(async () => {
+    const response = await deliveryAreaService.getProvinces();
+    const data = unwrapApiData(response);
+    const provinceList = Array.isArray(data) ? data : [];
+    setProvinces(provinceList);
+    return provinceList;
+  }, []);
+
+  const loadWardsByProvince = useCallback(async (provinceId) => {
+    const normalizedProvinceId = Number(provinceId || 0);
+    if (normalizedProvinceId <= 0) {
+      setWards([]);
+      return [];
+    }
+
+    const response = await deliveryAreaService.getWardsByProvince(normalizedProvinceId);
+    const data = unwrapApiData(response);
+    const wardList = Array.isArray(data) ? data : [];
+    setWards(wardList);
+    return wardList;
+  }, []);
+
+  useEffect(() => {
+    if (!isCustomer) return;
+
+    let mounted = true;
+
+    const fetchProvinces = async () => {
+      try {
+        setIsAreaLoading(true);
+        await loadProvinces();
+      } catch (error) {
+        if (!mounted) return;
+        toast.error(getApiErrorMessage(error, 'Không thể tải danh sách Tỉnh/Thành'));
+      } finally {
+        if (mounted) {
+          setIsAreaLoading(false);
+        }
+      }
+    };
+
+    fetchProvinces();
+
+    return () => {
+      mounted = false;
+    };
+  }, [isCustomer, loadProvinces]);
+
+  useEffect(() => {
+    if (!addressDialogOpen) return;
+
+    let mounted = true;
+
+    const fetchWards = async () => {
+      const provinceId = Number(addressForm.province_id || 0);
+
+      if (provinceId <= 0) {
+        setWards([]);
+        return;
+      }
+
+      try {
+        setIsWardLoading(true);
+        await loadWardsByProvince(provinceId);
+      } catch (error) {
+        if (!mounted) return;
+        toast.error(getApiErrorMessage(error, 'Không thể tải danh sách Xã/Phường'));
+      } finally {
+        if (mounted) {
+          setIsWardLoading(false);
+        }
+      }
+    };
+
+    fetchWards();
+
+    return () => {
+      mounted = false;
+    };
+  }, [addressDialogOpen, addressForm.province_id, loadWardsByProvince]);
+
   const resetAddressForm = () => {
     setAddressForm({
       receiver_name: '',
       receiver_phone: '',
       address: '',
-      latitude: '',
-      longitude: '',
-      location_source: 'manual_pin',
+      province_id: '',
+      ward_id: '',
       address_type: 'home',
     });
+    setWards([]);
     setEditingAddressId(null);
-    setEditingAddressOriginal('');
   };
 
   const openCreateAddressDialog = () => {
@@ -239,97 +305,37 @@ export function UserProfile() {
 
   const validateAddressForm = () => {
     const normalizedAddress = String(addressForm.address || '').trim();
-    const lat = String(addressForm.latitude || '').trim();
-    const lng = String(addressForm.longitude || '').trim();
-    const hasLat = lat.length > 0;
-    const hasLng = lng.length > 0;
+    const normalizedProvinceId = Number(addressForm.province_id || 0);
+    const normalizedWardId = Number(addressForm.ward_id || 0);
 
     if (!normalizedAddress) {
       toast.error('Vui lòng nhập địa chỉ nhận hàng');
       return false;
     }
 
-    if (hasLat !== hasLng) {
-      toast.error('Vui lòng nhập đầy đủ cả vĩ độ và kinh độ');
+    if (normalizedProvinceId <= 0) {
+      toast.error('Vui lòng chọn Tỉnh/Thành');
       return false;
     }
 
-    if (hasLat && hasLng) {
-      const latNum = Number(lat);
-      const lngNum = Number(lng);
-
-      if (!Number.isFinite(latNum) || latNum < -90 || latNum > 90) {
-        toast.error('Vĩ độ không hợp lệ');
-        return false;
-      }
-
-      if (!Number.isFinite(lngNum) || lngNum < -180 || lngNum > 180) {
-        toast.error('Kinh độ không hợp lệ');
-        return false;
-      }
+    if (normalizedWardId <= 0) {
+      toast.error('Vui lòng chọn Xã/Phường');
+      return false;
     }
 
     return true;
   };
 
-  const handlePickAddressLocationFromMap = (latitude, longitude) => {
-    setAddressForm((prev) => ({
-      ...prev,
-      latitude: String(Number(latitude.toFixed(7))),
-      longitude: String(Number(longitude.toFixed(7))),
-      location_source: 'manual_pin',
-    }));
-  };
-
-  const handlePinCurrentAddressLocation = () => {
-    if (!navigator.geolocation) {
-      toast.error('Trình duyệt không hỗ trợ định vị GPS');
-      return;
-    }
-
-    setIsPinningAddressLocation(true);
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setAddressForm((prev) => ({
-          ...prev,
-          latitude: String(Number(position.coords.latitude.toFixed(7))),
-          longitude: String(Number(position.coords.longitude.toFixed(7))),
-          location_source: 'gps',
-        }));
-        toast.success('Đã ghim vị trí hiện tại thành công');
-        setIsPinningAddressLocation(false);
-      },
-      (error) => {
-        const message =
-          error?.code === 1
-            ? 'Bạn đã từ chối quyền truy cập vị trí'
-            : 'Không lấy được vị trí hiện tại, vui lòng thử lại';
-        toast.error(message);
-        setIsPinningAddressLocation(false);
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 12000,
-        maximumAge: 0,
-      }
-    );
-  };
-
   const handleSubmitAddress = async () => {
     if (!validateAddressForm()) return;
+    const normalizedAddress = String(addressForm.address || '').trim();
 
     const payload = {
       receiver_name: addressForm.receiver_name.trim() || null,
       receiver_phone: addressForm.receiver_phone.trim() || null,
-      address: addressForm.address.trim(),
-      latitude:
-        addressForm.latitude === '' ? null : Number(addressForm.latitude),
-      longitude:
-        addressForm.longitude === '' ? null : Number(addressForm.longitude),
-      location_source:
-        addressForm.latitude === ''
-          ? null
-          : addressForm.location_source || 'manual_pin',
+      address: normalizedAddress,
+      province_id: Number(addressForm.province_id || 0) || null,
+      ward_id: Number(addressForm.ward_id || 0) || null,
       address_type: addressForm.address_type,
     };
 
@@ -363,25 +369,34 @@ export function UserProfile() {
     }
   };
 
-  const handleEditAddress = (item) => {
+  const handleEditAddress = async (item) => {
+    const itemProvinceId = Number(item.province_id || 0);
+    const itemWardId = Number(item.ward_id || 0);
+
     setEditingAddressId(item.id);
-    setEditingAddressOriginal(item.address || '');
     setAddressForm({
       receiver_name: item.receiver_name || '',
       receiver_phone: item.receiver_phone || '',
       address: item.address || '',
-      latitude:
-        item.latitude === null || item.latitude === undefined
-          ? ''
-          : String(item.latitude),
-      longitude:
-        item.longitude === null || item.longitude === undefined
-          ? ''
-          : String(item.longitude),
-      location_source: item.location_source || 'manual_pin',
+      province_id: itemProvinceId > 0 ? String(itemProvinceId) : '',
+      ward_id: itemWardId > 0 ? String(itemWardId) : '',
       address_type: item.address_type || 'home',
     });
     setAddressDialogOpen(true);
+
+    if (itemProvinceId > 0) {
+      try {
+        setIsWardLoading(true);
+        await loadWardsByProvince(itemProvinceId);
+      } catch (error) {
+        toast.error(getApiErrorMessage(error, 'Không thể tải khu vực địa chỉ'));
+      } finally {
+        setIsWardLoading(false);
+      }
+      return;
+    }
+
+    setWards([]);
   };
 
   const handleDeleteAddress = async (id) => {
@@ -655,13 +670,12 @@ export function UserProfile() {
                                       <p className="text-sm font-medium text-gray-700 dark:text-gray-300 line-clamp-2 leading-relaxed">
                                         {item.address}
                                       </p>
-                                      {item.latitude && item.longitude ? (
-                                        <p className="text-[11px] font-medium text-emerald-600 dark:text-emerald-500 flex items-center gap-1 opacity-70">
-                                          <LocateFixed className="w-3 h-3" /> Đã ghim toạ độ
-                                        </p>
-                                      ) : (
-                                        <p className="text-[11px] font-medium text-amber-500 flex items-center gap-1 opacity-70">
-                                          <AlertCircle className="w-3 h-3" /> Chưa ghim toạ độ
+                                      {(item.ward_name || item.province_name) && (
+                                        <p className="text-[11px] font-medium text-amber-600 dark:text-amber-400 flex items-center gap-1 opacity-90">
+                                          <MapPin className="w-3 h-3" />
+                                          {[item.ward_name, item.province_name]
+                                            .filter(Boolean)
+                                            .join(', ')}
                                         </p>
                                       )}
                                     </div>
@@ -852,129 +866,75 @@ export function UserProfile() {
                   setAddressForm((prev) => ({
                     ...prev,
                     address: e.target.value,
-                    ...(e.target.value.trim() !== String(editingAddressOriginal || '').trim()
-                      ? {
-                          latitude: '',
-                          longitude: '',
-                          location_source: 'manual_pin',
-                        }
-                      : {}),
                   }))
                 }
-                placeholder="Số nhà, hẻm, tên đường, phường, quận..."
+                placeholder="Số nhà, hẻm, tên đường..."
                 className="h-11 rounded-xl bg-gray-50/80 dark:bg-black/20 focus-visible:ring-amber-500/50 focus-visible:border-amber-500"
               />
             </div>
 
             <div className="space-y-3 rounded-2xl border border-amber-200/60 bg-amber-50/40 dark:bg-amber-900/10 dark:border-amber-900/30 p-4">
-              <div className="flex items-center justify-between gap-2 flex-wrap">
-                <p className="text-sm font-bold flex items-center gap-2 text-amber-800 dark:text-amber-400">
-                  <LocateFixed className="w-4 h-4" />
-                  Toạ độ bản đồ (không bắt buộc)
-                </p>
-                <Button
-                  type="button"
-                  variant="default"
-                  size="sm"
-                  onClick={handlePinCurrentAddressLocation}
-                  disabled={isPinningAddressLocation}
-                  className="rounded-lg h-8 bg-amber-600 hover:bg-amber-700 shadow-sm text-xs"
-                >
-                  {isPinningAddressLocation ? (
-                    <>
-                      <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
-                      Đang lấy GPS...
-                    </>
-                  ) : (
-                    'Sử dụng vị trí hiện tại'
-                  )}
-                </Button>
-              </div>
-
-              <div className="overflow-hidden rounded-xl border border-amber-100 dark:border-amber-900/30">
-                <MapContainer
-                  center={
-                    parseCoordinate(addressForm.latitude) !== null &&
-                    parseCoordinate(addressForm.longitude) !== null
-                      ? [
-                          parseCoordinate(addressForm.latitude),
-                          parseCoordinate(addressForm.longitude),
-                        ]
-                      : DEFAULT_ADDRESS_MAP_CENTER
-                  }
-                  zoom={
-                    parseCoordinate(addressForm.latitude) !== null &&
-                    parseCoordinate(addressForm.longitude) !== null
-                      ? 16
-                      : 6
-                  }
-                  className="h-56 w-full"
-                  scrollWheelZoom
-                >
-                  <TileLayer
-                    attribution="&copy; OpenStreetMap contributors"
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                  />
-                  <AddressMapRecenter
-                    center={
-                      parseCoordinate(addressForm.latitude) !== null &&
-                      parseCoordinate(addressForm.longitude) !== null
-                        ? [
-                            parseCoordinate(addressForm.latitude),
-                            parseCoordinate(addressForm.longitude),
-                          ]
-                        : DEFAULT_ADDRESS_MAP_CENTER
-                    }
-                    zoom={
-                      parseCoordinate(addressForm.latitude) !== null &&
-                      parseCoordinate(addressForm.longitude) !== null
-                        ? 16
-                        : 6
-                    }
-                  />
-                  <AddressMapClickHandler
-                    onPick={handlePickAddressLocationFromMap}
-                  />
-                  {parseCoordinate(addressForm.latitude) !== null &&
-                    parseCoordinate(addressForm.longitude) !== null && (
-                      <CircleMarker
-                        center={[
-                          parseCoordinate(addressForm.latitude),
-                          parseCoordinate(addressForm.longitude),
-                        ]}
-                        radius={8}
-                        pathOptions={{
-                          color: '#d97706',
-                          fillColor: '#f59e0b',
-                          fillOpacity: 0.75,
-                        }}
-                      />
-                    )}
-                </MapContainer>
-              </div>
-
-              <p className="text-[11px] text-amber-700/90 dark:text-amber-400/80 leading-relaxed font-medium">
-                Chạm vào bản đồ để ghim vị trí chính xác. Nếu bỏ trống tọa độ, hệ thống vẫn lưu địa chỉ và áp dụng phí ship mặc định khi đặt hàng.
+              <p className="text-sm font-bold flex items-center gap-2 text-amber-800 dark:text-amber-400">
+                <MapPin className="w-4 h-4" />
+                Khu vực hành chính giao hàng
               </p>
 
-              <div className="grid grid-cols-2 gap-3">
-                <Input
-                  value={addressForm.latitude}
-                  onChange={(e) => setAddressForm((prev) => ({ ...prev, latitude: e.target.value, location_source: 'manual_pin'}))}
-                  placeholder="Vĩ độ (Latitude)"
-                  className="h-10 rounded-lg text-sm bg-white dark:bg-black/40 border-amber-100 dark:border-gray-800 focus-visible:ring-amber-500"
-                />
-                <Input
-                  value={addressForm.longitude}
-                  onChange={(e) => setAddressForm((prev) => ({ ...prev, longitude: e.target.value, location_source: 'manual_pin'}))}
-                  placeholder="Kinh độ (Longitude)"
-                  className="h-10 rounded-lg text-sm bg-white dark:bg-black/40 border-amber-100 dark:border-gray-800 focus-visible:ring-amber-500"
-                />
-              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="province_id" className="text-xs font-semibold text-gray-500 ml-1">Tỉnh/Thành</Label>
+                  <select
+                    id="province_id"
+                    value={addressForm.province_id}
+                    onChange={(e) =>
+                      setAddressForm((prev) => ({
+                        ...prev,
+                        province_id: e.target.value,
+                        ward_id: '',
+                      }))
+                    }
+                    disabled={isAreaLoading}
+                    className="w-full h-11 rounded-xl bg-gray-50/80 dark:bg-black/20 border border-gray-200 dark:border-gray-700 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                  >
+                    <option value="">
+                      {isAreaLoading ? 'Đang tải Tỉnh/Thành...' : 'Chọn Tỉnh/Thành'}
+                    </option>
+                    {provinces.map((province) => (
+                      <option key={province.id} value={province.id}>
+                        {province.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-              <p className="text-[11px] text-amber-600/80 dark:text-amber-500/80 leading-relaxed font-medium">
-                * Bạn có thể nhập tay tọa độ hoặc để trống. Có tọa độ sẽ giúp tính phí giao hàng chính xác hơn.
-              </p>
+                <div className="space-y-1.5">
+                  <Label htmlFor="ward_id" className="text-xs font-semibold text-gray-500 ml-1">Xã/Phường</Label>
+                  <select
+                    id="ward_id"
+                    value={addressForm.ward_id}
+                    onChange={(e) =>
+                      setAddressForm((prev) => ({
+                        ...prev,
+                        ward_id: e.target.value,
+                      }))
+                    }
+                    disabled={!addressForm.province_id || isWardLoading}
+                    className="w-full h-11 rounded-xl bg-gray-50/80 dark:bg-black/20 border border-gray-200 dark:border-gray-700 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                  >
+                    <option value="">
+                      {!addressForm.province_id
+                        ? 'Chọn Tỉnh/Thành trước'
+                        : isWardLoading
+                        ? 'Đang tải Xã/Phường...'
+                        : 'Chọn Xã/Phường'}
+                    </option>
+                    {wards.map((ward) => (
+                      <option key={ward.id} value={ward.id}>
+                        {ward.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
             </div>
 
             <div className="flex justify-end gap-3 pt-2">

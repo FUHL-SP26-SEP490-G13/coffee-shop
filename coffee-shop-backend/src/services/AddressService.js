@@ -1,4 +1,6 @@
 const AddressRepository = require('../repositories/AddressRepository');
+const ProvinceRepository = require('../repositories/ProvinceRepository');
+const WardRepository = require('../repositories/WardRepository');
 const ErrorResponse = require('../utils/ErrorResponse');
 const { ADDRESS_TYPES } = require('../config/constants');
 
@@ -19,31 +21,61 @@ class AddressService {
     return ADDRESS_TYPES.HOME;
   }
 
-  normalizeCoordinate(value, type) {
-    if (value === null || value === undefined || value === "") return null;
+  normalizePositiveInt(value, fieldName) {
+    if (value === null || value === undefined || value === '') return null;
 
-    const num = Number(value);
-    if (!Number.isFinite(num)) {
-      throw new ErrorResponse(400, `${type === "lat" ? "Vĩ độ" : "Kinh độ"} không hợp lệ`);
+    const normalized = Number(value);
+    if (!Number.isInteger(normalized) || normalized <= 0) {
+      throw new ErrorResponse(400, `${fieldName} không hợp lệ`);
     }
 
-    if (type === "lat" && (num < -90 || num > 90)) {
-      throw new ErrorResponse(400, "Vĩ độ không hợp lệ");
-    }
-
-    if (type === "lng" && (num < -180 || num > 180)) {
-      throw new ErrorResponse(400, "Kinh độ không hợp lệ");
-    }
-
-    return Number(num.toFixed(7));
+    return normalized;
   }
 
-  normalizeLocationSource(source) {
-    const normalized = String(source || "").trim().toLowerCase();
-    if (["manual_pin", "gps", "geocode", "imported"].includes(normalized)) {
-      return normalized;
+  async normalizeAdministrativeArea(payload) {
+    const hasProvinceInput = Object.prototype.hasOwnProperty.call(payload, 'province_id');
+    const hasWardInput = Object.prototype.hasOwnProperty.call(payload, 'ward_id');
+
+    if (hasProvinceInput !== hasWardInput) {
+      throw new ErrorResponse(400, 'Vui lòng chọn đầy đủ cả Tỉnh/Thành và Xã/Phường');
     }
-    return "manual_pin";
+
+    if (!hasProvinceInput && !hasWardInput) {
+      return { province_id: undefined, ward_id: undefined };
+    }
+
+    const provinceId = this.normalizePositiveInt(payload.province_id, 'Tỉnh/Thành');
+    const wardId = this.normalizePositiveInt(payload.ward_id, 'Xã/Phường');
+
+    if ((provinceId === null) !== (wardId === null)) {
+      throw new ErrorResponse(400, 'Vui lòng chọn đầy đủ cả Tỉnh/Thành và Xã/Phường');
+    }
+
+    if (provinceId === null && wardId === null) {
+      return { province_id: null, ward_id: null };
+    }
+
+    const [province, ward] = await Promise.all([
+      ProvinceRepository.findById(provinceId),
+      WardRepository.findById(wardId),
+    ]);
+
+    if (!province) {
+      throw new ErrorResponse(400, 'Tỉnh/Thành không tồn tại');
+    }
+
+    if (!ward) {
+      throw new ErrorResponse(400, 'Xã/Phường không tồn tại');
+    }
+
+    if (Number(ward.province_id) !== Number(provinceId)) {
+      throw new ErrorResponse(400, 'Xã/Phường không thuộc Tỉnh/Thành đã chọn');
+    }
+
+    return {
+      province_id: provinceId,
+      ward_id: wardId,
+    };
   }
 
   async getMyAddresses(userId) {
@@ -58,21 +90,15 @@ class AddressService {
       await AddressRepository.clearDefaultByUserId(userId);
     }
 
-    const latitude = this.normalizeCoordinate(payload.latitude, "lat");
-    const longitude = this.normalizeCoordinate(payload.longitude, "lng");
-    const hasCoordinates = latitude !== null && longitude !== null;
+    const administrativeArea = await this.normalizeAdministrativeArea(payload);
 
     const created = await AddressRepository.create({
       user_id: userId,
       receiver_name: this.normalizeNullableText(payload.receiver_name),
       receiver_phone: this.normalizeNullableText(payload.receiver_phone),
       address: payload.address.trim(),
-      latitude,
-      longitude,
-      location_source: hasCoordinates
-        ? this.normalizeLocationSource(payload.location_source)
-        : null,
-      location_verified_at: hasCoordinates ? new Date() : null,
+      province_id: administrativeArea.province_id ?? null,
+      ward_id: administrativeArea.ward_id ?? null,
       address_type: this.normalizeAddressType(payload.address_type),
       is_default: shouldSetDefault ? 1 : 0,
       is_deleted: 0,
@@ -110,24 +136,10 @@ class AddressService {
       updateData.address = payload.address.trim();
     }
 
-    const hasLatInput = Object.prototype.hasOwnProperty.call(payload, 'latitude');
-    const hasLngInput = Object.prototype.hasOwnProperty.call(payload, 'longitude');
-
-    if (hasLatInput !== hasLngInput) {
-      throw new ErrorResponse(400, 'Vui lòng cung cấp đầy đủ cả vĩ độ và kinh độ');
-    }
-
-    if (hasLatInput && hasLngInput) {
-      const normalizedLat = this.normalizeCoordinate(payload.latitude, 'lat');
-      const normalizedLng = this.normalizeCoordinate(payload.longitude, 'lng');
-      const hasCoordinates = normalizedLat !== null && normalizedLng !== null;
-
-      updateData.latitude = normalizedLat;
-      updateData.longitude = normalizedLng;
-      updateData.location_source = hasCoordinates
-        ? this.normalizeLocationSource(payload.location_source)
-        : null;
-      updateData.location_verified_at = hasCoordinates ? new Date() : null;
+    const administrativeArea = await this.normalizeAdministrativeArea(payload);
+    if (administrativeArea.province_id !== undefined && administrativeArea.ward_id !== undefined) {
+      updateData.province_id = administrativeArea.province_id;
+      updateData.ward_id = administrativeArea.ward_id;
     }
 
     if (typeof payload.address_type === 'string') {

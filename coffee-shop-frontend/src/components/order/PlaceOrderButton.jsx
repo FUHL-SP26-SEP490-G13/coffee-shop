@@ -30,8 +30,6 @@ export default function PlaceOrderButton({
   backLabel = "← Quay lại giỏ hàng",
   label = "Đặt hàng",
   shippingFee = 0,
-  customerCoords = null,
-  customerLocationSource = "gps",
   disabled = false,
 }) {
   const navigate = useNavigate();
@@ -69,10 +67,9 @@ export default function PlaceOrderButton({
         })),
       };
 
-      if (form.order_type === "delivery" && Array.isArray(customerCoords) && customerCoords.length === 2) {
-        payload.customer_latitude = Number(customerCoords[0]);
-        payload.customer_longitude = Number(customerCoords[1]);
-        payload.customer_location_source = customerLocationSource || "gps";
+      if (form.order_type === "delivery") {
+        payload.province_id = Number(form.province_id);
+        payload.ward_id = Number(form.ward_id);
       }
 
       console.log("Checkout payload:", payload);

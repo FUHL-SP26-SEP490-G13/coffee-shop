@@ -131,33 +131,27 @@ const checkoutOrderSchema = Joi.object({
     }),
   }),
 
-  customer_latitude: Joi.alternatives().conditional("order_type", {
+  province_id: Joi.alternatives().conditional("order_type", {
     is: "delivery",
-    then: Joi.number().min(-90).max(90).optional().allow(null).messages({
-      "number.base": "Vĩ độ giao hàng không hợp lệ",
-      "number.min": "Vĩ độ giao hàng không hợp lệ",
-      "number.max": "Vĩ độ giao hàng không hợp lệ",
+    then: Joi.number().integer().positive().required().messages({
+      "number.base": "Tỉnh/Thành không hợp lệ",
+      "number.integer": "Tỉnh/Thành không hợp lệ",
+      "number.positive": "Tỉnh/Thành không hợp lệ",
+      "any.required": "Tỉnh/Thành là bắt buộc",
     }),
-    otherwise: Joi.number().min(-90).max(90).allow(null).optional(),
+    otherwise: Joi.number().integer().positive().allow(null).optional(),
   }),
 
-  customer_longitude: Joi.alternatives().conditional("order_type", {
+  ward_id: Joi.alternatives().conditional("order_type", {
     is: "delivery",
-    then: Joi.number().min(-180).max(180).optional().allow(null).messages({
-      "number.base": "Kinh độ giao hàng không hợp lệ",
-      "number.min": "Kinh độ giao hàng không hợp lệ",
-      "number.max": "Kinh độ giao hàng không hợp lệ",
+    then: Joi.number().integer().positive().required().messages({
+      "number.base": "Xã/Phường không hợp lệ",
+      "number.integer": "Xã/Phường không hợp lệ",
+      "number.positive": "Xã/Phường không hợp lệ",
+      "any.required": "Xã/Phường là bắt buộc",
     }),
-    otherwise: Joi.number().min(-180).max(180).allow(null).optional(),
+    otherwise: Joi.number().integer().positive().allow(null).optional(),
   }),
-
-  customer_location_source: Joi.string()
-    .valid("manual_pin", "gps", "geocode")
-    .allow("", null)
-    .optional()
-    .messages({
-      "any.only": "Nguồn tọa độ giao hàng không hợp lệ",
-    }),
 
   note: Joi.string().trim().allow("").max(500).messages({
     "string.max": "Ghi chú không được vượt quá 500 ký tự",
@@ -174,21 +168,6 @@ const checkoutOrderSchema = Joi.object({
   }),
 
   items: itemsSchema,
-}).custom((value, helpers) => {
-  if (value.order_type !== "delivery") {
-    return value;
-  }
-
-  const hasLat =
-    value.customer_latitude !== undefined && value.customer_latitude !== null;
-  const hasLng =
-    value.customer_longitude !== undefined && value.customer_longitude !== null;
-
-  if (hasLat !== hasLng) {
-    return helpers.message("Vui lòng cung cấp đầy đủ cả vĩ độ và kinh độ giao hàng");
-  }
-
-  return value;
 });
 
 const validateDiscountSchema = Joi.object({

@@ -2,6 +2,7 @@ const OrderRepository = require("../repositories/OrderRepository");
 const CashSessionRepository = require("../repositories/CashSessionRepository");
 const ReputationService = require("./ReputationService");
 const LoyaltyService = require("./LoyaltyService");
+const DeliveryAreaService = require("./DeliveryAreaService");
 const ErrorResponse = require("../utils/ErrorResponse");
 
 class OrderOnlineService {
@@ -34,6 +35,24 @@ class OrderOnlineService {
     }
 
     return onlyDigits;
+  }
+
+  buildDeliveryAddressString(address, wardName, provinceName) {
+    const parts = [address, wardName, provinceName]
+      .map((value) => String(value || "").trim())
+      .filter(Boolean);
+
+    const uniqueParts = [];
+    const seen = new Set();
+
+    for (const part of parts) {
+      const key = part.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      uniqueParts.push(part);
+    }
+
+    return uniqueParts.length > 0 ? uniqueParts.join(", ") : null;
   }
 
   getHaversineDistanceMeters(lat1, lon1, lat2, lon2) {
@@ -251,9 +270,8 @@ class OrderOnlineService {
       receiver_phone,
       receiver_email,
       address,
-      customer_latitude,
-      customer_longitude,
-      customer_location_source,
+      province_id,
+      ward_id,
       note,
       discount_code,
       used_points,
@@ -280,42 +298,22 @@ class OrderOnlineService {
       throw new ErrorResponse(400, "Vui lòng nhập tên và số điện thoại người nhận");
     }
 
-    let normalizedCustomerLatitude = null;
-    let normalizedCustomerLongitude = null;
+    const normalizedProvinceId =
+      province_id !== undefined && province_id !== null && String(province_id).trim() !== ""
+        ? Number(province_id)
+        : null;
+    const normalizedWardId =
+      ward_id !== undefined && ward_id !== null && String(ward_id).trim() !== ""
+        ? Number(ward_id)
+        : null;
 
     if (order_type === "delivery") {
-      const hasCustomerLatitudeInput =
-        customer_latitude !== undefined &&
-        customer_latitude !== null &&
-        String(customer_latitude).trim() !== "";
-      const hasCustomerLongitudeInput =
-        customer_longitude !== undefined &&
-        customer_longitude !== null &&
-        String(customer_longitude).trim() !== "";
-
-      if (hasCustomerLatitudeInput !== hasCustomerLongitudeInput) {
-        throw new ErrorResponse(400, "Vui lòng cung cấp đầy đủ cả vĩ độ và kinh độ giao hàng");
+      if (!Number.isInteger(normalizedProvinceId) || normalizedProvinceId <= 0) {
+        throw new ErrorResponse(400, "Tỉnh/Thành không hợp lệ");
       }
 
-      if (hasCustomerLatitudeInput && hasCustomerLongitudeInput) {
-        normalizedCustomerLatitude = Number(customer_latitude);
-        normalizedCustomerLongitude = Number(customer_longitude);
-
-        if (
-          !Number.isFinite(normalizedCustomerLatitude) ||
-          normalizedCustomerLatitude < -90 ||
-          normalizedCustomerLatitude > 90
-        ) {
-          throw new ErrorResponse(400, "Vĩ độ giao hàng không hợp lệ");
-        }
-
-        if (
-          !Number.isFinite(normalizedCustomerLongitude) ||
-          normalizedCustomerLongitude < -180 ||
-          normalizedCustomerLongitude > 180
-        ) {
-          throw new ErrorResponse(400, "Kinh độ giao hàng không hợp lệ");
-        }
+      if (!Number.isInteger(normalizedWardId) || normalizedWardId <= 0) {
+        throw new ErrorResponse(400, "Xã/Phường không hợp lệ");
       }
     }
 
@@ -388,10 +386,9 @@ class OrderOnlineService {
       const itemSubtotalAmount = cartTotals.totalAmount;
       let regularAmount = cartTotals.regularAmount;
       const normalizedItems = cartTotals.normalizedItems;
-      let storeLatitude = null;
-      let storeLongitude = null;
       let deliveryDistanceKm = 0;
       let shippingFee = 0;
+      let selectedWard = null;
       let existingAmount = 0;
       let existingDiscountAmount = 0;
 
@@ -409,38 +406,16 @@ class OrderOnlineService {
       }
 
       if (order_type === "delivery") {
-        const ReceiptSettingService = require("./ReceiptSettingService");
-        const activeSetting = await ReceiptSettingService.getActiveSetting();
-        const rawStoreLatitude = Number(activeSetting?.latitude);
-        const rawStoreLongitude = Number(activeSetting?.longitude);
-        const hasCustomerCoordinates =
-          Number.isFinite(normalizedCustomerLatitude) &&
-          Number.isFinite(normalizedCustomerLongitude);
-        const hasStoreCoordinates =
-          Number.isFinite(rawStoreLatitude) &&
-          rawStoreLatitude >= -90 &&
-          rawStoreLatitude <= 90 &&
-          Number.isFinite(rawStoreLongitude) &&
-          rawStoreLongitude >= -180 &&
-          rawStoreLongitude <= 180;
+        selectedWard = await DeliveryAreaService.getDeliverableWard(
+          {
+            wardId: normalizedWardId,
+            provinceId: normalizedProvinceId,
+            connection,
+          }
+        );
 
-        if (hasCustomerCoordinates && hasStoreCoordinates) {
-          storeLatitude = Number(rawStoreLatitude.toFixed(7));
-          storeLongitude = Number(rawStoreLongitude.toFixed(7));
-          normalizedCustomerLatitude = Number(normalizedCustomerLatitude.toFixed(7));
-          normalizedCustomerLongitude = Number(normalizedCustomerLongitude.toFixed(7));
-
-          deliveryDistanceKm = await this.getDrivingDistanceKm(
-            storeLatitude,
-            storeLongitude,
-            normalizedCustomerLatitude,
-            normalizedCustomerLongitude
-          );
-          shippingFee = this.calculateShippingFeeByDistanceKm(deliveryDistanceKm);
-        } else {
-          shippingFee = OrderOnlineService.DEFAULT_DELIVERY_SHIPPING_FEE;
-          deliveryDistanceKm = 0;
-        }
+        shippingFee = Math.max(0, Number(selectedWard?.shipping_fee) || 0);
+        deliveryDistanceKm = 0;
       }
 
       totalAmount += shippingFee;
@@ -592,18 +567,22 @@ class OrderOnlineService {
       }
 
       if (order_type !== "dine-in" || (note && note.trim())) {
+        const deliveryAddressWithArea = this.buildDeliveryAddressString(
+          address,
+          order_type === "delivery" ? selectedWard?.name : null,
+          order_type === "delivery" ? selectedWard?.province_name : null
+        );
+
         const [existingInfo] = await connection.query(
           "SELECT id FROM order_delivery_info WHERE order_id = ?",
           [orderId]
         );
 
         if (existingInfo.length > 0) {
-          if (note && note.trim()) {
-            await connection.query(
-              "UPDATE order_delivery_info SET note = ? WHERE order_id = ?",
-              [note.trim(), orderId]
-            );
-          }
+          await connection.query(
+            "UPDATE order_delivery_info SET address = ?, note = ? WHERE order_id = ?",
+            [deliveryAddressWithArea, note?.trim() || null, orderId]
+          );
         } else {
           await OrderRepository.createOrderDeliveryInfo(connection, {
             order_id: orderId,
@@ -612,25 +591,13 @@ class OrderOnlineService {
               ? this.normalizePhoneNumber(receiver_phone)
               : "",
             receiver_email: receiver_email?.trim() || null,
-            address: address?.trim() || null,
+            address: deliveryAddressWithArea,
             note: note?.trim() || null,
-            store_latitude: storeLatitude,
-            store_longitude: storeLongitude,
-            customer_latitude: normalizedCustomerLatitude,
-            customer_longitude: normalizedCustomerLongitude,
-            coordinates_source:
-              order_type === "delivery" &&
-              Number.isFinite(normalizedCustomerLatitude) &&
-              Number.isFinite(normalizedCustomerLongitude) &&
-              ["manual_pin", "gps", "geocode"].includes(
-                String(customer_location_source || "").toLowerCase()
-              )
-                ? String(customer_location_source).toLowerCase()
-                : order_type === "delivery" &&
-                  Number.isFinite(normalizedCustomerLatitude) &&
-                  Number.isFinite(normalizedCustomerLongitude)
-                ? "gps"
-                : null,
+            store_latitude: null,
+            store_longitude: null,
+            customer_latitude: null,
+            customer_longitude: null,
+            coordinates_source: null,
           });
         }
       }
