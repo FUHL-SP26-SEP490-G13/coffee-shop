@@ -46,6 +46,7 @@ import Logo from '/logo/Logo.png';
 import receiptSettingService from "@/services/receiptSettingService";
 import { CashSessionProvider, useCashSession } from '../../components/staff/CashSessionContext';
 import { ShiftHandoverModal } from '../../components/staff/ShiftHandoverModal';
+import baristaDBService from '@/services/baristaDBService';
 
 const STAFF_SIDEBAR_PREF_KEY = 'staff_sidebar_collapsed_by_page';
 const STAFF_SIDEBAR_DEFAULTS = {
@@ -69,6 +70,12 @@ export function StaffApp() {
 
   const [storeLogo, setStoreLogo] = useState(() => {
     return localStorage.getItem("cached_store_logo") || Logo;
+  });
+
+  const [orderStats, setOrderStats] = useState({
+    onlineWaiting: 0,
+    displayPreparing: 0,
+    readyOrders: 0,
   });
 
   useEffect(() => {
@@ -193,7 +200,7 @@ export function StaffApp() {
         { id: 'dashboard', icon: LayoutDashboard, label: 'Tổng quan', path: '/staff/dashboard' },
         { id: 'tables', icon: Users, label: 'Phòng bàn', path: '/staff/tables' },
         { id: 'takeaway', icon: ShoppingBag, label: 'Đặt mang đi', path: '/staff/takeaway' },
-        { id: 'orders-pending', icon: ShoppingBag, label: 'Đơn Đang chờ', path: '/staff/orders/pending' },
+        { id: 'orders-pending', icon: ShoppingBag, label: 'Đơn online chờ xác nhận', path: '/staff/orders/pending' },
         { id: 'orders-preparing', icon: ShoppingBag, label: 'Đơn Đang chuẩn bị', path: '/staff/orders/preparing' },
         { id: 'orders-completed', icon: ShoppingBag, label: 'Đơn Hoàn thành', path: '/staff/orders/completed' },
         { id: 'orders-cancelled', icon: ShoppingBag, label: 'Đơn Đã hủy', path: '/staff/orders/cancelled' },
@@ -216,6 +223,41 @@ export function StaffApp() {
       ],
     },
   ];
+
+  // Logic lấy số lượng đơn hàng cho Badge
+  const fetchOrderStats = async () => {
+    try {
+      const res = await baristaDBService.getOverview();
+      const data = res?.data || res?.data?.data || null;
+      if (data) {
+        setOrderStats({
+          onlineWaiting: Number(data.onlineWaiting || 0),
+          displayPreparing: Number(data.displayPreparing || 0),
+          readyOrders: Number(data.readyOrders || 0),
+        });
+      }
+    } catch (error) {
+      console.error('Fetch sidebar stats error:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchOrderStats();
+
+    // Lắng nghe sự kiện để cập nhật số lượng
+    const handleRefresh = () => fetchOrderStats();
+    socket.on('order-online:new', handleRefresh);
+    socket.on('barista:notification', handleRefresh);
+    socket.on('order:status-updated', handleRefresh);
+    window.addEventListener('refreshStaffStats', handleRefresh);
+
+    return () => {
+      socket.off('order-online:new', handleRefresh);
+      socket.off('barista:notification', handleRefresh);
+      socket.off('order:status-updated', handleRefresh);
+      window.removeEventListener('refreshStaffStats', handleRefresh);
+    };
+  }, []);
 
   useEffect(() => {
     try {
@@ -482,10 +524,52 @@ export function StaffApp() {
                       }`}
                       title={isSidebarCompact ? item.label : undefined}
                     >
-                      <Icon className='w-[18px] h-[18px] flex-shrink-0' />
-                      <span className={`text-sm font-medium ${isSidebarCompact ? 'md:hidden' : ''}`}>
+                      <div className="relative">
+                        <Icon className='w-[18px] h-[18px] flex-shrink-0' />
+                        {/* Red Dot Badge for Mobile/Collapsed */}
+                        {isSidebarCompact && (
+                          <>
+                            {item.id === 'orders-pending' && orderStats.onlineWaiting > 0 && (
+                              <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-rose-600 text-[9px] font-black text-white ring-2 ring-card animate-pulse shadow-sm">
+                                {orderStats.onlineWaiting}
+                              </span>
+                            )}
+                            {item.id === 'orders-preparing' && orderStats.displayPreparing > 0 && (
+                              <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-amber-500 text-[9px] font-black text-white ring-2 ring-card shadow-sm">
+                                {orderStats.displayPreparing}
+                              </span>
+                            )}
+                            {item.id === 'orders-completed' && orderStats.readyOrders > 0 && (
+                              <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500 text-[9px] font-black text-white ring-2 ring-card shadow-sm">
+                                {orderStats.readyOrders}
+                              </span>
+                            )}
+                          </>
+                        )}
+                      </div>
+                      <span className={`text-sm font-medium ${isSidebarCompact ? 'md:hidden' : 'flex-1'}`}>
                         {item.label}
                       </span>
+                      {/* Badge for Expanded Sidebar */}
+                      {!isSidebarCompact && (
+                        <>
+                          {item.id === 'orders-pending' && orderStats.onlineWaiting > 0 && (
+                            <span className="ml-auto inline-flex items-center justify-center px-2 py-0.5 rounded-full bg-rose-600 text-[10px] font-black text-white shadow-sm ring-2 ring-white/10 italic">
+                               {orderStats.onlineWaiting}
+                            </span>
+                          )}
+                          {item.id === 'orders-preparing' && orderStats.displayPreparing > 0 && (
+                            <span className="ml-auto inline-flex items-center justify-center px-2 py-0.5 rounded-full bg-amber-500 text-[10px] font-black text-white italic">
+                               {orderStats.displayPreparing}
+                            </span>
+                          )}
+                          {item.id === 'orders-completed' && orderStats.readyOrders > 0 && (
+                            <span className="ml-auto inline-flex items-center justify-center px-2 py-0.5 rounded-full bg-emerald-500 text-[10px] font-black text-white italic">
+                               {orderStats.readyOrders}
+                            </span>
+                          )}
+                        </>
+                      )}
                     </button>
                   );
 

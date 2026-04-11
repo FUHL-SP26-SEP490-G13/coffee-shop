@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   RefreshCw,
@@ -10,6 +10,10 @@ import {
   CheckCircle,
   Loader2,
   BookOpen,
+  User,
+  Phone,
+  MapPin,
+  Clock,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -44,8 +48,8 @@ const STAFF_TAB_STATUSES = ["pending", "preparing", "served", "completed", "canc
 
 const statusLabelMap = {
   pending: {
-    label: "Đang chờ",
-    className: "text-amber-600 dark:text-amber-300",
+    label: "Online chờ xác nhận",
+    className: "text-rose-600 dark:text-rose-300",
   },
   preparing: {
     label: "Đang chuẩn bị",
@@ -221,9 +225,12 @@ const sortOrdersByStatus = (status, list) => {
   const sorted = [...list];
   const toTime = (order) => new Date(order?.created_at || 0).getTime();
 
-  if (status === "completed" || status === "cancelled") {
+  if (status === "pending" || status === "completed" || status === "cancelled") {
     sorted.sort((a, b) => toTime(b) - toTime(a));
   } else {
+    // For preparing and ready statuses, oldest first might be better for FIFO, 
+    // but the user's general feedback is 'newest first'. 
+    // I'll apply it to pending as requested.
     sorted.sort((a, b) => toTime(a) - toTime(b));
   }
 
@@ -268,6 +275,12 @@ export function OrderDelivery() {
     cashReceived: "",
   });
   const [printerName, setPrinterName] = useState("Nhân viên");
+  const [overview, setOverview] = useState({
+    totalOrders: 0,
+    onlineWaiting: 0,
+    displayPreparing: 0,
+    readyOrders: 0,
+  });
 
   useEffect(() => {
     if (!STAFF_TAB_STATUSES.includes(routeStatus)) {
@@ -297,6 +310,22 @@ export function OrderDelivery() {
         });
 
       setOrders(activeOrders);
+
+      // Compute stats for the top bar
+      const onlineWaiting = activeOrders.filter(o => 
+        o.status === 'pending' && (o.order_type === 'delivery' || o.order_type === 'takeaway')
+      ).length;
+      
+      const preparing = activeOrders.filter(o => o.status === 'preparing').length;
+      const dineInPending = activeOrders.filter(o => o.status === 'pending' && o.order_type === 'dine-in').length;
+      const ready = activeOrders.filter(o => o.status === 'served').length;
+
+      setOverview({
+        totalOrders: activeOrders.length,
+        onlineWaiting: onlineWaiting,
+        displayPreparing: preparing + dineInPending,
+        readyOrders: ready
+      });
     } catch (error) {
       toast.error("Không tải được danh sách đơn hàng");
       console.error("Load order list failed:", error);
@@ -365,6 +394,9 @@ export function OrderDelivery() {
       if (activeStatus === "preparing") {
         return order?.status === preparingSubTab;
       }
+      if (activeStatus === "pending") {
+        return order?.status === "pending" && (order.order_type === "delivery" || order.order_type === "takeaway");
+      }
       return order?.status === activeStatus;
     });
     return sortOrdersByStatus(activeStatus, list);
@@ -409,13 +441,20 @@ export function OrderDelivery() {
   }, [activeStatusOrders]);
 
   const visibleOrderTypeColumns = useMemo(() => {
-    if (selectedOrderType === "all") {
-      return ORDER_TYPE_COLUMNS;
+    let columns = ORDER_TYPE_COLUMNS;
+    
+    // Nếu là trạng thái chờ xác nhận, chỉ hiện Giao hàng và Mang về
+    if (activeStatus === "pending") {
+      columns = columns.filter(col => col.key !== "dine-in");
     }
-    return ORDER_TYPE_COLUMNS.filter(
+
+    if (selectedOrderType === "all") {
+      return columns;
+    }
+    return columns.filter(
       (column) => column.key === selectedOrderType,
     );
-  }, [selectedOrderType]);
+  }, [selectedOrderType, activeStatus]);
 
   const handleConfirmOrder = async (order) => {
     setConfirmingId(order.id);
@@ -428,6 +467,10 @@ export function OrderDelivery() {
       } else {
         toast.success("Đơn đã chuyển sang Preparing");
       }
+      
+      // Tự động in nhãn/hóa đơn sau khi xác nhận thành công
+      handlePrintReceipt(order.id);
+      
       await loadOrders();
       success = true;
     } catch (error) {
@@ -668,8 +711,8 @@ export function OrderDelivery() {
             disabled={confirmingId === selectedOrder.id}
           >
             {confirmingId === selectedOrder.id
-              ? "Đang nhận đơn..."
-              : "Nhận đơn"}
+              ? "Đang xác nhận..."
+              : "Xác nhận đơn"}
           </Button>
         );
       }
@@ -695,7 +738,7 @@ export function OrderDelivery() {
           onClick={handleConfirmFromDetail}
           disabled={confirmingId === selectedOrder.id}
         >
-          {confirmingId === selectedOrder.id ? "Đang nhận đơn..." : "Nhận đơn"}
+          {confirmingId === selectedOrder.id ? "Đang xác nhận..." : "Xác nhận đơn"}
         </Button>
       );
     }
@@ -810,15 +853,33 @@ export function OrderDelivery() {
       <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
         Danh sách đơn hàng
       </h1>
-      <div className="px-3 py-2 md:px-4 md:py-2.5">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+      {!(activeStatus === "pending" || activeStatus === "cancelled") && (
+        <div className="px-3 py-2 md:px-4 md:py-2.5">
+          <div className="flex flex-wrap gap-3">
+               {[
+                 { label: 'Tổng đơn', value: overview.totalOrders, color: 'text-slate-600', bg: 'bg-slate-100' },
+                 { label: 'Online chờ xác nhận', value: overview.onlineWaiting, color: 'text-rose-600', bg: 'bg-rose-100' },
+                 { label: 'Đang chuẩn bị', value: overview.displayPreparing, color: 'text-blue-600', bg: 'bg-blue-100' },
+                 { label: 'Sẵn sàng', value: overview.readyOrders, color: 'text-green-600', bg: 'bg-green-100' },
+               ].map(stat => (
+                 <div key={stat.label} className={`${stat.bg} px-4 py-2 rounded-lg flex items-center gap-2`}>
+                   <span className={`text-sm font-medium ${stat.color}`}>{stat.label}:</span>
+                   <span className={`text-lg font-bold ${stat.color}`}>{stat.value}</span>
+                 </div>
+               ))}
+          </div>
+        </div>
+      )}
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between px-3 md:px-4">
           <div className="min-w-0">
-            <p className="text-xs text-slate-500 dark:text-slate-300 md:text-sm">
-              Trạng thái hiện tại:{" "}
-              <strong className={activeStatusMeta.className}>
-                {activeStatusMeta.label}
-              </strong>
-            </p>
+            {!(activeStatus === "pending" || activeStatus === "cancelled") && (
+              <p className="text-xs text-slate-500 dark:text-slate-300 md:text-sm">
+                Trạng thái hiện tại:{" "}
+                <strong className={activeStatusMeta.className}>
+                  {activeStatusMeta.label}
+                </strong>
+              </p>
+            )}
           </div>
 
           <div className="flex items-center gap-2 self-start sm:self-auto">
@@ -850,99 +911,273 @@ export function OrderDelivery() {
           </div>
         </div>
 
-        <div className="mt-2.5 flex items-center gap-1.5 overflow-x-auto border-t border-slate-100 pb-0.5 pt-2.5 md:flex-wrap md:overflow-visible md:pb-0">
-          {activeStatus === "preparing" && (
-            <div className="flex bg-slate-100/80 p-0.5 rounded-lg mr-2 shrink-0 border border-slate-200/60 shadow-sm">
-               <button 
-                 onClick={() => setPreparingSubTab('preparing')}
-                 className={`px-3.5 py-1.5 rounded-md text-sm font-semibold transition-all ${preparingSubTab === 'preparing' ? 'bg-white shadow-sm text-primary' : 'text-slate-600 hover:text-slate-900'}`}
-               >
-                 Đang làm
-               </button>
-               <button 
-                 onClick={() => setPreparingSubTab('served')}
-                 className={`px-3.5 py-1.5 rounded-md text-sm font-semibold transition-all ${preparingSubTab === 'served' ? 'bg-white shadow-sm text-primary' : 'text-slate-600 hover:text-slate-900'}`}
-               >
-                 Đã xong
-               </button>
+        {!(activeStatus === "pending" || activeStatus === "cancelled") && (
+          <div className="mt-2.5 flex items-center gap-1.5 overflow-x-auto border-t border-slate-100 pb-0.5 pt-2.5 md:flex-wrap md:overflow-visible md:pb-0">
+            {activeStatus === "preparing" && (
+              <div className="flex bg-slate-100/80 p-0.5 rounded-lg mr-2 shrink-0 border border-slate-200/60 shadow-sm">
+                 <button 
+                   onClick={() => setPreparingSubTab('preparing')}
+                   className={`px-3.5 py-1.5 rounded-md text-sm font-semibold transition-all ${preparingSubTab === 'preparing' ? 'bg-white shadow-sm text-primary' : 'text-slate-600 hover:text-slate-900'}`}
+                 >
+                   Đang làm
+                 </button>
+                 <button 
+                   onClick={() => setPreparingSubTab('served')}
+                   className={`px-3.5 py-1.5 rounded-md text-sm font-semibold transition-all ${preparingSubTab === 'served' ? 'bg-white shadow-sm text-primary' : 'text-slate-600 hover:text-slate-900'}`}
+                 >
+                   Đã xong
+                 </button>
+              </div>
+            )}
+
+            {Object.entries(orderTypeLabelMap)
+              .filter(([typeKey]) => {
+                if (activeStatus === "pending" && typeKey === "dine-in") return false;
+                return true;
+              })
+              .map(([typeKey, label]) => (
+              <Button
+                key={typeKey}
+                size="sm"
+                variant={selectedOrderType === typeKey ? "default" : "outline"}
+                onClick={() => setSelectedOrderType(typeKey)}
+                className="h-9 shrink-0 gap-1.5 px-2.5 text-xs md:h-8"
+              >
+                {label}
+                <Badge
+                  variant="secondary"
+                  className="ml-0.5 h-5 px-1.5 text-[11px]"
+                >
+                  {orderTypeCounts[typeKey] || 0}
+                </Badge>
+              </Button>
+            ))}
+
+            {["pending", "preparing"].includes(activeStatus) ? (
+              <div className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-2.5 md:ml-auto md:h-8">
+                <span className="text-xs font-medium text-rose-700 dark:text-rose-300">
+                  Trễ &gt; 10 phút
+                </span>
+                <Badge variant="secondary" className="h-5 px-1.5 text-[11px]">
+                  {delayedOrdersCount}
+                </Badge>
+              </div>
+            ) : null}
+          </div>
+        )}
+
+      {(activeStatus === "pending" || activeStatus === "cancelled") && (
+        <div className="flex gap-4 mb-8">
+          <div className="relative group">
+            <Button
+              variant={activeStatus === "pending" ? "default" : "outline"}
+              className={`h-12 px-10 rounded-2xl font-black text-sm transition-all shadow-md ${activeStatus === "pending" ? "shadow-primary/30 scale-105" : "bg-card hover:bg-muted"}`}
+              onClick={() => navigate("/staff/orders/pending")}
+            >
+              <ShoppingBag className="mr-2 h-4 w-4" />
+              ĐƠN ONLINE MỚI
+            </Button>
+            {overview.onlineWaiting > 0 && (
+              <>
+                <span className="absolute -top-2 -right-2 flex h-6 w-6 items-center justify-center rounded-full bg-rose-600 text-[11px] font-black text-white shadow-lg ring-4 ring-background z-10">
+                  {overview.onlineWaiting}
+                </span>
+                <span className="absolute -top-2 -right-2 flex h-6 w-6 rounded-full bg-rose-600 animate-ping opacity-75 ring-4 ring-background"></span>
+              </>
+            )}
+          </div>
+
+          <Button
+            variant={activeStatus === "cancelled" ? "default" : "outline"}
+            className={`h-12 px-10 rounded-2xl font-black text-sm transition-all shadow-sm ${activeStatus === "cancelled" ? "shadow-rose-500/20 scale-105" : "bg-card hover:bg-muted"}`}
+            onClick={() => navigate("/staff/orders/cancelled")}
+          >
+            ĐƠN ĐÃ HỦY
+          </Button>
+        </div>
+      )}
+
+      {["pending", "cancelled"].includes(activeStatus) ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {activeStatusOrders.length > 0 ? (
+            activeStatusOrders.map((order) => {
+              const items = order.items || order.orderItems || [];
+              const paid = isOrderPaid(order);
+              const isCancelled = order.status === "cancelled" || order.status === "REFUNDED";
+              
+              return (
+                <Card 
+                  key={order.id} 
+                  className={`rounded-[2.5rem] border-2 bg-card overflow-hidden transition-all hover:shadow-2xl ${isCancelled ? 'border-rose-100 opacity-80' : 'border-border/60 hover:border-primary/20'}`}
+                >
+                  <CardContent className="p-8 space-y-6">
+                     {/* Top Row */}
+                     <div className="flex justify-between items-start">
+                       <div className="flex flex-col gap-0.5">
+                         <span className={`text-xl font-black italic ${isCancelled ? 'text-rose-600' : 'text-foreground'}`}>
+                           {isCancelled ? "Đơn Hủy" : "Đơn"} #{order.id}
+                         </span>
+                         {!isCancelled && (
+                           <div className="flex items-center gap-1.5 text-[11px] font-black text-rose-500 bg-rose-50 px-2 py-0.5 rounded-lg w-fit">
+                             <Clock className="h-3 w-3 animate-pulse" />
+                             <span>
+                                {new Date(order.created_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                                {" • "}
+                                {getRelativeTimeLabel(order.created_at)}
+                             </span>
+                           </div>
+                         )}
+                       </div>
+                       <span className="text-xl font-black text-foreground italic">{money(order.total_amount)}</span>
+                     </div>
+
+                    {/* Middle List */}
+                    <div className="space-y-4 py-2 min-h-[140px] max-h-[220px] overflow-y-auto pr-2 custom-scrollbar">
+                      {items.map((item, idx) => (
+                        <div key={idx} className="space-y-1">
+                           <div className="flex justify-between font-bold text-sm">
+                              <span className="truncate mr-2">
+                                {item.product_name || item.productName || item.name} 
+                                <span className="ml-1 text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary uppercase">
+                                  {item.size || item.product_size}
+                                </span>
+                              </span>
+                              <span className="text-muted-foreground whitespace-nowrap">x{item.quantity}</span>
+                           </div>
+                           {item.toppings && item.toppings.length > 0 && (
+                             <div className="pl-4 border-l-2 border-primary/20 space-y-0.5">
+                                {item.toppings.map((t, tid) => (
+                                  <p key={tid} className="text-[11px] font-bold text-muted-foreground italic">
+                                    • {t.topping_name || t.name} {t.quantity > 1 ? `x${t.quantity}` : ''}
+                                  </p>
+                                ))}
+                             </div>
+                           )}
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Customer Info (New) */}
+                    <div className="space-y-3 p-5 bg-muted/40 rounded-[2rem] border-2 border-dashed border-primary/10">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-primary/10 rounded-full">
+                           <User className="h-4 w-4 text-primary" />
+                        </div>
+                        <span className="text-sm font-black text-foreground italic uppercase">
+                          {order.receiver_name || order.customer_name || "Khách hàng"}
+                        </span>
+                      </div>
+                      
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-primary/10 rounded-full">
+                           <Phone className="h-4 w-4 text-primary" />
+                        </div>
+                        <span className="text-sm font-black text-foreground">
+                          {order.receiver_phone || order.customer_phone || "N/A"}
+                        </span>
+                      </div>
+
+                      <div className="flex items-start gap-3">
+                        <div className="p-2 bg-primary/10 rounded-full shrink-0">
+                           <MapPin className="h-4 w-4 text-primary" />
+                        </div>
+                        <span className="text-[11px] font-bold text-muted-foreground leading-tight italic line-clamp-2">
+                           {order.address || order.shipping_address || "Đặt tại quầy / Không có địa chỉ"}
+                        </span>
+                      </div>
+
+                      {(order.note || order.delivery_note) && (
+                        <div className="flex items-start gap-3 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-2xl border border-amber-200 dark:border-amber-800">
+                          <BookOpen className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                          <p className="text-[10px] font-bold text-amber-700 dark:text-amber-400 italic">
+                            Ghi chú: {order.note || order.delivery_note}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Footer Buttons */}
+                    <div className="flex gap-2 pt-2 h-12">
+                       {!isCancelled ? (
+                         <>
+                           <Button 
+                             variant="outline" 
+                             className="flex-1 rounded-2xl border-2 border-destructive/20 font-bold text-destructive hover:bg-destructive hover:text-white text-xs"
+                             onClick={() => openCancelConfirm(order.id, "pending")}
+                           >
+                             Hủy
+                           </Button>
+                           <Button 
+                             className="flex-[2] rounded-2xl bg-primary hover:bg-primary/90 text-white font-black shadow-lg shadow-primary/20 text-xs uppercase"
+                             onClick={() => handleConfirmOrder(order)}
+                             disabled={confirmingId === order.id}
+                           >
+                             {confirmingId === order.id ? <Loader2 className="h-4 w-4 animate-spin" /> : "Xác nhận & In nhãn"}
+                           </Button>
+                         </>
+                       ) : (
+                         <div className="flex-1 flex items-center justify-center bg-rose-50 rounded-2xl">
+                            <span className="text-rose-600 font-black text-[10px] uppercase tracking-widest">Đã hủy đơn</span>
+                         </div>
+                       )}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })
+          ) : (
+            <div className="col-span-full py-20 bg-muted/20 border-4 border-dashed rounded-[3rem] flex flex-col items-center justify-center text-center">
+               <ShoppingBag className="h-16 w-16 text-muted-foreground/30 mb-4" />
+               <p className="text-xl font-black text-foreground/40 uppercase tracking-widest italic">Chưa có đơn hàng trực tuyến</p>
             </div>
           )}
-
-          {Object.entries(orderTypeLabelMap).map(([typeKey, label]) => (
-            <Button
-              key={typeKey}
-              size="sm"
-              variant={selectedOrderType === typeKey ? "default" : "outline"}
-              onClick={() => setSelectedOrderType(typeKey)}
-              className="h-9 shrink-0 gap-1.5 px-2.5 text-xs md:h-8"
-            >
-              {label}
-              <Badge
-                variant="secondary"
-                className="ml-0.5 h-5 px-1.5 text-[11px]"
-              >
-                {orderTypeCounts[typeKey] || 0}
-              </Badge>
-            </Button>
-          ))}
-
-          {["pending", "preparing"].includes(activeStatus) ? (
-            <div className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-2.5 md:ml-auto md:h-8">
-              <span className="text-xs font-medium text-rose-700 dark:text-rose-300">
-                Trễ &gt; 10 phút
-              </span>
-              <Badge variant="secondary" className="h-5 px-1.5 text-[11px]">
-                {delayedOrdersCount}
-              </Badge>
-            </div>
-          ) : null}
         </div>
-      </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <div
+            className={`grid gap-3 ${selectedOrderType === "all" ? "grid-cols-1 md:grid-cols-3" : "grid-cols-1"}`}
+          >
+            {visibleOrderTypeColumns.map((column) => {
+              const Icon = column.icon;
+              const columnOrders = groupedOrdersByType[column.key] || [];
 
-      <div className="overflow-x-auto">
-        <div
-          className={`grid gap-3 ${selectedOrderType === "all" ? "grid-cols-1 md:grid-cols-3" : "grid-cols-1"}`}
-        >
-          {visibleOrderTypeColumns.map((column) => {
-            const Icon = column.icon;
-            const columnOrders = groupedOrdersByType[column.key] || [];
-
-            return (
-              <div
-                key={column.key}
-                className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-gray-900 shadow-sm dark:shadow-none"
-              >
-                <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 px-3 py-2">
-                  <div className="flex items-center gap-2">
-                    <Icon className="h-4 w-4 text-slate-600 dark:text-slate-200" />
-                    <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">
-                      {column.label}
-                    </span>
-                  </div>
-                  <Badge variant="secondary">{columnOrders.length}</Badge>
-                </div>
-
-                <div className="max-h-none min-h-[220px] space-y-2 overflow-visible p-3 md:max-h-[calc(100vh-300px)] md:min-h-[400px] md:overflow-y-auto">
-                  {loading ? (
-                    <p className="py-8 text-center text-sm text-muted-foreground">
-                      Đang tải dữ liệu...
-                    </p>
-                  ) : columnOrders.length > 0 ? (
-                    columnOrders.map((order) => renderCompactOrderCard(order))
-                  ) : (
-                    <div className="flex flex-col items-center justify-center gap-2 py-10 text-center">
-                      <ShoppingBag className="h-7 w-7 text-muted-foreground" />
-                      <p className="text-sm text-muted-foreground">
-                        Không có đơn trong cột này.
-                      </p>
+              return (
+                <div
+                  key={column.key}
+                  className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-gray-900 shadow-sm dark:shadow-none"
+                >
+                  <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 px-3 py-2">
+                    <div className="flex items-center gap-2">
+                      <Icon className="h-4 w-4 text-slate-600 dark:text-slate-200" />
+                      <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+                        {column.key === 'pending' ? 'Online chờ xác nhận' : column.label}
+                      </span>
                     </div>
-                  )}
+                    <Badge variant="secondary">{columnOrders.length}</Badge>
+                  </div>
+
+                  <div className="max-h-none min-h-[220px] space-y-2 overflow-visible p-3 md:max-h-[calc(100vh-300px)] md:min-h-[400px] md:overflow-y-auto">
+                    {loading ? (
+                      <p className="py-8 text-center text-sm text-muted-foreground">
+                        Đang tải dữ liệu...
+                      </p>
+                    ) : columnOrders.length > 0 ? (
+                      columnOrders.map((order) => renderCompactOrderCard(order))
+                    ) : (
+                      <div className="flex flex-col items-center justify-center gap-2 py-10 text-center">
+                        <ShoppingBag className="h-7 w-7 text-muted-foreground" />
+                        <p className="text-sm text-muted-foreground">
+                          Không có đơn trong cột này.
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
-      </div>
+      )}
 
       <Dialog
         open={isDetailOpen}
@@ -1046,13 +1281,10 @@ export function OrderDelivery() {
                           className="rounded-md border p-2 text-sm"
                         >
                           <p className="font-medium">
-                            {item.name ||
-                              item.productName ||
-                              item.product_name ||
-                              "Sản phẩm"}
+                            {item.name || item.productName || item.product_name} - {item.size}
                           </p>
                           <p className="text-muted-foreground">
-                            Size {item.size} • x{item.quantity} •{" "}
+                            x{item.quantity} •{" "}
                             {money(item.price || item.total_price)}
                           </p>
                           {Array.isArray(item.toppings) &&

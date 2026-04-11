@@ -97,6 +97,8 @@ class BaristaDBRepository {
         op.payment_status,
         odi.receiver_name,
         odi.receiver_phone,
+        odi.address,
+        odi.note AS delivery_note,
         COUNT(od.id) AS itemCount
       FROM orders o
       LEFT JOIN order_details od ON od.order_id = o.id
@@ -116,7 +118,9 @@ class BaristaDBRepository {
         op.payment_method,
         op.payment_status,
         odi.receiver_name,
-        odi.receiver_phone
+        odi.receiver_phone,
+        odi.address,
+        odi.note
       ORDER BY
         FIELD(o.status, 'pending', 'preparing', 'served', 'delivering', 'completed', 'cancelled'),
         o.created_at ASC
@@ -134,8 +138,10 @@ class BaristaDBRepository {
         od.id,
         p.id AS productId,
         p.name AS productName,
+        p.name AS product_name,
         ps.id AS productSizeId,
         ps.size,
+        ps.size AS product_size,
         od.quantity,
         od.price,
         od.note
