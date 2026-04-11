@@ -8,6 +8,10 @@ class CashSessionRepository {
     return rows[0] || null;
   }
 
+  async findOpenSession() {
+    return this.getCurrentSession();
+  }
+
   async getCurrentUserShift(userId) {
     const [rows] = await pool.query(
       `SELECT sr.id as shift_registration_id, st.end_time, st.start_time 
