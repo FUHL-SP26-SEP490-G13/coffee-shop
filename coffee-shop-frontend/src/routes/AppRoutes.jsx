@@ -40,7 +40,7 @@ import { BaristaOrders } from "@/pages/barista/BaristaOrder/BaristaOrders";
 import { BaristaAttendance } from "@/pages/barista/BaristaAttendance/BaristaAttendance";
 import { BaristaSchedule } from "@/pages/barista/BaristaSchedule/BaristaSchedule";
 import { BaristaRequests } from "@/pages/barista/BaristaRequest/BaristaRequests";
-import { StaffApp } from "@/pages/staff/StaffApp";
+import { StaffAppWrapped } from "../pages/staff/StaffApp";
 import { BaristaApp } from "@/pages/barista/BaristaApp";
 import ProductListPage from "../pages/homePage/product/ProductListPage";
 import ProductDetailPage from "../pages/homePage/product/ProductDetailPage";
@@ -144,7 +144,7 @@ const AppRoutes = () => {
         path="/staff"
         element={
           <RoleGuard allowedRoles={[2]}>
-            <StaffApp />
+            <StaffAppWrapped />
           </RoleGuard>
         }
       >

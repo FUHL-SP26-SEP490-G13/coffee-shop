@@ -44,6 +44,7 @@ import {
 } from '@/components/ui/tooltip';
 import Logo from '/logo/Logo.png';
 import receiptSettingService from "@/services/receiptSettingService";
+import { CashSessionProvider, useCashSession } from '../../components/staff/CashSessionContext';
 
 const STAFF_SIDEBAR_PREF_KEY = 'staff_sidebar_collapsed_by_page';
 const STAFF_SIDEBAR_DEFAULTS = {
@@ -503,6 +504,8 @@ export function StaffApp() {
               </div>
             ))}
 
+            <CashSessionButton isSidebarCompact={isSidebarCompact} />
+
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <button
@@ -625,5 +628,45 @@ export function StaffApp() {
         </div>
       </div>
     </div>
+  );
+}
+
+const CashSessionButton = ({ isSidebarCompact }) => {
+  const { session, handleTriggerClose, isTimeToClose } = useCashSession();
+  
+  if (!session) return null;
+
+  const content = (
+    <button
+      onClick={handleTriggerClose}
+      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all mb-2 text-rose-600 bg-rose-50 hover:bg-rose-100 dark:bg-rose-900/20 dark:text-rose-400 dark:hover:bg-rose-900/40 ${isSidebarCompact ? 'md:justify-center md:px-2' : ''}`}
+      title={isSidebarCompact ? 'Đóng ca' : undefined}
+    >
+      <Clock className='w-5 h-5 flex-shrink-0' />
+      <span className={`text-sm font-semibold ${isSidebarCompact ? 'md:hidden' : ''}`}>
+        Đóng ca làm
+      </span>
+    </button>
+  );
+
+  if (isSidebarCompact) {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>{content}</TooltipTrigger>
+        <TooltipContent side='right' sideOffset={10}>
+          Đóng ca làm
+        </TooltipContent>
+      </Tooltip>
+    );
+  }
+  
+  return content;
+}
+
+export function StaffAppWrapped() {
+  return (
+    <CashSessionProvider>
+      <StaffApp />
+    </CashSessionProvider>
   );
 }
