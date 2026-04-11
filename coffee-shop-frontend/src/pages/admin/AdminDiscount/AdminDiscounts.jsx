@@ -2,14 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import {
   Loader2,
   Search,
-  ChevronLeft,
-  ChevronRight,
   Trash2,
   Edit,
   Plus,
-  Ticket,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 import discountService from "@/services/discountService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

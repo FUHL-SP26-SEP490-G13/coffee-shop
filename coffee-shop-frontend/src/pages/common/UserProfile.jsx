@@ -1,18 +1,50 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Mail, Phone, Edit2, Save, MapPin, Plus, Trash2, LocateFixed, Loader2, Lock, Navigation, Home, Briefcase, Star, BriefcaseBusiness, Coffee } from 'lucide-react';
+import { User, Mail, Phone, Edit2, Save, MapPin, Plus, Trash2, LocateFixed, Loader2, Lock, Navigation, Home, Briefcase, Star, BriefcaseBusiness, Coffee, AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../../components/ui/dialog';
 import { Avatar, AvatarFallback } from '../../components/ui/avatar';
+import { CircleMarker, MapContainer, TileLayer, useMap, useMapEvents } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
 
 import { toast } from 'sonner';
 import authenticationService from '../../services/authenticationService';
 import receiptSettingService from '../../services/receiptSettingService';
-import { APP_ROUTES } from '../../constants';
+import { APP_ROUTES, STORAGE_KEYS } from '../../constants';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+
+const getStoredValue = (key) =>
+  localStorage.getItem(key) || sessionStorage.getItem(key);
+
+const DEFAULT_ADDRESS_MAP_CENTER = [10.7769, 106.7009];
+
+const parseCoordinate = (value) => {
+  const numericValue = Number(value);
+  return Number.isFinite(numericValue) ? numericValue : null;
+};
+
+const AddressMapClickHandler = ({ onPick }) => {
+  useMapEvents({
+    click(event) {
+      onPick(event.latlng.lat, event.latlng.lng);
+    },
+  });
+
+  return null;
+};
+
+const AddressMapRecenter = ({ center, zoom }) => {
+  const map = useMap();
+
+  useEffect(() => {
+    map.setView(center, zoom, { animate: false });
+  }, [map, center, zoom]);
+
+  return null;
+};
 
 export function UserProfile() {
   useDocumentTitle('Hồ sơ của tôi');
@@ -87,6 +119,11 @@ export function UserProfile() {
     return profile.role_name || profile.role || 'staff';
   }, [profile]);
 
+  const isGoogleLogin = useMemo(
+    () => getStoredValue(STORAGE_KEYS.AUTH_PROVIDER) === 'google',
+    [],
+  );
+
   const [storeName, setStoreName] = useState(() => {
     return localStorage.getItem("cached_store_name") || "Coffee Shop";
   });
@@ -100,7 +137,7 @@ export function UserProfile() {
           setStoreName(data.store_name);
           localStorage.setItem("cached_store_name", data.store_name);
         }
-      } catch (error) {
+      } catch {
         // Fallback or ignore
       }
     };
@@ -217,15 +254,6 @@ export function UserProfile() {
       return false;
     }
 
-    const isAddressChanged =
-      !editingAddressId ||
-      normalizedAddress !== String(editingAddressOriginal || '').trim();
-
-    if (isAddressChanged && !hasLat) {
-      toast.error('Khi nhập địa chỉ mới, bạn cần ghim tọa độ hoặc nhập tọa độ thủ công');
-      return false;
-    }
-
     if (hasLat && hasLng) {
       const latNum = Number(lat);
       const lngNum = Number(lng);
@@ -242,6 +270,15 @@ export function UserProfile() {
     }
 
     return true;
+  };
+
+  const handlePickAddressLocationFromMap = (latitude, longitude) => {
+    setAddressForm((prev) => ({
+      ...prev,
+      latitude: String(Number(latitude.toFixed(7))),
+      longitude: String(Number(longitude.toFixed(7))),
+      location_source: 'manual_pin',
+    }));
   };
 
   const handlePinCurrentAddressLocation = () => {
@@ -692,17 +729,21 @@ export function UserProfile() {
                           </div>
                           <div>
                             <p className="font-semibold text-sm">Bảo mật</p>
-                            <p className="text-xs text-muted-foreground mt-0.5">Mật khẩu & Đăng nhập</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              {isGoogleLogin ? 'Đăng nhập Google' : 'Mật khẩu & Đăng nhập'}
+                            </p>
                           </div>
                         </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="rounded-xl border-gray-200 shadow-sm"
-                          onClick={() => navigate(APP_ROUTES.CHANGE_PASSWORD)}
-                        >
-                          Đổi mật khẩu
-                        </Button>
+                        {!isGoogleLogin && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="rounded-xl border-gray-200 shadow-sm"
+                            onClick={() => navigate(APP_ROUTES.CHANGE_PASSWORD)}
+                          >
+                            Đổi mật khẩu
+                          </Button>
+                        )}
                       </div>
                     </div>
                   </CardContent>
@@ -829,7 +870,7 @@ export function UserProfile() {
               <div className="flex items-center justify-between gap-2 flex-wrap">
                 <p className="text-sm font-bold flex items-center gap-2 text-amber-800 dark:text-amber-400">
                   <LocateFixed className="w-4 h-4" />
-                  Toạ độ bản đồ (bắt buộc)
+                  Toạ độ bản đồ (không bắt buộc)
                 </p>
                 <Button
                   type="button"
@@ -850,6 +891,72 @@ export function UserProfile() {
                 </Button>
               </div>
 
+              <div className="overflow-hidden rounded-xl border border-amber-100 dark:border-amber-900/30">
+                <MapContainer
+                  center={
+                    parseCoordinate(addressForm.latitude) !== null &&
+                    parseCoordinate(addressForm.longitude) !== null
+                      ? [
+                          parseCoordinate(addressForm.latitude),
+                          parseCoordinate(addressForm.longitude),
+                        ]
+                      : DEFAULT_ADDRESS_MAP_CENTER
+                  }
+                  zoom={
+                    parseCoordinate(addressForm.latitude) !== null &&
+                    parseCoordinate(addressForm.longitude) !== null
+                      ? 16
+                      : 6
+                  }
+                  className="h-56 w-full"
+                  scrollWheelZoom
+                >
+                  <TileLayer
+                    attribution="&copy; OpenStreetMap contributors"
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  />
+                  <AddressMapRecenter
+                    center={
+                      parseCoordinate(addressForm.latitude) !== null &&
+                      parseCoordinate(addressForm.longitude) !== null
+                        ? [
+                            parseCoordinate(addressForm.latitude),
+                            parseCoordinate(addressForm.longitude),
+                          ]
+                        : DEFAULT_ADDRESS_MAP_CENTER
+                    }
+                    zoom={
+                      parseCoordinate(addressForm.latitude) !== null &&
+                      parseCoordinate(addressForm.longitude) !== null
+                        ? 16
+                        : 6
+                    }
+                  />
+                  <AddressMapClickHandler
+                    onPick={handlePickAddressLocationFromMap}
+                  />
+                  {parseCoordinate(addressForm.latitude) !== null &&
+                    parseCoordinate(addressForm.longitude) !== null && (
+                      <CircleMarker
+                        center={[
+                          parseCoordinate(addressForm.latitude),
+                          parseCoordinate(addressForm.longitude),
+                        ]}
+                        radius={8}
+                        pathOptions={{
+                          color: '#d97706',
+                          fillColor: '#f59e0b',
+                          fillOpacity: 0.75,
+                        }}
+                      />
+                    )}
+                </MapContainer>
+              </div>
+
+              <p className="text-[11px] text-amber-700/90 dark:text-amber-400/80 leading-relaxed font-medium">
+                Chạm vào bản đồ để ghim vị trí chính xác. Nếu bỏ trống tọa độ, hệ thống vẫn lưu địa chỉ và áp dụng phí ship mặc định khi đặt hàng.
+              </p>
+
               <div className="grid grid-cols-2 gap-3">
                 <Input
                   value={addressForm.latitude}
@@ -866,7 +973,7 @@ export function UserProfile() {
               </div>
 
               <p className="text-[11px] text-amber-600/80 dark:text-amber-500/80 leading-relaxed font-medium">
-                * Khi cập nhật địa chỉ, vui lòng ghim lại toạ độ để hệ thống điều phối giao hàng chính xác nhất.
+                * Bạn có thể nhập tay tọa độ hoặc để trống. Có tọa độ sẽ giúp tính phí giao hàng chính xác hơn.
               </p>
             </div>
 

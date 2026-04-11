@@ -89,7 +89,7 @@ export default function AdminApp() {
        "/admin/newsletter": "Email",
        "/admin/schedule/templates": "Quản lý ca làm",
        "/admin/schedule/list": "Lịch làm việc",
-       "/admin/receipt-settings": "Cấu hình hóa đơn",
+       "/admin/receipt-settings": "Cấu hình hệ thống",
        "/admin/profile": "Thông tin cá nhân"
      };
 
@@ -704,7 +704,7 @@ export default function AdminApp() {
                   }
                 >
                   <ClipboardList className="w-4 h-4" />
-                  <span className="text-sm tracking-wide">Cấu hình hóa đơn</span>
+                  <span className="text-sm tracking-wide">Cấu hình hệ thống</span>
                 </NavLink>
                 <NavLink
                   to="/admin/profile"
@@ -846,7 +846,7 @@ export default function AdminApp() {
         </div>
 
         <div className="p-4 md:px-8 md:pb-8 pt-2 md:pt-2">
-          <Outlet />
+          <Outlet context={{ notifications }} />
         </div>
       </div>
     </div>

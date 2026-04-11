@@ -250,6 +250,10 @@ class OrderService {
         customer_type: user ? "registered" : "guest",
         order_type,
         table_id: order_type === "dine-in" ? payload.table_id : null,
+        // amount = tổng giá sản phẩm chưa giảm (subtotal)
+        amount: totalAmount,
+        // discount_amount = tổng tiền giảm (voucher + loyalty points)
+        discount_amount: discountAmount + loyaltyDiscountAmount,
         total_amount: finalAmount,
         amount: totalAmount,
         discount_amount: totalDiscountAmount,

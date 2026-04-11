@@ -30,6 +30,8 @@ export default function GoogleButton() {
         if (refreshToken) {
           localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, refreshToken);
         }
+        localStorage.setItem(STORAGE_KEYS.AUTH_PROVIDER, "google");
+        sessionStorage.removeItem(STORAGE_KEYS.AUTH_PROVIDER);
 
         try {
           await cartService.syncAfterLogin();
@@ -85,7 +87,7 @@ export default function GoogleButton() {
         </div>
         <div className="relative flex justify-center text-xs uppercase">
           <span className="bg-card px-2 text-muted-foreground">
-            Hoặc tiếp tục với
+            Hoặc
           </span>
         </div>
       </div>

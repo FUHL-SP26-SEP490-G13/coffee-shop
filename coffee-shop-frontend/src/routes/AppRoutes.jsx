@@ -121,6 +121,43 @@ const RoleGuard = ({ allowedRoles, children }) => {
   return children;
 };
 
+const HomeEntryGuard = () => {
+  const token = getStoredValue(STORAGE_KEYS.ACCESS_TOKEN);
+  const [roleId, setRoleId] = useState(null);
+  const [isLoading, setIsLoading] = useState(Boolean(token));
+
+  useEffect(() => {
+    if (!token) {
+      return;
+    }
+
+    authenticationService
+      .getProfile()
+      .then((res) => {
+        setRoleId(Number(res?.data?.role_id));
+      })
+      .catch(() => {
+        setRoleId(null);
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
+  }, [token]);
+
+  if (isLoading)
+    return (
+      <div className="flex h-screen items-center justify-center">
+        Đang tải...
+      </div>
+    );
+
+  if ([1, 2, 3].includes(roleId)) {
+    return <Navigate to={getRoleHomeRoute(roleId)} replace />;
+  }
+
+  return <HomePage />;
+};
+
 const AppRoutes = () => {
   return (
     <Routes>
@@ -218,7 +255,7 @@ const AppRoutes = () => {
         <Route path="newsletter" element={<AdminNewsletterPage />} />
       </Route>
       <Route element={<ClientLayout />}>
-        <Route path="/" element={<HomePage />} />
+        <Route path="/" element={<HomeEntryGuard />} />
         {/* Route /products đã được chuyển vào /:slug (GenericSlugResolver) để chống chớp giật Grid */}
         <Route path="/products/:id" element={<ProductDetailPage />} />
         

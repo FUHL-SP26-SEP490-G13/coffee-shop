@@ -129,6 +129,22 @@ export default function AdminReputation() {
         return;
       }
 
+      // Mốc điểm cao hơn phải có hạn mức tiền mặt cao hơn (strictly increasing).
+      for (let i = 1; i < sorted.length; i += 1) {
+        const prev = sorted[i - 1];
+        const current = sorted[i];
+        const prevCash = prev.maxCash === null ? Number.POSITIVE_INFINITY : Number(prev.maxCash);
+        const currentCash = current.maxCash === null ? Number.POSITIVE_INFINITY : Number(current.maxCash);
+
+        if (prevCash >= currentCash) {
+          toast.error(
+            `Mốc từ ${prev.minScore} điểm phải có hạn mức tiền mặt nhỏ hơn mốc từ ${current.minScore} điểm`,
+          );
+          setSettingsSaving(false);
+          return;
+        }
+      }
+
       await receiptSettingService.upsertSettings({
         reputation_rules: JSON.stringify(sorted.map(r => ({ minScore: r.minScore, maxCash: r.maxCash })))
       });

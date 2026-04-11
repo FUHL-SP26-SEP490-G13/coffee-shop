@@ -8,7 +8,6 @@ import { cartService } from "@/services/cartService";
 import toppingService from "@/services/toppingService";
 import productService from "@/services/productService";
 import flashSaleService from "@/services/flashSaleService";
-import { STORAGE_KEYS } from "@/constants";
 import { toast } from "sonner";
 import { useStoreHours } from "@/hooks/useStoreHours";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
@@ -19,10 +18,6 @@ export default function CartPage() {
   useDocumentTitle("Giỏ hàng");
   const navigate = useNavigate();
   const { isOpen: isStoreOpen, nextOpenMessage } = useStoreHours();
-  const token =
-    localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN) ||
-    sessionStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
-  const isLoggedIn = !!token;
   const [cart, setCart] = useState(() => cartService.getCart());
   const [savedItems, setSavedItems] = useState(() => cartService.getSavedItems());
   const [allToppings, setAllToppings] = useState([]);

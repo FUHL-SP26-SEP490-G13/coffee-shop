@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+﻿import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   RefreshCw,
@@ -37,7 +37,6 @@ import baristaDBService from "@/services/baristaDBService";
 import orderOnlineService from "@/services/orderOnlineService";
 import authenticationService from "@/services/authenticationService";
 import takeawayService from "@/services/takeAwayService";
-// import { ReceiptModal } from "./TakeAwayOrder/ReceiptModal";
 import BaristaViewRecipe from "../barista/BaristaOrder/BaristaViewRecipe";
 import { PrintableReceipt } from "./PrintableReceipt";
 

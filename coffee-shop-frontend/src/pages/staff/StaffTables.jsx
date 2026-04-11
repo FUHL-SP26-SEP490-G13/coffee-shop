@@ -96,79 +96,81 @@ function TableCard({
               <ReceiptText className="w-4 h-4 text-blue-600" />
             </button>
           )}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                onClick={(e) => e.stopPropagation()}
-                className="p-1.5 rounded-full hover:bg-black/5 text-slate-600 dark:text-slate-300 transition-colors"
-                title="Tùy chọn"
-              >
-                <MoreVertical className="w-4 h-4" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {table.status === "occupied" ? (
-                <>
-                  <DropdownMenuItem
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onMergeOrder(table);
-                    }}
-                  >
-                    <GitMerge className="w-4 h-4" />
-                    Ghép đơn
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onTransfer(table);
-                    }}
-                  >
-                    <ArrowLeftRight className="w-4 h-4" />
-                    Chuyển bàn
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onSeparateBill(table);
-                    }}
-                  >
-                    <ReceiptText className="w-4 h-4" />
-                    Tách đơn
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    disabled={!canEditOrder}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (!canEditOrder) return;
-                      onEditOrder(table);
-                    }}
-                  >
-                    Chỉnh sửa đơn hàng
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onRequestPayment(table);
-                    }}
-                  >
-                    <HandCoins className="w-4 h-4" />
-                    Yêu cầu thanh toán
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onStatusChange(table, "available");
-                    }}
-                  >
-                    <TableIcon className="w-4 h-4" />
-                    Trống
-                  </DropdownMenuItem>
-                </>
-              ) : null}
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {table.status !== "available" && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  onClick={(e) => e.stopPropagation()}
+                  className="p-1.5 rounded-full hover:bg-black/5 text-slate-600 dark:text-slate-300 transition-colors"
+                  title="Tùy chọn"
+                >
+                  <MoreVertical className="w-4 h-4" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {table.status === "occupied" ? (
+                  <>
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onMergeOrder(table);
+                      }}
+                    >
+                      <GitMerge className="w-4 h-4" />
+                      Ghép đơn
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onTransfer(table);
+                      }}
+                    >
+                      <ArrowLeftRight className="w-4 h-4" />
+                      Chuyển bàn
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onSeparateBill(table);
+                      }}
+                    >
+                      <ReceiptText className="w-4 h-4" />
+                      Tách đơn
+                    </DropdownMenuItem>
+                    {/* <DropdownMenuItem
+                      disabled={!canEditOrder}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (!canEditOrder) return;
+                        onEditOrder(table);
+                      }}
+                    >
+                      Chỉnh sửa đơn hàng
+                    </DropdownMenuItem> */}
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onRequestPayment(table);
+                      }}
+                    >
+                      <HandCoins className="w-4 h-4" />
+                      Yêu cầu thanh toán
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onStatusChange(table, "available");
+                      }}
+                    >
+                      <TableIcon className="w-4 h-4" />
+                      Trống
+                    </DropdownMenuItem>
+                  </>
+                ) : null}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
       )}
 

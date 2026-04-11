@@ -5,6 +5,7 @@ const ErrorResponse = require("../utils/ErrorResponse");
 
 class OrderOnlineService {
   static LEGACY_DELIVERY_SHIPPING_FEE = 20000;
+  static DEFAULT_DELIVERY_SHIPPING_FEE = 15000;
   static DYNAMIC_SHIPPING_ROLLOUT_AT = new Date("2026-04-07T00:00:00.000Z").getTime();
   static MONEY_ROUNDING_UNIT = 100;
   static MAX_DELIVERY_DISTANCE_KM = 10;
@@ -282,23 +283,38 @@ class OrderOnlineService {
     let normalizedCustomerLongitude = null;
 
     if (order_type === "delivery") {
-      normalizedCustomerLatitude = Number(customer_latitude);
-      normalizedCustomerLongitude = Number(customer_longitude);
+      const hasCustomerLatitudeInput =
+        customer_latitude !== undefined &&
+        customer_latitude !== null &&
+        String(customer_latitude).trim() !== "";
+      const hasCustomerLongitudeInput =
+        customer_longitude !== undefined &&
+        customer_longitude !== null &&
+        String(customer_longitude).trim() !== "";
 
-      if (
-        !Number.isFinite(normalizedCustomerLatitude) ||
-        normalizedCustomerLatitude < -90 ||
-        normalizedCustomerLatitude > 90
-      ) {
-        throw new ErrorResponse(400, "Vĩ độ giao hàng không hợp lệ");
+      if (hasCustomerLatitudeInput !== hasCustomerLongitudeInput) {
+        throw new ErrorResponse(400, "Vui lòng cung cấp đầy đủ cả vĩ độ và kinh độ giao hàng");
       }
 
-      if (
-        !Number.isFinite(normalizedCustomerLongitude) ||
-        normalizedCustomerLongitude < -180 ||
-        normalizedCustomerLongitude > 180
-      ) {
-        throw new ErrorResponse(400, "Kinh độ giao hàng không hợp lệ");
+      if (hasCustomerLatitudeInput && hasCustomerLongitudeInput) {
+        normalizedCustomerLatitude = Number(customer_latitude);
+        normalizedCustomerLongitude = Number(customer_longitude);
+
+        if (
+          !Number.isFinite(normalizedCustomerLatitude) ||
+          normalizedCustomerLatitude < -90 ||
+          normalizedCustomerLatitude > 90
+        ) {
+          throw new ErrorResponse(400, "Vĩ độ giao hàng không hợp lệ");
+        }
+
+        if (
+          !Number.isFinite(normalizedCustomerLongitude) ||
+          normalizedCustomerLongitude < -180 ||
+          normalizedCustomerLongitude > 180
+        ) {
+          throw new ErrorResponse(400, "Kinh độ giao hàng không hợp lệ");
+        }
       }
     }
 
@@ -394,35 +410,36 @@ class OrderOnlineService {
       if (order_type === "delivery") {
         const ReceiptSettingService = require("./ReceiptSettingService");
         const activeSetting = await ReceiptSettingService.getActiveSetting();
-        storeLatitude = Number(activeSetting?.latitude);
-        storeLongitude = Number(activeSetting?.longitude);
+        const rawStoreLatitude = Number(activeSetting?.latitude);
+        const rawStoreLongitude = Number(activeSetting?.longitude);
+        const hasCustomerCoordinates =
+          Number.isFinite(normalizedCustomerLatitude) &&
+          Number.isFinite(normalizedCustomerLongitude);
+        const hasStoreCoordinates =
+          Number.isFinite(rawStoreLatitude) &&
+          rawStoreLatitude >= -90 &&
+          rawStoreLatitude <= 90 &&
+          Number.isFinite(rawStoreLongitude) &&
+          rawStoreLongitude >= -180 &&
+          rawStoreLongitude <= 180;
 
-        if (
-          !Number.isFinite(storeLatitude) ||
-          storeLatitude < -90 ||
-          storeLatitude > 90 ||
-          !Number.isFinite(storeLongitude) ||
-          storeLongitude < -180 ||
-          storeLongitude > 180
-        ) {
-          throw new ErrorResponse(
-            400,
-            "Cửa hàng chưa ghim tọa độ. Vui lòng liên hệ quản lý để cập nhật cấu hình địa chỉ."
+        if (hasCustomerCoordinates && hasStoreCoordinates) {
+          storeLatitude = Number(rawStoreLatitude.toFixed(7));
+          storeLongitude = Number(rawStoreLongitude.toFixed(7));
+          normalizedCustomerLatitude = Number(normalizedCustomerLatitude.toFixed(7));
+          normalizedCustomerLongitude = Number(normalizedCustomerLongitude.toFixed(7));
+
+          deliveryDistanceKm = await this.getDrivingDistanceKm(
+            storeLatitude,
+            storeLongitude,
+            normalizedCustomerLatitude,
+            normalizedCustomerLongitude
           );
+          shippingFee = this.calculateShippingFeeByDistanceKm(deliveryDistanceKm);
+        } else {
+          shippingFee = OrderOnlineService.DEFAULT_DELIVERY_SHIPPING_FEE;
+          deliveryDistanceKm = 0;
         }
-
-        storeLatitude = Number(storeLatitude.toFixed(7));
-        storeLongitude = Number(storeLongitude.toFixed(7));
-        normalizedCustomerLatitude = Number(normalizedCustomerLatitude.toFixed(7));
-        normalizedCustomerLongitude = Number(normalizedCustomerLongitude.toFixed(7));
-
-        deliveryDistanceKm = await this.getDrivingDistanceKm(
-          storeLatitude,
-          storeLongitude,
-          normalizedCustomerLatitude,
-          normalizedCustomerLongitude
-        );
-        shippingFee = this.calculateShippingFeeByDistanceKm(deliveryDistanceKm);
       }
 
       totalAmount += shippingFee;
@@ -598,11 +615,15 @@ class OrderOnlineService {
             customer_longitude: normalizedCustomerLongitude,
             coordinates_source:
               order_type === "delivery" &&
+              Number.isFinite(normalizedCustomerLatitude) &&
+              Number.isFinite(normalizedCustomerLongitude) &&
               ["manual_pin", "gps", "geocode"].includes(
                 String(customer_location_source || "").toLowerCase()
               )
                 ? String(customer_location_source).toLowerCase()
-                : order_type === "delivery"
+                : order_type === "delivery" &&
+                  Number.isFinite(normalizedCustomerLatitude) &&
+                  Number.isFinite(normalizedCustomerLongitude)
                 ? "gps"
                 : null,
           });

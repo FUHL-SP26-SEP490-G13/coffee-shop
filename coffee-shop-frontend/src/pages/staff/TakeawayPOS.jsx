@@ -21,6 +21,7 @@ import { CheckoutModal } from './TakeAwayOrder/CheckoutModal';
 import takeawayService from '@/services/takeAwayService';
 import categoryService from '@/services/categoryService';
 import toppingService from '@/services/toppingService';
+import productService from '@/services/productService';
 import { toast } from 'sonner';
 import QRDisplay from '../common/QRDisplay';
 import socket from '@/lib/socket';
@@ -58,14 +59,24 @@ function TakeawayPOS() {
     const loadMeta = async () => {
       setMetaLoading(true);
       try {
-        const [categoriesRes, toppingsRes] = await Promise.all([
+        const [categoriesRes, toppingsRes, productsRes] = await Promise.all([
           categoryService.getAll({ is_deleted: 0 }),
           toppingService.getAll({ is_deleted: 0 }),
+          productService.getAll({ status: 'available', is_deleted: 0, limit: 500 }),
         ]);
         const rawCategories =
           categoriesRes.data?.data || categoriesRes.data || [];
         const rawToppings = toppingsRes.data?.data || toppingsRes.data || [];
-        setCategories(rawCategories.filter((c) => !c.is_deleted));
+
+        // Lấy tập category_id có ít nhất 1 sản phẩm available
+        const rawProducts = productsRes?.data || [];
+        const nonEmptyCategoryIds = new Set(
+          rawProducts
+            .filter((p) => p.status === 'available' && (p.sizes || []).filter((s) => !s.is_deleted).length > 0)
+            .map((p) => p.category_id)
+        );
+
+        setCategories(rawCategories.filter((c) => !c.is_deleted && nonEmptyCategoryIds.has(c.id)));
         setToppings(
           rawToppings
             .filter((t) => !t.is_deleted || t.is_deleted === 0 || t.is_deleted === '0')
