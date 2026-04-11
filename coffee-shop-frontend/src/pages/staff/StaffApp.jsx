@@ -202,8 +202,7 @@ export function StaffApp() {
         { id: 'tables', icon: Users, label: 'Phòng bàn', path: '/staff/tables' },
         { id: 'takeaway', icon: ShoppingBag, label: 'Đặt mang đi', path: '/staff/takeaway' },
         { id: 'orders-pending', icon: ShoppingBag, label: 'Đơn online chờ xác nhận', path: '/staff/orders/pending' },
-        { id: 'orders-preparing', icon: ShoppingBag, label: 'Đơn Đang chuẩn bị', path: '/staff/orders/preparing' },
-        { id: 'orders-completed', icon: ShoppingBag, label: 'Đơn Hoàn thành', path: '/staff/orders/completed' },
+        { id: 'orders-preparing', icon: ShoppingBag, label: 'Quản lý đơn hàng', path: '/staff/orders/preparing' },
         { id: 'barista-window', icon: Coffee, label: 'Cửa sổ pha chế', path: '/staff/barista-window', openInNewTab: true },
 
       ],

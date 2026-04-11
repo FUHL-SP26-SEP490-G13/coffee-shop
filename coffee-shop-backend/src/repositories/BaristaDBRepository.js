@@ -99,11 +99,13 @@ class BaristaDBRepository {
         odi.receiver_phone,
         odi.address,
         odi.note AS delivery_note,
+        t.code AS table_code,
         COUNT(od.id) AS itemCount
       FROM orders o
       LEFT JOIN order_details od ON od.order_id = o.id
       LEFT JOIN order_payments op ON op.order_id = o.id
       LEFT JOIN order_delivery_info odi ON odi.order_id = o.id
+      LEFT JOIN tables t ON o.table_id = t.id
       WHERE o.status IN (${placeholders}) ${dateFilterSql}
       GROUP BY
         o.id,
@@ -120,7 +122,8 @@ class BaristaDBRepository {
         odi.receiver_name,
         odi.receiver_phone,
         odi.address,
-        odi.note
+        odi.note,
+        t.code
       ORDER BY
         FIELD(o.status, 'pending', 'preparing', 'served', 'delivering', 'completed', 'cancelled'),
         o.created_at ASC
