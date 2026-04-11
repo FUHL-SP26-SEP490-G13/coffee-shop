@@ -1,4 +1,5 @@
 const pool = require("../config/database");
+const CashSessionRepository = require("./CashSessionRepository");
 
 class BaristaDBRepository {
   async getOverview() {
@@ -79,6 +80,14 @@ class BaristaDBRepository {
       queryParams.push(filters.startDate, filters.endDate);
     } else if (filters.today) {
       dateFilterSql = " AND DATE(o.created_at) = CURDATE()";
+    }
+
+    const currentSession = await CashSessionRepository.getCurrentSession();
+    if (currentSession && currentSession.id) {
+       dateFilterSql += " AND (o.cash_session_id IS NULL OR o.cash_session_id = ?)";
+       queryParams.push(currentSession.id);
+    } else {
+       dateFilterSql += " AND o.cash_session_id IS NULL";
     }
 
     const [rows] = await pool.query(
