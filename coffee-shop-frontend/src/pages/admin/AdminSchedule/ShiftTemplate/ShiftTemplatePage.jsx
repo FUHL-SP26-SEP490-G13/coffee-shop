@@ -102,8 +102,8 @@ export default function ShiftTemplatePage() {
 
   const handleDelete = async () => {
     try {
-      await shiftTemplateService.delete(deleteTarget.id);
-      toast.success(`Xóa ca làm thành công"`);
+      const res = await shiftTemplateService.delete(deleteTarget.id);
+      toast.success(res.message);
       setDeleteTarget(null);
       fetchTemplates();
     } catch (err) {
@@ -143,7 +143,9 @@ export default function ShiftTemplatePage() {
             const color = getColorClass(tpl.color);
             const [sh, sm] = tpl.start_time.split(':').map(Number);
             const [eh, em] = tpl.end_time.split(':').map(Number);
-            const mins = (eh * 60 + em) - (sh * 60 + sm);
+            const startMin = sh * 60 + sm;
+            const endMin = eh * 60 + em;
+            const mins = endMin > startMin ? endMin - startMin : 24 * 60 - startMin + endMin;
             return (
               <div key={tpl.id} className="rounded-xl border bg-card shadow-sm hover:shadow-md transition-shadow p-5 relative group">
                 <div className="flex items-start justify-between">

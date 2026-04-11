@@ -4,7 +4,7 @@ import {
   PackageOpen,
   Calendar,
   Clock,
-  FileText,
+  ArrowLeftRight,
   User,
   LogOut,
   Menu,
@@ -195,8 +195,8 @@ export function BaristaApp() {
         },
         {
           id: "requests",
-          icon: FileText,
-          label: "Yêu cầu",
+          icon: ArrowLeftRight,
+          label: "Đổi ca",
           path: "/barista/requests",
         },
         {

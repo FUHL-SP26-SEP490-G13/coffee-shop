@@ -34,7 +34,6 @@ const cashSessionRoutes = require('./cashSession.routes');
 const aiRoutes = require('./ai.routes');
 const newsletterRoutes = require('./newsletter.routes');
 const cartRoutes = require('./cart.routes');
-const cashSessionRoutes = require('./cashSession.routes');
 
 const CategoryRepository = require('../repositories/CategoryRepository');
 const ProductRepository = require('../repositories/ProductRepository');
@@ -93,7 +92,6 @@ router.use('/ai', aiRoutes);
 router.use('/cash-sessions', cashSessionRoutes);
 router.use('/newsletters', newsletterRoutes);
 router.use('/cart', cartRoutes);
-router.use('/cash-sessions', cashSessionRoutes);
 
 // Health check endpoint
 router.get("/health", (req, res) => {
