@@ -7,6 +7,7 @@ import {
   ChevronRight,
   X,
 } from "lucide-react";
+import { useOutletContext } from "react-router-dom";
 import reviewService from "@/services/reviewService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,6 +40,17 @@ export default function AdminReviews() {
   const [expandedImage, setExpandedImage] = useState(null);
 
   const abortRef = useRef(null);
+  const outletContext = useOutletContext() || {};
+  const notifications = outletContext.notifications || [];
+
+  const unreadCounts = {};
+  if (Array.isArray(notifications)) {
+    notifications.forEach((n) => {
+      if (n.type === "new_review" && Number(n.is_read) === 0 && n.entity_id) {
+        unreadCounts[n.entity_id] = (unreadCounts[n.entity_id] || 0) + 1;
+      }
+    });
+  }
 
   const PAGE_SIZE = 7;
 
@@ -273,17 +285,24 @@ export default function AdminReviews() {
 
                       <TableCell className="text-center">
                         <div className="flex flex-col items-center justify-center gap-1.5 mt-1 relative">
-                          <Button 
-                            size="sm" 
-                            onClick={() => setSelectedReplyReview(item)}
-                            className={
-                              item.reply_comment || (item.reply_images && item.reply_images.length > 0) 
-                                ? "bg-amber-50 text-amber-600 border border-amber-200 hover:bg-amber-100 hover:text-amber-700 shadow-none" 
-                                : "bg-amber-600 text-white hover:bg-amber-700 shadow-sm transition-colors"
-                            }
-                          >
-                            {item.reply_comment || (item.reply_images && item.reply_images.length > 0) ? "Đã phản hồi" : "Trả lời"}
-                          </Button>
+                          <div className="relative inline-block">
+                            <Button 
+                              size="sm" 
+                              onClick={() => setSelectedReplyReview(item)}
+                              className={
+                                item.reply_comment || (item.reply_images && item.reply_images.length > 0) 
+                                  ? "bg-amber-50 text-amber-600 border border-amber-200 hover:bg-amber-100 hover:text-amber-700 shadow-none" 
+                                  : "bg-amber-600 text-white hover:bg-amber-700 shadow-sm transition-colors"
+                              }
+                            >
+                              {item.reply_comment || (item.reply_images && item.reply_images.length > 0) ? "Đã phản hồi" : "Trả lời"}
+                            </Button>
+                            {unreadCounts[item.id] > 0 && (
+                              <span className="absolute -top-2 -right-2 min-w-5 h-5 px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center shadow-md animate-in zoom-in">
+                                {unreadCounts[item.id]}
+                              </span>
+                            )}
+                          </div>
                           {item.replied_at && (
                             <span className="text-[10px] text-gray-400 font-medium">
                               {new Date(item.replied_at).toLocaleString("vi-VN")}

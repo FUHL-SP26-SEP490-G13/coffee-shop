@@ -846,7 +846,7 @@ export default function AdminApp() {
         </div>
 
         <div className="p-4 md:px-8 md:pb-8 pt-2 md:pt-2">
-          <Outlet />
+          <Outlet context={{ notifications }} />
         </div>
       </div>
     </div>

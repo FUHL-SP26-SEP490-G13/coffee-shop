@@ -78,6 +78,7 @@ class ReviewController {
         const product = await ProductService.getProductById(product_id);
         const UserRepository = require("../repositories/UserRepository");
         const user = await UserRepository.findByIdWithRole(userId);
+        const review = await ReviewRepository.findByUserAndProduct(userId, product_id);
         
         let userName = "Khách";
         if (user) {
@@ -94,7 +95,7 @@ class ReviewController {
           message: `Khách ${userName} đã đánh giá sản phẩm ${product.name}`,
           link: `/admin/reviews?keyword=${encodeURIComponent(product.name)}`,
           entity_type: "review",
-          entity_id: product_id,
+          entity_id: review ? review.id : product_id,
         };
 
         const managerNotification = await NotificationService.createForManager(notificationPayload);
@@ -232,7 +233,7 @@ class ReviewController {
             message: prodName ? `Người bán đã phản hồi bình luận của bạn về sản phẩm ${prodName}` : "Người bán đã phản hồi bình luận sản phẩm của bạn",
             link: link,
             entity_type: "review",
-            entity_id: review.product_id,
+            entity_id: review.id,
           };
           
           const customerNotification = await NotificationService.createForUsers(notificationPayload, [review.user_id]);
