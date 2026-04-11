@@ -67,6 +67,9 @@ class OrderRepository {
   async createOrder(connection, data) {
     const safeStatus = data.status || "pending";
     const safeUsedPoints = Math.max(0, Number(data.used_points) || 0);
+    // amount = subtotal trước giảm giá, discount_amount = số tiền đã giảm
+    const safeAmount = Math.max(0, Number(data.amount ?? data.total_amount) || 0);
+    const safeDiscountAmount = Math.max(0, Number(data.discount_amount) || 0);
 
     const [result] = await connection.query(
       `
@@ -78,12 +81,14 @@ class OrderRepository {
         table_id,
         status,
         is_paid,
+        amount,
+        discount_amount,
         total_amount,
         delivery_fee,
         used_points,
         session_id
       )
-      VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?)
       `,
       [
         data.user_id,
@@ -92,6 +97,8 @@ class OrderRepository {
         data.order_type,
         data.table_id || null,
         safeStatus,
+        safeAmount,
+        safeDiscountAmount,
         data.total_amount,
         Math.max(0, Number(data.delivery_fee) || 0),
         safeUsedPoints,
