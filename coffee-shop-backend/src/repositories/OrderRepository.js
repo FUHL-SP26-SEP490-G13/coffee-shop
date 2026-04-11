@@ -84,8 +84,6 @@ class OrderRepository {
         amount,
         discount_amount,
         total_amount,
-        amount,
-        discount_amount,
         delivery_fee,
         used_points,
         session_id
@@ -102,8 +100,6 @@ class OrderRepository {
         safeAmount,
         safeDiscountAmount,
         data.total_amount,
-        safeAmount,
-        safeDiscountAmount,
         Math.max(0, Number(data.delivery_fee) || 0),
         safeUsedPoints,
         data.session_id || null,
