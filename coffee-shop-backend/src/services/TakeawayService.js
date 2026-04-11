@@ -259,7 +259,7 @@ class TakeawayService {
         total_amount: finalAmount,
         payment_method,
         is_paid: isCash,
-        status: 'pending',
+        status: 'preparing',
         cash_received: cashReceivedAmt,
         change_amount: changeAmt,
       };

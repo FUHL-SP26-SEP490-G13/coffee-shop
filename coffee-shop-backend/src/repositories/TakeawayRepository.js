@@ -50,7 +50,7 @@ class TakeawayRepository {
       `INSERT INTO orders 
          (user_id, created_by, order_type, total_amount, amount, discount_amount, discount_id,
           status, is_paid, customer_type, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', 0, 'guest', NOW())`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, 'preparing', 0, 'guest', NOW())`,
       [
         user_id || null,
         created_by,

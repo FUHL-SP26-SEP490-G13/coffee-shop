@@ -244,9 +244,9 @@ class OrderService {
         user_id: userId,
         created_by: userId,
 
-        // Đơn tại quán sẽ bắt đầu ở trạng thái "preparing" để nhân viên bếp có 
-        // thể thấy và xử lý ngay, không phải chờ khách thanh toán xong mới hiển thị
-        status: order_type === "dine-in" ? "preparing" : "pending",
+        // Đơn tại quán và mang về sẽ bắt đầu ở trạng thái "preparing" để nhân viên bếp 
+        // có thể thấy và xử lý ngay, không phải chờ khách thanh toán xong mới hiển thị
+        status: (order_type === "dine-in" || order_type === "takeaway") ? "preparing" : "pending",
         customer_type: user ? "registered" : "guest",
         order_type,
         table_id: order_type === "dine-in" ? payload.table_id : null,
