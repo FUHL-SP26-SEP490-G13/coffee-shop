@@ -352,7 +352,7 @@ export function OrderDelivery() {
       const filtered = list.filter((order) => {
         if (activeStatus === "barista-window") {
           const s = String(order?.status || "").toLowerCase();
-          return s === "preparing" || s === "served";
+          return s === "preparing" || s === "served" || s === "completed";
         }
         if (activeStatus === "preparing") {
           return true; // Quản lý đơn hàng: hiển thị tất cả
@@ -528,6 +528,16 @@ export function OrderDelivery() {
 
     return columns;
   }, [activeStatus]);
+
+  const handleStatusChange = async (orderId, status) => {
+    try {
+      await baristaDBService.updateOrderStatus(orderId, status);
+      toast.success("Cập nhật trạng thái thành công");
+      await loadOrders();
+    } catch (error) {
+      toast.error(error?.response?.data?.message || "Cập nhật trạng thái thất bại");
+    }
+  };
 
   const handleConfirmOrder = async (order) => {
     setConfirmingId(order.id);
@@ -1066,18 +1076,14 @@ export function OrderDelivery() {
                       <CardContent className="p-5 flex items-center justify-between gap-4">
                         <div className="flex flex-col gap-1">
                           <span className="text-xl font-black text-primary italic">Đơn #{order.id}</span>
-                          <span className="text-lg font-bold text-slate-600 dark:text-slate-300">{money(order.total_amount)}</span>
+                          <span className="text-sm font-medium text-slate-500 flex items-center gap-1">
+                            <Clock className="w-3.5 h-3.5" />
+                            {getRelativeTimeLabel(order.created_at)}
+                          </span>
                         </div>
-                        <Button
-                          size="lg"
-                          className="rounded-xl h-12 px-6 font-bold bg-primary/10 border-2 border-primary/20 text-primary hover:bg-primary hover:text-white hover:border-primary transition-all shadow-sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleStatusChange(order.id, 'served');
-                          }}
-                        >
-                          Xác nhận hoàn thành
-                        </Button>
+                        <div className="flex items-center gap-2">
+                           <span className="text-lg font-bold text-slate-600 dark:text-slate-300">{money(order.total_amount)}</span>
+                        </div>
                       </CardContent>
                     </Card>
                   ))
@@ -1099,11 +1105,13 @@ export function OrderDelivery() {
               </div>
 
               <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-4">
-                {orders.filter(o => String(o.status || "").toLowerCase() === 'served').length > 0 ? (
-                  orders.filter(o => String(o.status || "").toLowerCase() === 'served').map((order) => (
+                {orders.filter(o => String(o.status || "").toLowerCase() === 'completed').length > 0 ? (
+                  orders.filter(o => String(o.status || "").toLowerCase() === 'completed')
+                    .sort((a, b) => b.id - a.id)
+                    .map((order) => (
                     <Card 
                       key={order.id} 
-                      className="rounded-2xl border-2 border-primary/20 dark:border-primary/30 bg-white dark:bg-slate-900 hover:shadow-lg hover:border-primary/50 transition-all cursor-pointer group"
+                      className="rounded-2xl border-2 border-emerald-500/20 dark:border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-900/10 hover:shadow-lg transition-all cursor-pointer group"
                       onClick={() => {
                         setSelectedOrder(order);
                         setIsDetailOpen(true);
@@ -1111,19 +1119,16 @@ export function OrderDelivery() {
                     >
                       <CardContent className="p-5 flex items-center justify-between gap-4">
                         <div className="flex flex-col gap-1">
-                          <span className="text-xl font-black text-primary italic">Đơn #{order.id}</span>
-                          <span className="text-lg font-bold text-slate-600 dark:text-slate-300">{money(order.total_amount)}</span>
+                          <span className="text-xl font-black text-emerald-700 dark:text-emerald-400 italic">Đơn #{order.id}</span>
+                          <span className="text-sm font-medium text-slate-500 flex items-center gap-1">
+                            <Clock className="w-3.5 h-3.5" />
+                            {getRelativeTimeLabel(order.created_at)}
+                          </span>
                         </div>
-                        <Button
-                          size="lg"
-                          className="rounded-xl h-12 px-6 font-bold bg-primary/10 border-2 border-primary/20 text-primary hover:bg-primary hover:text-white hover:border-primary transition-all shadow-sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleStatusChange(order.id, 'completed');
-                          }}
-                        >
-                          Xác nhận hoàn thành
-                        </Button>
+                        <div className="flex items-center gap-2 text-emerald-600 font-bold">
+                          <CheckCircle className="w-6 h-6" />
+                          <span>Hoàn tất</span>
+                        </div>
                       </CardContent>
                     </Card>
                   ))
@@ -1378,16 +1383,17 @@ export function OrderDelivery() {
                    >
                      Đóng
                    </button>
-                   <button 
-                     className="border-2 border-slate-700 px-8 py-2.5 rounded-2xl font-bold hover:bg-slate-100 transition-colors bg-white shadow-sm"
-                     onClick={() => {
-                        const s = String(selectedOrder?.status || "").toLowerCase();
-                        handleStatusChange(selectedOrder.id, s === 'preparing' ? 'served' : 'completed');
-                        setIsDetailOpen(false);
-                     }}
-                   >
-                     Xác nhận xong
-                   </button>
+                   {String(selectedOrder?.status || "").toLowerCase() !== 'completed' && (
+                     <button 
+                       className="border-2 border-emerald-600 text-emerald-700 px-8 py-2.5 rounded-2xl font-bold hover:bg-emerald-50 transition-colors bg-white shadow-sm"
+                       onClick={() => {
+                          handleStatusChange(selectedOrder.id, 'completed');
+                          setIsDetailOpen(false);
+                       }}
+                     >
+                       Xác nhận xong
+                     </button>
+                   )}
                 </div>
               </div>
             ) : (
