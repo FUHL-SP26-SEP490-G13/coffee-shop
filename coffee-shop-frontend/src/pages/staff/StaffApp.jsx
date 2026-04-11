@@ -20,6 +20,7 @@ import {
   ChevronRight,
   Sun,
   Moon,
+  Coffee,
 } from 'lucide-react';
 import {
   AlertDialog,
@@ -203,20 +204,14 @@ export function StaffApp() {
         { id: 'orders-pending', icon: ShoppingBag, label: 'Đơn online chờ xác nhận', path: '/staff/orders/pending' },
         { id: 'orders-preparing', icon: ShoppingBag, label: 'Đơn Đang chuẩn bị', path: '/staff/orders/preparing' },
         { id: 'orders-completed', icon: ShoppingBag, label: 'Đơn Hoàn thành', path: '/staff/orders/completed' },
-        { id: 'kitchen', icon: ChefHat, label: 'Bếp', path: '/staff/kitchen' },
+        { id: 'barista-window', icon: Coffee, label: 'Cửa sổ pha chế', path: '/staff/barista-window', openInNewTab: true },
 
-      ],
-    },
-    {
-      title: 'Vận Hành',
-      items: [
-        { id: 'requests', icon: ArrowLeftRight, label: 'Đổi ca', path: '/staff/requests' },
       ],
     },
     {
       title: 'Cá Nhân',
       items: [
-        { id: 'attendance', icon: Clock, label: 'Điểm danh ca làm', path: '/staff/attendance' },
+        { id: 'requests', icon: ArrowLeftRight, label: 'Đổi ca', path: '/staff/requests' },
         { id: 'schedule', icon: Calendar, label: 'Lịch làm việc', path: '/staff/schedule' },
         { id: 'profile', icon: User, label: 'Thông tin cá nhân', path: '/staff/profile' },
       ],
@@ -434,6 +429,18 @@ export function StaffApp() {
     });
   };
 
+  const isBaristaWindow = location.pathname.includes('barista-window');
+
+  if (isBaristaWindow) {
+    return (
+      <div className="h-screen w-full bg-background overflow-hidden relative">
+        <main className="h-full w-full overflow-hidden relative">
+          <Outlet />
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className='flex h-screen w-full bg-background overflow-hidden relative'>
       <button
@@ -513,8 +520,12 @@ export function StaffApp() {
                     <button
                       key={item.id}
                       onClick={() => {
-                        navigate(item.path);
-                        setMobileMenuOpen(false);
+                        if (item.openInNewTab) {
+                          window.open(item.path, '_blank');
+                        } else {
+                          navigate(item.path);
+                          setMobileMenuOpen(false);
+                        }
                       }}
                       className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all mb-1 ${isSidebarCompact ? 'md:justify-center md:px-2' : ''} ${
                         currentPage === item.id
@@ -533,7 +544,7 @@ export function StaffApp() {
                                 {orderStats.onlineWaiting}
                               </span>
                             )}
-                            {item.id === 'orders-preparing' && orderStats.displayPreparing > 0 && (
+                            {['orders-preparing', 'barista-window'].includes(item.id) && orderStats.displayPreparing > 0 && (
                               <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-amber-500 text-[9px] font-black text-white ring-2 ring-card shadow-sm">
                                 {orderStats.displayPreparing}
                               </span>
@@ -557,7 +568,7 @@ export function StaffApp() {
                                {orderStats.onlineWaiting}
                             </span>
                           )}
-                          {item.id === 'orders-preparing' && orderStats.displayPreparing > 0 && (
+                          {['orders-preparing', 'barista-window'].includes(item.id) && orderStats.displayPreparing > 0 && (
                             <span className="ml-auto inline-flex items-center justify-center px-2 py-0.5 rounded-full bg-amber-500 text-[10px] font-black text-white italic">
                                {orderStats.displayPreparing}
                             </span>

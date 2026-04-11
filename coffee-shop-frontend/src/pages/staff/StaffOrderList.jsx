@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   RefreshCw,
   ShoppingBag,
@@ -44,7 +44,7 @@ import takeawayService from "@/services/takeAwayService";
 import BaristaViewRecipe from "../barista/BaristaOrder/BaristaViewRecipe";
 import { PrintableReceipt } from "./PrintableReceipt";
 
-const STAFF_TAB_STATUSES = ["pending", "preparing", "served", "completed", "cancelled"];
+const STAFF_TAB_STATUSES = ["pending", "preparing", "served", "completed", "cancelled", "barista-window"];
 
 const statusLabelMap = {
   pending: {
@@ -62,6 +62,10 @@ const statusLabelMap = {
   cancelled: {
     label: "Đã hủy",
     className: "text-gray-600 dark:text-gray-400",
+  },
+  "barista-window": {
+    label: "Cửa sổ pha chế",
+    className: "text-amber-600 dark:text-amber-300",
   },
 };
 
@@ -239,11 +243,15 @@ const sortOrdersByStatus = (status, list) => {
 
 export function OrderDelivery() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { status: routeStatus } = useParams();
 
-  const activeStatus = STAFF_TAB_STATUSES.includes(routeStatus)
-    ? routeStatus
-    : "pending";
+  const isBaristaWindow = location.pathname.includes("barista-window");
+  const activeStatus = isBaristaWindow 
+    ? "barista-window"
+    : STAFF_TAB_STATUSES.includes(routeStatus)
+      ? routeStatus
+      : "pending";
   const activeStatusMeta =
     statusLabelMap[activeStatus] || {
       label: "Không xác định",
@@ -283,10 +291,11 @@ export function OrderDelivery() {
   });
 
   useEffect(() => {
-    if (!STAFF_TAB_STATUSES.includes(routeStatus)) {
+    const isBaristaWindow = location.pathname.includes("barista-window");
+    if (!isBaristaWindow && routeStatus && !STAFF_TAB_STATUSES.includes(routeStatus)) {
       navigate("/staff/orders/pending", { replace: true });
     }
-  }, [navigate, routeStatus]);
+  }, [navigate, routeStatus, location.pathname]);
 
   useEffect(() => {
     setSelectedOrderType("all");
@@ -295,11 +304,20 @@ export function OrderDelivery() {
   const loadOrders = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await baristaDBService.getActiveOrders(STAFF_TAB_STATUSES);
+      const res = await baristaDBService.getActiveOrders(
+        STAFF_TAB_STATUSES.filter(s => s !== "barista-window")
+      );
       const list = res?.data?.data || res?.data || [];
 
-      const activeOrders = (Array.isArray(list) ? list : [])
-        .filter((order) => STAFF_TAB_STATUSES.includes(order?.status))
+      const filtered = list.filter((order) => {
+        if (activeStatus === "barista-window") {
+          const s = String(order?.status || "").toLowerCase();
+          return s === "preparing" || s === "served";
+        }
+        return String(order?.status || "").toLowerCase() === activeStatus.toLowerCase();
+      });
+
+      const activeOrders = filtered
         .sort((a, b) => {
           const createdDiff =
             new Date(a?.created_at || 0).getTime() -
@@ -311,19 +329,19 @@ export function OrderDelivery() {
 
       setOrders(activeOrders);
 
-      // Compute stats for the top bar
-      const onlineWaiting = activeOrders.filter(o => 
-        o.status === 'pending' && (o.order_type === 'delivery' || o.order_type === 'takeaway')
+      // Compute stats for the top bar from the FULL list (not just activeOrders)
+      const onlineWaiting = (Array.isArray(list) ? list : []).filter(o => 
+        String(o.status || "").toLowerCase() === 'pending' && (o.order_type === 'delivery' || o.order_type === 'takeaway')
       ).length;
       
-      const preparing = activeOrders.filter(o => o.status === 'preparing').length;
-      const dineInPending = activeOrders.filter(o => o.status === 'pending' && o.order_type === 'dine-in').length;
-      const ready = activeOrders.filter(o => o.status === 'served').length;
+      const preparingCount = (Array.isArray(list) ? list : []).filter(o => String(o.status || "").toLowerCase() === 'preparing').length;
+      const dineInPending = (Array.isArray(list) ? list : []).filter(o => String(o.status || "").toLowerCase() === 'pending' && o.order_type === 'dine-in').length;
+      const ready = (Array.isArray(list) ? list : []).filter(o => String(o.status || "").toLowerCase() === 'served').length;
 
       setOverview({
         totalOrders: activeOrders.length,
         onlineWaiting: onlineWaiting,
-        displayPreparing: preparing + dineInPending,
+        displayPreparing: preparingCount + dineInPending,
         readyOrders: ready
       });
     } catch (error) {
@@ -849,11 +867,14 @@ export function OrderDelivery() {
   };
 
   return (
-    <div className="h-full flex flex-col p-4 sm:p-6 lg:p-8 overflow-hidden">
-      <div className="flex-shrink-0">
-        <h1 className="text-2xl font-bold">Danh sách đơn hàng</h1>
-      </div>
-      {!(activeStatus === "pending" || activeStatus === "cancelled") && (
+    <div className={`h-full flex flex-col overflow-hidden ${activeStatus === 'barista-window' ? 'p-2 sm:p-4' : 'p-4 sm:p-6 lg:p-8'}`}>
+      {activeStatus !== "barista-window" && (
+        <div className="flex-shrink-0">
+          <h1 className="text-2xl font-bold">Danh sách đơn hàng</h1>
+        </div>
+      )}
+
+      {activeStatus !== "barista-window" && !(activeStatus === "pending" || activeStatus === "cancelled") && (
         <div className="flex-shrink-0 px-3 py-2 md:px-4 md:py-2.5">
           <div className="flex flex-wrap gap-3">
                {[
@@ -870,6 +891,8 @@ export function OrderDelivery() {
           </div>
         </div>
       )}
+
+      {activeStatus !== "barista-window" && (
         <div className="flex-shrink-0 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between px-3 md:px-4">
           <div className="min-w-0">
             {!(activeStatus === "pending" || activeStatus === "cancelled") && (
@@ -910,9 +933,10 @@ export function OrderDelivery() {
             </Button>
           </div>
         </div>
+      )}
 
-        {!(activeStatus === "pending" || activeStatus === "cancelled") && (
-          <div className="mt-2.5 flex items-center gap-1.5 overflow-x-auto border-t border-slate-100 pb-0.5 pt-2.5 md:flex-wrap md:overflow-visible md:pb-0">
+      {activeStatus !== "barista-window" && !(activeStatus === "pending" || activeStatus === "cancelled") && (
+        <div className="mt-2.5 flex items-center gap-1.5 overflow-x-auto border-t border-slate-100 pb-0.5 pt-2.5 md:flex-wrap md:overflow-visible md:pb-0">
             {activeStatus === "preparing" && (
               <div className="flex bg-slate-100/80 p-0.5 rounded-lg mr-2 shrink-0 border border-slate-200/60 shadow-sm">
                  <button 
@@ -966,7 +990,7 @@ export function OrderDelivery() {
           </div>
         )}
 
-      {(activeStatus === "pending" || activeStatus === "cancelled") && (
+      {activeStatus !== "barista-window" && (activeStatus === "pending" || activeStatus === "cancelled") && (
         <div className="flex-shrink-0 flex gap-4 mb-4">
           <div className="relative group">
             <Button
@@ -997,7 +1021,109 @@ export function OrderDelivery() {
         </div>
       )}
 
-      {["pending", "cancelled"].includes(activeStatus) ? (
+      {activeStatus === "barista-window" ? (
+        <div className="flex-1 min-h-0 flex flex-col gap-6">
+          <div className="flex-shrink-0 bg-white dark:bg-slate-900 border-2 border-primary/20 rounded-2xl py-6 px-10 shadow-sm flex items-center justify-center">
+            <h2 className="text-3xl font-black tracking-[0.2em] text-primary dark:text-primary uppercase">
+              DANH SÁCH ĐƠN PHA CHẾ
+            </h2>
+          </div>
+
+          <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-8 min-h-0">
+            {/* COLUMN LEFT: Đơn mới */}
+            <div className="flex flex-col min-h-0 bg-primary/5 dark:bg-primary/10 rounded-[2.5rem] border-2 border-primary/20 p-6">
+              <div className="flex-shrink-0 mb-6 flex justify-center">
+                <div className="bg-primary border-2 border-primary/30 px-12 py-3 rounded-full shadow-md">
+                  <span className="text-lg font-bold text-white tracking-wide uppercase">Đơn mới</span>
+                </div>
+              </div>
+              
+              <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-4">
+                {orders.filter(o => String(o.status || "").toLowerCase() === 'preparing').length > 0 ? (
+                  orders.filter(o => String(o.status || "").toLowerCase() === 'preparing').map((order) => (
+                    <Card 
+                      key={order.id} 
+                      className="rounded-2xl border-2 border-primary/20 dark:border-primary/30 bg-white dark:bg-slate-900 hover:shadow-lg hover:border-primary/50 transition-all cursor-pointer group"
+                      onClick={() => {
+                        setSelectedOrder(order);
+                        setIsDetailOpen(true);
+                      }}
+                    >
+                      <CardContent className="p-5 flex items-center justify-between gap-4">
+                        <div className="flex flex-col gap-1">
+                          <span className="text-xl font-black text-primary italic">Đơn #{order.id}</span>
+                          <span className="text-lg font-bold text-slate-600 dark:text-slate-300">{money(order.total_amount)}</span>
+                        </div>
+                        <Button
+                          size="lg"
+                          className="rounded-xl h-12 px-6 font-bold bg-primary/10 border-2 border-primary/20 text-primary hover:bg-primary hover:text-white hover:border-primary transition-all shadow-sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleStatusChange(order.id, 'served');
+                          }}
+                        >
+                          Xác nhận hoàn thành
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  ))
+                ) : (
+                  <div className="h-full flex flex-col items-center justify-center text-slate-400 gap-2 opacity-50">
+                    <Coffee className="h-10 w-10" />
+                    <p className="font-medium">Chưa có đơn hàng mới</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* COLUMN RIGHT: Đã xong */}
+            <div className="flex flex-col min-h-0 bg-primary/5 dark:bg-primary/10 rounded-[2.5rem] border-2 border-primary/20 p-6">
+              <div className="flex-shrink-0 mb-6 flex justify-center">
+                <div className="bg-primary/90 border-2 border-primary/30 px-12 py-3 rounded-full shadow-md">
+                  <span className="text-lg font-bold text-white tracking-wide uppercase">Đã xong</span>
+                </div>
+              </div>
+
+              <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-4">
+                {orders.filter(o => String(o.status || "").toLowerCase() === 'served').length > 0 ? (
+                  orders.filter(o => String(o.status || "").toLowerCase() === 'served').map((order) => (
+                    <Card 
+                      key={order.id} 
+                      className="rounded-2xl border-2 border-primary/20 dark:border-primary/30 bg-white dark:bg-slate-900 hover:shadow-lg hover:border-primary/50 transition-all cursor-pointer group"
+                      onClick={() => {
+                        setSelectedOrder(order);
+                        setIsDetailOpen(true);
+                      }}
+                    >
+                      <CardContent className="p-5 flex items-center justify-between gap-4">
+                        <div className="flex flex-col gap-1">
+                          <span className="text-xl font-black text-primary italic">Đơn #{order.id}</span>
+                          <span className="text-lg font-bold text-slate-600 dark:text-slate-300">{money(order.total_amount)}</span>
+                        </div>
+                        <Button
+                          size="lg"
+                          className="rounded-xl h-12 px-6 font-bold bg-primary/10 border-2 border-primary/20 text-primary hover:bg-primary hover:text-white hover:border-primary transition-all shadow-sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleStatusChange(order.id, 'completed');
+                          }}
+                        >
+                          Xác nhận hoàn thành
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  ))
+                ) : (
+                  <div className="h-full flex flex-col items-center justify-center text-slate-400 gap-2 opacity-50">
+                    <CheckCircle className="h-10 w-10" />
+                    <p className="font-medium">Chưa có đơn hoàn thành</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : ["pending", "cancelled"].includes(activeStatus) ? (
         <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
           <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar pb-10">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -1009,15 +1135,19 @@ export function OrderDelivery() {
                   return (
                     <Card 
                       key={order.id} 
-                      className={`rounded-[2.5rem] border-2 bg-card overflow-hidden transition-all hover:shadow-xl ${isCancelled ? 'border-rose-100/50 bg-rose-50/10' : 'border-border/60 hover:border-primary/20'}`}
+                      className={`rounded-[2.5rem] border-2 bg-card overflow-hidden transition-all hover:shadow-xl cursor-pointer ${isCancelled ? 'border-rose-100/50 bg-rose-50/10' : 'border-border/60 hover:border-primary/20 hover:scale-[1.02]'}`}
+                      onClick={() => {
+                        setSelectedOrder(order);
+                        setIsDetailOpen(true);
+                      }}
                     >
                       <CardContent className="p-8 space-y-5">
                         {/* Top Row */}
                         <div className="flex justify-between items-start">
                           <div className="flex flex-col gap-0.5">
-                            <span className={`text-xl font-black italic ${isCancelled ? 'text-rose-600/70' : 'text-foreground'}`}>
-                              {isCancelled ? "Đơn Hủy" : "Đơn"} #{order.id}
-                            </span>
+                             <span className={`text-xl font-black italic ${isCancelled ? 'text-rose-600/70' : activeStatus === 'barista-window' ? 'text-amber-600' : 'text-foreground'}`}>
+                               {isCancelled ? "Đơn Hủy" : activeStatus === 'barista-window' ? "ĐƠN PHA CHẾ" : "Đơn"} #{order.id}
+                             </span>
                             <div className="flex items-center gap-1.5 text-[11px] font-black text-muted-foreground/60 bg-muted/30 px-2 py-0.5 rounded-lg w-fit">
                               <Clock className="h-3 w-3" />
                               <span>{new Date(order.created_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span>
@@ -1069,8 +1199,8 @@ export function OrderDelivery() {
                           </div>
                         </div>
 
-                        {/* Footer Buttons (Hidden for cancelled) */}
-                        {!isCancelled && (
+                        {/* Footer Buttons (Hidden for cancelled or barista-window) */}
+                        {!isCancelled && activeStatus !== "barista-window" && (
                           <div className="flex gap-2 pt-2 h-12">
                              <Button 
                                variant="outline" 
@@ -1101,9 +1231,12 @@ export function OrderDelivery() {
                   );
                 })
               ) : (
-                <div className="col-span-full py-20 bg-muted/20 border-4 border-dashed rounded-[3rem] flex flex-col items-center justify-center text-center">
-                   <ShoppingBag className="h-16 w-16 text-muted-foreground/30 mb-4" />
-                   <p className="text-xl font-black text-foreground/40 uppercase tracking-widest italic">Chưa có đơn hàng trực tuyến</p>
+                <div className="col-span-full py-20 text-center bg-slate-50/50 rounded-3xl border-2 border-dashed border-slate-200">
+                  <p className="text-slate-400 font-medium">
+                    {activeStatus === "barista-window" 
+                      ? "Hiện tại không có đơn hàng nào cần pha chế. Bạn có thể thư giãn một chút! ☕" 
+                      : "Không có đơn hàng hàng nào trong mục này."}
+                  </p>
                 </div>
               )}
             </div>
@@ -1166,18 +1299,84 @@ export function OrderDelivery() {
         }}
       >
         <DialogContent contentWidth="70rem" className="sm:max-w-4xl">
-          <DialogHeader>
-            <DialogTitle>
-              Chi tiết đơn {getOrderTypeLabel(selectedOrder?.order_type)} #
-              {selectedOrder?.id || "--"}
-            </DialogTitle>
-          </DialogHeader>
+          {activeStatus !== "barista-window" && (
+            <DialogHeader>
+              <DialogTitle>
+                Chi tiết đơn {getOrderTypeLabel(selectedOrder?.order_type)} #
+                {selectedOrder?.id || "--"}
+              </DialogTitle>
+            </DialogHeader>
+          )}
 
           {detailLoading ? (
             <p className="text-sm text-muted-foreground">
               Đang tải chi tiết...
             </p>
           ) : selectedOrder ? (
+            activeStatus === "barista-window" ? (
+              <div className="flex flex-col gap-4 font-sans text-slate-800">
+                <h3 className="text-xl font-bold mb-2">Đơn #{selectedOrder.id}</h3>
+                
+                <div className="flex flex-col gap-4 max-h-[50vh] overflow-y-auto pr-2 custom-scrollbar">
+                  {selectedOrder.items && selectedOrder.items.length > 0 ? (
+                    selectedOrder.items.map((item, idx) => (
+                      <div key={idx} className="border-2 border-slate-700 bg-white p-4 flex flex-col gap-2 shadow-sm">
+                        <div className="flex justify-between font-bold text-lg">
+                           <span>{item.name || item.productName || item.product_name}</span>
+                           <span>Size {item.size}</span>
+                        </div>
+                        {Array.isArray(item.toppings) && item.toppings.length > 0 && (
+                          <div className="flex flex-col text-slate-700 text-base leading-relaxed">
+                             {item.toppings.map((top, tIdx) => (
+                                <span key={tIdx}>{top.name} {top.quantity > 1 ? `x${top.quantity}` : ''}</span>
+                             ))}
+                          </div>
+                        )}
+                        <div className="flex justify-end mt-2">
+                          <button 
+                            className="border-2 border-slate-700 px-5 py-2 rounded-xl font-bold text-sm hover:bg-slate-100 transition-colors bg-white shadow-sm"
+                            onClick={() =>
+                              setViewRecipeItem({
+                                product: { id: item.productId || item.product_id, name: item.name || item.productName || item.product_name },
+                                size: { id: item.productSizeId || item.size_id || item.product_size_id, size: item.size }
+                              })
+                            }
+                          >
+                             Xem công thức
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="italic text-slate-500">Đơn chưa có thực đơn.</p>
+                  )}
+                </div>
+
+                <div className="border-2 border-slate-700 p-4 min-h-[80px] bg-white shadow-sm mt-2">
+                  <span className="font-bold">Ghi chú: </span>
+                  {selectedOrder.note || "(Không có ghi chú)"}
+                </div>
+
+                <div className="flex justify-center gap-6 mt-6">
+                   <button 
+                     className="border-2 border-slate-700 px-8 py-2.5 rounded-2xl font-bold hover:bg-slate-100 transition-colors bg-white shadow-sm"
+                     onClick={() => setIsDetailOpen(false)}
+                   >
+                     Đóng
+                   </button>
+                   <button 
+                     className="border-2 border-slate-700 px-8 py-2.5 rounded-2xl font-bold hover:bg-slate-100 transition-colors bg-white shadow-sm"
+                     onClick={() => {
+                        const s = String(selectedOrder?.status || "").toLowerCase();
+                        handleStatusChange(selectedOrder.id, s === 'preparing' ? 'served' : 'completed');
+                        setIsDetailOpen(false);
+                     }}
+                   >
+                     Xác nhận xong
+                   </button>
+                </div>
+              </div>
+            ) : (
             <div className="max-h-[70vh] overflow-y-auto pr-1">
               <div className="grid gap-4 md:grid-cols-12">
                 <div className="md:col-span-5 space-y-4">
@@ -1364,7 +1563,7 @@ export function OrderDelivery() {
                         ) : null}
                       </div>
 
-                      {activeStatus === "preparing" && (
+                      {(activeStatus === "preparing" || activeStatus === "barista-window") && (
                         <div className="flex shrink-0 items-center justify-end">
                           <Button
                             size="sm"
@@ -1422,6 +1621,7 @@ export function OrderDelivery() {
                 {renderDetailActionButtons()}
               </div>
             </div>
+            )
           ) : (
             <p className="text-sm text-muted-foreground">
               Không có dữ liệu chi tiết.

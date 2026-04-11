@@ -192,6 +192,7 @@ const AppRoutes = () => {
         <Route path="payment-result" element={<StaffPayOSReturn />} />
         <Route path="orders" element={<Navigate to="pending" replace />} />
         <Route path="orders/:status" element={<OrderDelivery />} />
+        <Route path="barista-window" element={<OrderDelivery />} />
         <Route path="attendance" element={<StaffAttendance />} />
         <Route path="inventory" element={<StaffInventory />} />
         <Route path="kitchen" element={<StaffKitchen />} />
