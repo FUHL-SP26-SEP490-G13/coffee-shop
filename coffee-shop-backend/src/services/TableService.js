@@ -3,6 +3,7 @@ const AreaRepository = require("../repositories/AreaRepository");
 const generateQrCode = require('../utils/generateQrCode');
 const ErrorResponse = require('../utils/ErrorResponse');
 const LoyaltyService = require("./LoyaltyService");
+const CashSessionRepository = require('../repositories/CashSessionRepository');
 
 class TableService {
   /**

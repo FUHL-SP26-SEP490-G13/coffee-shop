@@ -59,6 +59,7 @@ class TakeawayRepository {
         amount,
         discount_amount,
         discount_id || null,
+        cash_session_id || null,
       ],
     );
     return result.insertId;

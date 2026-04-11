@@ -35,6 +35,7 @@ class SwapRequestRepository {
         const [[row]] = await pool.query(
             `SELECT
                 ssr.*,
+                r_req.role_name   AS role,
 
                 -- Tên người gửi (A)
                 u_req.first_name  AS requester_first_name,
@@ -60,6 +61,7 @@ class SwapRequestRepository {
 
              FROM shift_swap_requests ssr
              JOIN users          u_req  ON ssr.requester_id      = u_req.id
+             JOIN role           r_req  ON u_req.role_id         = r_req.id
              JOIN users          u_rec  ON ssr.receiver_id       = u_rec.id
              JOIN shifts         s_req  ON ssr.requester_shift_id = s_req.id
              JOIN shift_templates st_req ON s_req.template_id    = st_req.id

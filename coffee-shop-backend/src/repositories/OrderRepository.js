@@ -88,7 +88,7 @@ class OrderRepository {
         discount_amount,
         delivery_fee,
         used_points,
-        session_id
+        cash_session_id
       )
       VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?)
       `,
@@ -106,7 +106,7 @@ class OrderRepository {
         safeDiscountAmount,
         Math.max(0, Number(data.delivery_fee) || 0),
         safeUsedPoints,
-        data.session_id || null,
+        data.cash_session_id || null,
       ]
     );
 
@@ -180,6 +180,7 @@ class OrderRepository {
   }
 
   async createOrderPayment(connection, data) {
+    const isCash = data.payment_method === "cash";
     const amount = Number(data.amount) || 0;
     const paymentStatus = data.payment_status || "pending";
     const isPaid = paymentStatus === "paid";
