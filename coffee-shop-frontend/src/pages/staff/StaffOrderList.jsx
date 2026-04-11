@@ -201,11 +201,24 @@ const isOrderPaid = (order) => {
   const paymentStatus = String(
     order?.payment_status || order?.payment?.status || "",
   ).toLowerCase();
-  if (paymentStatus === "paid") return true;
+  
+  let paid = false;
+  if (paymentStatus === "paid") {
+    paid = true;
+  } else {
+    paid = order?.is_paid === true || order?.is_paid === 1 || order?.is_paid === "1";
+  }
 
-  return (
-    order?.is_paid === true || order?.is_paid === 1 || order?.is_paid === "1"
-  );
+  // Đơn online (delivery hoặc order đang ở trạng thái pending) nếu chưa in hóa đơn thì xem như chưa thanh toán
+  const isOnline = 
+    String(order?.order_type || "").toLowerCase() === "delivery" || 
+    String(order?.status || "").toLowerCase() === "pending";
+
+  if (isOnline && String(order?.print_status || "").toUpperCase() !== "SUCCESS") {
+    return false;
+  }
+
+  return paid;
 };
 
 const getElapsedMinutes = (value) => {
