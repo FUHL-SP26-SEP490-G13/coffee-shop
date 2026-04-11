@@ -849,12 +849,12 @@ export function OrderDelivery() {
   };
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 space-y-6">
-      <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
-        Danh sách đơn hàng
-      </h1>
+    <div className="h-full flex flex-col p-4 sm:p-6 lg:p-8 overflow-hidden">
+      <div className="flex-shrink-0">
+        <h1 className="text-2xl font-bold">Danh sách đơn hàng</h1>
+      </div>
       {!(activeStatus === "pending" || activeStatus === "cancelled") && (
-        <div className="px-3 py-2 md:px-4 md:py-2.5">
+        <div className="flex-shrink-0 px-3 py-2 md:px-4 md:py-2.5">
           <div className="flex flex-wrap gap-3">
                {[
                  { label: 'Tổng đơn', value: overview.totalOrders, color: 'text-slate-600', bg: 'bg-slate-100' },
@@ -870,7 +870,7 @@ export function OrderDelivery() {
           </div>
         </div>
       )}
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between px-3 md:px-4">
+        <div className="flex-shrink-0 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between px-3 md:px-4">
           <div className="min-w-0">
             {!(activeStatus === "pending" || activeStatus === "cancelled") && (
               <p className="text-xs text-slate-500 dark:text-slate-300 md:text-sm">
@@ -967,7 +967,7 @@ export function OrderDelivery() {
         )}
 
       {(activeStatus === "pending" || activeStatus === "cancelled") && (
-        <div className="flex gap-4 mb-8">
+        <div className="flex-shrink-0 flex gap-4 mb-4">
           <div className="relative group">
             <Button
               variant={activeStatus === "pending" ? "default" : "outline"}
@@ -998,139 +998,116 @@ export function OrderDelivery() {
       )}
 
       {["pending", "cancelled"].includes(activeStatus) ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {activeStatusOrders.length > 0 ? (
-            activeStatusOrders.map((order) => {
-              const items = order.items || order.orderItems || [];
-              const paid = isOrderPaid(order);
-              const isCancelled = order.status === "cancelled" || order.status === "REFUNDED";
-              
-              return (
-                <Card 
-                  key={order.id} 
-                  className={`rounded-[2.5rem] border-2 bg-card overflow-hidden transition-all hover:shadow-2xl ${isCancelled ? 'border-rose-100 opacity-80' : 'border-border/60 hover:border-primary/20'}`}
-                >
-                  <CardContent className="p-8 space-y-6">
-                     {/* Top Row */}
-                     <div className="flex justify-between items-start">
-                       <div className="flex flex-col gap-0.5">
-                         <span className={`text-xl font-black italic ${isCancelled ? 'text-rose-600' : 'text-foreground'}`}>
-                           {isCancelled ? "Đơn Hủy" : "Đơn"} #{order.id}
-                         </span>
-                         {!isCancelled && (
-                           <div className="flex items-center gap-1.5 text-[11px] font-black text-rose-500 bg-rose-50 px-2 py-0.5 rounded-lg w-fit">
-                             <Clock className="h-3 w-3 animate-pulse" />
-                             <span>
-                                {new Date(order.created_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
-                                {" • "}
-                                {getRelativeTimeLabel(order.created_at)}
-                             </span>
-                           </div>
-                         )}
-                       </div>
-                       <span className="text-xl font-black text-foreground italic">{money(order.total_amount)}</span>
-                     </div>
-
-                    {/* Middle List */}
-                    <div className="space-y-4 py-2 min-h-[140px] max-h-[220px] overflow-y-auto pr-2 custom-scrollbar">
-                      {items.map((item, idx) => (
-                        <div key={idx} className="space-y-1">
-                           <div className="flex justify-between font-bold text-sm">
-                              <span className="truncate mr-2">
-                                {item.product_name || item.productName || item.name} 
-                                <span className="ml-1 text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary uppercase">
-                                  {item.size || item.product_size}
-                                </span>
-                              </span>
-                              <span className="text-muted-foreground whitespace-nowrap">x{item.quantity}</span>
-                           </div>
-                           {item.toppings && item.toppings.length > 0 && (
-                             <div className="pl-4 border-l-2 border-primary/20 space-y-0.5">
-                                {item.toppings.map((t, tid) => (
-                                  <p key={tid} className="text-[11px] font-bold text-muted-foreground italic">
-                                    • {t.topping_name || t.name} {t.quantity > 1 ? `x${t.quantity}` : ''}
-                                  </p>
-                                ))}
-                             </div>
-                           )}
+        <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
+          <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar pb-10">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {activeStatusOrders.length > 0 ? (
+                activeStatusOrders.map((order) => {
+                  const items = order.items || order.orderItems || [];
+                  const isCancelled = order.status === "cancelled" || order.status === "REFUNDED";
+                  
+                  return (
+                    <Card 
+                      key={order.id} 
+                      className={`rounded-[2.5rem] border-2 bg-card overflow-hidden transition-all hover:shadow-xl ${isCancelled ? 'border-rose-100/50 bg-rose-50/10' : 'border-border/60 hover:border-primary/20'}`}
+                    >
+                      <CardContent className="p-8 space-y-5">
+                        {/* Top Row */}
+                        <div className="flex justify-between items-start">
+                          <div className="flex flex-col gap-0.5">
+                            <span className={`text-xl font-black italic ${isCancelled ? 'text-rose-600/70' : 'text-foreground'}`}>
+                              {isCancelled ? "Đơn Hủy" : "Đơn"} #{order.id}
+                            </span>
+                            <div className="flex items-center gap-1.5 text-[11px] font-black text-muted-foreground/60 bg-muted/30 px-2 py-0.5 rounded-lg w-fit">
+                              <Clock className="h-3 w-3" />
+                              <span>{new Date(order.created_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span>
+                            </div>
+                          </div>
+                          <span className={`text-xl font-black italic ${isCancelled ? 'text-rose-400' : 'text-foreground'}`}>
+                            {money(order.total_amount)}
+                          </span>
                         </div>
-                      ))}
-                    </div>
 
-                    {/* Customer Info (New) */}
-                    <div className="space-y-3 p-5 bg-muted/40 rounded-[2rem] border-2 border-dashed border-primary/10">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 bg-primary/10 rounded-full">
-                           <User className="h-4 w-4 text-primary" />
+                        {/* Product List */}
+                        <div className="space-y-4 py-2 min-h-[140px] max-h-[200px] overflow-y-auto pr-2 custom-scrollbar-thin">
+                          {items.map((item, idx) => (
+                            <div key={idx} className="space-y-1 opacity-80">
+                               <div className="flex justify-between font-bold text-sm">
+                                  <span className="truncate mr-2 max-w-[65%]">
+                                    {item.product_name || item.productName || item.name}
+                                    <span className="ml-1 text-[9px] px-1 py-0.5 rounded bg-muted text-muted-foreground uppercase">
+                                      {item.size || item.product_size}
+                                    </span>
+                                  </span>
+                                  <span className="text-muted-foreground whitespace-nowrap text-xs font-black">
+                                    {money(item.price || item.unit_price)} × {item.quantity}
+                                  </span>
+                               </div>
+                               {item.toppings && item.toppings.length > 0 && (
+                                 <div className="pl-4 border-l-2 border-muted/50 space-y-0.5 mt-1">
+                                    {item.toppings.map((t, tid) => (
+                                      <div key={tid} className="flex justify-between items-center text-[10px] font-bold text-muted-foreground/60 italic">
+                                        <span>• {t.topping_name || t.name} x{t.quantity}</span>
+                                        <span>{money(t.price)}</span>
+                                      </div>
+                                    ))}
+                                 </div>
+                               )}
+                            </div>
+                          ))}
                         </div>
-                        <span className="text-sm font-black text-foreground italic uppercase">
-                          {order.receiver_name || order.customer_name || "Khách hàng"}
-                        </span>
-                      </div>
-                      
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 bg-primary/10 rounded-full">
-                           <Phone className="h-4 w-4 text-primary" />
-                        </div>
-                        <span className="text-sm font-black text-foreground">
-                          {order.receiver_phone || order.customer_phone || "N/A"}
-                        </span>
-                      </div>
 
-                      <div className="flex items-start gap-3">
-                        <div className="p-2 bg-primary/10 rounded-full shrink-0">
-                           <MapPin className="h-4 w-4 text-primary" />
+                        {/* Customer Info (Only show if not cancelled or if requested) */}
+                        <div className="space-y-2 p-4 bg-muted/20 rounded-[2rem] border-2 border-dotted border-muted/30">
+                          <div className="flex items-center gap-3">
+                             <User className="h-3.5 w-3.5 text-muted-foreground/40" />
+                             <span className="text-[xs] font-black text-muted-foreground italic uppercase truncate">{order.receiver_name || order.customer_name || "N/A"}</span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                             <MapPin className="h-3.5 w-3.5 text-muted-foreground/40" />
+                             <span className="text-[10px] font-bold text-muted-foreground italic truncate">{order.address || "K/O Địa chỉ"}</span>
+                          </div>
                         </div>
-                        <span className="text-[11px] font-bold text-muted-foreground leading-tight italic line-clamp-2">
-                           {order.address || order.shipping_address || "Đặt tại quầy / Không có địa chỉ"}
-                        </span>
-                      </div>
 
-                      {(order.note || order.delivery_note) && (
-                        <div className="flex items-start gap-3 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-2xl border border-amber-200 dark:border-amber-800">
-                          <BookOpen className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
-                          <p className="text-[10px] font-bold text-amber-700 dark:text-amber-400 italic">
-                            Ghi chú: {order.note || order.delivery_note}
-                          </p>
-                        </div>
-                      )}
-                    </div>
+                        {/* Footer Buttons (Hidden for cancelled) */}
+                        {!isCancelled && (
+                          <div className="flex gap-2 pt-2 h-12">
+                             <Button 
+                               variant="outline" 
+                               className="flex-1 rounded-2xl border-2 border-destructive/20 font-bold text-destructive hover:bg-destructive hover:text-white text-xs"
+                               onClick={() => {
+                                 setCancelConfirm({ open: true, orderId: order.id, mode: "pending" });
+                               }}
+                               disabled={cancelingId === order.id}
+                             >
+                               Hủy
+                             </Button>
 
-                    {/* Footer Buttons */}
-                    <div className="flex gap-2 pt-2 h-12">
-                       {!isCancelled ? (
-                         <>
-                           <Button 
-                             variant="outline" 
-                             className="flex-1 rounded-2xl border-2 border-destructive/20 font-bold text-destructive hover:bg-destructive hover:text-white text-xs"
-                             onClick={() => openCancelConfirm(order.id, "pending")}
-                           >
-                             Hủy
-                           </Button>
-                           <Button 
-                             className="flex-[2] rounded-2xl bg-primary hover:bg-primary/90 text-white font-black shadow-lg shadow-primary/20 text-xs uppercase"
-                             onClick={() => handleConfirmOrder(order)}
-                             disabled={confirmingId === order.id}
-                           >
-                             {confirmingId === order.id ? <Loader2 className="h-4 w-4 animate-spin" /> : "Xác nhận & In nhãn"}
-                           </Button>
-                         </>
-                       ) : (
-                         <div className="flex-1 flex items-center justify-center bg-rose-50 rounded-2xl">
-                            <span className="text-rose-600 font-black text-[10px] uppercase tracking-widest">Đã hủy đơn</span>
-                         </div>
-                       )}
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })
-          ) : (
-            <div className="col-span-full py-20 bg-muted/20 border-4 border-dashed rounded-[3rem] flex flex-col items-center justify-center text-center">
-               <ShoppingBag className="h-16 w-16 text-muted-foreground/30 mb-4" />
-               <p className="text-xl font-black text-foreground/40 uppercase tracking-widest italic">Chưa có đơn hàng trực tuyến</p>
+                             <Button 
+                               className="flex-[2] rounded-2xl font-black text-xs shadow-lg shadow-primary/20"
+                               onClick={() => handleConfirmOrder(order.id)}
+                               disabled={confirmingId === order.id}
+                             >
+                               {confirmingId === order.id ? (
+                                 <RefreshCw className="h-4 w-4 animate-spin" />
+                               ) : (
+                                 "Xác nhận & In nhãn"
+                               )}
+                             </Button>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })
+              ) : (
+                <div className="col-span-full py-20 bg-muted/20 border-4 border-dashed rounded-[3rem] flex flex-col items-center justify-center text-center">
+                   <ShoppingBag className="h-16 w-16 text-muted-foreground/30 mb-4" />
+                   <p className="text-xl font-black text-foreground/40 uppercase tracking-widest italic">Chưa có đơn hàng trực tuyến</p>
+                </div>
+              )}
             </div>
-          )}
+          </div>
         </div>
       ) : (
         <div className="overflow-x-auto">

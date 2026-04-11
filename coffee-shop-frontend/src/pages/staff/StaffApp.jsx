@@ -708,9 +708,9 @@ export function StaffApp() {
             </div>
           )}
         </div>
-        <div className={`flex-1 w-full flex flex-col ${currentPage === 'pos' ? 'overflow-hidden' : 'overflow-y-auto h-full'}`}>
+        <main className="flex-1 flex flex-col overflow-hidden relative custom-scrollbar">
           <Outlet />
-        </div>
+        </main>
       </div>
     </div>
   );
