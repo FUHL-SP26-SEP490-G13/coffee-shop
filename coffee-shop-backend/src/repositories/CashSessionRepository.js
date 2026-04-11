@@ -71,6 +71,33 @@ class CashSessionRepository {
       [closed_by, closing_cash_actual, closing_cash_system, cash_difference, closing_note, id]
     );
   }
+  async getSessionsHistory({ startDate, endDate, userId }) {
+    let query = `
+      SELECT cs.*, u.first_name, u.last_name 
+      FROM cash_sessions cs
+      JOIN users u ON cs.opened_by = u.id
+      WHERE 1=1
+    `;
+    const params = [];
+
+    if (startDate) {
+      query += ` AND DATE(cs.opened_at) >= ?`;
+      params.push(startDate);
+    }
+    if (endDate) {
+      query += ` AND DATE(cs.opened_at) <= ?`;
+      params.push(endDate);
+    }
+    if (userId) {
+      query += ` AND cs.opened_by = ?`;
+      params.push(userId);
+    }
+    
+    query += ` ORDER BY cs.opened_at DESC`;
+    
+    const [rows] = await pool.query(query, params);
+    return rows;
+  }
 }
 
 module.exports = new CashSessionRepository();

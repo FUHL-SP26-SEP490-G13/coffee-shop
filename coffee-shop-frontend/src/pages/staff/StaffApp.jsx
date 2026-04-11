@@ -45,6 +45,7 @@ import {
 import Logo from '/logo/Logo.png';
 import receiptSettingService from "@/services/receiptSettingService";
 import { CashSessionProvider, useCashSession } from '../../components/staff/CashSessionContext';
+import { ShiftHandoverModal } from '../../components/staff/ShiftHandoverModal';
 
 const STAFF_SIDEBAR_PREF_KEY = 'staff_sidebar_collapsed_by_page';
 const STAFF_SIDEBAR_DEFAULTS = {
@@ -633,10 +634,9 @@ export function StaffApp() {
 
 const CashSessionButton = ({ isSidebarCompact }) => {
   const { session, handleTriggerClose, isTimeToClose } = useCashSession();
-  
-  if (!session) return null;
+  const [isHandoverModalOpen, setIsHandoverModalOpen] = useState(false);
 
-  const content = (
+  const closeButton = session ? (
     <button
       onClick={handleTriggerClose}
       className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all mb-2 text-rose-600 bg-rose-50 hover:bg-rose-100 dark:bg-rose-900/20 dark:text-rose-400 dark:hover:bg-rose-900/40 ${isSidebarCompact ? 'md:justify-center md:px-2' : ''}`}
@@ -647,20 +647,45 @@ const CashSessionButton = ({ isSidebarCompact }) => {
         Đóng ca làm
       </span>
     </button>
+  ) : null;
+
+  const historyButton = (
+    <button
+      onClick={() => setIsHandoverModalOpen(true)}
+      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all mb-2 text-blue-600 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/40 ${isSidebarCompact ? 'md:justify-center md:px-2' : ''}`}
+      title={isSidebarCompact ? 'Phiếu giao ca' : undefined}
+    >
+      <ClipboardList className='w-5 h-5 flex-shrink-0' />
+      <span className={`text-sm font-semibold ${isSidebarCompact ? 'md:hidden' : ''}`}>
+        Phiếu giao ca
+      </span>
+    </button>
   );
 
-  if (isSidebarCompact) {
-    return (
-      <Tooltip>
-        <TooltipTrigger asChild>{content}</TooltipTrigger>
-        <TooltipContent side='right' sideOffset={10}>
-          Đóng ca làm
-        </TooltipContent>
-      </Tooltip>
-    );
-  }
-  
-  return content;
+  return (
+    <>
+      {isSidebarCompact ? (
+        <>
+          {session && (
+            <Tooltip>
+              <TooltipTrigger asChild>{closeButton}</TooltipTrigger>
+              <TooltipContent side='right' sideOffset={10}>Đóng ca làm</TooltipContent>
+            </Tooltip>
+          )}
+          <Tooltip>
+            <TooltipTrigger asChild>{historyButton}</TooltipTrigger>
+            <TooltipContent side='right' sideOffset={10}>Phiếu giao ca</TooltipContent>
+          </Tooltip>
+        </>
+      ) : (
+        <>
+          {closeButton}
+          {historyButton}
+        </>
+      )}
+      <ShiftHandoverModal isOpen={isHandoverModalOpen} onClose={() => setIsHandoverModalOpen(false)} />
+    </>
+  );
 }
 
 export function StaffAppWrapped() {

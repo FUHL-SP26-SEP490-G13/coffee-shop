@@ -46,6 +46,21 @@ class CashSessionController {
       next(error);
     }
   }
+  async getHistory(req, res, next) {
+    try {
+      const user = req.user;
+      let { startDate, endDate, userId } = req.query;
+      
+      if (user.role_id !== 1) { // Không phải admin/manager thì chỉ lấy được của bản thân
+         userId = user.id; 
+      }
+
+      const data = await service.getSessionsHistory({ startDate, endDate, userId });
+      res.json({ success: true, data });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 module.exports = new CashSessionController();

@@ -90,6 +90,9 @@ class CashSessionService {
 
     return { success: true, difference };
   }
+  async getSessionsHistory(filters) {
+    return await repository.getSessionsHistory(filters);
+  }
 }
 
 module.exports = new CashSessionService();
