@@ -97,9 +97,21 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange, editingO
           categoryService.getAll({ is_deleted: 0 }),
           toppingService.getAll({ is_deleted: 0 }),
         ]);
-        setProducts(productsRes.data || []);
+        const rawProducts = productsRes.data || [];
+        setProducts(rawProducts);
+
+        // Lọc danh mục rỗng — chỉ giữ category có ít nhất 1 sản phẩm available với size hợp lệ
+        const nonEmptyCategoryIds = new Set(
+          rawProducts
+            .filter(
+              (p) =>
+                String(p?.status || '').trim().toLowerCase() !== 'unavailable' &&
+                (p.sizes || []).filter((s) => !s.is_deleted).length > 0
+            )
+            .map((p) => p.category_id)
+        );
         const cats = categoriesRes.data?.data || categoriesRes.data || [];
-        setCategories(cats.filter((c) => !c.is_deleted));
+        setCategories(cats.filter((c) => !c.is_deleted && nonEmptyCategoryIds.has(c.id)));
         const rawToppings = toppingsRes.data?.data || toppingsRes.data || [];
         setToppings(
           rawToppings

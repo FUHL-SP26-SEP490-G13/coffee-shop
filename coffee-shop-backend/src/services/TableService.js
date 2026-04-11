@@ -1013,6 +1013,14 @@ class TableService {
           [billTotal, newOrderId]
         );
 
+        // Tạo bản ghi order_payments cho đơn tách (amount = billTotal, pending)
+        await connection.query(
+          `INSERT INTO order_payments (order_id, payment_method, payment_status, amount, paid_amount, cash_received, change_amount)
+           VALUES (?, 'payos', 'pending', ?, 0, 0, 0)
+           ON DUPLICATE KEY UPDATE amount = VALUES(amount)`,
+          [newOrderId, billTotal]
+        );
+
         createdOrderIds.push(newOrderId);
         totalSplitAmount += billTotal;
       }
@@ -1025,8 +1033,14 @@ class TableService {
         const remainingTotal = await this.recalculateOrderTotal(connection, oId);
         if (remainingTotal > 0) {
           await connection.query('UPDATE orders SET total_amount = ? WHERE id = ?', [remainingTotal, oId]);
+          // Đồng bộ amount trong order_payments
+          await connection.query(
+            'UPDATE order_payments SET amount = ? WHERE order_id = ?',
+            [remainingTotal, oId]
+          );
         } else {
           await connection.query('UPDATE orders SET status = "cancelled", total_amount = 0 WHERE id = ?', [oId]);
+          await connection.query('UPDATE order_payments SET amount = 0 WHERE order_id = ?', [oId]);
         }
       }
 
