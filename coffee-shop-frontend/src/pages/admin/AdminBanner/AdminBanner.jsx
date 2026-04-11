@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import bannerService from "@/services/bannerService";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Megaphone, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { validateBannerForm } from "@/utils/bannerValidation";
 
 import BannerFilters from "./components/BannerFilters";

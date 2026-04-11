@@ -4,15 +4,12 @@ import {
   Loader2,
   ChevronLeft,
   ChevronRight,
-  Calendar,
-  ArrowRight,
   Newspaper,
 } from "lucide-react";
 import newsService from "@/services/newsService";
 
 
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 export default function NewsListPage() {

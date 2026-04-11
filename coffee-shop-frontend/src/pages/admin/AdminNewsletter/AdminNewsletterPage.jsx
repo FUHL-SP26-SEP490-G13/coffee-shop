@@ -1,12 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { toast } from "sonner";
 import {
-  Mailbox,
   Search,
   Filter,
   RefreshCw,
-  Send,
-  MoreVertical,
   Plus
 } from "lucide-react";
 import newsletterService from "@/services/newsletterService";
@@ -51,8 +48,12 @@ function AdminNewsletterPage() {
   };
 
   useEffect(() => {
-    fetchSubscribers();
-  }, [filters.status]);
+    const delayDebounceFn = setTimeout(() => {
+      fetchSubscribers(1);
+    }, 800);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [filters.keyword, filters.status]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     // Lắng nghe sự kiện có người đăng ký mới (chạy ngầm)
@@ -167,48 +168,48 @@ function AdminNewsletterPage() {
                 subscribers.map((item, index) => {
                   const stt = (pagination.page - 1) * pagination.limit + index + 1;
                   return (
-                  <tr
-                    key={item.id}
-                    className="hover:bg-gray-50 dark:hover:bg-muted/50 transition-colors"
-                  >
-                    <td className="px-6 py-4 text-sm text-gray-600 dark:text-muted-foreground text-center">
-                      {stt}
-                    </td>
-                    <td className="px-6 py-4 font-medium text-gray-900 dark:text-card-foreground">
-                      {item.email}
-                    </td>
-                    <td className="px-6 py-4">
-                      {item.is_active ? (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
-                          Đang nhận tin
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
-                          Đã hủy
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-500 dark:text-muted-foreground">
-                      {new Date(item.created_at).toLocaleString("vi-VN")}
-                    </td>
-                    <td className="px-6 py-4">
-                      {item.is_active ? (
-                        <button
-                          onClick={() => handleToggleActive(item.id, item.is_active)}
-                          className="text-sm tracking-wide font-medium text-red-600 hover:text-red-800"
-                        >
-                          Dừng gửi
-                        </button>
-                      ) : (
-                        <span 
-                          className="text-sm tracking-wide font-medium text-gray-400 cursor-not-allowed"
-                          title="Khách hàng đã hủy nhận tin. Không thể chủ động bật lại."
-                        >
-                          Đã khóa
-                        </span>
-                      )}
-                    </td>
-                  </tr>
+                    <tr
+                      key={item.id}
+                      className="hover:bg-gray-50 dark:hover:bg-muted/50 transition-colors"
+                    >
+                      <td className="px-6 py-4 text-sm text-gray-600 dark:text-muted-foreground text-center">
+                        {stt}
+                      </td>
+                      <td className="px-6 py-4 font-medium text-gray-900 dark:text-card-foreground">
+                        {item.email}
+                      </td>
+                      <td className="px-6 py-4">
+                        {item.is_active ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                            Đang nhận tin
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
+                            Đã hủy
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-500 dark:text-muted-foreground">
+                        {new Date(item.created_at).toLocaleString("vi-VN")}
+                      </td>
+                      <td className="px-6 py-4">
+                        {item.is_active ? (
+                          <button
+                            onClick={() => handleToggleActive(item.id, item.is_active)}
+                            className="text-sm tracking-wide font-medium text-red-600 hover:text-red-800"
+                          >
+                            Dừng gửi
+                          </button>
+                        ) : (
+                          <span
+                            className="text-sm tracking-wide font-medium text-gray-400 cursor-not-allowed"
+                            title="Khách hàng đã hủy nhận tin. Không thể chủ động bật lại."
+                          >
+                            Đã khóa
+                          </span>
+                        )}
+                      </td>
+                    </tr>
                   );
                 })
               )}
@@ -247,7 +248,7 @@ function AdminNewsletterPage() {
         )}
       </div>
 
-      <BroadcastEmailModal 
+      <BroadcastEmailModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
       />

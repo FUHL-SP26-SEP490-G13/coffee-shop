@@ -105,6 +105,12 @@ class DiscountService {
       throw new ErrorResponse(404, 'Không tìm thấy mã giảm giá');
     }
 
+    const usedCount = Number(discount.used_count || 0);
+    if (usedCount === 0) {
+      await DiscountRepository.hardDelete(id);
+      return true;
+    }
+
     const newCode = `${discount.code}__deleted__${discount.id}__${Date.now()}`;
     await DiscountRepository.softDelete(id, newCode);
     return true;

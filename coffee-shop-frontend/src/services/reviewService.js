@@ -17,6 +17,9 @@ const reviewService = {
     }),
 
   getPublic: () => axiosClient.get(`${API_ENDPOINTS.REVIEWS.BASE}/public`),
+
+  replyReview: (id, data) => 
+    axiosClient.post(`${API_ENDPOINTS.REVIEWS.BASE}/admin/${id}/reply`, data),
 };
 
 export default reviewService;
