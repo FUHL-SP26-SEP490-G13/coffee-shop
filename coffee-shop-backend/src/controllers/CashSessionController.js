@@ -4,8 +4,9 @@ class CashSessionController {
   async getCurrent(req, res, next) {
     try {
       const userId = req.user.id;
+      const userName = req.user.username || 'Nhân viên';
       const data = await service.getCurrentSession(userId);
-      res.json({ success: true, data });
+      res.json({ success: true, data: { ...data, userName } });
     } catch (error) {
       next(error);
     }
