@@ -3,7 +3,10 @@ const repository = require("../repositories/CashSessionRepository");
 class CashSessionService {
   async getCurrentSession(userId) {
     const session = await repository.getCurrentSession();
-    const shiftEndTime = await repository.getTodayShiftEndTime(userId);
+    
+    // Fetch the user's active shift
+    const currentShift = await repository.getCurrentUserShift(userId);
+    const shiftEndTime = currentShift ? currentShift.end_time : null;
 
     if (session) {
       const generatedSystemCash = await repository.getSystemCash(session.opened_at);
@@ -23,12 +26,20 @@ class CashSessionService {
       throw { statusCode: 400, message: "Đã có ca làm việc đang mở. Vui lòng đóng ca trước khi mở mới." };
     }
 
+    const currentShift = await repository.getCurrentUserShift(userId);
+    const shift_registration_id = currentShift ? currentShift.shift_registration_id : null;
+
+    if (!shift_registration_id) {
+      throw { statusCode: 403, message: "Không tìm thấy ca làm việc hợp lệ trong lịch làm việc của bạn hôm nay." };
+    }
+
     const code = `CS-${new Date().toISOString().slice(2,10).replace(/-/g, '')}-${Math.floor(Math.random() * 10000)}`;
 
     const sessionId = await repository.openSession({
       code,
       opened_by: userId,
       opening_cash: Number(openingCash) || 0,
+      shift_registration_id,
     });
 
     return { id: sessionId, code };
@@ -40,7 +51,15 @@ class CashSessionService {
       throw { statusCode: 400, message: "Ca làm việc không tồn tại hoặc đã đóng." };
     }
 
-    const shiftEndTimeStr = await repository.getTodayShiftEndTime(userId);
+    let shiftEndTimeStr = null;
+    if (session.shift_registration_id) {
+      shiftEndTimeStr = await repository.getShiftEndTimeById(session.shift_registration_id);
+    } else {
+      // Fallback cho các session cũ chưa có shift_registration_id
+      const currentShift = await repository.getCurrentUserShift(userId);
+      shiftEndTimeStr = currentShift ? currentShift.end_time : null;
+    }
+
     if (shiftEndTimeStr) {
       const now = new Date();
       // Parse shiftEndTime (HH:MM:SS) to compare with current time
