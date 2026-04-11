@@ -33,6 +33,14 @@ import { cn } from "@/lib/utils";
 
 const formatMoney = (n) => `${Number(n || 0).toLocaleString()}đ`;
 
+const getOrderTypeLabel = (type) => {
+  const normalized = String(type || "").toLowerCase();
+  if (normalized === "delivery") return "Giao hàng";
+  if (normalized === "dine-in" || normalized === "dinein") return "Tại quán";
+  if (normalized === "takeaway" || normalized === "take-away") return "Mang đi";
+  return type || "Khác";
+};
+
 function fillMissingDates(series, startDateStr, endDateStr) {
   if (!startDateStr || !endDateStr) return series;
   const map = new Map(series.map((x) => [x.date, x.revenue]));
@@ -388,9 +396,12 @@ export default function AdminDB() {
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={orderTypeRevenue}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="type" />
+                <XAxis dataKey="type" tickFormatter={getOrderTypeLabel} />
                 <YAxis />
-                <Tooltip formatter={(value) => formatMoney(value)} />
+                <Tooltip
+                  formatter={(value) => formatMoney(value)}
+                  labelFormatter={(label) => `Loại đơn: ${getOrderTypeLabel(label)}`}
+                />
                 <Bar dataKey="revenue" fill="#f59e0b" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>

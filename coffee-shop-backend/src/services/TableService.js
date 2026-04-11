@@ -936,8 +936,8 @@ class TableService {
 
         const [insertOrder] = await connection.query(
           `
-          INSERT INTO orders (user_id, created_by, customer_type, order_type, table_id, status, is_paid, total_amount, session_id)
-          VALUES (1, 1, 'guest', 'dine-in', ?, 'pending', 0, 0, ?)
+          INSERT INTO orders (user_id, created_by, customer_type, order_type, table_id, status, is_paid, amount, discount_amount, total_amount, session_id)
+          VALUES (1, 1, 'guest', 'dine-in', ?, 'pending', 0, 0, 0, 0, ?)
           `,
           [tableId, table.current_session_id]
         );
@@ -1009,8 +1009,16 @@ class TableService {
         }
 
         await connection.query(
-          'UPDATE orders SET total_amount = ?, is_paid = 0, status = "pending" WHERE id = ?',
-          [billTotal, newOrderId]
+          'UPDATE orders SET amount = ?, discount_amount = 0, total_amount = ?, is_paid = 0, status = "pending" WHERE id = ?',
+          [billTotal, billTotal, newOrderId]
+        );
+
+        // Tạo bản ghi order_payments cho đơn tách (amount = billTotal, pending)
+        await connection.query(
+          `INSERT INTO order_payments (order_id, payment_method, payment_status, amount, paid_amount, cash_received, change_amount)
+           VALUES (?, 'payos', 'pending', ?, 0, 0, 0)
+           ON DUPLICATE KEY UPDATE amount = VALUES(amount)`,
+          [newOrderId, billTotal]
         );
 
         createdOrderIds.push(newOrderId);
@@ -1024,9 +1032,21 @@ class TableService {
       for (const oId of modifiedOrderIds) {
         const remainingTotal = await this.recalculateOrderTotal(connection, oId);
         if (remainingTotal > 0) {
-          await connection.query('UPDATE orders SET total_amount = ? WHERE id = ?', [remainingTotal, oId]);
+          await connection.query(
+            'UPDATE orders SET amount = ?, discount_amount = 0, total_amount = ? WHERE id = ?',
+            [remainingTotal, remainingTotal, oId]
+          );
+          // Đồng bộ amount trong order_payments
+          await connection.query(
+            'UPDATE order_payments SET amount = ? WHERE order_id = ?',
+            [remainingTotal, oId]
+          );
         } else {
-          await connection.query('UPDATE orders SET status = "cancelled", total_amount = 0 WHERE id = ?', [oId]);
+          await connection.query(
+            'UPDATE orders SET status = "cancelled", amount = 0, discount_amount = 0, total_amount = 0 WHERE id = ?',
+            [oId]
+          );
+          await connection.query('UPDATE order_payments SET amount = 0 WHERE order_id = ?', [oId]);
         }
       }
 
