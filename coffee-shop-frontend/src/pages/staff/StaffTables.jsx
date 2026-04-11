@@ -960,17 +960,9 @@ export function StaffTables() {
 
         {/* STATUS FILTERS & STATS */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
-          <Card className="p-4 lg:col-span-3 bg-white dark:bg-gray-900/50 backdrop-blur-sm space-y-3">
-            <div>
-              <p className="text-sm font-semibold text-foreground mb-2">Tìm bàn:</p>
-              <Input
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Nhập mã bàn, ví dụ: TB-01"
-              />
-            </div>
-            <div className="flex flex-col gap-3">
-              <p className="text-sm font-semibold text-foreground">Lọc trạng thái:</p>
+          <Card className="p-4 lg:col-span-3 bg-white dark:bg-gray-900/50 backdrop-blur-sm flex items-center">
+            <div className="flex items-center gap-4 w-full">
+              <p className="text-sm font-semibold text-foreground whitespace-nowrap">Lọc trạng thái:</p>
               <div className="flex flex-wrap gap-2">
                 {STATUS_FILTER_OPTIONS.map((option) => {
                   const isActive = selectedStatus === option.value;
