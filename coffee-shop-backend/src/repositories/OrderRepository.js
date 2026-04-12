@@ -669,7 +669,7 @@ class OrderRepository {
       params,
     };
   }
-
+// Hàm lấy danh sách đơn hàng với phân trang và bộ lọc cho admin
   async findAllOrders({
     limit = 20,
     offset = 0,
@@ -720,7 +720,7 @@ class OrderRepository {
     const [rows] = await db.query(query, params);
     return rows;
   }
-
+// Hàm đếm tổng số đơn hàng (không phân trang) theo các bộ lọc để phục vụ phân trang ở frontend( admin)
   async countAllOrders({
     status = "all",
     order_type = "all",
