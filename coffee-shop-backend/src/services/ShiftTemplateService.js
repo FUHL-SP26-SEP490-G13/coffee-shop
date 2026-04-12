@@ -15,6 +15,12 @@ const VALID_COLORS = [
 const MIN_SHIFT_MINUTES = 120; // Ca tối thiểu 2 tiếng
 const MIN_SHIFT_HOURS = MIN_SHIFT_MINUTES / 60;
 const toMinutes = (hhmm) => { const [h, m] = hhmm.split(':').map(Number); return h * 60 + m; };
+// Tính thời lượng, hỗ trợ ca qua đêm (end < start → +24h)
+const shiftDuration = (start, end) => {
+    const s = toMinutes(start);
+    const e = toMinutes(end);
+    return e > s ? e - s : 24 * 60 - s + e;
+};
 
 
 class ShiftTemplateService {
@@ -35,15 +41,16 @@ class ShiftTemplateService {
         if (!timeRegex.test(start_time) || !timeRegex.test(end_time))
             throw new ErrorResponse(400, 'Định dạng giờ không hợp lệ');
 
-        if (start_time >= end_time)
-            throw new ErrorResponse(400, 'Giờ bắt đầu phải nhỏ hơn giờ kết thúc');
+        // Cho phép ca qua đêm: start === end chưa hợp lệ, nhưng start !== end là OK
+        if (start_time === end_time)
+            throw new ErrorResponse(400, 'Giờ bắt đầu và giờ kết thúc không được trùng nhau');
 
-        if (toMinutes(end_time) - toMinutes(start_time) < MIN_SHIFT_MINUTES)
+        if (shiftDuration(start_time, end_time) < MIN_SHIFT_MINUTES)
             throw new ErrorResponse(400, `Ca làm việc phải dài ít nhất ${MIN_SHIFT_HOURS} tiếng`);
 
         const existing = await ShiftRepository.findTemplateByName(name.trim());
         if (existing)
-            throw new ErrorResponse(400, `"${name.trim()}" đã tồn tại`);
+            throw new ErrorResponse(400, `${name.trim().toUpperCase()} đã tồn tại`);
 
         const usedColor = await ShiftRepository.findTemplateByColor(color || 'blue');
         if (usedColor)
@@ -64,7 +71,8 @@ class ShiftTemplateService {
 
     async update(id, { name, start_time, end_time, color }) {
         const template = await ShiftRepository.findTemplateById(id);
-        if (!template) throw new ErrorResponse(404, 'Ca làm việc không tồn tại');
+        if (!template || template.is_deleted)
+            throw new ErrorResponse(404, 'Ca làm việc không tồn tại');
 
         if (name?.trim() && name.trim() !== template.name) {
             const existing = await ShiftRepository.findTemplateByName(name.trim());
@@ -91,10 +99,10 @@ class ShiftTemplateService {
         const finalStart = start_time ?? template.start_time;
         const finalEnd = end_time ?? template.end_time;
 
-        if (finalStart >= finalEnd)
-            throw new ErrorResponse(400, 'Giờ bắt đầu phải nhỏ hơn giờ kết thúc');
+        if (finalStart === finalEnd)
+            throw new ErrorResponse(400, 'Giờ bắt đầu và giờ kết thúc không được trùng nhau');
 
-        if (toMinutes(finalEnd) - toMinutes(finalStart) < MIN_SHIFT_MINUTES)
+        if (shiftDuration(finalStart, finalEnd) < MIN_SHIFT_MINUTES)
             throw new ErrorResponse(400, `Ca làm việc phải dài ít nhất ${MIN_SHIFT_HOURS} tiếng`);
 
         // Kiểm tra trùng khung giờ với ca khác (trừ chính nó)
@@ -112,7 +120,8 @@ class ShiftTemplateService {
 
     async remove(id) {
         const template = await ShiftRepository.findTemplateById(id);
-        if (!template) throw new ErrorResponse(404, 'Ca làm việc không tồn tại');
+        if (!template || template.is_deleted)
+            throw new ErrorResponse(404, 'Ca làm việc không tồn tại');
 
         // Kiểm tra có shifts đang dùng template này không
         const usageCount = await ShiftRepository.countShiftsByTemplate(id);

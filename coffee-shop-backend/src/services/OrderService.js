@@ -624,7 +624,7 @@ class OrderService {
       connection.release();
     }
   }
-
+//admin
   async getAllOrders({
     page = 1,
     limit = 20,
@@ -642,7 +642,7 @@ class OrderService {
     if (normalizedStartDate && normalizedEndDate && normalizedStartDate > normalizedEndDate) {
       throw new ErrorResponse(400, "Khoảng ngày không hợp lệ");
     }
-
+// Nếu start_date hoặc end_date không hợp lệ, ta có thể chọn cách xử lý là bỏ qua filter ngày thay vì trả lỗi
     const [orders, totalCount] = await Promise.all([
       OrderRepository.findAllOrders({
         limit,

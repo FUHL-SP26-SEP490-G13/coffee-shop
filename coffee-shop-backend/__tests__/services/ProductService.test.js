@@ -24,7 +24,7 @@ describe('ProductService', () => {
   // getAllProducts
   // ============================================================
   describe('getAllProducts', () => {
-    it('TC-1: should get all products without filter', async () => {
+    it('ProductService - getAllProducts - TC-01: should get all products without filter', async () => {
       console.log('\n===== ProductService.getAllProducts (TC-1) =====');
       console.log('INPUT: options = {}');
       
@@ -42,7 +42,7 @@ describe('ProductService', () => {
       expect(result).toEqual(mockProducts);
     });
 
-    it('TC-2: should get products with status filter', async () => {
+    it('ProductService - getAllProducts - TC-02: should get products with status filter', async () => {
       console.log('\n===== ProductService.getAllProducts (TC-2) =====');
       console.log('INPUT: options = { status: "available", page: 1, limit: 10 }');
       
@@ -67,7 +67,7 @@ describe('ProductService', () => {
   // getProductById
   // ============================================================
   describe('getProductById', () => {
-    it('TC-1: should return product when exists', async () => {
+    it('ProductService - getProductById - TC-01: should return product when exists', async () => {
       console.log('\n===== ProductService.getProductById (TC-1) =====');
       console.log('INPUT: id = 1');
       
@@ -81,7 +81,7 @@ describe('ProductService', () => {
       expect(result).toEqual(mockProduct);
     });
 
-    it('TC-2: should throw 404 when product not found', async () => {
+    it('ProductService - getProductById - TC-02: should throw 404 when product not found', async () => {
       console.log('\n===== ProductService.getProductById (TC-2) =====');
       console.log('INPUT: id = 999');
       
@@ -97,7 +97,7 @@ describe('ProductService', () => {
   // getProductsByCategory
   // ============================================================
   describe('getProductsByCategory', () => {
-    it('TC-1: should return products when category exists', async () => {
+    it('ProductService - getProductsByCategory - TC-01: should return products when category exists', async () => {
       console.log('\n===== ProductService.getProductsByCategory (TC-1) =====');
       console.log('INPUT: categoryId = 1, options = {}');
       
@@ -114,7 +114,7 @@ describe('ProductService', () => {
       expect(result).toEqual(mockProducts);
     });
 
-    it('TC-2: should throw 404 when category not found', async () => {
+    it('ProductService - getProductsByCategory - TC-02: should throw 404 when category not found', async () => {
       console.log('\n===== ProductService.getProductsByCategory (TC-2) =====');
       console.log('INPUT: categoryId = 999');
       
@@ -125,7 +125,7 @@ describe('ProductService', () => {
       console.log('OUTPUT REALITY: threw error as expected');
     });
 
-    it('TC-3: should throw 404 when category is deleted', async () => {
+    it('ProductService - getProductsByCategory - TC-03: should throw 404 when category is deleted', async () => {
       console.log('\n===== ProductService.getProductsByCategory (TC-3) =====');
       console.log('INPUT: categoryId = 1 (deleted)');
       
@@ -141,7 +141,7 @@ describe('ProductService', () => {
   // createProduct
   // ============================================================
   describe('createProduct', () => {
-    it('TC-1: should create product successfully with images', async () => {
+    it('ProductService - createProduct - TC-01: should create product successfully with images', async () => {
       console.log('\n===== ProductService.createProduct (TC-1) =====');
       const data = {
         name: 'Cà phê đen',
@@ -184,7 +184,7 @@ describe('ProductService', () => {
       });
     });
 
-    it('TC-2: should throw 404 when category not exists', async () => {
+    it('ProductService - createProduct - TC-02: should throw 404 when category not exists', async () => {
       console.log('\n===== ProductService.createProduct (TC-2) =====');
       console.log('INPUT: category_id = 999 (not exists)');
       
@@ -196,7 +196,7 @@ describe('ProductService', () => {
       console.log('OUTPUT REALITY: threw error as expected');
     });
 
-    it('TC-3: should throw 409 when product name already exists', async () => {
+    it('ProductService - createProduct - TC-03: should throw 409 when product name already exists', async () => {
       console.log('\n===== ProductService.createProduct (TC-3) =====');
       console.log('INPUT: name = "Cà phê đen" (exists)');
       
@@ -209,7 +209,7 @@ describe('ProductService', () => {
       console.log('OUTPUT REALITY: threw error as expected');
     });
 
-    it('TC-4: should throw 400 when too many images', async () => {
+    it('ProductService - createProduct - TC-04: should throw 400 when too many images', async () => {
       console.log('\n===== ProductService.createProduct (TC-4) =====');
       console.log('INPUT: images.length = 6 (> 5)');
       
@@ -233,7 +233,7 @@ describe('ProductService', () => {
   // updateProduct
   // ============================================================
   describe('updateProduct', () => {
-    it('TC-1: should update basic product info', async () => {
+    it('ProductService - updateProduct - TC-01: should update basic product info', async () => {
       console.log('\n===== ProductService.updateProduct (TC-1) =====');
       const data = {
         name: 'Cà phê đen mới',
@@ -258,7 +258,7 @@ describe('ProductService', () => {
       });
     });
 
-    it('TC-2: should throw 404 when product not found', async () => {
+    it('ProductService - updateProduct - TC-02: should throw 404 when product not found', async () => {
       console.log('\n===== ProductService.updateProduct (TC-2) =====');
       console.log('INPUT: id = 999');
       
@@ -270,7 +270,7 @@ describe('ProductService', () => {
       console.log('OUTPUT REALITY: threw error as expected');
     });
 
-    it('TC-3: should throw 409 when duplicate name', async () => {
+    it('ProductService - updateProduct - TC-03: should throw 409 when duplicate name', async () => {
       console.log('\n===== ProductService.updateProduct (TC-3) =====');
       console.log('INPUT: name = "Cà phê sữa" (exists for another product)');
       
@@ -283,7 +283,7 @@ describe('ProductService', () => {
       console.log('OUTPUT REALITY: threw error as expected');
     });
 
-    it('TC-4: should update sizes correctly', async () => {
+    it('ProductService - updateProduct - TC-04: should update sizes correctly', async () => {
       console.log('\n===== ProductService.updateProduct (TC-4) =====');
       const data = {
         sizes: [
@@ -308,7 +308,7 @@ describe('ProductService', () => {
       expect(ProductSizeRepository.upsert).toHaveBeenCalledWith(1, 'M', 25000);
     });
 
-    it('TC-5: should handle image deletion and upload', async () => {
+    it('ProductService - updateProduct - TC-05: should handle image deletion and upload', async () => {
       console.log('\n===== ProductService.updateProduct (TC-5) =====');
       const data = {
         deleteImageIds: [5],
@@ -342,7 +342,7 @@ describe('ProductService', () => {
       });
     });
 
-    it('TC-6: should throw 400 for invalid size', async () => {
+    it('ProductService - updateProduct - TC-06: should throw 400 for invalid size', async () => {
       console.log('\n===== ProductService.updateProduct (TC-6) =====');
       console.log('INPUT: sizes = [{ size: "XL", price: 30000 }]');
       
@@ -354,7 +354,7 @@ describe('ProductService', () => {
       console.log('OUTPUT REALITY: threw error as expected');
     });
 
-    it('TC-7: should throw 400 for duplicate sizes', async () => {
+    it('ProductService - updateProduct - TC-07: should throw 400 for duplicate sizes', async () => {
       console.log('\n===== ProductService.updateProduct (TC-7) =====');
       console.log('INPUT: sizes with duplicates [S, M, S]');
       
@@ -376,7 +376,7 @@ describe('ProductService', () => {
   // deleteProduct
   // ============================================================
   describe('deleteProduct', () => {
-    it('TC-1: should delete product successfully', async () => {
+    it('ProductService - deleteProduct - TC-01: should delete product successfully', async () => {
       console.log('\n===== ProductService.deleteProduct (TC-1) =====');
       console.log('INPUT: id = 1');
       
@@ -390,7 +390,7 @@ describe('ProductService', () => {
       expect(result).toBe(true);
     });
 
-    it('TC-2: should throw 404 when product not found', async () => {
+    it('ProductService - deleteProduct - TC-02: should throw 404 when product not found', async () => {
       console.log('\n===== ProductService.deleteProduct (TC-2) =====');
       console.log('INPUT: id = 999');
       
@@ -406,7 +406,7 @@ describe('ProductService', () => {
   // searchProducts
   // ============================================================
   describe('searchProducts', () => {
-    it('TC-1: should search products by keyword', async () => {
+    it('ProductService - searchProducts - TC-01: should search products by keyword', async () => {
       console.log('\n===== ProductService.searchProducts (TC-1) =====');
       console.log('INPUT: keyword = "cà phê"');
       
@@ -421,7 +421,7 @@ describe('ProductService', () => {
       expect(result).toEqual(mockProducts);
     });
 
-    it('TC-2: should return all products when keyword is empty', async () => {
+    it('ProductService - searchProducts - TC-02: should return all products when keyword is empty', async () => {
       console.log('\n===== ProductService.searchProducts (TC-2) =====');
       console.log('INPUT: keyword = ""');
       
@@ -436,7 +436,7 @@ describe('ProductService', () => {
       expect(result).toEqual(mockProducts);
     });
 
-    it('TC-3: should return all products when keyword is only whitespace', async () => {
+    it('ProductService - searchProducts - TC-03: should return all products when keyword is only whitespace', async () => {
       console.log('\n===== ProductService.searchProducts (TC-3) =====');
       console.log('INPUT: keyword = "   "');
       
@@ -455,7 +455,7 @@ describe('ProductService', () => {
   // restoreProduct
   // ============================================================
   describe('restoreProduct', () => {
-    it('TC-1: should restore deleted product', async () => {
+    it('ProductService - restoreProduct - TC-01: should restore deleted product', async () => {
       console.log('\n===== ProductService.restoreProduct (TC-1) =====');
       console.log('INPUT: id = 1');
       
@@ -471,7 +471,7 @@ describe('ProductService', () => {
       expect(result).toEqual({ id: 1, status: 'available' });
     });
 
-    it('TC-2: should throw 404 when product not found', async () => {
+    it('ProductService - restoreProduct - TC-02: should throw 404 when product not found', async () => {
       console.log('\n===== ProductService.restoreProduct (TC-2) =====');
       console.log('INPUT: id = 999');
       
@@ -482,7 +482,7 @@ describe('ProductService', () => {
       console.log('OUTPUT REALITY: threw error as expected');
     });
 
-    it('TC-3: should throw 400 when product is not deleted', async () => {
+    it('ProductService - restoreProduct - TC-03: should throw 400 when product is not deleted', async () => {
       console.log('\n===== ProductService.restoreProduct (TC-3) =====');
       console.log('INPUT: id = 1 (status = available)');
       

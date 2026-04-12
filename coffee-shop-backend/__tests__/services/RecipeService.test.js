@@ -21,7 +21,7 @@ describe('RecipeService', () => {
   });
 
   describe('getRecipesByProductSize', () => {
-    it('RecipeService - GET_RECIPES_BY_PRODUCT_SIZE - TCID: RCP-SVC-RD-001 - CRUD: READ', async () => {
+    it('RecipeService - getRecipesByProductSize - TC-01: RCP-SVC-RD-001 - CRUD: READ', async () => {
       const input = { productSizeId: 10 };
       const expected = [
         {
@@ -51,7 +51,7 @@ describe('RecipeService', () => {
       expect(result).toEqual(expected);
     });
 
-    it('RecipeService - GET_RECIPES_BY_PRODUCT_SIZE - TCID: RCP-SVC-RD-002 - CRUD: READ', async () => {
+    it('RecipeService - getRecipesByProductSize - TC-02: RCP-SVC-RD-002 - CRUD: READ', async () => {
       const input = { productSizeId: 11 };
       const expected = [];
       logCase({
@@ -72,7 +72,7 @@ describe('RecipeService', () => {
   });
 
   describe('getRecipesByProductGroupedBySize', () => {
-    it('RecipeService - GET_RECIPES_BY_PRODUCT_GROUPED_BY_SIZE - TCID: RCP-SVC-RD-003 - CRUD: READ', async () => {
+    it('RecipeService - getRecipesByProductGroupedBySize - TC-01: RCP-SVC-RD-003 - CRUD: READ', async () => {
       const input = { productId: 1 };
       const rows = [
         {
@@ -147,7 +147,7 @@ describe('RecipeService', () => {
       expect(result).toEqual(expected);
     });
 
-    it('RecipeService - GET_RECIPES_BY_PRODUCT_GROUPED_BY_SIZE - TCID: RCP-SVC-RD-004 - CRUD: READ', async () => {
+    it('RecipeService - getRecipesByProductGroupedBySize - TC-02: RCP-SVC-RD-004 - CRUD: READ', async () => {
       const input = { productId: 2 };
       const expected = {
         product_id: 2,
@@ -171,7 +171,7 @@ describe('RecipeService', () => {
   });
 
   describe('getRecipesByProduct', () => {
-    it('RecipeService - GET_RECIPES_BY_PRODUCT - TCID: RCP-SVC-RD-005 - CRUD: READ', async () => {
+    it('RecipeService - getRecipesByProduct - TC-01: RCP-SVC-RD-005 - CRUD: READ', async () => {
       const input = { productId: 5 };
       const expected = [
         { id: 1, product_size_id: 11, ingredient_id: 3, quantity: 10, size: 'M' },
@@ -196,7 +196,7 @@ describe('RecipeService', () => {
   });
 
   describe('getRecipeById', () => {
-    it('RecipeService - GET_RECIPE_BY_ID - TCID: RCP-SVC-RD-006 - CRUD: READ', async () => {
+    it('RecipeService - getRecipeById - TC-01: RCP-SVC-RD-006 - CRUD: READ', async () => {
       const input = { recipeId: 101 };
       const expected = {
         id: 101,
@@ -222,7 +222,7 @@ describe('RecipeService', () => {
       expect(result).toEqual(expected);
     });
 
-    it('RecipeService - GET_RECIPE_BY_ID - TCID: RCP-SVC-RD-007 - CRUD: READ', async () => {
+    it('RecipeService - getRecipeById - TC-02: RCP-SVC-RD-007 - CRUD: READ', async () => {
       const input = { recipeId: 9999 };
       const expectedError = 'Công thức không tồn tại';
       logCase({
@@ -248,7 +248,7 @@ describe('RecipeService', () => {
   });
 
   describe('createRecipe', () => {
-    it('RecipeService - CREATE_RECIPE - TCID: RCP-SVC-CR-001 - CRUD: CREATE', async () => {
+    it('RecipeService - createRecipe - TC-01: RCP-SVC-CR-001 - CRUD: CREATE', async () => {
       const input = {
         productSizeId: 10,
         ingredientId: 2,
@@ -292,7 +292,7 @@ describe('RecipeService', () => {
       expect(result).toEqual(expected);
     });
 
-    it('RecipeService - CREATE_RECIPE - TCID: RCP-SVC-CR-002 - CRUD: CREATE', async () => {
+    it('RecipeService - createRecipe - TC-02: RCP-SVC-CR-002 - CRUD: CREATE', async () => {
       const input = {
         productSizeId: 10,
         ingredientId: 2,
@@ -336,7 +336,7 @@ describe('RecipeService', () => {
       expect(result).toEqual(expected);
     });
 
-    it('RecipeService - CREATE_RECIPE - TCID: RCP-SVC-CR-003 - CRUD: CREATE', async () => {
+    it('RecipeService - createRecipe - TC-03: RCP-SVC-CR-003 - CRUD: CREATE', async () => {
       const input = {
         productSizeId: 10,
         ingredientId: 2,
@@ -378,7 +378,7 @@ describe('RecipeService', () => {
       expect(result).toEqual(expected);
     });
 
-    it('RecipeService - CREATE_RECIPE - TCID: RCP-SVC-CR-004 - CRUD: CREATE', async () => {
+    it('RecipeService - createRecipe - TC-04: RCP-SVC-CR-004 - CRUD: CREATE', async () => {
       const input = {
         productSizeId: 10,
         ingredientId: 9999,
@@ -413,7 +413,7 @@ describe('RecipeService', () => {
   });
 
   describe('updateRecipe', () => {
-    it('RecipeService - UPDATE_RECIPE - TCID: RCP-SVC-UP-001 - CRUD: UPDATE', async () => {
+    it('RecipeService - updateRecipe - TC-01: RCP-SVC-UP-001 - CRUD: UPDATE', async () => {
       const input = { recipeId: 11, ingredientId: 3, quantity: 18 };
       const existingRecipe = { id: 11, ingredient_id: 2, quantity: 10 };
       const ingredient = { id: 3, name: 'Sữa tươi' };
@@ -448,7 +448,7 @@ describe('RecipeService', () => {
       expect(result).toEqual(expected);
     });
 
-    it('RecipeService - UPDATE_RECIPE - TCID: RCP-SVC-UP-002 - CRUD: UPDATE', async () => {
+    it('RecipeService - updateRecipe - TC-02: RCP-SVC-UP-002 - CRUD: UPDATE', async () => {
       const input = { recipeId: 9999, ingredientId: 3, quantity: 18 };
       const expectedError = 'Công thức không tồn tại';
       logCase({
@@ -474,7 +474,7 @@ describe('RecipeService', () => {
       expect(RecipeRepository.updateRecipe).not.toHaveBeenCalled();
     });
 
-    it('RecipeService - UPDATE_RECIPE - TCID: RCP-SVC-UP-003 - CRUD: UPDATE', async () => {
+    it('RecipeService - updateRecipe - TC-03: RCP-SVC-UP-003 - CRUD: UPDATE', async () => {
       const input = { recipeId: 11, ingredientId: 999, quantity: 18 };
       const expectedError = 'Nguyên liệu không tồn tại';
       logCase({
@@ -502,7 +502,7 @@ describe('RecipeService', () => {
   });
 
   describe('deleteRecipe', () => {
-    it('RecipeService - DELETE_RECIPE - TCID: RCP-SVC-DE-001 - CRUD: DELETE', async () => {
+    it('RecipeService - deleteRecipe - TC-01: RCP-SVC-DE-001 - CRUD: DELETE', async () => {
       const input = { recipeId: 15 };
       const expected = { id: 15 };
       logCase({
@@ -523,7 +523,7 @@ describe('RecipeService', () => {
       expect(result).toEqual(expected);
     });
 
-    it('RecipeService - DELETE_RECIPE - TCID: RCP-SVC-DE-002 - CRUD: DELETE', async () => {
+    it('RecipeService - deleteRecipe - TC-02: RCP-SVC-DE-002 - CRUD: DELETE', async () => {
       const input = { recipeId: 9999 };
       const expectedError = 'Công thức không tồn tại';
       logCase({
@@ -548,7 +548,7 @@ describe('RecipeService', () => {
       expect(RecipeRepository.deleteRecipe).not.toHaveBeenCalled();
     });
 
-    it('RecipeService - DELETE_RECIPE - TCID: RCP-SVC-DE-003 - CRUD: DELETE', async () => {
+    it('RecipeService - deleteRecipe - TC-03: RCP-SVC-DE-003 - CRUD: DELETE', async () => {
       const input = { recipeId: 16 };
       const expectedError = 'Không thể xóa công thức';
       logCase({
@@ -575,7 +575,7 @@ describe('RecipeService', () => {
   });
 
   describe('ingredient methods', () => {
-    it('RecipeService - GET_ALL_INGREDIENTS - TCID: RCP-SVC-RD-008 - CRUD: READ', async () => {
+    it('RecipeService - getAllIngredients - TC-01: RCP-SVC-RD-008 - CRUD: READ', async () => {
       const input = { options: { limit: 20, offset: 0, orderBy: 'name', order: 'ASC' } };
       const expected = [
         { id: 1, name: 'Đường', unit_type: 'weight', unit: 'gram' },
@@ -598,7 +598,7 @@ describe('RecipeService', () => {
       expect(result).toEqual(expected);
     });
 
-    it('RecipeService - GET_INGREDIENT_BY_ID - TCID: RCP-SVC-RD-009 - CRUD: READ', async () => {
+    it('RecipeService - getIngredientById - TC-01: RCP-SVC-RD-009 - CRUD: READ', async () => {
       const input = { ingredientId: 3 };
       const expected = { id: 3, name: 'Bột cacao', unit_type: 'weight', unit: 'gram' };
       logCase({
@@ -618,7 +618,7 @@ describe('RecipeService', () => {
       expect(result).toEqual(expected);
     });
 
-    it('RecipeService - GET_INGREDIENT_BY_ID - TCID: RCP-SVC-RD-010 - CRUD: READ', async () => {
+    it('RecipeService - getIngredientById - TC-02: RCP-SVC-RD-010 - CRUD: READ', async () => {
       const input = { ingredientId: 999 }; 
       const expectedError = 'Nguyên liệu không tồn tại';
       logCase({
@@ -642,7 +642,7 @@ describe('RecipeService', () => {
       expect(actualError).toContain(expectedError);
     });
 
-    it('RecipeService - CREATE_INGREDIENT - TCID: RCP-SVC-CR-005 - CRUD: CREATE', async () => {
+    it('RecipeService - createIngredient - TC-01: RCP-SVC-CR-005 - CRUD: CREATE', async () => {
       const input = { name: 'Kem béo', unitType: 'volume', unit: 'ml' };
       const expected = { id: 20, name: 'Kem béo', unit_type: 'volume', unit: 'ml' };
       logCase({
@@ -662,7 +662,7 @@ describe('RecipeService', () => {
       expect(result).toEqual(expected);
     });
 
-    it('RecipeService - UPDATE_INGREDIENT - TCID: RCP-SVC-UP-004 - CRUD: UPDATE', async () => {
+    it('RecipeService - updateIngredient - TC-01: RCP-SVC-UP-004 - CRUD: UPDATE', async () => {
       const input = {
         ingredientId: 4,
         name: 'Trân châu đen',
@@ -703,7 +703,7 @@ describe('RecipeService', () => {
       expect(result).toEqual(expected);
     });
 
-    it('RecipeService - UPDATE_INGREDIENT - TCID: RCP-SVC-UP-005 - CRUD: UPDATE', async () => {
+    it('RecipeService - updateIngredient - TC-02: RCP-SVC-UP-005 - CRUD: UPDATE', async () => {
       const input = {
         ingredientId: 999,
         name: 'X',
@@ -738,7 +738,7 @@ describe('RecipeService', () => {
       expect(RecipeRepository.updateIngredient).not.toHaveBeenCalled();
     });
 
-    it('RecipeService - DELETE_INGREDIENT - TCID: RCP-SVC-DE-004 - CRUD: DELETE', async () => {
+    it('RecipeService - deleteIngredient - TC-01: RCP-SVC-DE-004 - CRUD: DELETE', async () => {
       const input = { ingredientId: 8 };
       const expected = { id: 8 };
       logCase({
@@ -759,7 +759,7 @@ describe('RecipeService', () => {
       expect(result).toEqual(expected);
     });
 
-    it('RecipeService - DELETE_INGREDIENT - TCID: RCP-SVC-DE-005 - CRUD: DELETE', async () => {
+    it('RecipeService - deleteIngredient - TC-02: RCP-SVC-DE-005 - CRUD: DELETE', async () => {
       const input = { ingredientId: 999 };
       const expectedError = 'Nguyên liệu không tồn tại';
       logCase({
@@ -784,7 +784,7 @@ describe('RecipeService', () => {
       expect(RecipeRepository.deleteIngredient).not.toHaveBeenCalled();
     });
 
-    it('RecipeService - DELETE_INGREDIENT - TCID: RCP-SVC-DE-006 - CRUD: DELETE', async () => {
+    it('RecipeService - deleteIngredient - TC-03: RCP-SVC-DE-006 - CRUD: DELETE', async () => {
       const input = { ingredientId: 9 };
       const expectedError = 'Không thể xóa nguyên liệu';
       logCase({
@@ -809,7 +809,7 @@ describe('RecipeService', () => {
       expect(actualError).toContain(expectedError);
     });
 
-    it('RecipeService - SEARCH_INGREDIENTS - TCID: RCP-SVC-RD-011 - CRUD: READ', async () => {
+    it('RecipeService - searchIngredients - TC-01: RCP-SVC-RD-011 - CRUD: READ', async () => {
       const input = {
         keyword: 'sữa',
         options: { limit: 10, offset: 0 },

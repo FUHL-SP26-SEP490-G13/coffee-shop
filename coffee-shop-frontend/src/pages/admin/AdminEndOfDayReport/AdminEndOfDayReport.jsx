@@ -30,14 +30,14 @@ const moneyFormatter = new Intl.NumberFormat("vi-VN");
 const toNumber = (value) => Number(value) || 0;
 
 const formatMoney = (value) => moneyFormatter.format(toNumber(value));
-
+//Định dạng nhãn cho khoảng ngày, đảm bảo hiển thị rõ ràng và dễ hiểu cho người dùng
 const formatRangeLabel = (range) => {
   if (!range?.from) return "Chọn ngày";
   if (!range?.to) return `${format(range.from, "dd/MM/yyyy")} - ...`;
   return `${format(range.from, "dd/MM/yyyy")} - ${format(range.to, "dd/MM/yyyy")}`;
 };
 
-
+//Chuẩn hóa dữ liệu trả về từ API để đảm bảo luôn có mảng để render, tránh lỗi khi cấu trúc dữ liệu không như mong đợi
 const parseReportRows = (payload) => {
   if (Array.isArray(payload)) return payload;
   if (payload?.success && Array.isArray(payload.data)) return payload.data;
@@ -176,8 +176,8 @@ const AdminEndOfDayReport = () => {
           <div className="overflow-hidden rounded-2xl border bg-white shadow-sm">
             <div className="h-14 bg-slate-100" />
             {Array.from({ length: 6 }).map((_, index) => (
-              <div key={index} className="grid grid-cols-10 gap-3 border-t px-4 py-4">
-                {Array.from({ length: 10 }).map((__, cellIndex) => (
+              <div key={index} className="grid grid-cols-9 gap-3 border-t px-4 py-4">
+                {Array.from({ length: 9 }).map((__, cellIndex) => (
                   <div
                     key={cellIndex}
                     className={`h-4 rounded ${cellIndex % 3 === 0 ? "bg-slate-200" : "bg-slate-100"}`}
@@ -288,7 +288,6 @@ const AdminEndOfDayReport = () => {
                 <th className="px-4 py-3 text-left">T.Toán</th>
                 <th className="px-4 py-3 text-right">SL</th>
                 <th className="px-4 py-3 text-right">Tổng tiền hàng</th>
-                <th className="px-4 py-3 text-right">Giảm giá</th>
                 <th className="px-4 py-3 text-right">Phí ship</th>
                 <th className="px-4 py-3 text-right">Doanh thu </th>
               </tr>
@@ -314,7 +313,6 @@ const AdminEndOfDayReport = () => {
                 <td colSpan={4}></td>
                 <td className="px-4 py-3 text-right">{totals.qty}</td>
                 <td className="px-4 py-3 text-right">{formatMoney(totals.itemsPrice)}</td>
-                <td className="px-4 py-3 text-right font-medium text-red-500">-{formatMoney(totals.discount)}</td>
                 <td className="px-4 py-3 text-right font-medium text-blue-600">+{formatMoney(totals.delivery)}</td>
                 <td className="px-4 py-3 text-right font-bold text-green-700">{formatMoney(totals.revenue)}</td>
               </tr>
@@ -332,7 +330,6 @@ const AdminEndOfDayReport = () => {
                   <td className="px-4 py-3 capitalize">{order.paymentMethod === 'cash' ? 'Tiền mặt' : order.paymentMethod === 'payos' ? 'Chuyển khoản bằng PayOS' : 'Khác'}</td>
                   <td className="px-4 py-3 text-right">{order.totalQuantity}</td>
                   <td className="px-4 py-3 text-right">{formatMoney(order.totalItemsPrice)}</td>
-                  <td className="px-4 py-3 text-right text-red-500">-{formatMoney(order.discount)}</td>
                   <td className="px-4 py-3 text-right text-blue-600">+{formatMoney(order.deliveryFee)}</td>
                   <td className="px-4 py-3 text-right font-bold text-green-700">{formatMoney(order.revenue)}</td>
                 </tr>
@@ -340,7 +337,7 @@ const AdminEndOfDayReport = () => {
 
               {data.length === 0 && (
                 <tr>
-                  <td colSpan={10} className="px-4 py-8 text-center text-slate-500 italic">
+                  <td colSpan={9} className="px-4 py-8 text-center text-slate-500 italic">
                     Không tìm thấy dữ liệu đã thanh toán trong khoảng thời gian này
                   </td>
                 </tr>
@@ -352,7 +349,6 @@ const AdminEndOfDayReport = () => {
                   <td colSpan={5} className="px-4 py-4 text-center text-slate-900 border-r">TỔNG CỘNG</td>
                   <td className="px-4 py-4 text-right border-r">{totals.qty}</td>
                   <td className="px-4 py-4 text-right border-r">{formatMoney(totals.itemsPrice)}</td>
-                  <td className="px-4 py-4 text-right border-r text-red-500">-{formatMoney(totals.discount)}</td>
                   <td className="px-4 py-4 text-right border-r text-blue-600">+{formatMoney(totals.delivery)}</td>
                   <td className="px-4 py-4 text-right text-green-700 text-lg">{formatMoney(totals.revenue)}</td>
                 </tr>

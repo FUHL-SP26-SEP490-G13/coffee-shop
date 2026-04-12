@@ -49,7 +49,7 @@ describe("OrderOnlineService", () => {
   });
 
   describe("shipping helpers", () => {
-    it("OrderOnlineService - SHIPPING - TCID: OON-SVC-RD-001 - CRUD: READ", () => {
+    it("OrderOnlineService - shipping - TC-01: OON-SVC-RD-001 - CRUD: READ", () => {
       const input = { distanceKm: 4.26 };
       const expected = { shippingFee: 8500 };
       logCase({
@@ -66,7 +66,7 @@ describe("OrderOnlineService", () => {
       expect(fee).toBe(8500);
     });
 
-    it("OrderOnlineService - SHIPPING - TCID: OON-SVC-RD-002 - CRUD: READ", () => {
+    it("OrderOnlineService - shipping - TC-02: OON-SVC-RD-002 - CRUD: READ", () => {
       const input = { distanceKm: 10 };
       const expectedError = "vượt quá giới hạn giao hàng";
       logCase({
@@ -88,7 +88,7 @@ describe("OrderOnlineService", () => {
       expect(actualError).toContain(expectedError);
     });
 
-    it("OrderOnlineService - SHIPPING - TCID: OON-SVC-RD-003 - CRUD: READ", () => {
+    it("OrderOnlineService - shipping - TC-03: OON-SVC-RD-003 - CRUD: READ", () => {
       const input = {
         order: {
           order_type: "delivery",
@@ -115,7 +115,7 @@ describe("OrderOnlineService", () => {
   });
 
   describe("checkout", () => {
-    it("OrderOnlineService - CHECKOUT - TCID: OON-SVC-CR-001 - CRUD: CREATE", async () => {
+    it("OrderOnlineService - checkout - TC-01: OON-SVC-CR-001 - CRUD: CREATE", async () => {
       const payload = {
         order_type: "delivery",
         payment_method: "cash",
@@ -193,7 +193,7 @@ describe("OrderOnlineService", () => {
       expect(result).toEqual(expected);
     });
 
-    it("OrderOnlineService - CHECKOUT - TCID: OON-SVC-CR-002 - CRUD: CREATE", async () => {
+    it("OrderOnlineService - checkout - TC-02: OON-SVC-CR-002 - CRUD: CREATE", async () => {
       const payload = {
         order_type: "delivery",
         payment_method: "cash",
@@ -226,7 +226,7 @@ describe("OrderOnlineService", () => {
   });
 
   describe("status and payment", () => {
-    it("OrderOnlineService - SAVE_PAYOS_RETURN - TCID: OON-SVC-UP-001 - CRUD: UPDATE", async () => {
+    it("OrderOnlineService - savePayosReturn - TC-01: OON-SVC-UP-001 - CRUD: UPDATE", async () => {
       const input = {
         orderCode: 10,
         payosId: "TX123",
@@ -263,7 +263,7 @@ describe("OrderOnlineService", () => {
       expect(result).toEqual(expected);
     });
 
-    it("OrderOnlineService - TRANSITION_STATUS - TCID: OON-SVC-UP-002 - CRUD: UPDATE", async () => {
+    it("OrderOnlineService - transitionStatus - TC-01: OON-SVC-UP-002 - CRUD: UPDATE", async () => {
       const input = {
         orderId: 20,
         targetStatus: "completed",

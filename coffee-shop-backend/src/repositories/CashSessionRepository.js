@@ -8,6 +8,10 @@ class CashSessionRepository {
     return rows[0] || null;
   }
 
+  async findOpenSession() {
+    return this.getCurrentSession();
+  }
+
   async getCurrentUserShift(userId) {
     const [rows] = await pool.query(
       `SELECT sr.id as shift_registration_id, st.end_time, st.start_time 
@@ -16,7 +20,7 @@ class CashSessionRepository {
        JOIN shift_templates st ON s.template_id = st.id 
        WHERE sr.user_id = ? 
          AND s.shift_date = CURDATE() 
-         AND sr.status IN ('registered', 'swapped_in', 'approved') 
+         AND sr.status = 'registered'
        ORDER BY ABS(TIMESTAMPDIFF(MINUTE, st.start_time, CURTIME())) ASC LIMIT 1`,
       [userId]
     );

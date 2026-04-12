@@ -28,12 +28,12 @@ const takeawayRoutes = require("./takeaway.routes");
 const flashSaleRoutes = require('./flashSale.routes');
 const qrOrderRoutes = require('./qrOrder.routes');
 const shiftRoutes = require('./shift.routes');
-const swapRequestRoutes = require('./swapRequest.routes');
 const loyaltyRoutes = require('./loyalty.routes');
-const aiRoutes = require('./ai.routes');
-const newsletterRoutes = require('./newsletter.routes');
-const cartRoutes = require('./cart.routes');
 const cashSessionRoutes = require('./cashSession.routes');
+const aiRoutes = require('./ai.routes');
+
+const cartRoutes = require('./cart.routes');
+const deliveryAreaRoutes = require('./deliveryArea.routes');
 
 const CategoryRepository = require('../repositories/CategoryRepository');
 const ProductRepository = require('../repositories/ProductRepository');
@@ -86,12 +86,12 @@ router.use("/orders", orderRoutes);
 router.use('/flash-sales', flashSaleRoutes);
 router.use('/qr-order', qrOrderRoutes);
 router.use('/shifts', shiftRoutes);
-router.use('/swap-requests', swapRequestRoutes);
 router.use('/loyalty', loyaltyRoutes);
 router.use('/ai', aiRoutes);
-router.use('/newsletters', newsletterRoutes);
-router.use('/cart', cartRoutes);
 router.use('/cash-sessions', cashSessionRoutes);
+
+router.use('/cart', cartRoutes);
+router.use('/delivery-areas', deliveryAreaRoutes);
 
 // Health check endpoint
 router.get("/health", (req, res) => {

@@ -21,7 +21,7 @@ describe("ReviewService", () => {
   });
 
   describe("getByProductId", () => {
-    it("ReviewService - GET_BY_PRODUCT_ID - TCID: REV-SVC-RD-001 - CRUD: READ", async () => {
+    it("ReviewService - getByProductId - TC-01: REV-SVC-RD-001 - CRUD: READ", async () => {
       const mockReviews = [
         {
           id: 1,
@@ -96,7 +96,7 @@ describe("ReviewService", () => {
       expect(result).toEqual(expected);
     });
 
-    it("ReviewService - GET_BY_PRODUCT_ID - TCID: REV-SVC-RD-002 - CRUD: READ", async () => {
+    it("ReviewService - getByProductId - TC-02: REV-SVC-RD-002 - CRUD: READ", async () => {
       const input = { productId: 1 };
       const expected = {
         items: [],
@@ -121,7 +121,7 @@ describe("ReviewService", () => {
   });
 
   describe("createOrUpdateReview", () => {
-    it("ReviewService - CREATE_OR_UPDATE_REVIEW - TCID: REV-SVC-CR-001 - CRUD: CREATE", async () => {
+    it("ReviewService - createOrUpdateReview - TC-01: REV-SVC-CR-001 - CRUD: CREATE", async () => {
       const input = { userId: 1, productId: 10, rating: 0, comment: "Bad" };
       const expectedError = "Số sao phải từ 1 đến 5";
       logCase({
@@ -145,7 +145,7 @@ describe("ReviewService", () => {
       expect(ReviewRepository.hasPurchasedProduct).not.toHaveBeenCalled();
     });
 
-    it("ReviewService - CREATE_OR_UPDATE_REVIEW - TCID: REV-SVC-CR-002 - CRUD: CREATE", async () => {
+    it("ReviewService - createOrUpdateReview - TC-02: REV-SVC-CR-002 - CRUD: CREATE", async () => {
       const input = { userId: 1, productId: 10, rating: 5, comment: "Ngon" };
       const expectedError = "Bạn chỉ có thể đánh giá sản phẩm đã mua";
       logCase({
@@ -172,7 +172,7 @@ describe("ReviewService", () => {
       expect(ReviewRepository.findByUserAndProduct).not.toHaveBeenCalled();
     });
 
-    it("ReviewService - CREATE_OR_UPDATE_REVIEW - TCID: REV-SVC-CR-003 - CRUD: CREATE", async () => {
+    it("ReviewService - createOrUpdateReview - TC-03: REV-SVC-CR-003 - CRUD: CREATE", async () => {
       const input = { userId: 1, productId: 10, rating: 5, comment: "Ngon" };
       const expected = { message: "Đánh giá sản phẩm thành công" };
       logCase({
@@ -203,7 +203,7 @@ describe("ReviewService", () => {
       expect(result).toEqual(expected);
     });
 
-    it("ReviewService - CREATE_OR_UPDATE_REVIEW - TCID: REV-SVC-UP-001 - CRUD: UPDATE", async () => {
+    it("ReviewService - createOrUpdateReview - TC-04: REV-SVC-UP-001 - CRUD: UPDATE", async () => {
       const input = {
         userId: 1,
         productId: 10,
@@ -249,7 +249,7 @@ describe("ReviewService", () => {
   });
 
   describe("getMyReview", () => {
-    it("ReviewService - GET_MY_REVIEW - TCID: REV-SVC-RD-003 - CRUD: READ", async () => {
+    it("ReviewService - getMyReview - TC-01: REV-SVC-RD-003 - CRUD: READ", async () => {
       const mockReview = {
         id: 5,
         rating: 5,
@@ -286,7 +286,7 @@ describe("ReviewService", () => {
       expect(result).toEqual(expected);
     });
 
-    it("ReviewService - GET_MY_REVIEW - TCID: REV-SVC-RD-004 - CRUD: READ", async () => {
+    it("ReviewService - getMyReview - TC-02: REV-SVC-RD-004 - CRUD: READ", async () => {
       const input = { userId: 1, productId: 10 };
       const expected = {
         canReview: false,
@@ -309,7 +309,7 @@ describe("ReviewService", () => {
       expect(result).toEqual(expected);
     });
 
-    it("ReviewService - GET_MY_REVIEW - TCID: REV-SVC-RD-005 - CRUD: READ", async () => {
+    it("ReviewService - getMyReview - TC-03: REV-SVC-RD-005 - CRUD: READ", async () => {
       const input = { userId: 1, productId: 10 };
       const expected = {
         canReview: true,
@@ -344,7 +344,7 @@ describe("ReviewService", () => {
   });
 
   describe("getAllReviews", () => {
-    it("ReviewService - GET_ALL_REVIEWS - TCID: REV-SVC-RD-006 - CRUD: READ", async () => {
+    it("ReviewService - getAllReviews - TC-01: REV-SVC-RD-006 - CRUD: READ", async () => {
       const mockRepositoryResult = {
         items: [
           {
@@ -440,7 +440,7 @@ describe("ReviewService", () => {
       expect(result).toEqual(expected);
     });
 
-    it("ReviewService - GET_ALL_REVIEWS - TCID: REV-SVC-RD-007 - CRUD: READ", async () => {
+    it("ReviewService - getAllReviews - TC-02: REV-SVC-RD-007 - CRUD: READ", async () => {
       const input = {
         keyword: "",
         page: 1,

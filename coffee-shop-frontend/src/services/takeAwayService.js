@@ -58,7 +58,6 @@ const takeawayService = {
 
   /**
    * Staff xác nhận đã giao cho khách (chuyển status served → completed)
-   * @param {number} orderId
    */
   markCompleted(orderId) {
     return axiosClient.post(API_ENDPOINTS.TAKEAWAY.COMPLETE(orderId));

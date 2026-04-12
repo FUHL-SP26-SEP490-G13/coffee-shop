@@ -1,4 +1,5 @@
 const QrOrderRepository = require("../repositories/QrOrderRepository");
+const CashSessionRepository = require("../repositories/CashSessionRepository");
 const ErrorResponse = require("../utils/ErrorResponse");
 const { payOS } = require("../config/payos");
 
@@ -235,6 +236,9 @@ class QrOrderService {
       const finalAmount = Math.max(0, totalAmount - discountAmount);
       const userId = user?.id || null;
 
+      // Lấy ca đang mở để gán vào đơn QR
+      const activeSession = await CashSessionRepository.findOpenSession();
+
       const orderId = await QrOrderRepository.createOrder(connection, {
         user_id: userId,
         created_by: userId,
@@ -245,6 +249,7 @@ class QrOrderService {
         amount: totalAmount,
         discount_amount: discountAmount,
         discount_id: discountIdApplied,
+        cash_session_id: activeSession ? activeSession.id : null,
       });
 
       for (const item of normalizedItems) {

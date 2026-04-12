@@ -27,7 +27,6 @@ import {
   DialogTitle,
   DialogDescription,
 } from "../../../components/ui/dialog";
-import PaginationControl from "../../../components/common/PaginationControl";
 
 export default function AdminOrders() {
   const [orders, setOrders] = useState([]);
@@ -37,9 +36,6 @@ export default function AdminOrders() {
   const [orderCodeFilter, setOrderCodeFilter] = useState("");
   const [startDateFilter, setStartDateFilter] = useState("");
   const [endDateFilter, setEndDateFilter] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalItems, setTotalItems] = useState(0);
   const [selectedOrder, setSelectedOrder] = useState(null);
 
   const hasAdvancedFilters =
@@ -65,8 +61,8 @@ export default function AdminOrders() {
 
         setLoading(true);
         const params = {
-          page: currentPage,
-          limit: 10,
+          page: 1,
+          limit: 10000,
           status: statusFilter,
         };
 
@@ -88,10 +84,6 @@ export default function AdminOrders() {
 
         const res = await orderService.getAllOrders(params);
         setOrders(res.data || []);
-        if (res.pagination) {
-          setTotalPages(res.pagination.totalPages);
-          setTotalItems(res.pagination.totalCount || 0);
-        }
       } catch (error) {
         console.error("Lỗi tải đơn hàng:", error);
         toast.error("Không thể lấy danh sách đơn hàng");
@@ -101,7 +93,6 @@ export default function AdminOrders() {
     };
     fetchOrders();
   }, [
-    currentPage,
     statusFilter,
     orderTypeFilter,
     orderCodeFilter,
@@ -112,12 +103,10 @@ export default function AdminOrders() {
 
   const handleStatusChange = (val) => {
     setStatusFilter(val);
-    setCurrentPage(1); // reset to page 1 always on filter change
   };
 
   const handleOrderTypeChange = (val) => {
     setOrderTypeFilter(val);
-    setCurrentPage(1);
   };
 
   const handleResetFilters = () => {
@@ -126,7 +115,6 @@ export default function AdminOrders() {
     setOrderCodeFilter("");
     setStartDateFilter("");
     setEndDateFilter("");
-    setCurrentPage(1);
   };
 
   const getStatusInfo = (status) => {
@@ -191,7 +179,7 @@ export default function AdminOrders() {
         return { label: type, color: "bg-slate-100 text-slate-800" };
     }
   };
-
+// Tính tổng tiền của đơn hàng dựa trên các món và topping, dùng để đối chiếu với total_amount từ API để suy ra phí giao hàng nếu có
   const calculateSubtotal = (order) => {
     if (!order.items) return 0;
     return order.items.reduce((sum, item) => {
@@ -257,13 +245,13 @@ export default function AdminOrders() {
     <div className="p-4 sm:p-6 lg:p-8 space-y-6">
       <div className="space-y-4">
         <div className="flex items-center justify-between gap-4">
-        <div className="space-y-1">
-          <div className="flex items-center gap-3">
-            <h1 className="text-xl font-semibold">
-              Quản lý Đơn hàng
-            </h1>
+          <div className="space-y-1">
+            <div className="flex items-center gap-3">
+              <h1 className="text-xl font-semibold">
+                Quản lý Đơn hàng
+              </h1>
+            </div>
           </div>
-        </div>
         </div>
 
         <div className="rounded-xl border bg-white p-3 sm:p-4 shadow-sm space-y-3">
@@ -274,7 +262,6 @@ export default function AdminOrders() {
                 value={orderCodeFilter}
                 onChange={(e) => {
                   setOrderCodeFilter(e.target.value);
-                  setCurrentPage(1);
                 }}
                 placeholder="Ví dụ: 1025 hoặc #01025"
               />
@@ -287,7 +274,6 @@ export default function AdminOrders() {
                 value={startDateFilter}
                 onChange={(e) => {
                   setStartDateFilter(e.target.value);
-                  setCurrentPage(1);
                 }}
                 max={endDateFilter || undefined}
               />
@@ -300,7 +286,6 @@ export default function AdminOrders() {
                 value={endDateFilter}
                 onChange={(e) => {
                   setEndDateFilter(e.target.value);
-                  setCurrentPage(1);
                 }}
                 min={startDateFilter || undefined}
               />
@@ -368,13 +353,14 @@ export default function AdminOrders() {
           const count = statusSummary[filter.value] || 0;
 
           return (
+            // lọc theo trạng thái
             <button
               key={filter.value}
               type="button"
               onClick={() => handleStatusChange(filter.value)}
               className={`rounded-xl border px-3 py-2 text-left transition-colors ${isActive
-                  ? "border-primary/40 bg-primary/5"
-                  : "border-gray-200 bg-white hover:bg-gray-50"
+                ? "border-primary/40 bg-primary/5"
+                : "border-gray-200 bg-white hover:bg-gray-50"
                 }`}
             >
               <p
@@ -526,15 +512,6 @@ export default function AdminOrders() {
         )}
       </div>
 
-      <PaginationControl
-        currentPage={currentPage}
-        totalPages={totalPages}
-        onPageChange={setCurrentPage}
-        totalItems={totalItems}
-        itemsPerPage={10}
-        itemName="đơn hàng"
-      />
-
       {/* Order Details Modal */}
       <Dialog
         open={!!selectedOrder}
@@ -599,8 +576,8 @@ export default function AdminOrders() {
                       {(selectedOrder.receiver_name ||
                         selectedOrder.receiver_phone ||
                         selectedOrder.receiver_email) && (
-                        <div className="pt-2 border-t border-dashed border-gray-100" />
-                      )}
+                          <div className="pt-2 border-t border-dashed border-gray-100" />
+                        )}
 
                       {selectedOrder.receiver_name && (
                         <div className="flex justify-between">
@@ -668,174 +645,174 @@ export default function AdminOrders() {
                 </div>
 
                 <div className="md:col-span-7 space-y-4">
-                {/* Items List */}
-                <div className="rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
-                  <div className="bg-gray-50 dark:bg-gray-800/50 p-3 border-b border-gray-100 dark:border-gray-700 flex items-center gap-2 text-primary font-medium">
-                    <ReceiptText className="w-4 h-4" />
-                    Danh sách sản phẩm
-                  </div>
-                  <div className="divide-y divide-gray-100">
-                    {selectedOrder.items &&
-                      selectedOrder.items.map((item, index) => {
-                        const unitTotal = Number(item.price || 0);
-                        const toppings = Array.isArray(item.toppings)
-                          ? item.toppings
-                          : Array.isArray(item.toppings_raw)
-                            ? item.toppings_raw.filter((t) => t)
-                            : [];
-                        const toppingsPrice = toppings.reduce(
-                          (sum, t) => sum + Number(t.price || 0),
-                          0,
-                        );
-                        const baseDrinkPrice = Math.max(
-                          0,
-                          unitTotal - toppingsPrice,
-                        );
+                  {/* Items List */}
+                  <div className="rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
+                    <div className="bg-gray-50 dark:bg-gray-800/50 p-3 border-b border-gray-100 dark:border-gray-700 flex items-center gap-2 text-primary font-medium">
+                      <ReceiptText className="w-4 h-4" />
+                      Danh sách sản phẩm
+                    </div>
+                    <div className="divide-y divide-gray-100">
+                      {selectedOrder.items &&
+                        selectedOrder.items.map((item, index) => {
+                          const unitTotal = Number(item.price || 0);
+                          const toppings = Array.isArray(item.toppings)
+                            ? item.toppings
+                            : Array.isArray(item.toppings_raw)
+                              ? item.toppings_raw.filter((t) => t)
+                              : [];
+                          const toppingsPrice = toppings.reduce(
+                            (sum, t) => sum + Number(t.price || 0),
+                            0,
+                          );
+                          const baseDrinkPrice = Math.max(
+                            0,
+                            unitTotal - toppingsPrice,
+                          );
 
-                        return (
-                          <div
-                            key={index}
-                            className="p-4 flex justify-between gap-4 bg-white dark:bg-gray-900 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 dark:bg-gray-800/30 transition-colors"
-                          >
-                            <div className="flex gap-3">
-                              <span className="font-semibold text-gray-900 dark:text-gray-100 bg-gray-100 dark:bg-gray-800 w-6 h-6 flex items-center justify-center rounded text-sm shrink-0">
-                                {item.quantity}
-                              </span>
-                              <div className="space-y-1">
-                                <p className="font-medium text-gray-900 dark:text-gray-100 leading-none">
-                                  {item.product?.name || "Sản phẩm"}
-                                  <span className="ml-2 font-normal text-gray-500">
-                                    (
-                                    {Number(baseDrinkPrice).toLocaleString(
-                                      "vi-VN",
-                                    )}
-                                    đ)
-                                  </span>
-                                </p>
-                                {item.size && (
-                                  <p className="text-xs text-gray-500">
-                                    Size:{" "}
-                                    <span className="font-medium text-gray-700 dark:text-gray-200">
-                                      {item.size}
+                          return (
+                            <div
+                              key={index}
+                              className="p-4 flex justify-between gap-4 bg-white dark:bg-gray-900 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 dark:bg-gray-800/30 transition-colors"
+                            >
+                              <div className="flex gap-3">
+                                <span className="font-semibold text-gray-900 dark:text-gray-100 bg-gray-100 dark:bg-gray-800 w-6 h-6 flex items-center justify-center rounded text-sm shrink-0">
+                                  {item.quantity}
+                                </span>
+                                <div className="space-y-1">
+                                  <p className="font-medium text-gray-900 dark:text-gray-100 leading-none">
+                                    {item.product?.name || "Sản phẩm"}
+                                    <span className="ml-2 font-normal text-gray-500">
+                                      (
+                                      {Number(baseDrinkPrice).toLocaleString(
+                                        "vi-VN",
+                                      )}
+                                      đ)
                                     </span>
                                   </p>
-                                )}
+                                  {item.size && (
+                                    <p className="text-xs text-gray-500">
+                                      Size:{" "}
+                                      <span className="font-medium text-gray-700 dark:text-gray-200">
+                                        {item.size}
+                                      </span>
+                                    </p>
+                                  )}
+                                  {toppings.length > 0 && (
+                                    <ul className="text-xs text-gray-500 list-disc pl-4 space-y-0.5 mt-1">
+                                      {toppings.map((t, idx) => (
+                                        <li key={idx}>
+                                          <span className="text-gray-700 dark:text-gray-200">
+                                            {t.name}
+                                          </span>{" "}
+                                          (+
+                                          {Number(t.price || 0).toLocaleString(
+                                            "vi-VN",
+                                          )}
+                                          đ)
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  )}
+                                  {item.note && (
+                                    <p className="text-xs text-amber-600 bg-amber-50 inline-block px-1.5 py-0.5 rounded mt-1">
+                                      Note: {item.note}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="text-right shrink-0">
+                                <p className="font-medium text-gray-900 dark:text-gray-100">
+                                  {Number(
+                                    unitTotal * item.quantity,
+                                  ).toLocaleString("vi-VN")}
+                                  đ
+                                </p>
                                 {toppings.length > 0 && (
-                                  <ul className="text-xs text-gray-500 list-disc pl-4 space-y-0.5 mt-1">
-                                    {toppings.map((t, idx) => (
-                                      <li key={idx}>
-                                        <span className="text-gray-700 dark:text-gray-200">
-                                          {t.name}
-                                        </span>{" "}
-                                        (+
-                                        {Number(t.price || 0).toLocaleString(
-                                          "vi-VN",
-                                        )}
-                                        đ)
-                                      </li>
-                                    ))}
-                                  </ul>
-                                )}
-                                {item.note && (
-                                  <p className="text-xs text-amber-600 bg-amber-50 inline-block px-1.5 py-0.5 rounded mt-1">
-                                    Note: {item.note}
+                                  <p className="text-xs text-gray-400 mt-1">
+                                    ({Number(unitTotal).toLocaleString("vi-VN")}
+                                    đ/sp)
                                   </p>
                                 )}
                               </div>
                             </div>
-                            <div className="text-right shrink-0">
-                              <p className="font-medium text-gray-900 dark:text-gray-100">
-                                {Number(
-                                  unitTotal * item.quantity,
-                                ).toLocaleString("vi-VN")}
-                                đ
-                              </p>
-                              {toppings.length > 0 && (
-                                <p className="text-xs text-gray-400 mt-1">
-                                  ({Number(unitTotal).toLocaleString("vi-VN")}
-                                  đ/sp)
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
-                  </div>
-                </div>
-
-                {/* Payment Summary */}
-                {(() => {
-                  const subtotal = calculateSubtotal(selectedOrder);
-                  const shippingFee = getShippingFee(selectedOrder, subtotal);
-                  const total = Number(selectedOrder.total_amount || 0);
-                  const discountAmount = Math.max(0, subtotal + shippingFee - total);
-
-                  return (
-                <div className="rounded-xl bg-gray-50 dark:bg-gray-800 p-4 space-y-3">
-                  <div className="flex items-center gap-2 text-gray-700 dark:text-gray-200 font-medium pb-2 border-b border-gray-200 dark:border-gray-700">
-                    <CreditCard className="w-4 h-4" />
-                    Thanh toán
-                  </div>
-                  <div className="flex justify-between text-sm text-gray-600 dark:text-gray-300">
-                    <span>Tạm tính</span>
-                    <span>
-                      {Number(subtotal).toLocaleString("vi-VN")}
-                      đ
-                    </span>
-                  </div>
-                  {shippingFee > 0 && (
-                    <div className="flex justify-between text-sm text-cyan-700 dark:text-cyan-300">
-                      <span>Phí vận chuyển</span>
-                      <span>
-                        +{Number(shippingFee).toLocaleString("vi-VN")}đ
-                      </span>
+                          );
+                        })}
                     </div>
-                  )}
-                  {discountAmount > 0 && (
-                      <div className="flex justify-between text-sm text-emerald-600">
-                        <span>Giảm giá</span>
-                        <span>
-                          -
-                          {Number(discountAmount).toLocaleString("vi-VN")}
-                          đ
-                        </span>
-                      </div>
-                    )}
-                  <div className="flex justify-between text-base font-bold text-gray-900 pt-2 border-t border-gray-200">
-                    <span>Tổng thanh toán</span>
-                    <span className="text-primary">
-                      {Number(selectedOrder.total_amount).toLocaleString(
-                        "vi-VN",
-                      )}
-                      đ
-                    </span>
                   </div>
 
-                  <div className="pt-2 flex items-center justify-between text-xs text-gray-500">
-                    <span>
-                      Phương thức:{" "}
-                      <span className="font-medium text-gray-700 dark:text-gray-200">
-                        {(selectedOrder.payment_method === "cash"
-                          ? "Tiền mặt"
-                          : "PayOS"
-                        ).toUpperCase()}
-                      </span>
-                    </span>
-                    {selectedOrder.is_paid ||
-                      selectedOrder.payment?.status === "paid" ||
-                      selectedOrder.payment?.status === "success" ? (
-                      <span className="text-emerald-600 font-medium flex items-center gap-1">
-                        Đã thanh toán
-                      </span>
-                    ) : (
-                      <span className="text-amber-600 font-medium">
-                        Chưa thanh toán
-                      </span>
-                    )}
-                  </div>
-                </div>
-                  );
-                })()}
+                  {/* Payment Summary */}
+                  {(() => {
+                    const subtotal = calculateSubtotal(selectedOrder);
+                    const shippingFee = getShippingFee(selectedOrder, subtotal);
+                    const total = Number(selectedOrder.total_amount || 0);
+                    const discountAmount = Math.max(0, subtotal + shippingFee - total);
+
+                    return (
+                      <div className="rounded-xl bg-gray-50 dark:bg-gray-800 p-4 space-y-3">
+                        <div className="flex items-center gap-2 text-gray-700 dark:text-gray-200 font-medium pb-2 border-b border-gray-200 dark:border-gray-700">
+                          <CreditCard className="w-4 h-4" />
+                          Thanh toán
+                        </div>
+                        <div className="flex justify-between text-sm text-gray-600 dark:text-gray-300">
+                          <span>Tạm tính</span>
+                          <span>
+                            {Number(subtotal).toLocaleString("vi-VN")}
+                            đ
+                          </span>
+                        </div>
+                        {shippingFee > 0 && (
+                          <div className="flex justify-between text-sm text-cyan-700 dark:text-cyan-300">
+                            <span>Phí vận chuyển</span>
+                            <span>
+                              +{Number(shippingFee).toLocaleString("vi-VN")}đ
+                            </span>
+                          </div>
+                        )}
+                        {discountAmount > 0 && (
+                          <div className="flex justify-between text-sm text-emerald-600">
+                            <span>Giảm giá</span>
+                            <span>
+                              -
+                              {Number(discountAmount).toLocaleString("vi-VN")}
+                              đ
+                            </span>
+                          </div>
+                        )}
+                        <div className="flex justify-between text-base font-bold text-gray-900 pt-2 border-t border-gray-200">
+                          <span>Tổng thanh toán</span>
+                          <span className="text-primary">
+                            {Number(selectedOrder.total_amount).toLocaleString(
+                              "vi-VN",
+                            )}
+                            đ
+                          </span>
+                        </div>
+
+                        <div className="pt-2 flex items-center justify-between text-xs text-gray-500">
+                          <span>
+                            Phương thức:{" "}
+                            <span className="font-medium text-gray-700 dark:text-gray-200">
+                              {(selectedOrder.payment_method === "cash"
+                                ? "Tiền mặt"
+                                : "PayOS"
+                              ).toUpperCase()}
+                            </span>
+                          </span>
+                          {selectedOrder.is_paid ||
+                            selectedOrder.payment?.status === "paid" ||
+                            selectedOrder.payment?.status === "success" ? (
+                            <span className="text-emerald-600 font-medium flex items-center gap-1">
+                              Đã thanh toán
+                            </span>
+                          ) : (
+                            <span className="text-amber-600 font-medium">
+                              Chưa thanh toán
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
             </>

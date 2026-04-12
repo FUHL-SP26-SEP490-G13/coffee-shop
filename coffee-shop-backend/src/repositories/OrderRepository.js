@@ -182,6 +182,7 @@ class OrderRepository {
   }
 
   async createOrderPayment(connection, data) {
+    const isCash = data.payment_method === "cash";
     const amount = Number(data.amount) || 0;
     const paymentStatus = data.payment_status || "pending";
     const isPaid = paymentStatus === "paid";
@@ -687,7 +688,7 @@ class OrderRepository {
       params,
     };
   }
-
+// Hàm lấy danh sách đơn hàng với phân trang và bộ lọc cho admin
   async findAllOrders({
     limit = 20,
     offset = 0,
@@ -740,7 +741,7 @@ class OrderRepository {
     const [rows] = await db.query(query, params);
     return rows;
   }
-
+// Hàm đếm tổng số đơn hàng (không phân trang) theo các bộ lọc để phục vụ phân trang ở frontend( admin)
   async countAllOrders({
     status = "all",
     order_type = "all",

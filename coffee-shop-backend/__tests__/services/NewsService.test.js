@@ -12,7 +12,7 @@ describe("NewsService", () => {
   });
 
   describe("generateUniqueSlug", () => {
-    it("NewsService - GENERATE_UNIQUE_SLUG - TC-1: should generate base slug when slug does not exist", async () => {
+    it("NewsService - generateUniqueSlug - TC-01: should generate base slug when slug does not exist", async () => {
       console.log("\n" + "=".repeat(50));
       console.log(
         "NewsService - GENERATE_UNIQUE_SLUG - TC-1: Tạo slug cơ bản khi chưa tồn tại"
@@ -40,7 +40,7 @@ describe("NewsService", () => {
       expect(result).toBe("bài-viết-mới");
     });
 
-    it("NewsService - GENERATE_UNIQUE_SLUG - TC-2: should append number when slug already exists", async () => {
+    it("NewsService - generateUniqueSlug - TC-02: should append number when slug already exists", async () => {
       console.log("\n" + "=".repeat(50));
       console.log(
         "NewsService - GENERATE_UNIQUE_SLUG - TC-2: Tạo slug duy nhất khi slug đã tồn tại"
@@ -75,7 +75,7 @@ describe("NewsService", () => {
   });
 
   describe("getAllPublished", () => {
-    it("NewsService - GET_ALL_PUBLISHED - TC-1: should get published news successfully", async () => {
+    it("NewsService - getAllPublished - TC-01: should get published news successfully", async () => {
       console.log("\n" + "=".repeat(50));
       console.log(
         "NewsService - GET_ALL_PUBLISHED - TC-1: Lấy danh sách tin published thành công"
@@ -114,7 +114,7 @@ describe("NewsService", () => {
   });
 
   describe("getDetailBySlug", () => {
-    it("NewsService - GET_DETAIL_BY_SLUG - TC-1: should get detail and increase view successfully", async () => {
+    it("NewsService - getDetailBySlug - TC-01: should get detail and increase view successfully", async () => {
       console.log("\n" + "=".repeat(50));
       console.log(
         "NewsService - GET_DETAIL_BY_SLUG - TC-1: Lấy chi tiết bài viết và tăng lượt xem thành công"
@@ -149,7 +149,7 @@ describe("NewsService", () => {
       expect(result).toEqual(mockNews);
     });
 
-    it("NewsService - GET_DETAIL_BY_SLUG - TC-2: should throw error when news does not exist", async () => {
+    it("NewsService - getDetailBySlug - TC-02: should throw error when news does not exist", async () => {
       console.log("\n" + "=".repeat(50));
       console.log(
         "NewsService - GET_DETAIL_BY_SLUG - TC-2: Lỗi khi tin không tồn tại"
@@ -180,7 +180,7 @@ describe("NewsService", () => {
   });
 
   describe("getFeatured", () => {
-    it("NewsService - GET_FEATURED - TC-1: should get featured news successfully", async () => {
+    it("NewsService - getFeatured - TC-01: should get featured news successfully", async () => {
       console.log("\n" + "=".repeat(50));
       console.log(
         "NewsService - GET_FEATURED - TC-1: Lấy tin nổi bật thành công"
@@ -199,7 +199,7 @@ describe("NewsService", () => {
   });
 
   describe("createNews", () => {
-    it("NewsService - CREATE_NEWS - TC-1: should create news successfully", async () => {
+    it("NewsService - createNews - TC-01: should create news successfully", async () => {
       console.log("\n" + "=".repeat(50));
       console.log("NewsService - CREATE_NEWS - TC-1: Tạo bài viết thành công");
       console.log("=".repeat(50));
@@ -247,7 +247,7 @@ describe("NewsService", () => {
       expect(result).toEqual(createdNews);
     });
 
-    it("NewsService - CREATE_NEWS - TC-2: should throw error when title already exists", async () => {
+    it("NewsService - createNews - TC-02: should throw error when title already exists", async () => {
       console.log("\n" + "=".repeat(50));
       console.log(
         "NewsService - CREATE_NEWS - TC-2: Lỗi khi tiêu đề bài viết đã tồn tại"
@@ -292,7 +292,7 @@ describe("NewsService", () => {
   });
 
   describe("getAllAdmin", () => {
-    it("NewsService - GET_ALL_ADMIN - TC-1: should get all admin news successfully", async () => {
+    it("NewsService - getAllAdmin - TC-01: should get all admin news successfully", async () => {
       console.log("\n" + "=".repeat(50));
       console.log(
         "NewsService - GET_ALL_ADMIN - TC-1: Lấy danh sách tin admin thành công"
@@ -335,7 +335,7 @@ describe("NewsService", () => {
   });
 
   describe("deleteNews", () => {
-    it("NewsService - DELETE_NEWS - TC-1: should delete news successfully", async () => {
+    it("NewsService - deleteNews - TC-01: should delete news successfully", async () => {
       console.log("\n" + "=".repeat(50));
       console.log("NewsService - DELETE_NEWS - TC-1: Xóa bài viết thành công");
       console.log("=".repeat(50));
@@ -364,7 +364,7 @@ describe("NewsService", () => {
   });
 
   describe("updateNews", () => {
-    it("NewsService - UPDATE_NEWS - TC-1: should update news successfully", async () => {
+    it("NewsService - updateNews - TC-01: should update news successfully", async () => {
       console.log("\n" + "=".repeat(50));
       console.log(
         "NewsService - UPDATE_NEWS - TC-1: Cập nhật bài viết thành công"
@@ -406,7 +406,7 @@ describe("NewsService", () => {
       expect(result).toBe(true);
     });
 
-    it("NewsService - UPDATE_NEWS - TC-2: should throw error when title already exists", async () => {
+    it("NewsService - updateNews - TC-02: should throw error when title already exists", async () => {
       console.log("\n" + "=".repeat(50));
       console.log(
         "NewsService - UPDATE_NEWS - TC-2: Lỗi khi tiêu đề bài viết đã tồn tại"
@@ -449,7 +449,7 @@ describe("NewsService", () => {
   });
 
   describe("getById", () => {
-    it("NewsService - GET_BY_ID - TC-1: should get news by id successfully", async () => {
+    it("NewsService - getById - TC-01: should get news by id successfully", async () => {
       console.log("\n" + "=".repeat(50));
       console.log(
         "NewsService - GET_BY_ID - TC-1: Lấy bài viết theo id thành công"
@@ -478,7 +478,7 @@ describe("NewsService", () => {
       expect(result).toEqual(mockNews);
     });
 
-    it("NewsService - GET_BY_ID - TC-2: should throw error when news not found", async () => {
+    it("NewsService - getById - TC-02: should throw error when news not found", async () => {
       console.log("\n" + "=".repeat(50));
       console.log(
         "NewsService - GET_BY_ID - TC-2: Lỗi khi không tìm thấy bài viết"
@@ -505,7 +505,7 @@ describe("NewsService", () => {
   });
 
   describe("getRelated", () => {
-    it("NewsService - GET_RELATED - TC-1: should return empty array when tag is missing", async () => {
+    it("NewsService - getRelated - TC-01: should return empty array when tag is missing", async () => {
       console.log("\n" + "=".repeat(50));
       console.log(
         "NewsService - GET_RELATED - TC-1: Trả về mảng rỗng khi không có tag"
@@ -530,7 +530,7 @@ describe("NewsService", () => {
       expect(NewsRepository.findRelatedByTag).not.toHaveBeenCalled();
     });
 
-    it("NewsService - GET_RELATED - TC-2: should get related news successfully", async () => {
+    it("NewsService - getRelated - TC-02: should get related news successfully", async () => {
       console.log("\n" + "=".repeat(50));
       console.log(
         "NewsService - GET_RELATED - TC-2: Lấy tin liên quan thành công"
