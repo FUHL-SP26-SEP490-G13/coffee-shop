@@ -1,393 +1,370 @@
 const TableService = require('../../src/services/TableService');
 const TableRepository = require('../../src/repositories/TableRepository');
 const AreaRepository = require('../../src/repositories/AreaRepository');
+const LoyaltyService = require('../../src/services/LoyaltyService');
 
-// Mock dependencies
 jest.mock('../../src/repositories/TableRepository');
 jest.mock('../../src/repositories/AreaRepository');
+jest.mock('../../src/services/LoyaltyService');
 
 describe('TableService', () => {
+  const printDivider = () => {
+    console.log('\n' + '='.repeat(50));
+  };
+
+  const logCase = ({ title, input, expected, reality }) => {
+    printDivider();
+    console.log(title);
+    printDivider();
+
+    if (input !== undefined) {
+      console.log('\nINPUT:', JSON.stringify(input, null, 2));
+    }
+    if (expected !== undefined) {
+      console.log('OUTPUT EXPECT:', JSON.stringify(expected, null, 2));
+    }
+    if (reality !== undefined) {
+      console.log('OUTPUT REALITY:', JSON.stringify(reality, null, 2));
+    }
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
+    TableRepository.db = {
+      query: jest.fn(),
+    };
+    LoyaltyService.syncOrderLoyaltyByOrderId.mockResolvedValue(true);
   });
 
-  // ========== GET ALL TABLES TESTS ==========
   describe('getAllTables', () => {
-    it('TableService - getAllTables - TC-01: should get all tables with area info', async () => {
-      console.log('\n' + '='.repeat(50));
-      console.log('TableService - GET_ALL - TC-1: Lấy tất cả bàn kèm thông tin khu vực');
-      console.log('='.repeat(50));
-
-      // Arrange
-      const mockTables = [
-        { id: 1, table_number: 1, area_id: 1, area_name: 'Khu A', status: 'available', is_deleted: 0 },
-        { id: 2, table_number: 2, area_id: 1, area_name: 'Khu A', status: 'occupied', is_deleted: 0 },
+    it('TableService - getAllTables - TC-01: should return all tables when no status filter', async () => {
+      const input = {};
+      const rows = [
+        { id: 1, code: 'TB-01', status: 'available', area_name: 'A' },
+        { id: 2, code: 'TB-02', status: 'occupied', area_name: 'A' },
       ];
-      TableRepository.db = {
-        query: jest.fn().mockResolvedValue([mockTables]),
-      };
+      TableRepository.db.query.mockResolvedValue([rows]);
 
-      // OUTPUT EXPECT
-      console.log('✅ OUTPUT EXPECT: Array of tables with area names');
-
-      // Act
       const result = await TableService.getAllTables();
 
-      // OUTPUT REALITY
-      console.log('🎯 OUTPUT REALITY:', JSON.stringify(result, null, 2));
+      logCase({
+        title: 'TableService - getAllTables - TC-01',
+        input,
+        expected: rows,
+        reality: result,
+      });
 
-      // Assert
-      expect(TableRepository.db.query).toHaveBeenCalled();
-      expect(result).toHaveLength(2);
-      expect(result[0]).toHaveProperty('area_name');
+      expect(TableRepository.db.query).toHaveBeenCalledWith(expect.stringContaining('WHERE t.is_deleted = 0'), []);
+      expect(result).toEqual(rows);
     });
 
-    it('TableService - getAllTables - TC-02: should filter tables by status', async () => {
-      console.log('\n' + '='.repeat(50));
-      console.log('TableService - GET_ALL - TC-2: Lọc bàn theo trạng thái');
-      console.log('='.repeat(50));
-
-      // INPUT
+    it('TableService - getAllTables - TC-02: should append status filter when status is provided', async () => {
       const input = { status: 'available' };
-      console.log('\n📝 INPUT:', JSON.stringify(input, null, 2));
+      const rows = [{ id: 1, code: 'TB-01', status: 'available' }];
+      TableRepository.db.query.mockResolvedValue([rows]);
 
-      // Arrange
-      const mockAvailableTables = [
-        { id: 1, table_number: 1, status: 'available' },
-      ];
-      TableRepository.db = {
-        query: jest.fn().mockResolvedValue([mockAvailableTables]),
-      };
-
-      // OUTPUT EXPECT
-      console.log('✅ OUTPUT EXPECT: Only available tables');
-
-      // Act
       const result = await TableService.getAllTables(input);
 
-      // OUTPUT REALITY
-      console.log('🎯 OUTPUT REALITY:', JSON.stringify(result, null, 2));
+      logCase({
+        title: 'TableService - getAllTables - TC-02',
+        input,
+        expected: rows,
+        reality: result,
+      });
 
-      // Assert
-      expect(TableRepository.db.query).toHaveBeenCalled();
-      expect(result).toHaveLength(1);
-      expect(result[0].status).toBe('available');
+      const [query, params] = TableRepository.db.query.mock.calls[0];
+      expect(query).toContain('AND t.status = ?');
+      expect(params).toEqual(['available']);
+      expect(result).toEqual(rows);
     });
   });
 
-  // ========== GET TABLE BY ID TESTS ==========
   describe('getTableById', () => {
-    it('TableService - getTableById - TC-01: should get table by ID successfully', async () => {
-      console.log('\n' + '='.repeat(50));
-      console.log('TableService - GET_BY_ID - TC-1: Lấy bàn theo ID thành công');
-      console.log('='.repeat(50));
+    it('TableService - getTableById - TC-01: should return table when table exists and not deleted', async () => {
+      const input = { id: 10 };
+      const table = { id: 10, code: 'TB-10', is_deleted: 0 };
+      TableRepository.findById.mockResolvedValue(table);
 
-      // INPUT
-      const input = { id: 1 };
-      console.log('\n📝 INPUT:', JSON.stringify(input, null, 2));
-
-      // Arrange
-      const mockTable = { id: 1, table_number: 1, area_id: 1, is_deleted: 0 };
-      TableRepository.findById.mockResolvedValue(mockTable);
-
-      // OUTPUT EXPECT
-      console.log('✅ OUTPUT EXPECT: Table with id = 1');
-
-      // Act
       const result = await TableService.getTableById(input.id);
 
-      // OUTPUT REALITY
-      console.log('🎯 OUTPUT REALITY:', JSON.stringify(result, null, 2));
+      logCase({
+        title: 'TableService - getTableById - TC-01',
+        input,
+        expected: table,
+        reality: result,
+      });
 
-      // Assert
-      expect(TableRepository.findById).toHaveBeenCalledWith(1);
-      expect(result.id).toBe(1);
+      expect(TableRepository.findById).toHaveBeenCalledWith(10);
+      expect(result).toEqual(table);
     });
 
-    it('TableService - getTableById - TC-02: should throw error when table not found', async () => {
-      console.log('\n' + '='.repeat(50));
-      console.log('TableService - GET_BY_ID - TC-2: Lỗi khi bàn không tồn tại');
-      console.log('='.repeat(50));
-
-      // INPUT
+    it('TableService - getTableById - TC-02: should throw 404 when table is not found', async () => {
       const input = { id: 999 };
-      console.log('\n📝 INPUT:', JSON.stringify(input, null, 2));
+      const expectedError = 'Bàn không tồn tại';
+      let actualError = null;
 
-      // Arrange
       TableRepository.findById.mockResolvedValue(null);
 
-      // OUTPUT EXPECT
-      const expectedError = 'Bàn không tồn tại';
-      console.log('✅ OUTPUT EXPECT: Error -', expectedError);
+      try {
+        await TableService.getTableById(input.id);
+      } catch (error) {
+        actualError = error.message;
+      }
 
-      // Act & Assert
-      await expect(TableService.getTableById(input.id)).rejects.toThrow(expectedError);
+      logCase({
+        title: 'TableService - getTableById - TC-02',
+        input,
+        expected: expectedError,
+        reality: actualError,
+      });
 
-      // OUTPUT REALITY
-      console.log('🎯 OUTPUT REALITY: Thrown error -', expectedError);
+      expect(actualError).toBe(expectedError);
     });
 
-    it('TableService - getTableById - TC-03: should throw error when table is deleted', async () => {
-      console.log('\n' + '='.repeat(50));
-      console.log('TableService - GET_BY_ID - TC-3: Lỗi khi bàn đã bị xóa');
-      console.log('='.repeat(50));
-
-      // INPUT
-      const input = { id: 1 };
-      console.log('\n📝 INPUT:', JSON.stringify(input, null, 2));
-
-      // Arrange
-      const mockDeletedTable = { id: 1, table_number: 1, is_deleted: 1 };
-      TableRepository.findById.mockResolvedValue(mockDeletedTable);
-
-      // OUTPUT EXPECT
+    it('TableService - getTableById - TC-03: should throw 404 when table is soft deleted', async () => {
+      const input = { id: 2 };
       const expectedError = 'Bàn không tồn tại';
-      console.log('✅ OUTPUT EXPECT: Error -', expectedError);
+      let actualError = null;
 
-      // Act & Assert
-      await expect(TableService.getTableById(input.id)).rejects.toThrow(expectedError);
+      TableRepository.findById.mockResolvedValue({ id: 2, is_deleted: 1 });
 
-      // OUTPUT REALITY
-      console.log('🎯 OUTPUT REALITY: Thrown error -', expectedError);
+      try {
+        await TableService.getTableById(input.id);
+      } catch (error) {
+        actualError = error.message;
+      }
+
+      logCase({
+        title: 'TableService - getTableById - TC-03',
+        input,
+        expected: expectedError,
+        reality: actualError,
+      });
+
+      expect(actualError).toBe(expectedError);
     });
   });
 
-  // ========== CREATE TABLE TESTS ==========
   describe('createTable', () => {
-    it('TableService - createTable - TC-01: should create table successfully', async () => {
-      console.log('\n' + '='.repeat(50));
-      console.log('TableService - CREATE - TC-1: Tạo bàn thành công');
-      console.log('='.repeat(50));
+    it('TableService - createTable - TC-01: should auto generate next code and use default seatNumber', async () => {
+      const input = { area_id: 1 };
+      const expected = { id: 20, code: 'TB-10', seatNumber: 4, area_id: 1 };
 
-      // INPUT
-      const input = {
-        table_number: 5,
-        area_id: 1,
-      };
-      console.log('\n📝 INPUT:', JSON.stringify(input, null, 2));
+      AreaRepository.findById.mockResolvedValue({ id: 1, name: 'Area 1' });
+      TableRepository.db.query.mockResolvedValueOnce([[{ code: 'TB-09' }]]);
+      TableRepository.create.mockResolvedValue(expected);
 
-      // Arrange
-      const mockArea = { id: 1, name: 'Khu A' };
-      AreaRepository.findById.mockResolvedValue(mockArea);
-      TableRepository.existsInArea.mockResolvedValue(false);
-      const mockCreatedTable = { id: 5, table_number: 5, area_id: 1, status: 'available' };
-      TableRepository.create.mockResolvedValue(mockCreatedTable);
-
-      // OUTPUT EXPECT
-      console.log('✅ OUTPUT EXPECT: Created table with id = 5');
-
-      // Act
       const result = await TableService.createTable(input);
 
-      // OUTPUT REALITY
-      console.log('🎯 OUTPUT REALITY:', JSON.stringify(result, null, 2));
+      logCase({
+        title: 'TableService - createTable - TC-01',
+        input,
+        expected,
+        reality: result,
+      });
 
-      // Assert
-      expect(AreaRepository.findById).toHaveBeenCalledWith(1);
-      expect(TableRepository.existsInArea).toHaveBeenCalledWith(5, 1);
       expect(TableRepository.create).toHaveBeenCalledWith({
-        table_number: 5,
+        code: 'TB-10',
+        seatNumber: 4,
         area_id: 1,
         status: 'available',
         is_deleted: 0,
       });
-      expect(result.id).toBe(5);
+      expect(result).toEqual(expected);
     });
 
-    it('TableService - createTable - TC-02: should throw error when area not exists', async () => {
-      console.log('\n' + '='.repeat(50));
-      console.log('TableService - CREATE - TC-2: Lỗi khi khu vực không tồn tại');
-      console.log('='.repeat(50));
+    it('TableService - createTable - TC-02: should start from TB-01 when there is no previous table code', async () => {
+      const input = { area_id: 1, seatNumber: 6 };
+      const expected = { id: 1, code: 'TB-01', seatNumber: 6, area_id: 1 };
 
-      // INPUT
-      const input = {
-        table_number: 5,
-        area_id: 999,
-      };
-      console.log('\n📝 INPUT:', JSON.stringify(input, null, 2));
+      AreaRepository.findById.mockResolvedValue({ id: 1, name: 'Area 1' });
+      TableRepository.db.query.mockResolvedValueOnce([[]]);
+      TableRepository.create.mockResolvedValue(expected);
 
-      // Arrange
+      const result = await TableService.createTable(input);
+
+      logCase({
+        title: 'TableService - createTable - TC-02',
+        input,
+        expected,
+        reality: result,
+      });
+
+      expect(TableRepository.create).toHaveBeenCalledWith({
+        code: 'TB-01',
+        seatNumber: 6,
+        area_id: 1,
+        status: 'available',
+        is_deleted: 0,
+      });
+      expect(result).toEqual(expected);
+    });
+
+    it('TableService - createTable - TC-03: should throw 404 when area does not exist', async () => {
+      const input = { area_id: 999 };
+      const expectedError = 'Khu vực không tồn tại';
+      let actualError = null;
+
       AreaRepository.findById.mockResolvedValue(null);
 
-      // OUTPUT EXPECT
-      const expectedError = 'Khu vực không tồn tại';
-      console.log('✅ OUTPUT EXPECT: Error -', expectedError);
+      try {
+        await TableService.createTable(input);
+      } catch (error) {
+        actualError = error.message;
+      }
 
-      // Act & Assert
-      await expect(TableService.createTable(input)).rejects.toThrow(expectedError);
+      logCase({
+        title: 'TableService - createTable - TC-03',
+        input,
+        expected: expectedError,
+        reality: actualError,
+      });
 
-      // OUTPUT REALITY
-      console.log('🎯 OUTPUT REALITY: Thrown error -', expectedError);
-
-      expect(TableRepository.create).not.toHaveBeenCalled();
-    });
-
-    it('TableService - createTable - TC-03: should throw error when table number exists in area', async () => {
-      console.log('\n' + '='.repeat(50));
-      console.log('TableService - CREATE - TC-3: Lỗi khi số bàn đã tồn tại trong khu vực');
-      console.log('='.repeat(50));
-
-      // INPUT
-      const input = {
-        table_number: 1,
-        area_id: 1,
-      };
-      console.log('\n📝 INPUT:', JSON.stringify(input, null, 2));
-
-      // Arrange
-      const mockArea = { id: 1, name: 'Khu A' };
-      AreaRepository.findById.mockResolvedValue(mockArea);
-      TableRepository.existsInArea.mockResolvedValue(true);
-
-      // OUTPUT EXPECT
-      const expectedError = 'Bàn số 1 đã tồn tại trong khu vực này';
-      console.log('✅ OUTPUT EXPECT: Error -', expectedError);
-
-      // Act & Assert
-      await expect(TableService.createTable(input)).rejects.toThrow(expectedError);
-
-      // OUTPUT REALITY
-      console.log('🎯 OUTPUT REALITY: Thrown error -', expectedError);
-
+      expect(actualError).toBe(expectedError);
       expect(TableRepository.create).not.toHaveBeenCalled();
     });
   });
 
-  // ========== UPDATE TABLE TESTS ==========
   describe('updateTable', () => {
-    it('TableService - updateTable - TC-01: should update table successfully', async () => {
-      console.log('\n' + '='.repeat(50));
-      console.log('TableService - UPDATE - TC-1: Cập nhật bàn thành công');
-      console.log('='.repeat(50));
+    it('TableService - updateTable - TC-01: should update table normally when status is not set to available', async () => {
+      const input = { id: 1, payload: { area_id: 2, seatNumber: 8 } };
+      const expected = { id: 1, area_id: 2, seatNumber: 8 };
 
-      // INPUT
-      const input = {
-        id: 1,
-        table_number: 10,
-        area_id: 1,
-      };
-      console.log('\n📝 INPUT:', JSON.stringify(input, null, 2));
+      TableRepository.findById.mockResolvedValue({ id: 1, code: 'TB-01', is_deleted: 0 });
+      AreaRepository.findById.mockResolvedValue({ id: 2, name: 'Area 2' });
+      TableRepository.update.mockResolvedValue(expected);
 
-      // Arrange
-      const existingTable = { id: 1, table_number: 1, area_id: 1, is_deleted: 0 };
-      TableRepository.findById.mockResolvedValue(existingTable);
-      const mockArea = { id: 1, name: 'Khu A' };
-      AreaRepository.findById.mockResolvedValue(mockArea);
-      TableRepository.existsInArea.mockResolvedValue(false);
-      const mockUpdatedTable = { ...existingTable, table_number: 10 };
-      TableRepository.update.mockResolvedValue(mockUpdatedTable);
+      const result = await TableService.updateTable(input.id, input.payload);
 
-      // OUTPUT EXPECT
-      console.log('✅ OUTPUT EXPECT: Updated table');
+      logCase({
+        title: 'TableService - updateTable - TC-01',
+        input,
+        expected,
+        reality: result,
+      });
 
-      // Act
-      const result = await TableService.updateTable(input.id, input);
-
-      // OUTPUT REALITY
-      console.log('🎯 OUTPUT REALITY:', JSON.stringify(result, null, 2));
-
-      // Assert
-      expect(TableRepository.update).toHaveBeenCalledWith(1, input);
-      expect(result.table_number).toBe(10);
+      expect(AreaRepository.findById).toHaveBeenCalledWith(2);
+      expect(TableRepository.update).toHaveBeenCalledWith(1, input.payload);
+      expect(result).toEqual(expected);
     });
 
-    it('TableService - updateTable - TC-02: should throw error when new number exists', async () => {
-      console.log('\n' + '='.repeat(50));
-      console.log('TableService - UPDATE - TC-2: Lỗi khi số bàn mới đã tồn tại');
-      console.log('='.repeat(50));
-
-      // INPUT
-      const input = {
+    it('TableService - updateTable - TC-02: should complete pending and processing orders when setting status to available', async () => {
+      const input = { id: 1, payload: { status: 'available' } };
+      const expected = {
         id: 1,
-        table_number: 2,
-        area_id: 1,
+        status: 'available',
+        current_session_id: null,
+        loyaltySyncCalls: 2,
       };
-      console.log('\n📝 INPUT:', JSON.stringify(input, null, 2));
 
-      // Arrange
-      const existingTable = { id: 1, table_number: 1, area_id: '1', is_deleted: 0 };
-      TableRepository.findById.mockResolvedValue(existingTable);
-      const mockArea = { id: 1, name: 'Khu A' };
-      AreaRepository.findById.mockResolvedValue(mockArea);
-      TableRepository.existsInArea.mockResolvedValue(true);
+      TableRepository.findById.mockResolvedValue({ id: 1, code: 'TB-01', is_deleted: 0 });
+      TableRepository.db.query
+        .mockResolvedValueOnce([[{ id: 101 }, { id: 102 }]])
+        .mockResolvedValueOnce([{}]);
+      TableRepository.update.mockResolvedValue({ id: 1, status: 'available', current_session_id: null });
 
-      // OUTPUT EXPECT
-      const expectedError = 'Bàn số 2 đã tồn tại trong khu vực này';
-      console.log('✅ OUTPUT EXPECT: Error -', expectedError);
+      const result = await TableService.updateTable(input.id, input.payload);
 
-      // Act & Assert
-      await expect(TableService.updateTable(input.id, input)).rejects.toThrow(expectedError);
+      logCase({
+        title: 'TableService - updateTable - TC-02',
+        input,
+        expected,
+        reality: {
+          ...result,
+          loyaltySyncCalls: LoyaltyService.syncOrderLoyaltyByOrderId.mock.calls.length,
+        },
+      });
 
-      // OUTPUT REALITY
-      console.log('🎯 OUTPUT REALITY: Thrown error -', expectedError);
+      expect(TableRepository.db.query).toHaveBeenNthCalledWith(
+        1,
+        expect.stringContaining('SELECT id'),
+        [1]
+      );
+      expect(TableRepository.db.query).toHaveBeenNthCalledWith(
+        2,
+        expect.stringContaining("UPDATE orders SET status = 'completed'"),
+        [1]
+      );
+      expect(LoyaltyService.syncOrderLoyaltyByOrderId).toHaveBeenCalledTimes(2);
+      expect(LoyaltyService.syncOrderLoyaltyByOrderId).toHaveBeenNthCalledWith(1, 101);
+      expect(LoyaltyService.syncOrderLoyaltyByOrderId).toHaveBeenNthCalledWith(2, 102);
+      expect(TableRepository.update).toHaveBeenCalledWith(
+        1,
+        expect.objectContaining({ status: 'available', current_session_id: null })
+      );
+      expect(result).toEqual({ id: 1, status: 'available', current_session_id: null });
+    });
 
+    it('TableService - updateTable - TC-03: should throw 404 when updating to an area that does not exist', async () => {
+      const input = { id: 1, payload: { area_id: 999 } };
+      const expectedError = 'Khu vực không tồn tại';
+      let actualError = null;
+
+      TableRepository.findById.mockResolvedValue({ id: 1, code: 'TB-01', is_deleted: 0 });
+      AreaRepository.findById.mockResolvedValue(null);
+
+      try {
+        await TableService.updateTable(input.id, input.payload);
+      } catch (error) {
+        actualError = error.message;
+      }
+
+      logCase({
+        title: 'TableService - updateTable - TC-03',
+        input,
+        expected: expectedError,
+        reality: actualError,
+      });
+
+      expect(actualError).toBe(expectedError);
       expect(TableRepository.update).not.toHaveBeenCalled();
     });
   });
 
-  // ========== DELETE TABLE TESTS ==========
   describe('deleteTable', () => {
-    it('TableService - deleteTable - TC-01: should delete table successfully', async () => {
-      console.log('\n' + '='.repeat(50));
-      console.log('TableService - DELETE - TC-1: Xóa bàn thành công');
-      console.log('='.repeat(50));
-
-      // INPUT
+    it('TableService - deleteTable - TC-01: should append deleted suffix to code then soft delete', async () => {
       const input = { id: 1 };
-      console.log('\n📝 INPUT:', JSON.stringify(input, null, 2));
+      const expected = { id: 1, is_deleted: 1 };
 
-      // Arrange
-      const existingTable = { id: 1, table_number: 1, area_id: 1, is_deleted: 0 };
-      TableRepository.findById.mockResolvedValue(existingTable);
-      TableRepository.softDelete.mockResolvedValue(true);
+      TableRepository.findById.mockResolvedValue({ id: 1, code: 'TB-01', is_deleted: 0 });
+      TableRepository.update.mockResolvedValue({ id: 1, code: 'TB-01-del-1' });
+      TableRepository.softDelete.mockResolvedValue(expected);
 
-      // OUTPUT EXPECT
-      console.log('✅ OUTPUT EXPECT: Table soft deleted');
-
-      // Act
       const result = await TableService.deleteTable(input.id);
 
-      // OUTPUT REALITY
-      console.log('🎯 OUTPUT REALITY: Deleted =', result);
+      logCase({
+        title: 'TableService - deleteTable - TC-01',
+        input,
+        expected,
+        reality: result,
+      });
 
-      // Assert
-      expect(TableRepository.findById).toHaveBeenCalledWith(1);
+      expect(TableRepository.update).toHaveBeenCalledWith(1, { code: 'TB-01-del-1' });
       expect(TableRepository.softDelete).toHaveBeenCalledWith(1);
-      expect(result).toBe(true);
+      expect(result).toEqual(expected);
     });
   });
 
-  // ========== GET TABLES BY AREA TESTS ==========
   describe('getTablesByArea', () => {
-    it('TableService - getTablesByArea - TC-01: should get tables by area ID', async () => {
-      console.log('\n' + '='.repeat(50));
-      console.log('TableService - GET_BY_AREA - TC-1: Lấy bàn theo khu vực');
-      console.log('='.repeat(50));
-
-      // INPUT
-      const input = { areaId: 1 };
-      console.log('\n📝 INPUT:', JSON.stringify(input, null, 2));
-
-      // Arrange
-      const mockTables = [
-        { id: 1, table_number: 1, area_id: 1, status: 'available' },
-        { id: 2, table_number: 2, area_id: 1, status: 'occupied' },
+    it('TableService - getTablesByArea - TC-01: should return tables of a specific area', async () => {
+      const input = { areaId: 2 };
+      const rows = [
+        { id: 1, area_id: 2, code: 'TB-01' },
+        { id: 2, area_id: 2, code: 'TB-02' },
       ];
-      TableRepository.findByAreaId.mockResolvedValue(mockTables);
+      TableRepository.findByAreaId.mockResolvedValue(rows);
 
-      // OUTPUT EXPECT
-      console.log('✅ OUTPUT EXPECT: Array of tables in area 1');
-
-      // Act
       const result = await TableService.getTablesByArea(input.areaId);
 
-      // OUTPUT REALITY
-      console.log('🎯 OUTPUT REALITY:', JSON.stringify(result, null, 2));
+      logCase({
+        title: 'TableService - getTablesByArea - TC-01',
+        input,
+        expected: rows,
+        reality: result,
+      });
 
-      // Assert
-      expect(TableRepository.findByAreaId).toHaveBeenCalledWith(1);
-      expect(result).toHaveLength(2);
-      expect(result.every(t => t.area_id === 1)).toBe(true);
+      expect(TableRepository.findByAreaId).toHaveBeenCalledWith(2);
+      expect(result).toEqual(rows);
     });
   });
 });
