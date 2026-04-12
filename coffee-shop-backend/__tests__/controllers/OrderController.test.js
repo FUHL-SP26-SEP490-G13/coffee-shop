@@ -24,7 +24,7 @@ describe("OrderController", () => {
   });
 
   describe("checkout", () => {
-    it("OrderController - CHECKOUT - TC-1: should checkout successfully for registered user", async () => {
+    it("OrderController - checkout - TC-01: should checkout successfully for registered user", async () => {
       console.log("\n" + "=".repeat(50));
       console.log(
         "OrderController - CHECKOUT - TC-1: Đặt hàng thành công cho user đã đăng nhập"
@@ -92,7 +92,7 @@ describe("OrderController", () => {
       expect(next).not.toHaveBeenCalled();
     });
 
-    it("OrderController - CHECKOUT - TC-2: should checkout successfully for guest user", async () => {
+    it("OrderController - checkout - TC-02: should checkout successfully for guest user", async () => {
       console.log("\n" + "=".repeat(50));
       console.log(
         "OrderController - CHECKOUT - TC-2: Đặt hàng thành công cho guest"
@@ -139,7 +139,7 @@ describe("OrderController", () => {
       });
     });
 
-    it("OrderController - CHECKOUT - TC-3: should call next when checkout fails", async () => {
+    it("OrderController - checkout - TC-03: should call next when checkout fails", async () => {
       console.log("\n" + "=".repeat(50));
       console.log(
         "OrderController - CHECKOUT - TC-3: Xử lý lỗi khi checkout thất bại"
@@ -180,7 +180,7 @@ describe("OrderController", () => {
   });
 
   describe("getMyOrders", () => {
-    it("OrderController - GET_MY_ORDERS - TC-1: should return user orders successfully", async () => {
+    it("OrderController - getMyOrders - TC-01: should return user orders successfully", async () => {
       console.log("\n" + "=".repeat(50));
       console.log(
         "OrderController - GET_MY_ORDERS - TC-1: Lấy danh sách đơn hàng của user thành công"
@@ -224,7 +224,7 @@ describe("OrderController", () => {
       });
     });
 
-    it("OrderController - GET_MY_ORDERS - TC-2: should return 401 when user is not logged in", async () => {
+    it("OrderController - getMyOrders - TC-02: should return 401 when user is not logged in", async () => {
       console.log("\n" + "=".repeat(50));
       console.log(
         "OrderController - GET_MY_ORDERS - TC-2: Trả về 401 khi chưa đăng nhập"
@@ -249,7 +249,7 @@ describe("OrderController", () => {
   });
 
   describe("getMyOrderDetail", () => {
-    it("OrderController - GET_MY_ORDER_DETAIL - TC-1: should return order detail successfully", async () => {
+    it("OrderController - getMyOrderDetail - TC-01: should return order detail successfully", async () => {
       console.log("\n" + "=".repeat(50));
       console.log(
         "OrderController - GET_MY_ORDER_DETAIL - TC-1: Lấy chi tiết đơn hàng thành công"
@@ -286,7 +286,7 @@ describe("OrderController", () => {
   });
 
   describe("payosReturn", () => {
-    it("OrderController - PAYOS_RETURN - TC-1: should save payos return successfully", async () => {
+    it("OrderController - payosReturn - TC-01: should save payos return successfully", async () => {
       console.log("\n" + "=".repeat(50));
       console.log(
         "OrderController - PAYOS_RETURN - TC-1: Lưu kết quả PayOS return thành công"
@@ -321,7 +321,7 @@ describe("OrderController", () => {
       expect(next).not.toHaveBeenCalled();
     });
 
-    it("OrderController - PAYOS_RETURN - TC-2: should call next when save fails", async () => {
+    it("OrderController - payosReturn - TC-02: should call next when save fails", async () => {
       const mockError = new Error("Thiếu orderCode");
       req.body = {
         payosId: "PAYOS123",

@@ -29,7 +29,7 @@ describe("DiscountController", () => {
   });
 
   describe("getAll", () => {
-    it("DiscountController - GET_ALL - TC-1: should get all discounts successfully with default query", async () => {
+    it("DiscountController - getAll - TC-01: should get all discounts successfully with default query", async () => {
       console.log("\n" + "=".repeat(50));
       console.log(
         "DiscountController - GET_ALL - TC-1: Lấy danh sách discount thành công với query mặc định"
@@ -77,7 +77,7 @@ describe("DiscountController", () => {
       expect(next).not.toHaveBeenCalled();
     });
 
-    it("DiscountController - GET_ALL - TC-2: should get all discounts successfully with filters", async () => {
+    it("DiscountController - getAll - TC-02: should get all discounts successfully with filters", async () => {
       console.log("\n" + "=".repeat(50));
       console.log(
         "DiscountController - GET_ALL - TC-2: Lấy danh sách discount thành công với filter"
@@ -132,7 +132,7 @@ describe("DiscountController", () => {
       expect(next).not.toHaveBeenCalled();
     });
 
-    it("DiscountController - GET_ALL - TC-3: should call next when service throws error", async () => {
+    it("DiscountController - getAll - TC-03: should call next when service throws error", async () => {
       console.log("\n" + "=".repeat(50));
       console.log(
         "DiscountController - GET_ALL - TC-3: Xử lý lỗi khi lấy danh sách discount"
@@ -169,7 +169,7 @@ describe("DiscountController", () => {
   });
 
   describe("getById", () => {
-    it("DiscountController - GET_BY_ID - TC-1: should get discount by id successfully", async () => {
+    it("DiscountController - getById - TC-01: should get discount by id successfully", async () => {
       console.log("\n" + "=".repeat(50));
       console.log(
         "DiscountController - GET_BY_ID - TC-1: Lấy discount theo id thành công"
@@ -205,7 +205,7 @@ describe("DiscountController", () => {
       expect(next).not.toHaveBeenCalled();
     });
 
-    it("DiscountController - GET_BY_ID - TC-2: should call next when discount not found", async () => {
+    it("DiscountController - getById - TC-02: should call next when discount not found", async () => {
       console.log("\n" + "=".repeat(50));
       console.log(
         "DiscountController - GET_BY_ID - TC-2: Xử lý lỗi khi không tìm thấy discount"
@@ -240,7 +240,7 @@ describe("DiscountController", () => {
   });
 
   describe("create", () => {
-    it("DiscountController - CREATE - TC-1: should create discount successfully", async () => {
+    it("DiscountController - create - TC-01: should create discount successfully", async () => {
       console.log("\n" + "=".repeat(50));
       console.log(
         "DiscountController - CREATE - TC-1: Tạo discount thành công"
@@ -291,7 +291,7 @@ describe("DiscountController", () => {
       expect(next).not.toHaveBeenCalled();
     });
 
-    it("DiscountController - CREATE - TC-2: should return validation error when code already exists", async () => {
+    it("DiscountController - create - TC-02: should return validation error when code already exists", async () => {
       console.log("\n" + "=".repeat(50));
       console.log(
         "DiscountController - CREATE - TC-2: Trả về lỗi khi mã giảm giá đã tồn tại"
@@ -339,7 +339,7 @@ describe("DiscountController", () => {
       expect(response.success).not.toHaveBeenCalled();
     });
 
-    it("DiscountController - CREATE - TC-3: should call next for unexpected error", async () => {
+    it("DiscountController - create - TC-03: should call next for unexpected error", async () => {
       console.log("\n" + "=".repeat(50));
       console.log(
         "DiscountController - CREATE - TC-3: Xử lý lỗi hệ thống khi tạo discount"
@@ -376,7 +376,7 @@ describe("DiscountController", () => {
   });
 
   describe("update", () => {
-    it("DiscountController - UPDATE - TC-1: should update discount successfully", async () => {
+    it("DiscountController - update - TC-01: should update discount successfully", async () => {
       console.log("\n" + "=".repeat(50));
       console.log(
         "DiscountController - UPDATE - TC-1: Cập nhật discount thành công"
@@ -418,7 +418,7 @@ describe("DiscountController", () => {
       expect(next).not.toHaveBeenCalled();
     });
 
-    it("DiscountController - UPDATE - TC-2: should return validation error when code already exists", async () => {
+    it("DiscountController - update - TC-02: should return validation error when code already exists", async () => {
       console.log("\n" + "=".repeat(50));
       console.log(
         "DiscountController - UPDATE - TC-2: Trả về lỗi khi mã giảm giá đã tồn tại"
@@ -468,7 +468,7 @@ describe("DiscountController", () => {
       expect(next).not.toHaveBeenCalled();
     });
 
-    it("DiscountController - UPDATE - TC-3: should return validation error when discount has been used", async () => {
+    it("DiscountController - update - TC-03: should return validation error when discount has been used", async () => {
       console.log("\n" + "=".repeat(50));
       console.log(
         "DiscountController - UPDATE - TC-3: Trả về lỗi khi mã giảm giá đã được sử dụng"
@@ -520,7 +520,7 @@ describe("DiscountController", () => {
       expect(next).not.toHaveBeenCalled();
     });
 
-    it("DiscountController - UPDATE - TC-4: should call next for unexpected error", async () => {
+    it("DiscountController - update - TC-04: should call next for unexpected error", async () => {
       console.log("\n" + "=".repeat(50));
       console.log(
         "DiscountController - UPDATE - TC-4: Xử lý lỗi hệ thống khi cập nhật discount"
@@ -560,7 +560,7 @@ describe("DiscountController", () => {
   });
 
   describe("delete", () => {
-    it("DiscountController - DELETE - TC-1: should delete discount successfully", async () => {
+    it("DiscountController - delete - TC-01: should delete discount successfully", async () => {
       console.log("\n" + "=".repeat(50));
       console.log(
         "DiscountController - DELETE - TC-1: Xóa discount thành công"
@@ -595,7 +595,7 @@ describe("DiscountController", () => {
       expect(next).not.toHaveBeenCalled();
     });
 
-    it("DiscountController - DELETE - TC-2: should call next when discount not found", async () => {
+    it("DiscountController - delete - TC-02: should call next when discount not found", async () => {
       console.log("\n" + "=".repeat(50));
       console.log(
         "DiscountController - DELETE - TC-2: Xử lý lỗi khi không tìm thấy discount để xóa"

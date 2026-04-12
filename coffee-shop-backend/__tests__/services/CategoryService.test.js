@@ -11,7 +11,7 @@ describe('CategoryService', () => {
 
   // ========== GET ALL CATEGORIES TESTS ==========
   describe('getAllCategories', () => {
-    it('CategoryService - GET_ALL - TC-1: should get all active categories', async () => {
+    it('CategoryService - getAllCategories - TC-01: should get all active categories', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('CategoryService - GET_ALL - TC-1: Lấy tất cả danh mục active');
       console.log('='.repeat(50));
@@ -37,7 +37,7 @@ describe('CategoryService', () => {
       expect(result).toHaveLength(2);
     });
 
-    it('CategoryService - GET_ALL - TC-2: should get categories with options', async () => {
+    it('CategoryService - getAllCategories - TC-02: should get categories with options', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('CategoryService - GET_ALL - TC-2: Lấy danh mục với options');
       console.log('='.repeat(50));
@@ -65,7 +65,7 @@ describe('CategoryService', () => {
 
   // ========== GET CATEGORIES WITH PRODUCT COUNT TESTS ==========
   describe('getCategoriesWithProductCount', () => {
-    it('CategoryService - GET_WITH_COUNT - TC-1: should get categories with product count', async () => {
+    it('CategoryService - getCategoriesWithProductCount - TC-01: should get categories with product count', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('CategoryService - GET_WITH_COUNT - TC-1: Lấy danh mục kèm số lượng sản phẩm');
       console.log('='.repeat(50));
@@ -94,7 +94,7 @@ describe('CategoryService', () => {
 
   // ========== GET CATEGORY BY ID TESTS ==========
   describe('getCategoryById', () => {
-    it('CategoryService - GET_BY_ID - TC-1: should get category by ID successfully', async () => {
+    it('CategoryService - getCategoryById - TC-01: should get category by ID successfully', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('CategoryService - GET_BY_ID - TC-1: Lấy danh mục theo ID thành công');
       console.log('='.repeat(50));
@@ -121,7 +121,7 @@ describe('CategoryService', () => {
       expect(result.id).toBe(1);
     });
 
-    it('CategoryService - GET_BY_ID - TC-2: should throw 404 when category not found', async () => {
+    it('CategoryService - getCategoryById - TC-02: should throw 404 when category not found', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('CategoryService - GET_BY_ID - TC-2: Lỗi 404 khi category không tồn tại');
       console.log('='.repeat(50));
@@ -144,7 +144,7 @@ describe('CategoryService', () => {
       console.log('🎯 OUTPUT REALITY: Thrown error -', expectedError);
     });
 
-    it('CategoryService - GET_BY_ID - TC-3: should throw 404 when category is deleted', async () => {
+    it('CategoryService - getCategoryById - TC-03: should throw 404 when category is deleted', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('CategoryService - GET_BY_ID - TC-3: Lỗi 404 khi category đã bị xóa');
       console.log('='.repeat(50));
@@ -171,7 +171,7 @@ describe('CategoryService', () => {
 
   // ========== CREATE CATEGORY TESTS ==========
   describe('createCategory', () => {
-    it('CategoryService - CREATE - TC-1: should create category successfully', async () => {
+    it('CategoryService - createCategory - TC-01: should create category successfully', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('CategoryService - CREATE - TC-1: Tạo danh mục thành công');
       console.log('='.repeat(50));
@@ -206,7 +206,7 @@ describe('CategoryService', () => {
       expect(result.id).toBe(3);
     });
 
-    it('CategoryService - CREATE - TC-2: should throw 409 when name exists', async () => {
+    it('CategoryService - createCategory - TC-02: should throw 409 when name exists', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('CategoryService - CREATE - TC-2: Lỗi 409 khi tên đã tồn tại');
       console.log('='.repeat(50));
@@ -238,7 +238,7 @@ describe('CategoryService', () => {
 
   // ========== UPDATE CATEGORY TESTS ==========
   describe('updateCategory', () => {
-    it('CategoryService - UPDATE - TC-1: should update category successfully', async () => {
+    it('CategoryService - updateCategory - TC-01: should update category successfully', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('CategoryService - UPDATE - TC-1: Cập nhật danh mục thành công');
       console.log('='.repeat(50));
@@ -275,7 +275,7 @@ describe('CategoryService', () => {
       expect(result.name).toBe('Coffee Updated');
     });
 
-    it('CategoryService - UPDATE - TC-2: should throw 409 when new name exists', async () => {
+    it('CategoryService - updateCategory - TC-02: should throw 409 when new name exists', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('CategoryService - UPDATE - TC-2: Lỗi 409 khi tên mới đã tồn tại');
       console.log('='.repeat(50));
@@ -309,7 +309,7 @@ describe('CategoryService', () => {
 
   // ========== DELETE CATEGORY TESTS ==========
   describe('deleteCategory', () => {
-    it('CategoryService - DELETE - TC-1: should delete category successfully', async () => {
+    it('CategoryService - deleteCategory - TC-01: should delete category successfully', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('CategoryService - DELETE - TC-1: Xóa danh mục thành công');
       console.log('='.repeat(50));
@@ -339,7 +339,7 @@ describe('CategoryService', () => {
       expect(result).toBe(true);
     });
 
-    it('CategoryService - DELETE - TC-2: should throw 400 when category has products', async () => {
+    it('CategoryService - deleteCategory - TC-02: should throw 400 when category has products', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('CategoryService - DELETE - TC-2: Lỗi 400 khi danh mục có sản phẩm');
       console.log('='.repeat(50));
@@ -369,7 +369,7 @@ describe('CategoryService', () => {
 
   // ========== SEARCH CATEGORIES TESTS ==========
   describe('searchCategories', () => {
-    it('CategoryService - SEARCH - TC-1: should search categories by keyword', async () => {
+    it('CategoryService - searchCategories - TC-01: should search categories by keyword', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('CategoryService - SEARCH - TC-1: Tìm kiếm danh mục theo từ khóa');
       console.log('='.repeat(50));
@@ -398,7 +398,7 @@ describe('CategoryService', () => {
       expect(result).toHaveLength(1);
     });
 
-    it('CategoryService - SEARCH - TC-2: should return all when keyword empty', async () => {
+    it('CategoryService - searchCategories - TC-02: should return all when keyword empty', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('CategoryService - SEARCH - TC-2: Trả về tất cả khi keyword trống');
       console.log('='.repeat(50));
@@ -427,7 +427,7 @@ describe('CategoryService', () => {
 
   // ========== RESTORE CATEGORY TESTS ==========
   describe('restoreCategory', () => {
-    it('CategoryService - RESTORE - TC-1: should restore deleted category', async () => {
+    it('CategoryService - restoreCategory - TC-01: should restore deleted category', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('CategoryService - RESTORE - TC-1: Khôi phục danh mục đã xóa');
       console.log('='.repeat(50));
@@ -457,7 +457,7 @@ describe('CategoryService', () => {
       expect(result.is_deleted).toBe(0);
     });
 
-    it('CategoryService - RESTORE - TC-2: should throw 400 when category not deleted', async () => {
+    it('CategoryService - restoreCategory - TC-02: should throw 400 when category not deleted', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('CategoryService - RESTORE - TC-2: Lỗi 400 khi category chưa bị xóa');
       console.log('='.repeat(50));
@@ -483,7 +483,7 @@ describe('CategoryService', () => {
       expect(CategoryRepository.update).not.toHaveBeenCalled();
     });
 
-    it('CategoryService - RESTORE - TC-3: should throw 409 when name conflicts', async () => {
+    it('CategoryService - restoreCategory - TC-03: should throw 409 when name conflicts', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('CategoryService - RESTORE - TC-3: Lỗi 409 khi tên bị trùng');
       console.log('='.repeat(50));

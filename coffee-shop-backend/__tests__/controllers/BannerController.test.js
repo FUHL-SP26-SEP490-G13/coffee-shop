@@ -25,7 +25,7 @@ describe("BannerController", () => {
   });
 
   describe("getActive", () => {
-    it("BannerController - GET_ACTIVE - TC-1: should get active banner successfully", async () => {
+    it("BannerController - getActive - TC-01: should get active banner successfully", async () => {
       console.log("\n" + "=".repeat(50));
       console.log(
         "BannerController - GET_ACTIVE - TC-1: Lấy banner active thành công"
@@ -58,7 +58,7 @@ describe("BannerController", () => {
       expect(next).not.toHaveBeenCalled();
     });
 
-    it("BannerController - GET_ACTIVE - TC-2: should call next when service throws error", async () => {
+    it("BannerController - getActive - TC-02: should call next when service throws error", async () => {
       const mockError = new Error("Database failed");
       bannerService.getActive.mockRejectedValue(mockError);
 
@@ -69,7 +69,7 @@ describe("BannerController", () => {
   });
 
   describe("getAll", () => {
-    it("BannerController - GET_ALL - TC-1: should get all banners successfully with default query", async () => {
+    it("BannerController - getAll - TC-01: should get all banners successfully with default query", async () => {
       console.log("\n" + "=".repeat(50));
       console.log(
         "BannerController - GET_ALL - TC-1: Lấy danh sách banner thành công với query mặc định"
@@ -107,7 +107,7 @@ describe("BannerController", () => {
       expect(next).not.toHaveBeenCalled();
     });
 
-    it("BannerController - GET_ALL - TC-2: should get all banners successfully with filters", async () => {
+    it("BannerController - getAll - TC-02: should get all banners successfully with filters", async () => {
       req.query = {
         page: "2",
         limit: "10",
@@ -136,7 +136,7 @@ describe("BannerController", () => {
       });
     });
 
-    it("BannerController - GET_ALL - TC-3: should call next when service throws error", async () => {
+    it("BannerController - getAll - TC-03: should call next when service throws error", async () => {
       const mockError = new Error("Database failed");
       bannerService.getAll.mockRejectedValue(mockError);
 
@@ -147,7 +147,7 @@ describe("BannerController", () => {
   });
 
   describe("create", () => {
-    it("BannerController - CREATE - TC-1: should create banner successfully with uploaded file", async () => {
+    it("BannerController - create - TC-01: should create banner successfully with uploaded file", async () => {
       console.log("\n" + "=".repeat(50));
       console.log(
         "BannerController - CREATE - TC-1: Tạo banner thành công với file upload"
@@ -203,7 +203,7 @@ describe("BannerController", () => {
       expect(next).not.toHaveBeenCalled();
     });
 
-    it("BannerController - CREATE - TC-2: should create banner successfully with image_url from body", async () => {
+    it("BannerController - create - TC-02: should create banner successfully with image_url from body", async () => {
       req.body = {
         title: "Banner mới",
         subtitle: "Mô tả banner hợp lệ",
@@ -233,7 +233,7 @@ describe("BannerController", () => {
       });
     });
 
-    it("BannerController - CREATE - TC-3: should return 400 when image is missing", async () => {
+    it("BannerController - create - TC-03: should return 400 when image is missing", async () => {
       console.log("\n" + "=".repeat(50));
       console.log(
         "BannerController - CREATE - TC-3: Trả về lỗi khi thiếu ảnh quảng cáo"
@@ -268,7 +268,7 @@ describe("BannerController", () => {
       expect(next).not.toHaveBeenCalled();
     });
 
-    it("BannerController - CREATE - TC-4: should return 400 when title already exists", async () => {
+    it("BannerController - create - TC-04: should return 400 when title already exists", async () => {
       req.body = {
         title: "Banner trùng",
         subtitle: "Mô tả banner hợp lệ",
@@ -298,7 +298,7 @@ describe("BannerController", () => {
       expect(next).not.toHaveBeenCalled();
     });
 
-    it("BannerController - CREATE - TC-5: should return 400 when end date is before start date", async () => {
+    it("BannerController - create - TC-05: should return 400 when end date is before start date", async () => {
       req.body = {
         title: "Banner mới",
         subtitle: "Mô tả banner hợp lệ",
@@ -330,7 +330,7 @@ describe("BannerController", () => {
       expect(next).not.toHaveBeenCalled();
     });
 
-    it("BannerController - CREATE - TC-6: should return 400 when dates are invalid", async () => {
+    it("BannerController - create - TC-06: should return 400 when dates are invalid", async () => {
       req.body = {
         title: "Banner mới",
         subtitle: "Mô tả banner hợp lệ",
@@ -362,7 +362,7 @@ describe("BannerController", () => {
       expect(next).not.toHaveBeenCalled();
     });
 
-    it("BannerController - CREATE - TC-7: should call next for unexpected error", async () => {
+    it("BannerController - create - TC-07: should call next for unexpected error", async () => {
       req.body = {
         title: "Banner mới",
         subtitle: "Mô tả banner hợp lệ",
@@ -383,7 +383,7 @@ describe("BannerController", () => {
   });
 
   describe("update", () => {
-    it("BannerController - UPDATE - TC-1: should update banner successfully without file", async () => {
+    it("BannerController - update - TC-01: should update banner successfully without file", async () => {
       console.log("\n" + "=".repeat(50));
       console.log(
         "BannerController - UPDATE - TC-1: Cập nhật banner thành công không thay ảnh"
@@ -421,7 +421,7 @@ describe("BannerController", () => {
       expect(next).not.toHaveBeenCalled();
     });
 
-    it("BannerController - UPDATE - TC-2: should update banner successfully with file", async () => {
+    it("BannerController - update - TC-02: should update banner successfully with file", async () => {
       req.params = { id: "1" };
       req.body = {
         title: "Banner cập nhật",
@@ -454,7 +454,7 @@ describe("BannerController", () => {
       });
     });
 
-    it("BannerController - UPDATE - TC-3: should return 400 when title already exists", async () => {
+    it("BannerController - update - TC-03: should return 400 when title already exists", async () => {
       req.params = { id: "1" };
       req.body = {
         title: "Banner trùng",
@@ -481,7 +481,7 @@ describe("BannerController", () => {
       expect(next).not.toHaveBeenCalled();
     });
 
-    it("BannerController - UPDATE - TC-4: should return 404 when banner not found", async () => {
+    it("BannerController - update - TC-04: should return 404 when banner not found", async () => {
       req.params = { id: "999" };
       req.body = {
         title: "Banner mới",
@@ -502,7 +502,7 @@ describe("BannerController", () => {
       expect(next).not.toHaveBeenCalled();
     });
 
-    it("BannerController - UPDATE - TC-5: should return 400 when end date is before start date", async () => {
+    it("BannerController - update - TC-05: should return 400 when end date is before start date", async () => {
       req.params = { id: "1" };
       req.body = {
         title: "Banner mới",
@@ -531,7 +531,7 @@ describe("BannerController", () => {
       expect(next).not.toHaveBeenCalled();
     });
 
-    it("BannerController - UPDATE - TC-6: should return 400 when dates are invalid", async () => {
+    it("BannerController - update - TC-06: should return 400 when dates are invalid", async () => {
       req.params = { id: "1" };
       req.body = {
         title: "Banner mới",
@@ -560,7 +560,7 @@ describe("BannerController", () => {
       expect(next).not.toHaveBeenCalled();
     });
 
-    it("BannerController - UPDATE - TC-7: should call next for unexpected error", async () => {
+    it("BannerController - update - TC-07: should call next for unexpected error", async () => {
       req.params = { id: "1" };
       req.body = {
         title: "Banner mới",
@@ -578,7 +578,7 @@ describe("BannerController", () => {
   });
 
   describe("delete", () => {
-    it("BannerController - DELETE - TC-1: should delete banner successfully", async () => {
+    it("BannerController - delete - TC-01: should delete banner successfully", async () => {
       console.log("\n" + "=".repeat(50));
       console.log("BannerController - DELETE - TC-1: Xóa banner thành công");
       console.log("=".repeat(50));
@@ -596,7 +596,7 @@ describe("BannerController", () => {
       expect(next).not.toHaveBeenCalled();
     });
 
-    it("BannerController - DELETE - TC-2: should call next when service throws error", async () => {
+    it("BannerController - delete - TC-02: should call next when service throws error", async () => {
       req.params = { id: "1" };
       const mockError = new Error("Database failed");
       bannerService.delete.mockRejectedValue(mockError);
@@ -608,7 +608,7 @@ describe("BannerController", () => {
   });
 
   describe("getActiveList", () => {
-    it("BannerController - GET_ACTIVE_LIST - TC-1: should get active banner list successfully", async () => {
+    it("BannerController - getActiveList - TC-01: should get active banner list successfully", async () => {
       console.log("\n" + "=".repeat(50));
       console.log(
         "BannerController - GET_ACTIVE_LIST - TC-1: Lấy danh sách banner active thành công"
@@ -632,7 +632,7 @@ describe("BannerController", () => {
       expect(next).not.toHaveBeenCalled();
     });
 
-    it("BannerController - GET_ACTIVE_LIST - TC-2: should call next when service throws error", async () => {
+    it("BannerController - getActiveList - TC-02: should call next when service throws error", async () => {
       const mockError = new Error("Database failed");
       bannerService.getActiveList.mockRejectedValue(mockError);
 

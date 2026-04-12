@@ -40,7 +40,7 @@ describe('AuthService - Login', () => {
       isActive: true,
     };
 
-    it('AuthService - LOGIN - TC-1: should login successfully with email', async () => {
+    it('AuthService - login - TC-01: should login successfully with email', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AuthService - LOGIN - TC-1: Đăng nhập thành công với email');
       console.log('='.repeat(50));
@@ -81,7 +81,7 @@ describe('AuthService - Login', () => {
       expect(result.user.password).toBeUndefined();
     });
 
-    it('AuthService - LOGIN - TC-2: should login successfully with username', async () => {
+    it('AuthService - login - TC-02: should login successfully with username', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AuthService - LOGIN - TC-2: Đăng nhập thành công với username');
       console.log('='.repeat(50));
@@ -122,7 +122,7 @@ describe('AuthService - Login', () => {
       expect(result).toEqual(expectedOutput);
     });
 
-    it('AuthService - LOGIN - TC-3: should throw error when user not found', async () => {
+    it('AuthService - login - TC-03: should throw error when user not found', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AuthService - LOGIN - TC-3: Lỗi khi không tìm thấy user');
       console.log('='.repeat(50));
@@ -156,7 +156,7 @@ describe('AuthService - Login', () => {
       expect(comparePassword).not.toHaveBeenCalled();
     });
 
-    it('AuthService - LOGIN - TC-4: should throw error when user is not active', async () => {
+    it('AuthService - login - TC-04: should throw error when user is not active', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AuthService - LOGIN - TC-4: Lỗi khi tài khoản không active');
       console.log('='.repeat(50));
@@ -189,7 +189,7 @@ describe('AuthService - Login', () => {
       expect(comparePassword).not.toHaveBeenCalled();
     });
 
-    it('AuthService - LOGIN - TC-5: should throw error when password is incorrect', async () => {
+    it('AuthService - login - TC-05: should throw error when password is incorrect', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AuthService - LOGIN - TC-5: Lỗi khi mật khẩu không đúng');
       console.log('='.repeat(50));
@@ -223,7 +223,7 @@ describe('AuthService - Login', () => {
       expect(UserRepository.findByIdWithRole).not.toHaveBeenCalled();
     });
 
-    it('AuthService - LOGIN - TC-6: should generate correct tokens with user data', async () => {
+    it('AuthService - login - TC-06: should generate correct tokens with user data', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AuthService - LOGIN - TC-6: Tạo token đúng format với user data');
       console.log('='.repeat(50));
@@ -271,7 +271,7 @@ describe('AuthService - Login', () => {
       });
     });
 
-    it('AuthService - LOGIN - TC-7: should not return password in response', async () => {
+    it('AuthService - login - TC-07: should not return password in response', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AuthService - LOGIN - TC-7: Không trả về password trong response');
       console.log('='.repeat(50));
@@ -331,7 +331,7 @@ describe('AuthService - Login', () => {
       isVerified: 0,
     };
 
-    it('AuthService - REGISTER - TC-1: should register successfully with valid input', async () => {
+    it('AuthService - register - TC-01: should register successfully with valid input', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AuthService - REGISTER - TC-1: Đăng ký thành công với input hợp lệ');
       console.log('='.repeat(50));
@@ -397,7 +397,7 @@ describe('AuthService - Login', () => {
       expect(result).toEqual(expectedOutput);
     });
 
-    it('AuthService - REGISTER - TC-2: should throw error when email already exists', async () => {
+    it('AuthService - register - TC-02: should throw error when email already exists', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AuthService - REGISTER - TC-2: Lỗi khi email đã tồn tại');
       console.log('='.repeat(50));
@@ -423,7 +423,7 @@ describe('AuthService - Login', () => {
       expect(UserRepository.create).not.toHaveBeenCalled();
     });
 
-    it('AuthService - REGISTER - TC-3: should throw error when phone already exists', async () => {
+    it('AuthService - register - TC-03: should throw error when phone already exists', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AuthService - REGISTER - TC-3: Lỗi khi số điện thoại đã tồn tại');
       console.log('='.repeat(50));
@@ -450,7 +450,7 @@ describe('AuthService - Login', () => {
       expect(UserRepository.create).not.toHaveBeenCalled();
     });
 
-    it('AuthService - REGISTER - TC-4: should throw error when username already exists', async () => {
+    it('AuthService - register - TC-04: should throw error when username already exists', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AuthService - REGISTER - TC-4: Lỗi khi username đã tồn tại');
       console.log('='.repeat(50));

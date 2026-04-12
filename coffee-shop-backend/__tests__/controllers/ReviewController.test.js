@@ -25,7 +25,7 @@ describe("ReviewController", () => {
   });
 
   describe("getByProductId", () => {
-    it("ReviewController - GET_BY_PRODUCT_ID - TC-1: should return reviews by product successfully", async () => {
+    it("ReviewController - getByProductId - TC-01: should return reviews by product successfully", async () => {
       console.log("\n" + "=".repeat(50));
       console.log(
         "ReviewController - GET_BY_PRODUCT_ID - TC-1: Lấy danh sách đánh giá theo sản phẩm thành công"
@@ -64,7 +64,7 @@ describe("ReviewController", () => {
       expect(next).not.toHaveBeenCalled();
     });
 
-    it("ReviewController - GET_BY_PRODUCT_ID - TC-2: should call next when service throws error", async () => {
+    it("ReviewController - getByProductId - TC-02: should call next when service throws error", async () => {
       const mockError = new Error("Lỗi lấy danh sách đánh giá");
       req.params = { productId: "1" };
 
@@ -78,7 +78,7 @@ describe("ReviewController", () => {
   });
 
   describe("createOrUpdate", () => {
-    it("ReviewController - CREATE_OR_UPDATE - TC-1: should create review successfully", async () => {
+    it("ReviewController - createOrUpdate - TC-01: should create review successfully", async () => {
       console.log("\n" + "=".repeat(50));
       console.log(
         "ReviewController - CREATE_OR_UPDATE - TC-1: Tạo hoặc cập nhật đánh giá thành công"
@@ -115,7 +115,7 @@ describe("ReviewController", () => {
       expect(next).not.toHaveBeenCalled();
     });
 
-    it("ReviewController - CREATE_OR_UPDATE - TC-2: should update review successfully", async () => {
+    it("ReviewController - createOrUpdate - TC-02: should update review successfully", async () => {
       req.user = { id: 1 };
       req.body = {
         product_id: 10,
@@ -146,7 +146,7 @@ describe("ReviewController", () => {
       expect(next).not.toHaveBeenCalled();
     });
 
-    it("ReviewController - CREATE_OR_UPDATE - TC-3: should return 400 when product_id is missing", async () => {
+    it("ReviewController - createOrUpdate - TC-03: should return 400 when product_id is missing", async () => {
       req.user = { id: 1 };
       req.body = {
         rating: 5,
@@ -164,7 +164,7 @@ describe("ReviewController", () => {
       expect(next).not.toHaveBeenCalled();
     });
 
-    it("ReviewController - CREATE_OR_UPDATE - TC-4: should return 400 when rating is missing", async () => {
+    it("ReviewController - createOrUpdate - TC-04: should return 400 when rating is missing", async () => {
       req.user = { id: 1 };
       req.body = {
         product_id: 10,
@@ -182,7 +182,7 @@ describe("ReviewController", () => {
       expect(next).not.toHaveBeenCalled();
     });
 
-    it("ReviewController - CREATE_OR_UPDATE - TC-5: should call next when service throws error", async () => {
+    it("ReviewController - createOrUpdate - TC-05: should call next when service throws error", async () => {
       req.user = { id: 1 };
       req.body = {
         product_id: 10,
@@ -201,7 +201,7 @@ describe("ReviewController", () => {
   });
 
   describe("getMyReview", () => {
-    it("ReviewController - GET_MY_REVIEW - TC-1: should return my review successfully", async () => {
+    it("ReviewController - getMyReview - TC-01: should return my review successfully", async () => {
       console.log("\n" + "=".repeat(50));
       console.log(
         "ReviewController - GET_MY_REVIEW - TC-1: Lấy đánh giá của user thành công"
@@ -234,7 +234,7 @@ describe("ReviewController", () => {
       expect(next).not.toHaveBeenCalled();
     });
 
-    it("ReviewController - GET_MY_REVIEW - TC-2: should call next when service throws error", async () => {
+    it("ReviewController - getMyReview - TC-02: should call next when service throws error", async () => {
       req.user = { id: 1 };
       req.params = { productId: "10" };
 
@@ -249,7 +249,7 @@ describe("ReviewController", () => {
   });
 
   describe("getAll", () => {
-    it("ReviewController - GET_ALL - TC-1: should return all reviews successfully", async () => {
+    it("ReviewController - getAll - TC-01: should return all reviews successfully", async () => {
       console.log("\n" + "=".repeat(50));
       console.log(
         "ReviewController - GET_ALL - TC-1: Lấy danh sách review thành công"
@@ -296,7 +296,7 @@ describe("ReviewController", () => {
       expect(next).not.toHaveBeenCalled();
     });
 
-    it("ReviewController - GET_ALL - TC-2: should use default query params", async () => {
+    it("ReviewController - getAll - TC-02: should use default query params", async () => {
       req.query = {};
 
       const mockData = {
@@ -325,7 +325,7 @@ describe("ReviewController", () => {
       expect(next).not.toHaveBeenCalled();
     });
 
-    it("ReviewController - GET_ALL - TC-3: should call next when service throws error", async () => {
+    it("ReviewController - getAll - TC-03: should call next when service throws error", async () => {
       req.query = {
         keyword: "coffee",
         page: "1",

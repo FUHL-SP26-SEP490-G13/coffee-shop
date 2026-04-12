@@ -30,7 +30,7 @@ describe('AuthController - Login', () => {
 
   // method: login
   describe('login', () => {
-    it('AuthController - Login - TC-1: should login successfully with valid credentials', async () => {
+    it('AuthController - login - TC-01: should login successfully with valid credentials', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AuthController - Login - TC-1: Controller xử lý login thành công');
       console.log('='.repeat(50));
@@ -78,7 +78,7 @@ describe('AuthController - Login', () => {
       expect(next).not.toHaveBeenCalled();
     });
 
-    it('AuthController - Login - TC-2: should login successfully with username', async () => {
+    it('AuthController - login - TC-02: should login successfully with username', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AuthController - Login - TC-2: Controller xử lý login với username');
       console.log('='.repeat(50));
@@ -125,7 +125,7 @@ describe('AuthController - Login', () => {
       );
     });
 
-    it('AuthController - Login - TC-3: should call next with error when login fails', async () => {
+    it('AuthController - login - TC-03: should call next with error when login fails', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AuthController - Login - TC-3: Controller xử lý lỗi login');
       console.log('='.repeat(50));
@@ -157,7 +157,7 @@ describe('AuthController - Login', () => {
       expect(response.success).not.toHaveBeenCalled();
     });
 
-    it('AuthController - Login - TC-4: should handle inactive user error', async () => {
+    it('AuthController - login - TC-04: should handle inactive user error', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AuthController - Login - TC-4: Controller xử lý lỗi tài khoản không active');
       console.log('='.repeat(50));
@@ -188,7 +188,7 @@ describe('AuthController - Login', () => {
       expect(response.success).not.toHaveBeenCalled();
     });
 
-    it('AuthController - Login - TC-5: should handle user not found error', async () => {
+    it('AuthController - login - TC-05: should handle user not found error', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AuthController - Login - TC-5: Controller xử lý lỗi user không tồn tại');
       console.log('='.repeat(50));
@@ -218,7 +218,7 @@ describe('AuthController - Login', () => {
       expect(next).toHaveBeenCalledWith(mockError);
     });
 
-    it('AuthController - Login - TC-6: should handle service errors gracefully', async () => {
+    it('AuthController - login - TC-06: should handle service errors gracefully', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AuthController - Login - TC-6: Controller xử lý lỗi hệ thống');
       console.log('='.repeat(50));
@@ -252,7 +252,7 @@ describe('AuthController - Login', () => {
 
   // method: register
   describe('register', () => {
-    it('AuthController - REGISTER - TC-1: should register successfully with valid payload', async () => {
+    it('AuthController - register - TC-01: should register successfully with valid payload', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AuthController - REGISTER - TC-1: Controller xử lý register thành công');
       console.log('='.repeat(50));
@@ -304,7 +304,7 @@ describe('AuthController - Login', () => {
       expect(next).not.toHaveBeenCalled();
     });
 
-    it('AuthController - REGISTER - TC-2: should call next when service throws duplicate email error', async () => {
+    it('AuthController - register - TC-02: should call next when service throws duplicate email error', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AuthController - REGISTER - TC-2: Controller xử lý lỗi email đã tồn tại');
       console.log('='.repeat(50));
@@ -340,7 +340,7 @@ describe('AuthController - Login', () => {
       expect(response.success).not.toHaveBeenCalled();
     });
 
-    it('AuthController - REGISTER - TC-3: should call next for unexpected service error', async () => {
+    it('AuthController - register - TC-03: should call next for unexpected service error', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AuthController - REGISTER - TC-3: Controller xử lý lỗi hệ thống khi register');
       console.log('='.repeat(50));

@@ -13,7 +13,7 @@ describe('TableService', () => {
 
   // ========== GET ALL TABLES TESTS ==========
   describe('getAllTables', () => {
-    it('TableService - GET_ALL - TC-1: should get all tables with area info', async () => {
+    it('TableService - getAllTables - TC-01: should get all tables with area info', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('TableService - GET_ALL - TC-1: Lấy tất cả bàn kèm thông tin khu vực');
       console.log('='.repeat(50));
@@ -42,7 +42,7 @@ describe('TableService', () => {
       expect(result[0]).toHaveProperty('area_name');
     });
 
-    it('TableService - GET_ALL - TC-2: should filter tables by status', async () => {
+    it('TableService - getAllTables - TC-02: should filter tables by status', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('TableService - GET_ALL - TC-2: Lọc bàn theo trạng thái');
       console.log('='.repeat(50));
@@ -77,7 +77,7 @@ describe('TableService', () => {
 
   // ========== GET TABLE BY ID TESTS ==========
   describe('getTableById', () => {
-    it('TableService - GET_BY_ID - TC-1: should get table by ID successfully', async () => {
+    it('TableService - getTableById - TC-01: should get table by ID successfully', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('TableService - GET_BY_ID - TC-1: Lấy bàn theo ID thành công');
       console.log('='.repeat(50));
@@ -104,7 +104,7 @@ describe('TableService', () => {
       expect(result.id).toBe(1);
     });
 
-    it('TableService - GET_BY_ID - TC-2: should throw error when table not found', async () => {
+    it('TableService - getTableById - TC-02: should throw error when table not found', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('TableService - GET_BY_ID - TC-2: Lỗi khi bàn không tồn tại');
       console.log('='.repeat(50));
@@ -127,7 +127,7 @@ describe('TableService', () => {
       console.log('🎯 OUTPUT REALITY: Thrown error -', expectedError);
     });
 
-    it('TableService - GET_BY_ID - TC-3: should throw error when table is deleted', async () => {
+    it('TableService - getTableById - TC-03: should throw error when table is deleted', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('TableService - GET_BY_ID - TC-3: Lỗi khi bàn đã bị xóa');
       console.log('='.repeat(50));
@@ -154,7 +154,7 @@ describe('TableService', () => {
 
   // ========== CREATE TABLE TESTS ==========
   describe('createTable', () => {
-    it('TableService - CREATE - TC-1: should create table successfully', async () => {
+    it('TableService - createTable - TC-01: should create table successfully', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('TableService - CREATE - TC-1: Tạo bàn thành công');
       console.log('='.repeat(50));
@@ -194,7 +194,7 @@ describe('TableService', () => {
       expect(result.id).toBe(5);
     });
 
-    it('TableService - CREATE - TC-2: should throw error when area not exists', async () => {
+    it('TableService - createTable - TC-02: should throw error when area not exists', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('TableService - CREATE - TC-2: Lỗi khi khu vực không tồn tại');
       console.log('='.repeat(50));
@@ -222,7 +222,7 @@ describe('TableService', () => {
       expect(TableRepository.create).not.toHaveBeenCalled();
     });
 
-    it('TableService - CREATE - TC-3: should throw error when table number exists in area', async () => {
+    it('TableService - createTable - TC-03: should throw error when table number exists in area', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('TableService - CREATE - TC-3: Lỗi khi số bàn đã tồn tại trong khu vực');
       console.log('='.repeat(50));
@@ -255,7 +255,7 @@ describe('TableService', () => {
 
   // ========== UPDATE TABLE TESTS ==========
   describe('updateTable', () => {
-    it('TableService - UPDATE - TC-1: should update table successfully', async () => {
+    it('TableService - updateTable - TC-01: should update table successfully', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('TableService - UPDATE - TC-1: Cập nhật bàn thành công');
       console.log('='.repeat(50));
@@ -291,7 +291,7 @@ describe('TableService', () => {
       expect(result.table_number).toBe(10);
     });
 
-    it('TableService - UPDATE - TC-2: should throw error when new number exists', async () => {
+    it('TableService - updateTable - TC-02: should throw error when new number exists', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('TableService - UPDATE - TC-2: Lỗi khi số bàn mới đã tồn tại');
       console.log('='.repeat(50));
@@ -327,7 +327,7 @@ describe('TableService', () => {
 
   // ========== DELETE TABLE TESTS ==========
   describe('deleteTable', () => {
-    it('TableService - DELETE - TC-1: should delete table successfully', async () => {
+    it('TableService - deleteTable - TC-01: should delete table successfully', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('TableService - DELETE - TC-1: Xóa bàn thành công');
       console.log('='.repeat(50));
@@ -359,7 +359,7 @@ describe('TableService', () => {
 
   // ========== GET TABLES BY AREA TESTS ==========
   describe('getTablesByArea', () => {
-    it('TableService - GET_BY_AREA - TC-1: should get tables by area ID', async () => {
+    it('TableService - getTablesByArea - TC-01: should get tables by area ID', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('TableService - GET_BY_AREA - TC-1: Lấy bàn theo khu vực');
       console.log('='.repeat(50));

@@ -30,7 +30,7 @@ describe("NewsController", () => {
   });
 
   describe("create", () => {
-    it("NewsController - CREATE - TC-1: should create news successfully with thumbnail", async () => {
+    it("NewsController - create - TC-01: should create news successfully with thumbnail", async () => {
       console.log("\n" + "=".repeat(50));
       console.log(
         "NewsController - CREATE - TC-1: Tạo bài viết thành công với thumbnail"
@@ -103,7 +103,7 @@ describe("NewsController", () => {
       expect(next).not.toHaveBeenCalled();
     });
 
-    it("NewsController - CREATE - TC-2: should create news successfully without thumbnail", async () => {
+    it("NewsController - create - TC-02: should create news successfully without thumbnail", async () => {
       console.log("\n" + "=".repeat(50));
       console.log(
         "NewsController - CREATE - TC-2: Tạo bài viết thành công không có thumbnail"
@@ -168,7 +168,7 @@ describe("NewsController", () => {
       );
     });
 
-    it("NewsController - CREATE - TC-3: should return validation error when title already exists", async () => {
+    it("NewsController - create - TC-03: should return validation error when title already exists", async () => {
       console.log("\n" + "=".repeat(50));
       console.log(
         "NewsController - CREATE - TC-3: Trả về lỗi khi tiêu đề bài viết đã tồn tại"
@@ -218,7 +218,7 @@ describe("NewsController", () => {
       expect(response.success).not.toHaveBeenCalled();
     });
 
-    it("NewsController - CREATE - TC-4: should call next for unexpected error", async () => {
+    it("NewsController - create - TC-04: should call next for unexpected error", async () => {
       console.log("\n" + "=".repeat(50));
       console.log(
         "NewsController - CREATE - TC-4: Xử lý lỗi hệ thống khi tạo bài viết"
@@ -254,7 +254,7 @@ describe("NewsController", () => {
   });
 
   describe("getAll", () => {
-    it("NewsController - GET_ALL - TC-1: should get all published news with default query", async () => {
+    it("NewsController - getAll - TC-01: should get all published news with default query", async () => {
       console.log("\n" + "=".repeat(50));
       console.log(
         "NewsController - GET_ALL - TC-1: Lấy danh sách tin thành công với query mặc định"
@@ -295,7 +295,7 @@ describe("NewsController", () => {
       );
     });
 
-    it("NewsController - GET_ALL - TC-2: should get all published news with custom page and limit", async () => {
+    it("NewsController - getAll - TC-02: should get all published news with custom page and limit", async () => {
       console.log("\n" + "=".repeat(50));
       console.log(
         "NewsController - GET_ALL - TC-2: Lấy danh sách tin thành công với page và limit custom"
@@ -330,7 +330,7 @@ describe("NewsController", () => {
       );
     });
 
-    it("NewsController - GET_ALL - TC-3: should call next when service throws error", async () => {
+    it("NewsController - getAll - TC-03: should call next when service throws error", async () => {
       console.log("\n" + "=".repeat(50));
       console.log(
         "NewsController - GET_ALL - TC-3: Xử lý lỗi khi lấy danh sách tin"
@@ -355,7 +355,7 @@ describe("NewsController", () => {
   });
 
   describe("getDetail", () => {
-    it("NewsController - GET_DETAIL - TC-1: should get news detail by slug successfully", async () => {
+    it("NewsController - getDetail - TC-01: should get news detail by slug successfully", async () => {
       console.log("\n" + "=".repeat(50));
       console.log(
         "NewsController - GET_DETAIL - TC-1: Lấy chi tiết bài viết thành công"
@@ -388,7 +388,7 @@ describe("NewsController", () => {
       );
     });
 
-    it("NewsController - GET_DETAIL - TC-2: should call next when news not found", async () => {
+    it("NewsController - getDetail - TC-02: should call next when news not found", async () => {
       console.log("\n" + "=".repeat(50));
       console.log(
         "NewsController - GET_DETAIL - TC-2: Xử lý lỗi khi không tìm thấy bài viết"
@@ -412,7 +412,7 @@ describe("NewsController", () => {
   });
 
   describe("getFeatured", () => {
-    it("NewsController - GET_FEATURED - TC-1: should get featured news successfully", async () => {
+    it("NewsController - getFeatured - TC-01: should get featured news successfully", async () => {
       console.log("\n" + "=".repeat(50));
       console.log(
         "NewsController - GET_FEATURED - TC-1: Lấy tin nổi bật thành công"
@@ -435,7 +435,7 @@ describe("NewsController", () => {
       expect(response.success).toHaveBeenCalledWith(res, mockNews);
     });
 
-    it("NewsController - GET_FEATURED - TC-2: should call next when service throws error", async () => {
+    it("NewsController - getFeatured - TC-02: should call next when service throws error", async () => {
       // Arrange
       const mockError = new Error("Database error");
       NewsService.getFeatured.mockRejectedValue(mockError);
@@ -449,7 +449,7 @@ describe("NewsController", () => {
   });
 
   describe("delete", () => {
-    it("NewsController - DELETE - TC-1: should delete news successfully", async () => {
+    it("NewsController - delete - TC-01: should delete news successfully", async () => {
       console.log("\n" + "=".repeat(50));
       console.log("NewsController - DELETE - TC-1: Xóa bài viết thành công");
       console.log("=".repeat(50));
@@ -469,7 +469,7 @@ describe("NewsController", () => {
       expect(response.success).toHaveBeenCalledWith(res, null, "Đã xóa");
     });
 
-    it("NewsController - DELETE - TC-2: should call next when delete fails", async () => {
+    it("NewsController - delete - TC-02: should call next when delete fails", async () => {
       const mockError = new Error("Không tìm thấy bài viết");
       req.params = { id: "999" };
       NewsService.deleteNews.mockRejectedValue(mockError);
@@ -481,7 +481,7 @@ describe("NewsController", () => {
   });
 
   describe("getAllAdmin", () => {
-    it("NewsController - GET_ALL_ADMIN - TC-1: should get all admin news successfully", async () => {
+    it("NewsController - getAllAdmin - TC-01: should get all admin news successfully", async () => {
       console.log("\n" + "=".repeat(50));
       console.log(
         "NewsController - GET_ALL_ADMIN - TC-1: Lấy danh sách tin admin thành công"
@@ -517,7 +517,7 @@ describe("NewsController", () => {
       expect(response.success).toHaveBeenCalledWith(res, mockNews);
     });
 
-    it("NewsController - GET_ALL_ADMIN - TC-2: should use default query values", async () => {
+    it("NewsController - getAllAdmin - TC-02: should use default query values", async () => {
       req.query = {};
       const mockNews = { items: [], total: 0, page: 1, totalPages: 0 };
       NewsService.getAllAdmin.mockResolvedValue(mockNews);
@@ -534,7 +534,7 @@ describe("NewsController", () => {
   });
 
   describe("getById", () => {
-    it("NewsController - GET_BY_ID - TC-1: should get news by id successfully", async () => {
+    it("NewsController - getById - TC-01: should get news by id successfully", async () => {
       console.log("\n" + "=".repeat(50));
       console.log(
         "NewsController - GET_BY_ID - TC-1: Lấy bài viết theo id thành công"
@@ -557,7 +557,7 @@ describe("NewsController", () => {
       expect(response.success).toHaveBeenCalledWith(res, mockNews);
     });
 
-    it("NewsController - GET_BY_ID - TC-2: should call next when service throws error", async () => {
+    it("NewsController - getById - TC-02: should call next when service throws error", async () => {
       req.params = { id: "999" };
       const mockError = new Error("Không tìm thấy bài viết");
       NewsService.getById.mockRejectedValue(mockError);
@@ -569,7 +569,7 @@ describe("NewsController", () => {
   });
 
   describe("update", () => {
-    it("NewsController - UPDATE - TC-1: should update news successfully with thumbnail", async () => {
+    it("NewsController - update - TC-01: should update news successfully with thumbnail", async () => {
       console.log("\n" + "=".repeat(50));
       console.log(
         "NewsController - UPDATE - TC-1: Cập nhật bài viết thành công với thumbnail mới"
@@ -619,7 +619,7 @@ describe("NewsController", () => {
       );
     });
 
-    it("NewsController - UPDATE - TC-2: should update news successfully without new thumbnail", async () => {
+    it("NewsController - update - TC-02: should update news successfully without new thumbnail", async () => {
       req.params = { id: "1" };
       req.body = {
         title: "Bài viết cập nhật",
@@ -646,7 +646,7 @@ describe("NewsController", () => {
       );
     });
 
-    it("NewsController - UPDATE - TC-3: should return validation error when title already exists", async () => {
+    it("NewsController - update - TC-03: should return validation error when title already exists", async () => {
       req.params = { id: "1" };
       req.body = {
         title: "Tiêu đề trùng",
@@ -674,7 +674,7 @@ describe("NewsController", () => {
       expect(next).not.toHaveBeenCalled();
     });
 
-    it("NewsController - UPDATE - TC-4: should call next for unexpected error", async () => {
+    it("NewsController - update - TC-04: should call next for unexpected error", async () => {
       req.params = { id: "1" };
       req.body = {
         title: "Title",
@@ -693,7 +693,7 @@ describe("NewsController", () => {
   });
 
   describe("getRelated", () => {
-    it("NewsController - GET_RELATED - TC-1: should get related news successfully", async () => {
+    it("NewsController - getRelated - TC-01: should get related news successfully", async () => {
       console.log("\n" + "=".repeat(50));
       console.log(
         "NewsController - GET_RELATED - TC-1: Lấy tin liên quan thành công"
@@ -722,7 +722,7 @@ describe("NewsController", () => {
       expect(response.success).toHaveBeenCalledWith(res, mockNews);
     });
 
-    it("NewsController - GET_RELATED - TC-2: should call next when service throws error", async () => {
+    it("NewsController - getRelated - TC-02: should call next when service throws error", async () => {
       req.query = { tag: "#coffee", excludeId: "1" };
       const mockError = new Error("Database error");
       NewsService.getRelated.mockRejectedValue(mockError);

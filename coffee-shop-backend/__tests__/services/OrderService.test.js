@@ -40,7 +40,7 @@ describe("OrderService", () => {
   });
 
   describe("checkout", () => {
-    it("OrderService - CHECKOUT - TCID: ORD-SVC-CO-001 - CRUD: CREATE", async () => {
+    it("OrderService - checkout - TC-01: ORD-SVC-CO-001 - CRUD: CREATE", async () => {
       const payload = {
         order_type: "delivery",
         payment_method: "cash",
@@ -131,7 +131,7 @@ describe("OrderService", () => {
       expect(result).toEqual(expected);
     });
 
-    it("OrderService - CHECKOUT - TCID: ORD-SVC-CO-002 - CRUD: CREATE", async () => {
+    it("OrderService - checkout - TC-02: ORD-SVC-CO-002 - CRUD: CREATE", async () => {
       const payload = {
         order_type: "takeaway",
         payment_method: "cash",
@@ -195,7 +195,7 @@ describe("OrderService", () => {
       expect(result).toEqual(expected);
     });
 
-    it("OrderService - CHECKOUT - TCID: ORD-SVC-CO-003 - CRUD: CREATE", async () => {
+    it("OrderService - checkout - TC-03: ORD-SVC-CO-003 - CRUD: CREATE", async () => {
       const payload = {
         order_type: "delivery",
         payment_method: "cash",
@@ -222,7 +222,7 @@ describe("OrderService", () => {
       expect(OrderRepository.getConnection).not.toHaveBeenCalled();
     });
 
-    it("OrderService - CHECKOUT - TCID: ORD-SVC-CO-004 - CRUD: CREATE", async () => {
+    it("OrderService - checkout - TC-04: ORD-SVC-CO-004 - CRUD: CREATE", async () => {
       const payload = {
         order_type: "delivery",
         payment_method: "cash",
@@ -270,7 +270,7 @@ describe("OrderService", () => {
       expect(result).toEqual(expected);
     });
 
-    it("OrderService - CHECKOUT - TCID: ORD-SVC-CO-005 - CRUD: CREATE", async () => {
+    it("OrderService - checkout - TC-05: ORD-SVC-CO-005 - CRUD: CREATE", async () => {
       const payload = {
         order_type: "delivery",
         payment_method: "cash",
@@ -298,7 +298,7 @@ describe("OrderService", () => {
       expect(mockConnection.release).toHaveBeenCalled();
     });
 
-    it("OrderService - CHECKOUT - TCID: ORD-SVC-CO-006 - CRUD: CREATE", async () => {
+    it("OrderService - checkout - TC-06: ORD-SVC-CO-006 - CRUD: CREATE", async () => {
       const payload = {
         order_type: "takeaway",
         payment_method: "cash",
@@ -336,7 +336,7 @@ describe("OrderService", () => {
   });
 
   describe("getOrdersByUser", () => {
-    it("OrderService - GET_ORDERS_BY_USER - TCID: ORD-SVC-RO-001 - CRUD: READ", async () => {
+    it("OrderService - getOrdersByUser - TC-01: ORD-SVC-RO-001 - CRUD: READ", async () => {
       const input = { userId: 1 };
       const expected = [
         { id: 1, total_amount: 50000 },
@@ -361,7 +361,7 @@ describe("OrderService", () => {
   });
 
   describe("getOrderDetailByUser", () => {
-    it("OrderService - GET_ORDER_DETAIL_BY_USER - TCID: ORD-SVC-RO-002 - CRUD: READ", async () => {
+    it("OrderService - getOrderDetailByUser - TC-01: ORD-SVC-RO-002 - CRUD: READ", async () => {
       const input = { orderId: 10, userId: 1 };
       const mockOrder = { id: 10, total_amount: 120000 };
       const mockItems = [{ id: 1, name: "Coffee", toppings: [] }];
@@ -385,7 +385,7 @@ describe("OrderService", () => {
       expect(result).toEqual(expected);
     });
 
-    it("OrderService - GET_ORDER_DETAIL_BY_USER - TCID: ORD-SVC-RO-003 - CRUD: READ", async () => {
+    it("OrderService - getOrderDetailByUser - TC-02: ORD-SVC-RO-003 - CRUD: READ", async () => {
       const input = { orderId: 999, userId: 1 };
       const expectedError = "Đơn hàng không tồn tại";
       logCase({
@@ -419,7 +419,7 @@ describe("OrderService", () => {
       });
     });
 
-    it("OrderService - SAVE_PAYOS_RETURN - TCID: ORD-SVC-UP-001 - CRUD: UPDATE", async () => {
+    it("OrderService - savePayosReturn - TC-01: ORD-SVC-UP-001 - CRUD: UPDATE", async () => {
       const input = {
         orderCode: 100,
         payosId: "PAYOS123",
@@ -445,7 +445,7 @@ describe("OrderService", () => {
       expect(result).toEqual(expected);
     });
 
-    it("OrderService - SAVE_PAYOS_RETURN - TCID: ORD-SVC-UP-002 - CRUD: UPDATE", async () => {
+    it("OrderService - savePayosReturn - TC-02: ORD-SVC-UP-002 - CRUD: UPDATE", async () => {
       const input = {
         orderCode: 100,
         payosId: "PAYOS123",
@@ -473,7 +473,7 @@ describe("OrderService", () => {
       expect(result).toEqual(expected);
     });
 
-    it("OrderService - SAVE_PAYOS_RETURN - TCID: ORD-SVC-UP-003 - CRUD: UPDATE", async () => {
+    it("OrderService - savePayosReturn - TC-03: ORD-SVC-UP-003 - CRUD: UPDATE", async () => {
       const input = {
         orderCode: 100,
         payosId: null,
@@ -499,7 +499,7 @@ describe("OrderService", () => {
       expect(result).toEqual(expected);
     });
 
-    it("OrderService - SAVE_PAYOS_RETURN - TCID: ORD-SVC-UP-004 - CRUD: UPDATE", async () => {
+    it("OrderService - savePayosReturn - TC-04: ORD-SVC-UP-004 - CRUD: UPDATE", async () => {
       const input = { payosId: "PAYOS123", status: "PAID" };
       const expectedError = "Thiếu orderCode";
       logCase({

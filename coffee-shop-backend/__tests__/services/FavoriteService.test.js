@@ -9,7 +9,7 @@ describe('FavoriteService', () => {
   });
 
   describe('getMyFavorites', () => {
-    it('FavoriteService - getMyFavorites - TC-1: should call repository to get favorites by user', async () => {
+    it('FavoriteService - getMyFavorites - TC-01: should call repository to get favorites by user', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('FavoriteService - getMyFavorites - TC-1: Lấy danh sách yêu thích của user');
       console.log('='.repeat(50));
@@ -35,7 +35,7 @@ describe('FavoriteService', () => {
   });
 
   describe('checkFavorite', () => {
-    it('FavoriteService - checkFavorite - TC-1: should return true if favorite exists', async () => {
+    it('FavoriteService - checkFavorite - TC-01: should return true if favorite exists', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('FavoriteService - checkFavorite - TC-1: Trả về true nếu đã yêu thích');
       console.log('='.repeat(50));
@@ -52,7 +52,7 @@ describe('FavoriteService', () => {
       expect(result).toBe(true);
     });
 
-    it('FavoriteService - checkFavorite - TC-2: should return false if favorite does not exist', async () => {
+    it('FavoriteService - checkFavorite - TC-02: should return false if favorite does not exist', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('FavoriteService - checkFavorite - TC-2: Trả về false nếu chưa yêu thích');
       console.log('='.repeat(50));
@@ -71,7 +71,7 @@ describe('FavoriteService', () => {
   });
 
   describe('addFavorite', () => {
-    it('FavoriteService - addFavorite - TC-1: should return early if already in favorites', async () => {
+    it('FavoriteService - addFavorite - TC-01: should return early if already in favorites', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('FavoriteService - addFavorite - TC-1: Báo lỗi/bỏ qua nếu đã có trong favorites');
       console.log('='.repeat(50));
@@ -91,7 +91,7 @@ describe('FavoriteService', () => {
       expect(result).toEqual(expectedOutput);
     });
 
-    it('FavoriteService - addFavorite - TC-2: should create new favorite and return success message', async () => {
+    it('FavoriteService - addFavorite - TC-02: should create new favorite and return success message', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('FavoriteService - addFavorite - TC-2: Thêm mới vào favorites thành công');
       console.log('='.repeat(50));
@@ -114,7 +114,7 @@ describe('FavoriteService', () => {
   });
 
   describe('removeFavorite', () => {
-    it('FavoriteService - removeFavorite - TC-1: should call delete favorite and return success message', async () => {
+    it('FavoriteService - removeFavorite - TC-01: should call delete favorite and return success message', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('FavoriteService - removeFavorite - TC-1: Xóa yêu thích thành công');
       console.log('='.repeat(50));

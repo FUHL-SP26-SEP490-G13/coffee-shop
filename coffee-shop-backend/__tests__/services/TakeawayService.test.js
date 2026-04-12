@@ -41,7 +41,7 @@ describe("TakeawayService", () => {
   });
 
   describe("createTakeawayOrder", () => {
-    it("TakeawayService - CREATE_TAKEAWAY_ORDER - TCID: TKW-SVC-CR-001 - CRUD: CREATE", async () => {
+    it("TakeawayService - createTakeawayOrder - TC-01: TKW-SVC-CR-001 - CRUD: CREATE", async () => {
       const input = {
         payload: {
           payment_method: "cash",
@@ -104,7 +104,7 @@ describe("TakeawayService", () => {
       expect(result).toEqual(expected);
     });
 
-    it("TakeawayService - CREATE_TAKEAWAY_ORDER - TCID: TKW-SVC-CR-002 - CRUD: CREATE", async () => {
+    it("TakeawayService - createTakeawayOrder - TC-02: TKW-SVC-CR-002 - CRUD: CREATE", async () => {
       const input = {
         payload: {
           payment_method: "payos",
@@ -166,7 +166,7 @@ describe("TakeawayService", () => {
       expect(result.qr_code).toBe(expected.qr_code);
     });
 
-    it("TakeawayService - CREATE_TAKEAWAY_ORDER - TCID: TKW-SVC-CR-003 - CRUD: CREATE", async () => {
+    it("TakeawayService - createTakeawayOrder - TC-03: TKW-SVC-CR-003 - CRUD: CREATE", async () => {
       const input = {
         payload: {
           payment_method: "banking",
@@ -197,7 +197,7 @@ describe("TakeawayService", () => {
   });
 
   describe("assignToBarista", () => {
-    it("TakeawayService - ASSIGN_TO_BARISTA - TCID: TKW-SVC-UP-001 - CRUD: UPDATE", async () => {
+    it("TakeawayService - assignToBarista - TC-01: TKW-SVC-UP-001 - CRUD: UPDATE", async () => {
       const input = { orderId: 77, baristaUser: { id: 5 } };
       const expected = {
         order_id: 77,
@@ -228,7 +228,7 @@ describe("TakeawayService", () => {
   });
 
   describe("getReceipt", () => {
-    it("TakeawayService - GET_RECEIPT - TCID: TKW-SVC-RD-001 - CRUD: READ", async () => {
+    it("TakeawayService - getReceipt - TC-01: TKW-SVC-RD-001 - CRUD: READ", async () => {
       const input = { orderId: 88 };
       const expected = {
         order_id: 88,
