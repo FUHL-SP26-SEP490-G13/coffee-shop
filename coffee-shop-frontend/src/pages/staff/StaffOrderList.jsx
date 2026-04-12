@@ -44,12 +44,16 @@ import takeawayService from "@/services/takeAwayService";
 import BaristaViewRecipe from "../barista/BaristaOrder/BaristaViewRecipe";
 import { PrintableReceipt } from "./PrintableReceipt";
 
-const STAFF_TAB_STATUSES = ["pending", "preparing", "served", "completed", "cancelled", "barista-window"];
+const STAFF_TAB_STATUSES = ["pending", "management", "served", "completed", "cancelled", "barista-window"];
 
 const statusLabelMap = {
   pending: {
     label: "Online chờ xác nhận",
     className: "text-rose-600 dark:text-rose-300",
+  },
+  management: {
+    label: "Quản lý đơn hàng",
+    className: "text-blue-600 dark:text-blue-300",
   },
   preparing: {
     label: "Đang chuẩn bị",
@@ -262,7 +266,7 @@ const sortOrdersByStatus = (status, list) => {
   const sorted = [...list];
   const toTime = (order) => new Date(order?.created_at || 0).getTime();
 
-  if (status === "preparing") {
+  if (status === "management") {
     // View tổng hợp "Quản lý đơn hàng": ưu tiên theo trạng thái, sau đó mới đến thời gian
     sorted.sort((a, b) => {
       const weightA = getStatusWeight(a.status);
@@ -354,7 +358,7 @@ export function OrderDelivery() {
           const s = String(order?.status || "").toLowerCase();
           return s === "preparing" || s === "served" || s === "completed";
         }
-        if (activeStatus === "preparing") {
+        if (activeStatus === "management") {
           return true; // Quản lý đơn hàng: hiển thị tất cả
         }
         return String(order?.status || "").toLowerCase() === activeStatus.toLowerCase();
@@ -452,7 +456,7 @@ export function OrderDelivery() {
 
   const activeStatusOrders = useMemo(() => {
     const list = orders.filter((order) => {
-      if (activeStatus === "preparing") {
+      if (activeStatus === "management") {
         if (
           String(order?.status).toLowerCase() === "cancelled" &&
           (order?.order_type === "delivery" || order?.order_type === "takeaway")
@@ -470,7 +474,7 @@ export function OrderDelivery() {
   }, [activeStatus, preparingSubTab, orders]);
 
   const delayedOrdersCount = useMemo(() => {
-    if (!["pending", "preparing"].includes(activeStatus)) return 0;
+    if (!["pending", "management"].includes(activeStatus)) return 0;
     return activeStatusOrders.filter((order) => {
       return getElapsedMinutes(order?.created_at) > 10;
     }).length;
@@ -919,7 +923,7 @@ export function OrderDelivery() {
             <div className="flex w-full items-center gap-2 sm:w-auto">
               <Button
                 size="sm"
-                className={`h-9 flex-1 text-sm sm:h-7 sm:px-2.5 sm:text-xs ${activeStatus === "preparing" ? "" : "w-full sm:w-auto"}`}
+                className={`h-9 flex-1 text-sm sm:h-7 sm:px-2.5 sm:text-xs ${activeStatus === "management" ? "" : "w-full sm:w-auto"}`}
                 variant={activeStatus === "pending" ? "default" : "outline"}
                 onClick={() => openDetailModal(order)}
               >
@@ -1001,7 +1005,7 @@ export function OrderDelivery() {
               </Button>
             ))}
 
-            {["pending", "preparing"].includes(activeStatus) ? (
+            {["pending", "management"].includes(activeStatus) ? (
               <div className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-2.5 md:ml-auto md:h-8">
                 <span className="text-xs font-medium text-rose-700 dark:text-rose-300">
                   Trễ &gt; 10 phút
