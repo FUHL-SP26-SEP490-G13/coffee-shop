@@ -518,4 +518,140 @@ router.patch(
   AuthController.setDefaultAddress,
 );
 
+/**
+ * @swagger
+ * tags:
+ *   - name: Auth API
+ *     description: Auto-generated endpoints documentation
+ */
+
+/**
+ * @swagger
+ * /auth/google:
+ *   post:
+ *     tags:
+ *       - Auth API
+ *     summary: Create google
+ *     description: Auto-generated documentation for existing route
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *     responses:
+ *       200:
+ *         description: Success
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
+
+/**
+ * @swagger
+ * /auth/reset-password:
+ *   post:
+ *     tags:
+ *       - Auth API
+ *     summary: Create reset password
+ *     description: Auto-generated documentation for existing route
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *     responses:
+ *       200:
+ *         description: Success
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
+
+/**
+ * @swagger
+ * /auth/forgot-password/verify-otp:
+ *   post:
+ *     tags:
+ *       - Auth API
+ *     summary: Create forgot password verify otp
+ *     description: Auto-generated documentation for existing route
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *     responses:
+ *       200:
+ *         description: Success
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
+
+/**
+ * @swagger
+ * /auth/forgot-password/reset:
+ *   post:
+ *     tags:
+ *       - Auth API
+ *     summary: Create forgot password reset
+ *     description: Auto-generated documentation for existing route
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *     responses:
+ *       200:
+ *         description: Success
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
+
+/**
+ * @swagger
+ * /auth/address/{id}/default:
+ *   patch:
+ *     tags:
+ *       - Auth API
+ *     summary: Patch address id default
+ *     description: Auto-generated documentation for existing route
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
+
 module.exports = router;

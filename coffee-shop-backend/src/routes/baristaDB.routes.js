@@ -120,4 +120,48 @@ router.put(
   controller.updateStatus
 );
 
+/**
+ * @swagger
+ * tags:
+ *   - name: Barista D B API
+ *     description: Auto-generated endpoints documentation
+ */
+
+/**
+ * @swagger
+ * /barista/orders/{id}/status:
+ *   put:
+ *     tags:
+ *       - Barista D B API
+ *     summary: Update orders id status
+ *     description: Auto-generated documentation for existing route
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
+
 module.exports = router;

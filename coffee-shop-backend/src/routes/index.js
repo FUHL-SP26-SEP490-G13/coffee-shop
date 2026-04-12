@@ -39,6 +39,35 @@ const deliveryAreaRoutes = require('./deliveryArea.routes');
 const CategoryRepository = require('../repositories/CategoryRepository');
 const ProductRepository = require('../repositories/ProductRepository');
 
+/**
+ * @swagger
+ * tags:
+ *   - name: System API
+ *     description: System and discovery endpoints
+ */
+
+/**
+ * @swagger
+ * /public/slugs/{slug}:
+ *   get:
+ *     tags:
+ *       - System API
+ *     summary: Resolve slug
+ *     description: Resolve a slug to either a category or product
+ *     parameters:
+ *       - in: path
+ *         name: slug
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Slug resolved successfully
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
 router.get('/public/slugs/:slug', async (req, res) => {
   try {
     const { slug } = req.params;
@@ -96,6 +125,18 @@ router.use('/cart', cartRoutes);
 router.use('/delivery-areas', deliveryAreaRoutes);
 
 // Health check endpoint
+/**
+ * @swagger
+ * /health:
+ *   get:
+ *     tags:
+ *       - System API
+ *     summary: Health check
+ *     description: Check API runtime status
+ *     responses:
+ *       200:
+ *         description: API is healthy
+ */
 router.get("/health", (req, res) => {
   res.json({
     success: true,
@@ -105,6 +146,18 @@ router.get("/health", (req, res) => {
 });
 
 // API documentation endpoint
+/**
+ * @swagger
+ * /:
+ *   get:
+ *     tags:
+ *       - System API
+ *     summary: API root information
+ *     description: Return summary of available API domains and key endpoints
+ *     responses:
+ *       200:
+ *         description: API summary returned successfully
+ */
 router.get("/", (req, res) => {
   res.json({
     success: true,

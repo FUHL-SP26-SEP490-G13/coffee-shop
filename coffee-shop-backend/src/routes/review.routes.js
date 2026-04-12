@@ -143,4 +143,65 @@ const { ROLES_STRING } = require("../config/constants");
 const MANAGER_AND_STAFF = [ROLES_STRING.MANAGER, ROLES_STRING.STAFF];
 router.post("/admin/:id/reply", authenticate, authorize(MANAGER_AND_STAFF), upload.array("reply_images", 4), ReviewController.replyReview);
 
+/**
+ * @swagger
+ * tags:
+ *   - name: Review API
+ *     description: Auto-generated endpoints documentation
+ */
+
+/**
+ * @swagger
+ * /reviews/public:
+ *   get:
+ *     tags:
+ *       - Review API
+ *     summary: Get public
+ *     description: Auto-generated documentation for existing route
+ *     responses:
+ *       200:
+ *         description: Success
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
+
+/**
+ * @swagger
+ * /reviews/admin/{id}/reply:
+ *   post:
+ *     tags:
+ *       - Review API
+ *     summary: Create admin id reply
+ *     description: Auto-generated documentation for existing route
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
+
 module.exports = router;

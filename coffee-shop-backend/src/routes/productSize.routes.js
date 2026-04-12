@@ -157,4 +157,40 @@ router.put('/:id', authenticate, authorize(['admin']), ProductSizeController.upd
 // Xóa size
 router.delete('/:id', authenticate, authorize(['admin']), ProductSizeController.delete);
 
+/**
+ * @swagger
+ * tags:
+ *   - name: Product Size API
+ *     description: Auto-generated endpoints documentation
+ */
+
+/**
+ * @swagger
+ * /product-sizes/:
+ *   post:
+ *     tags:
+ *       - Product Size API
+ *     summary: Create resource
+ *     description: Auto-generated documentation for existing route
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
+
 module.exports = router;

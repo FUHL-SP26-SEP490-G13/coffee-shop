@@ -45,11 +45,15 @@ const {
  *                   type: array
  *                   items:
  *                     $ref: '#/components/schemas/Category'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
  *   post:
  *     tags:
  *       - Categories
  *     summary: Create new category
- *     description: Create a new product category with image
+ *     description: Create a new product category with optional image upload
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -73,38 +77,26 @@ const {
  *     responses:
  *       201:
  *         description: Category created successfully
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
  *       400:
  *         $ref: '#/components/responses/BadRequest'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
  */
 
 /**
  * @swagger
  * /categories/{id}:
- *   get:
- *     tags:
- *       - Categories
- *     summary: Get category by ID
- *     description: Retrieve detailed information of a specific category
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *     responses:
- *       200:
- *         description: Category found
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Category'
- *       404:
- *         $ref: '#/components/responses/NotFound'
  *   put:
  *     tags:
  *       - Categories
  *     summary: Update category
  *     description: Update category information and image
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -130,13 +122,23 @@ const {
  *     responses:
  *       200:
  *         description: Category updated successfully
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
  *       404:
  *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
  *   delete:
  *     tags:
  *       - Categories
  *     summary: Delete category
  *     description: Soft delete a product category
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -146,29 +148,16 @@ const {
  *     responses:
  *       200:
  *         description: Category deleted successfully
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
  *       404:
  *         $ref: '#/components/responses/NotFound'
- */
-
-/**
- * @swagger
- * /categories/{id}/restore:
- *   post:
- *     tags:
- *       - Categories
- *     summary: Restore deleted category
- *     description: Restore a soft-deleted category
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *     responses:
- *       200:
- *         description: Category restored successfully
- *       404:
- *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
  */
 
 /**
@@ -208,5 +197,58 @@ router.delete(
   validate(categoryIdSchema, 'params'),
   CategoryController.delete,
 );
+
+/**
+ * @swagger
+ * tags:
+ *   - name: Category API
+ *     description: Auto-generated endpoints documentation
+ */
+
+/**
+ * @swagger
+ * /categories/:
+ *   get:
+ *     tags:
+ *       - Category API
+ *     summary: Get resource
+ *     description: Auto-generated documentation for existing route
+ *     responses:
+ *       200:
+ *         description: Success
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
+
+/**
+ * @swagger
+ * /categories/:
+ *   post:
+ *     tags:
+ *       - Category API
+ *     summary: Create resource
+ *     description: Auto-generated documentation for existing route
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
 
 module.exports = router;

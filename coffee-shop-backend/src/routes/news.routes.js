@@ -347,4 +347,57 @@ router.post(
 
 router.get("/:slug", NewsController.getDetail);
 
+/**
+ * @swagger
+ * tags:
+ *   - name: News API
+ *     description: Auto-generated endpoints documentation
+ */
+
+/**
+ * @swagger
+ * /news/:
+ *   get:
+ *     tags:
+ *       - News API
+ *     summary: Get resource
+ *     description: Auto-generated documentation for existing route
+ *     responses:
+ *       200:
+ *         description: Success
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
+
+/**
+ * @swagger
+ * /news/:
+ *   post:
+ *     tags:
+ *       - News API
+ *     summary: Create resource
+ *     description: Auto-generated documentation for existing route
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
+
 module.exports = router;

@@ -342,4 +342,57 @@ router.delete(
 //   ProductController.restore
 // );
 
+/**
+ * @swagger
+ * tags:
+ *   - name: Product API
+ *     description: Auto-generated endpoints documentation
+ */
+
+/**
+ * @swagger
+ * /products/:
+ *   get:
+ *     tags:
+ *       - Product API
+ *     summary: Get resource
+ *     description: Auto-generated documentation for existing route
+ *     responses:
+ *       200:
+ *         description: Success
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
+
+/**
+ * @swagger
+ * /products/:
+ *   post:
+ *     tags:
+ *       - Product API
+ *     summary: Create resource
+ *     description: Auto-generated documentation for existing route
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
+
 module.exports = router;
