@@ -21,16 +21,16 @@ class ShiftService {
             throw new ErrorResponse(400, 'Không thể gán ca cho ngày trong quá khứ');
         }
 
-        // Ngày gán ca phải cách hiện tại ít nhất 2 ngày
-        const minDate = new Date(today);
-        minDate.setDate(today.getDate() + 2);
-        if (assignDate < minDate) {
-            const minDateStr = `${minDate.getFullYear()}-${String(minDate.getMonth() + 1).padStart(2, '0')}-${String(minDate.getDate()).padStart(2, '0')}`;
-            throw new ErrorResponse(
-                400,
-                `Chỉ được gán ca trước ít nhất 2 ngày. Ngày sớm nhất có thể gán: ${minDateStr}`,
-            );
-        }
+        // Ngày gán ca phải cách hiện tại ít nhất 1 ngày
+        // const minDate = new Date(today);
+        // minDate.setDate(today.getDate() + 1);
+        // if (assignDate < minDate) {
+        //     const minDateStr = `${minDate.getFullYear()}-${String(minDate.getMonth() + 1).padStart(2, '0')}-${String(minDate.getDate()).padStart(2, '0')}`;
+        //     throw new ErrorResponse(
+        //         400,
+        //         `Chỉ được gán ca trước ít nhất 1 ngày. Ngày sớm nhất có thể gán: ${minDateStr}`,
+        //     );
+        // }
 
         const template = await ShiftRepository.findTemplateById(template_id);
         if (!template) throw new ErrorResponse(404, 'Ca làm việc không tồn tại');
@@ -129,16 +129,16 @@ class ShiftService {
         }
 
         // start_date phải cách hôm nay ít nhất 2 ngày
-        const minDate = new Date(today);
-        minDate.setDate(today.getDate() + 2);
-        if (startDateObj < minDate) {
-            // dùng local time để tránh lệch một ngày do toISOString() đổi sang UTC
-            const minDateStr = `${minDate.getFullYear()}-${String(minDate.getMonth() + 1).padStart(2, '0')}-${String(minDate.getDate()).padStart(2, '0')}`;
-            throw new ErrorResponse(
-                400,
-                `Ngày bắt đầu gán ca phải cách hôm nay ít nhất 2 ngày. Ngày sớm nhất: ${minDateStr}`,
-            );
-        }
+        // const minDate = new Date(today);
+        // minDate.setDate(today.getDate() + 2);
+        // if (startDateObj < minDate) {
+        //     // dùng local time để tránh lệch một ngày do toISOString() đổi sang UTC
+        //     const minDateStr = `${minDate.getFullYear()}-${String(minDate.getMonth() + 1).padStart(2, '0')}-${String(minDate.getDate()).padStart(2, '0')}`;
+        //     throw new ErrorResponse(
+        //         400,
+        //         `Ngày bắt đầu gán ca phải cách hôm nay ít nhất 2 ngày. Ngày sớm nhất: ${minDateStr}`,
+        //     );
+        // }
 
         if (!Array.isArray(assignments) || assignments.length === 0) {
             throw new ErrorResponse(400, 'Danh sách gán ca trống');
