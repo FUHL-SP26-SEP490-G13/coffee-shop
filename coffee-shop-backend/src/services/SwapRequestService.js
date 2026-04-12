@@ -67,12 +67,12 @@ class SwapRequestService {
             }
 
             // Kiểm tra trùng giờ: A nhận ca B → A có bị trùng không?
-            await this._checkTimeConflict(userAId, shiftB, shiftAId);
+            await this._checkTimeConflict(userAId, shiftB, shiftAId, 'Bạn');
             // Kiểm tra trùng giờ: B nhận ca A → B có bị trùng không?
-            await this._checkTimeConflict(userBId, shiftA, shiftBId);
+            await this._checkTimeConflict(userBId, shiftA, shiftBId, 'Người nhận');
         } else {
             // Nhường ca: B nhận ca A → B có bị trùng không?
-            await this._checkTimeConflict(userBId, shiftA, null);
+            await this._checkTimeConflict(userBId, shiftA, null, 'Người nhận');
         }
 
         // 7. Kiểm tra A đã gửi yêu cầu đổi ca này cho B chưa
@@ -156,8 +156,8 @@ class SwapRequestService {
             if (!regB) throw new ErrorResponse(400, 'Ca của bạn đã bị thay đổi, không thể đổi');
 
             // Kiểm tra trùng giờ lần cuối
-            await this._checkTimeConflict(swap.requester_id, shiftB, swap.requester_shift_id);
-            await this._checkTimeConflict(swap.receiver_id, shiftA, swap.receiver_shift_id);
+            await this._checkTimeConflict(swap.requester_id, shiftB, swap.requester_shift_id, 'Người gửi');
+            await this._checkTimeConflict(swap.receiver_id, shiftA, swap.receiver_shift_id, 'Bạn');
 
             // - UPDATE regA → swapped_out, UPDATE regB → swapped_out
             // - INSERT A vào shiftB (swapped_in), INSERT B vào shiftA (swapped_in)
@@ -173,7 +173,7 @@ class SwapRequestService {
 
         } else {
             // === GIVE AWAY: A nhường ca cho B ===
-            await this._checkTimeConflict(swap.receiver_id, shiftA, null);
+            await this._checkTimeConflict(swap.receiver_id, shiftA, null, 'Bạn');
 
             // Thực thi:
             // - UPDATE regA → swapped_out
@@ -362,11 +362,12 @@ class SwapRequestService {
     /**
      * Kiểm tra user có bị trùng giờ khi nhận ca mới không.
      *
-     * @param userId        - user sắp nhận ca mới
-     * @param newShift      - ca mới sắp nhận (object có shift_date, start_time, end_time)
+     * @param userId         - user sắp nhận ca mới
+     * @param newShift       - ca mới sắp nhận (object có shift_date, start_time, end_time)
      * @param excludeShiftId - ca sắp trả đi (bỏ qua khi check) — null nếu không có
+     * @param ownerLabel     - tên hiển thị của người bị check (vd: 'Bạn', 'Người nhận', 'Người gửi')
      */
-    async _checkTimeConflict(userId, newShift, excludeShiftId) {
+    async _checkTimeConflict(userId, newShift, excludeShiftId, ownerLabel = 'Nhân viên') {
         const date = this._toDateStr(newShift.shift_date);
 
         // Lấy tất cả ca user đang làm trong ngày đó
@@ -396,7 +397,7 @@ class SwapRequestService {
             if (isOverlap) {
                 throw new ErrorResponse(
                     400,
-                    `Trùng giờ với ${shift.template_name} (${shift.start_time.slice(0, 5)}–${shift.end_time.slice(0, 5)}) ngày ${date}`,
+                    `${ownerLabel} đang có ca ${shift.template_name} (${shift.start_time.slice(0, 5)}–${shift.end_time.slice(0, 5)}) vào ngày ${date}, không thể nhận ca này`,
                 );
             }
         }
