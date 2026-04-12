@@ -69,14 +69,6 @@ class ShiftService {
         // Kiểm tra nhân viên đã được gán ca này chưa
         const existing = await ShiftRepository.findRegistration(user_id, shift.id);
 
-        if (existing && existing.status === 'swapped_out') {
-            // Ca đã được nhường đi (có người swapped_in) → không cho gán lại thủ công
-            throw new ErrorResponse(
-                400,
-                `Ca này đã được ${user.first_name} ${user.last_name} nhường cho người khác, không thể gán lại thủ công`,
-            );
-        }
-
         if (existing && existing.status !== 'cancelled')
             throw new ErrorResponse(
                 400,
@@ -269,12 +261,6 @@ class ShiftService {
                 }
 
                 // 1c) Validate trạng thái registration
-                if (existingReg && existingReg.status === 'swapped_out') {
-                    throw new ErrorResponse(
-                        400,
-                        `Ca này đã được ${user.first_name} ${user.last_name} nhường cho người khác, không thể gán lại thủ công`,
-                    );
-                }
                 if (existingReg && existingReg.status !== 'cancelled') {
                     throw new ErrorResponse(
                         400,
@@ -341,21 +327,6 @@ class ShiftService {
         const reg = await ShiftRepository.findRegistrationById(registrationId);
         if (!reg) throw new ErrorResponse(404, 'Không tìm thấy lịch làm việc này');
 
-        // Không cho xóa thủ công các ca liên quan đến swap
-        if (reg.status === 'swapped_out') {
-            throw new ErrorResponse(
-                400,
-                'Ca này đã được nhân viên nhường cho người khác thông qua đổi ca, không thể xóa thủ công',
-            );
-        }
-
-        if (reg.status === 'swapped_in') {
-            throw new ErrorResponse(
-                400,
-                'Ca này được nhân viên nhận qua đổi ca, không thể xóa thủ công',
-            );
-        }
-
         await ShiftRepository.cancelRegistration(registrationId);
     }
 
@@ -376,7 +347,7 @@ class ShiftService {
                     user_id: row.user_id,
                     name: `${row.first_name} ${row.last_name}`,
                     role: row.role_name,
-                    schedule: {}, // { '2026-03-27': [{ registration_id, shift_id, template_name, start_time, end_time, display_status }] }
+                    schedule: {}, // { '2026-03-27': [{ registration_id, shift_id, template_name, start_time, end_time }] }
                 };
             }
 
@@ -396,19 +367,12 @@ class ShiftService {
                 start_time: row.start_time,
                 end_time: row.end_time,
                 color: row.color,
-                display_status: row.display_status,
             });
         }
 
         return Object.values(employeeMap);
     }
 
-    // LẤY DANH SÁCH ĐỒNG NGHIỆP CÙNG ROLE, isActive=1
-    async getColleagues(userId) {
-        if (!userId) throw new ErrorResponse(400, 'Thiếu userId');
-        const rows = await ShiftRepository.findColleaguesByRole(userId);
-        return rows;
-    }
 }
 
 module.exports = new ShiftService();
