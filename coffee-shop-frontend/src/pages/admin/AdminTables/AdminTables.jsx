@@ -1,5 +1,12 @@
 import React, { useState, useEffect } from "react";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
   Plus,
   Search,
   Trash2,
@@ -8,6 +15,7 @@ import {
   LayoutGrid,
   MapPin,
   Edit,
+  QrCode,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,9 +46,12 @@ import AreaModal from "../AdminAreas/AreaModal";
 // import ReservationModal from "./ReservationModal";
 import { STORAGE_KEYS } from "@/constants";
 import { jwtDecode } from "jwt-decode";
+import PaginationControl from "@/components/common/PaginationControl";
 
 export default function AdminTables() {
-  const token = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN) || sessionStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
+  const token =
+    localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN) ||
+    sessionStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
   const user = token ? jwtDecode(token) : null;
   const isStaff = user?.role_id === 2;
 
@@ -107,6 +118,26 @@ export default function AdminTables() {
     setDeleteTableConfirmOpen(true);
   };
 
+  // QR Modal state
+  const [qrModalTable, setQrModalTable] = useState(null);
+
+  // Hàm xem QR
+  const handleViewQR = (table) => {
+    setQrModalTable(table);
+  };
+
+  // Hàm in QR
+  const handlePrintQr = () => {
+    if (!qrModalTable?.qrUrl) return;
+    const printWindow = window.open("", "_blank");
+    printWindow.document.write(
+      `<img src='${qrModalTable.qrUrl}' style='width:300px;height:300px;display:block;margin:auto'/>`,
+    );
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+    printWindow.close();
+  };
   const handleDeleteTableConfirm = async () => {
     try {
       await tableService.delete(tableToDelete.id);
@@ -129,11 +160,6 @@ export default function AdminTables() {
       toast.error(error.message || "Cập nhật thất bại");
     }
   };
-
-  // const handleReserveTable = (table) => {
-  //   setTableToReserve(table);
-  //   setIsReservationModalOpen(true);
-  // };
 
   // -- AREA HANDLERS --
   const handleAddArea = () => {
@@ -191,12 +217,11 @@ export default function AdminTables() {
   const currentAreaObj = areas.find((a) => a.id.toString() === selectedAreaId);
 
   return (
-    <div className="space-y-6">
+    <div className="p-4 sm:p-6 lg:p-8 space-y-6">
       {/* HEADER */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div className="flex items-center gap-3">
-          <LayoutGrid className="w-6 h-6 text-primary" />
-          <h1 className="text-2xl font-semibold">Quản lý Khu vực & Bàn</h1>
+          <h1 className="text-xl font-semibold">Quản lý khu vực & bàn</h1>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
@@ -365,6 +390,14 @@ export default function AdminTables() {
                         size="icon"
                         variant="secondary"
                         className="h-8 w-8 shadow-sm"
+                        onClick={() => handleViewQR(table)}
+                      >
+                        <QrCode  className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="secondary"
+                        className="h-8 w-8 shadow-sm"
                         onClick={() => handleEditTable(table)}
                       >
                         <TableIcon className="w-4 h-4" />
@@ -438,15 +471,40 @@ export default function AdminTables() {
                       <div className="flex gap-2 w-full justify-center mt-2 z-10 transition-all duration-300">
                         {table.status === "available" && (
                           <>
-                            <Button size="sm" onClick={(e) => { e.stopPropagation(); handleStatusChange(table, "occupied"); }}>Có khách</Button>
+                            <Button
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleStatusChange(table, "occupied");
+                              }}
+                            >
+                              Có khách
+                            </Button>
                             {/* <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); handleReserveTable(table); }}>Đã đặt</Button> */}
                           </>
                         )}
                         {table.status === "reserved" && (
-                          <Button size="sm" onClick={(e) => { e.stopPropagation(); handleStatusChange(table, "occupied"); }}>Có khách</Button>
+                          <Button
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleStatusChange(table, "occupied");
+                            }}
+                          >
+                            Có khách
+                          </Button>
                         )}
                         {table.status === "occupied" && (
-                          <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); handleStatusChange(table, "available"); }}>Trống</Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleStatusChange(table, "available");
+                            }}
+                          >
+                            Trống
+                          </Button>
                         )}
                       </div>
                     )}
@@ -474,31 +532,14 @@ export default function AdminTables() {
           )}
 
           {/* PAGINATION */}
-          {totalPages > 1 && (
-            <div className="flex justify-center gap-4 mt-8">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={page === 1}
-                onClick={() => setPage((p) => p - 1)}
-              >
-                Trước
-              </Button>
-
-              <div className="flex items-center text-sm font-medium">
-                Trang {page} / {totalPages}
-              </div>
-
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={page >= totalPages}
-                onClick={() => setPage((p) => p + 1)}
-              >
-                Sau
-              </Button>
-            </div>
-          )}
+          <PaginationControl
+            currentPage={page}
+            totalPages={totalPages}
+            onPageChange={setPage}
+            totalItems={filteredTables.length}
+            itemsPerPage={limit}
+            itemName="bàn"
+          />
         </TabsContent>
       </Tabs>
 
@@ -535,8 +576,8 @@ export default function AdminTables() {
             <AlertDialogTitle>Xác nhận xóa bàn</AlertDialogTitle>
             <AlertDialogDescription>
               Bạn có chắc chắn muốn xóa bàn{" "}
-              <strong>{tableToDelete?.code}</strong> (
-              {tableToDelete?.area_name})? Hành động này không thể hoàn tác.
+              <strong>{tableToDelete?.code}</strong> ({tableToDelete?.area_name}
+              )? Hành động này không thể hoàn tác.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -576,6 +617,31 @@ export default function AdminTables() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* QR Modal */}
+      <Dialog open={!!qrModalTable} onOpenChange={() => setQrModalTable(null)}>
+        <DialogContent className="max-w-xs">
+          <DialogHeader>
+            <DialogTitle>QR Code bàn {qrModalTable?.code}</DialogTitle>
+          </DialogHeader>
+          {qrModalTable?.qrUrl ? (
+            <div className="flex flex-col items-center gap-4">
+              <img
+                src={qrModalTable.qrUrl}
+                alt="QR Code"
+                className="w-60 h-60 border rounded-lg bg-white"
+              />
+              <Button onClick={handlePrintQr} className="w-full">
+                In QR
+              </Button>
+            </div>
+          ) : (
+            <div className="text-center text-muted-foreground">
+              Không có QR code
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

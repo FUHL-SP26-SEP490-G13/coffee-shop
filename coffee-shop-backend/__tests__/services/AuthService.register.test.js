@@ -33,7 +33,7 @@ describe('AuthService - Register', () => {
       ...overrides,
     });
 
-    it('AuthService - REGISTER - TC-1: should register successfully with valid input', async () => {
+    it('AuthService - register - TC-01: should register successfully with valid input', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AuthService - REGISTER - TC-1: Đăng ký thành công với input hợp lệ');
       console.log('='.repeat(50));
@@ -117,7 +117,7 @@ describe('AuthService - Register', () => {
       expect(result).toEqual(expectedOutput);
     });
 
-    it('AuthService - REGISTER - TC-2: should throw error when email already exists', async () => {
+    it('AuthService - register - TC-02: should throw error when email already exists', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AuthService - REGISTER - TC-2: Lỗi khi email đã tồn tại');
       console.log('='.repeat(50));
@@ -148,7 +148,7 @@ describe('AuthService - Register', () => {
       expect(UserRepository.create).not.toHaveBeenCalled();
     });
 
-    it('AuthService - REGISTER - TC-3: should throw error when phone already exists', async () => {
+    it('AuthService - register - TC-03: should throw error when phone already exists', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AuthService - REGISTER - TC-3: Lỗi khi số điện thoại đã tồn tại');
       console.log('='.repeat(50));
@@ -180,7 +180,7 @@ describe('AuthService - Register', () => {
       expect(UserRepository.create).not.toHaveBeenCalled();
     });
 
-    it('AuthService - REGISTER - TC-4: should throw error when username already exists', async () => {
+    it('AuthService - register - TC-04: should throw error when username already exists', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AuthService - REGISTER - TC-4: Lỗi khi username đã tồn tại');
       console.log('='.repeat(50));
@@ -212,7 +212,7 @@ describe('AuthService - Register', () => {
       expect(UserRepository.create).not.toHaveBeenCalled();
     });
 
-    it('AuthService - REGISTER - TC-5: should register successfully with minimum password length (8)', async () => {
+    it('AuthService - register - TC-05: should register successfully with minimum password length (8)', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AuthService - REGISTER - TC-5: Đăng ký thành công với mật khẩu dài 8 ký tự');
       console.log('='.repeat(50));
@@ -264,7 +264,7 @@ describe('AuthService - Register', () => {
       expect(result.refreshToken).toBe('mock-refresh-token');
     });
 
-    it('AuthService - REGISTER - TC-6: should register successfully with maximum password length (20)', async () => {
+    it('AuthService - register - TC-06: should register successfully with maximum password length (20)', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AuthService - REGISTER - TC-6: Đăng ký thành công với mật khẩu dài 20 ký tự');
       console.log('='.repeat(50));
@@ -316,7 +316,7 @@ describe('AuthService - Register', () => {
       expect(result.refreshToken).toBe('mock-refresh-token');
     });
 
-    it('AuthService - REGISTER - TC-7: should throw error when password length is less than 8', async () => {
+    it('AuthService - register - TC-07: should throw error when password length is less than 8', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AuthService - REGISTER - TC-7: Lỗi khi mật khẩu ngắn hơn 8 ký tự');
       console.log('='.repeat(50));
@@ -344,7 +344,7 @@ describe('AuthService - Register', () => {
       expect(UserRepository.create).not.toHaveBeenCalled();
     });
 
-    it('AuthService - REGISTER - TC-8: should throw error when password length is greater than 20', async () => {
+    it('AuthService - register - TC-08: should throw error when password length is greater than 20', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AuthService - REGISTER - TC-8: Lỗi khi mật khẩu dài hơn 20 ký tự');
       console.log('='.repeat(50));
@@ -372,7 +372,7 @@ describe('AuthService - Register', () => {
       expect(UserRepository.create).not.toHaveBeenCalled();
     });
 
-    it('AuthService - REGISTER - TC-9: should throw error when password has no uppercase letter', async () => {
+    it('AuthService - register - TC-09: should throw error when password has no uppercase letter', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AuthService - REGISTER - TC-9: Lỗi khi mật khẩu không có chữ hoa');
       console.log('='.repeat(50));
@@ -400,7 +400,7 @@ describe('AuthService - Register', () => {
       expect(UserRepository.create).not.toHaveBeenCalled();
     });
 
-    it('AuthService - REGISTER - TC-10: should throw error when password has no lowercase letter', async () => {
+    it('AuthService - register - TC-10: should throw error when password has no lowercase letter', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AuthService - REGISTER - TC-10: Lỗi khi mật khẩu không có chữ thường');
       console.log('='.repeat(50));
@@ -428,7 +428,7 @@ describe('AuthService - Register', () => {
       expect(UserRepository.create).not.toHaveBeenCalled();
     });
 
-    it('AuthService - REGISTER - TC-11: should throw error when password has no number', async () => {
+    it('AuthService - register - TC-11: should throw error when password has no number', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AuthService - REGISTER - TC-11: Lỗi khi mật khẩu không có số');
       console.log('='.repeat(50));
@@ -456,7 +456,7 @@ describe('AuthService - Register', () => {
       expect(UserRepository.create).not.toHaveBeenCalled();
     });
 
-    it('AuthService - REGISTER - TC-12: should throw error when password has no special character', async () => {
+    it('AuthService - register - TC-12: should throw error when password has no special character', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AuthService - REGISTER - TC-12: Lỗi khi mật khẩu không có ký tự đặc biệt');
       console.log('='.repeat(50));

@@ -1,225 +1,444 @@
-import { useState } from 'react';
-import { PackageCheck, Clock, CheckCircle, Package } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
+import { useState, useMemo, useEffect, useCallback } from 'react';
+import { 
+  PackageCheck, 
+  Clock, 
+  CheckCircle, 
+  Package, 
+  Truck, 
+  Users, 
+  ShoppingBag,
+  ChevronRight,
+  BookOpen,
+  Loader2,
+  RefreshCcw,
+  Calendar as CalendarIcon,
+  Filter
+} from 'lucide-react';
+import { Card, CardContent } from '../../../components/ui/card';
 import { Badge } from '../../../components/ui/badge';
 import { Button } from '../../../components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../components/ui/tabs';
-import { orders } from '../../../lib/mockData';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '../../../components/ui/dialog';
+import { ScrollArea } from '../../../components/ui/scroll-area';
 import { toast } from 'sonner';
+import BaristaViewRecipe from './BaristaViewRecipe';
+import baristaDBService from '@/services/baristaDBService';
+import socket from '@/lib/socket';
 
 export function BaristaOrders() {
-  const [orderList, setOrderList] = useState(orders);
+  const [orderList, setOrderList] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [viewRecipeItem, setViewRecipeItem] = useState(null);
+  const [activeTab, setActiveTab] = useState('new');
+  const [actionLoadingId, setActionLoadingId] = useState(null);
+  const [filterType, setFilterType] = useState('today'); // 'today' or 'range'
+  const [startDate, setStartDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [endDate, setEndDate] = useState(() => new Date().toISOString().split('T')[0]);
 
-  const takeawayOrders = orderList
-    .filter((order) => order.type === 'takeaway' && order.status !== 'completed' && order.status !== 'cancelled')
-    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+  const fetchOrders = useCallback(async () => {
+    try {
+      setLoading(true);
+      const statuses = activeTab === 'new' ? ['pending'] : ['served', 'completed'];
+      let filters = {};
 
-  const otherOrders = orderList
-    .filter((order) => order.type !== 'takeaway' && order.status !== 'completed' && order.status !== 'cancelled')
-    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+      if (activeTab === 'completed') {
+        if (filterType === 'today') {
+           filters.today = true;
+        } else if (filterType === 'range') {
+           filters.startDate = startDate;
+           filters.endDate = endDate;
+        }
+      }
 
-  const completedOrders = orderList
-    .filter((order) => order.status === 'completed')
-    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+      const response = await baristaDBService.getActiveOrders(statuses, filters);
+      setOrderList(response.data || []);
+    } catch (error) {
+      console.error('Fetch orders error:', error);
+      toast.error('Không thể tải danh sách đơn hàng');
+    } finally {
+      setLoading(false);
+    }
+  }, [activeTab, filterType, startDate, endDate]);
 
-  const handleStartOrder = (orderId) => {
-    setOrderList(
-      orderList.map((order) => (order.id === orderId ? { ...order, status: 'preparing' } : order))
-    );
-    toast.success('Order started');
-  };
+  useEffect(() => {
+    // Re-fetch automatically when tab or filter changes,
+    // except for 'range' where we typically want to wait for the user to select dates and click Filter.
+    // However, it's safer to just fetch when 'range' is initially selected too.
+    if (activeTab === 'new' || (activeTab === 'completed' && filterType !== 'range')) {
+       fetchOrders();
+    }
+  }, [fetchOrders, activeTab, filterType]);
 
-  const handleCompleteOrder = (orderId) => {
-    setOrderList(
-      orderList.map((order) => (order.id === orderId ? { ...order, status: 'ready' } : order))
-    );
-    toast.success('Order ready for pickup');
-  };
+  useEffect(() => {
+    const handleNewOrder = () => {
+      if (activeTab === 'new') fetchOrders();
+      if (activeTab === 'completed' && filterType === 'today') fetchOrders();
+    };
 
-  const handleMarkAsCompleted = (orderId) => {
-    setOrderList(
-      orderList.map((order) => (order.id === orderId ? { ...order, status: 'completed' } : order))
-    );
-    toast.success('Order completed');
-  };
+    socket.on('new-order', handleNewOrder);
+    socket.on('new-dine-in-order', handleNewOrder);
+    socket.on('order-online:new', handleNewOrder);
+    socket.on('barista:notification', handleNewOrder);
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'pending':
-        return 'outline';
-      case 'preparing':
-        return 'default';
-      case 'ready':
-        return 'secondary';
-      default:
-        return 'secondary';
+    return () => {
+      socket.off('new-order', handleNewOrder);
+      socket.off('new-dine-in-order', handleNewOrder);
+      socket.off('order-online:new', handleNewOrder);
+      socket.off('barista:notification', handleNewOrder);
+    };
+  }, [fetchOrders, activeTab, filterType]);
+
+  // Grouping logic for "New Orders"
+  const deliveryOrders = useMemo(() => orderList.filter(o => o.order_type === 'delivery'), [orderList]);
+  const dineInOrders = useMemo(() => orderList.filter(o => o.order_type === 'dine-in' || o.order_type === 'at-table'), [orderList]);
+  const takeawayOrders = useMemo(() => orderList.filter(o => o.order_type === 'takeaway'), [orderList]);
+
+  const handleUpdateStatus = async (orderId, newStatus) => {
+    try {
+      setActionLoadingId(orderId);
+      await baristaDBService.updateOrderStatus(orderId, newStatus);
+      toast.success(`Đơn #${orderId} đã hoàn thành!`);
+      
+      // Update local state to remove the completed order from the active list
+      setOrderList(prev => prev.filter(o => o.id !== orderId));
+      
+      if (selectedOrder?.id === orderId) {
+        setSelectedOrder(null);
+      }
+    } catch (error) {
+      console.error('Update status error:', error);
+      toast.error('Cập nhật trạng thái thất bại');
+    } finally {
+      setActionLoadingId(null);
     }
   };
 
-  const getStatusClassName = (status) => {
-    switch (status) {
-      case 'pending':
-        return 'bg-yellow-500/10 text-yellow-700 border-transparent';
-      case 'ready':
-        return 'bg-green-500/10 text-green-700 border-transparent';
-      default:
-        return '';
-    }
-  };
-
-  const OrderCard = ({ order, priority = false }) => (
-    <Card key={order.id} className={priority ? 'border-primary' : ''}>
-      <CardHeader>
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-3">
-            <div
-              className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                priority ? 'bg-primary text-primary-foreground' : 'bg-accent'
-              }`}
-            >
-              <Package className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <CardTitle className="text-lg">Order #{order.id}</CardTitle>
-                {priority && <Badge variant="destructive">Priority</Badge>}
-              </div>
-              <p className="text-sm text-muted-foreground capitalize">{order.type}</p>
-            </div>
-          </div>
-          <Badge variant={getStatusColor(order.status)} className={`capitalize ${getStatusClassName(order.status)}`}>
-            {order.status}
-          </Badge>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-3">
-          <div className="space-y-2">
-            {order.items.map((item) => (
-              <div key={item.id} className="flex items-center justify-between text-sm">
-                <div className="flex items-center gap-2">
-                  <span className="font-medium">
-                    {item.quantity}x {item.product.name}
-                  </span>
-                  <Badge variant="outline" className="text-xs">
-                    {item.size}
-                  </Badge>
-                </div>
-                <span className="text-muted-foreground">
-                  ${(item.product.prices[item.size] * item.quantity).toFixed(2)}
-                </span>
-              </div>
-            ))}
-            {order.items.some((item) => item.toppings.length > 0) && (
-              <div className="pl-4 space-y-1">
-                {order.items.map(
-                  (item) =>
-                    item.toppings.length > 0 && (
-                      <div key={item.id} className="text-xs text-muted-foreground">
-                        + {item.toppings.map((t) => t.name).join(', ')}
-                      </div>
-                    )
-                )}
-              </div>
-            )}
-          </div>
-
-          <div className="flex items-center gap-2 text-xs text-muted-foreground pt-2 border-t">
-            <Clock className="w-3 h-3" />
-            <span>{new Date(order.createdAt).toLocaleTimeString()}</span>
-            <span className="ml-auto font-medium text-foreground">Total: ${order.total.toFixed(2)}</span>
-          </div>
-
-          <div className="flex gap-2">
-            {order.status === 'pending' && (
-              <Button onClick={() => handleStartOrder(order.id)} className="flex-1">
-                <CheckCircle className="w-4 h-4 mr-2" />
-                Start Order
-              </Button>
-            )}
-            {order.status === 'preparing' && (
-              <Button onClick={() => handleCompleteOrder(order.id)} className="flex-1">
-                <PackageCheck className="w-4 h-4 mr-2" />
-                Mark as Ready
-              </Button>
-            )}
-            {order.status === 'ready' && (
-              <Button onClick={() => handleMarkAsCompleted(order.id)} className="flex-1" variant="outline">
-                <CheckCircle className="w-4 h-4 mr-2" />
-                Complete Order
-              </Button>
-            )}
+  const OrderCard = ({ order }) => (
+    <Card 
+      key={order.id} 
+      className="mb-3 hover:shadow-lg transition-all duration-300 border-border cursor-pointer group overflow-hidden p-0 relative"
+      onClick={() => setSelectedOrder(order)}
+    >
+      <CardContent className="p-4 flex items-center justify-between">
+        <div className="flex flex-col">
+          <h3 className="font-bold text-base group-hover:text-primary transition-colors">Đơn #{order.id}</h3>
+          <p className="text-xs font-semibold text-primary mt-0.5">
+            {Number(order.total_amount).toLocaleString()} đ
+          </p>
+          <div className="flex items-center gap-1.5 mt-1 opacity-70">
+            <Clock className="w-3 h-3 text-muted-foreground" />
+            <span className="text-[10px] text-muted-foreground font-medium">
+              {new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </span>
           </div>
         </div>
+        
+        <Button 
+          size="sm" 
+          variant="secondary"
+          disabled={actionLoadingId === order.id}
+          className="h-8 px-4 rounded-lg bg-muted text-foreground transition-all duration-300 font-bold text-xs shadow-sm
+            hover:bg-primary hover:text-primary-foreground hover:scale-105 active:scale-95
+            group-hover:bg-primary/90 group-hover:text-primary-foreground"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleUpdateStatus(order.id, 'served');
+          }}
+        >
+          {actionLoadingId === order.id ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Xác nhận hoàn thành'}
+        </Button>
       </CardContent>
     </Card>
   );
 
-  return (
-    <div className="p-8">
-      <div className="mb-6">
-        <h1 className="text-3xl font-semibold">Order Management</h1>
-        <p className="text-muted-foreground mt-1">Process and manage customer orders</p>
+  const KanbanColumn = ({ title, count, icon: Icon, orders: columnOrders, colorClass }) => (
+    <div className="flex flex-col h-[calc(100vh-220px)] min-h-[500px] bg-muted/20 rounded-2xl border border-border p-4 overflow-hidden">
+      <div className={`flex items-center gap-3 mb-6 p-4 rounded-xl shadow-sm bg-background border border-border`}>
+        <div className={`p-2 rounded-lg ${colorClass} text-white relative`}>
+          <Icon className="w-5 h-5" />
+          {count > 0 && (
+            <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-4 w-4 bg-red-600 border-2 border-background"></span>
+            </span>
+          )}
+        </div>
+        <h2 className="font-bold text-lg flex-1">{title} ({count})</h2>
       </div>
+      <ScrollArea className="flex-1 pr-2 min-h-0">
+        {loading ? (
+          <div className="flex items-center justify-center h-full py-12">
+            <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+          </div>
+        ) : columnOrders.length > 0 ? (
+          columnOrders.map(order => <OrderCard key={order.id} order={order} />)
+        ) : (
+          <div className="flex flex-col items-center justify-center py-12 text-muted-foreground italic border-2 border-dashed border-border rounded-xl">
+            <Package className="w-8 h-8 mb-2 opacity-20" />
+            <p className="text-sm">Trống</p>
+          </div>
+        )}
+      </ScrollArea>
+    </div>
+  );
 
-      <Tabs defaultValue="takeaway" className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="takeaway" className="relative">
-            Takeaway Orders
-            {takeawayOrders.length > 0 && (
-              <Badge className="ml-2 h-5 w-5 flex items-center justify-center p-0">{takeawayOrders.length}</Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="other">
-            Other Orders
-            {otherOrders.length > 0 && (
-              <Badge variant="secondary" className="ml-2 h-5 w-5 flex items-center justify-center p-0">
-                {otherOrders.length}
-              </Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="completed">Completed</TabsTrigger>
-        </TabsList>
+  return (
+    <div className="p-4 sm:p-6 lg:p-8 h-full flex flex-col space-y-6">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col space-y-6">
+        <div className="flex items-center justify-between m-0">
+          <TabsList className="bg-muted p-1 h-14 rounded-2xl w-fit">
+            <TabsTrigger value="new" className="px-8 h-full rounded-xl data-[state=active]:bg-background data-[state=active]:shadow-sm text-base font-bold">
+              Đơn hàng mới {activeTab === 'new' && `(${orderList.length})`}
+            </TabsTrigger>
+            <TabsTrigger value="completed" className="px-8 h-full rounded-xl data-[state=active]:bg-background data-[state=active]:shadow-sm text-base font-bold">
+              Lịch sử hoàn thành
+            </TabsTrigger>
+          </TabsList>
 
-        <TabsContent value="takeaway" className="space-y-4">
-          {takeawayOrders.length > 0 ? (
-            takeawayOrders.map((order) => <OrderCard key={order.id} order={order} priority />)
-          ) : (
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center py-12">
-                <PackageCheck className="w-12 h-12 text-muted-foreground mb-4" />
-                <p className="text-muted-foreground">No takeaway orders to process</p>
-              </CardContent>
-            </Card>
-          )}
+          <Button variant="outline" size="sm" onClick={fetchOrders} className="gap-2 rounded-xl h-12 px-6">
+            <RefreshCcw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            Làm mới
+          </Button>
+        </div>
+
+        <TabsContent value="new" className="flex-1 mt-0 outline-none">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <KanbanColumn 
+              title="Giao hàng" 
+              count={deliveryOrders.length} 
+              icon={Truck} 
+              orders={deliveryOrders}
+              colorClass="bg-blue-500"
+            />
+            <KanbanColumn 
+              title="Tại bàn" 
+              count={dineInOrders.length} 
+              icon={Users} 
+              orders={dineInOrders}
+              colorClass="bg-orange-500"
+            />
+            <KanbanColumn 
+              title="Mang về" 
+              count={takeawayOrders.length} 
+              icon={ShoppingBag} 
+              orders={takeawayOrders}
+              colorClass="bg-purple-500"
+            />
+          </div>
         </TabsContent>
 
-        <TabsContent value="other" className="space-y-4">
-          {otherOrders.length > 0 ? (
-            otherOrders.map((order) => <OrderCard key={order.id} order={order} />)
-          ) : (
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center py-12">
-                <Package className="w-12 h-12 text-muted-foreground mb-4" />
-                <p className="text-muted-foreground">No other orders to process</p>
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
+        <TabsContent value="completed" className="flex-1 mt-0 outline-none flex flex-col min-h-0">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-4 p-4 rounded-xl shadow-sm bg-background border border-border flex-none">
+             <div className="font-bold flex items-center gap-2">
+               <Filter className="w-4 h-4 text-primary" />
+               Bộ lọc:
+             </div>
+             
+             <div className="flex bg-muted/50 p-1 rounded-lg">
+                <button 
+                  onClick={() => setFilterType('all')}
+                  className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${filterType === 'all' ? 'bg-background shadow-sm text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+                >
+                  Tất cả
+                </button>
+                <button 
+                  onClick={() => setFilterType('today')}
+                  className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${filterType === 'today' ? 'bg-background shadow-sm text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+                >
+                  Hôm nay
+                </button>
+                <button 
+                  onClick={() => setFilterType('range')}
+                  className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${filterType === 'range' ? 'bg-background shadow-sm text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+                >
+                  Tùy chọn ngày
+                </button>
+             </div>
 
-        <TabsContent value="completed" className="space-y-4">
-          {completedOrders.length > 0 ? (
-            completedOrders.map((order) => <OrderCard key={order.id} order={order} />)
-          ) : (
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center py-12">
-                <CheckCircle className="w-12 h-12 text-muted-foreground mb-4" />
-                <p className="text-muted-foreground">No completed orders yet</p>
-              </CardContent>
-            </Card>
-          )}
+             {filterType === 'range' && (
+               <div className="flex items-center gap-2">
+                 <input 
+                   type="date" 
+                   value={startDate}
+                   onChange={(e) => setStartDate(e.target.value)}
+                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:opacity-50"
+                 />
+                 <span className="text-muted-foreground">-</span>
+                 <input 
+                   type="date" 
+                   value={endDate}
+                   onChange={(e) => setEndDate(e.target.value)}
+                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:opacity-50"
+                 />
+                 <Button onClick={fetchOrders} size="sm" className="ml-2">Lọc</Button>
+               </div>
+             )}
+          </div>
+          <ScrollArea className="h-[calc(100vh-300px)] min-h-[500px] pr-4">
+            {loading ? (
+              <div className="flex items-center justify-center py-20">
+                <Loader2 className="w-10 h-10 animate-spin text-primary" />
+              </div>
+            ) : orderList.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {orderList.map(order => (
+                  <Card key={order.id} className="opacity-90 bg-card border-border hover:shadow-md transition-shadow">
+                    <CardContent className="p-4">
+                      <div className="flex justify-between items-start">
+                        <h4 className="font-bold"># {order.id}</h4>
+                        <Badge variant="secondary" className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 border-none">
+                          Xong
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-2">
+                         {new Date(order.created_at).toLocaleString('vi-VN')}
+                      </p>
+                      <div className="mt-4 flex justify-between items-center">
+                        <span className="font-bold text-primary">{Number(order.total_amount).toLocaleString()} đ</span>
+                        <Button size="xs" variant="ghost" className="h-7 text-xs" onClick={() => setSelectedOrder(order)}>
+                          Chi tiết <ChevronRight className="w-3 h-3 ml-1" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-20 text-muted-foreground border-2 border-dashed rounded-3xl">
+                <PackageCheck className="w-16 h-16 mb-4 opacity-10" />
+                <p className="text-lg font-medium">Chưa có đơn hàng nào hoàn thành hôm nay</p>
+              </div>
+            )}
+          </ScrollArea>
         </TabsContent>
       </Tabs>
+
+      {/* Order Detail Modal */}
+      <Dialog open={!!selectedOrder} onOpenChange={(v) => !v && setSelectedOrder(null)}>
+          <DialogContent className="max-w-xl h-[90vh] flex flex-col p-0 overflow-hidden rounded-3xl border-none shadow-2xl">
+            {/* Header - Fixed */}
+            <div className="flex-none bg-primary p-6 text-primary-foreground">
+              <DialogHeader className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <DialogTitle className="text-2xl font-black">Chi tiết đơn #{selectedOrder?.id}</DialogTitle>
+                  <Badge variant="secondary" className="bg-white/20 hover:bg-white/30 text-white border-none flex gap-2">
+                    <Clock className="w-3 h-3" />
+                    {selectedOrder && new Date(selectedOrder.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </Badge>
+                </div>
+                <p className="opacity-80 text-sm italic">
+                  {selectedOrder?.order_type === 'delivery' ? 'Giao hàng tận nơi' : 
+                   selectedOrder?.order_type === 'takeaway' ? 'Khách mang về' : 'Phục vụ tại bàn'}
+                </p>
+              </DialogHeader>
+            </div>
+
+            {/* Content - Scrollable */}
+            <div className="flex-1 overflow-y-auto p-6 bg-background custom-scrollbar">
+              <div className="space-y-6">
+                <div className="space-y-4">
+                  <h4 className="font-bold text-lg flex items-center gap-2 border-b pb-2">
+                    <Package className="w-5 h-5 text-primary" />
+                    Món trong đơn ({selectedOrder?.items?.length || 0})
+                  </h4>
+                  {selectedOrder?.items?.map((item, idx) => (
+                    <div key={idx} className="bg-muted/30 p-4 rounded-2xl space-y-2 group relative border border-transparent hover:border-primary/20 transition-all">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="font-bold text-lg">{item.productName}</p>
+                          <Badge variant="outline" className="mt-1 bg-background">Size {item.size}</Badge>
+                        </div>
+                        <div className="flex flex-col items-end gap-2">
+                          <span className="font-black text-xl text-primary">x {item.quantity}</span>
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            className="h-8 rounded-full border-primary/30 text-primary hover:bg-primary hover:text-white"
+                            onClick={() => setViewRecipeItem({ 
+                              product: { id: item.productId, name: item.productName }, 
+                              size: { id: item.productSizeId, size: item.size } 
+                            })}
+                          >
+                            <BookOpen className="w-3 h-3 mr-1" />
+                            Công thức
+                          </Button>
+                        </div>
+                      </div>
+                      {item.toppings && item.toppings.length > 0 && (
+                        <div className="pt-2 border-t border-dashed">
+                          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2">Topping thêm:</p>
+                          <div className="flex flex-wrap gap-2">
+                            {item.toppings.map((t, tid) => (
+                              <span key={tid} className="text-xs bg-background border border-border px-3 py-1 rounded-full shadow-sm">
+                                {t.name}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                <div className="space-y-3 bg-blue-50 p-6 rounded-3xl border border-blue-100 shadow-inner">
+                  <h4 className="font-bold text-blue-900 flex items-center gap-2">
+                    <PackageCheck className="w-5 h-5" />
+                    Ghi chú từ khách
+                  </h4>
+                  <div className="text-blue-800 text-sm italic py-2 leading-relaxed">
+                    {selectedOrder?.note || "Không có ghi chú"}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer - Fixed */}
+            <DialogFooter className="flex-none p-6 bg-background border-t border-border flex flex-row gap-3">
+              <DialogClose asChild>
+                <Button 
+                  variant="outline" 
+                  className="flex-1 h-14 rounded-2xl text-muted-foreground font-bold text-lg border-2 hover:bg-muted transition-all"
+                >
+                  Đóng
+                </Button>
+              </DialogClose>
+              
+              <Button 
+                className="flex-[2] h-14 text-lg font-bold rounded-2xl shadow-lg hover:scale-[1.02] transition-transform bg-primary hover:bg-primary/90"
+                disabled={actionLoadingId === selectedOrder?.id || selectedOrder?.status === 'served' || selectedOrder?.status === 'completed'}
+                onClick={() => handleUpdateStatus(selectedOrder.id, 'served')}
+              >
+                {actionLoadingId === selectedOrder?.id ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                    Đang xử lý...
+                  </>
+                ) : (selectedOrder?.status === 'served' || selectedOrder?.status === 'completed') ? (
+                  <>
+                    <CheckCircle className="w-5 h-5 mr-2" />
+                    Đã chuẩn bị xong
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="w-5 h-5 mr-2" />
+                    Xác nhận xong
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+      </Dialog>
+
+      {/* Recipe Modal */}
+      {viewRecipeItem && (
+        <BaristaViewRecipe
+          open={!!viewRecipeItem}
+          product={viewRecipeItem.product}
+          size={viewRecipeItem.size}
+          onClose={() => setViewRecipeItem(null)}
+        />
+      )}
     </div>
   );
 }

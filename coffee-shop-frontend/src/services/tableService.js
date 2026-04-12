@@ -1,6 +1,6 @@
-import axios from 'axios';
+import axios from "axios";
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 const tableService = {
   getAll: async (params = {}) => {
@@ -18,8 +18,18 @@ const tableService = {
     return response.data;
   },
 
+  createWithQr: async (data) => {
+    const response = await axios.post(`${API_URL}/tables/with-qr`, data);
+    return response.data;
+  },
+
   update: async (id, data) => {
     const response = await axios.put(`${API_URL}/tables/${id}`, data);
+    return response.data;
+  },
+
+  getActiveOrder: async (id) => {
+    const response = await axios.get(`${API_URL}/tables/${id}/active-order`);
     return response.data;
   },
 
@@ -31,7 +41,39 @@ const tableService = {
   delete: async (id) => {
     const response = await axios.delete(`${API_URL}/tables/${id}`);
     return response.data;
-  }
+  },
+
+  transfer: async (fromTableId, toTableId) => {
+    const response = await axios.post(`${API_URL}/tables/transfer`, {
+      from_table_id: fromTableId,
+      to_table_id: toTableId,
+    });
+    return response.data;
+  },
+
+  mergeOrder: async (fromTableId, toTableId) => {
+    const response = await axios.post(`${API_URL}/tables/merge-order`, {
+      from_table_id: fromTableId,
+      to_table_id: toTableId,
+    });
+    return response.data;
+  },
+
+  settleDebt: async (tableId, payload = {}) => {
+    const response = await axios.post(`${API_URL}/tables/${tableId}/settle-debt`, payload);
+    return response.data;
+  },
+
+  splitBill: async (tableId, payload = {}) => {
+    const response = await axios.post(`${API_URL}/tables/${tableId}/split-bill`, payload);
+    return response.data;
+  },
+
+  getUnpaidOrders: async (tableId) => {
+    const response = await axios.get(`${API_URL}/tables/${tableId}/unpaid-orders`);
+    return response.data;
+  },
+
 };
 
 export default tableService;

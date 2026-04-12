@@ -36,9 +36,9 @@ export function BaristaAttendance() {
   };
 
   return (
-    <div className="p-8">
-      <div className="max-w-2xl mx-auto">
-        <h1 className="text-3xl font-semibold mb-6">Attendance</h1>
+    <div className="p-4 sm:p-6 lg:p-8 space-y-6">
+      <div className="w-full">
+        <h1 className="text-xl font-bold tracking-tight mb-6">Attendance</h1>
 
         <Card className="bg-gradient-to-br from-primary/5 to-accent/5">
           <CardContent className="p-8">
@@ -139,15 +139,15 @@ export function BaristaAttendance() {
                         record.status === "present"
                           ? "secondary"
                           : record.status === "late"
-                          ? "outline"
-                          : "destructive"
+                            ? "outline"
+                            : "destructive"
                       }
                       className={
                         record.status === "present"
                           ? "bg-green-500/10 text-green-700 border-transparent"
                           : record.status === "late"
-                          ? "bg-yellow-500/10 text-yellow-700 border-transparent"
-                          : ""
+                            ? "bg-yellow-500/10 text-yellow-700 border-transparent"
+                            : ""
                       }
                     >
                       {record.status}

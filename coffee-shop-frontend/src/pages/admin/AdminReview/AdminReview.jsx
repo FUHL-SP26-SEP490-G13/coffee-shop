@@ -2,11 +2,12 @@ import { useEffect, useRef, useState } from "react";
 import {
   Loader2,
   Search,
+  Star,
   ChevronLeft,
   ChevronRight,
-  MessageSquare,
-  Star,
+  X,
 } from "lucide-react";
+import { useOutletContext } from "react-router-dom";
 import reviewService from "@/services/reviewService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,17 +20,37 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import PaginationControl from "@/components/common/PaginationControl";
+import AdminReviewReplyModal from "./AdminReviewReplyModal";
+
+const isVideoUrl = (url) =>
+  typeof url === "string" &&
+  (url.match(/\.(mp4|webm|ogg|mov)$/i) || url.includes("video/upload"));
 
 export default function AdminReviews() {
   const [data, setData] = useState([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
   const [keyword, setKeyword] = useState("");
+  const [selectedReplyReview, setSelectedReplyReview] = useState(null);
+  const [expandedImage, setExpandedImage] = useState(null);
 
   const abortRef = useRef(null);
+  const outletContext = useOutletContext() || {};
+  const notifications = outletContext.notifications || [];
+
+  const unreadCounts = {};
+  if (Array.isArray(notifications)) {
+    notifications.forEach((n) => {
+      if (n.type === "new_review" && Number(n.is_read) === 0 && n.entity_id) {
+        unreadCounts[n.entity_id] = (unreadCounts[n.entity_id] || 0) + 1;
+      }
+    });
+  }
 
   const PAGE_SIZE = 7;
 
@@ -58,6 +79,7 @@ export default function AdminReviews() {
 
       setData(payload.items || []);
       setTotalPages(payload.totalPages || 1);
+      setTotalItems(payload.total || payload.totalCount || 0);
     } catch (err) {
       if (err.name !== "CanceledError" && err.code !== "ERR_CANCELED") {
         console.error("Lỗi lấy danh sách review:", err);
@@ -90,11 +112,10 @@ export default function AdminReviews() {
         {Array.from({ length: 5 }).map((_, index) => (
           <Star
             key={index}
-            className={`h-4 w-4 ${
-              index < Number(rating)
+            className={`h-4 w-4 ${index < Number(rating)
                 ? "text-amber-500 fill-current"
                 : "text-gray-300"
-            }`}
+              }`}
           />
         ))}
       </div>
@@ -121,14 +142,8 @@ export default function AdminReviews() {
       <div className="mb-6">
         <div className="flex justify-between items-start mb-6 gap-4">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-primary/10 rounded-lg">
-              <MessageSquare className="h-6 w-6 text-primary" />
-            </div>
             <div>
-              <h2 className="text-2xl font-semibold mb-1">Quản lý đánh giá</h2>
-              <p className="text-sm text-muted-foreground">
-                Theo dõi các đánh giá sản phẩm từ khách hàng
-              </p>
+              <h2 className="text-xl font-semibold">Quản lý đánh giá</h2>
             </div>
           </div>
         </div>
@@ -173,6 +188,9 @@ export default function AdminReviews() {
                 <TableHead className="text-center min-w-[170px]">
                   Ngày tạo
                 </TableHead>
+                <TableHead className="text-center min-w-[120px]">
+                  Hành động
+                </TableHead>
               </TableRow>
             </TableHeader>
 
@@ -211,6 +229,33 @@ export default function AdminReviews() {
                       <TableCell>
                         <div className="max-w-[320px] whitespace-normal break-words text-sm text-gray-700">
                           {item.comment || "—"}
+                          {item.images && item.images.length > 0 && (
+                            <div className="flex gap-2 mt-2">
+                              {item.images.map((img, idx) => {
+                                const isVideo = isVideoUrl(img.url);
+                                return (
+                                  <button 
+                                    key={idx} 
+                                    onClick={() => setExpandedImage({ images: item.images, index: idx })} 
+                                    className="shrink-0 hover:opacity-80 transition-opacity block w-10 h-10 relative cursor-zoom-in"
+                                  >
+                                    {isVideo ? (
+                                      <>
+                                        <video src={img.url} className="w-full h-full rounded border border-gray-200 object-cover" muted playsInline />
+                                        <div className="absolute inset-0 flex items-center justify-center bg-black/20 rounded pointer-events-none">
+                                          <div className="w-4 h-4 bg-white/80 rounded-full flex items-center justify-center">
+                                            <div className="w-0 h-0 border-t-2 border-t-transparent border-l-[3px] border-l-black border-b-2 border-b-transparent ml-0.5" />
+                                          </div>
+                                        </div>
+                                      </>
+                                    ) : (
+                                      <img src={img.url} alt="Review attachment" className="w-full h-full rounded border border-gray-200 object-cover pointer-events-none" />
+                                    )}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
                         </div>
                       </TableCell>
 
@@ -224,9 +269,46 @@ export default function AdminReviews() {
                       </TableCell>
 
                       <TableCell className="text-center">
-                        {item.created_at
-                          ? new Date(item.created_at).toLocaleString("vi-VN")
-                          : "—"}
+                        <div className="flex text-xs flex-col items-center justify-center">
+                          <span>
+                            {item.updated_at || item.created_at
+                              ? new Date(item.updated_at || item.created_at).toLocaleString("vi-VN")
+                              : "—"}
+                          </span>
+                          {item.category_name && (
+                            <span className="text-xs text-gray-400 mt-1">
+                              Phân loại hàng: {item.category_name}
+                            </span>
+                          )}
+                        </div>
+                      </TableCell>
+
+                      <TableCell className="text-center">
+                        <div className="flex flex-col items-center justify-center gap-1.5 mt-1 relative">
+                          <div className="relative inline-block">
+                            <Button 
+                              size="sm" 
+                              onClick={() => setSelectedReplyReview(item)}
+                              className={
+                                item.reply_comment || (item.reply_images && item.reply_images.length > 0) 
+                                  ? "bg-amber-50 text-amber-600 border border-amber-200 hover:bg-amber-100 hover:text-amber-700 shadow-none" 
+                                  : "bg-amber-600 text-white hover:bg-amber-700 shadow-sm transition-colors"
+                              }
+                            >
+                              {item.reply_comment || (item.reply_images && item.reply_images.length > 0) ? "Đã phản hồi" : "Trả lời"}
+                            </Button>
+                            {unreadCounts[item.id] > 0 && (
+                              <span className="absolute -top-2 -right-2 min-w-5 h-5 px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center shadow-md animate-in zoom-in">
+                                {unreadCounts[item.id]}
+                              </span>
+                            )}
+                          </div>
+                          {item.replied_at && (
+                            <span className="text-[10px] text-gray-400 font-medium">
+                              {new Date(item.replied_at).toLocaleString("vi-VN")}
+                            </span>
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   );
@@ -237,59 +319,66 @@ export default function AdminReviews() {
         )}
       </div>
 
-      {!isLoading && totalPages > 1 && (
-        <div className="mt-6 flex items-center justify-between">
-          <div className="text-sm text-muted-foreground">
-            Trang {page} / {totalPages}
-          </div>
+      {!isLoading && (
+        <PaginationControl
+          currentPage={page}
+          totalPages={totalPages}
+          onPageChange={setPage}
+          totalItems={totalItems}
+          itemsPerPage={PAGE_SIZE}
+          itemName="đánh giá"
+        />
+      )}
 
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page === 1}
-            >
-              <ChevronLeft className="h-4 w-4 mr-1" />
-              Trước
-            </Button>
+      {selectedReplyReview && (
+        <AdminReviewReplyModal 
+          review={selectedReplyReview} 
+          onClose={() => setSelectedReplyReview(null)} 
+          onRefresh={() => fetchReviews(page, keyword)}
+        />
+      )}
 
-            <div className="flex gap-1">
-              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                let pageNum;
-                if (totalPages <= 5) {
-                  pageNum = i + 1;
-                } else if (page <= 3) {
-                  pageNum = i + 1;
-                } else if (page >= totalPages - 2) {
-                  pageNum = totalPages - 4 + i;
-                } else {
-                  pageNum = page - 2 + i;
-                }
-
-                return (
-                  <Button
-                    key={pageNum}
-                    variant={page === pageNum ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setPage(pageNum)}
-                    className="w-10 h-10 p-0"
-                  >
-                    {pageNum}
-                  </Button>
-                );
-              })}
-            </div>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              disabled={page === totalPages}
-            >
-              Sau
-              <ChevronRight className="h-4 w-4 ml-1" />
-            </Button>
+      {expandedImage && (
+        <div className="fixed inset-0 z-[9999] bg-black/90 flex items-center justify-center animate-in fade-in duration-200" onClick={() => setExpandedImage(null)}>
+          <button onClick={() => setExpandedImage(null)} className="absolute top-6 right-6 text-white/50 hover:text-white transition-colors">
+            <X className="w-10 h-10" />
+          </button>
+          
+          <div className="relative max-w-[90vw] max-h-[90vh] flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+            {isVideoUrl(expandedImage.images[expandedImage.index].url) ? (
+              <video src={expandedImage.images[expandedImage.index].url} controls autoPlay className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl" />
+            ) : (
+              <img src={expandedImage.images[expandedImage.index].url} className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl" />
+            )}
+            
+            {expandedImage.images.length > 1 && (
+              <>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setExpandedImage(prev => ({
+                      ...prev,
+                      index: prev.index === 0 ? prev.images.length - 1 : prev.index - 1
+                    }))
+                  }}
+                  className="absolute -left-16 top-1/2 -translate-y-1/2 w-12 h-12 flex items-center justify-center bg-white/10 hover:bg-white/30 text-white rounded-full shadow-lg transition"
+                >
+                  <ChevronLeft className="w-8 h-8" />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setExpandedImage(prev => ({
+                      ...prev,
+                      index: prev.index === prev.images.length - 1 ? 0 : prev.index + 1
+                    }))
+                  }}
+                  className="absolute -right-16 top-1/2 -translate-y-1/2 w-12 h-12 flex items-center justify-center bg-white/10 hover:bg-white/30 text-white rounded-full shadow-lg transition"
+                >
+                  <ChevronRight className="w-8 h-8" />
+                </button>
+              </>
+            )}
           </div>
         </div>
       )}

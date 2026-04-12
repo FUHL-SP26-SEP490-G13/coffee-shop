@@ -1,5 +1,5 @@
-import { useState, useMemo, useCallback } from 'react';
-import { Plus, Search, Edit, Trash2 } from 'lucide-react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
+import { Plus, Search, Edit, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import categoryService from '../../../services/categoryService';
 import useFetch from '../../../hooks/useFetch';
@@ -23,6 +23,8 @@ import DeleteCategory from './Action/DeleteCategory';
 
 export default function AdminCategories() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
 
   const [modal, setModal] = useState({
     type: null,
@@ -64,6 +66,14 @@ export default function AdminCategories() {
     );
   }, [categories, searchQuery]);
 
+  const totalPages = Math.ceil(filteredCategories.length / itemsPerPage) || 1;
+  const validCurrentPage = Math.min(currentPage, totalPages);
+
+  const paginatedCategories = useMemo(() => {
+    const start = (validCurrentPage - 1) * itemsPerPage;
+    return filteredCategories.slice(start, start + itemsPerPage);
+  }, [filteredCategories, validCurrentPage, itemsPerPage]);
+
   // Handle create success - thêm vào đầu danh sách
 
   const handleCreateSuccess = (newCategory) => {
@@ -92,11 +102,7 @@ export default function AdminCategories() {
 
       <div className='flex items-center justify-between mb-6'>
         <div>
-          <h2 className='text-2xl font-semibold mb-1'>Danh mục</h2>
-
-          <p className='text-sm text-muted-foreground'>
-            Quản lý danh mục sản phẩm
-          </p>
+          <h2 className="text-xl font-semibold">Danh mục</h2>
         </div>
 
         <Button
@@ -117,7 +123,10 @@ export default function AdminCategories() {
           <Input
             placeholder='Tìm kiếm danh mục...'
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setCurrentPage(1);
+            }}
             className='pl-9'
           />
         </div>
@@ -137,20 +146,18 @@ export default function AdminCategories() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Tên danh mục</TableHead>
-
-              <TableHead>Mã Code</TableHead>
-
-              <TableHead>Hình ảnh</TableHead>
-
-              <TableHead className='text-right'>Hành động</TableHead>
+              <TableHead className="text-center w-[60px]">STT</TableHead>
+              <TableHead className="min-w-[180px]">Tên danh mục</TableHead>
+              <TableHead className="text-center min-w-[120px]">Mã Code</TableHead>
+              <TableHead className="text-center min-w-[120px]">Hình ảnh</TableHead>
+              <TableHead className="text-center min-w-[140px]">Hành động</TableHead>
             </TableRow>
           </TableHeader>
 
           <TableBody>
             {loading && (
               <TableRow>
-                <TableCell colSpan={4} className='text-center py-6'>
+                <TableCell colSpan={5} className='text-center py-6'>
                   Đang tải...
                 </TableCell>
               </TableRow>
@@ -158,29 +165,33 @@ export default function AdminCategories() {
 
             {!loading && filteredCategories.length === 0 && (
               <TableRow>
-                <TableCell colSpan={4} className='text-center py-6'>
+                <TableCell colSpan={5} className='text-center py-6'>
                   Không có danh mục nào
                 </TableCell>
               </TableRow>
             )}
 
             {!loading &&
-              filteredCategories.map((category) => (
+              paginatedCategories.map((category, index) => (
                 <TableRow key={category.id}>
+                  <TableCell className="text-center font-medium">
+                    {(currentPage - 1) * itemsPerPage + index + 1}
+                  </TableCell>
+
                   <TableCell>
                     <div className='font-medium'>{category.name}</div>
                   </TableCell>
 
-                  <TableCell>
+                  <TableCell className="text-center">
                     <div className='font-medium'>{category.code}</div>
                   </TableCell>
 
-                  <TableCell>
+                  <TableCell className="text-center">
                     {category.image_url ? (
                       <img
                         src={category.image_url}
                         alt={category.name}
-                        className='w-12 h-12 object-cover rounded-md'
+                        className='w-12 h-12 object-cover rounded-md mx-auto'
                       />
                     ) : (
                       <span className='text-muted-foreground text-sm'>
@@ -189,12 +200,13 @@ export default function AdminCategories() {
                     )}
                   </TableCell>
 
-                  <TableCell className='text-right'>
-                    <div className='flex items-center justify-end gap-2'>
+                  <TableCell>
+                    <div className='flex items-center justify-center gap-1'>
                       <Button
                         variant='ghost'
                         className={'cursor-pointer'}
                         size='sm'
+                        title="Chỉnh sửa"
                         onClick={() => openModal('update', category)}
                       >
                         <Edit className='w-4 h-4' />
@@ -203,7 +215,8 @@ export default function AdminCategories() {
                       <Button
                         variant='ghost'
                         size='sm'
-                        className='text-destructive hover:text-destructive cursor-pointer'
+                        className='text-destructive hover:text-red-600 cursor-pointer'
+                        title="Xóa"
                         onClick={() => openModal('delete', category)}
                       >
                         <Trash2 className='w-4 h-4' />
@@ -215,6 +228,42 @@ export default function AdminCategories() {
           </TableBody>
         </Table>
       </div>
+
+      {/* ===== PAGINATION ===== */}
+      {!loading && filteredCategories.length > 0 && (
+        <div className='flex items-center justify-between mt-4 px-2'>
+          <p className='text-sm text-muted-foreground'>
+            Hiển thị {(currentPage - 1) * itemsPerPage + 1} đến{' '}
+            {Math.min(currentPage * itemsPerPage, filteredCategories.length)} trong số{' '}
+            {filteredCategories.length} danh mục
+          </p>
+          <div className='flex items-center gap-4'>
+            <Button
+              variant='outline'
+              size='sm'
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              className='cursor-pointer'
+            >
+              <ChevronLeft className='w-4 h-4 mr-1' /> Trước
+            </Button>
+            
+            <div className='text-sm font-medium'>
+              Trang {currentPage} / {totalPages}
+            </div>
+
+            <Button
+              variant='outline'
+              size='sm'
+              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              className='cursor-pointer'
+            >
+              Sau <ChevronRight className='w-4 h-4 ml-1' />
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* ===== MODALS ===== */}
 

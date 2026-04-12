@@ -14,6 +14,64 @@ class ProductRepository extends BaseRepository {
     return this.findOne({ code, is_deleted: 0 });
   }
 
+  async findBySlug(slug) {
+    return this.findOne({ slug, is_deleted: 0 });
+  }
+
+  async findBySlugWithDetails(slug) {
+    const [products] = await db.query(
+      `
+      SELECT 
+        p.id,
+        p.name,
+        p.code,
+        p.slug,
+        p.description,
+        p.status,
+        p.category_id,
+        p.is_deleted,
+        c.name AS category_name,
+        c.slug AS category_slug
+      FROM products p
+      LEFT JOIN category c ON p.category_id = c.id
+      WHERE p.slug = ? AND p.is_deleted = 0
+      LIMIT 1
+      `,
+      [slug]
+    );
+
+    if (products.length === 0) return null;
+
+    const product = products[0];
+    const id = product.id;
+
+    const [images] = await db.query(
+      `
+      SELECT id, product_id, image_url, isThumbnail
+      FROM product_images
+      WHERE product_id = ? AND is_deleted = 0
+      ORDER BY isThumbnail DESC, id ASC
+      `,
+      [id]
+    );
+
+    const [sizes] = await db.query(
+      `
+      SELECT id, product_id, size, price
+      FROM product_sizes
+      WHERE product_id = ? AND is_deleted = 0
+      ORDER BY FIELD(size, 'S', 'M', 'L')
+      `,
+      [id]
+    );
+
+    return {
+      ...product,
+      images,
+      sizes,
+    };
+  }
+
   async findByIdWithDetails(id) {
     const [products] = await db.query(
       `
@@ -25,7 +83,8 @@ class ProductRepository extends BaseRepository {
         p.status,
         p.category_id,
         p.is_deleted,
-        c.name AS category_name
+        c.name AS category_name,
+        c.slug AS category_slug
       FROM products p
       LEFT JOIN category c ON p.category_id = c.id
       WHERE p.id = ? AND p.is_deleted = 0
@@ -87,6 +146,12 @@ class ProductRepository extends BaseRepository {
             WHERE ps.product_id = p.id AND ps.is_deleted = 0
           ) DESC, p.id DESC
         `;
+      case "rating_desc":
+        return `
+          ORDER BY (
+            SELECT COALESCE(AVG(rating), 0) FROM reviews WHERE product_id = p.id
+          ) DESC, p.id DESC
+        `;
       default:
         return "ORDER BY p.id DESC";
     }
@@ -137,13 +202,48 @@ class ProductRepository extends BaseRepository {
     }));
   }
 
+  buildAdvancedCondition(options) {
+    let sql = "";
+    const params = [];
+    const { min_price, max_price, size, min_rating } = options || {};
+
+    if (min_price !== undefined || max_price !== undefined || size !== undefined) {
+      sql += ` AND EXISTS (
+        SELECT 1 FROM product_sizes ps
+        WHERE ps.product_id = p.id
+          AND ps.is_deleted = 0`;
+      
+      if (size !== undefined && size !== "") {
+        sql += ` AND ps.size = ?`;
+        params.push(size);
+      }
+      if (min_price !== undefined && min_price !== "") {
+        sql += ` AND ps.price >= ?`;
+        params.push(parseInt(min_price));
+      }
+      if (max_price !== undefined && max_price !== "") {
+        sql += ` AND ps.price <= ?`;
+        params.push(parseInt(max_price));
+      }
+      sql += `)`;
+    }
+
+    if (min_rating !== undefined && min_rating !== "") {
+      sql += ` AND (SELECT COALESCE(AVG(rating), 0) FROM reviews WHERE product_id = p.id) >= ?`;
+      params.push(Number(min_rating));
+    }
+
+    return { sql, params };
+  }
+
   async findAllWithDetails(conditions = {}, options = {}) {
     const { limit, offset, sort } = options;
 
     let query = `
       SELECT 
         p.*,
-        c.name as category_name
+        c.name as category_name,
+        (SELECT COALESCE(AVG(rating), 0) FROM reviews WHERE product_id = p.id) as rating
       FROM products p
       LEFT JOIN category c ON p.category_id = c.id
       WHERE p.is_deleted = 0
@@ -155,6 +255,10 @@ class ProductRepository extends BaseRepository {
       query += ` AND p.${key} = ?`;
       params.push(conditions[key]);
     });
+
+    const advanced = this.buildAdvancedCondition(options);
+    query += advanced.sql;
+    params.push(...advanced.params);
 
     query += ` ${this.buildSortClause(sort)}`;
 
@@ -173,7 +277,8 @@ class ProductRepository extends BaseRepository {
     let query = `
       SELECT 
         p.*,
-        c.name as category_name
+        c.name as category_name,
+        (SELECT COALESCE(AVG(rating), 0) FROM reviews WHERE product_id = p.id) as rating
       FROM products p
       LEFT JOIN category c ON p.category_id = c.id
       WHERE p.category_id = ?
@@ -182,6 +287,10 @@ class ProductRepository extends BaseRepository {
     `;
 
     const params = [categoryId, status];
+
+    const advanced = this.buildAdvancedCondition(options);
+    query += advanced.sql;
+    params.push(...advanced.params);
 
     query += ` ${this.buildSortClause(sort)}`;
 
@@ -194,8 +303,10 @@ class ProductRepository extends BaseRepository {
     return this.attachSizesAndImages(products);
   }
 
-  async countByCategory(categoryId, status = "available") {
-    const query = `
+  async countByCategory(categoryId, options = {}) {
+    const { status = "available" } = options;
+
+    let query = `
       SELECT COUNT(*) as total 
       FROM products p
       WHERE p.category_id = ?
@@ -203,7 +314,13 @@ class ProductRepository extends BaseRepository {
         AND p.is_deleted = 0
     `;
 
-    const [rows] = await db.query(query, [categoryId, status]);
+    const params = [categoryId, status];
+
+    const advanced = this.buildAdvancedCondition(options);
+    query += advanced.sql;
+    params.push(...advanced.params);
+
+    const [rows] = await db.query(query, params);
     return rows[0].total;
   }
 
@@ -213,7 +330,8 @@ class ProductRepository extends BaseRepository {
     let query = `
       SELECT 
         p.*,
-        c.name as category_name
+        c.name as category_name,
+        (SELECT COALESCE(AVG(rating), 0) FROM reviews WHERE product_id = p.id) as rating
       FROM products p
       LEFT JOIN category c ON p.category_id = c.id
       WHERE p.name LIKE ?
@@ -231,6 +349,10 @@ class ProductRepository extends BaseRepository {
       query += ` AND p.status = ?`;
       params.push(status);
     }
+
+    const advanced = this.buildAdvancedCondition(options);
+    query += advanced.sql;
+    params.push(...advanced.params);
 
     query += ` ${this.buildSortClause(sort)} LIMIT ? OFFSET ?`;
     params.push(parseInt(limit), parseInt(offset));
@@ -261,11 +383,15 @@ class ProductRepository extends BaseRepository {
       params.push(status);
     }
 
+    const advanced = this.buildAdvancedCondition(options);
+    query += advanced.sql;
+    params.push(...advanced.params);
+
     const [rows] = await db.query(query, params);
     return rows[0].total;
   }
 
-  async countAll(conditions = {}) {
+  async countAll(conditions = {}, options = {}) {
     let query = `
       SELECT COUNT(*) as total
       FROM products p
@@ -279,6 +405,10 @@ class ProductRepository extends BaseRepository {
       params.push(conditions[key]);
     });
 
+    const advanced = this.buildAdvancedCondition(options);
+    query += advanced.sql;
+    params.push(...advanced.params);
+
     const [rows] = await db.query(query, params);
     return rows[0].total;
   }
@@ -289,7 +419,8 @@ class ProductRepository extends BaseRepository {
     SELECT
       p.*,
       c.name AS category_name,
-      SUM(od.quantity) AS total_sold
+      SUM(od.quantity) AS total_sold,
+      (SELECT COALESCE(AVG(rating), 0) FROM reviews WHERE product_id = p.id) as rating
     FROM order_details od
     JOIN product_sizes ps ON ps.id = od.product_size_id
     JOIN products p ON p.id = ps.product_id

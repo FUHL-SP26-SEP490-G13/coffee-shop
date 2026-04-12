@@ -1,5 +1,5 @@
-import { useState, useMemo, useCallback } from 'react';
-import { Plus, Search, Edit, Trash2 } from 'lucide-react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
+import { Plus, Search, Edit, Trash2, Filter } from 'lucide-react';
 
 import productService from '../../../services/productService';
 import categoryService from '../../../services/categoryService';
@@ -22,12 +22,25 @@ import UpdateProduct from './Action/UpdateProduct';
 import DeleteProduct from './Action/DeleteProduct';
 import AddRecipeModal from './Action/AddRecipeModal';
 import ViewRecipeModal from './Action/ViewRecipeModal';
+import PaginationControl from '../../../components/common/PaginationControl';
 
 const PAGE_SIZE = 8;
 
 export default function AdminProducts() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
+  const [filterCategory, setFilterCategory] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
   const [page, setPage] = useState(1);
+
+  // Debounce search query
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedQuery(searchQuery);
+      setPage(1); // Reset page to 1 simultaneously
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
 
   const [modal, setModal] = useState({
     type: null,
@@ -43,11 +56,18 @@ export default function AdminProducts() {
   };
 
   const fetchProducts = useCallback(() => {
+    if (debouncedQuery.trim()) {
+      return productService.search({
+        keyword: debouncedQuery.trim(),
+        page,
+        limit: PAGE_SIZE,
+      });
+    }
     return productService.getAll({
       page,
       limit: PAGE_SIZE,
     });
-  }, [page]);
+  }, [page, debouncedQuery]);
 
   const {
     data: response,
@@ -75,12 +95,12 @@ export default function AdminProducts() {
     : [];
 
   const filteredProducts = useMemo(() => {
-    if (!Array.isArray(products)) return [];
-
-    return products.filter((p) =>
-      p.name?.toLowerCase().includes(searchQuery.toLowerCase()),
-    );
-  }, [products, searchQuery]);
+    return products.filter((p) => {
+      const matchCategory = filterCategory === '' || String(p.category_id) === filterCategory;
+      const matchStatus = filterStatus === '' || p.status === filterStatus;
+      return matchCategory && matchStatus;
+    });
+  }, [products, filterCategory, filterStatus]);
 
   const getThumbnail = (product) => {
     if (!product.images || product.images.length === 0) {
@@ -123,10 +143,7 @@ export default function AdminProducts() {
     <div className='p-6'>
       <div className='flex items-center justify-between mb-6'>
         <div>
-          <h2 className='text-2xl mb-1'>Sản phẩm</h2>
-          <p className='text-sm text-muted-foreground'>
-            Quản lý sản phẩm quán cà phê
-          </p>
+          <h2 className="text-xl font-semibold">Sản phẩm</h2>
         </div>
 
         <Button onClick={() => openModal('create')} className='cursor-pointer'>
@@ -135,8 +152,9 @@ export default function AdminProducts() {
         </Button>
       </div>
 
-      <div className='mb-4'>
-        <div className='relative max-w-sm'>
+      <div className='mb-4 flex flex-wrap items-center gap-3'>
+        {/* Search */}
+        <div className='relative min-w-[220px] flex-1 max-w-sm'>
           <Search className='absolute left-3 top-2.5 w-4 h-4 text-muted-foreground' />
           <Input
             placeholder='Tìm kiếm sản phẩm...'
@@ -145,6 +163,45 @@ export default function AdminProducts() {
             className='pl-9'
           />
         </div>
+
+        {/* Filter danh mục */}
+        <div className='relative'>
+          <Filter className='absolute left-3 top-2.5 w-4 h-4 text-muted-foreground pointer-events-none' />
+          <select
+            value={filterCategory}
+            onChange={(e) => { setFilterCategory(e.target.value); setPage(1); }}
+            className='pl-9 pr-4 h-10 rounded-md border border-input bg-background text-sm text-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-ring min-w-[160px] cursor-pointer'
+          >
+            <option value=''>Tất cả danh mục</option>
+            {categories.map((cat) => (
+              <option key={cat.id} value={String(cat.id)}>{cat.name}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Filter trạng thái */}
+        <div className='relative'>
+          <Filter className='absolute left-3 top-2.5 w-4 h-4 text-muted-foreground pointer-events-none' />
+          <select
+            value={filterStatus}
+            onChange={(e) => { setFilterStatus(e.target.value); setPage(1); }}
+            className='pl-9 pr-4 h-10 rounded-md border border-input bg-background text-sm text-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-ring min-w-[150px] cursor-pointer'
+          >
+            <option value=''>Tất cả trạng thái</option>
+            <option value='available'>Đang bán</option>
+            <option value='unavailable'>Ngừng bán</option>
+          </select>
+        </div>
+
+        {/* Reset filters */}
+        {(filterCategory || filterStatus || searchQuery) && (
+          <button
+            onClick={() => { setFilterCategory(''); setFilterStatus(''); setSearchQuery(''); setPage(1); }}
+            className='text-sm text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors'
+          >
+            Xóa bộ lọc
+          </button>
+        )}
       </div>
 
       <div className='bg-card rounded-xl border border-border'>
@@ -157,19 +214,20 @@ export default function AdminProducts() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Sản phẩm</TableHead>
-              <TableHead>Mã code</TableHead>
-              <TableHead>Danh mục</TableHead>
-              <TableHead>Kích cỡ & Giá</TableHead>
-              <TableHead>Trạng thái</TableHead>
-              <TableHead className='text-right'>Hành động</TableHead>
+              <TableHead className="text-center w-[60px]">STT</TableHead>
+              <TableHead className="min-w-[200px]">Sản phẩm</TableHead>
+              <TableHead className="text-center min-w-[100px]">Mã code</TableHead>
+              <TableHead className="text-center min-w-[120px]">Danh mục</TableHead>
+              <TableHead className="min-w-[130px]">Kích cỡ & Giá</TableHead>
+              <TableHead className="text-center min-w-[120px]">Trạng thái</TableHead>
+              <TableHead className="text-center min-w-[200px]">Hành động</TableHead>
             </TableRow>
           </TableHeader>
 
           <TableBody>
             {loading && (
               <TableRow>
-                <TableCell colSpan={5} className='text-center py-6'>
+                <TableCell colSpan={7} className='text-center py-6'>
                   Đang tải...
                 </TableCell>
               </TableRow>
@@ -177,20 +235,25 @@ export default function AdminProducts() {
 
             {!loading && filteredProducts.length === 0 && (
               <TableRow>
-                <TableCell colSpan={5} className='text-center py-6'>
+                <TableCell colSpan={7} className='text-center py-6'>
                   Không có sản phẩm nào
                 </TableCell>
               </TableRow>
             )}
 
             {!loading &&
-              filteredProducts.map((product) => {
+              filteredProducts.map((product, index) => {
                 const category = categories.find(
                   (c) => Number(c.id) === Number(product.category_id),
                 );
 
                 return (
                   <TableRow key={product.id}>
+                    {/* STT */}
+                    <TableCell className="text-center font-medium">
+                      {(currentPage - 1) * PAGE_SIZE + index + 1}
+                    </TableCell>
+
                     {/* PRODUCT */}
                     <TableCell>
                       <div className='flex items-center gap-3'>
@@ -203,24 +266,19 @@ export default function AdminProducts() {
                           <div className='text-sm font-medium'>
                             {product.name}
                           </div>
-                          {product.description && (
-                            <div className='text-xs text-muted-foreground line-clamp-1 max-w-[200px]'>
-                              {product.description}
-                            </div>
-                          )}
                         </div>
                       </div>
                     </TableCell>
 
-                    {/* ✅ CODE (đưa lên đây) */}
-                    <TableCell>
+                    {/* CODE */}
+                    <TableCell className="text-center">
                       <Badge variant='secondary' className='font-mono'>
                         {product.code || 'N/A'}
                       </Badge>
                     </TableCell>
 
                     {/* CATEGORY */}
-                    <TableCell>
+                    <TableCell className="text-center">
                       <Badge variant='secondary'>
                         {category?.name || 'Không có'}
                       </Badge>
@@ -230,7 +288,7 @@ export default function AdminProducts() {
                     <TableCell>{formatSizes(product.sizes)}</TableCell>
 
                     {/* STATUS */}
-                    <TableCell>
+                    <TableCell className="text-center">
                       <Badge
                         className={
                           product.status === 'available'
@@ -245,30 +303,33 @@ export default function AdminProducts() {
                     </TableCell>
 
                     {/* ACTION */}
-                    <TableCell className='text-right'>
-                      <div className='flex items-center justify-end gap-2'>
+                    <TableCell>
+                      <div className='flex items-center justify-center gap-1'>
                         <Button
                           variant='outline'
                           size='sm'
                           className='cursor-pointer'
+                          title="Thêm công thức"
                           onClick={() => openModal('recipe', product)}
                         >
-                          Thêm công thức
+                          Thêm CT
                         </Button>
 
                         <Button
                           variant='secondary'
                           size='sm'
                           className='cursor-pointer'
+                          title="Xem công thức"
                           onClick={() => openModal('view-recipe', product)}
                         >
-                          Xem công thức
+                          Xem CT
                         </Button>
 
                         <Button
                           variant='ghost'
                           size='sm'
                           className='cursor-pointer'
+                          title="Chỉnh sửa"
                           onClick={() => openModal('update', product)}
                         >
                           <Edit className='w-4 h-4' />
@@ -277,7 +338,8 @@ export default function AdminProducts() {
                         <Button
                           variant='ghost'
                           size='sm'
-                          className='text-destructive cursor-pointer'
+                          className='text-destructive hover:text-red-600 cursor-pointer'
+                          title="Xóa"
                           onClick={() => openModal('delete', product)}
                         >
                           <Trash2 className='w-4 h-4' />
@@ -291,29 +353,14 @@ export default function AdminProducts() {
         </Table>
       </div>
 
-      <div className='flex items-center justify-between mt-4'>
-        <p className='text-sm text-muted-foreground'>
-          Trang {currentPage} / {totalPages}
-        </p>
-
-        <div className='flex gap-2'>
-          <Button
-            variant='outline'
-            disabled={currentPage <= 1}
-            onClick={() => handlePageChange(currentPage - 1)}
-          >
-            Trước
-          </Button>
-
-          <Button
-            variant='outline'
-            disabled={currentPage >= totalPages}
-            onClick={() => handlePageChange(currentPage + 1)}
-          >
-            Sau
-          </Button>
-        </div>
-      </div>
+      <PaginationControl
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={handlePageChange}
+        totalItems={pagination.total || 0}
+        itemsPerPage={PAGE_SIZE}
+        itemName="sản phẩm"
+      />
 
       {modal.type === 'create' && (
         <CreateProduct

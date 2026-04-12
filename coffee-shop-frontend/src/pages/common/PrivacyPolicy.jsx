@@ -1,5 +1,5 @@
-import Header from "@/components/layout/Header";
-import Footer from "@/components/layout/Footer";
+
+
 import { Card } from "@/components/ui/card";
 import {
   Shield,
@@ -12,25 +12,24 @@ import {
   Phone,
   MapPin,
 } from "lucide-react";
+import { Link } from "react-router-dom";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 function PrivacyPolicy() {
+  useDocumentTitle("Chính sách bảo mật");
   return (
-    <div className="min-h-screen flex flex-col bg-white">
-      <Header />
+    <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900">
+      
 
-      <div className="text-center space-y-3 mt-10">
-        <h1 className="text-2xl md:text-3xl text-primary">
-          Chính sách bảo mật
-        </h1>
-        <p className="text-gray-600 text-sm">
-          Cam kết minh bạch trong việc thu thập, sử dụng và bảo vệ thông tin cá
-          nhân.
-        </p>
-      </div>
+      <div className="flex-1 w-full px-4 sm:px-6 lg:px-6 xl:px-8 pt-2 md:pt-4 pb-10 md:pb-16 mb-5">
+        <div className="flex items-center gap-2 text-base md:text-lg text-gray-500 dark:text-gray-400 font-medium mb-6">
+          <Link to="/" className="hover:text-amber-600 transition">Trang chủ</Link>
+          <span className="text-gray-400">/</span>
+          <span className="text-amber-600 font-bold">Chính sách bảo mật</span>
+        </div>
 
-      {/* ===== CONTENT ===== */}
-      <section className="w-full px-4 sm:px-6 lg:px-8 py-16 sm:py-20">
-        <div className="max-w-6xl mx-auto grid gap-8 md:grid-cols-2">
+        {/* ===== CONTENT ===== */}
+        <div className="w-full grid gap-8 md:grid-cols-2">
           <PolicyCard icon={<Database />} title="Thu thập thông tin">
             Chúng tôi thu thập họ tên, email, số điện thoại, địa chỉ giao hàng
             và lịch sử đơn hàng nhằm phục vụ hoạt động kinh doanh.
@@ -61,11 +60,11 @@ function PrivacyPolicy() {
             khoản không còn hoạt động.
           </PolicyCard>
         </div>
-      </section>
+      </div>
 
       <div className="w-full h-px bg-gradient-to-r from-transparent via-amber-300 to-transparent" />
 
-      <Footer />
+      
     </div>
   );
 }
@@ -73,16 +72,20 @@ function PrivacyPolicy() {
 /* Reusable Card */
 function PolicyCard({ icon, title, children }) {
   return (
-    <Card className="rounded-3xl shadow-xl border border-gray-200 hover:border-amber-300 transition-all duration-300 p-8">
-      <div className="flex items-center gap-4 mb-4">
-        <div className="p-3 bg-amber-100 rounded-xl text-amber-600">{icon}</div>
-        <h3 className="text-lg sm:text-xl font-semibold text-gray-900">
-          {title}
-        </h3>
+    <Card className="rounded-3xl shadow-xl border border-gray-200 dark:border-gray-800 hover:border-amber-300 dark:hover:border-amber-500 transition-all duration-300 p-8 bg-white dark:bg-gray-950">
+      <div className="flex items-start gap-4 mb-2">
+        <div className="mt-0.5 p-2 bg-amber-100 dark:bg-amber-900/40 rounded-xl text-amber-600 dark:text-amber-500 shrink-0 [&>svg]:w-6 [&>svg]:h-6">
+          {icon}
+        </div>
+        <div>
+          <h3 className="font-semibold text-base md:text-lg mb-1.5 text-gray-900 dark:text-gray-100">
+            {title}
+          </h3>
+          <p className="text-sm md:text-base text-gray-600 dark:text-gray-400 leading-relaxed">
+            {children}
+          </p>
+        </div>
       </div>
-      <p className="text-sm sm:text-base text-gray-600 leading-relaxed">
-        {children}
-      </p>
     </Card>
   );
 }

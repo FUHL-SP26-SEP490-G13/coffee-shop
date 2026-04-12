@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
-import { useLocation, useNavigate, Outlet } from "react-router-dom";
+import { useEffect, useRef, useState } from 'react';
+import { useLocation, useNavigate, Outlet } from 'react-router-dom';
 import {
   LayoutGrid,
   ChefHat,
@@ -8,12 +8,20 @@ import {
   Clock,
   ClipboardList,
   FileText,
+  ArrowLeftRight,
   User,
   LogOut,
   Menu,
   X,
   Bell,
-} from "lucide-react";
+  ShoppingBag,
+  LayoutDashboard,
+  ChevronLeft,
+  ChevronRight,
+  Sun,
+  Moon,
+  Coffee,
+} from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,121 +32,280 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "../../components/ui/alert-dialog";
-import authenticationService from "../../services/authenticationService";
-import notificationService from "@/services/notificationService";
-import socket from "@/lib/socket";
-import { getNotificationLink } from "@/utils/getNotificationLink";
-import Logo from "/logo/Logo.png";
+} from '../../components/ui/alert-dialog';
+import authenticationService from '../../services/authenticationService';
+import notificationService from '@/services/notificationService';
+import socket from '@/lib/socket';
+import { getNotificationLink } from '@/utils/getNotificationLink';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import Logo from '/logo/Logo.png';
+import receiptSettingService from "@/services/receiptSettingService";
+import { CashSessionProvider, useCashSession } from '../../components/staff/CashSessionContext';
+import { ShiftHandoverModal } from '../../components/staff/ShiftHandoverModal';
+import baristaDBService from '@/services/baristaDBService';
+
+const STAFF_SIDEBAR_PREF_KEY = 'staff_sidebar_collapsed_by_page';
+const STAFF_SIDEBAR_DEFAULTS = {
+  pos: true,
+};
 
 export function StaffApp() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isSidebarHovered, setIsSidebarHovered] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [sidebarCollapsedByPage, setSidebarCollapsedByPage] = useState(() => {
+    try {
+      const raw = localStorage.getItem(STAFF_SIDEBAR_PREF_KEY);
+      const parsed = raw ? JSON.parse(raw) : {};
+      return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch {
+      return {};
+    }
+  });
+
+  const [storeLogo, setStoreLogo] = useState(() => {
+    return localStorage.getItem("cached_store_logo") || Logo;
+  });
+
+  const [orderStats, setOrderStats] = useState({
+    onlineWaiting: 0,
+    displayPreparing: 0,
+    readyOrders: 0,
+  });
+
+  useEffect(() => {
+    const fetchLogo = async () => {
+      try {
+        const res = await receiptSettingService.getActive();
+        const data = res?.data || null;
+        if (data && data.logo_url) {
+          setStoreLogo(data.logo_url);
+          localStorage.setItem("cached_store_logo", data.logo_url);
+        } else {
+          setStoreLogo(Logo);
+          localStorage.removeItem("cached_store_logo");
+        }
+      } catch (error) {
+        setStoreLogo(Logo);
+        localStorage.removeItem("cached_store_logo");
+      }
+    };
+    fetchLogo();
+
+    const handleReceiptUpdate = () => {
+      fetchLogo();
+    };
+
+    window.addEventListener("receiptSettingsUpdated", handleReceiptUpdate);
+    return () => {
+      window.removeEventListener("receiptSettingsUpdated", handleReceiptUpdate);
+    };
+  }, []);
+
+  // Quản lý Dark Mode thay cho force disable
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    return localStorage.getItem("theme") === "dark";
+  });
+
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add("dark");
+      localStorage.setItem("theme", "dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+      localStorage.setItem("theme", "light");
+    }
+  }, [isDarkMode]);
+
+  const toggleTheme = () => setIsDarkMode((prev) => !prev);
 
   const navigate = useNavigate();
   const location = useLocation();
   const notificationRef = useRef(null);
 
+  useEffect(() => {
+    const routeTitles = {
+        "/staff/dashboard": "Tổng quan",
+        "/staff/tables": "Phòng bàn",
+        "/staff/takeaway": "Đặt mang đi",
+        "/staff/orders/pending": "Đơn chờ",
+        "/staff/orders/preparing": "Đơn đang làm",
+        "/staff/orders/completed": "Đơn đã xong",
+        "/staff/orders/cancelled": "Đơn đã hủy",
+        "/staff/kitchen": "Bếp",
+        "/staff/inventory": "Kho hàng",
+        "/staff/requests": "Đổi ca",
+        "/staff/attendance": "Điểm danh ca làm",
+        "/staff/schedule": "Lịch làm việc",
+        "/staff/profile": "Thông tin cá nhân",
+    };
+
+    let matchedTitle = "Cổng Nhân viên";
+    if (routeTitles[location.pathname]) {
+      matchedTitle = routeTitles[location.pathname];
+    } else {
+      const match = Object.keys(routeTitles).find(path => location.pathname.startsWith(path));
+      if (match) matchedTitle = routeTitles[match];
+    }
+
+    const shopName = localStorage.getItem("cached_store_name") || "Coffee Shop";
+    document.title = `${matchedTitle} | ${shopName}`;
+  }, [location.pathname]);
+
   const unreadCount = notifications.filter(
-    (item) => Number(item.is_read) === 0
+    (item) => Number(item.is_read) === 0,
   ).length;
 
   const handleLogout = async () => {
     await authenticationService.logout();
-    window.location.href = "/";
+    window.location.href = '/';
   };
 
   const getCurrentPage = () => {
     const path = location.pathname;
-    if (path.includes("kitchen")) return "kitchen";
-    if (path.includes("tables")) return "tables";
-    if (path.includes("attendance")) return "attendance";
-    if (path.includes("schedule")) return "schedule";
-    if (path.includes("inventory")) return "inventory";
-    if (path.includes("requests")) return "requests";
-    if (path.includes("profile")) return "profile";
-    return "pos";
+    if (path.includes('orders/pending')) return 'orders-pending';
+    if (path.includes('orders/preparing')) return 'orders-preparing';
+    if (path.includes('orders/completed')) return 'orders-completed';
+    if (path.includes('orders/cancelled')) return 'orders-cancelled';
+    if (path.includes('takeaway')) return 'takeaway'; 
+    if(path.includes('orders')) return 'orders';
+    if (path.includes('kitchen')) return 'kitchen';
+    if (path.includes('tables')) return 'tables';
+    if (path.includes('attendance')) return 'attendance';
+    if (path.includes('schedule')) return 'schedule';
+    if (path.includes('inventory')) return 'inventory';
+    if (path.includes('requests')) return 'requests';
+    if (path.includes('profile')) return 'profile';
+    if (path.includes('pos')) return 'pos';
+    return 'dashboard';
   };
 
   const currentPage = getCurrentPage();
+  const defaultCollapsedForPage =
+    STAFF_SIDEBAR_DEFAULTS[currentPage] ?? false;
+  const isSidebarCollapsed =
+    sidebarCollapsedByPage[currentPage] ?? defaultCollapsedForPage;
+  const isSidebarExpanded = !isSidebarCollapsed || isSidebarHovered;
+  const isSidebarCompact = !isSidebarExpanded;
 
-  const menuItems = [
-    { id: "pos", icon: LayoutGrid, label: "POS", path: "/staff" },
-    { id: "kitchen", icon: ChefHat, label: "Bếp", path: "/staff/kitchen" },
+  const menuGroups = [
     {
-      id: "tables",
-      icon: Users,
-      label: "Danh sách bàn",
-      path: "/staff/tables",
+      title: 'Bán Hàng & Phục Vụ',
+      items: [
+        { id: 'dashboard', icon: LayoutDashboard, label: 'Tổng quan', path: '/staff/dashboard' },
+        { id: 'tables', icon: Users, label: 'Phòng bàn', path: '/staff/tables' },
+        { id: 'takeaway', icon: ShoppingBag, label: 'Đặt mang đi', path: '/staff/takeaway' },
+        { id: 'orders-pending', icon: ShoppingBag, label: 'Đơn online chờ xác nhận', path: '/staff/orders/pending' },
+        { id: 'orders-preparing', icon: ShoppingBag, label: 'Quản lý đơn hàng', path: '/staff/orders/preparing' },
+        { id: 'barista-window', icon: Coffee, label: 'Cửa sổ pha chế', path: '/staff/barista-window', openInNewTab: true },
+
+      ],
     },
     {
-      id: "attendance",
-      icon: Clock,
-      label: "Điểm danh ca làm",
-      path: "/staff/attendance",
-    },
-    {
-      id: "schedule",
-      icon: Calendar,
-      label: "Lịch làm việc",
-      path: "/staff/schedule",
-    },
-    {
-      id: "inventory",
-      icon: ClipboardList,
-      label: "Kho hàng",
-      path: "/staff/inventory",
-    },
-    {
-      id: "requests",
-      icon: FileText,
-      label: "Yêu cầu",
-      path: "/staff/requests",
-    },
-    {
-      id: "profile",
-      icon: User,
-      label: "Thông tin cá nhân",
-      path: "/staff/profile",
+      title: 'Cá Nhân',
+      items: [
+        { id: 'requests', icon: ArrowLeftRight, label: 'Đổi ca', path: '/staff/requests' },
+        { id: 'schedule', icon: Calendar, label: 'Lịch làm việc', path: '/staff/schedule' },
+        { id: 'profile', icon: User, label: 'Thông tin cá nhân', path: '/staff/profile' },
+      ],
     },
   ];
+
+  // Logic lấy số lượng đơn hàng cho Badge
+  const fetchOrderStats = async () => {
+    try {
+      const res = await baristaDBService.getOverview();
+      const data = res?.data || res?.data?.data || null;
+      if (data) {
+        setOrderStats({
+          onlineWaiting: Number(data.onlineWaiting || 0),
+          displayPreparing: Number(data.displayPreparing || 0),
+          readyOrders: Number(data.readyOrders || 0),
+        });
+      }
+    } catch (error) {
+      console.error('Fetch sidebar stats error:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchOrderStats();
+
+    // Lắng nghe sự kiện để cập nhật số lượng
+    const handleRefresh = () => fetchOrderStats();
+    socket.on('order-online:new', handleRefresh);
+    socket.on('barista:notification', handleRefresh);
+    socket.on('order:status-updated', handleRefresh);
+    window.addEventListener('refreshStaffStats', handleRefresh);
+
+    return () => {
+      socket.off('order-online:new', handleRefresh);
+      socket.off('barista:notification', handleRefresh);
+      socket.off('order:status-updated', handleRefresh);
+      window.removeEventListener('refreshStaffStats', handleRefresh);
+    };
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        STAFF_SIDEBAR_PREF_KEY,
+        JSON.stringify(sidebarCollapsedByPage),
+      );
+    } catch {
+      // Ignore localStorage errors to avoid blocking UI interactions.
+    }
+  }, [sidebarCollapsedByPage]);
 
   useEffect(() => {
     const initNotifications = async () => {
       try {
         const profileRes = await authenticationService.getProfile();
-        const user = profileRes?.data || profileRes?.data?.data;
+        const user = profileRes?.data?.id
+          ? profileRes.data
+          : profileRes?.data?.data || profileRes?.data || null;
 
         if (user?.id) {
           if (!socket.connected) {
             socket.connect();
           }
 
-          socket.emit("join-user-room", user.id);
-          console.log("Staff joined room:", `user-${user.id}`);
+          socket.emit('join-user-room', user.id);
+          console.log('Staff joined room:', `user-${user.id}`);
         } else {
-          console.log("Không tìm thấy user.id");
+          console.log('Không tìm thấy user.id');
         }
 
         const notificationRes = await notificationService.getMine();
-        setNotifications(
-          notificationRes?.data?.data || notificationRes?.data || []
-        );
+        const notificationList = Array.isArray(notificationRes?.data)
+          ? notificationRes.data
+          : Array.isArray(notificationRes?.data?.data)
+            ? notificationRes.data.data
+            : Array.isArray(notificationRes)
+              ? notificationRes
+              : [];
+        setNotifications(notificationList);
       } catch (error) {
-        console.error("Init staff notifications error:", error);
+        console.error('Init staff notifications error:', error);
       }
     };
 
     initNotifications();
 
     const handleNewNotification = (data) => {
-      console.log("received staff notification:", data);
+      console.log('received staff notification:', data);
 
       setNotifications((prev) => {
         const list = Array.isArray(prev) ? prev : [];
+        const uniqueKey = data.recipient_id || `${data.id}-${data.user_id}`;
         const existed = list.some(
-          (item) => item.recipient_id === data.recipient_id
+          (item) => (item.recipient_id || `${item.id}-${item.user_id}`) === uniqueKey,
         );
 
         if (existed) return list;
@@ -147,10 +314,10 @@ export function StaffApp() {
       });
     };
 
-    socket.on("staff:notification", handleNewNotification);
+    socket.on('staff:notification', handleNewNotification);
 
     return () => {
-      socket.off("staff:notification", handleNewNotification);
+      socket.off('staff:notification', handleNewNotification);
     };
   }, []);
 
@@ -164,9 +331,9 @@ export function StaffApp() {
       }
     };
 
-    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener('mousedown', handleClickOutside);
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
 
@@ -178,8 +345,8 @@ export function StaffApp() {
 
       setNotifications((prev) =>
         prev.map((n) =>
-          n.recipient_id === item.recipient_id ? { ...n, is_read: 1 } : n
-        )
+          n.recipient_id === item.recipient_id ? { ...n, is_read: 1 } : n,
+        ),
       );
 
       setShowNotifications(false);
@@ -187,7 +354,7 @@ export function StaffApp() {
       const targetLink = getNotificationLink(item);
       navigate(targetLink);
     } catch (error) {
-      console.error("Read staff notification error:", error);
+      console.error('Read staff notification error:', error);
     }
   };
 
@@ -202,8 +369,8 @@ export function StaffApp() {
           prev.map((n) =>
             n.recipient_id === item.recipient_id
               ? { ...n, is_read: 1, read_at: new Date().toISOString() }
-              : n
-          )
+              : n,
+          ),
         );
       } else {
         await notificationService.markAsUnread(item.recipient_id);
@@ -212,19 +379,19 @@ export function StaffApp() {
           prev.map((n) =>
             n.recipient_id === item.recipient_id
               ? { ...n, is_read: 0, read_at: null }
-              : n
-          )
+              : n,
+          ),
         );
       }
     } catch (error) {
-      console.error("Toggle staff notification error:", error);
+      console.error('Toggle staff notification error:', error);
     }
   };
 
   const toggleAllReadStatus = async () => {
     try {
       const hasUnread = notifications.some(
-        (item) => Number(item.is_read) === 0
+        (item) => Number(item.is_read) === 0,
       );
 
       if (hasUnread) {
@@ -234,7 +401,7 @@ export function StaffApp() {
             ...item,
             is_read: 1,
             read_at: new Date().toISOString(),
-          }))
+          })),
         );
       } else {
         await notificationService.markAllAsUnread();
@@ -243,141 +410,271 @@ export function StaffApp() {
             ...item,
             is_read: 0,
             read_at: null,
-          }))
+          })),
         );
       }
     } catch (error) {
-      console.error("Toggle all staff notifications error:", error);
+      console.error('Toggle all staff notifications error:', error);
     }
   };
 
+  const toggleSidebar = () => {
+    setSidebarCollapsedByPage((prev) => {
+      const currentValue = prev[currentPage] ?? defaultCollapsedForPage;
+      return {
+        ...prev,
+        [currentPage]: !currentValue,
+      };
+    });
+  };
+
+  const isBaristaWindow = location.pathname.includes('barista-window');
+
+  if (isBaristaWindow) {
+    return (
+      <div className="h-screen w-full bg-background overflow-hidden relative">
+        <main className="h-full w-full overflow-hidden relative">
+          <Outlet />
+        </main>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className='flex h-screen w-full bg-background overflow-hidden relative'>
       <button
         onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-        className="md:hidden fixed top-4 left-4 z-50 p-2 bg-card border border-border rounded-lg shadow-lg"
+        className='md:hidden fixed top-4 left-4 z-50 p-2 bg-card border border-border rounded-lg shadow-lg dark:shadow-none'
       >
         {mobileMenuOpen ? (
-          <X className="w-5 h-5" />
+          <X className='w-5 h-5' />
         ) : (
-          <Menu className="w-5 h-5" />
+          <Menu className='w-5 h-5' />
         )}
       </button>
 
       {mobileMenuOpen && (
         <div
-          className="md:hidden fixed inset-0 bg-black/50 z-30"
+          className='md:hidden fixed inset-0 bg-black/50 z-30'
           onClick={() => setMobileMenuOpen(false)}
         />
       )}
 
       <div
+        onMouseEnter={() => setIsSidebarHovered(true)}
+        onMouseLeave={() => setIsSidebarHovered(false)}
         className={`
           fixed md:static inset-y-0 left-0 z-40
-          w-64 bg-card border-r border-border flex flex-col
+          w-64 ${isSidebarCompact ? 'md:w-20' : 'md:w-64'} bg-card border-r border-border flex flex-col
           transform transition-transform duration-300 ease-in-out
-          ${
-            mobileMenuOpen
-              ? "translate-x-0"
-              : "-translate-x-full md:translate-x-0"
+          ${mobileMenuOpen
+            ? "translate-x-0"
+            : "-translate-x-full md:translate-x-0"
           }
         `}
       >
         <div
-          className="p-6 border-b border-border"
+          className={`p-6 border-b border-border ${isSidebarCompact ? 'md:px-3' : ''}`}
           style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            position: 'relative',
           }}
         >
-          <img src={Logo} alt="Coffee Shop Logo" className="h-20 w-auto" />
-          <p className="text-sm text-muted-foreground mt-1">Cổng Nhân viên</p>
+          <button
+            type='button'
+            onClick={toggleSidebar}
+            className='hidden md:inline-flex absolute top-3 right-3 items-center justify-center rounded-md border border-border p-1.5 text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors'
+            aria-label={isSidebarCollapsed ? 'Mở rộng sidebar' : 'Thu nhỏ sidebar'}
+            title={isSidebarCollapsed ? 'Mở rộng sidebar' : 'Thu nhỏ sidebar'}
+          >
+            {isSidebarCollapsed ? (
+              <ChevronRight className='w-4 h-4' />
+            ) : (
+              <ChevronLeft className='w-4 h-4' />
+            )}
+          </button>
+          <img
+            src={storeLogo}
+            onError={(e) => { e.currentTarget.src = Logo; }}
+            alt='Coffee Shop Logo'
+            className={`w-auto object-contain rounded-2xl ${isSidebarCompact ? 'h-12' : 'h-20'}`}
+          />
+          <p className={`text-sm text-muted-foreground mt-1 ${isSidebarCompact ? 'md:hidden' : ''}`}>
+            Cổng Nhân viên
+          </p>
         </div>
 
-        <nav className="flex-1 p-4 overflow-auto">
-          {menuItems.map((item) => {
-            const Icon = item.icon;
-            return (
-              <button
-                key={item.id}
-                onClick={() => {
-                  navigate(item.path);
-                  setMobileMenuOpen(false);
-                }}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all mb-2 ${
-                  currentPage === item.id
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                }`}
-              >
-                <Icon className="w-5 h-5 flex-shrink-0" />
-                <span className="text-sm">{item.label}</span>
-              </button>
-            );
-          })}
+        <TooltipProvider>
+          <nav className='flex-1 p-4 overflow-auto'>
+            {menuGroups.map((group) => (
+              <div key={group.title} className="mb-6">
+                <h3 className={`px-4 text-[11px] font-bold text-muted-foreground uppercase tracking-wider mb-3 ${isSidebarCompact ? 'md:hidden' : ''}`}>
+                  {group.title}
+                </h3>
+                {group.items.map((item) => {
+                  const Icon = item.icon;
+                  const menuButton = (
+                    <button
+                      key={item.id}
+                      onClick={() => {
+                        if (item.openInNewTab) {
+                          window.open(item.path, '_blank');
+                        } else {
+                          navigate(item.path);
+                          setMobileMenuOpen(false);
+                        }
+                      }}
+                      className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all mb-1 ${isSidebarCompact ? 'md:justify-center md:px-2' : ''} ${
+                        currentPage === item.id
+                          ? 'bg-primary text-primary-foreground shadow-sm dark:shadow-none'
+                          : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                      }`}
+                      title={isSidebarCompact ? item.label : undefined}
+                    >
+                      <div className="relative">
+                        <Icon className='w-[18px] h-[18px] flex-shrink-0' />
+                        {/* Red Dot Badge for Mobile/Collapsed */}
+                        {isSidebarCompact && (
+                          <>
+                            {item.id === 'orders-pending' && orderStats.onlineWaiting > 0 && (
+                              <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-rose-600 text-[9px] font-black text-white ring-2 ring-card animate-pulse shadow-sm">
+                                {orderStats.onlineWaiting}
+                              </span>
+                            )}
+                            {['orders-preparing', 'barista-window'].includes(item.id) && orderStats.displayPreparing > 0 && (
+                              <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-amber-500 text-[9px] font-black text-white ring-2 ring-card shadow-sm">
+                                {orderStats.displayPreparing}
+                              </span>
+                            )}
+                            {item.id === 'orders-completed' && orderStats.readyOrders > 0 && (
+                              <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500 text-[9px] font-black text-white ring-2 ring-card shadow-sm">
+                                {orderStats.readyOrders}
+                              </span>
+                            )}
+                          </>
+                        )}
+                      </div>
+                      <span className={`text-sm font-medium ${isSidebarCompact ? 'md:hidden' : 'flex-1'}`}>
+                        {item.label}
+                      </span>
+                      {/* Badge for Expanded Sidebar */}
+                      {!isSidebarCompact && (
+                        <>
+                          {item.id === 'orders-pending' && orderStats.onlineWaiting > 0 && (
+                            <span className="ml-auto inline-flex items-center justify-center px-2 py-0.5 rounded-full bg-rose-600 text-[10px] font-black text-white shadow-sm ring-2 ring-white/10 italic">
+                               {orderStats.onlineWaiting}
+                            </span>
+                          )}
+                          {['orders-preparing', 'barista-window'].includes(item.id) && orderStats.displayPreparing > 0 && (
+                            <span className="ml-auto inline-flex items-center justify-center px-2 py-0.5 rounded-full bg-amber-500 text-[10px] font-black text-white italic">
+                               {orderStats.displayPreparing}
+                            </span>
+                          )}
+                          {item.id === 'orders-completed' && orderStats.readyOrders > 0 && (
+                            <span className="ml-auto inline-flex items-center justify-center px-2 py-0.5 rounded-full bg-emerald-500 text-[10px] font-black text-white italic">
+                               {orderStats.readyOrders}
+                            </span>
+                          )}
+                        </>
+                      )}
+                    </button>
+                  );
 
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all mb-2 text-muted-foreground hover:bg-accent hover:text-accent-foreground">
-                <LogOut className="w-5 h-5 flex-shrink-0" />
-                <span className="text-sm">Đăng xuất</span>
-              </button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Xác nhận đăng xuất</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Bạn có chắc chắn muốn đăng xuất khỏi hệ thống không?
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Hủy</AlertDialogCancel>
-                <AlertDialogAction onClick={handleLogout}>
-                  Đăng xuất
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </nav>
+                  if (!isSidebarCompact) {
+                    return menuButton;
+                  }
+
+                  return (
+                    <Tooltip key={item.id}>
+                      <TooltipTrigger asChild>{menuButton}</TooltipTrigger>
+                      <TooltipContent side='right' sideOffset={10}>
+                        {item.label}
+                      </TooltipContent>
+                    </Tooltip>
+                  );
+                })}
+              </div>
+            ))}
+
+            <CashSessionButton isSidebarCompact={isSidebarCompact} />
+
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <button
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all mb-2 text-muted-foreground hover:bg-accent hover:text-accent-foreground ${isSidebarCompact ? 'md:justify-center md:px-2' : ''}`}
+                  title={isSidebarCompact ? 'Đăng xuất' : undefined}
+                >
+                  <LogOut className='w-5 h-5 flex-shrink-0' />
+                  <span className={`text-sm ${isSidebarCompact ? 'md:hidden' : ''}`}>
+                    Đăng xuất
+                  </span>
+                </button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Xác nhận đăng xuất</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Bạn có chắc chắn muốn đăng xuất khỏi hệ thống không?
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Hủy</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleLogout}>
+                    Đăng xuất
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </nav>
+        </TooltipProvider>
       </div>
 
-      <div className="flex-1 w-full md:w-auto overflow-auto">
+      <div className="flex-1 flex flex-col h-full w-full overflow-hidden bg-background">
         <div
           ref={notificationRef}
-          className="flex justify-end px-4 md:px-8 pt-4 md:pt-4 pb-0 relative"
+          className='flex-shrink-0 flex justify-end items-center gap-3 px-4 md:px-8 pt-4 md:pt-4 pb-0 relative'
         >
           <button
-            onClick={() => setShowNotifications((prev) => !prev)}
-            className="relative p-2 rounded-full border bg-white hover:bg-gray-50 shadow-sm"
+            onClick={toggleTheme}
+            className="p-2 rounded-full border bg-card text-foreground hover:bg-accent shadow-sm dark:shadow-none transition"
+            title="Đổi giao diện Sáng/Tối"
           >
-            <Bell className="w-5 h-5" />
+            {isDarkMode ? <Sun className="w-5 h-5 text-yellow-500" /> : <Moon className="w-5 h-5" />}
+          </button>
+
+          <button
+             onClick={() => setShowNotifications((prev) => !prev)}
+            className="relative p-2 rounded-full border bg-card text-foreground hover:bg-accent shadow-sm dark:shadow-none"
+          >
+            <Bell className='w-5 h-5' />
             {unreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-red-500 text-white text-xs flex items-center justify-center">
+              <span className='absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-red-500 text-white text-xs flex items-center justify-center'>
                 {unreadCount}
               </span>
             )}
           </button>
 
           {showNotifications && (
-            <div className="absolute top-14 right-4 md:right-8 w-[360px] bg-white border rounded-xl shadow-xl z-50 overflow-hidden">
-              <div className="flex items-center justify-between px-4 py-3 border-b">
-                <h3 className="font-semibold">Thông báo</h3>
+            <div className='absolute top-14 right-4 md:right-8 w-[360px] bg-card text-card-foreground border border-border rounded-xl shadow-xl dark:shadow-none z-50 overflow-hidden'>
+              <div className='flex items-center justify-between px-4 py-3 border-b border-border'>
+                <h3 className='font-semibold'>Thông báo</h3>
                 {notifications.length > 0 && (
                   <button
                     onClick={toggleAllReadStatus}
-                    className="text-sm text-primary hover:underline"
+                    className='text-sm text-primary hover:underline'
                   >
                     {notifications.some((item) => Number(item.is_read) === 0)
-                      ? "Đánh dấu tất cả đã đọc"
-                      : "Đánh dấu tất cả chưa đọc"}
+                      ? 'Đánh dấu tất cả đã đọc'
+                      : 'Đánh dấu tất cả chưa đọc'}
                   </button>
                 )}
               </div>
 
-              <div className="max-h-96 overflow-y-auto">
+              <div className='max-h-96 overflow-y-auto'>
                 {notifications.length === 0 ? (
-                  <div className="p-4 text-sm text-muted-foreground">
+                  <div className='p-4 text-sm text-muted-foreground'>
                     Chưa có thông báo nào
                   </div>
                 ) : (
@@ -385,31 +682,31 @@ export function StaffApp() {
                     <button
                       key={item.recipient_id || `${item.id}-${item.created_at}`}
                       onClick={() => handleReadNotification(item)}
-                      className={`w-full text-left px-4 py-3 border-b hover:bg-gray-50 ${
-                        Number(item.is_read) === 0 ? "bg-orange-50" : "bg-white"
+                      className={`w-full text-left px-4 py-3 border-b border-border hover:bg-accent ${
+                        Number(item.is_read) === 0 ? "bg-accent/50 dark:bg-accent/20" : "bg-transparent"
                       }`}
                     >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex-1">
-                          <p className="font-medium text-sm">{item.title}</p>
-                          <p className="text-sm text-muted-foreground">
+                      <div className='flex items-start justify-between gap-3'>
+                        <div className='flex-1'>
+                          <p className='font-medium text-sm'>{item.title}</p>
+                          <p className='text-sm text-muted-foreground'>
                             {item.message}
                           </p>
-                          <p className="text-xs text-gray-400 mt-1">
-                            {new Date(item.created_at).toLocaleString("vi-VN")}
+                          <p className='text-xs text-gray-400 mt-1'>
+                            {new Date(item.created_at).toLocaleString('vi-VN')}
                           </p>
                         </div>
 
-                        <div className="flex flex-col items-end gap-2 shrink-0">
+                        <div className='flex flex-col items-end gap-2 shrink-0'>
                           {Number(item.is_read) === 0 && (
-                            <span className="w-2 h-2 rounded-full bg-red-500 mt-1" />
+                            <span className='w-2 h-2 rounded-full bg-red-500 mt-1' />
                           )}
 
                           <button
                             onClick={(e) => handleToggleRead(item, e)}
-                            className="text-xs text-primary hover:underline"
+                            className='text-xs text-primary hover:underline'
                           >
-                            {Number(item.is_read) === 0 ? "Đã đọc" : "Chưa đọc"}
+                            {Number(item.is_read) === 0 ? 'Đã đọc' : 'Chưa đọc'}
                           </button>
                         </div>
                       </div>
@@ -420,11 +717,74 @@ export function StaffApp() {
             </div>
           )}
         </div>
-
-        <div className="p-4 md:p-8 pt-2 md:pt-2">
+        <main className="flex-1 flex flex-col overflow-hidden relative custom-scrollbar">
           <Outlet />
-        </div>
+        </main>
       </div>
     </div>
+  );
+}
+
+const CashSessionButton = ({ isSidebarCompact }) => {
+  const { session, handleTriggerClose, isTimeToClose } = useCashSession();
+  const [isHandoverModalOpen, setIsHandoverModalOpen] = useState(false);
+
+  const closeButton = session ? (
+    <button
+      onClick={handleTriggerClose}
+      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all mb-2 text-rose-600 bg-rose-50 hover:bg-rose-100 dark:bg-rose-900/20 dark:text-rose-400 dark:hover:bg-rose-900/40 ${isSidebarCompact ? 'md:justify-center md:px-2' : ''}`}
+      title={isSidebarCompact ? 'Đóng ca' : undefined}
+    >
+      <Clock className='w-5 h-5 flex-shrink-0' />
+      <span className={`text-sm font-semibold ${isSidebarCompact ? 'md:hidden' : ''}`}>
+        Đóng ca làm
+      </span>
+    </button>
+  ) : null;
+
+  const historyButton = (
+    <button
+      onClick={() => setIsHandoverModalOpen(true)}
+      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all mb-2 text-blue-600 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/40 ${isSidebarCompact ? 'md:justify-center md:px-2' : ''}`}
+      title={isSidebarCompact ? 'Phiếu giao ca' : undefined}
+    >
+      <ClipboardList className='w-5 h-5 flex-shrink-0' />
+      <span className={`text-sm font-semibold ${isSidebarCompact ? 'md:hidden' : ''}`}>
+        Phiếu giao ca
+      </span>
+    </button>
+  );
+
+  return (
+    <>
+      {isSidebarCompact ? (
+        <>
+          {session && (
+            <Tooltip>
+              <TooltipTrigger asChild>{closeButton}</TooltipTrigger>
+              <TooltipContent side='right' sideOffset={10}>Đóng ca làm</TooltipContent>
+            </Tooltip>
+          )}
+          <Tooltip>
+            <TooltipTrigger asChild>{historyButton}</TooltipTrigger>
+            <TooltipContent side='right' sideOffset={10}>Phiếu giao ca</TooltipContent>
+          </Tooltip>
+        </>
+      ) : (
+        <>
+          {closeButton}
+          {historyButton}
+        </>
+      )}
+      <ShiftHandoverModal isOpen={isHandoverModalOpen} onClose={() => setIsHandoverModalOpen(false)} />
+    </>
+  );
+}
+
+export function StaffAppWrapped() {
+  return (
+    <CashSessionProvider>
+      <StaffApp />
+    </CashSessionProvider>
   );
 }

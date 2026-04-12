@@ -17,16 +17,14 @@ class OAuthProviderRepository {
   async create(data) {
     const query = `
       INSERT INTO ${this.tableName}
-      (user_id, provider, provider_id, access_token, refresh_token, linked_at)
-      VALUES (?, ?, ?, ?, ?, NOW())
+      (user_id, provider, provider_id, linked_at)
+      VALUES (?, ?, ?, NOW())
     `;
 
     const [result] = await db.query(query, [
       data.user_id,
       data.provider,
       data.provider_id,
-      data.access_token || null,
-      data.refresh_token || null,
     ]);
 
     return result.insertId;

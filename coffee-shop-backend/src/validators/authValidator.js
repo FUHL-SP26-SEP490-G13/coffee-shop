@@ -262,7 +262,26 @@ const createAddressSchema = Joi.object({
   address_type: Joi.string().valid('home', 'work', 'other').default('home').messages({
     'any.only': 'Loại địa chỉ không hợp lệ',
   }),
+  province_id: Joi.number().integer().positive().optional().allow(null).messages({
+    'number.base': 'Tỉnh/Thành không hợp lệ',
+    'number.integer': 'Tỉnh/Thành không hợp lệ',
+    'number.positive': 'Tỉnh/Thành không hợp lệ',
+  }),
+  ward_id: Joi.number().integer().positive().optional().allow(null).messages({
+    'number.base': 'Xã/Phường không hợp lệ',
+    'number.integer': 'Xã/Phường không hợp lệ',
+    'number.positive': 'Xã/Phường không hợp lệ',
+  }),
   is_default: Joi.number().integer().valid(0, 1).optional(),
+}).custom((value, helpers) => {
+  const hasProvince = value.province_id !== undefined && value.province_id !== null;
+  const hasWard = value.ward_id !== undefined && value.ward_id !== null;
+
+  if (hasProvince !== hasWard) {
+    return helpers.message('Vui lòng chọn đầy đủ cả Tỉnh/Thành và Xã/Phường');
+  }
+
+  return value;
 });
 
 /**
@@ -287,8 +306,28 @@ const updateAddressSchema = Joi.object({
   address_type: Joi.string().valid('home', 'work', 'other').optional().messages({
     'any.only': 'Loại địa chỉ không hợp lệ',
   }),
+  province_id: Joi.number().integer().positive().optional().allow(null).messages({
+    'number.base': 'Tỉnh/Thành không hợp lệ',
+    'number.integer': 'Tỉnh/Thành không hợp lệ',
+    'number.positive': 'Tỉnh/Thành không hợp lệ',
+  }),
+  ward_id: Joi.number().integer().positive().optional().allow(null).messages({
+    'number.base': 'Xã/Phường không hợp lệ',
+    'number.integer': 'Xã/Phường không hợp lệ',
+    'number.positive': 'Xã/Phường không hợp lệ',
+  }),
   is_default: Joi.number().integer().valid(0, 1).optional(),
 })
+  .custom((value, helpers) => {
+    const hasProvince = value.province_id !== undefined && value.province_id !== null;
+    const hasWard = value.ward_id !== undefined && value.ward_id !== null;
+
+    if (hasProvince !== hasWard) {
+      return helpers.message('Vui lòng chọn đầy đủ cả Tỉnh/Thành và Xã/Phường');
+    }
+
+    return value;
+  })
   .min(1)
   .messages({
     'object.min': 'Cần ít nhất 1 trường để cập nhật địa chỉ',

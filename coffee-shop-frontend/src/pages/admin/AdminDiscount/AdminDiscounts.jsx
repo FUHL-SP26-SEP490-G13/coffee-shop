@@ -2,14 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import {
   Loader2,
   Search,
-  ChevronLeft,
-  ChevronRight,
   Trash2,
   Edit,
   Plus,
-  Ticket,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 import discountService from "@/services/discountService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,20 +19,24 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import PaginationControl from "@/components/common/PaginationControl";
+import AdminDiscountModal from "./AdminDiscountModal";
 
 export default function AdminDiscounts() {
   const [data, setData] = useState([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
   const [loadingId, setLoadingId] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
   const [keyword, setKeyword] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedDiscountId, setSelectedDiscountId] = useState(null);
 
   const abortRef = useRef(null);
-  const navigate = useNavigate();
 
   const PAGE_SIZE = 7;
 
@@ -70,6 +70,7 @@ export default function AdminDiscounts() {
 
       setData(payload.items || []);
       setTotalPages(payload.totalPages || 1);
+      setTotalItems(payload.total || payload.totalCount || 0);
     } catch (err) {
       if (err.name !== "CanceledError" && err.code !== "ERR_CANCELED") {
         console.error("Lỗi lấy danh sách discount:", err);
@@ -166,20 +167,17 @@ export default function AdminDiscounts() {
       <div className="mb-6">
         <div className="flex justify-between items-start mb-6 gap-4">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-primary/10 rounded-lg">
-              <Ticket className="h-6 w-6 text-primary" />
-            </div>
             <div>
-              <h2 className="text-2xl font-semibold mb-1">
+              <h2 className="text-xl font-semibold">
                 Quản lý mã giảm giá
               </h2>
-              <p className="text-sm text-muted-foreground">
-                Tạo và quản lý mã giảm giá của bạn
-              </p>
             </div>
           </div>
 
-          <Button onClick={() => navigate("/admin/discounts/create")}>
+          <Button onClick={() => {
+            setSelectedDiscountId(null);
+            setIsModalOpen(true);
+          }}>
             <Plus className="w-4 h-4 mr-2" />
             Thêm Mới
           </Button>
@@ -305,9 +303,10 @@ export default function AdminDiscounts() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() =>
-                              navigate(`/admin/discounts/edit/${item.id}`)
-                            }
+                            onClick={() => {
+                              setSelectedDiscountId(item.id);
+                              setIsModalOpen(true);
+                            }}
                             title="Chỉnh sửa"
                           >
                             <Edit className="h-4 w-4" />
@@ -339,62 +338,26 @@ export default function AdminDiscounts() {
       </div>
 
       {/* PAGINATION */}
-      {!isLoading && totalPages > 1 && (
-        <div className="mt-6 flex items-center justify-between">
-          <div className="text-sm text-muted-foreground">
-            Trang {page} / {totalPages}
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page === 1}
-            >
-              <ChevronLeft className="h-4 w-4 mr-1" />
-              Trước
-            </Button>
-
-            <div className="flex gap-1">
-              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                let pageNum;
-                if (totalPages <= 5) {
-                  pageNum = i + 1;
-                } else if (page <= 3) {
-                  pageNum = i + 1;
-                } else if (page >= totalPages - 2) {
-                  pageNum = totalPages - 4 + i;
-                } else {
-                  pageNum = page - 2 + i;
-                }
-
-                return (
-                  <Button
-                    key={pageNum}
-                    variant={page === pageNum ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setPage(pageNum)}
-                    className="w-10 h-10 p-0"
-                  >
-                    {pageNum}
-                  </Button>
-                );
-              })}
-            </div>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              disabled={page === totalPages}
-            >
-              Sau
-              <ChevronRight className="h-4 w-4 ml-1" />
-            </Button>
-          </div>
-        </div>
+      {!isLoading && (
+        <PaginationControl
+          currentPage={page}
+          totalPages={totalPages}
+          onPageChange={setPage}
+          totalItems={totalItems}
+          itemsPerPage={PAGE_SIZE}
+          itemName="mã giảm giá"
+        />
       )}
+
+      <AdminDiscountModal
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false);
+          setSelectedDiscountId(null);
+        }}
+        discountId={selectedDiscountId}
+        onSuccess={() => fetchDiscounts(page, keyword, statusFilter)}
+      />
     </div>
   );
 }

@@ -64,24 +64,74 @@ class OrderController {
     });
   }
 
-  async cancel(req, res) {
-    const userId = req.user.id;
-    const orderId = Number(req.params.id);
-
-    const result = await OrderService.cancelOrderByUser(orderId, userId);
-
-    return res.json({
-      success: true,
-      data: result,
-      message: "Hủy đơn hàng thành công",
-    });
-  }
-
   async payosReturn(req, res, next) {
     try {
-      const { orderCode, payosId, status } = req.body;
-      const result = await OrderService.savePayosReturn({ orderCode, payosId, status });
+      const { orderCode, payosId, status, cancel } = req.body;
+      const result = await OrderService.savePayosReturn({ orderCode, payosId, status, cancel });
       return res.json({ success: true, data: result });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getAllOrders(req, res, next) {
+    try {
+      const {
+        page = 1,
+        limit = 20,
+        status = "all",
+        order_type = "all",
+        order_code = "",
+        start_date = "",
+        end_date = "",
+      } = req.query;
+
+      const result = await OrderService.getAllOrders({ 
+        page: parseInt(page), 
+        limit: parseInt(limit), 
+        status,
+        order_type,
+        order_code,
+        start_date,
+        end_date,
+      });
+
+      return res.json({
+        success: true,
+        data: result.orders,
+        pagination: result.pagination,
+        message: "Lấy danh sách đơn hàng toàn hệ thống thành công",
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getOrderDetailByStaff(req, res, next) {
+    try {
+      const orderId = Number(req.params.id);
+      const result = await OrderService.getOrderDetail(orderId);
+
+      return res.json({
+        success: true,
+        data: result,
+        message: "Lấy chi tiết đơn hàng (staff) thành công",
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async updateOrderItems(req, res, next) {
+    try {
+      const orderId = Number(req.params.id);
+      const { items } = req.body;
+      const result = await OrderService.updateOrderItems(orderId, items);
+      return res.json({
+        success: true,
+        data: result,
+        message: 'Cập nhật đơn hàng thành công',
+      });
     } catch (error) {
       next(error);
     }

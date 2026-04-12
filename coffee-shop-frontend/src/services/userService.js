@@ -21,6 +21,22 @@ const userService = {
     return await response.json();
   },
 
+  // Lấy danh sách nhân viên (staff + barista) - dùng cho gán ca
+  getStaff: async () => {
+    const token = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN) || sessionStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
+
+    const response = await fetch(`${API_URL}/users/staff`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    if (!response.ok) throw new Error('Failed to fetch staff');
+    return await response.json();
+  },
+
   createStaff: async (payload) => {
     const token = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN) || sessionStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
 

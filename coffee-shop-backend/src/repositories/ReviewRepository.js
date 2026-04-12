@@ -13,8 +13,12 @@ class ReviewRepository extends BaseRepository {
         r.product_id,
         r.rating,
         r.comment,
+        r.images,
         r.created_at,
         r.updated_at,
+        r.reply_comment,
+        r.reply_images,
+        r.replied_at,
         u.first_name,
         u.last_name
       FROM reviews r
@@ -37,6 +41,17 @@ class ReviewRepository extends BaseRepository {
     return rows[0] || null;
   }
 
+  async findById(id) {
+    const query = `
+      SELECT *
+      FROM reviews
+      WHERE id = ?
+      LIMIT 1
+    `;
+    const [rows] = await this.db.query(query, [id]);
+    return rows[0] || null;
+  }
+
   async hasPurchasedProduct(userId, productId) {
     const query = `
       SELECT od.id
@@ -53,31 +68,47 @@ class ReviewRepository extends BaseRepository {
     return rows.length > 0;
   }
 
-  async createReview(userId, productId, rating, comment) {
+  async createReview(userId, productId, rating, comment, images = []) {
     const query = `
-      INSERT INTO reviews (user_id, product_id, rating, comment)
-      VALUES (?, ?, ?, ?)
+      INSERT INTO reviews (user_id, product_id, rating, comment, images)
+      VALUES (?, ?, ?, ?, ?)
     `;
     const [result] = await this.db.query(query, [
       userId,
       productId,
       rating,
       comment || null,
+      JSON.stringify(images),
     ]);
     return result;
   }
 
-  async updateReview(userId, productId, rating, comment) {
+  async updateReview(userId, productId, rating, comment, images = []) {
     const query = `
       UPDATE reviews
-      SET rating = ?, comment = ?, updated_at = CURRENT_TIMESTAMP
+      SET rating = ?, comment = ?, images = ?, updated_at = CURRENT_TIMESTAMP
       WHERE user_id = ? AND product_id = ?
     `;
     const [result] = await this.db.query(query, [
       rating,
       comment || null,
+      JSON.stringify(images),
       userId,
       productId,
+    ]);
+    return result;
+  }
+
+  async replyReview(id, replyComment, replyImages = []) {
+    const query = `
+      UPDATE reviews
+      SET reply_comment = ?, reply_images = ?, replied_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `;
+    const [result] = await this.db.query(query, [
+      replyComment || null,
+      JSON.stringify(replyImages),
+      id,
     ]);
     return result;
   }
@@ -107,14 +138,20 @@ class ReviewRepository extends BaseRepository {
       r.product_id,
       r.rating,
       r.comment,
+      r.images,
       r.created_at,
       r.updated_at,
+      r.reply_comment,
+      r.reply_images,
+      r.replied_at,
       u.first_name,
       u.last_name,
-      p.name AS product_name
+      p.name AS product_name,
+      c.name AS category_name
     FROM reviews r
     INNER JOIN users u ON u.id = r.user_id
     INNER JOIN products p ON p.id = r.product_id
+    LEFT JOIN category c ON p.category_id = c.id
     WHERE 
       p.name LIKE ?
       OR CONCAT(COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, '')) LIKE ?
@@ -142,6 +179,28 @@ class ReviewRepository extends BaseRepository {
       limit: pageSize,
       totalPages: Math.ceil(total / pageSize) || 1,
     };
+  }
+  async getPublicReviews(limit = 9) {
+    const query = `
+      SELECT
+        r.id,
+        r.rating,
+        r.comment,
+        r.images,
+        r.created_at,
+        r.reply_comment,
+        r.reply_images,
+        r.replied_at,
+        u.first_name,
+        u.last_name
+      FROM reviews r
+      INNER JOIN users u ON u.id = r.user_id
+      ORDER BY r.rating DESC, r.created_at DESC
+      LIMIT ?
+    `;
+
+    const [rows] = await this.db.query(query, [limit]);
+    return rows;
   }
 }
 

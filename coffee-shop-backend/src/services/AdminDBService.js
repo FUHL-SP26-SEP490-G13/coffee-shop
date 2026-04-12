@@ -6,71 +6,51 @@ class AdminDBService {
     const ordersToday = await AdminDBRepository.getOrdersToday();
     const totalUsers = await AdminDBRepository.getTotalUsers();
     const activeDiscounts = await AdminDBRepository.getActiveDiscounts();
-    const totalNewsletterSubscribers =
-      await AdminDBRepository.getTotalNewsletterSubscribers();
-
-    // Bạn có thể thêm vài số “hữu dụng” cho dashboard
-    const revenueSeries7Days = await AdminDBRepository.getRevenueSeries({
-      days: 7,
-    });
-    const topProducts7Days = await AdminDBRepository.getTopProducts({
-      days: 7,
-      limit: 5,
-    });
 
     return {
       revenueToday,
       ordersToday,
       totalUsers,
       activeDiscounts,
-      totalNewsletterSubscribers,
-      revenueSeries7Days, // để FE vẽ chart khỏi gọi thêm endpoint cũng được
-      topProducts7Days, // để FE render top 5
     };
   }
 
-  async getRevenueSeries({ days }) {
-    return AdminDBRepository.getRevenueSeries({ days });
+  async getRevenueSeries({ startDate, endDate }) {
+    return AdminDBRepository.getRevenueSeries({ startDate, endDate });
   }
 
-  async getTopProducts({ days, limit }) {
-    return AdminDBRepository.getTopProducts({ days, limit });
-  }
-
-  async getPaymentMethodBreakdown({ days }) {
-    return AdminDBRepository.getPaymentMethodBreakdown({ days });
+  async getTopProducts({ startDate, endDate, limit }) {
+    return AdminDBRepository.getTopProducts({ startDate, endDate, limit });
   }
 
   // Optional: doanh thu theo loại đơn hàng (tại quán, mang về, giao hàng)
-  async getOrderTypeRevenue({ days }) {
-    return AdminDBRepository.getOrderTypeRevenue({ days });
+  async getOrderTypeRevenue({ startDate, endDate }) {
+    return AdminDBRepository.getOrderTypeRevenue({ startDate, endDate });
   }
 
-  // Optional: tóm tắt tình trạng bàn (occupied, available) để dashboard có thêm vài số liệu hữu ích, hợp DB vì có status trong bảng tables rồi, khỏi phải đoán dựa vào order hay gì đó
-  async getTableStatusSummary() {
-    return AdminDBRepository.getTableStatusSummary();
+  // Optional: so sánh doanh thu, số đơn hàng, khách hàng mới,... giữa 2 khoảng thời gian
+  async getComparison({ startDate, endDate, prevStartDate, prevEndDate }) {
+    return AdminDBRepository.getComparison({
+      startDate,
+      endDate,
+      prevStartDate,
+      prevEndDate,
+    });
   }
 
-  // Optional: so sánh doanh thu, số đơn hàng, khách hàng mới,... giữa 2 khoảng thời gian (ví dụ: tuần này vs tuần trước, tháng này vs tháng trước) để xem xu hướng tăng giảm
-  async getComparison({ days }) {
-    return AdminDBRepository.getComparison({ days });
+
+  async getPaymentMethodRevenue({ startDate, endDate }) {
+    return AdminDBRepository.getPaymentMethodRevenue({ startDate, endDate });
   }
 
-  // Optional: tóm tắt số lượng nhân viên theo vai trò (barista, phục vụ, quản lý) để dashboard có thêm vài số liệu hữu ích
-  async getStaffSummary() {
-    return AdminDBRepository.getStaffSummary();
+  async getOrdersSummary({ startDate, endDate }) {
+    return AdminDBRepository.getOrdersSummary({ startDate, endDate });
   }
 
-  // Optional: tóm tắt tình trạng bàn (occupied, available) để dashboard có thêm vài số liệu hữu ích, hợp DB vì có status trong bảng tables rồi, khỏi phải đoán dựa vào order hay gì đó
-  async getTableStatus() {
-    const result = await AdminDBRepository.getTableStatus();
-
-    return {
-      totalTables: result.totalTables,
-      occupied: result.occupied,
-      available: result.available,
-    };
+  async getDetailedOrdersReport({ startDate, endDate }) {
+    return AdminDBRepository.getDetailedOrdersReport({ startDate, endDate });
   }
+
 }
 
 module.exports = new AdminDBService();

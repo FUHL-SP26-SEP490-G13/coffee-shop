@@ -7,6 +7,10 @@ const validate = require('../middlewares/validate');
 const upload = require('../middlewares/upload');
 const parseJsonFields = require('../middlewares/parseJsonFields');
 const asyncMiddleware = require('../middlewares/async.middleware')
+const { ROLES_STRING } = require('../config/constants');
+
+const MANAGER_ONLY = [ROLES_STRING.MANAGER];
+const ALL_STAFF = [ROLES_STRING.MANAGER, ROLES_STRING.STAFF, ROLES_STRING.BARISTA];
 
 const {
   createProductSchema,
@@ -289,7 +293,7 @@ router.get('/search', validate(searchProductSchema, 'query'), ProductController.
 router.get('/category/:categoryId', ProductController.getByCategory);
 
 // Get sizes by product ID
-router.get('/:id/sizes', validate(productIdSchema, 'params'), ProductController.getSizesByProductId);
+// router.get('/:id/sizes', validate(productIdSchema, 'params'), ProductController.getSizesByProductId);
 
 router.get("/best-sellers", ProductController.getBestSellers);
 
@@ -300,8 +304,8 @@ router.get('/:id', validate(productIdSchema, 'params'), ProductController.getByI
 // Create new product
 router.post(
   '/',
-  // authenticate,
-  // authorize(['manager']),
+  authenticate,
+  authorize(MANAGER_ONLY),
   upload.array('images', 5), // Max 5 images
   validate(createProductSchema),
   ProductController.create
@@ -310,11 +314,11 @@ router.post(
 // Update product
 router.put(
   '/:id',
-  // authenticate,
-  // authorize(['manager']),
+  authenticate,
+  authorize(MANAGER_ONLY),
   validate(productIdSchema, 'params'),
   upload.array('images', 5), // Max 5 images
-  parseJsonFields(['sizes', 'deleteSizeIds', 'deleteImageIds']), 
+  parseJsonFields(['sizes', 'deleteSizeIds', 'deleteImageIds']),
   validate(updateProductSchema),
   ProductController.update
 );
@@ -322,8 +326,8 @@ router.put(
 // Delete product
 router.delete(
   '/:id',
-  // authenticate,
-  // authorize(['manager']),
+  authenticate,
+  authorize(MANAGER_ONLY),
   validate(productIdSchema, 'params'),
   ProductController.delete
 );

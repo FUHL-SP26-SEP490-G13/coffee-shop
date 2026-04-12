@@ -38,6 +38,18 @@ const orderService = {
   savePayosReturn(data) {
     return axiosClient.post(API_ENDPOINTS.ORDERSLIST.PAYOS_RETURN, data);
   },
+
+  getAllOrders(params) {
+    return axiosClient.get(API_ENDPOINTS.ORDERSLIST.ADMIN_LIST, { params });
+  },
+
+  getOrderDetailForStaff(id) {
+    return axiosClient.get(`/orders/${id}`);
+  },
+
+  updateOrderItems(orderId, items) {
+    return axiosClient.put(`/orders/${orderId}/items`, { items });
+  },
 };
 
 export default orderService;

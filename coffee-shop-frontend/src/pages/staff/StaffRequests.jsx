@@ -1,213 +1,246 @@
-import { useState } from 'react';
-import { Plus, Calendar, Clock, CheckCircle, XCircle, AlertCircle, FileText } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
-import { Button } from '../../components/ui/button';
-import { Badge } from '../../components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../../components/ui/dialog';
-import { Label } from '../../components/ui/label';
-import { Input } from '../../components/ui/input';
-import { Textarea } from '../../components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
-import { requests } from '../../lib/mockData';
-import { toast, Toaster } from 'sonner'
+import { useState, useEffect, useCallback } from 'react';
+import { Plus, Loader2, RefreshCw, Send, Inbox, ChevronLeft, ChevronRight } from 'lucide-react';
+import { toast } from 'sonner';
+import swapRequestService from '../../services/swapRequestService';
+import authenticationService from '../../services/authenticationService';
+import { SwapRequestCard } from './SwapRequest/SwapRequestCard';
+import { CreateSwapDialog } from './SwapRequest/CreateSwapDialog';
 
+const PAGE_SIZE = 5;
 
+// ─── Pagination Controls ──────────────────────────────────────────────────────
+function Pagination({ page, totalPages, onChange }) {
+  if (totalPages <= 1) return null;
+
+  const pages = Array.from({ length: totalPages }, (_, i) => i + 1);
+  const showEllipsis = totalPages > 7;
+
+  const visiblePages = showEllipsis
+    ? pages.filter((p) => p === 1 || p === totalPages || Math.abs(p - page) <= 1)
+    : pages;
+
+  return (
+    <div className="flex items-center justify-center gap-1 pt-2">
+      <button
+        onClick={() => onChange(page - 1)}
+        disabled={page === 1}
+        className="p-1.5 rounded-lg border text-muted-foreground hover:bg-muted transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+      >
+        <ChevronLeft className="w-4 h-4" />
+      </button>
+
+      {visiblePages.map((p, i) => {
+        const prev = visiblePages[i - 1];
+        return (
+          <div key={p} className="flex items-center gap-1">
+            {showEllipsis && prev && p - prev > 1 && (
+              <span className="px-1 text-xs text-muted-foreground">…</span>
+            )}
+            <button
+              onClick={() => onChange(p)}
+              className={`min-w-[32px] h-8 px-2 rounded-lg text-sm font-medium transition-all
+                ${p === page
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'border text-muted-foreground hover:bg-muted hover:text-foreground'}`}
+            >
+              {p}
+            </button>
+          </div>
+        );
+      })}
+
+      <button
+        onClick={() => onChange(page + 1)}
+        disabled={page === totalPages}
+        className="p-1.5 rounded-lg border text-muted-foreground hover:bg-muted transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+      >
+        <ChevronRight className="w-4 h-4" />
+      </button>
+    </div>
+  );
+}
+
+// ─── Main Page ────────────────────────────────────────────────────────────────
 export function StaffRequests() {
-  const [requestList, setRequestList] = useState(requests);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [requestType, setRequestType] = useState('leave');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [reason, setReason] = useState('');
+  const [tab, setTab] = useState('received');
+  const [page, setPage] = useState(1);
+  const [requests, setRequests] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [showCreate, setShowCreate] = useState(false);
+  const [myUserId, setMyUserId] = useState(null);
 
-  const handleSubmitRequest = () => {
-    if (!startDate || !endDate || !reason) {
-      toast.error('Please fill all fields');
-      return;
+  useEffect(() => {
+    authenticationService.getProfile()
+      .then((res) => {
+        const user = res?.data?.id ? res.data : res?.data?.data || null;
+        if (user?.id) setMyUserId(user.id);
+      })
+      .catch(() => { });
+  }, []);
+
+  const fetchRequests = useCallback(async () => {
+    try {
+      setLoading(true);
+      const res = await swapRequestService.getMySwapRequests();
+      setRequests(res?.data?.data || res?.data || []);
+    } catch {
+      toast.error('Không thể tải danh sách yêu cầu');
+    } finally {
+      setLoading(false);
     }
+  }, []);
 
-    const newRequest = {
-      id: `req-${Date.now()}`,
-      staffId: '2', // Current staff ID
-      type: requestType,
-      startDate,
-      endDate,
-      reason,
-      status: 'pending',
-      createdAt: new Date().toISOString(),
-    };
+  useEffect(() => { fetchRequests(); }, [fetchRequests]);
 
-    setRequestList([newRequest, ...requestList]);
-    setIsDialogOpen(false);
-    setStartDate('');
-    setEndDate('');
-    setReason('');
-    toast.success('Request submitted successfully');
+  // Reset về trang 1 khi đổi tab
+  const handleTabChange = (newTab) => {
+    setTab(newTab);
+    setPage(1);
   };
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'pending':
-        return 'outline';
-      case 'approved':
-        return 'secondary';
-      case 'rejected':
-        return 'destructive';
-      default:
-        return 'default';
-    }
-  };
+  const filtered = requests
+    .filter((r) => {
+      if (tab === 'received' && r.receiver.id !== myUserId) return false;
+      if (tab === 'sent' && r.requester.id !== myUserId) return false;
+      return true;
+    })
+    .sort((a, b) => {
+      if (a.status === 'pending' && b.status !== 'pending') return -1;
+      if (a.status !== 'pending' && b.status === 'pending') return 1;
+      return new Date(b.created_at) - new Date(a.created_at);
+    });
 
-  const getStatusClassName = (status) => {
-    switch (status) {
-      case 'pending':
-        return 'bg-yellow-500/10 text-yellow-700 border-transparent';
-      case 'approved':
-        return 'bg-green-500/10 text-green-700 border-transparent';
-      case 'rejected':
-        return '';
-      default:
-        return '';
-    }
-  };
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  const getStatusIcon = (status) => {
-    switch (status) {
-      case 'pending':
-        return <AlertCircle className="w-4 h-4" />;
-      case 'approved':
-        return <CheckCircle className="w-4 h-4" />;
-      case 'rejected':
-        return <XCircle className="w-4 h-4" />;
-      default:
-        return null;
+  const sentCount = requests.filter((r) => r.requester.id === myUserId).length;
+  const pendingReceivedCount = requests.filter((r) => r.receiver.id === myUserId && r.status === 'pending').length;
+
+  const handleAction = async (id, action) => {
+    try {
+      setActionLoading(true);
+      if (action === 'accept') await swapRequestService.acceptSwapRequest(id);
+      else if (action === 'reject') await swapRequestService.rejectSwapRequest(id);
+      else if (action === 'cancel') await swapRequestService.cancelSwapRequest(id);
+      toast.success({ accept: 'Đã chấp nhận đổi ca', reject: 'Đã từ chối', cancel: 'Đã hủy yêu cầu' }[action]);
+      fetchRequests();
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'Thao tác thất bại');
+    } finally {
+      setActionLoading(false);
     }
   };
 
   return (
-    <div className="p-8">
-      <div className="flex items-center justify-between mb-6">
+    <div className="p-4 sm:p-6 lg:p-8 space-y-6">
+      {/* Header */}
+      <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-3xl font-semibold">Requests</h1>
-          <p className="text-muted-foreground mt-1">Manage your leave and overtime requests</p>
+          <h1 className="text-xl font-bold tracking-tight">Đổi ca</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">Quản lý yêu cầu đổi / nhường ca làm việc</p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="w-4 h-4 mr-2" />
-              New Request
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[500px]">
-            <DialogHeader>
-              <DialogTitle>Submit New Request</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 mt-4">
-              <div>
-                <Label htmlFor="type">Request Type</Label>
-                <Select value={requestType} onValueChange={(value) => setRequestType(value)}>
-                  <SelectTrigger id="type">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="leave">Leave Request</SelectItem>
-                    <SelectItem value="overtime">Overtime Request</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="startDate">Start Date</Label>
-                <Input
-                  id="startDate"
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                />
-              </div>
-              <div>
-                <Label htmlFor="endDate">End Date</Label>
-                <Input
-                  id="endDate"
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                />
-              </div>
-              <div>
-                <Label htmlFor="reason">Reason</Label>
-                <Textarea
-                  id="reason"
-                  placeholder="Please provide a reason for your request"
-                  value={reason}
-                  onChange={(e) => setReason(e.target.value)}
-                  rows={4}
-                />
-              </div>
-              <Button onClick={handleSubmitRequest} className="w-full">
-                Submit Request
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+        <div className="flex gap-2">
+          <button
+            onClick={fetchRequests}
+            disabled={loading}
+            className="p-2.5 rounded-xl border hover:bg-secondary transition-colors disabled:opacity-50"
+            title="Tải lại"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          </button>
+          <button
+            onClick={() => setShowCreate(true)}
+            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-all shadow-sm"
+          >
+            <Plus className="w-4 h-4" />
+            Tạo yêu cầu
+          </button>
+        </div>
       </div>
 
-      <div className="space-y-4">
-        {requestList.map((request) => (
-          <Card key={request.id}>
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                    {request.type === 'leave' ? (
-                      <Calendar className="w-5 h-5 text-primary" />
-                    ) : (
-                      <Clock className="w-5 h-5 text-primary" />
-                    )}
-                  </div>
-                  <div>
-                    <CardTitle className="text-lg capitalize">{request.type} Request</CardTitle>
-                    <p className="text-sm text-muted-foreground">
-                      {new Date(request.startDate).toLocaleDateString()} -{' '}
-                      {new Date(request.endDate).toLocaleDateString()}
-                    </p>
-                  </div>
-                </div>
-                <Badge variant={getStatusColor(request.status)} className={`flex items-center gap-1 ${getStatusClassName(request.status)}`}>
-                  {getStatusIcon(request.status)}
-                  {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <div>
-                  <p className="text-sm font-medium">Reason:</p>
-                  <p className="text-sm text-muted-foreground">{request.reason}</p>
-                </div>
-                <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                  <span>Submitted: {new Date(request.createdAt).toLocaleDateString()}</span>
-                  {request.approvedAt && (
-                    <span>
-                      {request.status === 'approved' ? 'Approved' : 'Rejected'}:{' '}
-                      {new Date(request.approvedAt).toLocaleDateString()}
-                    </span>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-
-        {requestList.length === 0 && (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12">
-              <FileText className="w-12 h-12 text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">No requests yet</p>
-              <p className="text-sm text-muted-foreground mt-1">Submit your first request to get started</p>
-            </CardContent>
-          </Card>
-        )}
+      {/* Tabs */}
+      <div className="flex gap-1 p-1 bg-muted rounded-xl w-fit">
+        <button
+          onClick={() => handleTabChange('received')}
+          className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all
+            ${tab === 'received' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+        >
+          <Inbox className="w-4 h-4" />
+          Nhận được
+          {pendingReceivedCount > 0 && (
+            <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center animate-pulse">
+              {pendingReceivedCount}
+            </span>
+          )}
+        </button>
+        <button
+          onClick={() => handleTabChange('sent')}
+          className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all
+            ${tab === 'sent' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+        >
+          <Send className="w-4 h-4" />
+          Đã gửi
+          {sentCount > 0 && <span className="text-xs text-muted-foreground">({sentCount})</span>}
+        </button>
       </div>
+
+      {/* List */}
+      {loading ? (
+        <div className="flex justify-center py-16">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+          <div className="w-16 h-16 rounded-2xl bg-muted/50 flex items-center justify-center mb-4">
+            {tab === 'received' ? <Inbox className="w-8 h-8 opacity-30" /> : <Send className="w-8 h-8 opacity-30" />}
+          </div>
+          <p className="font-semibold text-foreground/70">Chưa có yêu cầu nào</p>
+          <p className="text-sm mt-1 text-center max-w-xs">
+            {tab === 'received'
+              ? 'Khi đồng nghiệp muốn đổi / nhường ca cho bạn, yêu cầu sẽ hiện ở đây'
+              : 'Nhấn nút "Tạo yêu cầu" để bắt đầu đổi ca với đồng nghiệp'}
+          </p>
+          {tab === 'sent' && (
+            <button
+              onClick={() => setShowCreate(true)}
+              className="mt-4 flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-all"
+            >
+              <Plus className="w-4 h-4" />
+              Tạo yêu cầu đổi ca
+            </button>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {/* Info row */}
+          <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
+            <span>{filtered.length} yêu cầu</span>
+            {totalPages > 1 && <span>Trang {page}/{totalPages}</span>}
+          </div>
+
+          {/* Cards */}
+          {paginated.map((r) => (
+            <SwapRequestCard
+              key={r.id}
+              req={r}
+              myUserId={myUserId}
+              onAction={handleAction}
+              actionLoading={actionLoading}
+            />
+          ))}
+
+          {/* Pagination */}
+          <Pagination page={page} totalPages={totalPages} onChange={setPage} />
+        </div>
+      )}
+
+      <CreateSwapDialog
+        open={showCreate}
+        onClose={() => setShowCreate(false)}
+        onCreated={fetchRequests}
+        myUserId={myUserId}
+      />
     </div>
   );
 }

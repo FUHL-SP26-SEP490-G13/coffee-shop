@@ -4,6 +4,7 @@ const cloudinary = require("../config/cloudinary");
 const ErrorResponse = require("../utils/ErrorResponse");
 
 class ProductController {
+  
   async getSizesByProductId(req, res, next) {
     try {
       const { id } = req.params;
@@ -20,8 +21,8 @@ class ProductController {
   async getAll(req, res, next) {
     try {
       const page = parseInt(req.query.page) || 1;
-      const limit = parseInt(req.query.limit) || 8;
-      const { status, sort, category_id } = req.query;
+      const limit = parseInt(req.query.limit) || 12;
+      const { status, sort, category_id, min_price, max_price, size, min_rating } = req.query;
 
       if (page <= 0 || limit <= 0) {
         throw new ErrorResponse(400, "page và limit phải lớn hơn 0");
@@ -35,11 +36,19 @@ class ProductController {
         status,
         sort,
         category_id,
+        min_price,
+        max_price,
+        size,
+        min_rating,
       });
 
       const total = await ProductService.countProducts({
         status,
         category_id,
+        min_price,
+        max_price,
+        size,
+        min_rating,
       });
 
       return response.paginate(
@@ -74,7 +83,7 @@ class ProductController {
   async getByCategory(req, res, next) {
     try {
       const { categoryId } = req.params;
-      const { page, limit, sort, status } = req.query;
+      const { page, limit, sort, status, min_price, max_price, size, min_rating } = req.query;
 
       if (page && limit) {
         const offset = (page - 1) * limit;
@@ -86,11 +95,19 @@ class ProductController {
             offset: parseInt(offset),
             sort,
             status,
+            min_price,
+            max_price,
+            size,
+            min_rating,
           }
         );
 
         const total = await ProductService.countProductsByCategory(categoryId, {
           status,
+          min_price,
+          max_price,
+          size,
+          min_rating,
         });
 
         return response.paginate(
@@ -106,6 +123,10 @@ class ProductController {
       const products = await ProductService.getProductsByCategory(categoryId, {
         sort,
         status,
+        min_price,
+        max_price,
+        size,
+        min_rating,
       });
 
       return response.success(
@@ -247,7 +268,7 @@ class ProductController {
 
   async search(req, res, next) {
     try {
-      const { keyword, limit, page, category_id, status, sort } = req.query;
+      const { keyword, limit, page, category_id, status, sort, min_price, max_price, size, min_rating } = req.query;
 
       if (page && limit) {
         const offset = (page - 1) * limit;
@@ -258,11 +279,19 @@ class ProductController {
           category_id,
           status,
           sort,
+          min_price,
+          max_price,
+          size,
+          min_rating,
         });
 
         const total = await ProductService.countSearchResults(keyword, {
           category_id,
           status,
+          min_price,
+          max_price,
+          size,
+          min_rating,
         });
 
         return response.paginate(
@@ -280,6 +309,10 @@ class ProductController {
         category_id,
         status,
         sort,
+        min_price,
+        max_price,
+        size,
+        min_rating,
       });
 
       return response.success(res, products, "Tìm kiếm products thành công");

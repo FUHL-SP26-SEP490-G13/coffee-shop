@@ -2,8 +2,10 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { cartService } from "@/services/cartService";
-import orderService from "@/services/orderService";
+import orderService from "@/services/orderOnlineService";
 import { validateOrderForm } from "@/utils/orderValidation";
+
+
 
 /**
  * Nút đặt hàng tái sử dụng cho cả trang Checkout (khách) lẫn Staff.
@@ -27,6 +29,8 @@ export default function PlaceOrderButton({
   backPath = "/cart",
   backLabel = "← Quay lại giỏ hàng",
   label = "Đặt hàng",
+  shippingFee = 0,
+  disabled = false,
 }) {
   const navigate = useNavigate();
   const [submitting, setSubmitting] = useState(false);
@@ -50,6 +54,7 @@ export default function PlaceOrderButton({
         address: form.address.trim(),
         note: form.note.trim(),
         discount_code: (form.discount_code || "").trim(),
+        used_points: Math.max(0, Number(form.used_points) || 0),
         items: cart.map((item) => ({
           product_size_id: item.productSizeId || item.product_size_id,
           quantity: Number(item.quantity),
@@ -61,6 +66,11 @@ export default function PlaceOrderButton({
             : [],
         })),
       };
+
+      if (form.order_type === "delivery") {
+        payload.province_id = Number(form.province_id);
+        payload.ward_id = Number(form.ward_id);
+      }
 
       console.log("Checkout payload:", payload);
 
@@ -103,9 +113,22 @@ export default function PlaceOrderButton({
           );
         });
 
+        if (form.order_type === "delivery" && shippingFee > 0) {
+          payosItems.push({
+            name: "Phí vận chuyển",
+            quantity: 1,
+            price: shippingFee,
+          });
+        }
+
+        const amountFromCheckout = Number(orderData?.total_amount || 0);
+
         const payosRes = await orderService.createPaymentLink({
           orderCode: order_id,
-          amount: Math.max(0, Math.round(totalAmount)),
+          amount: Math.max(
+            0,
+            Math.round(amountFromCheckout > 0 ? amountFromCheckout : totalAmount),
+          ),
           description: `DH #${order_id}`.slice(0, 25),
           items: payosItems,
         });
@@ -139,7 +162,7 @@ export default function PlaceOrderButton({
       <Button
         className="w-full mb-3"
         onClick={handleSubmit}
-        disabled={submitting}
+        disabled={submitting || disabled}
       >
         {submitting ? "Đang xử lý..." : label}
       </Button>

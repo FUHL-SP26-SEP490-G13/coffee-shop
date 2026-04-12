@@ -9,6 +9,8 @@ const {
   validateDiscountSchema,
 } = require("../validators/orderValidator");
 const { optionalAuth, authenticate } = require("../middlewares/auth");
+const { authorize } = require("../middlewares/authorize");
+const { ROLES_STRING } = require("../config/constants");
 
 /**
  * @swagger
@@ -247,16 +249,32 @@ router.get(
   AsyncMiddleware(OrderController.getMyOrderDetail)
 );
 
-router.put(
-  "/:id/cancel",
+router.get(
+  "/admin/list",
   authenticate,
-  AsyncMiddleware(OrderController.cancel)
+  authorize([ROLES_STRING.MANAGER]),
+  AsyncMiddleware(OrderController.getAllOrders)
+);
+
+router.get(
+  "/:id",
+  authenticate,
+  authorize([ROLES_STRING.STAFF, ROLES_STRING.MANAGER]),
+  AsyncMiddleware(OrderController.getOrderDetailByStaff)
 );
 
 // Nhận callback từ frontend sau khi PayOS redirect, lưu mã giao dịch vào DB
 router.post(
   "/payos-return",
   AsyncMiddleware(OrderController.payosReturn)
+);
+
+// Cập nhật món trong đơn thanh toán sau (pay-later)
+router.put(
+  "/:id/items",
+  authenticate,
+  authorize([ROLES_STRING.STAFF, ROLES_STRING.MANAGER]),
+  AsyncMiddleware(OrderController.updateOrderItems)
 );
 
 module.exports = router;

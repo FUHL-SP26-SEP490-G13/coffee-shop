@@ -1,7 +1,7 @@
 export const ORDER_RULES = {
   RECEIVER_NAME_MIN: 2,
   RECEIVER_NAME_MAX: 100,
-  PHONE_REGEX: /^[0-9]{10}$/,
+  PHONE_REGEX: /^(0\d{9}|(?:\+84|84)\d{9})$/,
   EMAIL_REGEX: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
   ADDRESS_MAX: 255,
   NOTE_MAX: 500,
@@ -26,7 +26,7 @@ export const validateOrderField = (name, value) => {
       const v = value?.trim() || "";
       if (!v) return "Số điện thoại không được để trống";
       if (!ORDER_RULES.PHONE_REGEX.test(v)) {
-        return "Số điện thoại phải gồm đúng 10 chữ số";
+        return "Số điện thoại phải gồm đúng 10 chữ số và có thể bắt đầu bằng 0 hoặc +84";
       }
       return "";
     }
@@ -64,6 +64,22 @@ export const validateOrderField = (name, value) => {
       return "";
     }
 
+    case "province_id": {
+      const v = Number(value);
+      if (!Number.isInteger(v) || v <= 0) {
+        return "Vui lòng chọn Tỉnh/Thành";
+      }
+      return "";
+    }
+
+    case "ward_id": {
+      const v = Number(value);
+      if (!Number.isInteger(v) || v <= 0) {
+        return "Vui lòng chọn Xã/Phường";
+      }
+      return "";
+    }
+
     default:
       return "";
   }
@@ -81,8 +97,21 @@ export const validateOrderForm = (form) => {
   const emailError = validateOrderField("receiver_email", form.receiver_email);
   if (emailError) errors.receiver_email = emailError;
 
-  const addressError = validateOrderField("address", form.address);
-  if (addressError) errors.address = addressError;
+  const normalizedAddress = form.address?.trim() || "";
+  if (form.order_type === "delivery" && !normalizedAddress) {
+    errors.address = "Địa chỉ không được để trống";
+  } else {
+    const addressError = validateOrderField("address", form.address);
+    if (addressError) errors.address = addressError;
+  }
+
+  if (form.order_type === "delivery") {
+    const provinceError = validateOrderField("province_id", form.province_id);
+    if (provinceError) errors.province_id = provinceError;
+
+    const wardError = validateOrderField("ward_id", form.ward_id);
+    if (wardError) errors.ward_id = wardError;
+  }
 
   const noteError = validateOrderField("note", form.note);
   if (noteError) errors.note = noteError;

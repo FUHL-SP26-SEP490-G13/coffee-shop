@@ -5,7 +5,7 @@ const ErrorResponse = require("../utils/ErrorResponse");
 
 class NewsService {
   async generateUniqueSlug(title) {
-    const baseSlug = slugify(title, { lower: true, strict: true });
+    const baseSlug = slugify(title.replace(/đ/g, 'd').replace(/Đ/g, 'D'), { lower: true, strict: true, locale: 'vi' });
     let slug = baseSlug;
     let count = 1;
 

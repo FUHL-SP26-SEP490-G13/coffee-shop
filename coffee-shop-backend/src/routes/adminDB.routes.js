@@ -204,14 +204,6 @@ router.get(
   AdminDBController.getTopProducts
 );
 
-// /api/dashboard/payment-method?days=7
-router.get(
-  "/payment-method",
-  authenticate,
-  authorize([ROLES_STRING.MANAGER]),
-  AdminDBController.getPaymentMethodBreakdown
-);
-
 // /api/dashboard/order-type?days=7 doanh thu theo loại đơn hàng (tại quán, mang về, giao hàng)
 router.get(
   "/order-type",
@@ -228,13 +220,27 @@ router.get(
   AdminDBController.getComparison
 );
 
-// Optional: tóm tắt số lượng nhân viên theo vai trò (barista, phục vụ, quản lý) để dashboard có thêm vài số liệu hữu ích
+// /api/dashboard/payment-method
 router.get(
-  "/staff-summary",
+  "/payment-method",
   authenticate,
   authorize([ROLES_STRING.MANAGER]),
-  AdminDBController.getStaffSummary
+  AdminDBController.getPaymentMethodRevenue
 );
 
-router.get("/table-status", authenticate, authorize([ROLES_STRING.MANAGER]), AdminDBController.getTableStatus);
+// /api/dashboard/orders-summary
+router.get(
+  "/orders-summary",
+  authenticate,
+  authorize([ROLES_STRING.MANAGER]),
+  AdminDBController.getOrdersSummary
+);
+
+router.get(
+  "/detailed-report",
+  authenticate,
+  authorize([ROLES_STRING.MANAGER]),
+  AdminDBController.getDetailedOrdersReport
+);
+
 module.exports = router;

@@ -45,7 +45,7 @@ describe('UserService - Staff Management', () => {
     };
 
     // TC-1: Create staff successfully
-    it('UserService - CREATE_STAFF - TC-1: should create staff user successfully', async () => {
+    it('UserService - createStaffUser - TC-01: should create staff user successfully', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('UserService - CREATE_STAFF - TC-1: Tạo nhân viên thành công');
       console.log('='.repeat(50));
@@ -126,7 +126,7 @@ describe('UserService - Staff Management', () => {
     });
 
     // TC-2: Create barista successfully
-    it('UserService - CREATE_STAFF - TC-2: should create barista user successfully', async () => {
+    it('UserService - createStaffUser - TC-02: should create barista user successfully', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('UserService - CREATE_STAFF - TC-2: Tạo pha chế viên thành công');
       console.log('='.repeat(50));
@@ -191,7 +191,7 @@ describe('UserService - Staff Management', () => {
     });
 
     // TC-3: Email already exists
-    it('UserService - CREATE_STAFF - TC-3: should throw error when email already exists', async () => {
+    it('UserService - createStaffUser - TC-03: should throw error when email already exists', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('UserService - CREATE_STAFF - TC-3: Lỗi khi email đã tồn tại');
       console.log('='.repeat(50));
@@ -219,7 +219,7 @@ describe('UserService - Staff Management', () => {
     });
 
     // TC-4: Phone already exists
-    it('UserService - CREATE_STAFF - TC-4: should throw error when phone already exists', async () => {
+    it('UserService - createStaffUser - TC-04: should throw error when phone already exists', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('UserService - CREATE_STAFF - TC-4: Lỗi khi số điện thoại đã tồn tại');
       console.log('='.repeat(50));
@@ -248,7 +248,7 @@ describe('UserService - Staff Management', () => {
     });
 
     // TC-5: Username already exists
-    it('UserService - CREATE_STAFF - TC-5: should throw error when username already exists', async () => {
+    it('UserService - createStaffUser - TC-05: should throw error when username already exists', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('UserService - CREATE_STAFF - TC-5: Lỗi khi username đã tồn tại');
       console.log('='.repeat(50));
@@ -278,7 +278,7 @@ describe('UserService - Staff Management', () => {
     });
 
     // TC-6: Invalid role
-    it('UserService - CREATE_STAFF - TC-6: should throw error when role is invalid', async () => {
+    it('UserService - createStaffUser - TC-06: should throw error when role is invalid', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('UserService - CREATE_STAFF - TC-6: Lỗi khi role không hợp lệ');
       console.log('='.repeat(50));
@@ -302,7 +302,7 @@ describe('UserService - Staff Management', () => {
     });
 
     // TC-7: Email service fails but user is created
-    it('UserService - CREATE_STAFF - TC-7: should create user even if email sending fails', async () => {
+    it('UserService - createStaffUser - TC-07: should create user even if email sending fails', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('UserService - CREATE_STAFF - TC-7: Tạo nhân viên thành công dù gửi email thất bại');
       console.log('='.repeat(50));
@@ -351,7 +351,7 @@ describe('UserService - Staff Management', () => {
   // ========== GET ALL STAFF TESTS ==========
   describe('getAllStaff', () => {
     // TC-1: Get all staff without pagination
-    it('UserService - GET_ALL_STAFF - TC-1: should get all staff and barista users', async () => {
+    it('UserService - getAllStaff - TC-01: should get all staff and barista users', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('UserService - GET_ALL_STAFF - TC-1: Lấy tất cả nhân viên');
       console.log('='.repeat(50));
@@ -381,7 +381,7 @@ describe('UserService - Staff Management', () => {
     });
 
     // TC-2: Get staff with pagination
-    it('UserService - GET_ALL_STAFF - TC-2: should get staff with pagination options', async () => {
+    it('UserService - getAllStaff - TC-02: should get staff with pagination options', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('UserService - GET_ALL_STAFF - TC-2: Lấy nhân viên với phân trang');
       console.log('='.repeat(50));
@@ -416,7 +416,7 @@ describe('UserService - Staff Management', () => {
   // ========== GET USERS BY ROLE TESTS ==========
   describe('getUsersByRole', () => {
     // TC-1: Get staff by role
-    it('UserService - GET_USERS_BY_ROLE - TC-1: should get all staff users by role', async () => {
+    it('UserService - getUsersByRole - TC-01: should get all staff users by role', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('UserService - GET_USERS_BY_ROLE - TC-1: Lấy tất cả nhân viên theo role');
       console.log('='.repeat(50));
@@ -445,7 +445,7 @@ describe('UserService - Staff Management', () => {
     });
 
     // TC-2: Get barista by role with options
-    it('UserService - GET_USERS_BY_ROLE - TC-2: should get barista with pagination', async () => {
+    it('UserService - getUsersByRole - TC-02: should get barista with pagination', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('UserService - GET_USERS_BY_ROLE - TC-2: Lấy pha chế viên với phân trang');
       console.log('='.repeat(50));
@@ -478,7 +478,7 @@ describe('UserService - Staff Management', () => {
   // ========== SEARCH USERS TESTS ==========
   describe('searchUsers', () => {
     // TC-1: Search staff by keyword
-    it('UserService - SEARCH_USERS - TC-1: should search staff by keyword', async () => {
+    it('UserService - searchUsers - TC-01: should search staff by keyword', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('UserService - SEARCH_USERS - TC-1: Tìm kiếm nhân viên theo từ khóa');
       console.log('='.repeat(50));
@@ -510,7 +510,7 @@ describe('UserService - Staff Management', () => {
     });
 
     // TC-2: Search with empty keyword
-    it('UserService - SEARCH_USERS - TC-2: should return all users when keyword is empty', async () => {
+    it('UserService - searchUsers - TC-02: should return all users when keyword is empty', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('UserService - SEARCH_USERS - TC-2: Trả về tất cả user khi keyword trống');
       console.log('='.repeat(50));
@@ -536,7 +536,7 @@ describe('UserService - Staff Management', () => {
     });
 
     // TC-3: Search with options
-    it('UserService - SEARCH_USERS - TC-3: should search with pagination options', async () => {
+    it('UserService - searchUsers - TC-03: should search with pagination options', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('UserService - SEARCH_USERS - TC-3: Tìm kiếm với phân trang');
       console.log('='.repeat(50));

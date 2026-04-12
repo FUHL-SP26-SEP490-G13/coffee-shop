@@ -7,28 +7,61 @@ const categoryRoutes = require("./category.routes");
 const discountRoutes = require("./discount.routes");
 const productRoutes = require("./product.routes");
 const newsRoutes = require("./news.routes");
-const subscriberRoutes = require("./subscriber.routes");
 const userRoutes = require("./user.routes");
 const bannerRoutes = require("./banner.routes");
 const { publicToppingRoutes, adminToppingRoutes } = require("./topping.routes");
 const recipeRoutes = require("./recipe.routes");
 const adminDBRoutes = require("./adminDB.routes");
 const baristaDBRoutes = require("./baristaDB.routes");
+const staffDBRoutes = require("./staffDBRoutes");
 const areaRoutes = require("./area.routes");
 const tableRoutes = require("./table.routes");
 const notificationRoutes = require("./notification.routes");
 const ingredientRoutes = require("./ingredient.routes");
 const productSizeRoutes = require("./productSize.routes");
+const orderOnlineRoutes = require("./orderOnline.routes");
+const reputationRoutes = require("./reputation.routes");
 const orderRoutes = require("./order.routes");
-const favoriteRoutes = require("./favorite.routes");
 const reviewRoutes = require("./review.routes");
+const receiptSettingRoutes = require("./receiptSetting.routes");
+const takeawayRoutes = require("./takeaway.routes");
+const flashSaleRoutes = require('./flashSale.routes');
+const qrOrderRoutes = require('./qrOrder.routes');
+const shiftRoutes = require('./shift.routes');
+const swapRequestRoutes = require('./swapRequest.routes');
+const loyaltyRoutes = require('./loyalty.routes');
+const cashSessionRoutes = require('./cashSession.routes');
+const aiRoutes = require('./ai.routes');
 
+const cartRoutes = require('./cart.routes');
+const deliveryAreaRoutes = require('./deliveryArea.routes');
+
+const CategoryRepository = require('../repositories/CategoryRepository');
+const ProductRepository = require('../repositories/ProductRepository');
+
+router.get('/public/slugs/:slug', async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const category = await CategoryRepository.findBySlug(slug);
+    if (category) {
+      return res.json({ success: true, type: 'category', data: category });
+    }
+
+    const product = await ProductRepository.findBySlugWithDetails(slug);
+    if (product) {
+      return res.json({ success: true, type: 'product', data: product });
+    }
+
+    return res.status(404).json({ success: false, message: 'Không tìm thấy' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Lỗi server' });
+  }
+});
 // Mount routes
 router.use("/auth", authRoutes);
 router.use("/categories", categoryRoutes);
 router.use("/users", userRoutes);
 router.use("/products", productRoutes);
-router.use("/subscriber", subscriberRoutes);
 router.use("/news", newsRoutes);
 router.use("/users", userRoutes);
 router.use("/toppings", publicToppingRoutes);
@@ -41,12 +74,26 @@ router.use("/ingredients", ingredientRoutes);
 router.use("/product-sizes", productSizeRoutes);
 router.use("/dashboard", adminDBRoutes);
 router.use("/barista", baristaDBRoutes);
+router.use("/staff-db", staffDBRoutes);
 router.use("/banners", bannerRoutes);
 router.use("/notifications", notificationRoutes);
 router.use("/discounts", discountRoutes);
-router.use("/orders", orderRoutes);
-router.use("/favorites", favoriteRoutes);
+router.use("/order-online", orderOnlineRoutes);
+router.use("/reputation", reputationRoutes);
 router.use("/reviews", reviewRoutes);
+router.use("/receipt-settings", receiptSettingRoutes);
+router.use("/takeaway", takeawayRoutes);
+router.use("/orders", orderRoutes);
+router.use('/flash-sales', flashSaleRoutes);
+router.use('/qr-order', qrOrderRoutes);
+router.use('/shifts', shiftRoutes);
+router.use('/swap-requests', swapRequestRoutes);
+router.use('/loyalty', loyaltyRoutes);
+router.use('/ai', aiRoutes);
+router.use('/cash-sessions', cashSessionRoutes);
+
+router.use('/cart', cartRoutes);
+router.use('/delivery-areas', deliveryAreaRoutes);
 
 // Health check endpoint
 router.get("/health", (req, res) => {
@@ -299,10 +346,10 @@ router.get("/", (req, res) => {
         http://localhost:5000/api/banners/admin/59
         */
       },
-      orders: {
-        checkout: "POST /api/orders/checkout",
+      "order-online": {
+        checkout: "POST /api/order-online/checkout",
         /*
-        http://localhost:5000/api/orders/checkout
+        http://localhost:5000/api/order-online/checkout
         takeaway
         {
         "order_type": "takeaway",
@@ -326,9 +373,9 @@ router.get("/", (req, res) => {
           ]
         }
         */
-        getMyOrders: "GET /api/orders/my-orders (Authenticated)",
+        getMyOrders: "GET /api/order-online/my-orders (Authenticated)",
         /*
-        http://localhost:5000/api/orders/my-orders
+        http://localhost:5000/api/order-online/my-orders
         LẤY TOKEN: http://localhost:5000/api/auth/login
           {
             "identifier": "admin@gmail.com",
@@ -336,18 +383,18 @@ router.get("/", (req, res) => {
           }
             -> sẽ lấy đơn hàng thành công
         */
-        getMyOrderDetail: "GET /api/orders/my-orders/:id (Authenticated)",
+        getMyOrderDetail: "GET /api/order-online/my-orders/:id (Authenticated)",
         /*
-        http://localhost:5000/api/orders/my-orders/35
+        http://localhost:5000/api/order-online/my-orders/35
         login cus: {
           "identifier": "cus1@gmail.com",
           "password": "admin123"
           }
 
         */
-        payosReturn: "POST /api/orders/payos-return",
+        payosReturn: "POST /api/order-online/payos-return",
         /*
-        http://localhost:5000/api/orders/payos-return
+        http://localhost:5000/api/order-online/payos-return
         {
         "orderCode": "123456",
         "payosId": "PAYOS_ABC_999",

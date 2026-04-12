@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import {
   ShoppingCart,
+  ShoppingBag,
   Search,
   User,
   LogOut,
@@ -13,9 +14,14 @@ import {
   Grid3X3,
   Loader2,
   Bell,
-  Heart,
+  MapPin,
+  Moon,
+  Sun,
+  Coins,
+  LayoutList,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import {
   AlertDialog,
@@ -26,7 +32,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useNavigate } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
@@ -38,21 +43,23 @@ import productService from "@/services/productService";
 import notificationService from "@/services/notificationService";
 import socket from "@/lib/socket";
 import { getNotificationLink } from "@/utils/getNotificationLink";
-import favoriteService from "@/services/favoriteService";
+import loyaltyService from "@/services/loyaltyService";
+import flashSaleService from "@/services/flashSaleService";
+import LoyaltyHistoryModal from "@/components/loyalty/LoyaltyHistoryModal";
+import receiptSettingService from "@/services/receiptSettingService";
+import { cartService } from "@/services/cartService";
+import { useStoreHours } from "@/hooks/useStoreHours";
 
 const placeholders = [
   "Xin chào, bạn cần gì hôm nay?",
-  "Cà phê sữa đá",
-  "Trà đào cam sả",
-  "Sinh tố bơ béo ngậy",
 ];
-
-const CART_KEY = "cart_items";
 
 function Header() {
   const navigate = useNavigate();
+  const { isOpen: isStoreOpen, nextOpenMessage } = useStoreHours();
   const dropdownRef = useRef(null);
   const categoryDropdownRef = useRef(null);
+  const exploreDropdownRef = useRef(null);
   const searchRef = useRef(null);
   const notificationRef = useRef(null);
 
@@ -86,11 +93,13 @@ function Header() {
   const [open, setOpen] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [mobileUserDropdownOpen, setMobileUserDropdownOpen] = useState(false);
 
   const [categories, setCategories] = useState([]);
   const [categoryOpen, setCategoryOpen] = useState(false);
+  const [exploreOpen, setExploreOpen] = useState(false);
   const [mobileCategoryOpen, setMobileCategoryOpen] = useState(false);
+  const [hoveredCategory, setHoveredCategory] = useState(null);
+  const [categoryProductsMap, setCategoryProductsMap] = useState({});
 
   const [keyword, setKeyword] = useState("");
   const [mobileKeyword, setMobileKeyword] = useState("");
@@ -99,38 +108,122 @@ function Header() {
   const [searchLoading, setSearchLoading] = useState(false);
   const [mobileSearchLoading, setMobileSearchLoading] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [recentSearches, setRecentSearches] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem("recent_searches")) || [];
+    } catch {
+      return [];
+    }
+  });
+  const [focusedResultIndex, setFocusedResultIndex] = useState(-1);
   const [mobileResultOpen, setMobileResultOpen] = useState(false);
   const [cartCount, setCartCount] = useState(0);
+  const [cartBump, setCartBump] = useState(false);
+
+  const [searchViewMode, setSearchViewMode] = useState("list");
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
 
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
 
-  const [favoriteCount, setFavoriteCount] = useState(0);
-  const [favoriteLoading, setFavoriteLoading] = useState(false);
+  const [loyaltyPoints, setLoyaltyPoints] = useState(0);
+  const [loyaltyModalOpen, setLoyaltyModalOpen] = useState(false);
 
   const [cartItems, setCartItems] = useState([]);
   const [showCartPreview, setShowCartPreview] = useState(false);
+  const [activeSale, setActiveSale] = useState(null);
+  const [popularSearches, setPopularSearches] = useState([]);
+
+  useEffect(() => {
+    flashSaleService.getCurrentActive()
+      .then(res => setActiveSale(res?.data || null))
+      .catch(console.error);
+
+    productService.getBestSellers({ limit: 6 })
+      .then(res => {
+        const products = Array.isArray(res?.data) ? res.data : (res?.data?.data || []);
+        if (products.length > 0) {
+          const names = products.slice(0, 6).map(p => p.name);
+          // ensure no duplicates
+          setPopularSearches([...new Set(names)]);
+        }
+      })
+      .catch(console.error);
+  }, []);
+
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    return document.documentElement.classList.contains("dark");
+  });
+
+  const toggleDarkMode = () => {
+    if (isDarkMode) {
+      document.documentElement.classList.remove("dark");
+      localStorage.setItem("theme", "light");
+      setIsDarkMode(false);
+    } else {
+      document.documentElement.classList.add("dark");
+      localStorage.setItem("theme", "dark");
+      setIsDarkMode(true);
+    }
+  };
 
   const unreadCount = notifications.filter(
     (item) => Number(item.is_read) === 0
   ).length;
+
+  const [storeLogo, setStoreLogo] = useState(() => {
+    return localStorage.getItem("cached_store_logo") || Logo;
+  });
+  const [storeName, setStoreName] = useState(() => {
+    return localStorage.getItem("cached_store_name") || "Coffee Shop";
+  });
+
+  useEffect(() => {
+    const fetchLogo = async () => {
+      try {
+        const res = await receiptSettingService.getActive();
+        const data = res?.data || null;
+        if (data && data.logo_url) {
+          setStoreLogo(data.logo_url);
+          localStorage.setItem("cached_store_logo", data.logo_url);
+        } else {
+          setStoreLogo(Logo);
+          localStorage.removeItem("cached_store_logo");
+        }
+        if (data && data.store_name) {
+          setStoreName(data.store_name);
+          localStorage.setItem("cached_store_name", data.store_name);
+        } else {
+          setStoreName("Coffee Shop");
+          localStorage.removeItem("cached_store_name");
+        }
+      } catch {
+        setStoreLogo(Logo);
+        localStorage.removeItem("cached_store_logo");
+        setStoreName("Coffee Shop");
+        localStorage.removeItem("cached_store_name");
+      }
+    };
+    fetchLogo();
+
+    const handleReceiptUpdate = () => {
+      fetchLogo();
+    };
+
+    window.addEventListener("receiptSettingsUpdated", handleReceiptUpdate);
+    return () => {
+      window.removeEventListener("receiptSettingsUpdated", handleReceiptUpdate);
+    };
+  }, []);
 
   const defaultImage =
     "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085";
 
   const loadCartItems = useCallback(() => {
     try {
-      const cart = JSON.parse(localStorage.getItem(CART_KEY) || "[]");
-      const list = Array.isArray(cart) ? cart : [];
-
+      const list = cartService.getCart();
       setCartItems(list);
-
-      const total = list.reduce(
-        (sum, item) => sum + (Number(item.quantity) || 1),
-        0
-      );
-
+      const total = list.reduce((sum, item) => sum + (Number(item.quantity) || 1), 0);
       setCartCount(total);
     } catch {
       setCartItems([]);
@@ -149,11 +242,11 @@ function Header() {
 
       const toppingsTotal = Array.isArray(item.toppings)
         ? item.toppings.reduce(
-            (tSum, topping) =>
-              tSum +
-              (Number(topping.price) || 0) * (Number(topping.quantity) || 1),
-            0
-          )
+          (tSum, topping) =>
+            tSum +
+            (Number(topping.price) || 0) * (Number(topping.quantity) || 1),
+          0
+        )
         : 0;
 
       const quantity = Number(item.quantity) || 1;
@@ -161,41 +254,46 @@ function Header() {
     }, 0);
   };
 
+  const handleRemoveFromCart = (indexToRemove) => {
+    try {
+      const cart = cartService.getCart();
+      const item = cart[indexToRemove];
+      if (!item) return;
+      cartService.removeItem(item.cartKey);
+      toast.success("Đã xóa sản phẩm khỏi giỏ hàng");
+    } catch (e) {
+      console.error("Lỗi xóa sản phẩm header preview:", e);
+    }
+  };
+
   const fetchCategories = useCallback(async () => {
     try {
-      const res = await categoryService.getAll();
+      const res = await categoryService.getAll({ with_count: true });
       const list = Array.isArray(res?.data) ? res.data : [];
-      setCategories(list);
+      const validCategories = list.filter(
+        (c) =>
+          Number(c.product_count) > 0 &&
+          (!c.is_deleted || c.is_deleted === 0 || c.is_deleted === "0")
+      );
+      setCategories(validCategories);
     } catch (error) {
       console.error("Lỗi lấy danh mục:", error);
     }
   }, []);
 
-  const loadFavorites = useCallback(async () => {
+  const loadLoyalty = useCallback(async () => {
     if (!user?.id) {
-      setFavoriteCount(0);
+      setLoyaltyPoints(0);
       return;
     }
 
     try {
-      setFavoriteLoading(true);
-
-      const res = await favoriteService.getMyFavorites({
-        page: 1,
-        limit: 100,
-        keyword: "",
-      });
-
-      const payload = res?.data?.data || res?.data || {};
-      const items = Array.isArray(payload?.items) ? payload.items : [];
-      const total = Number(payload?.total ?? items.length ?? 0);
-
-      setFavoriteCount(total);
+      const res = await loyaltyService.getMyLoyalty();
+      const points = Number(res?.data?.total_points ?? 0);
+      setLoyaltyPoints(Number.isFinite(points) ? points : 0);
     } catch (error) {
-      console.error("Lỗi lấy danh sách yêu thích:", error);
-      setFavoriteCount(0);
-    } finally {
-      setFavoriteLoading(false);
+      console.error("Lỗi lấy điểm loyalty:", error);
+      setLoyaltyPoints(0);
     }
   }, [user?.id]);
 
@@ -204,14 +302,25 @@ function Header() {
   }, [fetchCategories]);
 
   useEffect(() => {
+    if (token) {
+      cartService.hydrateFromDatabase().catch(() => undefined);
+    }
+
     loadCartItems();
 
     window.addEventListener("storage", loadCartItems);
     window.addEventListener("cartUpdated", loadCartItems);
 
+    const handleCartBump = () => {
+      setCartBump(true);
+      setTimeout(() => setCartBump(false), 600);
+    };
+    window.addEventListener("cartAdded", handleCartBump);
+
     return () => {
       window.removeEventListener("storage", loadCartItems);
       window.removeEventListener("cartUpdated", loadCartItems);
+      window.removeEventListener("cartAdded", handleCartBump);
     };
   }, [loadCartItems]);
 
@@ -243,6 +352,13 @@ function Header() {
         !categoryDropdownRef.current.contains(e.target)
       ) {
         setCategoryOpen(false);
+      }
+
+      if (
+        exploreDropdownRef.current &&
+        !exploreDropdownRef.current.contains(e.target)
+      ) {
+        setExploreOpen(false);
       }
 
       if (searchRef.current && !searchRef.current.contains(e.target)) {
@@ -309,22 +425,50 @@ function Header() {
     };
   }, [user?.id]);
 
+
+
   useEffect(() => {
-    loadFavorites();
+    loadLoyalty();
+  }, [loadLoyalty]);
 
-    window.addEventListener("favoriteUpdated", loadFavorites);
-
-    return () => {
-      window.removeEventListener("favoriteUpdated", loadFavorites);
+  useEffect(() => {
+    const handleGlobalKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        if (searchRef.current) {
+          const input = searchRef.current.querySelector('input');
+          if (input) input.focus();
+        }
+      }
     };
-  }, [loadFavorites]);
+    window.addEventListener("keydown", handleGlobalKeyDown);
+    return () => window.removeEventListener("keydown", handleGlobalKeyDown);
+  }, []);
 
   const goToCategory = (category) => {
-    navigate(`/products?category=${category.id}`);
+    navigate(`/${category.slug || 'products?category=' + category.id}`);
     setCategoryOpen(false);
     setMobileCategoryOpen(false);
     setMobileMenuOpen(false);
   };
+
+  const handleCategoryHover = useCallback(async (category) => {
+    setHoveredCategory(category.id);
+    if (!categoryProductsMap[category.id]) {
+      try {
+        const res = await productService.getByCategory(category.id, { limit: 50, status: "available" });
+        const rawList = Array.isArray(res?.data) ? res.data : (res?.data?.data || []);
+        const list = rawList.filter(
+          (p) =>
+            p.status === "available" &&
+            (!p.is_deleted || p.is_deleted === 0 || p.is_deleted === "0")
+        );
+        setCategoryProductsMap((prev) => ({ ...prev, [category.id]: list }));
+      } catch (error) {
+        console.error("Lỗi lấy sản phẩm theo danh mục:", error);
+      }
+    }
+  }, [categoryProductsMap]);
 
   const normalizeProducts = (res) => {
     const raw = res?.data;
@@ -401,10 +545,49 @@ function Header() {
     return () => clearTimeout(timer);
   }, [mobileKeyword, searchProducts]);
 
+  const saveRecentSearch = (kw) => {
+    const trimmed = kw.trim();
+    if (!trimmed) return;
+    setRecentSearches((prev) => {
+      const filtered = prev.filter((s) => s.toLowerCase() !== trimmed.toLowerCase());
+      const updated = [trimmed, ...filtered].slice(0, 5);
+      localStorage.setItem("recent_searches", JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const handleSearchKeyDown = (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      if (focusedResultIndex >= 0 && keyword && searchResults.length > 0) {
+        if (focusedResultIndex < searchResults.length) {
+          goToProductDetail(searchResults[focusedResultIndex], false, keyword);
+        } else {
+          goToSearchPage(keyword);
+        }
+      } else if (focusedResultIndex >= 0 && !keyword && recentSearches.length > 0) {
+        goToSearchPage(recentSearches[focusedResultIndex]);
+      } else {
+        goToSearchPage(keyword);
+      }
+    } else if (e.key === "ArrowDown") {
+      e.preventDefault();
+      const maxIndex = keyword ? searchResults.length : recentSearches.length - 1;
+      setFocusedResultIndex((prev) => Math.min(prev + 1, maxIndex));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setFocusedResultIndex((prev) => Math.max(prev - 1, -1));
+    } else if (e.key === "Escape") {
+      setSearchOpen(false);
+      setFocusedResultIndex(-1);
+    }
+  };
+
   const goToSearchPage = (value, isMobile = false) => {
     const trimmed = value.trim();
     if (!trimmed) return;
 
+    saveRecentSearch(trimmed);
     navigate(`/products?keyword=${encodeURIComponent(trimmed)}`);
 
     if (isMobile) {
@@ -416,8 +599,9 @@ function Header() {
     }
   };
 
-  const goToProductDetail = (productId, isMobile = false) => {
-    navigate(`/products/${productId}`);
+  const goToProductDetail = (product, isMobile = false, searchKw = "") => {
+    if (searchKw) saveRecentSearch(searchKw);
+    navigate(`/${product.slug || 'products/' + product.id}`);
     if (isMobile) {
       setMobileResultOpen(false);
       setMobileSearchOpen(false);
@@ -508,7 +692,26 @@ function Header() {
     }
   };
 
-  const renderSearchItem = (item, isMobile = false) => {
+  const highlightText = (text, highlight) => {
+    if (!highlight || !highlight.trim()) return <span>{text}</span>;
+    const regex = new RegExp(`(${highlight})`, 'gi');
+    const parts = text.split(regex);
+    return (
+      <span>
+        {parts.map((part, i) =>
+          regex.test(part) ? (
+            <span key={i} className="text-red-500 font-bold bg-gray-100 dark:bg-gray-800/50 rounded px-0.5">
+              {part}
+            </span>
+          ) : (
+            <span key={i}>{part}</span>
+          )
+        )}
+      </span>
+    );
+  };
+
+  const renderSearchItem = (item, isMobile = false, kw = "", isFocused = false) => {
     const itemImages = Array.isArray(item.images) ? item.images : [];
     const itemSizes = Array.isArray(item.sizes) ? item.sizes : [];
 
@@ -522,23 +725,59 @@ function Header() {
       <button
         key={item.id}
         type="button"
-        onClick={() => goToProductDetail(item.id, isMobile)}
-        className="w-full flex items-center gap-3 px-3 py-3 hover:bg-amber-50 transition text-left"
+        onMouseEnter={() => !isMobile && setFocusedResultIndex(-1)}
+        onClick={() => goToProductDetail(item, isMobile, kw)}
+        className={`w-full flex items-center gap-4 px-4 py-3 transition text-left border-b border-gray-100 dark:border-gray-800 last:border-b-0 ${isFocused ? 'bg-amber-50 dark:bg-amber-900/20 ring-1 ring-inset ring-amber-500/30' : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'}`}
       >
         <img
           src={image}
           alt={item.name}
-          className="w-14 h-14 rounded-lg object-cover border border-gray-200 flex-shrink-0"
+          className="w-16 h-16 object-cover flex-shrink-0"
         />
 
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium text-gray-900 line-clamp-2">
-            {item.name}
+          <p className="text-base font-semibold text-gray-800 dark:text-gray-200 line-clamp-2">
+            {highlightText(item.name, kw)}
           </p>
-          <p className="text-xs text-gray-500 mt-1">
-            {item.category_name || "Danh mục"}
+          <p className="text-sm font-semibold text-red-500 mt-1">
+            {minPrice !== null
+              ? `${minPrice.toLocaleString("vi-VN")}đ`
+              : "Liên hệ"}
           </p>
-          <p className="text-sm font-semibold text-amber-600 mt-1">
+        </div>
+      </button>
+    );
+  };
+
+  const renderSearchItemGrid = (item, isMobile = false, kw = "", isFocused = false) => {
+    const itemImages = Array.isArray(item.images) ? item.images : [];
+    const itemSizes = Array.isArray(item.sizes) ? item.sizes : [];
+
+    const image = itemImages[0]?.image_url || defaultImage;
+    const minPrice =
+      itemSizes.length > 0
+        ? Math.min(...itemSizes.map((s) => Number(s.price)))
+        : null;
+
+    return (
+      <button
+        key={item.id}
+        type="button"
+        onMouseEnter={() => !isMobile && setFocusedResultIndex(-1)}
+        onClick={() => goToProductDetail(item, isMobile, kw)}
+        className={`w-full flex flex-col items-center gap-2 p-3 transition text-center border border-gray-100 dark:border-gray-800 rounded-xl ${isFocused ? 'bg-amber-50 dark:bg-amber-900/20 ring-1 ring-amber-500/30' : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'}`}
+      >
+        <img
+          src={image}
+          alt={item.name}
+          className="w-24 h-24 object-cover rounded-lg flex-shrink-0 border border-gray-100 dark:border-gray-800"
+        />
+
+        <div className="min-w-0 flex-1 mt-1 w-full flex flex-col items-center">
+          <p className="text-[14px] font-semibold text-gray-800 dark:text-gray-200 line-clamp-2 leading-tight">
+            {highlightText(item.name, kw)}
+          </p>
+          <p className="text-[13px] font-semibold text-red-500 mt-1">
             {minPrice !== null
               ? `${minPrice.toLocaleString("vi-VN")}đ`
               : "Liên hệ"}
@@ -549,359 +788,615 @@ function Header() {
   };
 
   return (
-    <header className="border-b border-gray-200 bg-white sticky top-0 z-50 shadow-sm">
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-3 sm:py-4 flex justify-between items-center gap-2 sm:gap-3 lg:gap-4">
-        <div
-          className="flex-shrink-0 cursor-pointer"
-          onClick={() => navigate("/")}
-        >
-          <img
-            src={Logo}
-            alt="Coffee Shop Logo"
-            className="h-10 sm:h-12 w-auto hover:opacity-80 transition-opacity duration-300"
-          />
-        </div>
-
-        <div className="flex-1 mx-2 sm:mx-4 lg:mx-8 hidden md:flex">
-          <div className="w-full relative" ref={searchRef}>
-            <Input
-              type="text"
-              value={keyword}
-              onChange={(e) => setKeyword(e.target.value)}
-              onFocus={() => {
-                if (searchResults.length > 0) setSearchOpen(true);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  goToSearchPage(keyword);
-                }
-              }}
-              placeholder={text || "Tìm kiếm sản phẩm..."}
-              className="w-full rounded-full py-2 pl-4 pr-12 bg-gray-50 border border-gray-200 focus:border-amber-500 focus:bg-white transition"
+    <>
+      <header className="flex flex-col border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 dark:border-gray-800 sticky top-0 z-50 shadow-sm transition-all duration-300">
+        <div className="w-full px-4 lg:px-6 xl:px-8 py-3 sm:py-4 flex justify-between items-center gap-3 md:gap-4 lg:gap-8">
+          <div
+            className="flex-shrink-0 cursor-pointer flex items-center gap-2 sm:gap-3"
+            onClick={() => navigate("/")}
+          >
+            <img
+              src={storeLogo}
+              onError={(e) => { e.currentTarget.src = Logo; }}
+              alt={`${storeName} Logo`}
+              className="h-10 sm:h-12 w-auto hover:opacity-80 transition-opacity duration-300 object-contain rounded-xl"
             />
-
-            <button
-              type="button"
-              onClick={() => goToSearchPage(keyword)}
-              className="absolute right-2 top-1/2 -translate-y-1/2 bg-primary text-white p-2 rounded-full hover:bg-primary/90 transition"
-            >
-              <Search className="w-4 h-4" />
-            </button>
-
-            {searchOpen && (
-              <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-2xl shadow-xl overflow-hidden z-50">
-                {searchLoading ? (
-                  <div className="flex items-center justify-center py-6 text-gray-500">
-                    <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                    Đang tìm kiếm...
-                  </div>
-                ) : searchResults.length === 0 ? (
-                  <div className="px-4 py-4 text-sm text-gray-500">
-                    Không tìm thấy sản phẩm phù hợp
-                  </div>
-                ) : (
-                  <>
-                    {searchResults.map((item) => renderSearchItem(item))}
-                    <button
-                      type="button"
-                      onClick={() => goToSearchPage(keyword)}
-                      className="w-full px-4 py-3 text-sm text-center text-amber-600 border-t border-gray-100 hover:bg-amber-50"
-                    >
-                      Xem tất cả kết quả cho "{keyword.trim()}"
-                    </button>
-                  </>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="flex items-center gap-1 sm:gap-2 lg:gap-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="md:hidden hover:bg-gray-100"
-            onClick={() => setMobileSearchOpen(!mobileSearchOpen)}
-          >
-            <Search className="w-5 h-5" />
-          </Button>
-
-          <div className="relative hidden lg:block" ref={categoryDropdownRef}>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setCategoryOpen(!categoryOpen)}
-              className="flex items-center gap-2 text-sm"
-            >
-              <Grid3X3 className="w-4 h-4" />
-              <span>Danh mục sản phẩm</span>
-              <ChevronDown className="w-4 h-4" />
-            </Button>
-
-            {categoryOpen && (
-              <div className="absolute left-0 mt-2 w-64 bg-white border border-gray-200 rounded-2xl shadow-xl p-2 z-50">
-                {categories.length === 0 ? (
-                  <div className="px-3 py-2 text-sm text-gray-500">
-                    Không có danh mục
-                  </div>
-                ) : (
-                  categories.map((category) => (
-                    <button
-                      key={category.id}
-                      onClick={() => goToCategory(category)}
-                      className="w-full text-left px-3 py-2 rounded-xl hover:bg-amber-50 hover:text-amber-700 transition text-sm"
-                    >
-                      {category.name}
-                    </button>
-                  ))
-                )}
-              </div>
-            )}
+            <h1 className="hidden sm:block text-lg lg:text-xl font-bold text-amber-900 dark:text-amber-500 whitespace-nowrap" style={{ fontFamily: 'serif' }}>
+              {storeName}
+            </h1>
           </div>
 
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate("/news")}
-            className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm hidden lg:flex"
-          >
-            <Newspaper className="w-4 h-4" />
-            <span>Tin tức</span>
-          </Button>
+          <div className="hidden md:flex flex-1 w-full max-w-[800px] mx-auto">
+            <div className="w-full relative" ref={searchRef}>
+              <div className="relative">
+                <Input
+                  type="text"
+                  value={keyword}
+                  onChange={(e) => {
+                    setKeyword(e.target.value);
+                    setFocusedResultIndex(-1);
+                  }}
+                  onFocus={() => {
+                    setSearchOpen(true);
+                    if (keyword && searchResults.length > 0) setFocusedResultIndex(-1);
+                  }}
+                  onKeyDown={handleSearchKeyDown}
+                  placeholder={text || "Tìm kiếm sản phẩm..."}
+                  className="w-full rounded-full py-2 pl-4 pr-24 bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-700 focus:border-amber-500 focus:bg-white dark:bg-gray-900 dark:border-gray-800 transition"
+                />
 
-          <div className="hidden sm:flex items-center gap-1 lg:gap-2">
-            <div
-              className="relative"
-              onMouseEnter={() => {
-                loadCartItems();
-                setShowCartPreview(true);
-              }}
-              onMouseLeave={() => setShowCartPreview(false)}
-            >
-              <Button
-                onClick={() => navigate("/cart")}
-                size="sm"
-                className="relative gap-1 sm:gap-2 text-xs sm:text-sm"
-              >
-                <ShoppingCart className="w-4 h-4" />
-                <span className="hidden sm:inline">Giỏ hàng</span>
-
-                {cartCount > 0 && (
-                  <span className="absolute -top-2 -right-2 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center leading-none">
-                    {cartCount > 99 ? "99+" : cartCount}
-                  </span>
+                {!keyword && (
+                  <div className="absolute right-12 top-1/2 -translate-y-1/2 pointer-events-none hidden lg:flex space-x-1 items-center bg-gray-200 px-1.5 py-0.5 rounded text-[10px] font-medium text-gray-500 dark:text-gray-500">
+                    <span>Ctrl</span><span>K</span>
+                  </div>
                 )}
-              </Button>
 
-              {showCartPreview && (
-                <div className="absolute right-0 mt-2 w-[360px] bg-white border border-gray-200 rounded-xl shadow-xl z-50 overflow-hidden">
-                  <div className="max-h-80 overflow-y-auto">
-                    {cartItems.length === 0 ? (
-                      <div className="p-4 text-sm text-gray-500">
-                        Giỏ hàng đang trống
-                      </div>
-                    ) : (
-                      cartItems.map((item, idx) => {
-                        const image =
-                          item.image ||
-                          item.image_url ||
-                          item.thumbnail ||
-                          item.product_image ||
-                          defaultImage;
+                {keyword && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setKeyword("");
+                      setFocusedResultIndex(-1);
+                      const input = searchRef.current?.querySelector('input');
+                      if (input) input.focus();
+                    }}
+                    className="absolute right-12 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:text-gray-400 p-1"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
 
-                        const basePrice =
-                          Number(item.basePrice) ||
-                          Number(item.price) ||
-                          Number(item.selectedPrice) ||
-                          Number(item.unit_price) ||
-                          0;
+                <button
+                  type="button"
+                  onClick={() => goToSearchPage(keyword)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 bg-primary text-white p-2 rounded-full hover:bg-primary/90 transition"
+                >
+                  <Search className="w-4 h-4" />
+                </button>
+              </div>
 
-                        const toppingsTotal = Array.isArray(item.toppings)
-                          ? item.toppings.reduce(
-                              (sum, topping) =>
-                                sum +
-                                (Number(topping.price) || 0) *
-                                  (Number(topping.quantity) || 1),
-                              0
-                            )
-                          : 0;
-
-                        const price = basePrice + toppingsTotal;
-
-                        const quantity = Number(item.quantity) || 1;
-
-                        return (
-                          <div
-                            key={`${item.product_id || item.id}-${
-                              item.size || idx
-                            }`}
-                            onClick={() =>
-                              navigate(
-                                `/products/${item.product_id || item.id}`
-                              )
-                            }
-                            className="flex gap-3 p-3 border-b last:border-b-0 cursor-pointer hover:bg-gray-50"
-                          >
-                            <img
-                              src={image}
-                              alt={item.name}
-                              className="w-14 h-14 rounded object-cover border"
-                            />
-
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-gray-800 line-clamp-2">
-                                {item.name}
-                              </p>
-
-                              {item.size && (
-                                <p className="text-xs text-gray-500 mt-1">
-                                  {item.size}
-                                </p>
-                              )}
-
-                              {Array.isArray(item.toppings) &&
-                                item.toppings.length > 0 && (
-                                  <div className="mt-1 space-y-0.5">
-                                    {item.toppings.map((topping) => (
-                                      <p
-                                        key={topping.topping_id}
-                                        className="text-[11px] text-gray-500"
-                                      >
-                                        + {topping.name} x {topping.quantity}
-                                      </p>
-                                    ))}
-                                  </div>
-                                )}
-
-                              <p className="text-sm text-red-600 font-semibold mt-1">
-                                {price.toLocaleString("vi-VN")}đ x {quantity}
-                              </p>
-                            </div>
+              {searchOpen && (
+                <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-gray-900 dark:border-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl overflow-hidden z-50">
+                  {!keyword ? (
+                    <div className="py-2">
+                      {recentSearches.length > 0 && (
+                        <div className="mb-2">
+                          <div className="flex justify-between items-center px-4 py-2 border-b border-gray-50 dark:border-gray-800">
+                            <span className="text-xs font-semibold text-gray-500 dark:text-gray-500 uppercase tracking-wider">Tìm kiếm gần đây</span>
+                            <button onClick={() => setRecentSearches([])} className="text-xs text-amber-600 hover:text-amber-700">Xóa</button>
                           </div>
-                        );
-                      })
-                    )}
+                          <ul className="py-1">
+                            {recentSearches.map((kw, idx) => (
+                              <li key={idx}>
+                                <button
+                                  onClick={() => goToSearchPage(kw)}
+                                  onMouseEnter={() => setFocusedResultIndex(-1)}
+                                  className={`w-[calc(100%-16px)] mx-2 rounded-lg text-left px-4 py-2.5 text-sm flex items-center gap-2 transition ${focusedResultIndex === idx ? 'bg-amber-50 dark:bg-amber-900/20' : 'hover:bg-amber-50 hover:text-amber-700 dark:hover:bg-amber-900/20'}`}
+                                >
+                                  <Search className="w-3.5 h-3.5 text-gray-400" />
+                                  <span className="text-gray-700 dark:text-gray-300">{kw}</span>
+                                </button>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      <div>
+                        <div className="px-4 py-2">
+                          <span className="text-xs font-semibold text-gray-500 dark:text-gray-500 uppercase tracking-wider">Tìm kiếm phổ biến</span>
+                        </div>
+                        <div className="px-4 py-1 flex flex-wrap gap-2">
+                          {popularSearches.length > 0 ? (
+                            popularSearches.map((kw, idx) => (
+                              <button
+                                key={idx}
+                                onClick={() => goToSearchPage(kw)}
+                                className="px-3 py-1.5 bg-gray-100 hover:bg-amber-100 text-gray-700 hover:text-amber-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-amber-900/40 dark:hover:text-amber-400 rounded-full text-[13px] transition-colors"
+                              >
+                                {kw}
+                              </button>
+                            ))
+                          ) : (
+                            <span className="text-sm text-gray-400">Chưa có dữ liệu</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ) : searchLoading ? (
+                    <div className="flex items-center justify-center py-6 text-gray-500 dark:text-gray-500">
+                      <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                      Đang tìm kiếm...
+                    </div>
+                  ) : searchResults.length === 0 ? (
+                    <div className="px-4 py-4 text-sm text-gray-500 dark:text-gray-500">
+                      Không tìm thấy sản phẩm phù hợp
+                    </div>
+                  ) : (
+                    <div className="flex flex-col">
+                      <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 relative z-10 shadow-[0_4px_6px_-1px_rgba(0,0,0,0.05)]">
+                        <div className="flex items-center justify-between mb-4">
+                          <span className="text-[17px] font-bold text-gray-500 dark:text-gray-400">
+                            Kết quả tìm kiếm cho <span className="text-red-500">{keyword}</span>
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <LayoutList
+                              onClick={() => setSearchViewMode("list")}
+                              className={`w-6 h-6 p-0.5 rounded-sm cursor-pointer border ${searchViewMode === 'list' ? 'text-gray-800 dark:text-gray-200 border-gray-800 dark:border-gray-200 bg-gray-100 dark:bg-gray-800' : 'text-gray-400 dark:text-gray-500 border-gray-300 dark:border-gray-600'}`} />
+                            <Grid3X3
+                              onClick={() => setSearchViewMode("grid")}
+                              className={`w-6 h-6 p-0.5 rounded-sm cursor-pointer border ${searchViewMode === 'grid' ? 'text-gray-800 dark:text-gray-200 border-gray-800 dark:border-gray-200 bg-gray-100 dark:bg-gray-800' : 'text-gray-400 dark:text-gray-500 border-gray-300 dark:border-gray-600'}`} />
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="font-bold text-gray-900 dark:text-gray-100 text-[15px]">Hiển thị kết quả theo:</span>
+                          <button className="bg-gray-400 text-white px-4 py-1.5 rounded-full text-[15px] font-medium hover:bg-gray-500 transition shadow-sm">Sản phẩm</button>
+                        </div>
+                      </div>
+
+                      <div className="max-h-[360px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100 dark:scrollbar-thumb-gray-600 dark:scrollbar-track-gray-800">
+                        {searchViewMode === 'list' ? (
+                          searchResults.map((item, idx) => renderSearchItem(item, false, keyword, idx === focusedResultIndex))
+                        ) : (
+                          <div className="grid grid-cols-3 gap-3 p-4">
+                            {searchResults.map((item, idx) => renderSearchItemGrid(item, false, keyword, idx === focusedResultIndex))}
+                          </div>
+                        )}
+                      </div>
+
+                      <button
+                        type="button"
+                        onMouseEnter={() => setFocusedResultIndex(-1)}
+                        onClick={() => goToSearchPage(keyword)}
+                        className={`w-full py-4 text-[15px] text-center border-t border-gray-200 dark:border-gray-700 transition relative z-10 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] ${focusedResultIndex === searchResults.length ? 'bg-amber-50 dark:bg-amber-900/20 text-gray-800 dark:text-gray-200' : 'bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800'}`}
+                      >
+                        Xem thêm sản phẩm có chứa <span className="text-red-500">{keyword}</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1 sm:gap-2 lg:gap-4">
+            {/* Nút Sản Phẩm Mega Menu */}
+            <div
+              className="hidden sm:flex items-center relative h-full group"
+              ref={categoryDropdownRef}
+              onMouseEnter={() => setCategoryOpen(true)}
+              onMouseLeave={() => {
+                setCategoryOpen(false);
+                setHoveredCategory(null);
+              }}
+            >
+              <button
+                className={`flex items-center gap-1.5 font-bold px-3 py-2 rounded-xl transition-all border ${categoryOpen
+                  ? "bg-amber-50 dark:bg-amber-900/20 text-amber-600 border-amber-200 dark:border-amber-800"
+                  : "text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 border-transparent hover:border-gray-200 dark:hover:border-gray-700"
+                  }`}
+                onClick={() => {
+                  navigate("/products");
+                  setCategoryOpen(false);
+                }}
+              >
+                <span className="text-[13px] uppercase tracking-wide">Sản phẩm</span>
+                <ChevronDown className="w-4 h-4" />
+              </button>
+
+              {categoryOpen && (
+                <div className="absolute top-full left-0 pt-2 z-[100] flex items-start gap-1.5">
+                  {/* Cột trái: Bảng Danh mục (luôn hiện) */}
+                  <div className="w-[240px] bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl shadow-xl flex flex-col p-2 gap-1 max-h-[70vh] overflow-y-auto custom-scrollbar">
+                    {categories.map((cat) => (
+                      <button
+                        key={cat.id}
+                        onMouseEnter={() => handleCategoryHover(cat)}
+                        onClick={() => goToCategory(cat)}
+                        className={`w-full text-left px-3 py-2 text-[14px] rounded-lg transition-colors flex items-center justify-between ${hoveredCategory === cat.id
+                          ? "bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-500 font-medium"
+                          : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                          }`}
+                      >
+                        <span>{cat.name}</span>
+                        <ChevronDown className="w-4 h-4 -rotate-90 opacity-50" />
+                      </button>
+                    ))}
                   </div>
 
-                  {cartItems.length > 0 && (
-                    <div className="p-3 border-t bg-white">
-                      <p className="text-sm text-gray-700 mb-3">
-                        Tổng tiền tạm tính:{" "}
-                        <span className="font-semibold text-red-600">
-                          {getCartSubtotal().toLocaleString("vi-VN")}đ
-                        </span>
-                      </p>
-
-                      <Button
-                        onClick={() => {
-                          setShowCartPreview(false);
-                          navigate("/checkout");
-                        }}
-                        className="w-full bg-red-600 hover:bg-red-700 text-white"
-                      >
-                        Tiến hành thanh toán
-                      </Button>
+                  {/* Cột phải: Bảng Products (chỉ hiện khi hover) */}
+                  {hoveredCategory && (
+                    <div className="w-[260px] bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl shadow-xl flex flex-col p-2 gap-1 max-h-[70vh] overflow-y-auto custom-scrollbar">
+                      {categoryProductsMap[hoveredCategory] ? (
+                        categoryProductsMap[hoveredCategory].length > 0 ? (
+                          <>
+                            {categoryProductsMap[hoveredCategory].map(product => (
+                              <button
+                                key={product.id}
+                                onClick={() => {
+                                  navigate(`/${product.slug || 'products/' + product.id}`);
+                                  setCategoryOpen(false);
+                                  setMobileMenuOpen(false);
+                                }}
+                                className="w-full text-left px-3 py-2 text-[14px] text-gray-700 dark:text-gray-300 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20 dark:hover:text-amber-500 rounded-lg transition-colors truncate"
+                              >
+                                {product.name}
+                              </button>
+                            ))}
+                            <button
+                              onClick={() => goToCategory(categories.find(c => c.id === hoveredCategory))}
+                              className="w-full text-left px-3 py-2 text-[13px] text-amber-600 hover:underline font-medium mt-1"
+                            >
+                              Xem tất cả...
+                            </button>
+                          </>
+                        ) : (
+                          <div className="px-3 py-2 text-[14px] text-gray-500">
+                            Chưa có sản phẩm.
+                          </div>
+                        )
+                      ) : (
+                        <div className="flex items-center justify-center p-4 min-h-[100px]">
+                          <Loader2 className="w-5 h-5 text-amber-500 animate-spin" />
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
               )}
             </div>
 
-            {user && (
-              <div className="relative" ref={notificationRef}>
+            <div
+              className="hidden sm:flex items-center relative h-full"
+              ref={exploreDropdownRef}
+              onMouseEnter={() => setExploreOpen(true)}
+              onMouseLeave={() => setExploreOpen(false)}
+            >
+              <button
+                onClick={() => setExploreOpen(!exploreOpen)}
+                className={`flex items-center gap-1.5 font-bold px-3 py-2 rounded-xl transition-all border ${exploreOpen
+                  ? "bg-amber-50 dark:bg-amber-900/20 text-amber-600 border-amber-200 dark:border-amber-800"
+                  : "text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 border-transparent hover:border-gray-200 dark:hover:border-gray-700"
+                  }`}
+              >
+                <span className="text-[13px] uppercase tracking-wide">Khám phá</span>
+                <ChevronDown className="w-4 h-4" />
+              </button>
+              {exploreOpen && (
+                <div className="absolute top-full left-0 pt-2 z-[100]">
+                  <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-xl w-[200px] py-2">
+                    <button
+                      onClick={() => {
+                        setExploreOpen(false);
+                        navigate("/store");
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-2 hover:bg-amber-50 dark:hover:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 transition hover:text-amber-600"
+                    >
+                      <MapPin className="w-4 h-4" />
+                      <span>Cửa hàng</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setExploreOpen(false);
+                        navigate("/news");
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-2 hover:bg-amber-50 dark:hover:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 transition hover:text-amber-600"
+                    >
+                      <Newspaper className="w-4 h-4" />
+                      <span>Tin tức</span>
+                    </button>
+
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <Button
+              variant="ghost"
+              size="icon"
+              className="md:hidden hover:bg-gray-100 dark:hover:bg-gray-700 dark:bg-gray-800"
+              onClick={() => setMobileSearchOpen(!mobileSearchOpen)}
+            >
+              <Search className="w-5 h-5" />
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleDarkMode}
+              className="relative p-2 rounded-full border border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 dark:bg-gray-950 flex items-center justify-center transition-colors"
+              title="Bật/Tắt giao diện tối"
+            >
+              {isDarkMode ? <Sun className="w-4 h-4 text-gray-700 dark:text-gray-300" /> : <Moon className="w-4 h-4 text-gray-700 dark:text-gray-300" />}
+            </Button>
+
+            <div className="hidden sm:flex items-center gap-1 lg:gap-2">
+              <div
+                className="relative"
+                onMouseEnter={() => {
+                  loadCartItems();
+                  setShowCartPreview(true);
+                }}
+                onMouseLeave={() => setShowCartPreview(false)}
+              >
                 <Button
-                  variant="ghost"
+                  onClick={() => navigate("/cart")}
                   size="sm"
-                  onClick={() => setShowNotifications((prev) => !prev)}
-                  className="relative p-2"
+                  className={`relative gap-1 sm:gap-2 text-xs sm:text-sm ${cartBump ? "animate-bounce ring-4 ring-amber-500/50" : "transition-all duration-300"
+                    }`}
                 >
-                  <Bell className="w-5 h-5" />
-                  {unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-red-500 text-white text-[10px] flex items-center justify-center">
-                      {unreadCount > 99 ? "99+" : unreadCount}
+                  <ShoppingCart className="w-4 h-4" />
+                  <span className="hidden sm:inline">Giỏ hàng</span>
+
+                  {cartCount > 0 && (
+                    <span className="absolute -top-2 -right-2 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center leading-none">
+                      {cartCount > 99 ? "99+" : cartCount}
                     </span>
                   )}
                 </Button>
 
-                {showNotifications && (
-                  <div className="absolute right-0 mt-2 w-[360px] bg-white border rounded-2xl shadow-xl z-50 overflow-hidden">
-                    <div className="flex items-center justify-between px-4 py-3 border-b">
-                      <h3 className="font-semibold">Thông báo</h3>
-                      {notifications.length > 0 && (
-                        <button
-                          onClick={toggleAllReadStatus}
-                          className="text-sm text-primary hover:underline"
-                        >
-                          {notifications.some(
-                            (item) => Number(item.is_read) === 0
-                          )
-                            ? "Đánh dấu tất cả đã đọc"
-                            : "Đánh dấu tất cả chưa đọc"}
-                        </button>
-                      )}
-                    </div>
-
-                    <div className="max-h-96 overflow-y-auto">
-                      {notifications.length === 0 ? (
-                        <div className="p-4 text-sm text-muted-foreground">
-                          Chưa có thông báo nào
-                        </div>
-                      ) : (
-                        notifications.map((item) => (
+                {showCartPreview && (
+                  <div className="absolute right-0 top-full pt-2 w-[360px] z-50">
+                    <div className="bg-white dark:bg-gray-900 dark:border-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl overflow-hidden">
+                      {cartItems.length > 0 && (
+                        <div className="px-3 py-2 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
+                          <span className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+                            Giỏ hàng của bạn ({cartCount} sản phẩm)
+                          </span>
                           <button
-                            key={
-                              item.recipient_id ||
-                              `${item.id}-${item.created_at}`
-                            }
-                            onClick={() => handleReadNotification(item)}
-                            className={`w-full text-left px-4 py-3 border-b hover:bg-gray-50 ${
-                              Number(item.is_read) === 0
-                                ? "bg-orange-50"
-                                : "bg-white"
-                            }`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              cartService.clearCart();
+                              toast.success("Đã làm trống giỏ hàng");
+                            }}
+                            className="text-xs text-red-500 hover:text-red-700 font-medium transition-colors"
                           >
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="flex-1">
-                                <p className="font-medium text-sm">
-                                  {item.title}
-                                </p>
-                                <p className="text-sm text-muted-foreground">
-                                  {item.message}
-                                </p>
-                                <p className="text-xs text-gray-400 mt-1">
-                                  {new Date(item.created_at).toLocaleString(
-                                    "vi-VN"
-                                  )}
-                                </p>
-                              </div>
-
-                              <div className="flex flex-col items-end gap-2 shrink-0">
-                                {Number(item.is_read) === 0 && (
-                                  <span className="w-2 h-2 rounded-full bg-red-500 mt-1" />
-                                )}
-
-                                <button
-                                  onClick={(e) => handleToggleRead(item, e)}
-                                  className="text-xs text-primary hover:underline"
-                                >
-                                  {Number(item.is_read) === 0
-                                    ? "Đã đọc"
-                                    : "Chưa đọc"}
-                                </button>
-                              </div>
-                            </div>
+                            Xóa tất cả
                           </button>
-                        ))
+                        </div>
+                      )}
+                      <div className="max-h-80 overflow-y-auto">
+                        {cartItems.length === 0 ? (
+                          <div className="py-10 flex flex-col items-center justify-center text-center">
+                            <div className="relative w-24 h-24 flex items-center justify-center mb-3">
+                              <div className="absolute top-2 left-2 w-2.5 h-2.5 bg-amber-500 rounded-full opacity-80" />
+                              <div className="absolute top-0 left-6 w-1.5 h-1.5 bg-amber-300 rounded-full opacity-60" />
+                              <div className="absolute top-4 right-4 w-2 h-2 bg-amber-400 rounded-full opacity-70" />
+                              <div className="absolute inset-0 bg-amber-100 dark:bg-amber-900/30 rounded-full scale-[0.8]" />
+                              <ShoppingBag className="relative z-10 w-12 h-12 text-amber-700 dark:text-amber-500" strokeWidth={1.5} />
+                            </div>
+                            <p className="text-[14px] text-gray-700 dark:text-gray-300 font-medium">Chưa có sản phẩm nào hết</p>
+                          </div>
+                        ) : (
+                          cartItems.map((item, idx) => {
+                            const image =
+                              item.image ||
+                              item.image_url ||
+                              item.thumbnail ||
+                              item.product_image ||
+                              defaultImage;
+
+                            const basePrice =
+                              Number(item.basePrice) ||
+                              Number(item.price) ||
+                              Number(item.selectedPrice) ||
+                              Number(item.unit_price) ||
+                              0;
+
+                            const toppingsTotal = Array.isArray(item.toppings)
+                              ? item.toppings.reduce(
+                                (sum, topping) =>
+                                  sum +
+                                  (Number(topping.price) || 0) *
+                                  (Number(topping.quantity) || 1),
+                                0
+                              )
+                              : 0;
+
+                            const price = basePrice + toppingsTotal;
+
+                            const quantity = Number(item.quantity) || 1;
+
+                            return (
+                              <div
+                                key={`${item.product_id || item.id}-${item.size || idx}`}
+                                onClick={() =>
+                                  navigate(`/products/${item.product_id || item.id}`)
+                                }
+                                className="group flex gap-3 p-3 border-b last:border-b-0 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 dark:bg-gray-950 relative pr-10"
+                              >
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleRemoveFromCart(idx);
+                                  }}
+                                  className="absolute right-2 top-2 lg:opacity-0 group-hover:opacity-100 transition-opacity p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md"
+                                  title="Xóa khỏi giỏ hàng"
+                                >
+                                  <X className="w-4 h-4" />
+                                </button>
+
+                                <div className="relative shrink-0">
+                                  <img
+                                    src={image}
+                                    alt={item.name}
+                                    className="w-14 h-14 rounded object-cover border"
+                                  />
+                                  {activeSale && activeSale.product_ids?.includes(Number(item.product_id || item.id)) && (
+                                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[8px] font-bold px-1 py-0.5 rounded-sm shadow-sm overflow-hidden whitespace-nowrap z-10">
+                                      -{activeSale.discount_percent}%
+                                    </span>
+                                  )}
+                                </div>
+
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium text-gray-800 dark:text-gray-200 line-clamp-2">
+                                    {item.name}
+                                  </p>
+
+                                  {item.size && (
+                                    <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                                      {item.size}
+                                    </p>
+                                  )}
+
+                                  {activeSale && activeSale.product_ids?.includes(Number(item.product_id || item.id)) && (
+                                    <div className="mt-0.5 text-[10px] text-red-600 font-bold">
+                                      🔥 Flash sale
+                                    </div>
+                                  )}
+
+                                  {Array.isArray(item.toppings) &&
+                                    item.toppings.length > 0 && (
+                                      <div className="mt-1 space-y-0.5">
+                                        {item.toppings.map((topping) => (
+                                          <p
+                                            key={topping.topping_id}
+                                            className="text-[11px] text-gray-500 dark:text-gray-500"
+                                          >
+                                            + {topping.name}
+                                          </p>
+                                        ))}
+                                      </div>
+                                    )}
+
+                                  <p className="text-sm text-red-600 font-semibold mt-1">
+                                    {price.toLocaleString("vi-VN")}đ x {quantity}
+                                  </p>
+                                </div>
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+
+                      {cartItems.length > 0 && (
+                        <div className="p-3 border-t bg-white dark:bg-gray-900 dark:border-gray-800">
+                          <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
+                            Tổng tiền tạm tính:{" "}
+                            <span className="font-semibold text-red-600">
+                              {getCartSubtotal().toLocaleString("vi-VN")}đ
+                            </span>
+                          </p>
+
+                          {!isStoreOpen && (
+                            <div className="mb-3 p-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 rounded-lg flex items-center justify-center gap-2">
+                              <span className="font-medium text-xs text-center">Cửa hàng đóng cửa. {nextOpenMessage}.</span>
+                            </div>
+                          )}
+
+                          <Button
+                            onClick={() => {
+                              setShowCartPreview(false);
+                              navigate("/checkout");
+                            }}
+                            disabled={!isStoreOpen}
+                            className="w-full bg-red-600 hover:bg-red-700 text-white disabled:bg-gray-400 disabled:opacity-100"
+                          >
+                            {isStoreOpen ? "Tiến hành thanh toán" : "Đóng cửa"}
+                          </Button>
+                        </div>
                       )}
                     </div>
                   </div>
                 )}
               </div>
-            )}
 
-            
-          </div>
-{!user && (
+              {user && (
+                <div className="relative" ref={notificationRef}>
+                  <div className="flex items-center gap-1 sm:gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowNotifications((prev) => !prev)}
+                      className="relative p-2"
+                    >
+                      <Bell className="w-5 h-5" />
+                      {unreadCount > 0 && (
+                        <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-red-500 text-white text-[10px] flex items-center justify-center">
+                          {unreadCount > 99 ? "99+" : unreadCount}
+                        </span>
+                      )}
+                    </Button>
+                  </div>
+
+                  {showNotifications && (
+                    <div className="absolute right-0 mt-2 w-[360px] bg-white dark:bg-gray-900 dark:border-gray-800 border rounded-2xl shadow-xl z-50 overflow-hidden">
+                      <div className="flex items-center justify-between px-4 py-3 border-b">
+                        <h3 className="font-semibold">Thông báo</h3>
+                        {notifications.length > 0 && (
+                          <button
+                            onClick={toggleAllReadStatus}
+                            className="text-sm text-primary hover:underline"
+                          >
+                            {notifications.some(
+                              (item) => Number(item.is_read) === 0
+                            )
+                              ? "Đánh dấu tất cả đã đọc"
+                              : "Đánh dấu tất cả chưa đọc"}
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="max-h-96 overflow-y-auto">
+                        {notifications.length === 0 ? (
+                          <div className="p-4 text-sm text-muted-foreground dark:text-gray-400">
+                            Chưa có thông báo nào
+                          </div>
+                        ) : (
+                          notifications.map((item) => (
+                            <button
+                              key={
+                                item.recipient_id ||
+                                `${item.id}-${item.created_at}`
+                              }
+                              onClick={() => handleReadNotification(item)}
+                              className={`w-full text-left px-4 py-3 border-b hover:bg-gray-50 dark:hover:bg-gray-800 dark:bg-gray-950 ${Number(item.is_read) === 0
+                                ? "bg-orange-50"
+                                : "bg-white dark:bg-gray-900 dark:border-gray-800"
+                                }`}
+                            >
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="flex-1">
+                                  <p className="font-medium text-sm">
+                                    {item.title}
+                                  </p>
+                                  <p className="text-sm text-muted-foreground dark:text-gray-400">
+                                    {item.message}
+                                  </p>
+                                  <p className="text-xs text-gray-400 mt-1">
+                                    {new Date(item.created_at).toLocaleString(
+                                      "vi-VN"
+                                    )}
+                                  </p>
+                                </div>
+
+                                <div className="flex flex-col items-end gap-2 shrink-0">
+                                  {Number(item.is_read) === 0 && (
+                                    <span className="w-2 h-2 rounded-full bg-red-500 mt-1" />
+                                  )}
+
+                                  <button
+                                    onClick={(e) => handleToggleRead(item, e)}
+                                    className="text-xs text-primary hover:underline"
+                                  >
+                                    {Number(item.is_read) === 0
+                                      ? "Đã đọc"
+                                      : "Chưa đọc"}
+                                  </button>
+                                </div>
+                              </div>
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+
+            </div>
+            {!user && (
               <Button
                 onClick={() => navigate("/login")}
                 size="sm"
@@ -914,12 +1409,16 @@ function Header() {
 
             {user && (
               <div className="flex items-center gap-1 lg:gap-2">
-                <div className="relative" ref={dropdownRef}>
+                <div
+                  className="relative"
+                  ref={dropdownRef}
+                  onMouseEnter={() => setOpen(true)}
+                  onMouseLeave={() => setOpen(false)}
+                >
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => setOpen(!open)}
-                    className="gap-1 sm:gap-2 text-gray-700 transition p-1.5 sm:p-2"
+                    className="gap-1 sm:gap-2 text-gray-700 dark:text-gray-300 transition p-1.5 sm:p-2"
                   >
                     <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-amber-500 flex items-center justify-center text-white text-xs font-bold">
                       {user.first_name?.charAt(0).toUpperCase()}
@@ -930,91 +1429,95 @@ function Header() {
                   </Button>
 
                   {open && (
-                    <div className="absolute right-0 mt-1 w-48 sm:w-56 bg-white shadow-xl rounded-lg sm:rounded-2xl p-1.5 sm:p-2 border border-gray-200 animate-in fade-in zoom-in-95 flex flex-col gap-0">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          navigate("/my-orders");
-                          setOpen(false);
-                        }}
-                        className="w-full text-left px-3 py-2 text-gray-700 transition text-xs sm:text-sm justify-start"
-                      >
-                        <Package className="w-4 h-4 mr-2" />
-                        <span>Đơn hàng</span>
-                      </Button>
+                    <div className="absolute right-0 top-full pt-1 w-48 sm:w-56 z-50">
+                      <div className="bg-white dark:bg-gray-900 dark:border-gray-800 shadow-xl rounded-lg sm:rounded-2xl p-1.5 sm:p-2 border border-gray-200 dark:border-gray-700 animate-in fade-in zoom-in-95 flex flex-col gap-0">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            navigate("/my-orders");
+                            setOpen(false);
+                          }}
+                          className="w-full text-left px-3 py-2 text-gray-700 dark:text-gray-300 transition text-xs sm:text-sm justify-start"
+                        >
+                          <Package className="w-4 h-4 mr-2" />
+                          <span>Đơn hàng</span>
+                        </Button>
 
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          navigate("/favorites");
-                          setOpen(false);
-                        }}
-                        className="w-full text-left px-3 py-2 text-gray-700 transition text-xs sm:text-sm justify-start"
-                      >
-                        <Heart className="w-4 h-4 mr-2" />
-                        <span className="flex-1 text-left">Yêu thích</span>
 
-                        <span className="text-xs font-semibold text-red-500">
-                          {favoriteLoading ? "..." : favoriteCount}
-                        </span>
-                      </Button>
 
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          navigate("/customer/profile");
-                          setOpen(false);
-                        }}
-                        className="w-full text-left px-3 py-2 text-gray-700 transition text-xs sm:text-sm justify-start"
-                      >
-                        <User className="w-4 h-4 mr-2" />
-                        <span>Hồ sơ cá nhân</span>
-                      </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            navigate("/customer/profile");
+                            setOpen(false);
+                          }}
+                          className="w-full text-left px-3 py-2 text-gray-700 dark:text-gray-300 transition text-xs sm:text-sm justify-start"
+                        >
+                          <User className="w-4 h-4 mr-2" />
+                          <span>Hồ sơ cá nhân</span>
+                        </Button>
 
-                      <div className="my-0.5 border-t border-gray-200" />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="w-full text-left px-3 py-2 text-gray-700 dark:text-gray-300 transition text-xs sm:text-sm justify-start"
+                          onClick={() => {
+                            setOpen(false);
+                            setLoyaltyModalOpen(true);
+                          }}
+                        >
+                          <Coins className="w-4 h-4 mr-2" />
+                          <span className="flex-1 text-left">Điểm thưởng</span>
+                          <span className="font-bold text-amber-600 dark:text-amber-500">
+                            {Number(loyaltyPoints || 0).toLocaleString("vi-VN")}
+                          </span>
+                        </Button>
 
-                      <button
-                        onClick={() => {
-                          setOpen(false);
-                          setLogoutDialogOpen(true);
-                        }}
-                        className="w-full text-left px-3 py-2 text-red-600 hover:bg-red-50 rounded transition flex items-center gap-2 text-xs sm:text-sm"
-                      >
-                        <LogOut className="w-4 h-4" />
-                        Đăng xuất
-                      </button>
+                        <div className="my-0.5 border-t border-gray-200 dark:border-gray-700" />
+
+                        <button
+                          onClick={() => {
+                            setOpen(false);
+                            setLogoutDialogOpen(true);
+                          }}
+                          className="w-full text-left px-3 py-2 text-red-600 hover:bg-red-50 rounded transition flex items-center gap-2 text-xs sm:text-sm"
+                        >
+                          <LogOut className="w-4 h-4" />
+                          Đăng xuất
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
               </div>
             )}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="sm:hidden hover:bg-gray-100"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          >
-            {mobileMenuOpen ? (
-              <X className="w-5 h-5" />
-            ) : (
-              <Menu className="w-5 h-5" />
-            )}
-          </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="sm:hidden hover:bg-gray-100 dark:hover:bg-gray-700 dark:bg-gray-800"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            >
+              {mobileMenuOpen ? (
+                <X className="w-5 h-5" />
+              ) : (
+                <Menu className="w-5 h-5" />
+              )}
+            </Button>
+          </div>
         </div>
-      </div>
+      </header>
 
       {mobileSearchOpen && (
-        <div className="md:hidden px-3 pb-3 border-t border-gray-200 bg-gray-50">
+        <div className="md:hidden px-3 pb-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-950">
           <div className="w-full relative" ref={searchRef}>
             <Input
               type="text"
               value={mobileKeyword}
               onChange={(e) => setMobileKeyword(e.target.value)}
               onFocus={() => {
-                if (mobileSearchResults.length > 0) setMobileResultOpen(true);
+                setMobileResultOpen(true);
               }}
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
@@ -1022,7 +1525,7 @@ function Header() {
                 }
               }}
               placeholder={text || "Tìm kiếm sản phẩm..."}
-              className="w-full rounded-full py-2 pl-4 pr-12 bg-gray-50 border border-gray-200 focus:border-amber-500 focus:bg-white transition"
+              className="w-full rounded-full py-2 pl-4 pr-12 bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-700 focus:border-amber-500 focus:bg-white dark:bg-gray-900 dark:border-gray-800 transition"
             />
 
             <button
@@ -1034,29 +1537,102 @@ function Header() {
             </button>
 
             {mobileResultOpen && (
-              <div className="mt-2 bg-white border border-gray-200 rounded-2xl shadow-lg overflow-hidden">
-                {mobileSearchLoading ? (
-                  <div className="flex items-center justify-center py-6 text-gray-500">
+              <div className="mt-2 bg-white dark:bg-gray-900 dark:border-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-lg overflow-hidden z-50 relative">
+                {!mobileKeyword ? (
+                  <div className="py-2">
+                    {recentSearches.length > 0 && (
+                      <div className="mb-2">
+                        <div className="flex justify-between items-center px-4 py-2 border-b border-gray-50 dark:border-gray-800">
+                          <span className="text-xs font-semibold text-gray-500 dark:text-gray-500 uppercase tracking-wider">Tìm kiếm gần đây</span>
+                          <button onClick={() => setRecentSearches([])} className="text-xs text-amber-600 hover:text-amber-700">Xóa</button>
+                        </div>
+                        <ul className="py-1">
+                          {recentSearches.map((kw, idx) => (
+                            <li key={idx}>
+                              <button
+                                onClick={() => goToSearchPage(kw, true)}
+                                className={`w-[calc(100%-16px)] mx-2 rounded-lg text-left px-4 py-2.5 text-sm flex items-center gap-2 transition hover:bg-amber-50 hover:text-amber-700 dark:hover:bg-amber-900/20`}
+                              >
+                                <Search className="w-3.5 h-3.5 text-gray-400" />
+                                <span className="text-gray-700 dark:text-gray-300">{kw}</span>
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    <div>
+                      <div className="px-4 py-2">
+                        <span className="text-xs font-semibold text-gray-500 dark:text-gray-500 uppercase tracking-wider">Tìm kiếm phổ biến</span>
+                      </div>
+                      <div className="px-4 py-1 pb-4 flex flex-wrap gap-2">
+                        {popularSearches.length > 0 ? (
+                          popularSearches.map((kw, idx) => (
+                            <button
+                              key={idx}
+                              onClick={() => goToSearchPage(kw, true)}
+                              className="px-3 py-1.5 bg-gray-100 hover:bg-amber-100 text-gray-700 hover:text-amber-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-amber-900/40 dark:hover:text-amber-400 rounded-full text-[13px] transition-colors"
+                            >
+                              {kw}
+                            </button>
+                          ))
+                        ) : (
+                          <span className="text-sm text-gray-400">Chưa có dữ liệu</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ) : mobileSearchLoading ? (
+                  <div className="flex items-center justify-center py-6 text-gray-500 dark:text-gray-500">
                     <Loader2 className="w-5 h-5 animate-spin mr-2" />
                     Đang tìm kiếm...
                   </div>
                 ) : mobileSearchResults.length === 0 ? (
-                  <div className="px-4 py-4 text-sm text-gray-500">
+                  <div className="px-4 py-4 text-sm text-gray-500 dark:text-gray-500">
                     Không tìm thấy sản phẩm phù hợp
                   </div>
                 ) : (
-                  <>
-                    {mobileSearchResults.map((item) =>
-                      renderSearchItem(item, true)
-                    )}
+                  <div className="flex flex-col">
+                    <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 relative z-10 shadow-[0_4px_6px_-1px_rgba(0,0,0,0.05)]">
+                      <div className="flex items-center justify-between mb-4">
+                        <span className="text-[15px] font-bold text-gray-500 dark:text-gray-400">
+                          Kết quả tìm kiếm cho <span className="text-red-500">{mobileKeyword}</span>
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <LayoutList
+                            onClick={() => setSearchViewMode("list")}
+                            className={`w-5 h-5 p-0.5 rounded-sm cursor-pointer border ${searchViewMode === 'list' ? 'text-gray-800 dark:text-gray-200 border-gray-800 dark:border-gray-200 bg-gray-100 dark:bg-gray-800' : 'text-gray-400 dark:text-gray-500 border-gray-300 dark:border-gray-600'}`} />
+                          <Grid3X3
+                            onClick={() => setSearchViewMode("grid")}
+                            className={`w-5 h-5 p-0.5 rounded-sm cursor-pointer border ${searchViewMode === 'grid' ? 'text-gray-800 dark:text-gray-200 border-gray-800 dark:border-gray-200 bg-gray-100 dark:bg-gray-800' : 'text-gray-400 dark:text-gray-500 border-gray-300 dark:border-gray-600'}`} />
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-gray-900 dark:text-gray-100 text-[14px]">Hiển thị kết quả theo:</span>
+                        <button className="bg-gray-400 text-white px-3 py-1 rounded-full text-[14px] font-medium hover:bg-gray-500 transition shadow-sm">Sản phẩm</button>
+                      </div>
+                    </div>
+
+                    <div className="max-h-[300px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100 dark:scrollbar-thumb-gray-600 dark:scrollbar-track-gray-800">
+                      {searchViewMode === 'list' ? (
+                        mobileSearchResults.map((item) =>
+                          renderSearchItem(item, true, mobileKeyword)
+                        )
+                      ) : (
+                        <div className="grid grid-cols-2 gap-3 p-3">
+                          {mobileSearchResults.map((item) => renderSearchItemGrid(item, true, mobileKeyword))}
+                        </div>
+                      )}
+                    </div>
+
                     <button
                       type="button"
                       onClick={() => goToSearchPage(mobileKeyword, true)}
-                      className="w-full px-4 py-3 text-sm text-center text-amber-600 border-t border-gray-100 hover:bg-amber-50"
+                      className="w-full py-4 text-[15px] text-center border-t border-gray-200 dark:border-gray-700 transition relative z-10 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800"
                     >
-                      Xem tất cả kết quả cho "{mobileKeyword.trim()}"
+                      Xem thêm sản phẩm có chứa <span className="text-red-500">{mobileKeyword}</span>
                     </button>
-                  </>
+                  </div>
                 )}
               </div>
             )}
@@ -1065,22 +1641,22 @@ function Header() {
       )}
 
       {mobileMenuOpen && (
-        <div className="sm:hidden border-t border-gray-200 bg-gray-50">
+        <div className="sm:hidden border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-950">
           <div className="px-3 py-2 space-y-0.5">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setMobileCategoryOpen(!mobileCategoryOpen)}
-              className="w-full justify-start text-gray-700 text-xs"
+              className="w-full justify-start text-gray-700 dark:text-gray-300 text-xs"
             >
               <Grid3X3 className="w-4 h-4 mr-2" />
               Danh mục
             </Button>
 
             {mobileCategoryOpen && (
-              <div className="bg-white border border-gray-200 rounded-lg p-2 ml-2 mb-2 space-y-1">
+              <div className="bg-white dark:bg-gray-900 dark:border-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-2 ml-2 mb-2 space-y-1">
                 {categories.length === 0 ? (
-                  <div className="px-3 py-2 text-xs text-gray-500">
+                  <div className="px-3 py-2 text-xs text-gray-500 dark:text-gray-500">
                     Không có danh mục
                   </div>
                 ) : (
@@ -1088,9 +1664,14 @@ function Header() {
                     <button
                       key={category.id}
                       onClick={() => goToCategory(category)}
-                      className="w-full text-left px-3 py-2 rounded text-xs text-gray-700 hover:bg-amber-50"
+                      className="w-full flex items-center justify-between px-3 py-2 rounded text-xs text-gray-700 dark:text-gray-300 hover:bg-amber-50 dark:bg-amber-900/20 group"
                     >
-                      {category.name}
+                      <span>{category.name}</span>
+                      {category.product_count !== undefined && (
+                        <span className="text-[10px] text-gray-500 dark:text-gray-500 bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded-full group-hover:bg-amber-200 group-hover:text-amber-700 transition-colors">
+                          {category.product_count}
+                        </span>
+                      )}
                     </button>
                   ))
                 )}
@@ -1104,7 +1685,7 @@ function Header() {
                 navigate("/cart");
                 setMobileMenuOpen(false);
               }}
-              className="w-full justify-start text-gray-700 text-xs"
+              className="w-full justify-start text-gray-700 dark:text-gray-300 text-xs"
             >
               <div className="relative mr-2">
                 <ShoppingCart className="w-4 h-4" />
@@ -1124,7 +1705,7 @@ function Header() {
                 onClick={() => {
                   setShowNotifications((prev) => !prev);
                 }}
-                className="w-full justify-start text-gray-700 text-xs"
+                className="w-full justify-start text-gray-700 dark:text-gray-300 text-xs"
               >
                 <div className="relative mr-2">
                   <Bell className="w-4 h-4" />
@@ -1139,7 +1720,7 @@ function Header() {
             )}
 
             {user && showNotifications && (
-              <div className="bg-white border border-gray-200 rounded-lg p-2 ml-2 mb-2">
+              <div className="bg-white dark:bg-gray-900 dark:border-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-2 ml-2 mb-2">
                 <div className="flex items-center justify-between px-2 py-2 border-b mb-2">
                   <h3 className="font-semibold text-sm">Thông báo</h3>
                   {notifications.length > 0 && (
@@ -1156,7 +1737,7 @@ function Header() {
 
                 <div className="max-h-72 overflow-y-auto">
                   {notifications.length === 0 ? (
-                    <div className="p-2 text-xs text-muted-foreground">
+                    <div className="p-2 text-xs text-muted-foreground dark:text-gray-400">
                       Chưa có thông báo nào
                     </div>
                   ) : (
@@ -1169,14 +1750,13 @@ function Header() {
                           handleReadNotification(item);
                           setMobileMenuOpen(false);
                         }}
-                        className={`w-full text-left px-3 py-3 border-b rounded-md ${
-                          Number(item.is_read) === 0
-                            ? "bg-orange-50"
-                            : "bg-white"
-                        }`}
+                        className={`w-full text-left px-3 py-3 border-b rounded-md ${Number(item.is_read) === 0
+                          ? "bg-orange-50"
+                          : "bg-white dark:bg-gray-900 dark:border-gray-800"
+                          }`}
                       >
                         <p className="font-medium text-xs">{item.title}</p>
-                        <p className="text-xs text-muted-foreground mt-1">
+                        <p className="text-xs text-muted-foreground dark:text-gray-400 mt-1">
                           {item.message}
                         </p>
                         <p className="text-[11px] text-gray-400 mt-1">
@@ -1189,7 +1769,18 @@ function Header() {
               </div>
             )}
 
-            
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                navigate("/store");
+                setMobileMenuOpen(false);
+              }}
+              className="w-full justify-start text-gray-700 dark:text-gray-300 text-xs"
+            >
+              <MapPin className="w-4 h-4 mr-2" />
+              Cửa hàng
+            </Button>
 
             <Button
               variant="ghost"
@@ -1198,11 +1789,12 @@ function Header() {
                 navigate("/news");
                 setMobileMenuOpen(false);
               }}
-              className="w-full justify-start text-gray-700 text-xs"
+              className="w-full justify-start text-gray-700 dark:text-gray-300 text-xs"
             >
               <Newspaper className="w-4 h-4 mr-2" />
               Tin tức
             </Button>
+
           </div>
         </div>
       )}
@@ -1227,7 +1819,13 @@ function Header() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </header>
+
+      <LoyaltyHistoryModal
+        open={loyaltyModalOpen}
+        onOpenChange={setLoyaltyModalOpen}
+        loyaltyPoints={loyaltyPoints}
+      />
+    </>
   );
 }
 

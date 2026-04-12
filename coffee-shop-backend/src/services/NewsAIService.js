@@ -79,56 +79,42 @@ class NewsAIService {
 
   async suggestFromTitle(title) {
     const prompt = `
-Bạn là biên tập viên viết bài cho mục tin tức của website quán cà phê.
+Bạn là biên tập viên blog chuyên nghiệp cho một website quán cà phê.
 
-Dựa trên tiêu đề sau hãy tạo:
-
-1. tag đúng định dạng #xxxxx
-2. summary hấp dẫn 60-160 ký tự
-3. content là HTML hoàn chỉnh, trình bày đẹp và dễ đọc
-
-Yêu cầu content:
-- Bắt đầu bằng đoạn mở đầu giới thiệu chủ đề
-- Có ít nhất 3 tiêu đề phụ <h2>
-- Có danh sách <ul><li> khi phù hợp
-- Nội dung rõ ràng, tự nhiên, phù hợp blog tin tức
-- HTML sạch chỉ dùng các thẻ:
-<p>, <h2>, <ul>, <li>, <strong>, <em>
-
-Cấu trúc gợi ý:
-
-<p>Đoạn mở đầu...</p>
-
-<h2>Phần nội dung chính</h2>
-<p>...</p>
-
-<h2>Lợi ích hoặc điểm nổi bật</h2>
-<ul>
-<li>...</li>
-<li>...</li>
-</ul>
-
-<h2>Kết luận</h2>
-<p>...</p>
-
-Quy tắc:
-- Không markdown
-- Chỉ trả JSON
-- Nội dung tối thiểu 200 ký tự
+Nhiệm vụ: Dựa trên tiêu đề bài viết, hãy sáng tạo nội dung chi tiết.
 
 Tiêu đề: "${title}"
+
+Yêu cầu đầu ra:
+1. tag: 1 hashtag chính, viết liền, có dấu hoặc không dấu (vd: #CaPheNgon)
+2. summary: Tóm tắt bài viết cực kỳ hấp dẫn, khơi gợi tò mò (khoảng 60-160 ký tự).
+3. content: TOÀN BỘ nội dung bài viết bằng HTML.
+
+Yêu cầu BẮT BUỘC cho phần "content":
+- Nội dung vừa đủ, KHÔNG ĐƯỢC VƯỢT QUÁ 4500 KÝ TỰ (khoảng 300 - 500 từ). Hãy viết súc tích, đi thẳng vào vấn đề nhưng vẫn cuốn hút.
+- Bố cục rõ ràng: Mở bài hấp dẫn -> 2-3 đoạn thân bài (có tiêu đề phụ) -> Kết luận.
+- Bắt buộc phải có ít nhất 2 tiêu đề phụ dùng thẻ <h2>.
+- Bắt buộc phải có ít nhất 1 danh sách dùng thẻ <ul> và <li> (vd: các điểm nhấn, phân loại, lợi ích...).
+- Văn phong tự nhiên, chuyên nghiệp của một blogger ẩm thực/cà phê.
+- CHỈ sử dụng các thẻ HTML sau đây để trình bày (tuyệt đối không dùng <h1>, <div>, class, style, hay markdown):
+<p>, <h2>, <ul>, <li>, <strong>, <em>
+
+Viết nội dung THẬT SỰ, CHẤT LƯỢNG, TUYỆT ĐỐI KHÔNG vượt quá 5000 ký tự, không dùng các câu văn giữ chỗ.
 `;
 
     const response = await this.generateRobust({
       contents: prompt,
       config: {
+        systemInstruction: "Bạn là chuyên gia cà phê hàng đầu. BẠN BẮT BUỘC PHẢI VIẾT BÀI NGẮN GỌN (khoảng 300 - 500 TỪ), TUYỆT ĐỐI KHÔNG VƯỢT QUÁ 5000 KÝ TỰ. Hãy viết súc tích và mạch lạc.",
+        maxOutputTokens: 4096,
+        temperature: 0.7,
         responseMimeType: "application/json",
         responseJsonSchema: {
           type: "object",
           properties: {
             tag: { type: "string" },
             summary: { type: "string" },
-            content: { type: "string" },
+            content: { type: "string", description: "Toàn bộ bài viết HTML định dạng bằng thẻ p, h2, ul, li, strong, em. TUYỆT ĐỐI KHÔNG VƯỢT QUÁ 5000 KÝ TỰ." },
           },
           required: ["tag", "summary", "content"],
         },
@@ -140,52 +126,37 @@ Tiêu đề: "${title}"
 
   async suggestContentFromSummary(title, summary) {
     const prompt = `
-Bạn là biên tập viên blog cho website quán cà phê.
+Bạn là biên tập viên blog chuyên nghiệp cho một website quán cà phê.
 
-Dựa trên:
+Nhiệm vụ: Viết MỘT BÀI VIẾT HOÀN CHỈNH, RẤT CHI TIẾT dựa trên Tiêu đề và Tóm tắt sau:
 
 Tiêu đề: "${title}"
 Tóm tắt: "${summary}"
 
-Hãy viết bài content HTML hoàn chỉnh.
-
-Yêu cầu:
-- Có đoạn mở đầu
-- Có ít nhất 3 tiêu đề <h2>
-- Có danh sách <ul> khi phù hợp
-- Văn phong thân thiện, tự nhiên
-- Nội dung giống bài blog thực tế
-
-HTML chỉ dùng:
+Yêu cầu BẮT BUỘC cho nội dung bài viết (content):
+- ĐỘ DÀI: Bài viết súc tích, cô đọng (khoảng 300 - 500 từ). TUYỆT ĐỐI KHÔNG VƯỢT QUÁ 4500 KÝ TỰ.
+- Mở bài: Dẫn dắt lôi cuốn, đi thẳng vào vấn đề.
+- Thân bài: Phải có ít nhất 2 tiêu đề phụ (dùng thẻ <h2>).
+- Danh sách: Có ít nhất 1 danh sách dạng bullet (dùng thẻ <ul> và <li>) để làm nổi bật các ý chính.
+- Kết luận: Chốt lại vấn đề ngắn gọn.
+- Văn phong: Mang tính chuyên gia, đam mê, am hiểu về cà phê.
+- ĐỊNH DẠNG HOÀN TOÀN BẰNG HTML. Chỉ được phép sử dụng các thẻ sau:
 <p>, <h2>, <ul>, <li>, <strong>, <em>
 
-Cấu trúc ví dụ:
-
-<p>Mở đầu...</p>
-
-<h2>Thông tin chính</h2>
-<p>...</p>
-
-<h2>Điểm nổi bật</h2>
-<ul>
-<li>...</li>
-<li>...</li>
-</ul>
-
-<h2>Kết luận</h2>
-<p>...</p>
-
-Chỉ trả JSON.
+Hãy viết nội dung THẬT, chất lượng cao. KHÔNG viết các phần giữ chỗ kiểu "Nội dung chính rơi vào đây...".
 `;
 
     const response = await this.generateRobust({
       contents: prompt,
       config: {
+        systemInstruction: "Bạn là chuyên gia ẩm thực và cà phê chuyên nghiệp. CHÚ Ý QUAN TRỌNG: Bạn BẮT BUỘC phải viết bài SÚC TÍCH, khoảng 300 đến 500 từ. TUYỆT ĐỐI KHÔNG VƯỢT QUÁ 5000 KÝ TỰ.",
+        maxOutputTokens: 4096,
+        temperature: 0.7,
         responseMimeType: "application/json",
         responseJsonSchema: {
           type: "object",
           properties: {
-            content: { type: "string" },
+            content: { type: "string", description: "Toàn bộ bài viết HTML định dạng bằng thẻ p, h2, ul, li, strong, em. TUYỆT ĐỐI KHÔNG VƯỢT QUÁ 5000 KÝ TỰ." },
           },
           required: ["content"],
         },

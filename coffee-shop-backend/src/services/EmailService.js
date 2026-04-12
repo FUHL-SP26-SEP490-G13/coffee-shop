@@ -248,6 +248,8 @@ class EmailService {
     }
   }
 
+
+
   /**
    * Send staff account credentials email
    */
@@ -434,6 +436,8 @@ class EmailService {
 </html>
     `;
   }
+
+
 
   /**
    * Staff account email template

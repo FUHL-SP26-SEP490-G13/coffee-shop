@@ -1,5 +1,5 @@
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Plus, Search, Edit, Trash2 } from 'lucide-react';
 import toppingService from '../../../services/toppingService';
 import useFetch from '../../../hooks/useFetch';
@@ -13,6 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from '../../../components/ui/table';
+import PaginationControl from '../../../components/common/PaginationControl';
 import CreateTopping from './Action/CreateTopping';
 import UpdateTopping from './Action/UpdateTopping';
 import DeleteTopping from './Action/DeleteTopping';
@@ -46,13 +47,28 @@ export default function AdminToppings() {
     );
   }, [toppings, searchQuery]);
 
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 10;
+  const totalPages = Math.ceil(filteredToppings.length / PAGE_SIZE);
+
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(1);
+    }
+  }, [filteredToppings.length, totalPages, currentPage]);
+
+  const currentToppings = useMemo(() => {
+    const startIndex = (currentPage - 1) * PAGE_SIZE;
+    return filteredToppings.slice(startIndex, startIndex + PAGE_SIZE);
+  }, [filteredToppings, currentPage]);
+
   return (
     <div className='p-6'>
       {/* ===== HEADER ===== */}
       <div className='flex items-center justify-between mb-6'>
         <div>
-          <h2 className='text-2xl mb-1'>Topping</h2>
-          <p className='text-sm text-muted-foreground'>Quản lý topping quán cà phê</p>
+          <h2 className="text-xl font-semibold">Topping</h2>
         </div>
         <Button onClick={() => openModal('create')} className='cursor-pointer'>
           <Plus className='w-4 h-4 mr-2' />
@@ -78,10 +94,10 @@ export default function AdminToppings() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Tên topping</TableHead>
-              <TableHead>Giá</TableHead>
-              <TableHead>Trạng thái</TableHead>
-              <TableHead className='text-right'>Hành động</TableHead>
+              <TableHead className="text-center w-[60px]">STT</TableHead>
+              <TableHead className="min-w-[180px]">Tên topping</TableHead>
+              <TableHead className="text-center min-w-[130px]">Giá</TableHead>
+              <TableHead className="text-center min-w-[140px]">Hành động</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -95,21 +111,17 @@ export default function AdminToppings() {
                 <TableCell colSpan={4} className='text-center py-6'>Không có topping nào</TableCell>
               </TableRow>
             )}
-            {!loading && filteredToppings.map((topping) => (
+            {!loading && currentToppings.map((topping, idx) => (
               <TableRow key={topping.id}>
+                <TableCell className="text-center font-medium">{(currentPage - 1) * PAGE_SIZE + idx + 1}</TableCell>
                 <TableCell>{topping.name}</TableCell>
-                <TableCell>{Number(topping.price).toLocaleString('vi-VN')}đ</TableCell>
+                <TableCell className="text-center">{Number(topping.price).toLocaleString('vi-VN')}đ</TableCell>
                 <TableCell>
-                  <span className={topping.is_active ? 'text-green-600' : 'text-red-600'}>
-                    {topping.is_active ? 'Hoạt động' : 'Ẩn'}
-                  </span>
-                </TableCell>
-                <TableCell className='text-right'>
-                  <div className='flex items-center justify-end gap-2'>
-                    <Button variant='ghost' size='sm' className='cursor-pointer' onClick={() => openModal('update', topping)}>
+                  <div className='flex items-center justify-center gap-1'>
+                    <Button variant='ghost' size='sm' className='cursor-pointer' title="Chỉnh sửa" onClick={() => openModal('update', topping)}>
                       <Edit className='w-4 h-4' />
                     </Button>
-                    <Button variant='ghost' size='sm' className='text-destructive cursor-pointer' onClick={() => openModal('delete', topping)}>
+                    <Button variant='ghost' size='sm' className='text-destructive cursor-pointer hover:text-red-600' title="Xóa" onClick={() => openModal('delete', topping)}>
                       <Trash2 className='w-4 h-4' />
                     </Button>
                   </div>
@@ -119,6 +131,15 @@ export default function AdminToppings() {
           </TableBody>
         </Table>
       </div>
+
+      <PaginationControl
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+        totalItems={filteredToppings.length}
+        itemsPerPage={PAGE_SIZE}
+        itemName="topping"
+      />
 
       {/* ===== MODALS ===== */}
       {modal.type === 'create' && (

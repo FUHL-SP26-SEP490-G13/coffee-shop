@@ -1,4 +1,5 @@
 const pool = require("../config/database");
+const CashSessionRepository = require("./CashSessionRepository");
 
 class BaristaDBRepository {
   async getOverview() {
@@ -54,23 +55,90 @@ class BaristaDBRepository {
     }));
   }
 
-  async getActiveOrders() {
-    const [rows] = await pool.query(`
+  async getActiveOrders(statuses = ["pending", "preparing", "served"], filters = {}) {
+    const normalizedStatuses = Array.isArray(statuses)
+      ? statuses
+          .map((status) => String(status || "").trim().toLowerCase())
+          .filter((status) =>
+            ["pending", "preparing", "served", "delivering", "completed", "cancelled"].includes(
+              status
+            )
+          )
+      : [];
+
+    const finalStatuses = normalizedStatuses.length
+      ? normalizedStatuses
+      : ["pending", "preparing", "served"];
+
+    const placeholders = finalStatuses.map(() => "?").join(", ");
+
+    let dateFilterSql = "";
+    const queryParams = [...finalStatuses];
+
+    if (filters.startDate && filters.endDate) {
+      dateFilterSql = " AND o.created_at >= ? AND o.created_at <= ? + INTERVAL 1 DAY - INTERVAL 1 SECOND";
+      queryParams.push(filters.startDate, filters.endDate);
+    } else if (filters.today) {
+      dateFilterSql = " AND DATE(o.created_at) = CURDATE()";
+    }
+
+    const currentSession = await CashSessionRepository.getCurrentSession();
+    if (currentSession && currentSession.id) {
+       dateFilterSql += " AND (o.cash_session_id IS NULL OR o.cash_session_id = ?)";
+       queryParams.push(currentSession.id);
+    } else {
+       dateFilterSql += " AND o.cash_session_id IS NULL";
+    }
+
+    const [rows] = await pool.query(
+      `
       SELECT
         o.id,
         o.order_type,
         o.status,
+        o.print_status,
+        o.is_paid,
         o.created_at,
         o.total_amount,
+        o.delivery_fee,
+        o.used_points,
+        op.payment_method,
+        op.payment_status,
+        odi.receiver_name,
+        odi.receiver_phone,
+        odi.address,
+        odi.note AS delivery_note,
+        t.code AS table_code,
         COUNT(od.id) AS itemCount
       FROM orders o
       LEFT JOIN order_details od ON od.order_id = o.id
-      WHERE o.status IN ('pending', 'preparing', 'served')
-      GROUP BY o.id, o.order_type, o.status, o.created_at, o.total_amount
-      ORDER BY 
-        FIELD(o.status, 'pending', 'preparing', 'served'),
+      LEFT JOIN order_payments op ON op.order_id = o.id
+      LEFT JOIN order_delivery_info odi ON odi.order_id = o.id
+      LEFT JOIN tables t ON o.table_id = t.id
+      WHERE o.status IN (${placeholders}) ${dateFilterSql}
+      GROUP BY
+        o.id,
+        o.order_type,
+        o.status,
+        o.print_status,
+        o.is_paid,
+        o.created_at,
+        o.total_amount,
+        o.delivery_fee,
+        o.used_points,
+        op.payment_method,
+        op.payment_status,
+        odi.receiver_name,
+        odi.receiver_phone,
+        odi.address,
+        odi.note,
+        t.code
+      ORDER BY
+        FIELD(o.status, 'pending', 'preparing', 'served', 'delivering', 'completed', 'cancelled'),
         o.created_at ASC
-    `);
+    `,
+      queryParams
+    );
 
     return rows;
   }
@@ -79,8 +147,13 @@ class BaristaDBRepository {
     const [rows] = await pool.query(
       `
       SELECT
+        od.id,
+        p.id AS productId,
         p.name AS productName,
+        p.name AS product_name,
+        ps.id AS productSizeId,
         ps.size,
+        ps.size AS product_size,
         od.quantity,
         od.price,
         od.note
@@ -92,6 +165,25 @@ class BaristaDBRepository {
       `,
       [orderId]
     );
+
+    for (const item of rows) {
+      const [toppings] = await pool.query(
+        `
+        SELECT
+          odt.id,
+          odt.topping_id,
+          odt.quantity,
+          odt.price,
+          t.name
+        FROM order_detail_toppings odt
+        JOIN toppings t ON t.id = odt.topping_id
+        WHERE odt.order_detail_id = ?
+        `,
+        [item.id] // Use item.id from order_details
+      );
+
+      item.toppings = toppings;
+    }
 
     return rows;
   }

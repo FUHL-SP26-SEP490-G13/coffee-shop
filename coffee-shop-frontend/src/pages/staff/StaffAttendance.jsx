@@ -22,8 +22,8 @@ export function StaffAttendance() {
   };
 
   return (
-    <div className="p-4 max-w-2xl mx-auto">
-      <h2 className="text-xl mb-6">Attendance</h2>
+    <div className="p-4 sm:p-6 lg:p-8 space-y-6">
+      <h1 className="text-xl font-bold tracking-tight mb-6">Attendance</h1>
 
       {/* Check In/Out Card */}
       <Card className="p-6 mb-6 bg-gradient-to-br from-primary/5 to-accent/5">
@@ -48,7 +48,7 @@ export function StaffAttendance() {
 
         {isCheckedIn && (
           <div className="mt-4 text-center">
-            <Badge variant="secondary" className="bg-green-500/10 text-green-700">
+            <Badge variant="secondary" className="bg-green-500/10 text-green-700 dark:text-green-400">
               Currently Checked In • 5h 45m
             </Badge>
           </div>
@@ -79,7 +79,7 @@ export function StaffAttendance() {
                   <Badge
                     className={
                       record.status === 'present'
-                        ? 'bg-green-500/10 text-green-700'
+                        ? 'bg-green-500/10 text-green-700 dark:text-green-400'
                         : record.status === 'late'
                         ? 'bg-yellow-500/10 text-yellow-700'
                         : 'bg-red-500/10 text-red-700'

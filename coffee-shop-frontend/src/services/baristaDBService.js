@@ -5,17 +5,35 @@ const baristaDBService = {
     return await axiosClient.get("/barista/dashboard");
   },
 
-  getOrders: async (status = null) => {
-    const url = status ? `/orders?status=${status}` : "/orders";
-    return await axiosClient.get(url);
-  },
+  // COMMENT TẠM: Lấy danh sách các Orders (tất cả các phương thức đặt hàng) 
+  // đang ở trạng thái "preparing"
+
+  // getOrders: async (status = null) => {
+  //   const url = status ? `/orders?status=${status}` : "/orders";
+  //   return await axiosClient.get(url);
+  // },
 
   getOrderTrends: async (hours = 6) => {
     return await axiosClient.get(`/barista/dashboard/trends?hours=${hours}`);
   },
 
-  getActiveOrders: async () => {
-    return await axiosClient.get("/barista/dashboard/active-orders");
+  getActiveOrders: async (statuses = null, filters = {}) => {
+    const params = new URLSearchParams();
+    if (Array.isArray(statuses) && statuses.length) {
+      params.append("statuses", statuses.join(","));
+    }
+    if (filters.today) {
+      params.append("today", "true");
+    }
+    if (filters.startDate) {
+      params.append("startDate", filters.startDate);
+    }
+    if (filters.endDate) {
+      params.append("endDate", filters.endDate);
+    }
+
+    const query = params.toString() ? `?${params.toString()}` : "";
+    return await axiosClient.get(`/barista/dashboard/active-orders${query}`);
   },
 
   getDelayedOrders: async (minutes = 15) => {
@@ -30,8 +48,12 @@ const baristaDBService = {
     );
   },
 
+  // COMMENT TẠM: Cập nhật trạng thái Order sau khi làm xong 
+  // (ví dụ: từ "preparing" sang "served" hoặc "delivered" (trường hợp đặt hàng 
+  // theo giao hàng online))
+
   updateOrderStatus: async (orderId, status) => {
-    return await axiosClient.put(`/orders/${orderId}/status`, { status });
+    return await axiosClient.put(`/barista/orders/${orderId}/status`, { status });
   },
 };
 

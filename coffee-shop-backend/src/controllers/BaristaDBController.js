@@ -1,4 +1,5 @@
 const service = require("../services/BaristaDBService");
+const OrderRepository = require("../repositories/OrderRepository");
 
 class BaristaDBController {
   async getOverview(req, res, next) {
@@ -30,7 +31,20 @@ class BaristaDBController {
 
   async getActiveOrders(req, res, next) {
     try {
-      const data = await service.getActiveOrders();
+      const statuses = String(req.query.statuses || "")
+        .split(",")
+        .map((status) => status.trim())
+        .filter(Boolean);
+
+      const filters = {};
+      if (req.query.startDate && req.query.endDate) {
+        filters.startDate = req.query.startDate;
+        filters.endDate = req.query.endDate;
+      } else if (req.query.today === 'true') {
+        filters.today = true;
+      }
+
+      const data = await service.getActiveOrders(statuses, filters);
 
       return res.json({
         success: true,
@@ -63,6 +77,26 @@ class BaristaDBController {
       return res.json({
         success: true,
         data,
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async updateStatus(req, res, next) {
+    try {
+      const { id } = req.params;
+      const { status } = req.body;
+
+      if (!status) {
+        return res.status(400).json({ success: false, message: "Thiếu trạng thái" });
+      }
+
+      await OrderRepository.updateOrderStatus(id, status);
+
+      return res.json({
+        success: true,
+        message: "Cập nhật trạng thái thành công",
       });
     } catch (err) {
       next(err);
