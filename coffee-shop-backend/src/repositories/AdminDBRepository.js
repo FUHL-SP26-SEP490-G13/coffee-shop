@@ -1,5 +1,4 @@
 const pool = require("../config/database");
-
 class AdminDBRepository {
   async getRevenueToday() {
     const [[row]] = await pool.query(`
@@ -9,7 +8,7 @@ class AdminDBRepository {
     `);
     return Number(row.revenue || 0);
   }
-
+// số lượng đơn hàng đã thanh toán hôm nay
   async getOrdersToday() {
     const [[row]] = await pool.query(`
       SELECT COUNT(*) as total
@@ -18,14 +17,14 @@ class AdminDBRepository {
     `);
     return Number(row.total || 0);
   }
-
+// số lượng khách hàng đã đăng ký tài khoản
   async getTotalUsers() {
     const [[row]] = await pool.query(`
       SELECT COUNT(*) as total FROM users
     `);
     return Number(row.total || 0);
   }
-
+// số lượng mã giảm giá đang hoạt động
   async getActiveDiscounts() {
     const [[row]] = await pool.query(`
     SELECT COUNT(*) as total
@@ -124,7 +123,7 @@ class AdminDBRepository {
     `,
       [startDate, endDate]
     );
-
+// prevStartDate và prevEndDate đã được tính toán ở service để đảm bảo cùng độ dài với khoảng thời gian hiện tại
     const [[previous]] = await pool.query(
       `
     SELECT 
@@ -136,7 +135,7 @@ class AdminDBRepository {
     `,
       [prevStartDate, prevEndDate]
     );
-
+// Hàm tính phần trăm tăng trưởng, trả về 0 nếu giá trị trước đó là 0 để tránh chia cho 0
     const calcGrowth = (cur, prev) => {
       if (prev === 0) return 0;
       return ((cur - prev) / prev) * 100;
@@ -172,7 +171,7 @@ class AdminDBRepository {
     }));
   }
 
-  // Tóm tắt số lượng đơn hàng theo trạng thái
+  // số lượng đơn hàng theo trạng thái
   async getOrdersSummary({ startDate, endDate }) {
     const [rows] = await pool.query(
       `
@@ -195,7 +194,7 @@ class AdminDBRepository {
       revenue: Number(r.revenue || 0),
     }));
   }
-
+// Báo cáo chi tiết đơn hàng
   async getDetailedOrdersReport({ startDate, endDate }) {
     const [rows] = await pool.query(
       `SELECT 
