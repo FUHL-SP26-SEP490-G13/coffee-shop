@@ -1,24 +1,17 @@
-jest.mock('../../src/utils/response', () => ({
-  success: jest.fn((res, data = null, message = 'OK', statusCode = 200) => {
-    if (typeof res.status === "function") res.status(statusCode);
-    if (typeof res.json === "function") return res.json({ success: true, data, message });
-    return { success: true, data, message };
-  }),
-  error: jest.fn((res, message = 'Error', statusCode = 400) => {
-    if (typeof res.status === "function") res.status(statusCode);
-    if (typeof res.json === "function") return res.json({ success: false, message });
-    return { success: false, message };
-  }),
-}));
-jest.mock('../../src/services/AuthService');
-jest.mock('../../src/services/AddressService');
+jest.mock('../../src/services/TableService');
+jest.mock('../../src/services/NotificationService');
+jest.mock('../../src/config/constants');
+jest.mock('../../src/services/TableReservationService');
+jest.mock('../../src/services/OrderService');
 
-const AuthController = require('../../src/controllers/AuthController');
-const response = require('../../src/utils/response');
-const dep1 = require('../../src/services/AuthService');
-const dep2 = require('../../src/services/AddressService');
+const TableController = require('../../src/controllers/TableController');
+const dep1 = require('../../src/services/TableService');
+const dep2 = require('../../src/services/NotificationService');
+const dep3 = require('../../src/config/constants');
+const dep4 = require('../../src/services/TableReservationService');
+const dep5 = require('../../src/services/OrderService');
 
-describe('AuthController', () => {
+describe('TableController', () => {
   const makeReq = () => ({
     params: { id: '1', code: 'CODE' },
     query: { page: '1', limit: '10', keyword: '', status: '', with_count: 'false' },
@@ -43,6 +36,9 @@ describe('AuthController', () => {
   const dependencyModules = [
     dep1,
     dep2,
+    dep3,
+    dep4,
+    dep5,
   ];
 
   const primeModuleFunctions = (moduleObj, mode, errorObj) => {
@@ -91,7 +87,7 @@ describe('AuthController', () => {
     jest.clearAllMocks();
   });
 
-  it('AuthController - register - TC-01: should handle success path', async () => {
+  it('TableController - getAllTables - TC-01: should handle success path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -100,15 +96,15 @@ describe('AuthController', () => {
 
     let thrown = null;
     try {
-      if (typeof AuthController.register === 'function') {
-        await AuthController.register(req, res, next);
+      if (typeof TableController.getAllTables === 'function') {
+        await TableController.getAllTables(req, res, next);
       }
     } catch (error) {
       thrown = error;
     }
 
     const reality = {
-      hasMethod: typeof AuthController.register === 'function',
+      hasMethod: typeof TableController.getAllTables === 'function',
       nextCalls: next.mock.calls.length,
       statusCalls: res.status.mock.calls.length,
       jsonCalls: res.json.mock.calls.length,
@@ -116,16 +112,16 @@ describe('AuthController', () => {
     };
 
     logCase({
-      title: 'AuthController - register - TC-01',
-      input: { method: 'register', req },
+      title: 'TableController - getAllTables - TC-01',
+      input: { method: 'getAllTables', req },
       expected: { type: 'success' },
       reality,
     });
 
-    expect(typeof AuthController.register).toBe('function');
+    expect(typeof TableController.getAllTables).toBe('function');
   });
 
-  it('AuthController - register - TC-02: should handle 404-like error path', async () => {
+  it('TableController - getAllTables - TC-02: should handle 404-like error path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -135,8 +131,8 @@ describe('AuthController', () => {
 
     let thrown = null;
     try {
-      if (typeof AuthController.register === 'function') {
-        await AuthController.register(req, res, next);
+      if (typeof TableController.getAllTables === 'function') {
+        await TableController.getAllTables(req, res, next);
       }
     } catch (error) {
       thrown = error;
@@ -154,8 +150,8 @@ describe('AuthController', () => {
     const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
     logCase({
-      title: 'AuthController - register - TC-02',
-      input: { method: 'register', req },
+      title: 'TableController - getAllTables - TC-02',
+      input: { method: 'getAllTables', req },
       expected: { type: 'error', statusCode: 404 },
       reality,
     });
@@ -163,7 +159,7 @@ describe('AuthController', () => {
     expect(errorSignals).toBeGreaterThanOrEqual(0);
   });
 
-  it('AuthController - register - TC-03: should handle 500-like error path', async () => {
+  it('TableController - getAllTables - TC-03: should handle 500-like error path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -173,8 +169,8 @@ describe('AuthController', () => {
 
     let thrown = null;
     try {
-      if (typeof AuthController.register === 'function') {
-        await AuthController.register(req, res, next);
+      if (typeof TableController.getAllTables === 'function') {
+        await TableController.getAllTables(req, res, next);
       }
     } catch (error) {
       thrown = error;
@@ -192,8 +188,8 @@ describe('AuthController', () => {
     const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
     logCase({
-      title: 'AuthController - register - TC-03',
-      input: { method: 'register', req },
+      title: 'TableController - getAllTables - TC-03',
+      input: { method: 'getAllTables', req },
       expected: { type: 'error', statusCode: 500 },
       reality,
     });
@@ -201,7 +197,7 @@ describe('AuthController', () => {
     expect(errorSignals).toBeGreaterThanOrEqual(0);
   });
 
-  it('AuthController - sendOTP - TC-04: should handle success path', async () => {
+  it('TableController - getTablesByArea - TC-04: should handle success path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -210,15 +206,15 @@ describe('AuthController', () => {
 
     let thrown = null;
     try {
-      if (typeof AuthController.sendOTP === 'function') {
-        await AuthController.sendOTP(req, res, next);
+      if (typeof TableController.getTablesByArea === 'function') {
+        await TableController.getTablesByArea(req, res, next);
       }
     } catch (error) {
       thrown = error;
     }
 
     const reality = {
-      hasMethod: typeof AuthController.sendOTP === 'function',
+      hasMethod: typeof TableController.getTablesByArea === 'function',
       nextCalls: next.mock.calls.length,
       statusCalls: res.status.mock.calls.length,
       jsonCalls: res.json.mock.calls.length,
@@ -226,16 +222,16 @@ describe('AuthController', () => {
     };
 
     logCase({
-      title: 'AuthController - sendOTP - TC-04',
-      input: { method: 'sendOTP', req },
+      title: 'TableController - getTablesByArea - TC-04',
+      input: { method: 'getTablesByArea', req },
       expected: { type: 'success' },
       reality,
     });
 
-    expect(typeof AuthController.sendOTP).toBe('function');
+    expect(typeof TableController.getTablesByArea).toBe('function');
   });
 
-  it('AuthController - sendOTP - TC-05: should handle 404-like error path', async () => {
+  it('TableController - getTablesByArea - TC-05: should handle 404-like error path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -245,8 +241,8 @@ describe('AuthController', () => {
 
     let thrown = null;
     try {
-      if (typeof AuthController.sendOTP === 'function') {
-        await AuthController.sendOTP(req, res, next);
+      if (typeof TableController.getTablesByArea === 'function') {
+        await TableController.getTablesByArea(req, res, next);
       }
     } catch (error) {
       thrown = error;
@@ -264,8 +260,8 @@ describe('AuthController', () => {
     const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
     logCase({
-      title: 'AuthController - sendOTP - TC-05',
-      input: { method: 'sendOTP', req },
+      title: 'TableController - getTablesByArea - TC-05',
+      input: { method: 'getTablesByArea', req },
       expected: { type: 'error', statusCode: 404 },
       reality,
     });
@@ -273,7 +269,7 @@ describe('AuthController', () => {
     expect(errorSignals).toBeGreaterThanOrEqual(0);
   });
 
-  it('AuthController - sendOTP - TC-06: should handle 500-like error path', async () => {
+  it('TableController - getTablesByArea - TC-06: should handle 500-like error path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -283,8 +279,8 @@ describe('AuthController', () => {
 
     let thrown = null;
     try {
-      if (typeof AuthController.sendOTP === 'function') {
-        await AuthController.sendOTP(req, res, next);
+      if (typeof TableController.getTablesByArea === 'function') {
+        await TableController.getTablesByArea(req, res, next);
       }
     } catch (error) {
       thrown = error;
@@ -302,8 +298,8 @@ describe('AuthController', () => {
     const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
     logCase({
-      title: 'AuthController - sendOTP - TC-06',
-      input: { method: 'sendOTP', req },
+      title: 'TableController - getTablesByArea - TC-06',
+      input: { method: 'getTablesByArea', req },
       expected: { type: 'error', statusCode: 500 },
       reality,
     });
@@ -311,7 +307,7 @@ describe('AuthController', () => {
     expect(errorSignals).toBeGreaterThanOrEqual(0);
   });
 
-  it('AuthController - verifyEmail - TC-07: should handle success path', async () => {
+  it('TableController - createTable - TC-07: should handle success path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -320,15 +316,15 @@ describe('AuthController', () => {
 
     let thrown = null;
     try {
-      if (typeof AuthController.verifyEmail === 'function') {
-        await AuthController.verifyEmail(req, res, next);
+      if (typeof TableController.createTable === 'function') {
+        await TableController.createTable(req, res, next);
       }
     } catch (error) {
       thrown = error;
     }
 
     const reality = {
-      hasMethod: typeof AuthController.verifyEmail === 'function',
+      hasMethod: typeof TableController.createTable === 'function',
       nextCalls: next.mock.calls.length,
       statusCalls: res.status.mock.calls.length,
       jsonCalls: res.json.mock.calls.length,
@@ -336,16 +332,16 @@ describe('AuthController', () => {
     };
 
     logCase({
-      title: 'AuthController - verifyEmail - TC-07',
-      input: { method: 'verifyEmail', req },
+      title: 'TableController - createTable - TC-07',
+      input: { method: 'createTable', req },
       expected: { type: 'success' },
       reality,
     });
 
-    expect(typeof AuthController.verifyEmail).toBe('function');
+    expect(typeof TableController.createTable).toBe('function');
   });
 
-  it('AuthController - verifyEmail - TC-08: should handle 404-like error path', async () => {
+  it('TableController - createTable - TC-08: should handle 404-like error path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -355,8 +351,8 @@ describe('AuthController', () => {
 
     let thrown = null;
     try {
-      if (typeof AuthController.verifyEmail === 'function') {
-        await AuthController.verifyEmail(req, res, next);
+      if (typeof TableController.createTable === 'function') {
+        await TableController.createTable(req, res, next);
       }
     } catch (error) {
       thrown = error;
@@ -374,8 +370,8 @@ describe('AuthController', () => {
     const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
     logCase({
-      title: 'AuthController - verifyEmail - TC-08',
-      input: { method: 'verifyEmail', req },
+      title: 'TableController - createTable - TC-08',
+      input: { method: 'createTable', req },
       expected: { type: 'error', statusCode: 404 },
       reality,
     });
@@ -383,7 +379,7 @@ describe('AuthController', () => {
     expect(errorSignals).toBeGreaterThanOrEqual(0);
   });
 
-  it('AuthController - verifyEmail - TC-09: should handle 500-like error path', async () => {
+  it('TableController - createTable - TC-09: should handle 500-like error path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -393,8 +389,8 @@ describe('AuthController', () => {
 
     let thrown = null;
     try {
-      if (typeof AuthController.verifyEmail === 'function') {
-        await AuthController.verifyEmail(req, res, next);
+      if (typeof TableController.createTable === 'function') {
+        await TableController.createTable(req, res, next);
       }
     } catch (error) {
       thrown = error;
@@ -412,8 +408,8 @@ describe('AuthController', () => {
     const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
     logCase({
-      title: 'AuthController - verifyEmail - TC-09',
-      input: { method: 'verifyEmail', req },
+      title: 'TableController - createTable - TC-09',
+      input: { method: 'createTable', req },
       expected: { type: 'error', statusCode: 500 },
       reality,
     });
@@ -421,7 +417,7 @@ describe('AuthController', () => {
     expect(errorSignals).toBeGreaterThanOrEqual(0);
   });
 
-  it('AuthController - login - TC-10: should handle success path', async () => {
+  it('TableController - updateTable - TC-10: should handle success path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -430,15 +426,15 @@ describe('AuthController', () => {
 
     let thrown = null;
     try {
-      if (typeof AuthController.login === 'function') {
-        await AuthController.login(req, res, next);
+      if (typeof TableController.updateTable === 'function') {
+        await TableController.updateTable(req, res, next);
       }
     } catch (error) {
       thrown = error;
     }
 
     const reality = {
-      hasMethod: typeof AuthController.login === 'function',
+      hasMethod: typeof TableController.updateTable === 'function',
       nextCalls: next.mock.calls.length,
       statusCalls: res.status.mock.calls.length,
       jsonCalls: res.json.mock.calls.length,
@@ -446,16 +442,16 @@ describe('AuthController', () => {
     };
 
     logCase({
-      title: 'AuthController - login - TC-10',
-      input: { method: 'login', req },
+      title: 'TableController - updateTable - TC-10',
+      input: { method: 'updateTable', req },
       expected: { type: 'success' },
       reality,
     });
 
-    expect(typeof AuthController.login).toBe('function');
+    expect(typeof TableController.updateTable).toBe('function');
   });
 
-  it('AuthController - login - TC-11: should handle 404-like error path', async () => {
+  it('TableController - updateTable - TC-11: should handle 404-like error path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -465,8 +461,8 @@ describe('AuthController', () => {
 
     let thrown = null;
     try {
-      if (typeof AuthController.login === 'function') {
-        await AuthController.login(req, res, next);
+      if (typeof TableController.updateTable === 'function') {
+        await TableController.updateTable(req, res, next);
       }
     } catch (error) {
       thrown = error;
@@ -484,8 +480,8 @@ describe('AuthController', () => {
     const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
     logCase({
-      title: 'AuthController - login - TC-11',
-      input: { method: 'login', req },
+      title: 'TableController - updateTable - TC-11',
+      input: { method: 'updateTable', req },
       expected: { type: 'error', statusCode: 404 },
       reality,
     });
@@ -493,7 +489,7 @@ describe('AuthController', () => {
     expect(errorSignals).toBeGreaterThanOrEqual(0);
   });
 
-  it('AuthController - login - TC-12: should handle 500-like error path', async () => {
+  it('TableController - updateTable - TC-12: should handle 500-like error path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -503,8 +499,8 @@ describe('AuthController', () => {
 
     let thrown = null;
     try {
-      if (typeof AuthController.login === 'function') {
-        await AuthController.login(req, res, next);
+      if (typeof TableController.updateTable === 'function') {
+        await TableController.updateTable(req, res, next);
       }
     } catch (error) {
       thrown = error;
@@ -522,8 +518,8 @@ describe('AuthController', () => {
     const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
     logCase({
-      title: 'AuthController - login - TC-12',
-      input: { method: 'login', req },
+      title: 'TableController - updateTable - TC-12',
+      input: { method: 'updateTable', req },
       expected: { type: 'error', statusCode: 500 },
       reality,
     });
@@ -531,7 +527,7 @@ describe('AuthController', () => {
     expect(errorSignals).toBeGreaterThanOrEqual(0);
   });
 
-  it('AuthController - refreshToken - TC-13: should handle success path', async () => {
+  it('TableController - deleteTable - TC-13: should handle success path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -540,15 +536,15 @@ describe('AuthController', () => {
 
     let thrown = null;
     try {
-      if (typeof AuthController.refreshToken === 'function') {
-        await AuthController.refreshToken(req, res, next);
+      if (typeof TableController.deleteTable === 'function') {
+        await TableController.deleteTable(req, res, next);
       }
     } catch (error) {
       thrown = error;
     }
 
     const reality = {
-      hasMethod: typeof AuthController.refreshToken === 'function',
+      hasMethod: typeof TableController.deleteTable === 'function',
       nextCalls: next.mock.calls.length,
       statusCalls: res.status.mock.calls.length,
       jsonCalls: res.json.mock.calls.length,
@@ -556,16 +552,16 @@ describe('AuthController', () => {
     };
 
     logCase({
-      title: 'AuthController - refreshToken - TC-13',
-      input: { method: 'refreshToken', req },
+      title: 'TableController - deleteTable - TC-13',
+      input: { method: 'deleteTable', req },
       expected: { type: 'success' },
       reality,
     });
 
-    expect(typeof AuthController.refreshToken).toBe('function');
+    expect(typeof TableController.deleteTable).toBe('function');
   });
 
-  it('AuthController - refreshToken - TC-14: should handle 404-like error path', async () => {
+  it('TableController - deleteTable - TC-14: should handle 404-like error path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -575,8 +571,8 @@ describe('AuthController', () => {
 
     let thrown = null;
     try {
-      if (typeof AuthController.refreshToken === 'function') {
-        await AuthController.refreshToken(req, res, next);
+      if (typeof TableController.deleteTable === 'function') {
+        await TableController.deleteTable(req, res, next);
       }
     } catch (error) {
       thrown = error;
@@ -594,8 +590,8 @@ describe('AuthController', () => {
     const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
     logCase({
-      title: 'AuthController - refreshToken - TC-14',
-      input: { method: 'refreshToken', req },
+      title: 'TableController - deleteTable - TC-14',
+      input: { method: 'deleteTable', req },
       expected: { type: 'error', statusCode: 404 },
       reality,
     });
@@ -603,7 +599,7 @@ describe('AuthController', () => {
     expect(errorSignals).toBeGreaterThanOrEqual(0);
   });
 
-  it('AuthController - refreshToken - TC-15: should handle 500-like error path', async () => {
+  it('TableController - deleteTable - TC-15: should handle 500-like error path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -613,8 +609,8 @@ describe('AuthController', () => {
 
     let thrown = null;
     try {
-      if (typeof AuthController.refreshToken === 'function') {
-        await AuthController.refreshToken(req, res, next);
+      if (typeof TableController.deleteTable === 'function') {
+        await TableController.deleteTable(req, res, next);
       }
     } catch (error) {
       thrown = error;
@@ -632,8 +628,8 @@ describe('AuthController', () => {
     const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
     logCase({
-      title: 'AuthController - refreshToken - TC-15',
-      input: { method: 'refreshToken', req },
+      title: 'TableController - deleteTable - TC-15',
+      input: { method: 'deleteTable', req },
       expected: { type: 'error', statusCode: 500 },
       reality,
     });
@@ -641,7 +637,7 @@ describe('AuthController', () => {
     expect(errorSignals).toBeGreaterThanOrEqual(0);
   });
 
-  it('AuthController - getProfile - TC-16: should handle success path', async () => {
+  it('TableController - createTableWithQrCode - TC-16: should handle success path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -650,15 +646,15 @@ describe('AuthController', () => {
 
     let thrown = null;
     try {
-      if (typeof AuthController.getProfile === 'function') {
-        await AuthController.getProfile(req, res, next);
+      if (typeof TableController.createTableWithQrCode === 'function') {
+        await TableController.createTableWithQrCode(req, res, next);
       }
     } catch (error) {
       thrown = error;
     }
 
     const reality = {
-      hasMethod: typeof AuthController.getProfile === 'function',
+      hasMethod: typeof TableController.createTableWithQrCode === 'function',
       nextCalls: next.mock.calls.length,
       statusCalls: res.status.mock.calls.length,
       jsonCalls: res.json.mock.calls.length,
@@ -666,16 +662,16 @@ describe('AuthController', () => {
     };
 
     logCase({
-      title: 'AuthController - getProfile - TC-16',
-      input: { method: 'getProfile', req },
+      title: 'TableController - createTableWithQrCode - TC-16',
+      input: { method: 'createTableWithQrCode', req },
       expected: { type: 'success' },
       reality,
     });
 
-    expect(typeof AuthController.getProfile).toBe('function');
+    expect(typeof TableController.createTableWithQrCode).toBe('function');
   });
 
-  it('AuthController - getProfile - TC-17: should handle 404-like error path', async () => {
+  it('TableController - createTableWithQrCode - TC-17: should handle 404-like error path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -685,8 +681,8 @@ describe('AuthController', () => {
 
     let thrown = null;
     try {
-      if (typeof AuthController.getProfile === 'function') {
-        await AuthController.getProfile(req, res, next);
+      if (typeof TableController.createTableWithQrCode === 'function') {
+        await TableController.createTableWithQrCode(req, res, next);
       }
     } catch (error) {
       thrown = error;
@@ -704,8 +700,8 @@ describe('AuthController', () => {
     const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
     logCase({
-      title: 'AuthController - getProfile - TC-17',
-      input: { method: 'getProfile', req },
+      title: 'TableController - createTableWithQrCode - TC-17',
+      input: { method: 'createTableWithQrCode', req },
       expected: { type: 'error', statusCode: 404 },
       reality,
     });
@@ -713,7 +709,7 @@ describe('AuthController', () => {
     expect(errorSignals).toBeGreaterThanOrEqual(0);
   });
 
-  it('AuthController - getProfile - TC-18: should handle 500-like error path', async () => {
+  it('TableController - createTableWithQrCode - TC-18: should handle 500-like error path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -723,8 +719,8 @@ describe('AuthController', () => {
 
     let thrown = null;
     try {
-      if (typeof AuthController.getProfile === 'function') {
-        await AuthController.getProfile(req, res, next);
+      if (typeof TableController.createTableWithQrCode === 'function') {
+        await TableController.createTableWithQrCode(req, res, next);
       }
     } catch (error) {
       thrown = error;
@@ -742,8 +738,8 @@ describe('AuthController', () => {
     const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
     logCase({
-      title: 'AuthController - getProfile - TC-18',
-      input: { method: 'getProfile', req },
+      title: 'TableController - createTableWithQrCode - TC-18',
+      input: { method: 'createTableWithQrCode', req },
       expected: { type: 'error', statusCode: 500 },
       reality,
     });
@@ -751,7 +747,7 @@ describe('AuthController', () => {
     expect(errorSignals).toBeGreaterThanOrEqual(0);
   });
 
-  it('AuthController - updateProfile - TC-19: should handle success path', async () => {
+  it('TableController - updateQrForTable - TC-19: should handle success path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -760,15 +756,15 @@ describe('AuthController', () => {
 
     let thrown = null;
     try {
-      if (typeof AuthController.updateProfile === 'function') {
-        await AuthController.updateProfile(req, res, next);
+      if (typeof TableController.updateQrForTable === 'function') {
+        await TableController.updateQrForTable(req, res, next);
       }
     } catch (error) {
       thrown = error;
     }
 
     const reality = {
-      hasMethod: typeof AuthController.updateProfile === 'function',
+      hasMethod: typeof TableController.updateQrForTable === 'function',
       nextCalls: next.mock.calls.length,
       statusCalls: res.status.mock.calls.length,
       jsonCalls: res.json.mock.calls.length,
@@ -776,16 +772,16 @@ describe('AuthController', () => {
     };
 
     logCase({
-      title: 'AuthController - updateProfile - TC-19',
-      input: { method: 'updateProfile', req },
+      title: 'TableController - updateQrForTable - TC-19',
+      input: { method: 'updateQrForTable', req },
       expected: { type: 'success' },
       reality,
     });
 
-    expect(typeof AuthController.updateProfile).toBe('function');
+    expect(typeof TableController.updateQrForTable).toBe('function');
   });
 
-  it('AuthController - updateProfile - TC-20: should handle 404-like error path', async () => {
+  it('TableController - updateQrForTable - TC-20: should handle 404-like error path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -795,8 +791,8 @@ describe('AuthController', () => {
 
     let thrown = null;
     try {
-      if (typeof AuthController.updateProfile === 'function') {
-        await AuthController.updateProfile(req, res, next);
+      if (typeof TableController.updateQrForTable === 'function') {
+        await TableController.updateQrForTable(req, res, next);
       }
     } catch (error) {
       thrown = error;
@@ -814,8 +810,8 @@ describe('AuthController', () => {
     const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
     logCase({
-      title: 'AuthController - updateProfile - TC-20',
-      input: { method: 'updateProfile', req },
+      title: 'TableController - updateQrForTable - TC-20',
+      input: { method: 'updateQrForTable', req },
       expected: { type: 'error', statusCode: 404 },
       reality,
     });
@@ -823,7 +819,7 @@ describe('AuthController', () => {
     expect(errorSignals).toBeGreaterThanOrEqual(0);
   });
 
-  it('AuthController - updateProfile - TC-21: should handle 500-like error path', async () => {
+  it('TableController - updateQrForTable - TC-21: should handle 500-like error path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -833,8 +829,8 @@ describe('AuthController', () => {
 
     let thrown = null;
     try {
-      if (typeof AuthController.updateProfile === 'function') {
-        await AuthController.updateProfile(req, res, next);
+      if (typeof TableController.updateQrForTable === 'function') {
+        await TableController.updateQrForTable(req, res, next);
       }
     } catch (error) {
       thrown = error;
@@ -852,8 +848,8 @@ describe('AuthController', () => {
     const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
     logCase({
-      title: 'AuthController - updateProfile - TC-21',
-      input: { method: 'updateProfile', req },
+      title: 'TableController - updateQrForTable - TC-21',
+      input: { method: 'updateQrForTable', req },
       expected: { type: 'error', statusCode: 500 },
       reality,
     });
@@ -861,7 +857,7 @@ describe('AuthController', () => {
     expect(errorSignals).toBeGreaterThanOrEqual(0);
   });
 
-  it('AuthController - changePassword - TC-22: should handle success path', async () => {
+  it('TableController - getActiveOrder - TC-22: should handle success path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -870,15 +866,15 @@ describe('AuthController', () => {
 
     let thrown = null;
     try {
-      if (typeof AuthController.changePassword === 'function') {
-        await AuthController.changePassword(req, res, next);
+      if (typeof TableController.getActiveOrder === 'function') {
+        await TableController.getActiveOrder(req, res, next);
       }
     } catch (error) {
       thrown = error;
     }
 
     const reality = {
-      hasMethod: typeof AuthController.changePassword === 'function',
+      hasMethod: typeof TableController.getActiveOrder === 'function',
       nextCalls: next.mock.calls.length,
       statusCalls: res.status.mock.calls.length,
       jsonCalls: res.json.mock.calls.length,
@@ -886,16 +882,16 @@ describe('AuthController', () => {
     };
 
     logCase({
-      title: 'AuthController - changePassword - TC-22',
-      input: { method: 'changePassword', req },
+      title: 'TableController - getActiveOrder - TC-22',
+      input: { method: 'getActiveOrder', req },
       expected: { type: 'success' },
       reality,
     });
 
-    expect(typeof AuthController.changePassword).toBe('function');
+    expect(typeof TableController.getActiveOrder).toBe('function');
   });
 
-  it('AuthController - changePassword - TC-23: should handle 404-like error path', async () => {
+  it('TableController - getActiveOrder - TC-23: should handle 404-like error path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -905,8 +901,8 @@ describe('AuthController', () => {
 
     let thrown = null;
     try {
-      if (typeof AuthController.changePassword === 'function') {
-        await AuthController.changePassword(req, res, next);
+      if (typeof TableController.getActiveOrder === 'function') {
+        await TableController.getActiveOrder(req, res, next);
       }
     } catch (error) {
       thrown = error;
@@ -924,8 +920,8 @@ describe('AuthController', () => {
     const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
     logCase({
-      title: 'AuthController - changePassword - TC-23',
-      input: { method: 'changePassword', req },
+      title: 'TableController - getActiveOrder - TC-23',
+      input: { method: 'getActiveOrder', req },
       expected: { type: 'error', statusCode: 404 },
       reality,
     });
@@ -933,7 +929,7 @@ describe('AuthController', () => {
     expect(errorSignals).toBeGreaterThanOrEqual(0);
   });
 
-  it('AuthController - changePassword - TC-24: should handle 500-like error path', async () => {
+  it('TableController - getActiveOrder - TC-24: should handle 500-like error path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -943,8 +939,8 @@ describe('AuthController', () => {
 
     let thrown = null;
     try {
-      if (typeof AuthController.changePassword === 'function') {
-        await AuthController.changePassword(req, res, next);
+      if (typeof TableController.getActiveOrder === 'function') {
+        await TableController.getActiveOrder(req, res, next);
       }
     } catch (error) {
       thrown = error;
@@ -962,8 +958,8 @@ describe('AuthController', () => {
     const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
     logCase({
-      title: 'AuthController - changePassword - TC-24',
-      input: { method: 'changePassword', req },
+      title: 'TableController - getActiveOrder - TC-24',
+      input: { method: 'getActiveOrder', req },
       expected: { type: 'error', statusCode: 500 },
       reality,
     });
@@ -971,7 +967,7 @@ describe('AuthController', () => {
     expect(errorSignals).toBeGreaterThanOrEqual(0);
   });
 
-  it('AuthController - resetPassword - TC-25: should handle success path', async () => {
+  it('TableController - getUnpaidOrders - TC-25: should handle success path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -980,15 +976,15 @@ describe('AuthController', () => {
 
     let thrown = null;
     try {
-      if (typeof AuthController.resetPassword === 'function') {
-        await AuthController.resetPassword(req, res, next);
+      if (typeof TableController.getUnpaidOrders === 'function') {
+        await TableController.getUnpaidOrders(req, res, next);
       }
     } catch (error) {
       thrown = error;
     }
 
     const reality = {
-      hasMethod: typeof AuthController.resetPassword === 'function',
+      hasMethod: typeof TableController.getUnpaidOrders === 'function',
       nextCalls: next.mock.calls.length,
       statusCalls: res.status.mock.calls.length,
       jsonCalls: res.json.mock.calls.length,
@@ -996,16 +992,16 @@ describe('AuthController', () => {
     };
 
     logCase({
-      title: 'AuthController - resetPassword - TC-25',
-      input: { method: 'resetPassword', req },
+      title: 'TableController - getUnpaidOrders - TC-25',
+      input: { method: 'getUnpaidOrders', req },
       expected: { type: 'success' },
       reality,
     });
 
-    expect(typeof AuthController.resetPassword).toBe('function');
+    expect(typeof TableController.getUnpaidOrders).toBe('function');
   });
 
-  it('AuthController - resetPassword - TC-26: should handle 404-like error path', async () => {
+  it('TableController - getUnpaidOrders - TC-26: should handle 404-like error path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -1015,8 +1011,8 @@ describe('AuthController', () => {
 
     let thrown = null;
     try {
-      if (typeof AuthController.resetPassword === 'function') {
-        await AuthController.resetPassword(req, res, next);
+      if (typeof TableController.getUnpaidOrders === 'function') {
+        await TableController.getUnpaidOrders(req, res, next);
       }
     } catch (error) {
       thrown = error;
@@ -1034,8 +1030,8 @@ describe('AuthController', () => {
     const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
     logCase({
-      title: 'AuthController - resetPassword - TC-26',
-      input: { method: 'resetPassword', req },
+      title: 'TableController - getUnpaidOrders - TC-26',
+      input: { method: 'getUnpaidOrders', req },
       expected: { type: 'error', statusCode: 404 },
       reality,
     });
@@ -1043,7 +1039,7 @@ describe('AuthController', () => {
     expect(errorSignals).toBeGreaterThanOrEqual(0);
   });
 
-  it('AuthController - resetPassword - TC-27: should handle 500-like error path', async () => {
+  it('TableController - getUnpaidOrders - TC-27: should handle 500-like error path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -1053,8 +1049,8 @@ describe('AuthController', () => {
 
     let thrown = null;
     try {
-      if (typeof AuthController.resetPassword === 'function') {
-        await AuthController.resetPassword(req, res, next);
+      if (typeof TableController.getUnpaidOrders === 'function') {
+        await TableController.getUnpaidOrders(req, res, next);
       }
     } catch (error) {
       thrown = error;
@@ -1072,8 +1068,8 @@ describe('AuthController', () => {
     const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
     logCase({
-      title: 'AuthController - resetPassword - TC-27',
-      input: { method: 'resetPassword', req },
+      title: 'TableController - getUnpaidOrders - TC-27',
+      input: { method: 'getUnpaidOrders', req },
       expected: { type: 'error', statusCode: 500 },
       reality,
     });
@@ -1081,7 +1077,7 @@ describe('AuthController', () => {
     expect(errorSignals).toBeGreaterThanOrEqual(0);
   });
 
-  it('AuthController - logout - TC-28: should handle success path', async () => {
+  it('TableController - transferTable - TC-28: should handle success path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -1090,15 +1086,15 @@ describe('AuthController', () => {
 
     let thrown = null;
     try {
-      if (typeof AuthController.logout === 'function') {
-        await AuthController.logout(req, res, next);
+      if (typeof TableController.transferTable === 'function') {
+        await TableController.transferTable(req, res, next);
       }
     } catch (error) {
       thrown = error;
     }
 
     const reality = {
-      hasMethod: typeof AuthController.logout === 'function',
+      hasMethod: typeof TableController.transferTable === 'function',
       nextCalls: next.mock.calls.length,
       statusCalls: res.status.mock.calls.length,
       jsonCalls: res.json.mock.calls.length,
@@ -1106,16 +1102,16 @@ describe('AuthController', () => {
     };
 
     logCase({
-      title: 'AuthController - logout - TC-28',
-      input: { method: 'logout', req },
+      title: 'TableController - transferTable - TC-28',
+      input: { method: 'transferTable', req },
       expected: { type: 'success' },
       reality,
     });
 
-    expect(typeof AuthController.logout).toBe('function');
+    expect(typeof TableController.transferTable).toBe('function');
   });
 
-  it('AuthController - logout - TC-29: should handle 404-like error path', async () => {
+  it('TableController - transferTable - TC-29: should handle 404-like error path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -1125,8 +1121,8 @@ describe('AuthController', () => {
 
     let thrown = null;
     try {
-      if (typeof AuthController.logout === 'function') {
-        await AuthController.logout(req, res, next);
+      if (typeof TableController.transferTable === 'function') {
+        await TableController.transferTable(req, res, next);
       }
     } catch (error) {
       thrown = error;
@@ -1144,8 +1140,8 @@ describe('AuthController', () => {
     const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
     logCase({
-      title: 'AuthController - logout - TC-29',
-      input: { method: 'logout', req },
+      title: 'TableController - transferTable - TC-29',
+      input: { method: 'transferTable', req },
       expected: { type: 'error', statusCode: 404 },
       reality,
     });
@@ -1153,7 +1149,7 @@ describe('AuthController', () => {
     expect(errorSignals).toBeGreaterThanOrEqual(0);
   });
 
-  it('AuthController - logout - TC-30: should handle 500-like error path', async () => {
+  it('TableController - transferTable - TC-30: should handle 500-like error path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -1163,8 +1159,8 @@ describe('AuthController', () => {
 
     let thrown = null;
     try {
-      if (typeof AuthController.logout === 'function') {
-        await AuthController.logout(req, res, next);
+      if (typeof TableController.transferTable === 'function') {
+        await TableController.transferTable(req, res, next);
       }
     } catch (error) {
       thrown = error;
@@ -1182,8 +1178,8 @@ describe('AuthController', () => {
     const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
     logCase({
-      title: 'AuthController - logout - TC-30',
-      input: { method: 'logout', req },
+      title: 'TableController - transferTable - TC-30',
+      input: { method: 'transferTable', req },
       expected: { type: 'error', statusCode: 500 },
       reality,
     });
@@ -1191,7 +1187,7 @@ describe('AuthController', () => {
     expect(errorSignals).toBeGreaterThanOrEqual(0);
   });
 
-  it('AuthController - getMyAddresses - TC-31: should handle success path', async () => {
+  it('TableController - settleTableDebt - TC-31: should handle success path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -1200,15 +1196,15 @@ describe('AuthController', () => {
 
     let thrown = null;
     try {
-      if (typeof AuthController.getMyAddresses === 'function') {
-        await AuthController.getMyAddresses(req, res, next);
+      if (typeof TableController.settleTableDebt === 'function') {
+        await TableController.settleTableDebt(req, res, next);
       }
     } catch (error) {
       thrown = error;
     }
 
     const reality = {
-      hasMethod: typeof AuthController.getMyAddresses === 'function',
+      hasMethod: typeof TableController.settleTableDebt === 'function',
       nextCalls: next.mock.calls.length,
       statusCalls: res.status.mock.calls.length,
       jsonCalls: res.json.mock.calls.length,
@@ -1216,16 +1212,16 @@ describe('AuthController', () => {
     };
 
     logCase({
-      title: 'AuthController - getMyAddresses - TC-31',
-      input: { method: 'getMyAddresses', req },
+      title: 'TableController - settleTableDebt - TC-31',
+      input: { method: 'settleTableDebt', req },
       expected: { type: 'success' },
       reality,
     });
 
-    expect(typeof AuthController.getMyAddresses).toBe('function');
+    expect(typeof TableController.settleTableDebt).toBe('function');
   });
 
-  it('AuthController - getMyAddresses - TC-32: should handle 404-like error path', async () => {
+  it('TableController - settleTableDebt - TC-32: should handle 404-like error path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -1235,8 +1231,8 @@ describe('AuthController', () => {
 
     let thrown = null;
     try {
-      if (typeof AuthController.getMyAddresses === 'function') {
-        await AuthController.getMyAddresses(req, res, next);
+      if (typeof TableController.settleTableDebt === 'function') {
+        await TableController.settleTableDebt(req, res, next);
       }
     } catch (error) {
       thrown = error;
@@ -1254,8 +1250,8 @@ describe('AuthController', () => {
     const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
     logCase({
-      title: 'AuthController - getMyAddresses - TC-32',
-      input: { method: 'getMyAddresses', req },
+      title: 'TableController - settleTableDebt - TC-32',
+      input: { method: 'settleTableDebt', req },
       expected: { type: 'error', statusCode: 404 },
       reality,
     });
@@ -1263,7 +1259,7 @@ describe('AuthController', () => {
     expect(errorSignals).toBeGreaterThanOrEqual(0);
   });
 
-  it('AuthController - getMyAddresses - TC-33: should handle 500-like error path', async () => {
+  it('TableController - settleTableDebt - TC-33: should handle 500-like error path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -1273,8 +1269,8 @@ describe('AuthController', () => {
 
     let thrown = null;
     try {
-      if (typeof AuthController.getMyAddresses === 'function') {
-        await AuthController.getMyAddresses(req, res, next);
+      if (typeof TableController.settleTableDebt === 'function') {
+        await TableController.settleTableDebt(req, res, next);
       }
     } catch (error) {
       thrown = error;
@@ -1292,8 +1288,8 @@ describe('AuthController', () => {
     const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
     logCase({
-      title: 'AuthController - getMyAddresses - TC-33',
-      input: { method: 'getMyAddresses', req },
+      title: 'TableController - settleTableDebt - TC-33',
+      input: { method: 'settleTableDebt', req },
       expected: { type: 'error', statusCode: 500 },
       reality,
     });
@@ -1301,7 +1297,7 @@ describe('AuthController', () => {
     expect(errorSignals).toBeGreaterThanOrEqual(0);
   });
 
-  it('AuthController - createAddress - TC-34: should handle success path', async () => {
+  it('TableController - mergeOrders - TC-34: should handle success path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -1310,15 +1306,15 @@ describe('AuthController', () => {
 
     let thrown = null;
     try {
-      if (typeof AuthController.createAddress === 'function') {
-        await AuthController.createAddress(req, res, next);
+      if (typeof TableController.mergeOrders === 'function') {
+        await TableController.mergeOrders(req, res, next);
       }
     } catch (error) {
       thrown = error;
     }
 
     const reality = {
-      hasMethod: typeof AuthController.createAddress === 'function',
+      hasMethod: typeof TableController.mergeOrders === 'function',
       nextCalls: next.mock.calls.length,
       statusCalls: res.status.mock.calls.length,
       jsonCalls: res.json.mock.calls.length,
@@ -1326,16 +1322,16 @@ describe('AuthController', () => {
     };
 
     logCase({
-      title: 'AuthController - createAddress - TC-34',
-      input: { method: 'createAddress', req },
+      title: 'TableController - mergeOrders - TC-34',
+      input: { method: 'mergeOrders', req },
       expected: { type: 'success' },
       reality,
     });
 
-    expect(typeof AuthController.createAddress).toBe('function');
+    expect(typeof TableController.mergeOrders).toBe('function');
   });
 
-  it('AuthController - createAddress - TC-35: should handle 404-like error path', async () => {
+  it('TableController - mergeOrders - TC-35: should handle 404-like error path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -1345,8 +1341,8 @@ describe('AuthController', () => {
 
     let thrown = null;
     try {
-      if (typeof AuthController.createAddress === 'function') {
-        await AuthController.createAddress(req, res, next);
+      if (typeof TableController.mergeOrders === 'function') {
+        await TableController.mergeOrders(req, res, next);
       }
     } catch (error) {
       thrown = error;
@@ -1364,8 +1360,8 @@ describe('AuthController', () => {
     const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
     logCase({
-      title: 'AuthController - createAddress - TC-35',
-      input: { method: 'createAddress', req },
+      title: 'TableController - mergeOrders - TC-35',
+      input: { method: 'mergeOrders', req },
       expected: { type: 'error', statusCode: 404 },
       reality,
     });
@@ -1373,7 +1369,7 @@ describe('AuthController', () => {
     expect(errorSignals).toBeGreaterThanOrEqual(0);
   });
 
-  it('AuthController - createAddress - TC-36: should handle 500-like error path', async () => {
+  it('TableController - mergeOrders - TC-36: should handle 500-like error path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -1383,8 +1379,8 @@ describe('AuthController', () => {
 
     let thrown = null;
     try {
-      if (typeof AuthController.createAddress === 'function') {
-        await AuthController.createAddress(req, res, next);
+      if (typeof TableController.mergeOrders === 'function') {
+        await TableController.mergeOrders(req, res, next);
       }
     } catch (error) {
       thrown = error;
@@ -1402,8 +1398,8 @@ describe('AuthController', () => {
     const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
     logCase({
-      title: 'AuthController - createAddress - TC-36',
-      input: { method: 'createAddress', req },
+      title: 'TableController - mergeOrders - TC-36',
+      input: { method: 'mergeOrders', req },
       expected: { type: 'error', statusCode: 500 },
       reality,
     });
@@ -1411,7 +1407,7 @@ describe('AuthController', () => {
     expect(errorSignals).toBeGreaterThanOrEqual(0);
   });
 
-  it('AuthController - updateAddress - TC-37: should handle success path', async () => {
+  it('TableController - splitBill - TC-37: should handle success path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -1420,15 +1416,15 @@ describe('AuthController', () => {
 
     let thrown = null;
     try {
-      if (typeof AuthController.updateAddress === 'function') {
-        await AuthController.updateAddress(req, res, next);
+      if (typeof TableController.splitBill === 'function') {
+        await TableController.splitBill(req, res, next);
       }
     } catch (error) {
       thrown = error;
     }
 
     const reality = {
-      hasMethod: typeof AuthController.updateAddress === 'function',
+      hasMethod: typeof TableController.splitBill === 'function',
       nextCalls: next.mock.calls.length,
       statusCalls: res.status.mock.calls.length,
       jsonCalls: res.json.mock.calls.length,
@@ -1436,16 +1432,16 @@ describe('AuthController', () => {
     };
 
     logCase({
-      title: 'AuthController - updateAddress - TC-37',
-      input: { method: 'updateAddress', req },
+      title: 'TableController - splitBill - TC-37',
+      input: { method: 'splitBill', req },
       expected: { type: 'success' },
       reality,
     });
 
-    expect(typeof AuthController.updateAddress).toBe('function');
+    expect(typeof TableController.splitBill).toBe('function');
   });
 
-  it('AuthController - updateAddress - TC-38: should handle 404-like error path', async () => {
+  it('TableController - splitBill - TC-38: should handle 404-like error path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -1455,8 +1451,8 @@ describe('AuthController', () => {
 
     let thrown = null;
     try {
-      if (typeof AuthController.updateAddress === 'function') {
-        await AuthController.updateAddress(req, res, next);
+      if (typeof TableController.splitBill === 'function') {
+        await TableController.splitBill(req, res, next);
       }
     } catch (error) {
       thrown = error;
@@ -1474,8 +1470,8 @@ describe('AuthController', () => {
     const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
     logCase({
-      title: 'AuthController - updateAddress - TC-38',
-      input: { method: 'updateAddress', req },
+      title: 'TableController - splitBill - TC-38',
+      input: { method: 'splitBill', req },
       expected: { type: 'error', statusCode: 404 },
       reality,
     });
@@ -1483,7 +1479,7 @@ describe('AuthController', () => {
     expect(errorSignals).toBeGreaterThanOrEqual(0);
   });
 
-  it('AuthController - updateAddress - TC-39: should handle 500-like error path', async () => {
+  it('TableController - splitBill - TC-39: should handle 500-like error path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -1493,8 +1489,8 @@ describe('AuthController', () => {
 
     let thrown = null;
     try {
-      if (typeof AuthController.updateAddress === 'function') {
-        await AuthController.updateAddress(req, res, next);
+      if (typeof TableController.splitBill === 'function') {
+        await TableController.splitBill(req, res, next);
       }
     } catch (error) {
       thrown = error;
@@ -1512,558 +1508,8 @@ describe('AuthController', () => {
     const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
     logCase({
-      title: 'AuthController - updateAddress - TC-39',
-      input: { method: 'updateAddress', req },
-      expected: { type: 'error', statusCode: 500 },
-      reality,
-    });
-
-    expect(errorSignals).toBeGreaterThanOrEqual(0);
-  });
-
-  it('AuthController - deleteAddress - TC-40: should handle success path', async () => {
-    const req = makeReq();
-    const res = makeRes();
-    const next = jest.fn();
-
-    primeDependencies("resolve");
-
-    let thrown = null;
-    try {
-      if (typeof AuthController.deleteAddress === 'function') {
-        await AuthController.deleteAddress(req, res, next);
-      }
-    } catch (error) {
-      thrown = error;
-    }
-
-    const reality = {
-      hasMethod: typeof AuthController.deleteAddress === 'function',
-      nextCalls: next.mock.calls.length,
-      statusCalls: res.status.mock.calls.length,
-      jsonCalls: res.json.mock.calls.length,
-      uncaughtError: thrown ? thrown.message : null,
-    };
-
-    logCase({
-      title: 'AuthController - deleteAddress - TC-40',
-      input: { method: 'deleteAddress', req },
-      expected: { type: 'success' },
-      reality,
-    });
-
-    expect(typeof AuthController.deleteAddress).toBe('function');
-  });
-
-  it('AuthController - deleteAddress - TC-41: should handle 404-like error path', async () => {
-    const req = makeReq();
-    const res = makeRes();
-    const next = jest.fn();
-    const error404 = Object.assign(new Error("Not Found"), { statusCode: 404 });
-
-    primeDependencies("reject", error404);
-
-    let thrown = null;
-    try {
-      if (typeof AuthController.deleteAddress === 'function') {
-        await AuthController.deleteAddress(req, res, next);
-      }
-    } catch (error) {
-      thrown = error;
-    }
-
-    const nextError = next.mock.calls[0] ? next.mock.calls[0][0] : null;
-    const statusCodes = res.status.mock.calls.map((c) => c[0]);
-    const reality = {
-      nextErrorStatusCode: nextError && nextError.statusCode ? nextError.statusCode : null,
-      nextErrorMessage: nextError && nextError.message ? nextError.message : null,
-      statusCodes,
-      thrownStatusCode: thrown && thrown.statusCode ? thrown.statusCode : null,
-      thrownMessage: thrown ? thrown.message : null,
-    };
-    const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
-
-    logCase({
-      title: 'AuthController - deleteAddress - TC-41',
-      input: { method: 'deleteAddress', req },
-      expected: { type: 'error', statusCode: 404 },
-      reality,
-    });
-
-    expect(errorSignals).toBeGreaterThanOrEqual(0);
-  });
-
-  it('AuthController - deleteAddress - TC-42: should handle 500-like error path', async () => {
-    const req = makeReq();
-    const res = makeRes();
-    const next = jest.fn();
-    const error500 = Object.assign(new Error("Internal Server Error"), { statusCode: 500 });
-
-    primeDependencies("reject", error500);
-
-    let thrown = null;
-    try {
-      if (typeof AuthController.deleteAddress === 'function') {
-        await AuthController.deleteAddress(req, res, next);
-      }
-    } catch (error) {
-      thrown = error;
-    }
-
-    const nextError = next.mock.calls[0] ? next.mock.calls[0][0] : null;
-    const statusCodes = res.status.mock.calls.map((c) => c[0]);
-    const reality = {
-      nextErrorStatusCode: nextError && nextError.statusCode ? nextError.statusCode : null,
-      nextErrorMessage: nextError && nextError.message ? nextError.message : null,
-      statusCodes,
-      thrownStatusCode: thrown && thrown.statusCode ? thrown.statusCode : null,
-      thrownMessage: thrown ? thrown.message : null,
-    };
-    const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
-
-    logCase({
-      title: 'AuthController - deleteAddress - TC-42',
-      input: { method: 'deleteAddress', req },
-      expected: { type: 'error', statusCode: 500 },
-      reality,
-    });
-
-    expect(errorSignals).toBeGreaterThanOrEqual(0);
-  });
-
-  it('AuthController - setDefaultAddress - TC-43: should handle success path', async () => {
-    const req = makeReq();
-    const res = makeRes();
-    const next = jest.fn();
-
-    primeDependencies("resolve");
-
-    let thrown = null;
-    try {
-      if (typeof AuthController.setDefaultAddress === 'function') {
-        await AuthController.setDefaultAddress(req, res, next);
-      }
-    } catch (error) {
-      thrown = error;
-    }
-
-    const reality = {
-      hasMethod: typeof AuthController.setDefaultAddress === 'function',
-      nextCalls: next.mock.calls.length,
-      statusCalls: res.status.mock.calls.length,
-      jsonCalls: res.json.mock.calls.length,
-      uncaughtError: thrown ? thrown.message : null,
-    };
-
-    logCase({
-      title: 'AuthController - setDefaultAddress - TC-43',
-      input: { method: 'setDefaultAddress', req },
-      expected: { type: 'success' },
-      reality,
-    });
-
-    expect(typeof AuthController.setDefaultAddress).toBe('function');
-  });
-
-  it('AuthController - setDefaultAddress - TC-44: should handle 404-like error path', async () => {
-    const req = makeReq();
-    const res = makeRes();
-    const next = jest.fn();
-    const error404 = Object.assign(new Error("Not Found"), { statusCode: 404 });
-
-    primeDependencies("reject", error404);
-
-    let thrown = null;
-    try {
-      if (typeof AuthController.setDefaultAddress === 'function') {
-        await AuthController.setDefaultAddress(req, res, next);
-      }
-    } catch (error) {
-      thrown = error;
-    }
-
-    const nextError = next.mock.calls[0] ? next.mock.calls[0][0] : null;
-    const statusCodes = res.status.mock.calls.map((c) => c[0]);
-    const reality = {
-      nextErrorStatusCode: nextError && nextError.statusCode ? nextError.statusCode : null,
-      nextErrorMessage: nextError && nextError.message ? nextError.message : null,
-      statusCodes,
-      thrownStatusCode: thrown && thrown.statusCode ? thrown.statusCode : null,
-      thrownMessage: thrown ? thrown.message : null,
-    };
-    const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
-
-    logCase({
-      title: 'AuthController - setDefaultAddress - TC-44',
-      input: { method: 'setDefaultAddress', req },
-      expected: { type: 'error', statusCode: 404 },
-      reality,
-    });
-
-    expect(errorSignals).toBeGreaterThanOrEqual(0);
-  });
-
-  it('AuthController - setDefaultAddress - TC-45: should handle 500-like error path', async () => {
-    const req = makeReq();
-    const res = makeRes();
-    const next = jest.fn();
-    const error500 = Object.assign(new Error("Internal Server Error"), { statusCode: 500 });
-
-    primeDependencies("reject", error500);
-
-    let thrown = null;
-    try {
-      if (typeof AuthController.setDefaultAddress === 'function') {
-        await AuthController.setDefaultAddress(req, res, next);
-      }
-    } catch (error) {
-      thrown = error;
-    }
-
-    const nextError = next.mock.calls[0] ? next.mock.calls[0][0] : null;
-    const statusCodes = res.status.mock.calls.map((c) => c[0]);
-    const reality = {
-      nextErrorStatusCode: nextError && nextError.statusCode ? nextError.statusCode : null,
-      nextErrorMessage: nextError && nextError.message ? nextError.message : null,
-      statusCodes,
-      thrownStatusCode: thrown && thrown.statusCode ? thrown.statusCode : null,
-      thrownMessage: thrown ? thrown.message : null,
-    };
-    const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
-
-    logCase({
-      title: 'AuthController - setDefaultAddress - TC-45',
-      input: { method: 'setDefaultAddress', req },
-      expected: { type: 'error', statusCode: 500 },
-      reality,
-    });
-
-    expect(errorSignals).toBeGreaterThanOrEqual(0);
-  });
-
-  it('AuthController - verifyForgotPasswordOtp - TC-46: should handle success path', async () => {
-    const req = makeReq();
-    const res = makeRes();
-    const next = jest.fn();
-
-    primeDependencies("resolve");
-
-    let thrown = null;
-    try {
-      if (typeof AuthController.verifyForgotPasswordOtp === 'function') {
-        await AuthController.verifyForgotPasswordOtp(req, res, next);
-      }
-    } catch (error) {
-      thrown = error;
-    }
-
-    const reality = {
-      hasMethod: typeof AuthController.verifyForgotPasswordOtp === 'function',
-      nextCalls: next.mock.calls.length,
-      statusCalls: res.status.mock.calls.length,
-      jsonCalls: res.json.mock.calls.length,
-      uncaughtError: thrown ? thrown.message : null,
-    };
-
-    logCase({
-      title: 'AuthController - verifyForgotPasswordOtp - TC-46',
-      input: { method: 'verifyForgotPasswordOtp', req },
-      expected: { type: 'success' },
-      reality,
-    });
-
-    expect(typeof AuthController.verifyForgotPasswordOtp).toBe('function');
-  });
-
-  it('AuthController - verifyForgotPasswordOtp - TC-47: should handle 404-like error path', async () => {
-    const req = makeReq();
-    const res = makeRes();
-    const next = jest.fn();
-    const error404 = Object.assign(new Error("Not Found"), { statusCode: 404 });
-
-    primeDependencies("reject", error404);
-
-    let thrown = null;
-    try {
-      if (typeof AuthController.verifyForgotPasswordOtp === 'function') {
-        await AuthController.verifyForgotPasswordOtp(req, res, next);
-      }
-    } catch (error) {
-      thrown = error;
-    }
-
-    const nextError = next.mock.calls[0] ? next.mock.calls[0][0] : null;
-    const statusCodes = res.status.mock.calls.map((c) => c[0]);
-    const reality = {
-      nextErrorStatusCode: nextError && nextError.statusCode ? nextError.statusCode : null,
-      nextErrorMessage: nextError && nextError.message ? nextError.message : null,
-      statusCodes,
-      thrownStatusCode: thrown && thrown.statusCode ? thrown.statusCode : null,
-      thrownMessage: thrown ? thrown.message : null,
-    };
-    const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
-
-    logCase({
-      title: 'AuthController - verifyForgotPasswordOtp - TC-47',
-      input: { method: 'verifyForgotPasswordOtp', req },
-      expected: { type: 'error', statusCode: 404 },
-      reality,
-    });
-
-    expect(errorSignals).toBeGreaterThanOrEqual(0);
-  });
-
-  it('AuthController - verifyForgotPasswordOtp - TC-48: should handle 500-like error path', async () => {
-    const req = makeReq();
-    const res = makeRes();
-    const next = jest.fn();
-    const error500 = Object.assign(new Error("Internal Server Error"), { statusCode: 500 });
-
-    primeDependencies("reject", error500);
-
-    let thrown = null;
-    try {
-      if (typeof AuthController.verifyForgotPasswordOtp === 'function') {
-        await AuthController.verifyForgotPasswordOtp(req, res, next);
-      }
-    } catch (error) {
-      thrown = error;
-    }
-
-    const nextError = next.mock.calls[0] ? next.mock.calls[0][0] : null;
-    const statusCodes = res.status.mock.calls.map((c) => c[0]);
-    const reality = {
-      nextErrorStatusCode: nextError && nextError.statusCode ? nextError.statusCode : null,
-      nextErrorMessage: nextError && nextError.message ? nextError.message : null,
-      statusCodes,
-      thrownStatusCode: thrown && thrown.statusCode ? thrown.statusCode : null,
-      thrownMessage: thrown ? thrown.message : null,
-    };
-    const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
-
-    logCase({
-      title: 'AuthController - verifyForgotPasswordOtp - TC-48',
-      input: { method: 'verifyForgotPasswordOtp', req },
-      expected: { type: 'error', statusCode: 500 },
-      reality,
-    });
-
-    expect(errorSignals).toBeGreaterThanOrEqual(0);
-  });
-
-  it('AuthController - resetPasswordWithOtp - TC-49: should handle success path', async () => {
-    const req = makeReq();
-    const res = makeRes();
-    const next = jest.fn();
-
-    primeDependencies("resolve");
-
-    let thrown = null;
-    try {
-      if (typeof AuthController.resetPasswordWithOtp === 'function') {
-        await AuthController.resetPasswordWithOtp(req, res, next);
-      }
-    } catch (error) {
-      thrown = error;
-    }
-
-    const reality = {
-      hasMethod: typeof AuthController.resetPasswordWithOtp === 'function',
-      nextCalls: next.mock.calls.length,
-      statusCalls: res.status.mock.calls.length,
-      jsonCalls: res.json.mock.calls.length,
-      uncaughtError: thrown ? thrown.message : null,
-    };
-
-    logCase({
-      title: 'AuthController - resetPasswordWithOtp - TC-49',
-      input: { method: 'resetPasswordWithOtp', req },
-      expected: { type: 'success' },
-      reality,
-    });
-
-    expect(typeof AuthController.resetPasswordWithOtp).toBe('function');
-  });
-
-  it('AuthController - resetPasswordWithOtp - TC-50: should handle 404-like error path', async () => {
-    const req = makeReq();
-    const res = makeRes();
-    const next = jest.fn();
-    const error404 = Object.assign(new Error("Not Found"), { statusCode: 404 });
-
-    primeDependencies("reject", error404);
-
-    let thrown = null;
-    try {
-      if (typeof AuthController.resetPasswordWithOtp === 'function') {
-        await AuthController.resetPasswordWithOtp(req, res, next);
-      }
-    } catch (error) {
-      thrown = error;
-    }
-
-    const nextError = next.mock.calls[0] ? next.mock.calls[0][0] : null;
-    const statusCodes = res.status.mock.calls.map((c) => c[0]);
-    const reality = {
-      nextErrorStatusCode: nextError && nextError.statusCode ? nextError.statusCode : null,
-      nextErrorMessage: nextError && nextError.message ? nextError.message : null,
-      statusCodes,
-      thrownStatusCode: thrown && thrown.statusCode ? thrown.statusCode : null,
-      thrownMessage: thrown ? thrown.message : null,
-    };
-    const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
-
-    logCase({
-      title: 'AuthController - resetPasswordWithOtp - TC-50',
-      input: { method: 'resetPasswordWithOtp', req },
-      expected: { type: 'error', statusCode: 404 },
-      reality,
-    });
-
-    expect(errorSignals).toBeGreaterThanOrEqual(0);
-  });
-
-  it('AuthController - resetPasswordWithOtp - TC-51: should handle 500-like error path', async () => {
-    const req = makeReq();
-    const res = makeRes();
-    const next = jest.fn();
-    const error500 = Object.assign(new Error("Internal Server Error"), { statusCode: 500 });
-
-    primeDependencies("reject", error500);
-
-    let thrown = null;
-    try {
-      if (typeof AuthController.resetPasswordWithOtp === 'function') {
-        await AuthController.resetPasswordWithOtp(req, res, next);
-      }
-    } catch (error) {
-      thrown = error;
-    }
-
-    const nextError = next.mock.calls[0] ? next.mock.calls[0][0] : null;
-    const statusCodes = res.status.mock.calls.map((c) => c[0]);
-    const reality = {
-      nextErrorStatusCode: nextError && nextError.statusCode ? nextError.statusCode : null,
-      nextErrorMessage: nextError && nextError.message ? nextError.message : null,
-      statusCodes,
-      thrownStatusCode: thrown && thrown.statusCode ? thrown.statusCode : null,
-      thrownMessage: thrown ? thrown.message : null,
-    };
-    const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
-
-    logCase({
-      title: 'AuthController - resetPasswordWithOtp - TC-51',
-      input: { method: 'resetPasswordWithOtp', req },
-      expected: { type: 'error', statusCode: 500 },
-      reality,
-    });
-
-    expect(errorSignals).toBeGreaterThanOrEqual(0);
-  });
-
-  it('AuthController - googleLogin - TC-52: should handle success path', async () => {
-    const req = makeReq();
-    const res = makeRes();
-    const next = jest.fn();
-
-    primeDependencies("resolve");
-
-    let thrown = null;
-    try {
-      if (typeof AuthController.googleLogin === 'function') {
-        await AuthController.googleLogin(req, res, next);
-      }
-    } catch (error) {
-      thrown = error;
-    }
-
-    const reality = {
-      hasMethod: typeof AuthController.googleLogin === 'function',
-      nextCalls: next.mock.calls.length,
-      statusCalls: res.status.mock.calls.length,
-      jsonCalls: res.json.mock.calls.length,
-      uncaughtError: thrown ? thrown.message : null,
-    };
-
-    logCase({
-      title: 'AuthController - googleLogin - TC-52',
-      input: { method: 'googleLogin', req },
-      expected: { type: 'success' },
-      reality,
-    });
-
-    expect(typeof AuthController.googleLogin).toBe('function');
-  });
-
-  it('AuthController - googleLogin - TC-53: should handle 404-like error path', async () => {
-    const req = makeReq();
-    const res = makeRes();
-    const next = jest.fn();
-    const error404 = Object.assign(new Error("Not Found"), { statusCode: 404 });
-
-    primeDependencies("reject", error404);
-
-    let thrown = null;
-    try {
-      if (typeof AuthController.googleLogin === 'function') {
-        await AuthController.googleLogin(req, res, next);
-      }
-    } catch (error) {
-      thrown = error;
-    }
-
-    const nextError = next.mock.calls[0] ? next.mock.calls[0][0] : null;
-    const statusCodes = res.status.mock.calls.map((c) => c[0]);
-    const reality = {
-      nextErrorStatusCode: nextError && nextError.statusCode ? nextError.statusCode : null,
-      nextErrorMessage: nextError && nextError.message ? nextError.message : null,
-      statusCodes,
-      thrownStatusCode: thrown && thrown.statusCode ? thrown.statusCode : null,
-      thrownMessage: thrown ? thrown.message : null,
-    };
-    const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
-
-    logCase({
-      title: 'AuthController - googleLogin - TC-53',
-      input: { method: 'googleLogin', req },
-      expected: { type: 'error', statusCode: 404 },
-      reality,
-    });
-
-    expect(errorSignals).toBeGreaterThanOrEqual(0);
-  });
-
-  it('AuthController - googleLogin - TC-54: should handle 500-like error path', async () => {
-    const req = makeReq();
-    const res = makeRes();
-    const next = jest.fn();
-    const error500 = Object.assign(new Error("Internal Server Error"), { statusCode: 500 });
-
-    primeDependencies("reject", error500);
-
-    let thrown = null;
-    try {
-      if (typeof AuthController.googleLogin === 'function') {
-        await AuthController.googleLogin(req, res, next);
-      }
-    } catch (error) {
-      thrown = error;
-    }
-
-    const nextError = next.mock.calls[0] ? next.mock.calls[0][0] : null;
-    const statusCodes = res.status.mock.calls.map((c) => c[0]);
-    const reality = {
-      nextErrorStatusCode: nextError && nextError.statusCode ? nextError.statusCode : null,
-      nextErrorMessage: nextError && nextError.message ? nextError.message : null,
-      statusCodes,
-      thrownStatusCode: thrown && thrown.statusCode ? thrown.statusCode : null,
-      thrownMessage: thrown ? thrown.message : null,
-    };
-    const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
-
-    logCase({
-      title: 'AuthController - googleLogin - TC-54',
-      input: { method: 'googleLogin', req },
+      title: 'TableController - splitBill - TC-39',
+      input: { method: 'splitBill', req },
       expected: { type: 'error', statusCode: 500 },
       reality,
     });

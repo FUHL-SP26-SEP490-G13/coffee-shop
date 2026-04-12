@@ -1,9 +1,9 @@
-jest.mock('../../src/services/BannerService');
+jest.mock('../../src/services/CashSessionService');
 
-const BannerController = require('../../src/controllers/BannerController');
-const dep1 = require('../../src/services/BannerService');
+const CashSessionController = require('../../src/controllers/CashSessionController');
+const dep1 = require('../../src/services/CashSessionService');
 
-describe('BannerController', () => {
+describe('CashSessionController', () => {
   const makeReq = () => ({
     params: { id: '1', code: 'CODE' },
     query: { page: '1', limit: '10', keyword: '', status: '', with_count: 'false' },
@@ -75,7 +75,7 @@ describe('BannerController', () => {
     jest.clearAllMocks();
   });
 
-  it('BannerController - getActive - TC-01: should handle success path', async () => {
+  it('CashSessionController - getCurrent - TC-01: should handle success path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -84,15 +84,15 @@ describe('BannerController', () => {
 
     let thrown = null;
     try {
-      if (typeof BannerController.getActive === 'function') {
-        await BannerController.getActive(req, res, next);
+      if (typeof CashSessionController.getCurrent === 'function') {
+        await CashSessionController.getCurrent(req, res, next);
       }
     } catch (error) {
       thrown = error;
     }
 
     const reality = {
-      hasMethod: typeof BannerController.getActive === 'function',
+      hasMethod: typeof CashSessionController.getCurrent === 'function',
       nextCalls: next.mock.calls.length,
       statusCalls: res.status.mock.calls.length,
       jsonCalls: res.json.mock.calls.length,
@@ -100,16 +100,16 @@ describe('BannerController', () => {
     };
 
     logCase({
-      title: 'BannerController - getActive - TC-01',
-      input: { method: 'getActive', req },
+      title: 'CashSessionController - getCurrent - TC-01',
+      input: { method: 'getCurrent', req },
       expected: { type: 'success' },
       reality,
     });
 
-    expect(typeof BannerController.getActive).toBe('function');
+    expect(typeof CashSessionController.getCurrent).toBe('function');
   });
 
-  it('BannerController - getActive - TC-02: should handle 404-like error path', async () => {
+  it('CashSessionController - getCurrent - TC-02: should handle 404-like error path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -119,8 +119,8 @@ describe('BannerController', () => {
 
     let thrown = null;
     try {
-      if (typeof BannerController.getActive === 'function') {
-        await BannerController.getActive(req, res, next);
+      if (typeof CashSessionController.getCurrent === 'function') {
+        await CashSessionController.getCurrent(req, res, next);
       }
     } catch (error) {
       thrown = error;
@@ -138,8 +138,8 @@ describe('BannerController', () => {
     const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
     logCase({
-      title: 'BannerController - getActive - TC-02',
-      input: { method: 'getActive', req },
+      title: 'CashSessionController - getCurrent - TC-02',
+      input: { method: 'getCurrent', req },
       expected: { type: 'error', statusCode: 404 },
       reality,
     });
@@ -147,7 +147,7 @@ describe('BannerController', () => {
     expect(errorSignals).toBeGreaterThanOrEqual(0);
   });
 
-  it('BannerController - getActive - TC-03: should handle 500-like error path', async () => {
+  it('CashSessionController - getCurrent - TC-03: should handle 500-like error path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -157,8 +157,8 @@ describe('BannerController', () => {
 
     let thrown = null;
     try {
-      if (typeof BannerController.getActive === 'function') {
-        await BannerController.getActive(req, res, next);
+      if (typeof CashSessionController.getCurrent === 'function') {
+        await CashSessionController.getCurrent(req, res, next);
       }
     } catch (error) {
       thrown = error;
@@ -176,8 +176,8 @@ describe('BannerController', () => {
     const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
     logCase({
-      title: 'BannerController - getActive - TC-03',
-      input: { method: 'getActive', req },
+      title: 'CashSessionController - getCurrent - TC-03',
+      input: { method: 'getCurrent', req },
       expected: { type: 'error', statusCode: 500 },
       reality,
     });
@@ -185,7 +185,7 @@ describe('BannerController', () => {
     expect(errorSignals).toBeGreaterThanOrEqual(0);
   });
 
-  it('BannerController - getAll - TC-04: should handle success path', async () => {
+  it('CashSessionController - openSession - TC-04: should handle success path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -194,15 +194,15 @@ describe('BannerController', () => {
 
     let thrown = null;
     try {
-      if (typeof BannerController.getAll === 'function') {
-        await BannerController.getAll(req, res, next);
+      if (typeof CashSessionController.openSession === 'function') {
+        await CashSessionController.openSession(req, res, next);
       }
     } catch (error) {
       thrown = error;
     }
 
     const reality = {
-      hasMethod: typeof BannerController.getAll === 'function',
+      hasMethod: typeof CashSessionController.openSession === 'function',
       nextCalls: next.mock.calls.length,
       statusCalls: res.status.mock.calls.length,
       jsonCalls: res.json.mock.calls.length,
@@ -210,16 +210,16 @@ describe('BannerController', () => {
     };
 
     logCase({
-      title: 'BannerController - getAll - TC-04',
-      input: { method: 'getAll', req },
+      title: 'CashSessionController - openSession - TC-04',
+      input: { method: 'openSession', req },
       expected: { type: 'success' },
       reality,
     });
 
-    expect(typeof BannerController.getAll).toBe('function');
+    expect(typeof CashSessionController.openSession).toBe('function');
   });
 
-  it('BannerController - getAll - TC-05: should handle 404-like error path', async () => {
+  it('CashSessionController - openSession - TC-05: should handle 404-like error path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -229,8 +229,8 @@ describe('BannerController', () => {
 
     let thrown = null;
     try {
-      if (typeof BannerController.getAll === 'function') {
-        await BannerController.getAll(req, res, next);
+      if (typeof CashSessionController.openSession === 'function') {
+        await CashSessionController.openSession(req, res, next);
       }
     } catch (error) {
       thrown = error;
@@ -248,8 +248,8 @@ describe('BannerController', () => {
     const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
     logCase({
-      title: 'BannerController - getAll - TC-05',
-      input: { method: 'getAll', req },
+      title: 'CashSessionController - openSession - TC-05',
+      input: { method: 'openSession', req },
       expected: { type: 'error', statusCode: 404 },
       reality,
     });
@@ -257,7 +257,7 @@ describe('BannerController', () => {
     expect(errorSignals).toBeGreaterThanOrEqual(0);
   });
 
-  it('BannerController - getAll - TC-06: should handle 500-like error path', async () => {
+  it('CashSessionController - openSession - TC-06: should handle 500-like error path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -267,8 +267,8 @@ describe('BannerController', () => {
 
     let thrown = null;
     try {
-      if (typeof BannerController.getAll === 'function') {
-        await BannerController.getAll(req, res, next);
+      if (typeof CashSessionController.openSession === 'function') {
+        await CashSessionController.openSession(req, res, next);
       }
     } catch (error) {
       thrown = error;
@@ -286,8 +286,8 @@ describe('BannerController', () => {
     const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
     logCase({
-      title: 'BannerController - getAll - TC-06',
-      input: { method: 'getAll', req },
+      title: 'CashSessionController - openSession - TC-06',
+      input: { method: 'openSession', req },
       expected: { type: 'error', statusCode: 500 },
       reality,
     });
@@ -295,7 +295,7 @@ describe('BannerController', () => {
     expect(errorSignals).toBeGreaterThanOrEqual(0);
   });
 
-  it('BannerController - create - TC-07: should handle success path', async () => {
+  it('CashSessionController - closeSession - TC-07: should handle success path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -304,15 +304,15 @@ describe('BannerController', () => {
 
     let thrown = null;
     try {
-      if (typeof BannerController.create === 'function') {
-        await BannerController.create(req, res, next);
+      if (typeof CashSessionController.closeSession === 'function') {
+        await CashSessionController.closeSession(req, res, next);
       }
     } catch (error) {
       thrown = error;
     }
 
     const reality = {
-      hasMethod: typeof BannerController.create === 'function',
+      hasMethod: typeof CashSessionController.closeSession === 'function',
       nextCalls: next.mock.calls.length,
       statusCalls: res.status.mock.calls.length,
       jsonCalls: res.json.mock.calls.length,
@@ -320,16 +320,16 @@ describe('BannerController', () => {
     };
 
     logCase({
-      title: 'BannerController - create - TC-07',
-      input: { method: 'create', req },
+      title: 'CashSessionController - closeSession - TC-07',
+      input: { method: 'closeSession', req },
       expected: { type: 'success' },
       reality,
     });
 
-    expect(typeof BannerController.create).toBe('function');
+    expect(typeof CashSessionController.closeSession).toBe('function');
   });
 
-  it('BannerController - create - TC-08: should handle 404-like error path', async () => {
+  it('CashSessionController - closeSession - TC-08: should handle 404-like error path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -339,8 +339,8 @@ describe('BannerController', () => {
 
     let thrown = null;
     try {
-      if (typeof BannerController.create === 'function') {
-        await BannerController.create(req, res, next);
+      if (typeof CashSessionController.closeSession === 'function') {
+        await CashSessionController.closeSession(req, res, next);
       }
     } catch (error) {
       thrown = error;
@@ -358,8 +358,8 @@ describe('BannerController', () => {
     const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
     logCase({
-      title: 'BannerController - create - TC-08',
-      input: { method: 'create', req },
+      title: 'CashSessionController - closeSession - TC-08',
+      input: { method: 'closeSession', req },
       expected: { type: 'error', statusCode: 404 },
       reality,
     });
@@ -367,7 +367,7 @@ describe('BannerController', () => {
     expect(errorSignals).toBeGreaterThanOrEqual(0);
   });
 
-  it('BannerController - create - TC-09: should handle 500-like error path', async () => {
+  it('CashSessionController - closeSession - TC-09: should handle 500-like error path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -377,8 +377,8 @@ describe('BannerController', () => {
 
     let thrown = null;
     try {
-      if (typeof BannerController.create === 'function') {
-        await BannerController.create(req, res, next);
+      if (typeof CashSessionController.closeSession === 'function') {
+        await CashSessionController.closeSession(req, res, next);
       }
     } catch (error) {
       thrown = error;
@@ -396,8 +396,8 @@ describe('BannerController', () => {
     const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
     logCase({
-      title: 'BannerController - create - TC-09',
-      input: { method: 'create', req },
+      title: 'CashSessionController - closeSession - TC-09',
+      input: { method: 'closeSession', req },
       expected: { type: 'error', statusCode: 500 },
       reality,
     });
@@ -405,7 +405,7 @@ describe('BannerController', () => {
     expect(errorSignals).toBeGreaterThanOrEqual(0);
   });
 
-  it('BannerController - update - TC-10: should handle success path', async () => {
+  it('CashSessionController - getHistory - TC-10: should handle success path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -414,15 +414,15 @@ describe('BannerController', () => {
 
     let thrown = null;
     try {
-      if (typeof BannerController.update === 'function') {
-        await BannerController.update(req, res, next);
+      if (typeof CashSessionController.getHistory === 'function') {
+        await CashSessionController.getHistory(req, res, next);
       }
     } catch (error) {
       thrown = error;
     }
 
     const reality = {
-      hasMethod: typeof BannerController.update === 'function',
+      hasMethod: typeof CashSessionController.getHistory === 'function',
       nextCalls: next.mock.calls.length,
       statusCalls: res.status.mock.calls.length,
       jsonCalls: res.json.mock.calls.length,
@@ -430,16 +430,16 @@ describe('BannerController', () => {
     };
 
     logCase({
-      title: 'BannerController - update - TC-10',
-      input: { method: 'update', req },
+      title: 'CashSessionController - getHistory - TC-10',
+      input: { method: 'getHistory', req },
       expected: { type: 'success' },
       reality,
     });
 
-    expect(typeof BannerController.update).toBe('function');
+    expect(typeof CashSessionController.getHistory).toBe('function');
   });
 
-  it('BannerController - update - TC-11: should handle 404-like error path', async () => {
+  it('CashSessionController - getHistory - TC-11: should handle 404-like error path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -449,8 +449,8 @@ describe('BannerController', () => {
 
     let thrown = null;
     try {
-      if (typeof BannerController.update === 'function') {
-        await BannerController.update(req, res, next);
+      if (typeof CashSessionController.getHistory === 'function') {
+        await CashSessionController.getHistory(req, res, next);
       }
     } catch (error) {
       thrown = error;
@@ -468,8 +468,8 @@ describe('BannerController', () => {
     const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
     logCase({
-      title: 'BannerController - update - TC-11',
-      input: { method: 'update', req },
+      title: 'CashSessionController - getHistory - TC-11',
+      input: { method: 'getHistory', req },
       expected: { type: 'error', statusCode: 404 },
       reality,
     });
@@ -477,7 +477,7 @@ describe('BannerController', () => {
     expect(errorSignals).toBeGreaterThanOrEqual(0);
   });
 
-  it('BannerController - update - TC-12: should handle 500-like error path', async () => {
+  it('CashSessionController - getHistory - TC-12: should handle 500-like error path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -487,8 +487,8 @@ describe('BannerController', () => {
 
     let thrown = null;
     try {
-      if (typeof BannerController.update === 'function') {
-        await BannerController.update(req, res, next);
+      if (typeof CashSessionController.getHistory === 'function') {
+        await CashSessionController.getHistory(req, res, next);
       }
     } catch (error) {
       thrown = error;
@@ -506,228 +506,8 @@ describe('BannerController', () => {
     const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
     logCase({
-      title: 'BannerController - update - TC-12',
-      input: { method: 'update', req },
-      expected: { type: 'error', statusCode: 500 },
-      reality,
-    });
-
-    expect(errorSignals).toBeGreaterThanOrEqual(0);
-  });
-
-  it('BannerController - delete - TC-13: should handle success path', async () => {
-    const req = makeReq();
-    const res = makeRes();
-    const next = jest.fn();
-
-    primeDependencies("resolve");
-
-    let thrown = null;
-    try {
-      if (typeof BannerController.delete === 'function') {
-        await BannerController.delete(req, res, next);
-      }
-    } catch (error) {
-      thrown = error;
-    }
-
-    const reality = {
-      hasMethod: typeof BannerController.delete === 'function',
-      nextCalls: next.mock.calls.length,
-      statusCalls: res.status.mock.calls.length,
-      jsonCalls: res.json.mock.calls.length,
-      uncaughtError: thrown ? thrown.message : null,
-    };
-
-    logCase({
-      title: 'BannerController - delete - TC-13',
-      input: { method: 'delete', req },
-      expected: { type: 'success' },
-      reality,
-    });
-
-    expect(typeof BannerController.delete).toBe('function');
-  });
-
-  it('BannerController - delete - TC-14: should handle 404-like error path', async () => {
-    const req = makeReq();
-    const res = makeRes();
-    const next = jest.fn();
-    const error404 = Object.assign(new Error("Not Found"), { statusCode: 404 });
-
-    primeDependencies("reject", error404);
-
-    let thrown = null;
-    try {
-      if (typeof BannerController.delete === 'function') {
-        await BannerController.delete(req, res, next);
-      }
-    } catch (error) {
-      thrown = error;
-    }
-
-    const nextError = next.mock.calls[0] ? next.mock.calls[0][0] : null;
-    const statusCodes = res.status.mock.calls.map((c) => c[0]);
-    const reality = {
-      nextErrorStatusCode: nextError && nextError.statusCode ? nextError.statusCode : null,
-      nextErrorMessage: nextError && nextError.message ? nextError.message : null,
-      statusCodes,
-      thrownStatusCode: thrown && thrown.statusCode ? thrown.statusCode : null,
-      thrownMessage: thrown ? thrown.message : null,
-    };
-    const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
-
-    logCase({
-      title: 'BannerController - delete - TC-14',
-      input: { method: 'delete', req },
-      expected: { type: 'error', statusCode: 404 },
-      reality,
-    });
-
-    expect(errorSignals).toBeGreaterThanOrEqual(0);
-  });
-
-  it('BannerController - delete - TC-15: should handle 500-like error path', async () => {
-    const req = makeReq();
-    const res = makeRes();
-    const next = jest.fn();
-    const error500 = Object.assign(new Error("Internal Server Error"), { statusCode: 500 });
-
-    primeDependencies("reject", error500);
-
-    let thrown = null;
-    try {
-      if (typeof BannerController.delete === 'function') {
-        await BannerController.delete(req, res, next);
-      }
-    } catch (error) {
-      thrown = error;
-    }
-
-    const nextError = next.mock.calls[0] ? next.mock.calls[0][0] : null;
-    const statusCodes = res.status.mock.calls.map((c) => c[0]);
-    const reality = {
-      nextErrorStatusCode: nextError && nextError.statusCode ? nextError.statusCode : null,
-      nextErrorMessage: nextError && nextError.message ? nextError.message : null,
-      statusCodes,
-      thrownStatusCode: thrown && thrown.statusCode ? thrown.statusCode : null,
-      thrownMessage: thrown ? thrown.message : null,
-    };
-    const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
-
-    logCase({
-      title: 'BannerController - delete - TC-15',
-      input: { method: 'delete', req },
-      expected: { type: 'error', statusCode: 500 },
-      reality,
-    });
-
-    expect(errorSignals).toBeGreaterThanOrEqual(0);
-  });
-
-  it('BannerController - getActiveList - TC-16: should handle success path', async () => {
-    const req = makeReq();
-    const res = makeRes();
-    const next = jest.fn();
-
-    primeDependencies("resolve");
-
-    let thrown = null;
-    try {
-      if (typeof BannerController.getActiveList === 'function') {
-        await BannerController.getActiveList(req, res, next);
-      }
-    } catch (error) {
-      thrown = error;
-    }
-
-    const reality = {
-      hasMethod: typeof BannerController.getActiveList === 'function',
-      nextCalls: next.mock.calls.length,
-      statusCalls: res.status.mock.calls.length,
-      jsonCalls: res.json.mock.calls.length,
-      uncaughtError: thrown ? thrown.message : null,
-    };
-
-    logCase({
-      title: 'BannerController - getActiveList - TC-16',
-      input: { method: 'getActiveList', req },
-      expected: { type: 'success' },
-      reality,
-    });
-
-    expect(typeof BannerController.getActiveList).toBe('function');
-  });
-
-  it('BannerController - getActiveList - TC-17: should handle 404-like error path', async () => {
-    const req = makeReq();
-    const res = makeRes();
-    const next = jest.fn();
-    const error404 = Object.assign(new Error("Not Found"), { statusCode: 404 });
-
-    primeDependencies("reject", error404);
-
-    let thrown = null;
-    try {
-      if (typeof BannerController.getActiveList === 'function') {
-        await BannerController.getActiveList(req, res, next);
-      }
-    } catch (error) {
-      thrown = error;
-    }
-
-    const nextError = next.mock.calls[0] ? next.mock.calls[0][0] : null;
-    const statusCodes = res.status.mock.calls.map((c) => c[0]);
-    const reality = {
-      nextErrorStatusCode: nextError && nextError.statusCode ? nextError.statusCode : null,
-      nextErrorMessage: nextError && nextError.message ? nextError.message : null,
-      statusCodes,
-      thrownStatusCode: thrown && thrown.statusCode ? thrown.statusCode : null,
-      thrownMessage: thrown ? thrown.message : null,
-    };
-    const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
-
-    logCase({
-      title: 'BannerController - getActiveList - TC-17',
-      input: { method: 'getActiveList', req },
-      expected: { type: 'error', statusCode: 404 },
-      reality,
-    });
-
-    expect(errorSignals).toBeGreaterThanOrEqual(0);
-  });
-
-  it('BannerController - getActiveList - TC-18: should handle 500-like error path', async () => {
-    const req = makeReq();
-    const res = makeRes();
-    const next = jest.fn();
-    const error500 = Object.assign(new Error("Internal Server Error"), { statusCode: 500 });
-
-    primeDependencies("reject", error500);
-
-    let thrown = null;
-    try {
-      if (typeof BannerController.getActiveList === 'function') {
-        await BannerController.getActiveList(req, res, next);
-      }
-    } catch (error) {
-      thrown = error;
-    }
-
-    const nextError = next.mock.calls[0] ? next.mock.calls[0][0] : null;
-    const statusCodes = res.status.mock.calls.map((c) => c[0]);
-    const reality = {
-      nextErrorStatusCode: nextError && nextError.statusCode ? nextError.statusCode : null,
-      nextErrorMessage: nextError && nextError.message ? nextError.message : null,
-      statusCodes,
-      thrownStatusCode: thrown && thrown.statusCode ? thrown.statusCode : null,
-      thrownMessage: thrown ? thrown.message : null,
-    };
-    const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
-
-    logCase({
-      title: 'BannerController - getActiveList - TC-18',
-      input: { method: 'getActiveList', req },
+      title: 'CashSessionController - getHistory - TC-12',
+      input: { method: 'getHistory', req },
       expected: { type: 'error', statusCode: 500 },
       reality,
     });

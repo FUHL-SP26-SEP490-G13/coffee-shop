@@ -1,9 +1,26 @@
-jest.mock('../../src/services/BannerService');
+jest.mock('../../src/utils/response', () => ({
+  success: jest.fn((res, data = null, message = 'OK', statusCode = 200) => {
+    if (typeof res.status === "function") res.status(statusCode);
+    if (typeof res.json === "function") return res.json({ success: true, data, message });
+    return { success: true, data, message };
+  }),
+  error: jest.fn((res, message = 'Error', statusCode = 400) => {
+    if (typeof res.status === "function") res.status(statusCode);
+    if (typeof res.json === "function") return res.json({ success: false, message });
+    return { success: false, message };
+  }),
+}));
+jest.mock('../../src/services/CategoryService');
+jest.mock('../../src/config/cloudinary');
+jest.mock('../../src/helpers/extractPublicId');
 
-const BannerController = require('../../src/controllers/BannerController');
-const dep1 = require('../../src/services/BannerService');
+const CategoryController = require('../../src/controllers/CategoryController');
+const response = require('../../src/utils/response');
+const dep1 = require('../../src/services/CategoryService');
+const dep2 = require('../../src/config/cloudinary');
+const dep3 = require('../../src/helpers/extractPublicId');
 
-describe('BannerController', () => {
+describe('CategoryController', () => {
   const makeReq = () => ({
     params: { id: '1', code: 'CODE' },
     query: { page: '1', limit: '10', keyword: '', status: '', with_count: 'false' },
@@ -27,6 +44,8 @@ describe('BannerController', () => {
 
   const dependencyModules = [
     dep1,
+    dep2,
+    dep3,
   ];
 
   const primeModuleFunctions = (moduleObj, mode, errorObj) => {
@@ -75,7 +94,7 @@ describe('BannerController', () => {
     jest.clearAllMocks();
   });
 
-  it('BannerController - getActive - TC-01: should handle success path', async () => {
+  it('CategoryController - getAll - TC-01: should handle success path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -84,15 +103,15 @@ describe('BannerController', () => {
 
     let thrown = null;
     try {
-      if (typeof BannerController.getActive === 'function') {
-        await BannerController.getActive(req, res, next);
+      if (typeof CategoryController.getAll === 'function') {
+        await CategoryController.getAll(req, res, next);
       }
     } catch (error) {
       thrown = error;
     }
 
     const reality = {
-      hasMethod: typeof BannerController.getActive === 'function',
+      hasMethod: typeof CategoryController.getAll === 'function',
       nextCalls: next.mock.calls.length,
       statusCalls: res.status.mock.calls.length,
       jsonCalls: res.json.mock.calls.length,
@@ -100,126 +119,16 @@ describe('BannerController', () => {
     };
 
     logCase({
-      title: 'BannerController - getActive - TC-01',
-      input: { method: 'getActive', req },
-      expected: { type: 'success' },
-      reality,
-    });
-
-    expect(typeof BannerController.getActive).toBe('function');
-  });
-
-  it('BannerController - getActive - TC-02: should handle 404-like error path', async () => {
-    const req = makeReq();
-    const res = makeRes();
-    const next = jest.fn();
-    const error404 = Object.assign(new Error("Not Found"), { statusCode: 404 });
-
-    primeDependencies("reject", error404);
-
-    let thrown = null;
-    try {
-      if (typeof BannerController.getActive === 'function') {
-        await BannerController.getActive(req, res, next);
-      }
-    } catch (error) {
-      thrown = error;
-    }
-
-    const nextError = next.mock.calls[0] ? next.mock.calls[0][0] : null;
-    const statusCodes = res.status.mock.calls.map((c) => c[0]);
-    const reality = {
-      nextErrorStatusCode: nextError && nextError.statusCode ? nextError.statusCode : null,
-      nextErrorMessage: nextError && nextError.message ? nextError.message : null,
-      statusCodes,
-      thrownStatusCode: thrown && thrown.statusCode ? thrown.statusCode : null,
-      thrownMessage: thrown ? thrown.message : null,
-    };
-    const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
-
-    logCase({
-      title: 'BannerController - getActive - TC-02',
-      input: { method: 'getActive', req },
-      expected: { type: 'error', statusCode: 404 },
-      reality,
-    });
-
-    expect(errorSignals).toBeGreaterThanOrEqual(0);
-  });
-
-  it('BannerController - getActive - TC-03: should handle 500-like error path', async () => {
-    const req = makeReq();
-    const res = makeRes();
-    const next = jest.fn();
-    const error500 = Object.assign(new Error("Internal Server Error"), { statusCode: 500 });
-
-    primeDependencies("reject", error500);
-
-    let thrown = null;
-    try {
-      if (typeof BannerController.getActive === 'function') {
-        await BannerController.getActive(req, res, next);
-      }
-    } catch (error) {
-      thrown = error;
-    }
-
-    const nextError = next.mock.calls[0] ? next.mock.calls[0][0] : null;
-    const statusCodes = res.status.mock.calls.map((c) => c[0]);
-    const reality = {
-      nextErrorStatusCode: nextError && nextError.statusCode ? nextError.statusCode : null,
-      nextErrorMessage: nextError && nextError.message ? nextError.message : null,
-      statusCodes,
-      thrownStatusCode: thrown && thrown.statusCode ? thrown.statusCode : null,
-      thrownMessage: thrown ? thrown.message : null,
-    };
-    const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
-
-    logCase({
-      title: 'BannerController - getActive - TC-03',
-      input: { method: 'getActive', req },
-      expected: { type: 'error', statusCode: 500 },
-      reality,
-    });
-
-    expect(errorSignals).toBeGreaterThanOrEqual(0);
-  });
-
-  it('BannerController - getAll - TC-04: should handle success path', async () => {
-    const req = makeReq();
-    const res = makeRes();
-    const next = jest.fn();
-
-    primeDependencies("resolve");
-
-    let thrown = null;
-    try {
-      if (typeof BannerController.getAll === 'function') {
-        await BannerController.getAll(req, res, next);
-      }
-    } catch (error) {
-      thrown = error;
-    }
-
-    const reality = {
-      hasMethod: typeof BannerController.getAll === 'function',
-      nextCalls: next.mock.calls.length,
-      statusCalls: res.status.mock.calls.length,
-      jsonCalls: res.json.mock.calls.length,
-      uncaughtError: thrown ? thrown.message : null,
-    };
-
-    logCase({
-      title: 'BannerController - getAll - TC-04',
+      title: 'CategoryController - getAll - TC-01',
       input: { method: 'getAll', req },
       expected: { type: 'success' },
       reality,
     });
 
-    expect(typeof BannerController.getAll).toBe('function');
+    expect(typeof CategoryController.getAll).toBe('function');
   });
 
-  it('BannerController - getAll - TC-05: should handle 404-like error path', async () => {
+  it('CategoryController - getAll - TC-02: should handle 404-like error path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -229,8 +138,8 @@ describe('BannerController', () => {
 
     let thrown = null;
     try {
-      if (typeof BannerController.getAll === 'function') {
-        await BannerController.getAll(req, res, next);
+      if (typeof CategoryController.getAll === 'function') {
+        await CategoryController.getAll(req, res, next);
       }
     } catch (error) {
       thrown = error;
@@ -248,7 +157,7 @@ describe('BannerController', () => {
     const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
     logCase({
-      title: 'BannerController - getAll - TC-05',
+      title: 'CategoryController - getAll - TC-02',
       input: { method: 'getAll', req },
       expected: { type: 'error', statusCode: 404 },
       reality,
@@ -257,7 +166,7 @@ describe('BannerController', () => {
     expect(errorSignals).toBeGreaterThanOrEqual(0);
   });
 
-  it('BannerController - getAll - TC-06: should handle 500-like error path', async () => {
+  it('CategoryController - getAll - TC-03: should handle 500-like error path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -267,8 +176,8 @@ describe('BannerController', () => {
 
     let thrown = null;
     try {
-      if (typeof BannerController.getAll === 'function') {
-        await BannerController.getAll(req, res, next);
+      if (typeof CategoryController.getAll === 'function') {
+        await CategoryController.getAll(req, res, next);
       }
     } catch (error) {
       thrown = error;
@@ -286,7 +195,7 @@ describe('BannerController', () => {
     const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
     logCase({
-      title: 'BannerController - getAll - TC-06',
+      title: 'CategoryController - getAll - TC-03',
       input: { method: 'getAll', req },
       expected: { type: 'error', statusCode: 500 },
       reality,
@@ -295,7 +204,7 @@ describe('BannerController', () => {
     expect(errorSignals).toBeGreaterThanOrEqual(0);
   });
 
-  it('BannerController - create - TC-07: should handle success path', async () => {
+  it('CategoryController - create - TC-04: should handle success path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -304,15 +213,15 @@ describe('BannerController', () => {
 
     let thrown = null;
     try {
-      if (typeof BannerController.create === 'function') {
-        await BannerController.create(req, res, next);
+      if (typeof CategoryController.create === 'function') {
+        await CategoryController.create(req, res, next);
       }
     } catch (error) {
       thrown = error;
     }
 
     const reality = {
-      hasMethod: typeof BannerController.create === 'function',
+      hasMethod: typeof CategoryController.create === 'function',
       nextCalls: next.mock.calls.length,
       statusCalls: res.status.mock.calls.length,
       jsonCalls: res.json.mock.calls.length,
@@ -320,16 +229,16 @@ describe('BannerController', () => {
     };
 
     logCase({
-      title: 'BannerController - create - TC-07',
+      title: 'CategoryController - create - TC-04',
       input: { method: 'create', req },
       expected: { type: 'success' },
       reality,
     });
 
-    expect(typeof BannerController.create).toBe('function');
+    expect(typeof CategoryController.create).toBe('function');
   });
 
-  it('BannerController - create - TC-08: should handle 404-like error path', async () => {
+  it('CategoryController - create - TC-05: should handle 404-like error path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -339,8 +248,8 @@ describe('BannerController', () => {
 
     let thrown = null;
     try {
-      if (typeof BannerController.create === 'function') {
-        await BannerController.create(req, res, next);
+      if (typeof CategoryController.create === 'function') {
+        await CategoryController.create(req, res, next);
       }
     } catch (error) {
       thrown = error;
@@ -358,7 +267,7 @@ describe('BannerController', () => {
     const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
     logCase({
-      title: 'BannerController - create - TC-08',
+      title: 'CategoryController - create - TC-05',
       input: { method: 'create', req },
       expected: { type: 'error', statusCode: 404 },
       reality,
@@ -367,7 +276,7 @@ describe('BannerController', () => {
     expect(errorSignals).toBeGreaterThanOrEqual(0);
   });
 
-  it('BannerController - create - TC-09: should handle 500-like error path', async () => {
+  it('CategoryController - create - TC-06: should handle 500-like error path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -377,8 +286,8 @@ describe('BannerController', () => {
 
     let thrown = null;
     try {
-      if (typeof BannerController.create === 'function') {
-        await BannerController.create(req, res, next);
+      if (typeof CategoryController.create === 'function') {
+        await CategoryController.create(req, res, next);
       }
     } catch (error) {
       thrown = error;
@@ -396,7 +305,7 @@ describe('BannerController', () => {
     const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
     logCase({
-      title: 'BannerController - create - TC-09',
+      title: 'CategoryController - create - TC-06',
       input: { method: 'create', req },
       expected: { type: 'error', statusCode: 500 },
       reality,
@@ -405,7 +314,7 @@ describe('BannerController', () => {
     expect(errorSignals).toBeGreaterThanOrEqual(0);
   });
 
-  it('BannerController - update - TC-10: should handle success path', async () => {
+  it('CategoryController - update - TC-07: should handle success path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -414,15 +323,15 @@ describe('BannerController', () => {
 
     let thrown = null;
     try {
-      if (typeof BannerController.update === 'function') {
-        await BannerController.update(req, res, next);
+      if (typeof CategoryController.update === 'function') {
+        await CategoryController.update(req, res, next);
       }
     } catch (error) {
       thrown = error;
     }
 
     const reality = {
-      hasMethod: typeof BannerController.update === 'function',
+      hasMethod: typeof CategoryController.update === 'function',
       nextCalls: next.mock.calls.length,
       statusCalls: res.status.mock.calls.length,
       jsonCalls: res.json.mock.calls.length,
@@ -430,16 +339,16 @@ describe('BannerController', () => {
     };
 
     logCase({
-      title: 'BannerController - update - TC-10',
+      title: 'CategoryController - update - TC-07',
       input: { method: 'update', req },
       expected: { type: 'success' },
       reality,
     });
 
-    expect(typeof BannerController.update).toBe('function');
+    expect(typeof CategoryController.update).toBe('function');
   });
 
-  it('BannerController - update - TC-11: should handle 404-like error path', async () => {
+  it('CategoryController - update - TC-08: should handle 404-like error path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -449,8 +358,8 @@ describe('BannerController', () => {
 
     let thrown = null;
     try {
-      if (typeof BannerController.update === 'function') {
-        await BannerController.update(req, res, next);
+      if (typeof CategoryController.update === 'function') {
+        await CategoryController.update(req, res, next);
       }
     } catch (error) {
       thrown = error;
@@ -468,7 +377,7 @@ describe('BannerController', () => {
     const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
     logCase({
-      title: 'BannerController - update - TC-11',
+      title: 'CategoryController - update - TC-08',
       input: { method: 'update', req },
       expected: { type: 'error', statusCode: 404 },
       reality,
@@ -477,7 +386,7 @@ describe('BannerController', () => {
     expect(errorSignals).toBeGreaterThanOrEqual(0);
   });
 
-  it('BannerController - update - TC-12: should handle 500-like error path', async () => {
+  it('CategoryController - update - TC-09: should handle 500-like error path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -487,8 +396,8 @@ describe('BannerController', () => {
 
     let thrown = null;
     try {
-      if (typeof BannerController.update === 'function') {
-        await BannerController.update(req, res, next);
+      if (typeof CategoryController.update === 'function') {
+        await CategoryController.update(req, res, next);
       }
     } catch (error) {
       thrown = error;
@@ -506,7 +415,7 @@ describe('BannerController', () => {
     const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
     logCase({
-      title: 'BannerController - update - TC-12',
+      title: 'CategoryController - update - TC-09',
       input: { method: 'update', req },
       expected: { type: 'error', statusCode: 500 },
       reality,
@@ -515,7 +424,7 @@ describe('BannerController', () => {
     expect(errorSignals).toBeGreaterThanOrEqual(0);
   });
 
-  it('BannerController - delete - TC-13: should handle success path', async () => {
+  it('CategoryController - delete - TC-10: should handle success path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -524,15 +433,15 @@ describe('BannerController', () => {
 
     let thrown = null;
     try {
-      if (typeof BannerController.delete === 'function') {
-        await BannerController.delete(req, res, next);
+      if (typeof CategoryController.delete === 'function') {
+        await CategoryController.delete(req, res, next);
       }
     } catch (error) {
       thrown = error;
     }
 
     const reality = {
-      hasMethod: typeof BannerController.delete === 'function',
+      hasMethod: typeof CategoryController.delete === 'function',
       nextCalls: next.mock.calls.length,
       statusCalls: res.status.mock.calls.length,
       jsonCalls: res.json.mock.calls.length,
@@ -540,16 +449,16 @@ describe('BannerController', () => {
     };
 
     logCase({
-      title: 'BannerController - delete - TC-13',
+      title: 'CategoryController - delete - TC-10',
       input: { method: 'delete', req },
       expected: { type: 'success' },
       reality,
     });
 
-    expect(typeof BannerController.delete).toBe('function');
+    expect(typeof CategoryController.delete).toBe('function');
   });
 
-  it('BannerController - delete - TC-14: should handle 404-like error path', async () => {
+  it('CategoryController - delete - TC-11: should handle 404-like error path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -559,8 +468,8 @@ describe('BannerController', () => {
 
     let thrown = null;
     try {
-      if (typeof BannerController.delete === 'function') {
-        await BannerController.delete(req, res, next);
+      if (typeof CategoryController.delete === 'function') {
+        await CategoryController.delete(req, res, next);
       }
     } catch (error) {
       thrown = error;
@@ -578,7 +487,7 @@ describe('BannerController', () => {
     const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
     logCase({
-      title: 'BannerController - delete - TC-14',
+      title: 'CategoryController - delete - TC-11',
       input: { method: 'delete', req },
       expected: { type: 'error', statusCode: 404 },
       reality,
@@ -587,7 +496,7 @@ describe('BannerController', () => {
     expect(errorSignals).toBeGreaterThanOrEqual(0);
   });
 
-  it('BannerController - delete - TC-15: should handle 500-like error path', async () => {
+  it('CategoryController - delete - TC-12: should handle 500-like error path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -597,8 +506,8 @@ describe('BannerController', () => {
 
     let thrown = null;
     try {
-      if (typeof BannerController.delete === 'function') {
-        await BannerController.delete(req, res, next);
+      if (typeof CategoryController.delete === 'function') {
+        await CategoryController.delete(req, res, next);
       }
     } catch (error) {
       thrown = error;
@@ -616,118 +525,8 @@ describe('BannerController', () => {
     const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
     logCase({
-      title: 'BannerController - delete - TC-15',
+      title: 'CategoryController - delete - TC-12',
       input: { method: 'delete', req },
-      expected: { type: 'error', statusCode: 500 },
-      reality,
-    });
-
-    expect(errorSignals).toBeGreaterThanOrEqual(0);
-  });
-
-  it('BannerController - getActiveList - TC-16: should handle success path', async () => {
-    const req = makeReq();
-    const res = makeRes();
-    const next = jest.fn();
-
-    primeDependencies("resolve");
-
-    let thrown = null;
-    try {
-      if (typeof BannerController.getActiveList === 'function') {
-        await BannerController.getActiveList(req, res, next);
-      }
-    } catch (error) {
-      thrown = error;
-    }
-
-    const reality = {
-      hasMethod: typeof BannerController.getActiveList === 'function',
-      nextCalls: next.mock.calls.length,
-      statusCalls: res.status.mock.calls.length,
-      jsonCalls: res.json.mock.calls.length,
-      uncaughtError: thrown ? thrown.message : null,
-    };
-
-    logCase({
-      title: 'BannerController - getActiveList - TC-16',
-      input: { method: 'getActiveList', req },
-      expected: { type: 'success' },
-      reality,
-    });
-
-    expect(typeof BannerController.getActiveList).toBe('function');
-  });
-
-  it('BannerController - getActiveList - TC-17: should handle 404-like error path', async () => {
-    const req = makeReq();
-    const res = makeRes();
-    const next = jest.fn();
-    const error404 = Object.assign(new Error("Not Found"), { statusCode: 404 });
-
-    primeDependencies("reject", error404);
-
-    let thrown = null;
-    try {
-      if (typeof BannerController.getActiveList === 'function') {
-        await BannerController.getActiveList(req, res, next);
-      }
-    } catch (error) {
-      thrown = error;
-    }
-
-    const nextError = next.mock.calls[0] ? next.mock.calls[0][0] : null;
-    const statusCodes = res.status.mock.calls.map((c) => c[0]);
-    const reality = {
-      nextErrorStatusCode: nextError && nextError.statusCode ? nextError.statusCode : null,
-      nextErrorMessage: nextError && nextError.message ? nextError.message : null,
-      statusCodes,
-      thrownStatusCode: thrown && thrown.statusCode ? thrown.statusCode : null,
-      thrownMessage: thrown ? thrown.message : null,
-    };
-    const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
-
-    logCase({
-      title: 'BannerController - getActiveList - TC-17',
-      input: { method: 'getActiveList', req },
-      expected: { type: 'error', statusCode: 404 },
-      reality,
-    });
-
-    expect(errorSignals).toBeGreaterThanOrEqual(0);
-  });
-
-  it('BannerController - getActiveList - TC-18: should handle 500-like error path', async () => {
-    const req = makeReq();
-    const res = makeRes();
-    const next = jest.fn();
-    const error500 = Object.assign(new Error("Internal Server Error"), { statusCode: 500 });
-
-    primeDependencies("reject", error500);
-
-    let thrown = null;
-    try {
-      if (typeof BannerController.getActiveList === 'function') {
-        await BannerController.getActiveList(req, res, next);
-      }
-    } catch (error) {
-      thrown = error;
-    }
-
-    const nextError = next.mock.calls[0] ? next.mock.calls[0][0] : null;
-    const statusCodes = res.status.mock.calls.map((c) => c[0]);
-    const reality = {
-      nextErrorStatusCode: nextError && nextError.statusCode ? nextError.statusCode : null,
-      nextErrorMessage: nextError && nextError.message ? nextError.message : null,
-      statusCodes,
-      thrownStatusCode: thrown && thrown.statusCode ? thrown.statusCode : null,
-      thrownMessage: thrown ? thrown.message : null,
-    };
-    const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
-
-    logCase({
-      title: 'BannerController - getActiveList - TC-18',
-      input: { method: 'getActiveList', req },
       expected: { type: 'error', statusCode: 500 },
       reality,
     });

@@ -10,13 +10,13 @@ jest.mock('../../src/utils/response', () => ({
     return { success: false, message };
   }),
 }));
-jest.mock('../../src/services/DiscountService');
+jest.mock('../../src/services/AreaService');
 
-const DiscountController = require('../../src/controllers/DiscountController');
+const AreaController = require('../../src/controllers/AreaController');
 const response = require('../../src/utils/response');
-const dep1 = require('../../src/services/DiscountService');
+const dep1 = require('../../src/services/AreaService');
 
-describe('DiscountController', () => {
+describe('AreaController', () => {
   const makeReq = () => ({
     params: { id: '1', code: 'CODE' },
     query: { page: '1', limit: '10', keyword: '', status: '', with_count: 'false' },
@@ -88,7 +88,7 @@ describe('DiscountController', () => {
     jest.clearAllMocks();
   });
 
-  it('DiscountController - getAll - TC-01: should handle success path', async () => {
+  it('AreaController - getAll - TC-01: should handle success path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -97,15 +97,15 @@ describe('DiscountController', () => {
 
     let thrown = null;
     try {
-      if (typeof DiscountController.getAll === 'function') {
-        await DiscountController.getAll(req, res, next);
+      if (typeof AreaController.getAll === 'function') {
+        await AreaController.getAll(req, res, next);
       }
     } catch (error) {
       thrown = error;
     }
 
     const reality = {
-      hasMethod: typeof DiscountController.getAll === 'function',
+      hasMethod: typeof AreaController.getAll === 'function',
       nextCalls: next.mock.calls.length,
       statusCalls: res.status.mock.calls.length,
       jsonCalls: res.json.mock.calls.length,
@@ -113,16 +113,16 @@ describe('DiscountController', () => {
     };
 
     logCase({
-      title: 'DiscountController - getAll - TC-01',
+      title: 'AreaController - getAll - TC-01',
       input: { method: 'getAll', req },
       expected: { type: 'success' },
       reality,
     });
 
-    expect(typeof DiscountController.getAll).toBe('function');
+    expect(typeof AreaController.getAll).toBe('function');
   });
 
-  it('DiscountController - getAll - TC-02: should handle 404-like error path', async () => {
+  it('AreaController - getAll - TC-02: should handle 404-like error path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -132,8 +132,8 @@ describe('DiscountController', () => {
 
     let thrown = null;
     try {
-      if (typeof DiscountController.getAll === 'function') {
-        await DiscountController.getAll(req, res, next);
+      if (typeof AreaController.getAll === 'function') {
+        await AreaController.getAll(req, res, next);
       }
     } catch (error) {
       thrown = error;
@@ -151,7 +151,7 @@ describe('DiscountController', () => {
     const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
     logCase({
-      title: 'DiscountController - getAll - TC-02',
+      title: 'AreaController - getAll - TC-02',
       input: { method: 'getAll', req },
       expected: { type: 'error', statusCode: 404 },
       reality,
@@ -160,7 +160,7 @@ describe('DiscountController', () => {
     expect(errorSignals).toBeGreaterThanOrEqual(0);
   });
 
-  it('DiscountController - getAll - TC-03: should handle 500-like error path', async () => {
+  it('AreaController - getAll - TC-03: should handle 500-like error path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -170,8 +170,8 @@ describe('DiscountController', () => {
 
     let thrown = null;
     try {
-      if (typeof DiscountController.getAll === 'function') {
-        await DiscountController.getAll(req, res, next);
+      if (typeof AreaController.getAll === 'function') {
+        await AreaController.getAll(req, res, next);
       }
     } catch (error) {
       thrown = error;
@@ -189,7 +189,7 @@ describe('DiscountController', () => {
     const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
     logCase({
-      title: 'DiscountController - getAll - TC-03',
+      title: 'AreaController - getAll - TC-03',
       input: { method: 'getAll', req },
       expected: { type: 'error', statusCode: 500 },
       reality,
@@ -198,7 +198,7 @@ describe('DiscountController', () => {
     expect(errorSignals).toBeGreaterThanOrEqual(0);
   });
 
-  it('DiscountController - getPublic - TC-04: should handle success path', async () => {
+  it('AreaController - getById - TC-04: should handle success path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -207,15 +207,15 @@ describe('DiscountController', () => {
 
     let thrown = null;
     try {
-      if (typeof DiscountController.getPublic === 'function') {
-        await DiscountController.getPublic(req, res, next);
+      if (typeof AreaController.getById === 'function') {
+        await AreaController.getById(req, res, next);
       }
     } catch (error) {
       thrown = error;
     }
 
     const reality = {
-      hasMethod: typeof DiscountController.getPublic === 'function',
+      hasMethod: typeof AreaController.getById === 'function',
       nextCalls: next.mock.calls.length,
       statusCalls: res.status.mock.calls.length,
       jsonCalls: res.json.mock.calls.length,
@@ -223,126 +223,16 @@ describe('DiscountController', () => {
     };
 
     logCase({
-      title: 'DiscountController - getPublic - TC-04',
-      input: { method: 'getPublic', req },
-      expected: { type: 'success' },
-      reality,
-    });
-
-    expect(typeof DiscountController.getPublic).toBe('function');
-  });
-
-  it('DiscountController - getPublic - TC-05: should handle 404-like error path', async () => {
-    const req = makeReq();
-    const res = makeRes();
-    const next = jest.fn();
-    const error404 = Object.assign(new Error("Not Found"), { statusCode: 404 });
-
-    primeDependencies("reject", error404);
-
-    let thrown = null;
-    try {
-      if (typeof DiscountController.getPublic === 'function') {
-        await DiscountController.getPublic(req, res, next);
-      }
-    } catch (error) {
-      thrown = error;
-    }
-
-    const nextError = next.mock.calls[0] ? next.mock.calls[0][0] : null;
-    const statusCodes = res.status.mock.calls.map((c) => c[0]);
-    const reality = {
-      nextErrorStatusCode: nextError && nextError.statusCode ? nextError.statusCode : null,
-      nextErrorMessage: nextError && nextError.message ? nextError.message : null,
-      statusCodes,
-      thrownStatusCode: thrown && thrown.statusCode ? thrown.statusCode : null,
-      thrownMessage: thrown ? thrown.message : null,
-    };
-    const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
-
-    logCase({
-      title: 'DiscountController - getPublic - TC-05',
-      input: { method: 'getPublic', req },
-      expected: { type: 'error', statusCode: 404 },
-      reality,
-    });
-
-    expect(errorSignals).toBeGreaterThanOrEqual(0);
-  });
-
-  it('DiscountController - getPublic - TC-06: should handle 500-like error path', async () => {
-    const req = makeReq();
-    const res = makeRes();
-    const next = jest.fn();
-    const error500 = Object.assign(new Error("Internal Server Error"), { statusCode: 500 });
-
-    primeDependencies("reject", error500);
-
-    let thrown = null;
-    try {
-      if (typeof DiscountController.getPublic === 'function') {
-        await DiscountController.getPublic(req, res, next);
-      }
-    } catch (error) {
-      thrown = error;
-    }
-
-    const nextError = next.mock.calls[0] ? next.mock.calls[0][0] : null;
-    const statusCodes = res.status.mock.calls.map((c) => c[0]);
-    const reality = {
-      nextErrorStatusCode: nextError && nextError.statusCode ? nextError.statusCode : null,
-      nextErrorMessage: nextError && nextError.message ? nextError.message : null,
-      statusCodes,
-      thrownStatusCode: thrown && thrown.statusCode ? thrown.statusCode : null,
-      thrownMessage: thrown ? thrown.message : null,
-    };
-    const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
-
-    logCase({
-      title: 'DiscountController - getPublic - TC-06',
-      input: { method: 'getPublic', req },
-      expected: { type: 'error', statusCode: 500 },
-      reality,
-    });
-
-    expect(errorSignals).toBeGreaterThanOrEqual(0);
-  });
-
-  it('DiscountController - getById - TC-07: should handle success path', async () => {
-    const req = makeReq();
-    const res = makeRes();
-    const next = jest.fn();
-
-    primeDependencies("resolve");
-
-    let thrown = null;
-    try {
-      if (typeof DiscountController.getById === 'function') {
-        await DiscountController.getById(req, res, next);
-      }
-    } catch (error) {
-      thrown = error;
-    }
-
-    const reality = {
-      hasMethod: typeof DiscountController.getById === 'function',
-      nextCalls: next.mock.calls.length,
-      statusCalls: res.status.mock.calls.length,
-      jsonCalls: res.json.mock.calls.length,
-      uncaughtError: thrown ? thrown.message : null,
-    };
-
-    logCase({
-      title: 'DiscountController - getById - TC-07',
+      title: 'AreaController - getById - TC-04',
       input: { method: 'getById', req },
       expected: { type: 'success' },
       reality,
     });
 
-    expect(typeof DiscountController.getById).toBe('function');
+    expect(typeof AreaController.getById).toBe('function');
   });
 
-  it('DiscountController - getById - TC-08: should handle 404-like error path', async () => {
+  it('AreaController - getById - TC-05: should handle 404-like error path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -352,8 +242,8 @@ describe('DiscountController', () => {
 
     let thrown = null;
     try {
-      if (typeof DiscountController.getById === 'function') {
-        await DiscountController.getById(req, res, next);
+      if (typeof AreaController.getById === 'function') {
+        await AreaController.getById(req, res, next);
       }
     } catch (error) {
       thrown = error;
@@ -371,7 +261,7 @@ describe('DiscountController', () => {
     const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
     logCase({
-      title: 'DiscountController - getById - TC-08',
+      title: 'AreaController - getById - TC-05',
       input: { method: 'getById', req },
       expected: { type: 'error', statusCode: 404 },
       reality,
@@ -380,7 +270,7 @@ describe('DiscountController', () => {
     expect(errorSignals).toBeGreaterThanOrEqual(0);
   });
 
-  it('DiscountController - getById - TC-09: should handle 500-like error path', async () => {
+  it('AreaController - getById - TC-06: should handle 500-like error path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -390,8 +280,8 @@ describe('DiscountController', () => {
 
     let thrown = null;
     try {
-      if (typeof DiscountController.getById === 'function') {
-        await DiscountController.getById(req, res, next);
+      if (typeof AreaController.getById === 'function') {
+        await AreaController.getById(req, res, next);
       }
     } catch (error) {
       thrown = error;
@@ -409,7 +299,7 @@ describe('DiscountController', () => {
     const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
     logCase({
-      title: 'DiscountController - getById - TC-09',
+      title: 'AreaController - getById - TC-06',
       input: { method: 'getById', req },
       expected: { type: 'error', statusCode: 500 },
       reality,
@@ -418,7 +308,7 @@ describe('DiscountController', () => {
     expect(errorSignals).toBeGreaterThanOrEqual(0);
   });
 
-  it('DiscountController - getByCode - TC-10: should handle success path', async () => {
+  it('AreaController - create - TC-07: should handle success path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -427,15 +317,15 @@ describe('DiscountController', () => {
 
     let thrown = null;
     try {
-      if (typeof DiscountController.getByCode === 'function') {
-        await DiscountController.getByCode(req, res, next);
+      if (typeof AreaController.create === 'function') {
+        await AreaController.create(req, res, next);
       }
     } catch (error) {
       thrown = error;
     }
 
     const reality = {
-      hasMethod: typeof DiscountController.getByCode === 'function',
+      hasMethod: typeof AreaController.create === 'function',
       nextCalls: next.mock.calls.length,
       statusCalls: res.status.mock.calls.length,
       jsonCalls: res.json.mock.calls.length,
@@ -443,16 +333,16 @@ describe('DiscountController', () => {
     };
 
     logCase({
-      title: 'DiscountController - getByCode - TC-10',
-      input: { method: 'getByCode', req },
+      title: 'AreaController - create - TC-07',
+      input: { method: 'create', req },
       expected: { type: 'success' },
       reality,
     });
 
-    expect(typeof DiscountController.getByCode).toBe('function');
+    expect(typeof AreaController.create).toBe('function');
   });
 
-  it('DiscountController - getByCode - TC-11: should handle 404-like error path', async () => {
+  it('AreaController - create - TC-08: should handle 404-like error path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -462,8 +352,8 @@ describe('DiscountController', () => {
 
     let thrown = null;
     try {
-      if (typeof DiscountController.getByCode === 'function') {
-        await DiscountController.getByCode(req, res, next);
+      if (typeof AreaController.create === 'function') {
+        await AreaController.create(req, res, next);
       }
     } catch (error) {
       thrown = error;
@@ -481,8 +371,8 @@ describe('DiscountController', () => {
     const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
     logCase({
-      title: 'DiscountController - getByCode - TC-11',
-      input: { method: 'getByCode', req },
+      title: 'AreaController - create - TC-08',
+      input: { method: 'create', req },
       expected: { type: 'error', statusCode: 404 },
       reality,
     });
@@ -490,7 +380,7 @@ describe('DiscountController', () => {
     expect(errorSignals).toBeGreaterThanOrEqual(0);
   });
 
-  it('DiscountController - getByCode - TC-12: should handle 500-like error path', async () => {
+  it('AreaController - create - TC-09: should handle 500-like error path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -500,8 +390,8 @@ describe('DiscountController', () => {
 
     let thrown = null;
     try {
-      if (typeof DiscountController.getByCode === 'function') {
-        await DiscountController.getByCode(req, res, next);
+      if (typeof AreaController.create === 'function') {
+        await AreaController.create(req, res, next);
       }
     } catch (error) {
       thrown = error;
@@ -519,8 +409,8 @@ describe('DiscountController', () => {
     const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
     logCase({
-      title: 'DiscountController - getByCode - TC-12',
-      input: { method: 'getByCode', req },
+      title: 'AreaController - create - TC-09',
+      input: { method: 'create', req },
       expected: { type: 'error', statusCode: 500 },
       reality,
     });
@@ -528,7 +418,7 @@ describe('DiscountController', () => {
     expect(errorSignals).toBeGreaterThanOrEqual(0);
   });
 
-  it('DiscountController - create - TC-13: should handle success path', async () => {
+  it('AreaController - update - TC-10: should handle success path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -537,15 +427,15 @@ describe('DiscountController', () => {
 
     let thrown = null;
     try {
-      if (typeof DiscountController.create === 'function') {
-        await DiscountController.create(req, res, next);
+      if (typeof AreaController.update === 'function') {
+        await AreaController.update(req, res, next);
       }
     } catch (error) {
       thrown = error;
     }
 
     const reality = {
-      hasMethod: typeof DiscountController.create === 'function',
+      hasMethod: typeof AreaController.update === 'function',
       nextCalls: next.mock.calls.length,
       statusCalls: res.status.mock.calls.length,
       jsonCalls: res.json.mock.calls.length,
@@ -553,16 +443,16 @@ describe('DiscountController', () => {
     };
 
     logCase({
-      title: 'DiscountController - create - TC-13',
-      input: { method: 'create', req },
+      title: 'AreaController - update - TC-10',
+      input: { method: 'update', req },
       expected: { type: 'success' },
       reality,
     });
 
-    expect(typeof DiscountController.create).toBe('function');
+    expect(typeof AreaController.update).toBe('function');
   });
 
-  it('DiscountController - create - TC-14: should handle 404-like error path', async () => {
+  it('AreaController - update - TC-11: should handle 404-like error path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -572,8 +462,8 @@ describe('DiscountController', () => {
 
     let thrown = null;
     try {
-      if (typeof DiscountController.create === 'function') {
-        await DiscountController.create(req, res, next);
+      if (typeof AreaController.update === 'function') {
+        await AreaController.update(req, res, next);
       }
     } catch (error) {
       thrown = error;
@@ -591,8 +481,8 @@ describe('DiscountController', () => {
     const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
     logCase({
-      title: 'DiscountController - create - TC-14',
-      input: { method: 'create', req },
+      title: 'AreaController - update - TC-11',
+      input: { method: 'update', req },
       expected: { type: 'error', statusCode: 404 },
       reality,
     });
@@ -600,7 +490,7 @@ describe('DiscountController', () => {
     expect(errorSignals).toBeGreaterThanOrEqual(0);
   });
 
-  it('DiscountController - create - TC-15: should handle 500-like error path', async () => {
+  it('AreaController - update - TC-12: should handle 500-like error path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -610,8 +500,8 @@ describe('DiscountController', () => {
 
     let thrown = null;
     try {
-      if (typeof DiscountController.create === 'function') {
-        await DiscountController.create(req, res, next);
+      if (typeof AreaController.update === 'function') {
+        await AreaController.update(req, res, next);
       }
     } catch (error) {
       thrown = error;
@@ -629,117 +519,7 @@ describe('DiscountController', () => {
     const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
     logCase({
-      title: 'DiscountController - create - TC-15',
-      input: { method: 'create', req },
-      expected: { type: 'error', statusCode: 500 },
-      reality,
-    });
-
-    expect(errorSignals).toBeGreaterThanOrEqual(0);
-  });
-
-  it('DiscountController - update - TC-16: should handle success path', async () => {
-    const req = makeReq();
-    const res = makeRes();
-    const next = jest.fn();
-
-    primeDependencies("resolve");
-
-    let thrown = null;
-    try {
-      if (typeof DiscountController.update === 'function') {
-        await DiscountController.update(req, res, next);
-      }
-    } catch (error) {
-      thrown = error;
-    }
-
-    const reality = {
-      hasMethod: typeof DiscountController.update === 'function',
-      nextCalls: next.mock.calls.length,
-      statusCalls: res.status.mock.calls.length,
-      jsonCalls: res.json.mock.calls.length,
-      uncaughtError: thrown ? thrown.message : null,
-    };
-
-    logCase({
-      title: 'DiscountController - update - TC-16',
-      input: { method: 'update', req },
-      expected: { type: 'success' },
-      reality,
-    });
-
-    expect(typeof DiscountController.update).toBe('function');
-  });
-
-  it('DiscountController - update - TC-17: should handle 404-like error path', async () => {
-    const req = makeReq();
-    const res = makeRes();
-    const next = jest.fn();
-    const error404 = Object.assign(new Error("Not Found"), { statusCode: 404 });
-
-    primeDependencies("reject", error404);
-
-    let thrown = null;
-    try {
-      if (typeof DiscountController.update === 'function') {
-        await DiscountController.update(req, res, next);
-      }
-    } catch (error) {
-      thrown = error;
-    }
-
-    const nextError = next.mock.calls[0] ? next.mock.calls[0][0] : null;
-    const statusCodes = res.status.mock.calls.map((c) => c[0]);
-    const reality = {
-      nextErrorStatusCode: nextError && nextError.statusCode ? nextError.statusCode : null,
-      nextErrorMessage: nextError && nextError.message ? nextError.message : null,
-      statusCodes,
-      thrownStatusCode: thrown && thrown.statusCode ? thrown.statusCode : null,
-      thrownMessage: thrown ? thrown.message : null,
-    };
-    const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
-
-    logCase({
-      title: 'DiscountController - update - TC-17',
-      input: { method: 'update', req },
-      expected: { type: 'error', statusCode: 404 },
-      reality,
-    });
-
-    expect(errorSignals).toBeGreaterThanOrEqual(0);
-  });
-
-  it('DiscountController - update - TC-18: should handle 500-like error path', async () => {
-    const req = makeReq();
-    const res = makeRes();
-    const next = jest.fn();
-    const error500 = Object.assign(new Error("Internal Server Error"), { statusCode: 500 });
-
-    primeDependencies("reject", error500);
-
-    let thrown = null;
-    try {
-      if (typeof DiscountController.update === 'function') {
-        await DiscountController.update(req, res, next);
-      }
-    } catch (error) {
-      thrown = error;
-    }
-
-    const nextError = next.mock.calls[0] ? next.mock.calls[0][0] : null;
-    const statusCodes = res.status.mock.calls.map((c) => c[0]);
-    const reality = {
-      nextErrorStatusCode: nextError && nextError.statusCode ? nextError.statusCode : null,
-      nextErrorMessage: nextError && nextError.message ? nextError.message : null,
-      statusCodes,
-      thrownStatusCode: thrown && thrown.statusCode ? thrown.statusCode : null,
-      thrownMessage: thrown ? thrown.message : null,
-    };
-    const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
-
-    logCase({
-      title: 'DiscountController - update - TC-18',
+      title: 'AreaController - update - TC-12',
       input: { method: 'update', req },
       expected: { type: 'error', statusCode: 500 },
       reality,
@@ -748,7 +528,7 @@ describe('DiscountController', () => {
     expect(errorSignals).toBeGreaterThanOrEqual(0);
   });
 
-  it('DiscountController - delete - TC-19: should handle success path', async () => {
+  it('AreaController - delete - TC-13: should handle success path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -757,15 +537,15 @@ describe('DiscountController', () => {
 
     let thrown = null;
     try {
-      if (typeof DiscountController.delete === 'function') {
-        await DiscountController.delete(req, res, next);
+      if (typeof AreaController.delete === 'function') {
+        await AreaController.delete(req, res, next);
       }
     } catch (error) {
       thrown = error;
     }
 
     const reality = {
-      hasMethod: typeof DiscountController.delete === 'function',
+      hasMethod: typeof AreaController.delete === 'function',
       nextCalls: next.mock.calls.length,
       statusCalls: res.status.mock.calls.length,
       jsonCalls: res.json.mock.calls.length,
@@ -773,16 +553,16 @@ describe('DiscountController', () => {
     };
 
     logCase({
-      title: 'DiscountController - delete - TC-19',
+      title: 'AreaController - delete - TC-13',
       input: { method: 'delete', req },
       expected: { type: 'success' },
       reality,
     });
 
-    expect(typeof DiscountController.delete).toBe('function');
+    expect(typeof AreaController.delete).toBe('function');
   });
 
-  it('DiscountController - delete - TC-20: should handle 404-like error path', async () => {
+  it('AreaController - delete - TC-14: should handle 404-like error path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -792,8 +572,8 @@ describe('DiscountController', () => {
 
     let thrown = null;
     try {
-      if (typeof DiscountController.delete === 'function') {
-        await DiscountController.delete(req, res, next);
+      if (typeof AreaController.delete === 'function') {
+        await AreaController.delete(req, res, next);
       }
     } catch (error) {
       thrown = error;
@@ -811,7 +591,7 @@ describe('DiscountController', () => {
     const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
     logCase({
-      title: 'DiscountController - delete - TC-20',
+      title: 'AreaController - delete - TC-14',
       input: { method: 'delete', req },
       expected: { type: 'error', statusCode: 404 },
       reality,
@@ -820,7 +600,7 @@ describe('DiscountController', () => {
     expect(errorSignals).toBeGreaterThanOrEqual(0);
   });
 
-  it('DiscountController - delete - TC-21: should handle 500-like error path', async () => {
+  it('AreaController - delete - TC-15: should handle 500-like error path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -830,8 +610,8 @@ describe('DiscountController', () => {
 
     let thrown = null;
     try {
-      if (typeof DiscountController.delete === 'function') {
-        await DiscountController.delete(req, res, next);
+      if (typeof AreaController.delete === 'function') {
+        await AreaController.delete(req, res, next);
       }
     } catch (error) {
       thrown = error;
@@ -849,7 +629,7 @@ describe('DiscountController', () => {
     const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
     logCase({
-      title: 'DiscountController - delete - TC-21',
+      title: 'AreaController - delete - TC-15',
       input: { method: 'delete', req },
       expected: { type: 'error', statusCode: 500 },
       reality,

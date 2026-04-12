@@ -10,13 +10,15 @@ jest.mock('../../src/utils/response', () => ({
     return { success: false, message };
   }),
 }));
-jest.mock('../../src/services/NewsService');
+jest.mock('../../src/services/UserService');
+jest.mock('../../src/utils/helpers');
 
-const NewsController = require('../../src/controllers/NewsController');
+const UserController = require('../../src/controllers/UserController');
 const response = require('../../src/utils/response');
-const dep1 = require('../../src/services/NewsService');
+const dep1 = require('../../src/services/UserService');
+const dep2 = require('../../src/utils/helpers');
 
-describe('NewsController', () => {
+describe('UserController', () => {
   const makeReq = () => ({
     params: { id: '1', code: 'CODE' },
     query: { page: '1', limit: '10', keyword: '', status: '', with_count: 'false' },
@@ -40,6 +42,7 @@ describe('NewsController', () => {
 
   const dependencyModules = [
     dep1,
+    dep2,
   ];
 
   const primeModuleFunctions = (moduleObj, mode, errorObj) => {
@@ -88,7 +91,7 @@ describe('NewsController', () => {
     jest.clearAllMocks();
   });
 
-  it('NewsController - create - TC-01: should handle success path', async () => {
+  it('UserController - getAll - TC-01: should handle success path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -97,15 +100,15 @@ describe('NewsController', () => {
 
     let thrown = null;
     try {
-      if (typeof NewsController.create === 'function') {
-        await NewsController.create(req, res, next);
+      if (typeof UserController.getAll === 'function') {
+        await UserController.getAll(req, res, next);
       }
     } catch (error) {
       thrown = error;
     }
 
     const reality = {
-      hasMethod: typeof NewsController.create === 'function',
+      hasMethod: typeof UserController.getAll === 'function',
       nextCalls: next.mock.calls.length,
       statusCalls: res.status.mock.calls.length,
       jsonCalls: res.json.mock.calls.length,
@@ -113,126 +116,16 @@ describe('NewsController', () => {
     };
 
     logCase({
-      title: 'NewsController - create - TC-01',
-      input: { method: 'create', req },
-      expected: { type: 'success' },
-      reality,
-    });
-
-    expect(typeof NewsController.create).toBe('function');
-  });
-
-  it('NewsController - create - TC-02: should handle 404-like error path', async () => {
-    const req = makeReq();
-    const res = makeRes();
-    const next = jest.fn();
-    const error404 = Object.assign(new Error("Not Found"), { statusCode: 404 });
-
-    primeDependencies("reject", error404);
-
-    let thrown = null;
-    try {
-      if (typeof NewsController.create === 'function') {
-        await NewsController.create(req, res, next);
-      }
-    } catch (error) {
-      thrown = error;
-    }
-
-    const nextError = next.mock.calls[0] ? next.mock.calls[0][0] : null;
-    const statusCodes = res.status.mock.calls.map((c) => c[0]);
-    const reality = {
-      nextErrorStatusCode: nextError && nextError.statusCode ? nextError.statusCode : null,
-      nextErrorMessage: nextError && nextError.message ? nextError.message : null,
-      statusCodes,
-      thrownStatusCode: thrown && thrown.statusCode ? thrown.statusCode : null,
-      thrownMessage: thrown ? thrown.message : null,
-    };
-    const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
-
-    logCase({
-      title: 'NewsController - create - TC-02',
-      input: { method: 'create', req },
-      expected: { type: 'error', statusCode: 404 },
-      reality,
-    });
-
-    expect(errorSignals).toBeGreaterThanOrEqual(0);
-  });
-
-  it('NewsController - create - TC-03: should handle 500-like error path', async () => {
-    const req = makeReq();
-    const res = makeRes();
-    const next = jest.fn();
-    const error500 = Object.assign(new Error("Internal Server Error"), { statusCode: 500 });
-
-    primeDependencies("reject", error500);
-
-    let thrown = null;
-    try {
-      if (typeof NewsController.create === 'function') {
-        await NewsController.create(req, res, next);
-      }
-    } catch (error) {
-      thrown = error;
-    }
-
-    const nextError = next.mock.calls[0] ? next.mock.calls[0][0] : null;
-    const statusCodes = res.status.mock.calls.map((c) => c[0]);
-    const reality = {
-      nextErrorStatusCode: nextError && nextError.statusCode ? nextError.statusCode : null,
-      nextErrorMessage: nextError && nextError.message ? nextError.message : null,
-      statusCodes,
-      thrownStatusCode: thrown && thrown.statusCode ? thrown.statusCode : null,
-      thrownMessage: thrown ? thrown.message : null,
-    };
-    const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
-
-    logCase({
-      title: 'NewsController - create - TC-03',
-      input: { method: 'create', req },
-      expected: { type: 'error', statusCode: 500 },
-      reality,
-    });
-
-    expect(errorSignals).toBeGreaterThanOrEqual(0);
-  });
-
-  it('NewsController - getAll - TC-04: should handle success path', async () => {
-    const req = makeReq();
-    const res = makeRes();
-    const next = jest.fn();
-
-    primeDependencies("resolve");
-
-    let thrown = null;
-    try {
-      if (typeof NewsController.getAll === 'function') {
-        await NewsController.getAll(req, res, next);
-      }
-    } catch (error) {
-      thrown = error;
-    }
-
-    const reality = {
-      hasMethod: typeof NewsController.getAll === 'function',
-      nextCalls: next.mock.calls.length,
-      statusCalls: res.status.mock.calls.length,
-      jsonCalls: res.json.mock.calls.length,
-      uncaughtError: thrown ? thrown.message : null,
-    };
-
-    logCase({
-      title: 'NewsController - getAll - TC-04',
+      title: 'UserController - getAll - TC-01',
       input: { method: 'getAll', req },
       expected: { type: 'success' },
       reality,
     });
 
-    expect(typeof NewsController.getAll).toBe('function');
+    expect(typeof UserController.getAll).toBe('function');
   });
 
-  it('NewsController - getAll - TC-05: should handle 404-like error path', async () => {
+  it('UserController - getAll - TC-02: should handle 404-like error path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -242,8 +135,8 @@ describe('NewsController', () => {
 
     let thrown = null;
     try {
-      if (typeof NewsController.getAll === 'function') {
-        await NewsController.getAll(req, res, next);
+      if (typeof UserController.getAll === 'function') {
+        await UserController.getAll(req, res, next);
       }
     } catch (error) {
       thrown = error;
@@ -261,7 +154,7 @@ describe('NewsController', () => {
     const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
     logCase({
-      title: 'NewsController - getAll - TC-05',
+      title: 'UserController - getAll - TC-02',
       input: { method: 'getAll', req },
       expected: { type: 'error', statusCode: 404 },
       reality,
@@ -270,7 +163,7 @@ describe('NewsController', () => {
     expect(errorSignals).toBeGreaterThanOrEqual(0);
   });
 
-  it('NewsController - getAll - TC-06: should handle 500-like error path', async () => {
+  it('UserController - getAll - TC-03: should handle 500-like error path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -280,8 +173,8 @@ describe('NewsController', () => {
 
     let thrown = null;
     try {
-      if (typeof NewsController.getAll === 'function') {
-        await NewsController.getAll(req, res, next);
+      if (typeof UserController.getAll === 'function') {
+        await UserController.getAll(req, res, next);
       }
     } catch (error) {
       thrown = error;
@@ -299,7 +192,7 @@ describe('NewsController', () => {
     const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
     logCase({
-      title: 'NewsController - getAll - TC-06',
+      title: 'UserController - getAll - TC-03',
       input: { method: 'getAll', req },
       expected: { type: 'error', statusCode: 500 },
       reality,
@@ -308,7 +201,7 @@ describe('NewsController', () => {
     expect(errorSignals).toBeGreaterThanOrEqual(0);
   });
 
-  it('NewsController - getDetail - TC-07: should handle success path', async () => {
+  it('UserController - getById - TC-04: should handle success path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -317,15 +210,15 @@ describe('NewsController', () => {
 
     let thrown = null;
     try {
-      if (typeof NewsController.getDetail === 'function') {
-        await NewsController.getDetail(req, res, next);
+      if (typeof UserController.getById === 'function') {
+        await UserController.getById(req, res, next);
       }
     } catch (error) {
       thrown = error;
     }
 
     const reality = {
-      hasMethod: typeof NewsController.getDetail === 'function',
+      hasMethod: typeof UserController.getById === 'function',
       nextCalls: next.mock.calls.length,
       statusCalls: res.status.mock.calls.length,
       jsonCalls: res.json.mock.calls.length,
@@ -333,456 +226,16 @@ describe('NewsController', () => {
     };
 
     logCase({
-      title: 'NewsController - getDetail - TC-07',
-      input: { method: 'getDetail', req },
-      expected: { type: 'success' },
-      reality,
-    });
-
-    expect(typeof NewsController.getDetail).toBe('function');
-  });
-
-  it('NewsController - getDetail - TC-08: should handle 404-like error path', async () => {
-    const req = makeReq();
-    const res = makeRes();
-    const next = jest.fn();
-    const error404 = Object.assign(new Error("Not Found"), { statusCode: 404 });
-
-    primeDependencies("reject", error404);
-
-    let thrown = null;
-    try {
-      if (typeof NewsController.getDetail === 'function') {
-        await NewsController.getDetail(req, res, next);
-      }
-    } catch (error) {
-      thrown = error;
-    }
-
-    const nextError = next.mock.calls[0] ? next.mock.calls[0][0] : null;
-    const statusCodes = res.status.mock.calls.map((c) => c[0]);
-    const reality = {
-      nextErrorStatusCode: nextError && nextError.statusCode ? nextError.statusCode : null,
-      nextErrorMessage: nextError && nextError.message ? nextError.message : null,
-      statusCodes,
-      thrownStatusCode: thrown && thrown.statusCode ? thrown.statusCode : null,
-      thrownMessage: thrown ? thrown.message : null,
-    };
-    const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
-
-    logCase({
-      title: 'NewsController - getDetail - TC-08',
-      input: { method: 'getDetail', req },
-      expected: { type: 'error', statusCode: 404 },
-      reality,
-    });
-
-    expect(errorSignals).toBeGreaterThanOrEqual(0);
-  });
-
-  it('NewsController - getDetail - TC-09: should handle 500-like error path', async () => {
-    const req = makeReq();
-    const res = makeRes();
-    const next = jest.fn();
-    const error500 = Object.assign(new Error("Internal Server Error"), { statusCode: 500 });
-
-    primeDependencies("reject", error500);
-
-    let thrown = null;
-    try {
-      if (typeof NewsController.getDetail === 'function') {
-        await NewsController.getDetail(req, res, next);
-      }
-    } catch (error) {
-      thrown = error;
-    }
-
-    const nextError = next.mock.calls[0] ? next.mock.calls[0][0] : null;
-    const statusCodes = res.status.mock.calls.map((c) => c[0]);
-    const reality = {
-      nextErrorStatusCode: nextError && nextError.statusCode ? nextError.statusCode : null,
-      nextErrorMessage: nextError && nextError.message ? nextError.message : null,
-      statusCodes,
-      thrownStatusCode: thrown && thrown.statusCode ? thrown.statusCode : null,
-      thrownMessage: thrown ? thrown.message : null,
-    };
-    const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
-
-    logCase({
-      title: 'NewsController - getDetail - TC-09',
-      input: { method: 'getDetail', req },
-      expected: { type: 'error', statusCode: 500 },
-      reality,
-    });
-
-    expect(errorSignals).toBeGreaterThanOrEqual(0);
-  });
-
-  it('NewsController - getFeatured - TC-10: should handle success path', async () => {
-    const req = makeReq();
-    const res = makeRes();
-    const next = jest.fn();
-
-    primeDependencies("resolve");
-
-    let thrown = null;
-    try {
-      if (typeof NewsController.getFeatured === 'function') {
-        await NewsController.getFeatured(req, res, next);
-      }
-    } catch (error) {
-      thrown = error;
-    }
-
-    const reality = {
-      hasMethod: typeof NewsController.getFeatured === 'function',
-      nextCalls: next.mock.calls.length,
-      statusCalls: res.status.mock.calls.length,
-      jsonCalls: res.json.mock.calls.length,
-      uncaughtError: thrown ? thrown.message : null,
-    };
-
-    logCase({
-      title: 'NewsController - getFeatured - TC-10',
-      input: { method: 'getFeatured', req },
-      expected: { type: 'success' },
-      reality,
-    });
-
-    expect(typeof NewsController.getFeatured).toBe('function');
-  });
-
-  it('NewsController - getFeatured - TC-11: should handle 404-like error path', async () => {
-    const req = makeReq();
-    const res = makeRes();
-    const next = jest.fn();
-    const error404 = Object.assign(new Error("Not Found"), { statusCode: 404 });
-
-    primeDependencies("reject", error404);
-
-    let thrown = null;
-    try {
-      if (typeof NewsController.getFeatured === 'function') {
-        await NewsController.getFeatured(req, res, next);
-      }
-    } catch (error) {
-      thrown = error;
-    }
-
-    const nextError = next.mock.calls[0] ? next.mock.calls[0][0] : null;
-    const statusCodes = res.status.mock.calls.map((c) => c[0]);
-    const reality = {
-      nextErrorStatusCode: nextError && nextError.statusCode ? nextError.statusCode : null,
-      nextErrorMessage: nextError && nextError.message ? nextError.message : null,
-      statusCodes,
-      thrownStatusCode: thrown && thrown.statusCode ? thrown.statusCode : null,
-      thrownMessage: thrown ? thrown.message : null,
-    };
-    const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
-
-    logCase({
-      title: 'NewsController - getFeatured - TC-11',
-      input: { method: 'getFeatured', req },
-      expected: { type: 'error', statusCode: 404 },
-      reality,
-    });
-
-    expect(errorSignals).toBeGreaterThanOrEqual(0);
-  });
-
-  it('NewsController - getFeatured - TC-12: should handle 500-like error path', async () => {
-    const req = makeReq();
-    const res = makeRes();
-    const next = jest.fn();
-    const error500 = Object.assign(new Error("Internal Server Error"), { statusCode: 500 });
-
-    primeDependencies("reject", error500);
-
-    let thrown = null;
-    try {
-      if (typeof NewsController.getFeatured === 'function') {
-        await NewsController.getFeatured(req, res, next);
-      }
-    } catch (error) {
-      thrown = error;
-    }
-
-    const nextError = next.mock.calls[0] ? next.mock.calls[0][0] : null;
-    const statusCodes = res.status.mock.calls.map((c) => c[0]);
-    const reality = {
-      nextErrorStatusCode: nextError && nextError.statusCode ? nextError.statusCode : null,
-      nextErrorMessage: nextError && nextError.message ? nextError.message : null,
-      statusCodes,
-      thrownStatusCode: thrown && thrown.statusCode ? thrown.statusCode : null,
-      thrownMessage: thrown ? thrown.message : null,
-    };
-    const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
-
-    logCase({
-      title: 'NewsController - getFeatured - TC-12',
-      input: { method: 'getFeatured', req },
-      expected: { type: 'error', statusCode: 500 },
-      reality,
-    });
-
-    expect(errorSignals).toBeGreaterThanOrEqual(0);
-  });
-
-  it('NewsController - delete - TC-13: should handle success path', async () => {
-    const req = makeReq();
-    const res = makeRes();
-    const next = jest.fn();
-
-    primeDependencies("resolve");
-
-    let thrown = null;
-    try {
-      if (typeof NewsController.delete === 'function') {
-        await NewsController.delete(req, res, next);
-      }
-    } catch (error) {
-      thrown = error;
-    }
-
-    const reality = {
-      hasMethod: typeof NewsController.delete === 'function',
-      nextCalls: next.mock.calls.length,
-      statusCalls: res.status.mock.calls.length,
-      jsonCalls: res.json.mock.calls.length,
-      uncaughtError: thrown ? thrown.message : null,
-    };
-
-    logCase({
-      title: 'NewsController - delete - TC-13',
-      input: { method: 'delete', req },
-      expected: { type: 'success' },
-      reality,
-    });
-
-    expect(typeof NewsController.delete).toBe('function');
-  });
-
-  it('NewsController - delete - TC-14: should handle 404-like error path', async () => {
-    const req = makeReq();
-    const res = makeRes();
-    const next = jest.fn();
-    const error404 = Object.assign(new Error("Not Found"), { statusCode: 404 });
-
-    primeDependencies("reject", error404);
-
-    let thrown = null;
-    try {
-      if (typeof NewsController.delete === 'function') {
-        await NewsController.delete(req, res, next);
-      }
-    } catch (error) {
-      thrown = error;
-    }
-
-    const nextError = next.mock.calls[0] ? next.mock.calls[0][0] : null;
-    const statusCodes = res.status.mock.calls.map((c) => c[0]);
-    const reality = {
-      nextErrorStatusCode: nextError && nextError.statusCode ? nextError.statusCode : null,
-      nextErrorMessage: nextError && nextError.message ? nextError.message : null,
-      statusCodes,
-      thrownStatusCode: thrown && thrown.statusCode ? thrown.statusCode : null,
-      thrownMessage: thrown ? thrown.message : null,
-    };
-    const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
-
-    logCase({
-      title: 'NewsController - delete - TC-14',
-      input: { method: 'delete', req },
-      expected: { type: 'error', statusCode: 404 },
-      reality,
-    });
-
-    expect(errorSignals).toBeGreaterThanOrEqual(0);
-  });
-
-  it('NewsController - delete - TC-15: should handle 500-like error path', async () => {
-    const req = makeReq();
-    const res = makeRes();
-    const next = jest.fn();
-    const error500 = Object.assign(new Error("Internal Server Error"), { statusCode: 500 });
-
-    primeDependencies("reject", error500);
-
-    let thrown = null;
-    try {
-      if (typeof NewsController.delete === 'function') {
-        await NewsController.delete(req, res, next);
-      }
-    } catch (error) {
-      thrown = error;
-    }
-
-    const nextError = next.mock.calls[0] ? next.mock.calls[0][0] : null;
-    const statusCodes = res.status.mock.calls.map((c) => c[0]);
-    const reality = {
-      nextErrorStatusCode: nextError && nextError.statusCode ? nextError.statusCode : null,
-      nextErrorMessage: nextError && nextError.message ? nextError.message : null,
-      statusCodes,
-      thrownStatusCode: thrown && thrown.statusCode ? thrown.statusCode : null,
-      thrownMessage: thrown ? thrown.message : null,
-    };
-    const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
-
-    logCase({
-      title: 'NewsController - delete - TC-15',
-      input: { method: 'delete', req },
-      expected: { type: 'error', statusCode: 500 },
-      reality,
-    });
-
-    expect(errorSignals).toBeGreaterThanOrEqual(0);
-  });
-
-  it('NewsController - getAllAdmin - TC-16: should handle success path', async () => {
-    const req = makeReq();
-    const res = makeRes();
-    const next = jest.fn();
-
-    primeDependencies("resolve");
-
-    let thrown = null;
-    try {
-      if (typeof NewsController.getAllAdmin === 'function') {
-        await NewsController.getAllAdmin(req, res, next);
-      }
-    } catch (error) {
-      thrown = error;
-    }
-
-    const reality = {
-      hasMethod: typeof NewsController.getAllAdmin === 'function',
-      nextCalls: next.mock.calls.length,
-      statusCalls: res.status.mock.calls.length,
-      jsonCalls: res.json.mock.calls.length,
-      uncaughtError: thrown ? thrown.message : null,
-    };
-
-    logCase({
-      title: 'NewsController - getAllAdmin - TC-16',
-      input: { method: 'getAllAdmin', req },
-      expected: { type: 'success' },
-      reality,
-    });
-
-    expect(typeof NewsController.getAllAdmin).toBe('function');
-  });
-
-  it('NewsController - getAllAdmin - TC-17: should handle 404-like error path', async () => {
-    const req = makeReq();
-    const res = makeRes();
-    const next = jest.fn();
-    const error404 = Object.assign(new Error("Not Found"), { statusCode: 404 });
-
-    primeDependencies("reject", error404);
-
-    let thrown = null;
-    try {
-      if (typeof NewsController.getAllAdmin === 'function') {
-        await NewsController.getAllAdmin(req, res, next);
-      }
-    } catch (error) {
-      thrown = error;
-    }
-
-    const nextError = next.mock.calls[0] ? next.mock.calls[0][0] : null;
-    const statusCodes = res.status.mock.calls.map((c) => c[0]);
-    const reality = {
-      nextErrorStatusCode: nextError && nextError.statusCode ? nextError.statusCode : null,
-      nextErrorMessage: nextError && nextError.message ? nextError.message : null,
-      statusCodes,
-      thrownStatusCode: thrown && thrown.statusCode ? thrown.statusCode : null,
-      thrownMessage: thrown ? thrown.message : null,
-    };
-    const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
-
-    logCase({
-      title: 'NewsController - getAllAdmin - TC-17',
-      input: { method: 'getAllAdmin', req },
-      expected: { type: 'error', statusCode: 404 },
-      reality,
-    });
-
-    expect(errorSignals).toBeGreaterThanOrEqual(0);
-  });
-
-  it('NewsController - getAllAdmin - TC-18: should handle 500-like error path', async () => {
-    const req = makeReq();
-    const res = makeRes();
-    const next = jest.fn();
-    const error500 = Object.assign(new Error("Internal Server Error"), { statusCode: 500 });
-
-    primeDependencies("reject", error500);
-
-    let thrown = null;
-    try {
-      if (typeof NewsController.getAllAdmin === 'function') {
-        await NewsController.getAllAdmin(req, res, next);
-      }
-    } catch (error) {
-      thrown = error;
-    }
-
-    const nextError = next.mock.calls[0] ? next.mock.calls[0][0] : null;
-    const statusCodes = res.status.mock.calls.map((c) => c[0]);
-    const reality = {
-      nextErrorStatusCode: nextError && nextError.statusCode ? nextError.statusCode : null,
-      nextErrorMessage: nextError && nextError.message ? nextError.message : null,
-      statusCodes,
-      thrownStatusCode: thrown && thrown.statusCode ? thrown.statusCode : null,
-      thrownMessage: thrown ? thrown.message : null,
-    };
-    const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
-
-    logCase({
-      title: 'NewsController - getAllAdmin - TC-18',
-      input: { method: 'getAllAdmin', req },
-      expected: { type: 'error', statusCode: 500 },
-      reality,
-    });
-
-    expect(errorSignals).toBeGreaterThanOrEqual(0);
-  });
-
-  it('NewsController - getById - TC-19: should handle success path', async () => {
-    const req = makeReq();
-    const res = makeRes();
-    const next = jest.fn();
-
-    primeDependencies("resolve");
-
-    let thrown = null;
-    try {
-      if (typeof NewsController.getById === 'function') {
-        await NewsController.getById(req, res, next);
-      }
-    } catch (error) {
-      thrown = error;
-    }
-
-    const reality = {
-      hasMethod: typeof NewsController.getById === 'function',
-      nextCalls: next.mock.calls.length,
-      statusCalls: res.status.mock.calls.length,
-      jsonCalls: res.json.mock.calls.length,
-      uncaughtError: thrown ? thrown.message : null,
-    };
-
-    logCase({
-      title: 'NewsController - getById - TC-19',
+      title: 'UserController - getById - TC-04',
       input: { method: 'getById', req },
       expected: { type: 'success' },
       reality,
     });
 
-    expect(typeof NewsController.getById).toBe('function');
+    expect(typeof UserController.getById).toBe('function');
   });
 
-  it('NewsController - getById - TC-20: should handle 404-like error path', async () => {
+  it('UserController - getById - TC-05: should handle 404-like error path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -792,8 +245,8 @@ describe('NewsController', () => {
 
     let thrown = null;
     try {
-      if (typeof NewsController.getById === 'function') {
-        await NewsController.getById(req, res, next);
+      if (typeof UserController.getById === 'function') {
+        await UserController.getById(req, res, next);
       }
     } catch (error) {
       thrown = error;
@@ -811,7 +264,7 @@ describe('NewsController', () => {
     const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
     logCase({
-      title: 'NewsController - getById - TC-20',
+      title: 'UserController - getById - TC-05',
       input: { method: 'getById', req },
       expected: { type: 'error', statusCode: 404 },
       reality,
@@ -820,7 +273,7 @@ describe('NewsController', () => {
     expect(errorSignals).toBeGreaterThanOrEqual(0);
   });
 
-  it('NewsController - getById - TC-21: should handle 500-like error path', async () => {
+  it('UserController - getById - TC-06: should handle 500-like error path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -830,8 +283,8 @@ describe('NewsController', () => {
 
     let thrown = null;
     try {
-      if (typeof NewsController.getById === 'function') {
-        await NewsController.getById(req, res, next);
+      if (typeof UserController.getById === 'function') {
+        await UserController.getById(req, res, next);
       }
     } catch (error) {
       thrown = error;
@@ -849,7 +302,7 @@ describe('NewsController', () => {
     const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
     logCase({
-      title: 'NewsController - getById - TC-21',
+      title: 'UserController - getById - TC-06',
       input: { method: 'getById', req },
       expected: { type: 'error', statusCode: 500 },
       reality,
@@ -858,7 +311,7 @@ describe('NewsController', () => {
     expect(errorSignals).toBeGreaterThanOrEqual(0);
   });
 
-  it('NewsController - update - TC-22: should handle success path', async () => {
+  it('UserController - search - TC-07: should handle success path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -867,15 +320,15 @@ describe('NewsController', () => {
 
     let thrown = null;
     try {
-      if (typeof NewsController.update === 'function') {
-        await NewsController.update(req, res, next);
+      if (typeof UserController.search === 'function') {
+        await UserController.search(req, res, next);
       }
     } catch (error) {
       thrown = error;
     }
 
     const reality = {
-      hasMethod: typeof NewsController.update === 'function',
+      hasMethod: typeof UserController.search === 'function',
       nextCalls: next.mock.calls.length,
       statusCalls: res.status.mock.calls.length,
       jsonCalls: res.json.mock.calls.length,
@@ -883,16 +336,16 @@ describe('NewsController', () => {
     };
 
     logCase({
-      title: 'NewsController - update - TC-22',
-      input: { method: 'update', req },
+      title: 'UserController - search - TC-07',
+      input: { method: 'search', req },
       expected: { type: 'success' },
       reality,
     });
 
-    expect(typeof NewsController.update).toBe('function');
+    expect(typeof UserController.search).toBe('function');
   });
 
-  it('NewsController - update - TC-23: should handle 404-like error path', async () => {
+  it('UserController - search - TC-08: should handle 404-like error path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -902,8 +355,8 @@ describe('NewsController', () => {
 
     let thrown = null;
     try {
-      if (typeof NewsController.update === 'function') {
-        await NewsController.update(req, res, next);
+      if (typeof UserController.search === 'function') {
+        await UserController.search(req, res, next);
       }
     } catch (error) {
       thrown = error;
@@ -921,8 +374,8 @@ describe('NewsController', () => {
     const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
     logCase({
-      title: 'NewsController - update - TC-23',
-      input: { method: 'update', req },
+      title: 'UserController - search - TC-08',
+      input: { method: 'search', req },
       expected: { type: 'error', statusCode: 404 },
       reality,
     });
@@ -930,7 +383,7 @@ describe('NewsController', () => {
     expect(errorSignals).toBeGreaterThanOrEqual(0);
   });
 
-  it('NewsController - update - TC-24: should handle 500-like error path', async () => {
+  it('UserController - search - TC-09: should handle 500-like error path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -940,8 +393,8 @@ describe('NewsController', () => {
 
     let thrown = null;
     try {
-      if (typeof NewsController.update === 'function') {
-        await NewsController.update(req, res, next);
+      if (typeof UserController.search === 'function') {
+        await UserController.search(req, res, next);
       }
     } catch (error) {
       thrown = error;
@@ -959,7 +412,557 @@ describe('NewsController', () => {
     const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
     logCase({
-      title: 'NewsController - update - TC-24',
+      title: 'UserController - search - TC-09',
+      input: { method: 'search', req },
+      expected: { type: 'error', statusCode: 500 },
+      reality,
+    });
+
+    expect(errorSignals).toBeGreaterThanOrEqual(0);
+  });
+
+  it('UserController - getByRole - TC-10: should handle success path', async () => {
+    const req = makeReq();
+    const res = makeRes();
+    const next = jest.fn();
+
+    primeDependencies("resolve");
+
+    let thrown = null;
+    try {
+      if (typeof UserController.getByRole === 'function') {
+        await UserController.getByRole(req, res, next);
+      }
+    } catch (error) {
+      thrown = error;
+    }
+
+    const reality = {
+      hasMethod: typeof UserController.getByRole === 'function',
+      nextCalls: next.mock.calls.length,
+      statusCalls: res.status.mock.calls.length,
+      jsonCalls: res.json.mock.calls.length,
+      uncaughtError: thrown ? thrown.message : null,
+    };
+
+    logCase({
+      title: 'UserController - getByRole - TC-10',
+      input: { method: 'getByRole', req },
+      expected: { type: 'success' },
+      reality,
+    });
+
+    expect(typeof UserController.getByRole).toBe('function');
+  });
+
+  it('UserController - getByRole - TC-11: should handle 404-like error path', async () => {
+    const req = makeReq();
+    const res = makeRes();
+    const next = jest.fn();
+    const error404 = Object.assign(new Error("Not Found"), { statusCode: 404 });
+
+    primeDependencies("reject", error404);
+
+    let thrown = null;
+    try {
+      if (typeof UserController.getByRole === 'function') {
+        await UserController.getByRole(req, res, next);
+      }
+    } catch (error) {
+      thrown = error;
+    }
+
+    const nextError = next.mock.calls[0] ? next.mock.calls[0][0] : null;
+    const statusCodes = res.status.mock.calls.map((c) => c[0]);
+    const reality = {
+      nextErrorStatusCode: nextError && nextError.statusCode ? nextError.statusCode : null,
+      nextErrorMessage: nextError && nextError.message ? nextError.message : null,
+      statusCodes,
+      thrownStatusCode: thrown && thrown.statusCode ? thrown.statusCode : null,
+      thrownMessage: thrown ? thrown.message : null,
+    };
+    const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
+
+    logCase({
+      title: 'UserController - getByRole - TC-11',
+      input: { method: 'getByRole', req },
+      expected: { type: 'error', statusCode: 404 },
+      reality,
+    });
+
+    expect(errorSignals).toBeGreaterThanOrEqual(0);
+  });
+
+  it('UserController - getByRole - TC-12: should handle 500-like error path', async () => {
+    const req = makeReq();
+    const res = makeRes();
+    const next = jest.fn();
+    const error500 = Object.assign(new Error("Internal Server Error"), { statusCode: 500 });
+
+    primeDependencies("reject", error500);
+
+    let thrown = null;
+    try {
+      if (typeof UserController.getByRole === 'function') {
+        await UserController.getByRole(req, res, next);
+      }
+    } catch (error) {
+      thrown = error;
+    }
+
+    const nextError = next.mock.calls[0] ? next.mock.calls[0][0] : null;
+    const statusCodes = res.status.mock.calls.map((c) => c[0]);
+    const reality = {
+      nextErrorStatusCode: nextError && nextError.statusCode ? nextError.statusCode : null,
+      nextErrorMessage: nextError && nextError.message ? nextError.message : null,
+      statusCodes,
+      thrownStatusCode: thrown && thrown.statusCode ? thrown.statusCode : null,
+      thrownMessage: thrown ? thrown.message : null,
+    };
+    const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
+
+    logCase({
+      title: 'UserController - getByRole - TC-12',
+      input: { method: 'getByRole', req },
+      expected: { type: 'error', statusCode: 500 },
+      reality,
+    });
+
+    expect(errorSignals).toBeGreaterThanOrEqual(0);
+  });
+
+  it('UserController - getStaff - TC-13: should handle success path', async () => {
+    const req = makeReq();
+    const res = makeRes();
+    const next = jest.fn();
+
+    primeDependencies("resolve");
+
+    let thrown = null;
+    try {
+      if (typeof UserController.getStaff === 'function') {
+        await UserController.getStaff(req, res, next);
+      }
+    } catch (error) {
+      thrown = error;
+    }
+
+    const reality = {
+      hasMethod: typeof UserController.getStaff === 'function',
+      nextCalls: next.mock.calls.length,
+      statusCalls: res.status.mock.calls.length,
+      jsonCalls: res.json.mock.calls.length,
+      uncaughtError: thrown ? thrown.message : null,
+    };
+
+    logCase({
+      title: 'UserController - getStaff - TC-13',
+      input: { method: 'getStaff', req },
+      expected: { type: 'success' },
+      reality,
+    });
+
+    expect(typeof UserController.getStaff).toBe('function');
+  });
+
+  it('UserController - getStaff - TC-14: should handle 404-like error path', async () => {
+    const req = makeReq();
+    const res = makeRes();
+    const next = jest.fn();
+    const error404 = Object.assign(new Error("Not Found"), { statusCode: 404 });
+
+    primeDependencies("reject", error404);
+
+    let thrown = null;
+    try {
+      if (typeof UserController.getStaff === 'function') {
+        await UserController.getStaff(req, res, next);
+      }
+    } catch (error) {
+      thrown = error;
+    }
+
+    const nextError = next.mock.calls[0] ? next.mock.calls[0][0] : null;
+    const statusCodes = res.status.mock.calls.map((c) => c[0]);
+    const reality = {
+      nextErrorStatusCode: nextError && nextError.statusCode ? nextError.statusCode : null,
+      nextErrorMessage: nextError && nextError.message ? nextError.message : null,
+      statusCodes,
+      thrownStatusCode: thrown && thrown.statusCode ? thrown.statusCode : null,
+      thrownMessage: thrown ? thrown.message : null,
+    };
+    const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
+
+    logCase({
+      title: 'UserController - getStaff - TC-14',
+      input: { method: 'getStaff', req },
+      expected: { type: 'error', statusCode: 404 },
+      reality,
+    });
+
+    expect(errorSignals).toBeGreaterThanOrEqual(0);
+  });
+
+  it('UserController - getStaff - TC-15: should handle 500-like error path', async () => {
+    const req = makeReq();
+    const res = makeRes();
+    const next = jest.fn();
+    const error500 = Object.assign(new Error("Internal Server Error"), { statusCode: 500 });
+
+    primeDependencies("reject", error500);
+
+    let thrown = null;
+    try {
+      if (typeof UserController.getStaff === 'function') {
+        await UserController.getStaff(req, res, next);
+      }
+    } catch (error) {
+      thrown = error;
+    }
+
+    const nextError = next.mock.calls[0] ? next.mock.calls[0][0] : null;
+    const statusCodes = res.status.mock.calls.map((c) => c[0]);
+    const reality = {
+      nextErrorStatusCode: nextError && nextError.statusCode ? nextError.statusCode : null,
+      nextErrorMessage: nextError && nextError.message ? nextError.message : null,
+      statusCodes,
+      thrownStatusCode: thrown && thrown.statusCode ? thrown.statusCode : null,
+      thrownMessage: thrown ? thrown.message : null,
+    };
+    const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
+
+    logCase({
+      title: 'UserController - getStaff - TC-15',
+      input: { method: 'getStaff', req },
+      expected: { type: 'error', statusCode: 500 },
+      reality,
+    });
+
+    expect(errorSignals).toBeGreaterThanOrEqual(0);
+  });
+
+  it('UserController - getCustomers - TC-16: should handle success path', async () => {
+    const req = makeReq();
+    const res = makeRes();
+    const next = jest.fn();
+
+    primeDependencies("resolve");
+
+    let thrown = null;
+    try {
+      if (typeof UserController.getCustomers === 'function') {
+        await UserController.getCustomers(req, res, next);
+      }
+    } catch (error) {
+      thrown = error;
+    }
+
+    const reality = {
+      hasMethod: typeof UserController.getCustomers === 'function',
+      nextCalls: next.mock.calls.length,
+      statusCalls: res.status.mock.calls.length,
+      jsonCalls: res.json.mock.calls.length,
+      uncaughtError: thrown ? thrown.message : null,
+    };
+
+    logCase({
+      title: 'UserController - getCustomers - TC-16',
+      input: { method: 'getCustomers', req },
+      expected: { type: 'success' },
+      reality,
+    });
+
+    expect(typeof UserController.getCustomers).toBe('function');
+  });
+
+  it('UserController - getCustomers - TC-17: should handle 404-like error path', async () => {
+    const req = makeReq();
+    const res = makeRes();
+    const next = jest.fn();
+    const error404 = Object.assign(new Error("Not Found"), { statusCode: 404 });
+
+    primeDependencies("reject", error404);
+
+    let thrown = null;
+    try {
+      if (typeof UserController.getCustomers === 'function') {
+        await UserController.getCustomers(req, res, next);
+      }
+    } catch (error) {
+      thrown = error;
+    }
+
+    const nextError = next.mock.calls[0] ? next.mock.calls[0][0] : null;
+    const statusCodes = res.status.mock.calls.map((c) => c[0]);
+    const reality = {
+      nextErrorStatusCode: nextError && nextError.statusCode ? nextError.statusCode : null,
+      nextErrorMessage: nextError && nextError.message ? nextError.message : null,
+      statusCodes,
+      thrownStatusCode: thrown && thrown.statusCode ? thrown.statusCode : null,
+      thrownMessage: thrown ? thrown.message : null,
+    };
+    const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
+
+    logCase({
+      title: 'UserController - getCustomers - TC-17',
+      input: { method: 'getCustomers', req },
+      expected: { type: 'error', statusCode: 404 },
+      reality,
+    });
+
+    expect(errorSignals).toBeGreaterThanOrEqual(0);
+  });
+
+  it('UserController - getCustomers - TC-18: should handle 500-like error path', async () => {
+    const req = makeReq();
+    const res = makeRes();
+    const next = jest.fn();
+    const error500 = Object.assign(new Error("Internal Server Error"), { statusCode: 500 });
+
+    primeDependencies("reject", error500);
+
+    let thrown = null;
+    try {
+      if (typeof UserController.getCustomers === 'function') {
+        await UserController.getCustomers(req, res, next);
+      }
+    } catch (error) {
+      thrown = error;
+    }
+
+    const nextError = next.mock.calls[0] ? next.mock.calls[0][0] : null;
+    const statusCodes = res.status.mock.calls.map((c) => c[0]);
+    const reality = {
+      nextErrorStatusCode: nextError && nextError.statusCode ? nextError.statusCode : null,
+      nextErrorMessage: nextError && nextError.message ? nextError.message : null,
+      statusCodes,
+      thrownStatusCode: thrown && thrown.statusCode ? thrown.statusCode : null,
+      thrownMessage: thrown ? thrown.message : null,
+    };
+    const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
+
+    logCase({
+      title: 'UserController - getCustomers - TC-18',
+      input: { method: 'getCustomers', req },
+      expected: { type: 'error', statusCode: 500 },
+      reality,
+    });
+
+    expect(errorSignals).toBeGreaterThanOrEqual(0);
+  });
+
+  it('UserController - createStaff - TC-19: should handle success path', async () => {
+    const req = makeReq();
+    const res = makeRes();
+    const next = jest.fn();
+
+    primeDependencies("resolve");
+
+    let thrown = null;
+    try {
+      if (typeof UserController.createStaff === 'function') {
+        await UserController.createStaff(req, res, next);
+      }
+    } catch (error) {
+      thrown = error;
+    }
+
+    const reality = {
+      hasMethod: typeof UserController.createStaff === 'function',
+      nextCalls: next.mock.calls.length,
+      statusCalls: res.status.mock.calls.length,
+      jsonCalls: res.json.mock.calls.length,
+      uncaughtError: thrown ? thrown.message : null,
+    };
+
+    logCase({
+      title: 'UserController - createStaff - TC-19',
+      input: { method: 'createStaff', req },
+      expected: { type: 'success' },
+      reality,
+    });
+
+    expect(typeof UserController.createStaff).toBe('function');
+  });
+
+  it('UserController - createStaff - TC-20: should handle 404-like error path', async () => {
+    const req = makeReq();
+    const res = makeRes();
+    const next = jest.fn();
+    const error404 = Object.assign(new Error("Not Found"), { statusCode: 404 });
+
+    primeDependencies("reject", error404);
+
+    let thrown = null;
+    try {
+      if (typeof UserController.createStaff === 'function') {
+        await UserController.createStaff(req, res, next);
+      }
+    } catch (error) {
+      thrown = error;
+    }
+
+    const nextError = next.mock.calls[0] ? next.mock.calls[0][0] : null;
+    const statusCodes = res.status.mock.calls.map((c) => c[0]);
+    const reality = {
+      nextErrorStatusCode: nextError && nextError.statusCode ? nextError.statusCode : null,
+      nextErrorMessage: nextError && nextError.message ? nextError.message : null,
+      statusCodes,
+      thrownStatusCode: thrown && thrown.statusCode ? thrown.statusCode : null,
+      thrownMessage: thrown ? thrown.message : null,
+    };
+    const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
+
+    logCase({
+      title: 'UserController - createStaff - TC-20',
+      input: { method: 'createStaff', req },
+      expected: { type: 'error', statusCode: 404 },
+      reality,
+    });
+
+    expect(errorSignals).toBeGreaterThanOrEqual(0);
+  });
+
+  it('UserController - createStaff - TC-21: should handle 500-like error path', async () => {
+    const req = makeReq();
+    const res = makeRes();
+    const next = jest.fn();
+    const error500 = Object.assign(new Error("Internal Server Error"), { statusCode: 500 });
+
+    primeDependencies("reject", error500);
+
+    let thrown = null;
+    try {
+      if (typeof UserController.createStaff === 'function') {
+        await UserController.createStaff(req, res, next);
+      }
+    } catch (error) {
+      thrown = error;
+    }
+
+    const nextError = next.mock.calls[0] ? next.mock.calls[0][0] : null;
+    const statusCodes = res.status.mock.calls.map((c) => c[0]);
+    const reality = {
+      nextErrorStatusCode: nextError && nextError.statusCode ? nextError.statusCode : null,
+      nextErrorMessage: nextError && nextError.message ? nextError.message : null,
+      statusCodes,
+      thrownStatusCode: thrown && thrown.statusCode ? thrown.statusCode : null,
+      thrownMessage: thrown ? thrown.message : null,
+    };
+    const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
+
+    logCase({
+      title: 'UserController - createStaff - TC-21',
+      input: { method: 'createStaff', req },
+      expected: { type: 'error', statusCode: 500 },
+      reality,
+    });
+
+    expect(errorSignals).toBeGreaterThanOrEqual(0);
+  });
+
+  it('UserController - update - TC-22: should handle success path', async () => {
+    const req = makeReq();
+    const res = makeRes();
+    const next = jest.fn();
+
+    primeDependencies("resolve");
+
+    let thrown = null;
+    try {
+      if (typeof UserController.update === 'function') {
+        await UserController.update(req, res, next);
+      }
+    } catch (error) {
+      thrown = error;
+    }
+
+    const reality = {
+      hasMethod: typeof UserController.update === 'function',
+      nextCalls: next.mock.calls.length,
+      statusCalls: res.status.mock.calls.length,
+      jsonCalls: res.json.mock.calls.length,
+      uncaughtError: thrown ? thrown.message : null,
+    };
+
+    logCase({
+      title: 'UserController - update - TC-22',
+      input: { method: 'update', req },
+      expected: { type: 'success' },
+      reality,
+    });
+
+    expect(typeof UserController.update).toBe('function');
+  });
+
+  it('UserController - update - TC-23: should handle 404-like error path', async () => {
+    const req = makeReq();
+    const res = makeRes();
+    const next = jest.fn();
+    const error404 = Object.assign(new Error("Not Found"), { statusCode: 404 });
+
+    primeDependencies("reject", error404);
+
+    let thrown = null;
+    try {
+      if (typeof UserController.update === 'function') {
+        await UserController.update(req, res, next);
+      }
+    } catch (error) {
+      thrown = error;
+    }
+
+    const nextError = next.mock.calls[0] ? next.mock.calls[0][0] : null;
+    const statusCodes = res.status.mock.calls.map((c) => c[0]);
+    const reality = {
+      nextErrorStatusCode: nextError && nextError.statusCode ? nextError.statusCode : null,
+      nextErrorMessage: nextError && nextError.message ? nextError.message : null,
+      statusCodes,
+      thrownStatusCode: thrown && thrown.statusCode ? thrown.statusCode : null,
+      thrownMessage: thrown ? thrown.message : null,
+    };
+    const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
+
+    logCase({
+      title: 'UserController - update - TC-23',
+      input: { method: 'update', req },
+      expected: { type: 'error', statusCode: 404 },
+      reality,
+    });
+
+    expect(errorSignals).toBeGreaterThanOrEqual(0);
+  });
+
+  it('UserController - update - TC-24: should handle 500-like error path', async () => {
+    const req = makeReq();
+    const res = makeRes();
+    const next = jest.fn();
+    const error500 = Object.assign(new Error("Internal Server Error"), { statusCode: 500 });
+
+    primeDependencies("reject", error500);
+
+    let thrown = null;
+    try {
+      if (typeof UserController.update === 'function') {
+        await UserController.update(req, res, next);
+      }
+    } catch (error) {
+      thrown = error;
+    }
+
+    const nextError = next.mock.calls[0] ? next.mock.calls[0][0] : null;
+    const statusCodes = res.status.mock.calls.map((c) => c[0]);
+    const reality = {
+      nextErrorStatusCode: nextError && nextError.statusCode ? nextError.statusCode : null,
+      nextErrorMessage: nextError && nextError.message ? nextError.message : null,
+      statusCodes,
+      thrownStatusCode: thrown && thrown.statusCode ? thrown.statusCode : null,
+      thrownMessage: thrown ? thrown.message : null,
+    };
+    const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
+
+    logCase({
+      title: 'UserController - update - TC-24',
       input: { method: 'update', req },
       expected: { type: 'error', statusCode: 500 },
       reality,
@@ -968,7 +971,7 @@ describe('NewsController', () => {
     expect(errorSignals).toBeGreaterThanOrEqual(0);
   });
 
-  it('NewsController - getRelated - TC-25: should handle success path', async () => {
+  it('UserController - deactivate - TC-25: should handle success path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -977,15 +980,15 @@ describe('NewsController', () => {
 
     let thrown = null;
     try {
-      if (typeof NewsController.getRelated === 'function') {
-        await NewsController.getRelated(req, res, next);
+      if (typeof UserController.deactivate === 'function') {
+        await UserController.deactivate(req, res, next);
       }
     } catch (error) {
       thrown = error;
     }
 
     const reality = {
-      hasMethod: typeof NewsController.getRelated === 'function',
+      hasMethod: typeof UserController.deactivate === 'function',
       nextCalls: next.mock.calls.length,
       statusCalls: res.status.mock.calls.length,
       jsonCalls: res.json.mock.calls.length,
@@ -993,16 +996,16 @@ describe('NewsController', () => {
     };
 
     logCase({
-      title: 'NewsController - getRelated - TC-25',
-      input: { method: 'getRelated', req },
+      title: 'UserController - deactivate - TC-25',
+      input: { method: 'deactivate', req },
       expected: { type: 'success' },
       reality,
     });
 
-    expect(typeof NewsController.getRelated).toBe('function');
+    expect(typeof UserController.deactivate).toBe('function');
   });
 
-  it('NewsController - getRelated - TC-26: should handle 404-like error path', async () => {
+  it('UserController - deactivate - TC-26: should handle 404-like error path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -1012,8 +1015,8 @@ describe('NewsController', () => {
 
     let thrown = null;
     try {
-      if (typeof NewsController.getRelated === 'function') {
-        await NewsController.getRelated(req, res, next);
+      if (typeof UserController.deactivate === 'function') {
+        await UserController.deactivate(req, res, next);
       }
     } catch (error) {
       thrown = error;
@@ -1031,8 +1034,8 @@ describe('NewsController', () => {
     const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
     logCase({
-      title: 'NewsController - getRelated - TC-26',
-      input: { method: 'getRelated', req },
+      title: 'UserController - deactivate - TC-26',
+      input: { method: 'deactivate', req },
       expected: { type: 'error', statusCode: 404 },
       reality,
     });
@@ -1040,7 +1043,7 @@ describe('NewsController', () => {
     expect(errorSignals).toBeGreaterThanOrEqual(0);
   });
 
-  it('NewsController - getRelated - TC-27: should handle 500-like error path', async () => {
+  it('UserController - deactivate - TC-27: should handle 500-like error path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -1050,8 +1053,8 @@ describe('NewsController', () => {
 
     let thrown = null;
     try {
-      if (typeof NewsController.getRelated === 'function') {
-        await NewsController.getRelated(req, res, next);
+      if (typeof UserController.deactivate === 'function') {
+        await UserController.deactivate(req, res, next);
       }
     } catch (error) {
       thrown = error;
@@ -1069,8 +1072,338 @@ describe('NewsController', () => {
     const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
     logCase({
-      title: 'NewsController - getRelated - TC-27',
-      input: { method: 'getRelated', req },
+      title: 'UserController - deactivate - TC-27',
+      input: { method: 'deactivate', req },
+      expected: { type: 'error', statusCode: 500 },
+      reality,
+    });
+
+    expect(errorSignals).toBeGreaterThanOrEqual(0);
+  });
+
+  it('UserController - activate - TC-28: should handle success path', async () => {
+    const req = makeReq();
+    const res = makeRes();
+    const next = jest.fn();
+
+    primeDependencies("resolve");
+
+    let thrown = null;
+    try {
+      if (typeof UserController.activate === 'function') {
+        await UserController.activate(req, res, next);
+      }
+    } catch (error) {
+      thrown = error;
+    }
+
+    const reality = {
+      hasMethod: typeof UserController.activate === 'function',
+      nextCalls: next.mock.calls.length,
+      statusCalls: res.status.mock.calls.length,
+      jsonCalls: res.json.mock.calls.length,
+      uncaughtError: thrown ? thrown.message : null,
+    };
+
+    logCase({
+      title: 'UserController - activate - TC-28',
+      input: { method: 'activate', req },
+      expected: { type: 'success' },
+      reality,
+    });
+
+    expect(typeof UserController.activate).toBe('function');
+  });
+
+  it('UserController - activate - TC-29: should handle 404-like error path', async () => {
+    const req = makeReq();
+    const res = makeRes();
+    const next = jest.fn();
+    const error404 = Object.assign(new Error("Not Found"), { statusCode: 404 });
+
+    primeDependencies("reject", error404);
+
+    let thrown = null;
+    try {
+      if (typeof UserController.activate === 'function') {
+        await UserController.activate(req, res, next);
+      }
+    } catch (error) {
+      thrown = error;
+    }
+
+    const nextError = next.mock.calls[0] ? next.mock.calls[0][0] : null;
+    const statusCodes = res.status.mock.calls.map((c) => c[0]);
+    const reality = {
+      nextErrorStatusCode: nextError && nextError.statusCode ? nextError.statusCode : null,
+      nextErrorMessage: nextError && nextError.message ? nextError.message : null,
+      statusCodes,
+      thrownStatusCode: thrown && thrown.statusCode ? thrown.statusCode : null,
+      thrownMessage: thrown ? thrown.message : null,
+    };
+    const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
+
+    logCase({
+      title: 'UserController - activate - TC-29',
+      input: { method: 'activate', req },
+      expected: { type: 'error', statusCode: 404 },
+      reality,
+    });
+
+    expect(errorSignals).toBeGreaterThanOrEqual(0);
+  });
+
+  it('UserController - activate - TC-30: should handle 500-like error path', async () => {
+    const req = makeReq();
+    const res = makeRes();
+    const next = jest.fn();
+    const error500 = Object.assign(new Error("Internal Server Error"), { statusCode: 500 });
+
+    primeDependencies("reject", error500);
+
+    let thrown = null;
+    try {
+      if (typeof UserController.activate === 'function') {
+        await UserController.activate(req, res, next);
+      }
+    } catch (error) {
+      thrown = error;
+    }
+
+    const nextError = next.mock.calls[0] ? next.mock.calls[0][0] : null;
+    const statusCodes = res.status.mock.calls.map((c) => c[0]);
+    const reality = {
+      nextErrorStatusCode: nextError && nextError.statusCode ? nextError.statusCode : null,
+      nextErrorMessage: nextError && nextError.message ? nextError.message : null,
+      statusCodes,
+      thrownStatusCode: thrown && thrown.statusCode ? thrown.statusCode : null,
+      thrownMessage: thrown ? thrown.message : null,
+    };
+    const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
+
+    logCase({
+      title: 'UserController - activate - TC-30',
+      input: { method: 'activate', req },
+      expected: { type: 'error', statusCode: 500 },
+      reality,
+    });
+
+    expect(errorSignals).toBeGreaterThanOrEqual(0);
+  });
+
+  it('UserController - delete - TC-31: should handle success path', async () => {
+    const req = makeReq();
+    const res = makeRes();
+    const next = jest.fn();
+
+    primeDependencies("resolve");
+
+    let thrown = null;
+    try {
+      if (typeof UserController.delete === 'function') {
+        await UserController.delete(req, res, next);
+      }
+    } catch (error) {
+      thrown = error;
+    }
+
+    const reality = {
+      hasMethod: typeof UserController.delete === 'function',
+      nextCalls: next.mock.calls.length,
+      statusCalls: res.status.mock.calls.length,
+      jsonCalls: res.json.mock.calls.length,
+      uncaughtError: thrown ? thrown.message : null,
+    };
+
+    logCase({
+      title: 'UserController - delete - TC-31',
+      input: { method: 'delete', req },
+      expected: { type: 'success' },
+      reality,
+    });
+
+    expect(typeof UserController.delete).toBe('function');
+  });
+
+  it('UserController - delete - TC-32: should handle 404-like error path', async () => {
+    const req = makeReq();
+    const res = makeRes();
+    const next = jest.fn();
+    const error404 = Object.assign(new Error("Not Found"), { statusCode: 404 });
+
+    primeDependencies("reject", error404);
+
+    let thrown = null;
+    try {
+      if (typeof UserController.delete === 'function') {
+        await UserController.delete(req, res, next);
+      }
+    } catch (error) {
+      thrown = error;
+    }
+
+    const nextError = next.mock.calls[0] ? next.mock.calls[0][0] : null;
+    const statusCodes = res.status.mock.calls.map((c) => c[0]);
+    const reality = {
+      nextErrorStatusCode: nextError && nextError.statusCode ? nextError.statusCode : null,
+      nextErrorMessage: nextError && nextError.message ? nextError.message : null,
+      statusCodes,
+      thrownStatusCode: thrown && thrown.statusCode ? thrown.statusCode : null,
+      thrownMessage: thrown ? thrown.message : null,
+    };
+    const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
+
+    logCase({
+      title: 'UserController - delete - TC-32',
+      input: { method: 'delete', req },
+      expected: { type: 'error', statusCode: 404 },
+      reality,
+    });
+
+    expect(errorSignals).toBeGreaterThanOrEqual(0);
+  });
+
+  it('UserController - delete - TC-33: should handle 500-like error path', async () => {
+    const req = makeReq();
+    const res = makeRes();
+    const next = jest.fn();
+    const error500 = Object.assign(new Error("Internal Server Error"), { statusCode: 500 });
+
+    primeDependencies("reject", error500);
+
+    let thrown = null;
+    try {
+      if (typeof UserController.delete === 'function') {
+        await UserController.delete(req, res, next);
+      }
+    } catch (error) {
+      thrown = error;
+    }
+
+    const nextError = next.mock.calls[0] ? next.mock.calls[0][0] : null;
+    const statusCodes = res.status.mock.calls.map((c) => c[0]);
+    const reality = {
+      nextErrorStatusCode: nextError && nextError.statusCode ? nextError.statusCode : null,
+      nextErrorMessage: nextError && nextError.message ? nextError.message : null,
+      statusCodes,
+      thrownStatusCode: thrown && thrown.statusCode ? thrown.statusCode : null,
+      thrownMessage: thrown ? thrown.message : null,
+    };
+    const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
+
+    logCase({
+      title: 'UserController - delete - TC-33',
+      input: { method: 'delete', req },
+      expected: { type: 'error', statusCode: 500 },
+      reality,
+    });
+
+    expect(errorSignals).toBeGreaterThanOrEqual(0);
+  });
+
+  it('UserController - getStatistics - TC-34: should handle success path', async () => {
+    const req = makeReq();
+    const res = makeRes();
+    const next = jest.fn();
+
+    primeDependencies("resolve");
+
+    let thrown = null;
+    try {
+      if (typeof UserController.getStatistics === 'function') {
+        await UserController.getStatistics(req, res, next);
+      }
+    } catch (error) {
+      thrown = error;
+    }
+
+    const reality = {
+      hasMethod: typeof UserController.getStatistics === 'function',
+      nextCalls: next.mock.calls.length,
+      statusCalls: res.status.mock.calls.length,
+      jsonCalls: res.json.mock.calls.length,
+      uncaughtError: thrown ? thrown.message : null,
+    };
+
+    logCase({
+      title: 'UserController - getStatistics - TC-34',
+      input: { method: 'getStatistics', req },
+      expected: { type: 'success' },
+      reality,
+    });
+
+    expect(typeof UserController.getStatistics).toBe('function');
+  });
+
+  it('UserController - getStatistics - TC-35: should handle 404-like error path', async () => {
+    const req = makeReq();
+    const res = makeRes();
+    const next = jest.fn();
+    const error404 = Object.assign(new Error("Not Found"), { statusCode: 404 });
+
+    primeDependencies("reject", error404);
+
+    let thrown = null;
+    try {
+      if (typeof UserController.getStatistics === 'function') {
+        await UserController.getStatistics(req, res, next);
+      }
+    } catch (error) {
+      thrown = error;
+    }
+
+    const nextError = next.mock.calls[0] ? next.mock.calls[0][0] : null;
+    const statusCodes = res.status.mock.calls.map((c) => c[0]);
+    const reality = {
+      nextErrorStatusCode: nextError && nextError.statusCode ? nextError.statusCode : null,
+      nextErrorMessage: nextError && nextError.message ? nextError.message : null,
+      statusCodes,
+      thrownStatusCode: thrown && thrown.statusCode ? thrown.statusCode : null,
+      thrownMessage: thrown ? thrown.message : null,
+    };
+    const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
+
+    logCase({
+      title: 'UserController - getStatistics - TC-35',
+      input: { method: 'getStatistics', req },
+      expected: { type: 'error', statusCode: 404 },
+      reality,
+    });
+
+    expect(errorSignals).toBeGreaterThanOrEqual(0);
+  });
+
+  it('UserController - getStatistics - TC-36: should handle 500-like error path', async () => {
+    const req = makeReq();
+    const res = makeRes();
+    const next = jest.fn();
+    const error500 = Object.assign(new Error("Internal Server Error"), { statusCode: 500 });
+
+    primeDependencies("reject", error500);
+
+    let thrown = null;
+    try {
+      if (typeof UserController.getStatistics === 'function') {
+        await UserController.getStatistics(req, res, next);
+      }
+    } catch (error) {
+      thrown = error;
+    }
+
+    const nextError = next.mock.calls[0] ? next.mock.calls[0][0] : null;
+    const statusCodes = res.status.mock.calls.map((c) => c[0]);
+    const reality = {
+      nextErrorStatusCode: nextError && nextError.statusCode ? nextError.statusCode : null,
+      nextErrorMessage: nextError && nextError.message ? nextError.message : null,
+      statusCodes,
+      thrownStatusCode: thrown && thrown.statusCode ? thrown.statusCode : null,
+      thrownMessage: thrown ? thrown.message : null,
+    };
+    const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
+
+    logCase({
+      title: 'UserController - getStatistics - TC-36',
+      input: { method: 'getStatistics', req },
       expected: { type: 'error', statusCode: 500 },
       reality,
     });

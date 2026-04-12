@@ -10,13 +10,13 @@ jest.mock('../../src/utils/response', () => ({
     return { success: false, message };
   }),
 }));
-jest.mock('../../src/services/DiscountService');
+jest.mock('../../src/services/AdminDBService');
 
-const DiscountController = require('../../src/controllers/DiscountController');
+const AdminDBController = require('../../src/controllers/AdminDBController');
 const response = require('../../src/utils/response');
-const dep1 = require('../../src/services/DiscountService');
+const dep1 = require('../../src/services/AdminDBService');
 
-describe('DiscountController', () => {
+describe('AdminDBController', () => {
   const makeReq = () => ({
     params: { id: '1', code: 'CODE' },
     query: { page: '1', limit: '10', keyword: '', status: '', with_count: 'false' },
@@ -88,7 +88,7 @@ describe('DiscountController', () => {
     jest.clearAllMocks();
   });
 
-  it('DiscountController - getAll - TC-01: should handle success path', async () => {
+  it('AdminDBController - getOverview - TC-01: should handle success path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -97,15 +97,15 @@ describe('DiscountController', () => {
 
     let thrown = null;
     try {
-      if (typeof DiscountController.getAll === 'function') {
-        await DiscountController.getAll(req, res, next);
+      if (typeof AdminDBController.getOverview === 'function') {
+        await AdminDBController.getOverview(req, res, next);
       }
     } catch (error) {
       thrown = error;
     }
 
     const reality = {
-      hasMethod: typeof DiscountController.getAll === 'function',
+      hasMethod: typeof AdminDBController.getOverview === 'function',
       nextCalls: next.mock.calls.length,
       statusCalls: res.status.mock.calls.length,
       jsonCalls: res.json.mock.calls.length,
@@ -113,16 +113,16 @@ describe('DiscountController', () => {
     };
 
     logCase({
-      title: 'DiscountController - getAll - TC-01',
-      input: { method: 'getAll', req },
+      title: 'AdminDBController - getOverview - TC-01',
+      input: { method: 'getOverview', req },
       expected: { type: 'success' },
       reality,
     });
 
-    expect(typeof DiscountController.getAll).toBe('function');
+    expect(typeof AdminDBController.getOverview).toBe('function');
   });
 
-  it('DiscountController - getAll - TC-02: should handle 404-like error path', async () => {
+  it('AdminDBController - getOverview - TC-02: should handle 404-like error path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -132,8 +132,8 @@ describe('DiscountController', () => {
 
     let thrown = null;
     try {
-      if (typeof DiscountController.getAll === 'function') {
-        await DiscountController.getAll(req, res, next);
+      if (typeof AdminDBController.getOverview === 'function') {
+        await AdminDBController.getOverview(req, res, next);
       }
     } catch (error) {
       thrown = error;
@@ -151,8 +151,8 @@ describe('DiscountController', () => {
     const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
     logCase({
-      title: 'DiscountController - getAll - TC-02',
-      input: { method: 'getAll', req },
+      title: 'AdminDBController - getOverview - TC-02',
+      input: { method: 'getOverview', req },
       expected: { type: 'error', statusCode: 404 },
       reality,
     });
@@ -160,7 +160,7 @@ describe('DiscountController', () => {
     expect(errorSignals).toBeGreaterThanOrEqual(0);
   });
 
-  it('DiscountController - getAll - TC-03: should handle 500-like error path', async () => {
+  it('AdminDBController - getOverview - TC-03: should handle 500-like error path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -170,8 +170,8 @@ describe('DiscountController', () => {
 
     let thrown = null;
     try {
-      if (typeof DiscountController.getAll === 'function') {
-        await DiscountController.getAll(req, res, next);
+      if (typeof AdminDBController.getOverview === 'function') {
+        await AdminDBController.getOverview(req, res, next);
       }
     } catch (error) {
       thrown = error;
@@ -189,8 +189,8 @@ describe('DiscountController', () => {
     const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
     logCase({
-      title: 'DiscountController - getAll - TC-03',
-      input: { method: 'getAll', req },
+      title: 'AdminDBController - getOverview - TC-03',
+      input: { method: 'getOverview', req },
       expected: { type: 'error', statusCode: 500 },
       reality,
     });
@@ -198,7 +198,7 @@ describe('DiscountController', () => {
     expect(errorSignals).toBeGreaterThanOrEqual(0);
   });
 
-  it('DiscountController - getPublic - TC-04: should handle success path', async () => {
+  it('AdminDBController - getRevenueSeries - TC-04: should handle success path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -207,15 +207,15 @@ describe('DiscountController', () => {
 
     let thrown = null;
     try {
-      if (typeof DiscountController.getPublic === 'function') {
-        await DiscountController.getPublic(req, res, next);
+      if (typeof AdminDBController.getRevenueSeries === 'function') {
+        await AdminDBController.getRevenueSeries(req, res, next);
       }
     } catch (error) {
       thrown = error;
     }
 
     const reality = {
-      hasMethod: typeof DiscountController.getPublic === 'function',
+      hasMethod: typeof AdminDBController.getRevenueSeries === 'function',
       nextCalls: next.mock.calls.length,
       statusCalls: res.status.mock.calls.length,
       jsonCalls: res.json.mock.calls.length,
@@ -223,16 +223,16 @@ describe('DiscountController', () => {
     };
 
     logCase({
-      title: 'DiscountController - getPublic - TC-04',
-      input: { method: 'getPublic', req },
+      title: 'AdminDBController - getRevenueSeries - TC-04',
+      input: { method: 'getRevenueSeries', req },
       expected: { type: 'success' },
       reality,
     });
 
-    expect(typeof DiscountController.getPublic).toBe('function');
+    expect(typeof AdminDBController.getRevenueSeries).toBe('function');
   });
 
-  it('DiscountController - getPublic - TC-05: should handle 404-like error path', async () => {
+  it('AdminDBController - getRevenueSeries - TC-05: should handle 404-like error path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -242,8 +242,8 @@ describe('DiscountController', () => {
 
     let thrown = null;
     try {
-      if (typeof DiscountController.getPublic === 'function') {
-        await DiscountController.getPublic(req, res, next);
+      if (typeof AdminDBController.getRevenueSeries === 'function') {
+        await AdminDBController.getRevenueSeries(req, res, next);
       }
     } catch (error) {
       thrown = error;
@@ -261,8 +261,8 @@ describe('DiscountController', () => {
     const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
     logCase({
-      title: 'DiscountController - getPublic - TC-05',
-      input: { method: 'getPublic', req },
+      title: 'AdminDBController - getRevenueSeries - TC-05',
+      input: { method: 'getRevenueSeries', req },
       expected: { type: 'error', statusCode: 404 },
       reality,
     });
@@ -270,7 +270,7 @@ describe('DiscountController', () => {
     expect(errorSignals).toBeGreaterThanOrEqual(0);
   });
 
-  it('DiscountController - getPublic - TC-06: should handle 500-like error path', async () => {
+  it('AdminDBController - getRevenueSeries - TC-06: should handle 500-like error path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -280,8 +280,8 @@ describe('DiscountController', () => {
 
     let thrown = null;
     try {
-      if (typeof DiscountController.getPublic === 'function') {
-        await DiscountController.getPublic(req, res, next);
+      if (typeof AdminDBController.getRevenueSeries === 'function') {
+        await AdminDBController.getRevenueSeries(req, res, next);
       }
     } catch (error) {
       thrown = error;
@@ -299,8 +299,8 @@ describe('DiscountController', () => {
     const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
     logCase({
-      title: 'DiscountController - getPublic - TC-06',
-      input: { method: 'getPublic', req },
+      title: 'AdminDBController - getRevenueSeries - TC-06',
+      input: { method: 'getRevenueSeries', req },
       expected: { type: 'error', statusCode: 500 },
       reality,
     });
@@ -308,7 +308,7 @@ describe('DiscountController', () => {
     expect(errorSignals).toBeGreaterThanOrEqual(0);
   });
 
-  it('DiscountController - getById - TC-07: should handle success path', async () => {
+  it('AdminDBController - getTopProducts - TC-07: should handle success path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -317,15 +317,15 @@ describe('DiscountController', () => {
 
     let thrown = null;
     try {
-      if (typeof DiscountController.getById === 'function') {
-        await DiscountController.getById(req, res, next);
+      if (typeof AdminDBController.getTopProducts === 'function') {
+        await AdminDBController.getTopProducts(req, res, next);
       }
     } catch (error) {
       thrown = error;
     }
 
     const reality = {
-      hasMethod: typeof DiscountController.getById === 'function',
+      hasMethod: typeof AdminDBController.getTopProducts === 'function',
       nextCalls: next.mock.calls.length,
       statusCalls: res.status.mock.calls.length,
       jsonCalls: res.json.mock.calls.length,
@@ -333,16 +333,16 @@ describe('DiscountController', () => {
     };
 
     logCase({
-      title: 'DiscountController - getById - TC-07',
-      input: { method: 'getById', req },
+      title: 'AdminDBController - getTopProducts - TC-07',
+      input: { method: 'getTopProducts', req },
       expected: { type: 'success' },
       reality,
     });
 
-    expect(typeof DiscountController.getById).toBe('function');
+    expect(typeof AdminDBController.getTopProducts).toBe('function');
   });
 
-  it('DiscountController - getById - TC-08: should handle 404-like error path', async () => {
+  it('AdminDBController - getTopProducts - TC-08: should handle 404-like error path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -352,8 +352,8 @@ describe('DiscountController', () => {
 
     let thrown = null;
     try {
-      if (typeof DiscountController.getById === 'function') {
-        await DiscountController.getById(req, res, next);
+      if (typeof AdminDBController.getTopProducts === 'function') {
+        await AdminDBController.getTopProducts(req, res, next);
       }
     } catch (error) {
       thrown = error;
@@ -371,8 +371,8 @@ describe('DiscountController', () => {
     const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
     logCase({
-      title: 'DiscountController - getById - TC-08',
-      input: { method: 'getById', req },
+      title: 'AdminDBController - getTopProducts - TC-08',
+      input: { method: 'getTopProducts', req },
       expected: { type: 'error', statusCode: 404 },
       reality,
     });
@@ -380,7 +380,7 @@ describe('DiscountController', () => {
     expect(errorSignals).toBeGreaterThanOrEqual(0);
   });
 
-  it('DiscountController - getById - TC-09: should handle 500-like error path', async () => {
+  it('AdminDBController - getTopProducts - TC-09: should handle 500-like error path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -390,8 +390,8 @@ describe('DiscountController', () => {
 
     let thrown = null;
     try {
-      if (typeof DiscountController.getById === 'function') {
-        await DiscountController.getById(req, res, next);
+      if (typeof AdminDBController.getTopProducts === 'function') {
+        await AdminDBController.getTopProducts(req, res, next);
       }
     } catch (error) {
       thrown = error;
@@ -409,8 +409,8 @@ describe('DiscountController', () => {
     const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
     logCase({
-      title: 'DiscountController - getById - TC-09',
-      input: { method: 'getById', req },
+      title: 'AdminDBController - getTopProducts - TC-09',
+      input: { method: 'getTopProducts', req },
       expected: { type: 'error', statusCode: 500 },
       reality,
     });
@@ -418,7 +418,7 @@ describe('DiscountController', () => {
     expect(errorSignals).toBeGreaterThanOrEqual(0);
   });
 
-  it('DiscountController - getByCode - TC-10: should handle success path', async () => {
+  it('AdminDBController - getOrderTypeRevenue - TC-10: should handle success path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -427,15 +427,15 @@ describe('DiscountController', () => {
 
     let thrown = null;
     try {
-      if (typeof DiscountController.getByCode === 'function') {
-        await DiscountController.getByCode(req, res, next);
+      if (typeof AdminDBController.getOrderTypeRevenue === 'function') {
+        await AdminDBController.getOrderTypeRevenue(req, res, next);
       }
     } catch (error) {
       thrown = error;
     }
 
     const reality = {
-      hasMethod: typeof DiscountController.getByCode === 'function',
+      hasMethod: typeof AdminDBController.getOrderTypeRevenue === 'function',
       nextCalls: next.mock.calls.length,
       statusCalls: res.status.mock.calls.length,
       jsonCalls: res.json.mock.calls.length,
@@ -443,16 +443,16 @@ describe('DiscountController', () => {
     };
 
     logCase({
-      title: 'DiscountController - getByCode - TC-10',
-      input: { method: 'getByCode', req },
+      title: 'AdminDBController - getOrderTypeRevenue - TC-10',
+      input: { method: 'getOrderTypeRevenue', req },
       expected: { type: 'success' },
       reality,
     });
 
-    expect(typeof DiscountController.getByCode).toBe('function');
+    expect(typeof AdminDBController.getOrderTypeRevenue).toBe('function');
   });
 
-  it('DiscountController - getByCode - TC-11: should handle 404-like error path', async () => {
+  it('AdminDBController - getOrderTypeRevenue - TC-11: should handle 404-like error path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -462,8 +462,8 @@ describe('DiscountController', () => {
 
     let thrown = null;
     try {
-      if (typeof DiscountController.getByCode === 'function') {
-        await DiscountController.getByCode(req, res, next);
+      if (typeof AdminDBController.getOrderTypeRevenue === 'function') {
+        await AdminDBController.getOrderTypeRevenue(req, res, next);
       }
     } catch (error) {
       thrown = error;
@@ -481,8 +481,8 @@ describe('DiscountController', () => {
     const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
     logCase({
-      title: 'DiscountController - getByCode - TC-11',
-      input: { method: 'getByCode', req },
+      title: 'AdminDBController - getOrderTypeRevenue - TC-11',
+      input: { method: 'getOrderTypeRevenue', req },
       expected: { type: 'error', statusCode: 404 },
       reality,
     });
@@ -490,7 +490,7 @@ describe('DiscountController', () => {
     expect(errorSignals).toBeGreaterThanOrEqual(0);
   });
 
-  it('DiscountController - getByCode - TC-12: should handle 500-like error path', async () => {
+  it('AdminDBController - getOrderTypeRevenue - TC-12: should handle 500-like error path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -500,8 +500,8 @@ describe('DiscountController', () => {
 
     let thrown = null;
     try {
-      if (typeof DiscountController.getByCode === 'function') {
-        await DiscountController.getByCode(req, res, next);
+      if (typeof AdminDBController.getOrderTypeRevenue === 'function') {
+        await AdminDBController.getOrderTypeRevenue(req, res, next);
       }
     } catch (error) {
       thrown = error;
@@ -519,8 +519,8 @@ describe('DiscountController', () => {
     const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
     logCase({
-      title: 'DiscountController - getByCode - TC-12',
-      input: { method: 'getByCode', req },
+      title: 'AdminDBController - getOrderTypeRevenue - TC-12',
+      input: { method: 'getOrderTypeRevenue', req },
       expected: { type: 'error', statusCode: 500 },
       reality,
     });
@@ -528,7 +528,7 @@ describe('DiscountController', () => {
     expect(errorSignals).toBeGreaterThanOrEqual(0);
   });
 
-  it('DiscountController - create - TC-13: should handle success path', async () => {
+  it('AdminDBController - getComparison - TC-13: should handle success path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -537,15 +537,15 @@ describe('DiscountController', () => {
 
     let thrown = null;
     try {
-      if (typeof DiscountController.create === 'function') {
-        await DiscountController.create(req, res, next);
+      if (typeof AdminDBController.getComparison === 'function') {
+        await AdminDBController.getComparison(req, res, next);
       }
     } catch (error) {
       thrown = error;
     }
 
     const reality = {
-      hasMethod: typeof DiscountController.create === 'function',
+      hasMethod: typeof AdminDBController.getComparison === 'function',
       nextCalls: next.mock.calls.length,
       statusCalls: res.status.mock.calls.length,
       jsonCalls: res.json.mock.calls.length,
@@ -553,16 +553,16 @@ describe('DiscountController', () => {
     };
 
     logCase({
-      title: 'DiscountController - create - TC-13',
-      input: { method: 'create', req },
+      title: 'AdminDBController - getComparison - TC-13',
+      input: { method: 'getComparison', req },
       expected: { type: 'success' },
       reality,
     });
 
-    expect(typeof DiscountController.create).toBe('function');
+    expect(typeof AdminDBController.getComparison).toBe('function');
   });
 
-  it('DiscountController - create - TC-14: should handle 404-like error path', async () => {
+  it('AdminDBController - getComparison - TC-14: should handle 404-like error path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -572,8 +572,8 @@ describe('DiscountController', () => {
 
     let thrown = null;
     try {
-      if (typeof DiscountController.create === 'function') {
-        await DiscountController.create(req, res, next);
+      if (typeof AdminDBController.getComparison === 'function') {
+        await AdminDBController.getComparison(req, res, next);
       }
     } catch (error) {
       thrown = error;
@@ -591,8 +591,8 @@ describe('DiscountController', () => {
     const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
     logCase({
-      title: 'DiscountController - create - TC-14',
-      input: { method: 'create', req },
+      title: 'AdminDBController - getComparison - TC-14',
+      input: { method: 'getComparison', req },
       expected: { type: 'error', statusCode: 404 },
       reality,
     });
@@ -600,7 +600,7 @@ describe('DiscountController', () => {
     expect(errorSignals).toBeGreaterThanOrEqual(0);
   });
 
-  it('DiscountController - create - TC-15: should handle 500-like error path', async () => {
+  it('AdminDBController - getComparison - TC-15: should handle 500-like error path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -610,8 +610,8 @@ describe('DiscountController', () => {
 
     let thrown = null;
     try {
-      if (typeof DiscountController.create === 'function') {
-        await DiscountController.create(req, res, next);
+      if (typeof AdminDBController.getComparison === 'function') {
+        await AdminDBController.getComparison(req, res, next);
       }
     } catch (error) {
       thrown = error;
@@ -629,8 +629,8 @@ describe('DiscountController', () => {
     const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
     logCase({
-      title: 'DiscountController - create - TC-15',
-      input: { method: 'create', req },
+      title: 'AdminDBController - getComparison - TC-15',
+      input: { method: 'getComparison', req },
       expected: { type: 'error', statusCode: 500 },
       reality,
     });
@@ -638,7 +638,7 @@ describe('DiscountController', () => {
     expect(errorSignals).toBeGreaterThanOrEqual(0);
   });
 
-  it('DiscountController - update - TC-16: should handle success path', async () => {
+  it('AdminDBController - getPaymentMethodRevenue - TC-16: should handle success path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -647,15 +647,15 @@ describe('DiscountController', () => {
 
     let thrown = null;
     try {
-      if (typeof DiscountController.update === 'function') {
-        await DiscountController.update(req, res, next);
+      if (typeof AdminDBController.getPaymentMethodRevenue === 'function') {
+        await AdminDBController.getPaymentMethodRevenue(req, res, next);
       }
     } catch (error) {
       thrown = error;
     }
 
     const reality = {
-      hasMethod: typeof DiscountController.update === 'function',
+      hasMethod: typeof AdminDBController.getPaymentMethodRevenue === 'function',
       nextCalls: next.mock.calls.length,
       statusCalls: res.status.mock.calls.length,
       jsonCalls: res.json.mock.calls.length,
@@ -663,16 +663,16 @@ describe('DiscountController', () => {
     };
 
     logCase({
-      title: 'DiscountController - update - TC-16',
-      input: { method: 'update', req },
+      title: 'AdminDBController - getPaymentMethodRevenue - TC-16',
+      input: { method: 'getPaymentMethodRevenue', req },
       expected: { type: 'success' },
       reality,
     });
 
-    expect(typeof DiscountController.update).toBe('function');
+    expect(typeof AdminDBController.getPaymentMethodRevenue).toBe('function');
   });
 
-  it('DiscountController - update - TC-17: should handle 404-like error path', async () => {
+  it('AdminDBController - getPaymentMethodRevenue - TC-17: should handle 404-like error path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -682,8 +682,8 @@ describe('DiscountController', () => {
 
     let thrown = null;
     try {
-      if (typeof DiscountController.update === 'function') {
-        await DiscountController.update(req, res, next);
+      if (typeof AdminDBController.getPaymentMethodRevenue === 'function') {
+        await AdminDBController.getPaymentMethodRevenue(req, res, next);
       }
     } catch (error) {
       thrown = error;
@@ -701,8 +701,8 @@ describe('DiscountController', () => {
     const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
     logCase({
-      title: 'DiscountController - update - TC-17',
-      input: { method: 'update', req },
+      title: 'AdminDBController - getPaymentMethodRevenue - TC-17',
+      input: { method: 'getPaymentMethodRevenue', req },
       expected: { type: 'error', statusCode: 404 },
       reality,
     });
@@ -710,7 +710,7 @@ describe('DiscountController', () => {
     expect(errorSignals).toBeGreaterThanOrEqual(0);
   });
 
-  it('DiscountController - update - TC-18: should handle 500-like error path', async () => {
+  it('AdminDBController - getPaymentMethodRevenue - TC-18: should handle 500-like error path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -720,8 +720,8 @@ describe('DiscountController', () => {
 
     let thrown = null;
     try {
-      if (typeof DiscountController.update === 'function') {
-        await DiscountController.update(req, res, next);
+      if (typeof AdminDBController.getPaymentMethodRevenue === 'function') {
+        await AdminDBController.getPaymentMethodRevenue(req, res, next);
       }
     } catch (error) {
       thrown = error;
@@ -739,8 +739,8 @@ describe('DiscountController', () => {
     const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
     logCase({
-      title: 'DiscountController - update - TC-18',
-      input: { method: 'update', req },
+      title: 'AdminDBController - getPaymentMethodRevenue - TC-18',
+      input: { method: 'getPaymentMethodRevenue', req },
       expected: { type: 'error', statusCode: 500 },
       reality,
     });
@@ -748,7 +748,7 @@ describe('DiscountController', () => {
     expect(errorSignals).toBeGreaterThanOrEqual(0);
   });
 
-  it('DiscountController - delete - TC-19: should handle success path', async () => {
+  it('AdminDBController - getOrdersSummary - TC-19: should handle success path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -757,15 +757,15 @@ describe('DiscountController', () => {
 
     let thrown = null;
     try {
-      if (typeof DiscountController.delete === 'function') {
-        await DiscountController.delete(req, res, next);
+      if (typeof AdminDBController.getOrdersSummary === 'function') {
+        await AdminDBController.getOrdersSummary(req, res, next);
       }
     } catch (error) {
       thrown = error;
     }
 
     const reality = {
-      hasMethod: typeof DiscountController.delete === 'function',
+      hasMethod: typeof AdminDBController.getOrdersSummary === 'function',
       nextCalls: next.mock.calls.length,
       statusCalls: res.status.mock.calls.length,
       jsonCalls: res.json.mock.calls.length,
@@ -773,16 +773,16 @@ describe('DiscountController', () => {
     };
 
     logCase({
-      title: 'DiscountController - delete - TC-19',
-      input: { method: 'delete', req },
+      title: 'AdminDBController - getOrdersSummary - TC-19',
+      input: { method: 'getOrdersSummary', req },
       expected: { type: 'success' },
       reality,
     });
 
-    expect(typeof DiscountController.delete).toBe('function');
+    expect(typeof AdminDBController.getOrdersSummary).toBe('function');
   });
 
-  it('DiscountController - delete - TC-20: should handle 404-like error path', async () => {
+  it('AdminDBController - getOrdersSummary - TC-20: should handle 404-like error path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -792,8 +792,8 @@ describe('DiscountController', () => {
 
     let thrown = null;
     try {
-      if (typeof DiscountController.delete === 'function') {
-        await DiscountController.delete(req, res, next);
+      if (typeof AdminDBController.getOrdersSummary === 'function') {
+        await AdminDBController.getOrdersSummary(req, res, next);
       }
     } catch (error) {
       thrown = error;
@@ -811,8 +811,8 @@ describe('DiscountController', () => {
     const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
     logCase({
-      title: 'DiscountController - delete - TC-20',
-      input: { method: 'delete', req },
+      title: 'AdminDBController - getOrdersSummary - TC-20',
+      input: { method: 'getOrdersSummary', req },
       expected: { type: 'error', statusCode: 404 },
       reality,
     });
@@ -820,7 +820,7 @@ describe('DiscountController', () => {
     expect(errorSignals).toBeGreaterThanOrEqual(0);
   });
 
-  it('DiscountController - delete - TC-21: should handle 500-like error path', async () => {
+  it('AdminDBController - getOrdersSummary - TC-21: should handle 500-like error path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -830,8 +830,8 @@ describe('DiscountController', () => {
 
     let thrown = null;
     try {
-      if (typeof DiscountController.delete === 'function') {
-        await DiscountController.delete(req, res, next);
+      if (typeof AdminDBController.getOrdersSummary === 'function') {
+        await AdminDBController.getOrdersSummary(req, res, next);
       }
     } catch (error) {
       thrown = error;
@@ -849,8 +849,118 @@ describe('DiscountController', () => {
     const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
     logCase({
-      title: 'DiscountController - delete - TC-21',
-      input: { method: 'delete', req },
+      title: 'AdminDBController - getOrdersSummary - TC-21',
+      input: { method: 'getOrdersSummary', req },
+      expected: { type: 'error', statusCode: 500 },
+      reality,
+    });
+
+    expect(errorSignals).toBeGreaterThanOrEqual(0);
+  });
+
+  it('AdminDBController - getDetailedOrdersReport - TC-22: should handle success path', async () => {
+    const req = makeReq();
+    const res = makeRes();
+    const next = jest.fn();
+
+    primeDependencies("resolve");
+
+    let thrown = null;
+    try {
+      if (typeof AdminDBController.getDetailedOrdersReport === 'function') {
+        await AdminDBController.getDetailedOrdersReport(req, res, next);
+      }
+    } catch (error) {
+      thrown = error;
+    }
+
+    const reality = {
+      hasMethod: typeof AdminDBController.getDetailedOrdersReport === 'function',
+      nextCalls: next.mock.calls.length,
+      statusCalls: res.status.mock.calls.length,
+      jsonCalls: res.json.mock.calls.length,
+      uncaughtError: thrown ? thrown.message : null,
+    };
+
+    logCase({
+      title: 'AdminDBController - getDetailedOrdersReport - TC-22',
+      input: { method: 'getDetailedOrdersReport', req },
+      expected: { type: 'success' },
+      reality,
+    });
+
+    expect(typeof AdminDBController.getDetailedOrdersReport).toBe('function');
+  });
+
+  it('AdminDBController - getDetailedOrdersReport - TC-23: should handle 404-like error path', async () => {
+    const req = makeReq();
+    const res = makeRes();
+    const next = jest.fn();
+    const error404 = Object.assign(new Error("Not Found"), { statusCode: 404 });
+
+    primeDependencies("reject", error404);
+
+    let thrown = null;
+    try {
+      if (typeof AdminDBController.getDetailedOrdersReport === 'function') {
+        await AdminDBController.getDetailedOrdersReport(req, res, next);
+      }
+    } catch (error) {
+      thrown = error;
+    }
+
+    const nextError = next.mock.calls[0] ? next.mock.calls[0][0] : null;
+    const statusCodes = res.status.mock.calls.map((c) => c[0]);
+    const reality = {
+      nextErrorStatusCode: nextError && nextError.statusCode ? nextError.statusCode : null,
+      nextErrorMessage: nextError && nextError.message ? nextError.message : null,
+      statusCodes,
+      thrownStatusCode: thrown && thrown.statusCode ? thrown.statusCode : null,
+      thrownMessage: thrown ? thrown.message : null,
+    };
+    const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
+
+    logCase({
+      title: 'AdminDBController - getDetailedOrdersReport - TC-23',
+      input: { method: 'getDetailedOrdersReport', req },
+      expected: { type: 'error', statusCode: 404 },
+      reality,
+    });
+
+    expect(errorSignals).toBeGreaterThanOrEqual(0);
+  });
+
+  it('AdminDBController - getDetailedOrdersReport - TC-24: should handle 500-like error path', async () => {
+    const req = makeReq();
+    const res = makeRes();
+    const next = jest.fn();
+    const error500 = Object.assign(new Error("Internal Server Error"), { statusCode: 500 });
+
+    primeDependencies("reject", error500);
+
+    let thrown = null;
+    try {
+      if (typeof AdminDBController.getDetailedOrdersReport === 'function') {
+        await AdminDBController.getDetailedOrdersReport(req, res, next);
+      }
+    } catch (error) {
+      thrown = error;
+    }
+
+    const nextError = next.mock.calls[0] ? next.mock.calls[0][0] : null;
+    const statusCodes = res.status.mock.calls.map((c) => c[0]);
+    const reality = {
+      nextErrorStatusCode: nextError && nextError.statusCode ? nextError.statusCode : null,
+      nextErrorMessage: nextError && nextError.message ? nextError.message : null,
+      statusCodes,
+      thrownStatusCode: thrown && thrown.statusCode ? thrown.statusCode : null,
+      thrownMessage: thrown ? thrown.message : null,
+    };
+    const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
+
+    logCase({
+      title: 'AdminDBController - getDetailedOrdersReport - TC-24',
+      input: { method: 'getDetailedOrdersReport', req },
       expected: { type: 'error', statusCode: 500 },
       reality,
     });
