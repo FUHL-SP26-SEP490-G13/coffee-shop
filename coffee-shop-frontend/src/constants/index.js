@@ -143,14 +143,6 @@ export const API_ENDPOINTS = {
     REGISTRATION_BY_ID: (id) => `/shifts/registrations/${id}`,
     SCHEDULE: '/shifts/schedule',
     MY_SCHEDULE: '/shifts/schedule/me',
-    COLLEAGUES: '/shifts/colleagues',
-  },
-  SWAP_REQUESTS: {
-    BASE: '/swap-requests',
-    BY_ID: (id) => `/swap-requests/${id}`,
-    ACCEPT: (id) => `/swap-requests/${id}/accept`,
-    REJECT: (id) => `/swap-requests/${id}/reject`,
-    CANCEL: (id) => `/swap-requests/${id}/cancel`,
   },
   APP_SETTINGS: {
     BASE: '/settings',

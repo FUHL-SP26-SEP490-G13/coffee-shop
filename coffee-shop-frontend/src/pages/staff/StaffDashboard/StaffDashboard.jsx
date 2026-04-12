@@ -7,8 +7,6 @@ import {
   Users,
   Clock,
   Calendar,
-  ClipboardList,
-  AlertCircle,
   TrendingUp,
   Package,
 } from "lucide-react";
@@ -166,25 +164,7 @@ export function StaffDashboard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-4">
-        <Card className="p-0 overflow-hidden border-border/60">
-          <div className="p-4 border-b bg-muted/20">
-            <h3 className="font-semibold text-sm">Tin nhắn & Yêu cầu nội bộ</h3>
-          </div>
-          <div className="p-8 text-center text-muted-foreground text-sm flex flex-col items-center justify-center">
-            <AlertCircle className="w-10 h-10 text-muted-foreground/30 mb-3" />
-            Không có yêu cầu nào đang chờ xử lý.
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="mt-4"
-              onClick={() => navigate("/staff/requests")}
-            >
-              Xem tất cả
-            </Button>
-          </div>
-        </Card>
-
+      <div className="pt-4">
         <Card className="p-0 overflow-hidden border-border/60 bg-gradient-to-br from-primary/5 to-primary/10">
           <div className="p-6 flex flex-col items-center justify-center h-full text-center">
             <div className="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center mb-4">
