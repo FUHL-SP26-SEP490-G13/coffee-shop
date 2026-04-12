@@ -40,7 +40,6 @@ import {
 import { toast } from "sonner";
 import flashSaleService from "@/services/flashSaleService";
 import receiptSettingService from "@/services/receiptSettingService";
-import deliveryAreaService from "@/services/deliveryAreaService";
 import { useStoreHours } from "@/hooks/useStoreHours";
 
 const LOYALTY_MONEY_PER_POINT = 100;
@@ -90,19 +89,11 @@ export default function CheckoutPage() {
     receiver_phone: "",
     receiver_email: "",
     address: "",
-    province_id: "",
-    ward_id: "",
     note: "",
     discount_code: "",
     used_points: 0,
   });
   const [activeSale, setActiveSale] = useState(null);
-
-  const [provinces, setProvinces] = useState([]);
-  const [wards, setWards] = useState([]);
-  const [isProvinceLoading, setIsProvinceLoading] = useState(false);
-  const [isWardLoading, setIsWardLoading] = useState(false);
-  const [shippingFee, setShippingFee] = useState(0);
 
   useEffect(() => {
     flashSaleService
@@ -120,24 +111,6 @@ export default function CheckoutPage() {
   }, [cart, navigate]);
 
   useEffect(() => {
-    const loadProvinces = async () => {
-      try {
-        setIsProvinceLoading(true);
-        const res = await deliveryAreaService.getProvinces();
-        const data = Array.isArray(res?.data?.data)
-          ? res.data.data
-          : Array.isArray(res?.data)
-            ? res.data
-            : [];
-        setProvinces(data);
-      } catch (error) {
-        console.error("Lỗi tải danh sách tỉnh/thành:", error);
-        setProvinces([]);
-      } finally {
-        setIsProvinceLoading(false);
-      }
-    };
-
     receiptSettingService
       .getSettings()
       .then((settingsRes) => {
@@ -153,8 +126,6 @@ export default function CheckoutPage() {
         }
       })
       .catch(console.error);
-
-    loadProvinces();
 
     const loadCheckoutData = async () => {
       if (!token) return;
@@ -186,16 +157,6 @@ export default function CheckoutPage() {
           receiver_phone: defaultAddress?.receiver_phone || user?.phone || "",
           receiver_email: user?.email || "",
           address: defaultAddress?.address || user?.address || "",
-          province_id:
-            defaultAddress?.province_id !== undefined &&
-            defaultAddress?.province_id !== null
-              ? String(defaultAddress.province_id)
-              : "",
-          ward_id:
-            defaultAddress?.ward_id !== undefined &&
-            defaultAddress?.ward_id !== null
-              ? String(defaultAddress.ward_id)
-              : "",
         }));
       } catch (error) {
         console.error("Không lấy được thông tin profile:", error);
@@ -312,78 +273,6 @@ export default function CheckoutPage() {
     return () => clearTimeout(timeoutId);
   }, [form.receiver_phone]);
 
-  useEffect(() => {
-    const selectedProvinceId = Number(form.province_id || 0);
-
-    if (form.order_type !== "delivery" || selectedProvinceId <= 0) {
-      setWards([]);
-      setShippingFee(form.order_type === "delivery" ? 0 : 0);
-      return;
-    }
-
-    let mounted = true;
-
-    const loadWards = async () => {
-      try {
-        setIsWardLoading(true);
-        const res = await deliveryAreaService.getWardsByProvince(selectedProvinceId);
-        const data = Array.isArray(res?.data?.data)
-          ? res.data.data
-          : Array.isArray(res?.data)
-            ? res.data
-            : [];
-
-        if (!mounted) return;
-
-        setWards(data);
-
-        const exists = data.some(
-          (item) => Number(item.id) === Number(form.ward_id || 0)
-        );
-
-        if (!exists) {
-          setForm((prev) => ({
-            ...prev,
-            ward_id: "",
-          }));
-          setShippingFee(0);
-        }
-      } catch (error) {
-        console.error("Lỗi tải xã/phường:", error);
-        if (!mounted) return;
-        setWards([]);
-        setForm((prev) => ({
-          ...prev,
-          ward_id: "",
-        }));
-        setShippingFee(0);
-      } finally {
-        if (mounted) {
-          setIsWardLoading(false);
-        }
-      }
-    };
-
-    loadWards();
-
-    return () => {
-      mounted = false;
-    };
-  }, [form.order_type, form.province_id, form.ward_id]);
-
-  useEffect(() => {
-    if (form.order_type !== "delivery") {
-      setShippingFee(0);
-      return;
-    }
-
-    const selectedWard = wards.find(
-      (item) => Number(item.id) === Number(form.ward_id || 0)
-    );
-
-    setShippingFee(Math.max(0, Number(selectedWard?.shipping_fee || 0)));
-  }, [form.order_type, form.ward_id, wards]);
-
   const getAddressTypeLabel = (type) => {
     if (type === "work") return "Văn phòng";
     if (type === "other") return "Khác";
@@ -397,14 +286,6 @@ export default function CheckoutPage() {
       receiver_name: item.receiver_name || prev.receiver_name,
       receiver_phone: item.receiver_phone || prev.receiver_phone,
       address: item.address || "",
-      province_id:
-        item?.province_id !== undefined && item?.province_id !== null
-          ? String(item.province_id)
-          : "",
-      ward_id:
-        item?.ward_id !== undefined && item?.ward_id !== null
-          ? String(item.ward_id)
-          : "",
     }));
     setErrors((prev) => ({
       ...prev,
@@ -417,11 +298,6 @@ export default function CheckoutPage() {
         item.receiver_phone || form.receiver_phone
       ),
       address: validateOrderField("address", item.address || ""),
-      province_id: validateOrderField(
-        "province_id",
-        item?.province_id ?? ""
-      ),
-      ward_id: validateOrderField("ward_id", item?.ward_id ?? ""),
     }));
     setIsAddressDialogOpen(false);
   };
@@ -456,6 +332,7 @@ export default function CheckoutPage() {
     }, 0);
   }, [cart, activeSale]);
 
+  const shippingFee = 0;
   const discountAmount = Number(appliedDiscount?.discount_amount || 0);
   const amountAfterDiscount = Math.max(
     0,
@@ -488,16 +365,11 @@ export default function CheckoutPage() {
   const loyaltyDiscountAmount = usedPoints * LOYALTY_MONEY_PER_POINT;
   const totalAmount = Math.max(0, amountAfterDiscount - loyaltyDiscountAmount);
   const isPointsInputExceeded = parsedUsedPoints > maxRedeemablePoints;
-  const isDeliveryOrder = form.order_type === "delivery";
-  const isCheckoutBlockedByAdministrativeArea =
-    isDeliveryOrder && (!Number(form.province_id) || !Number(form.ward_id));
-  const isCheckoutBlocked = isCheckoutBlockedByAdministrativeArea;
+  const isCheckoutBlocked = false;
 
   const placeOrderLabel = !isOpen
     ? nextOpenMessage || "Đã đóng cửa"
-    : isCheckoutBlockedByAdministrativeArea
-      ? "Chọn khu vực giao hàng"
-      : "Đặt hàng";
+    : "Đặt hàng";
 
   useEffect(() => {
     setForm((prev) => {
@@ -782,9 +654,6 @@ export default function CheckoutPage() {
                         <p className="text-sm text-gray-800 dark:text-gray-200 mt-1">
                           {selectedAddress.address}
                         </p>
-                        <p className="text-xs text-gray-600 mt-1">
-                          Vui lòng chọn đúng Tỉnh/Thành và Xã/Phường bên dưới để hệ thống xác nhận khu vực giao hàng.
-                        </p>
                       </div>
                     )}
                   </div>
@@ -813,94 +682,6 @@ export default function CheckoutPage() {
                   {errors.address && (
                     <p className="text-sm text-red-500 mt-1">
                       {errors.address}
-                    </p>
-                  )}
-
-                  <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-sm font-medium mb-2 block">
-                        Tỉnh/Thành phố *
-                      </label>
-                      <select
-                        value={form.province_id}
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          setForm((prev) => ({
-                            ...prev,
-                            province_id: value,
-                            ward_id: "",
-                          }));
-                          setErrors((prev) => ({
-                            ...prev,
-                            province_id: validateOrderField("province_id", value),
-                            ward_id: "",
-                          }));
-                        }}
-                        className="w-full border rounded-md h-10 px-3"
-                        disabled={isProvinceLoading}
-                      >
-                        <option value="">
-                          {isProvinceLoading
-                            ? "Đang tải tỉnh/thành..."
-                            : "Chọn Tỉnh/Thành"}
-                        </option>
-                        {provinces.map((province) => (
-                          <option key={province.id} value={province.id}>
-                            {province.name}
-                          </option>
-                        ))}
-                      </select>
-                      {errors.province_id && (
-                        <p className="text-sm text-red-500 mt-1">
-                          {errors.province_id}
-                        </p>
-                      )}
-                    </div>
-
-                    <div>
-                      <label className="text-sm font-medium mb-2 block">
-                        Xã/Phường *
-                      </label>
-                      <select
-                        value={form.ward_id}
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          setForm((prev) => ({
-                            ...prev,
-                            ward_id: value,
-                          }));
-                          setErrors((prev) => ({
-                            ...prev,
-                            ward_id: validateOrderField("ward_id", value),
-                          }));
-                        }}
-                        className="w-full border rounded-md h-10 px-3"
-                        disabled={!form.province_id || isWardLoading}
-                      >
-                        <option value="">
-                          {!form.province_id
-                            ? "Chọn Tỉnh/Thành trước"
-                            : isWardLoading
-                              ? "Đang tải xã/phường..."
-                              : "Chọn Xã/Phường"}
-                        </option>
-                        {wards.map((ward) => (
-                          <option key={ward.id} value={ward.id}>
-                            {ward.name}
-                          </option>
-                        ))}
-                      </select>
-                      {errors.ward_id && (
-                        <p className="text-sm text-red-500 mt-1">
-                          {errors.ward_id}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  {isDeliveryOrder && form.ward_id && (
-                    <p className="text-xs text-emerald-600 mt-2">
-                      Phí giao hàng của khu vực đã chọn: {shippingFee.toLocaleString("vi-VN")}đ
                     </p>
                   )}
                 </div>
@@ -1259,13 +1040,6 @@ export default function CheckoutPage() {
                 </div>
               ) : null}
 
-              {shippingFee > 0 ? (
-                <div className="flex justify-between text-sm text-gray-700 dark:text-gray-300">
-                  <span>Phí vận chuyển</span>
-                  <span>+ {shippingFee.toLocaleString("vi-VN")}đ</span>
-                </div>
-              ) : null}
-
               <div className="flex justify-between text-base font-bold">
                 <div className="flex flex-col">
                   <span>Tổng cộng</span>
@@ -1290,7 +1064,6 @@ export default function CheckoutPage() {
               form={form}
               cart={cart}
               totalAmount={totalAmount}
-              shippingFee={shippingFee}
               disabled={!isOpen || isCheckoutBlocked}
               label={placeOrderLabel}
               onValidateError={(errs) => setErrors(errs)}

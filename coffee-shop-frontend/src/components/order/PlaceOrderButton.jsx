@@ -29,7 +29,6 @@ export default function PlaceOrderButton({
   backPath = "/cart",
   backLabel = "← Quay lại giỏ hàng",
   label = "Đặt hàng",
-  shippingFee = 0,
   disabled = false,
 }) {
   const navigate = useNavigate();
@@ -66,11 +65,6 @@ export default function PlaceOrderButton({
             : [],
         })),
       };
-
-      if (form.order_type === "delivery") {
-        payload.province_id = Number(form.province_id);
-        payload.ward_id = Number(form.ward_id);
-      }
 
       console.log("Checkout payload:", payload);
 
@@ -112,14 +106,6 @@ export default function PlaceOrderButton({
             (payosItem) => payosItem.quantity > 0 && payosItem.price > 0
           );
         });
-
-        if (form.order_type === "delivery" && shippingFee > 0) {
-          payosItems.push({
-            name: "Phí vận chuyển",
-            quantity: 1,
-            price: shippingFee,
-          });
-        }
 
         const amountFromCheckout = Number(orderData?.total_amount || 0);
 

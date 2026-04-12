@@ -131,26 +131,16 @@ const checkoutOrderSchema = Joi.object({
     }),
   }),
 
-  province_id: Joi.alternatives().conditional("order_type", {
-    is: "delivery",
-    then: Joi.number().integer().positive().required().messages({
-      "number.base": "Tỉnh/Thành không hợp lệ",
-      "number.integer": "Tỉnh/Thành không hợp lệ",
-      "number.positive": "Tỉnh/Thành không hợp lệ",
-      "any.required": "Tỉnh/Thành là bắt buộc",
-    }),
-    otherwise: Joi.number().integer().positive().allow(null).optional(),
+  province_id: Joi.number().integer().positive().allow(null).optional().messages({
+    "number.base": "Tỉnh/Thành không hợp lệ",
+    "number.integer": "Tỉnh/Thành không hợp lệ",
+    "number.positive": "Tỉnh/Thành không hợp lệ",
   }),
 
-  ward_id: Joi.alternatives().conditional("order_type", {
-    is: "delivery",
-    then: Joi.number().integer().positive().required().messages({
-      "number.base": "Xã/Phường không hợp lệ",
-      "number.integer": "Xã/Phường không hợp lệ",
-      "number.positive": "Xã/Phường không hợp lệ",
-      "any.required": "Xã/Phường là bắt buộc",
-    }),
-    otherwise: Joi.number().integer().positive().allow(null).optional(),
+  ward_id: Joi.number().integer().positive().allow(null).optional().messages({
+    "number.base": "Xã/Phường không hợp lệ",
+    "number.integer": "Xã/Phường không hợp lệ",
+    "number.positive": "Xã/Phường không hợp lệ",
   }),
 
   note: Joi.string().trim().allow("").max(500).messages({
