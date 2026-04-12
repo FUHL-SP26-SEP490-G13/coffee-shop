@@ -81,4 +81,13 @@ router.get(
     AsyncMiddleware(shiftController.getMySchedule),
 );
 
+// Lấy danh sách đồng nghiệp cùng role, isActive=1
+// GET /shifts/colleagues
+router.get(
+    '/colleagues',
+    authenticate,
+    authorize(ALL_STAFF),
+    AsyncMiddleware(shiftController.getColleagues),
+);
+
 module.exports = router;

@@ -36,8 +36,6 @@ class ShiftRepository {
     }
 
     async findOverlappingTemplate(startTime, endTime, excludeId = null) {
-        // ns = startTime (ca m\u1edbi b\u1eaft \u0111\u1ea7u), ne = endTime (ca m\u1edbi k\u1ebft th\u00fac)
-        // 4 tr\u01b0\u1eddng h\u1ee3p: (Existing NORMAL|OVERNIGHT) x (New NORMAL|OVERNIGHT)
         const excludeClause = excludeId ? `AND id != ?` : '';
         // [ne, ns, ns, ne, ne, ns, ne, ns]
         const baseParams = [endTime, startTime, startTime, endTime, endTime, startTime, endTime, startTime];
@@ -118,6 +116,16 @@ class ShiftRepository {
         return { id: result.insertId, template_id: templateId, shift_date: date };
     }
 
+    // Chỉ tìm shift slot đã có, KHÔNG tạo mới (dùng để validate trước khi insert)
+    async findShiftSlot(templateId, date) {
+        const [[row]] = await pool.query(
+            `SELECT id, template_id, shift_date FROM shifts
+             WHERE template_id = ? AND shift_date = ?`,
+            [templateId, date],
+        );
+        return row || null;
+    }
+
     // Kiểm tra nhân viên có ca nào trùng giờ trong cùng ngày không
     async findOverlappingRegistration(userId, date, startTime, endTime) {
         const [[row]] = await pool.query(
@@ -170,7 +178,7 @@ class ShiftRepository {
     // Lấy tất cả ca active của user trong 1 ngày cụ thể (để check overlap)
     async findUserShiftsOnDate(userId, date) {
         const [rows] = await pool.query(
-            `SELECT st.start_time, st.end_time, st.name AS template_name
+            `SELECT st.id AS template_id, st.start_time, st.end_time, st.name AS template_name
              FROM shift_registrations sr
              JOIN shifts s ON sr.shift_id = s.id
              JOIN shift_templates st ON s.template_id = st.id
@@ -284,6 +292,27 @@ class ShiftRepository {
             [id],
         );
         return row || null;
+    }
+
+    /**
+     * Lấy danh sách đồng nghiệp cùng role với userId, còn đang hoạt động (isActive = 1)
+     * Trừ chính userId ra.
+     */
+    async findColleaguesByRole(userId) {
+        const [rows] = await pool.query(
+            `SELECT u2.id AS user_id,
+                    CONCAT(u2.first_name, ' ', u2.last_name) AS name,
+                    r.role_name AS role
+             FROM users u1
+             JOIN role r ON u1.role_id = r.id
+             JOIN users u2 ON u2.role_id = r.id
+             WHERE u1.id = ?
+               AND u2.id != ?
+               AND u2.isActive = 1
+             ORDER BY u2.last_name, u2.first_name`,
+            [userId, userId],
+        );
+        return rows;
     }
 }
 
