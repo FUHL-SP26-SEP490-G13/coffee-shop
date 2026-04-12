@@ -4,7 +4,6 @@ import {
   PackageOpen,
   Calendar,
   Clock,
-  ArrowLeftRight,
   User,
   LogOut,
   Menu,
@@ -118,7 +117,6 @@ export function BaristaApp() {
       "/barista/orders": "Đơn hàng",
       "/barista/attendance": "Chấm công",
       "/barista/schedule": "Lịch làm việc",
-      "/barista/requests": "Yêu cầu",
       "/barista/profile": "Thông tin cá nhân"
     };
 
@@ -148,7 +146,6 @@ export function BaristaApp() {
     if (path.includes("orders")) return "orders";
     if (path.includes("attendance")) return "attendance";
     if (path.includes("schedule")) return "schedule";
-    if (path.includes("requests")) return "requests";
     if (path.includes("profile")) return "profile";
     return "dashboard";
   };
@@ -192,12 +189,6 @@ export function BaristaApp() {
           icon: Calendar,
           label: "Lịch làm việc",
           path: "/barista/schedule",
-        },
-        {
-          id: "requests",
-          icon: ArrowLeftRight,
-          label: "Đổi ca",
-          path: "/barista/requests",
         },
         {
           id: "profile",

@@ -20,7 +20,7 @@ class CashSessionRepository {
        JOIN shift_templates st ON s.template_id = st.id 
        WHERE sr.user_id = ? 
          AND s.shift_date = CURDATE() 
-         AND sr.status IN ('registered', 'swapped_in', 'approved') 
+         AND sr.status = 'registered'
        ORDER BY ABS(TIMESTAMPDIFF(MINUTE, st.start_time, CURTIME())) ASC LIMIT 1`,
       [userId]
     );

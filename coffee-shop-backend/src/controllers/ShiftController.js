@@ -68,15 +68,6 @@ class ShiftController {
         }
     }
 
-    // GET /shifts/colleagues — Lấy đồng nghiệp cùng role, isActive = 1
-    async getColleagues(req, res, next) {
-        try {
-            const result = await ShiftService.getColleagues(req.user.id);
-            return res.json({ success: true, data: result });
-        } catch (err) {
-            next(err);
-        }
-    }
 }
 
 module.exports = new ShiftController();
