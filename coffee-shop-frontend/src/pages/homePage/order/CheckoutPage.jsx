@@ -29,7 +29,6 @@ import { validateOrderField } from "@/utils/orderValidation";
 import PayOSLogo from "/logo/payOS.svg";
 import reputationService from "@/services/reputationService";
 import {
-  getReputationTierLabel,
   validateOrderPermissions,
 } from "@/utils/reputationValidation";
 import { toast } from "sonner";
