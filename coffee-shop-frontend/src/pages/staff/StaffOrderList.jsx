@@ -353,18 +353,7 @@ export function OrderDelivery() {
       );
       const list = res?.data?.data || res?.data || [];
 
-      const filtered = list.filter((order) => {
-        if (activeStatus === "barista-window") {
-          const s = String(order?.status || "").toLowerCase();
-          return s === "preparing" || s === "served" || s === "completed";
-        }
-        if (activeStatus === "management") {
-          return true; // Quản lý đơn hàng: hiển thị tất cả
-        }
-        return String(order?.status || "").toLowerCase() === activeStatus.toLowerCase();
-      });
-
-      const activeOrders = filtered
+      const activeOrders = list
         .sort((a, b) => {
           const createdDiff =
             new Date(a?.created_at || 0).getTime() -
@@ -1215,6 +1204,10 @@ export function OrderDelivery() {
                           <div className="flex items-center gap-3">
                              <User className="h-3.5 w-3.5 text-muted-foreground/40" />
                              <span className="text-[xs] font-black text-muted-foreground italic uppercase truncate">{order.receiver_name || order.customer_name || "N/A"}</span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                             <Phone className="h-3.5 w-3.5 text-muted-foreground/40" />
+                             <span className="text-[10px] font-bold text-muted-foreground italic truncate">{order.receiver_phone || order.phone || "K/O Số điện thoại"}</span>
                           </div>
                           <div className="flex items-center gap-3">
                              <MapPin className="h-3.5 w-3.5 text-muted-foreground/40" />

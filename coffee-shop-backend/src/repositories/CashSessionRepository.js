@@ -27,6 +27,61 @@ class CashSessionRepository {
     return rows[0] || null;
   }
 
+  async getCurrentActiveUserShift(userId) {
+    const [rows] = await pool.query(
+      `SELECT sr.id as shift_registration_id, st.end_time, st.start_time 
+       FROM shift_registrations sr 
+       JOIN shifts s ON sr.shift_id = s.id 
+       JOIN shift_templates st ON s.template_id = st.id 
+       WHERE sr.user_id = ? 
+         AND s.shift_date = CURDATE() 
+         AND sr.status = 'registered'
+         AND (
+           CURTIME() BETWEEN SUBTIME(st.start_time, '00:30:00') AND st.end_time
+           OR (st.start_time > st.end_time AND (CURTIME() >= SUBTIME(st.start_time, '00:30:00') OR CURTIME() <= st.end_time))
+         )
+       LIMIT 1`,
+      [userId]
+    );
+    return rows[0] || null;
+  }
+
+  async getCurrentActiveShift() {
+    const [rows] = await pool.query(
+      `SELECT u.first_name, u.last_name, st.start_time, st.end_time 
+       FROM shift_registrations sr 
+       JOIN shifts s ON sr.shift_id = s.id 
+       JOIN shift_templates st ON s.template_id = st.id 
+       JOIN users u ON sr.user_id = u.id
+       WHERE s.shift_date = CURDATE() 
+         AND sr.status = 'registered'
+         AND (
+           CURTIME() BETWEEN SUBTIME(st.start_time, '00:30:00') AND st.end_time
+           OR (st.start_time > st.end_time AND (CURTIME() >= SUBTIME(st.start_time, '00:30:00') OR CURTIME() <= st.end_time))
+         )
+       LIMIT 1`
+    );
+    return rows[0] || null;
+  }
+
+  async getNextUserShift(userId) {
+    const [rows] = await pool.query(
+      `SELECT st.start_time, st.end_time, s.shift_date 
+       FROM shift_registrations sr 
+       JOIN shifts s ON sr.shift_id = s.id 
+       JOIN shift_templates st ON s.template_id = st.id 
+       WHERE sr.user_id = ? 
+         AND sr.status = 'registered'
+         AND (
+           s.shift_date > CURDATE() 
+           OR (s.shift_date = CURDATE() AND st.start_time > CURTIME())
+         )
+       ORDER BY s.shift_date ASC, st.start_time ASC LIMIT 1`,
+      [userId]
+    );
+    return rows[0] || null;
+  }
+
   async getShiftEndTimeById(shiftRegistrationId) {
     const [rows] = await pool.query(
       `SELECT st.end_time 

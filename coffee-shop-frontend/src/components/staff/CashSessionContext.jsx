@@ -35,6 +35,7 @@ export const CashSessionProvider = ({ children }) => {
   const [closingCashActual, setClosingCashActual] = useState("");
   const [closingNote, setClosingNote] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
   
   const navigate = useNavigate();
 
@@ -64,8 +65,9 @@ export const CashSessionProvider = ({ children }) => {
 
   const handleOpenSession = async (e) => {
     e.preventDefault();
+    setErrorMessage("");
     if (!openingCash || isNaN(openingCash)) {
-      toast.error("Vui lòng nhập số tiền đầu ca hợp lệ");
+      setErrorMessage("Vui lòng nhập số tiền đầu ca hợp lệ");
       return;
     }
     
@@ -75,7 +77,7 @@ export const CashSessionProvider = ({ children }) => {
       toast.success("Mở ca thành công");
       await checkSession();
     } catch (err) {
-      toast.error(err.response?.data?.message || "Lỗi mở ca");
+      setErrorMessage(err.response?.data?.message || "Lỗi hệ thống khi mở ca. Vui lòng thử lại.");
     } finally {
       setIsSubmitting(false);
     }
@@ -193,6 +195,13 @@ export const CashSessionProvider = ({ children }) => {
                 />
               </div>
             </div>
+
+            {errorMessage && (
+              <div className="text-rose-600 bg-rose-50 p-3 rounded-lg text-[14px] font-medium border border-rose-100 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                {errorMessage}
+              </div>
+            )}
 
             <div className="flex justify-end gap-4 pt-6">
               <Button type="button" variant="secondary" onClick={handleLogout} className="bg-slate-100 hover:bg-slate-200 text-blue-600 font-semibold px-6 rounded-xl">
