@@ -1,514 +1,500 @@
-const CategoryService = require('../../src/services/CategoryService');
+﻿const CategoryService = require('../../src/services/CategoryService');
 const CategoryRepository = require('../../src/repositories/CategoryRepository');
+const ErrorResponse = require('../../src/utils/ErrorResponse');
+const slugify = require('slugify');
 
-// Mock dependencies
 jest.mock('../../src/repositories/CategoryRepository');
+jest.mock('slugify', () => jest.fn());
+
+const logCase = ({ method, tcid, crud, input, outputExpect }) => {
+  console.log('\n' + '='.repeat(70));
+  console.log(`CategoryService - ${method} - ${tcid}`);
+  console.log('CRUD TYPE:', crud);
+  console.log('INPUT:', JSON.stringify(input, null, 2));
+  console.log('OUTPUT EXPECT:', outputExpect);
+  console.log('='.repeat(70));
+};
+
+const logReality = (output) => {
+  console.log('OUTPUT REALITY:', JSON.stringify(output, null, 2));
+};
+
+const expectServiceError = async (runner, expected) => {
+  let actualError;
+
+  try {
+    await runner();
+  } catch (error) {
+    actualError = error;
+  }
+
+  logReality({
+    statusCode: actualError?.statusCode,
+    message: actualError?.message,
+  });
+
+  expect(actualError).toBeInstanceOf(ErrorResponse);
+  expect(actualError.statusCode).toBe(expected.statusCode);
+  expect(actualError.message).toBe(expected.message);
+};
 
 describe('CategoryService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    slugify.mockReturnValue('default-slug');
   });
 
-  // ========== GET ALL CATEGORIES TESTS ==========
   describe('getAllCategories', () => {
-    it('CategoryService - getAllCategories - TC-01: should get all active categories', async () => {
-      console.log('\n' + '='.repeat(50));
-      console.log('CategoryService - GET_ALL - TC-1: Lấy tất cả danh mục active');
-      console.log('='.repeat(50));
-
-      // Arrange
+    it('CategoryService - getAllCategories - TC-01: lấy danh mục active với options mặc định', async () => {
+      const input = {};
       const mockCategories = [
         { id: 1, name: 'Cà phê', is_deleted: 0 },
         { id: 2, name: 'Trà sữa', is_deleted: 0 },
       ];
+
+      logCase({
+        method: 'getAllCategories',
+        tcid: 'TC-01',
+        crud: 'READ',
+        input,
+        outputExpect: 'Trả về danh sách category active',
+      });
+
       CategoryRepository.findAllActive.mockResolvedValue(mockCategories);
 
-      // OUTPUT EXPECT
-      console.log('✅ OUTPUT EXPECT: Array of active categories');
-
-      // Act
       const result = await CategoryService.getAllCategories();
+      logReality(result);
 
-      // OUTPUT REALITY
-      console.log('🎯 OUTPUT REALITY:', JSON.stringify(result, null, 2));
-
-      // Assert
       expect(CategoryRepository.findAllActive).toHaveBeenCalledWith({});
-      expect(result).toHaveLength(2);
+      expect(result).toEqual(mockCategories);
     });
 
-    it('CategoryService - getAllCategories - TC-02: should get categories with options', async () => {
-      console.log('\n' + '='.repeat(50));
-      console.log('CategoryService - GET_ALL - TC-2: Lấy danh mục với options');
-      console.log('='.repeat(50));
+    it('CategoryService - getAllCategories - TC-02: lấy danh mục active với options truyền vào', async () => {
+      const input = { limit: 10, offset: 20 };
 
-      // INPUT
-      const input = { limit: 10, offset: 0 };
-      console.log('\n📝 INPUT:', JSON.stringify(input, null, 2));
+      logCase({
+        method: 'getAllCategories',
+        tcid: 'TC-02',
+        crud: 'READ',
+        input,
+        outputExpect: 'Gọi repository với đúng options',
+      });
 
-      // Arrange
       CategoryRepository.findAllActive.mockResolvedValue([]);
 
-      // OUTPUT EXPECT
-      console.log('✅ OUTPUT EXPECT: Categories with pagination');
-
-      // Act
       const result = await CategoryService.getAllCategories(input);
+      logReality(result);
 
-      // OUTPUT REALITY
-      console.log('🎯 OUTPUT REALITY: Got categories');
-
-      // Assert
       expect(CategoryRepository.findAllActive).toHaveBeenCalledWith(input);
+      expect(result).toEqual([]);
     });
   });
 
-  // ========== GET CATEGORIES WITH PRODUCT COUNT TESTS ==========
-  describe('getCategoriesWithProductCount', () => {
-    it('CategoryService - getCategoriesWithProductCount - TC-01: should get categories with product count', async () => {
-      console.log('\n' + '='.repeat(50));
-      console.log('CategoryService - GET_WITH_COUNT - TC-1: Lấy danh mục kèm số lượng sản phẩm');
-      console.log('='.repeat(50));
-
-      // Arrange
-      const mockData = [
-        { id: 1, name: 'Cà phê', product_count: 15 },
-        { id: 2, name: 'Trà sữa', product_count: 10 },
-      ];
-      CategoryRepository.findAllWithProductCount.mockResolvedValue(mockData);
-
-      // OUTPUT EXPECT
-      console.log('✅ OUTPUT EXPECT: Categories with product_count field');
-
-      // Act
-      const result = await CategoryService.getCategoriesWithProductCount();
-
-      // OUTPUT REALITY
-      console.log('🎯 OUTPUT REALITY:', JSON.stringify(result, null, 2));
-
-      // Assert
-      expect(CategoryRepository.findAllWithProductCount).toHaveBeenCalled();
-      expect(result[0]).toHaveProperty('product_count');
-    });
-  });
-
-  // ========== GET CATEGORY BY ID TESTS ==========
   describe('getCategoryById', () => {
-    it('CategoryService - getCategoryById - TC-01: should get category by ID successfully', async () => {
-      console.log('\n' + '='.repeat(50));
-      console.log('CategoryService - GET_BY_ID - TC-1: Lấy danh mục theo ID thành công');
-      console.log('='.repeat(50));
-
-      // INPUT
+    it('CategoryService - getCategoryById - TC-01: lấy category theo id thành công', async () => {
       const input = { id: 1 };
-      console.log('\n📝 INPUT:', JSON.stringify(input, null, 2));
-
-      // Arrange
       const mockCategory = { id: 1, name: 'Cà phê', is_deleted: 0 };
+
+      logCase({
+        method: 'getCategoryById',
+        tcid: 'TC-01',
+        crud: 'READ',
+        input,
+        outputExpect: 'Trả về category khi tồn tại và chưa bị xóa',
+      });
+
       CategoryRepository.findById.mockResolvedValue(mockCategory);
 
-      // OUTPUT EXPECT
-      console.log('✅ OUTPUT EXPECT: Category with id = 1');
-
-      // Act
       const result = await CategoryService.getCategoryById(input.id);
+      logReality(result);
 
-      // OUTPUT REALITY
-      console.log('🎯 OUTPUT REALITY:', JSON.stringify(result, null, 2));
-
-      // Assert
-      expect(CategoryRepository.findById).toHaveBeenCalledWith(1);
-      expect(result.id).toBe(1);
+      expect(CategoryRepository.findById).toHaveBeenCalledWith(input.id);
+      expect(result).toEqual(mockCategory);
     });
 
-    it('CategoryService - getCategoryById - TC-02: should throw 404 when category not found', async () => {
-      console.log('\n' + '='.repeat(50));
-      console.log('CategoryService - GET_BY_ID - TC-2: Lỗi 404 khi category không tồn tại');
-      console.log('='.repeat(50));
-
-      // INPUT
+    it('CategoryService - getCategoryById - TC-02: trả lỗi khi category không tồn tại', async () => {
       const input = { id: 999 };
-      console.log('\n📝 INPUT:', JSON.stringify(input, null, 2));
 
-      // Arrange
+      logCase({
+        method: 'getCategoryById',
+        tcid: 'TC-02',
+        crud: 'READ',
+        input,
+        outputExpect: 'Ném lỗi 404: Category không tồn tại',
+      });
+
       CategoryRepository.findById.mockResolvedValue(null);
 
-      // OUTPUT EXPECT
-      const expectedError = 'Category không tồn tại';
-      console.log('✅ OUTPUT EXPECT: Error 404 -', expectedError);
-
-      // Act & Assert
-      await expect(CategoryService.getCategoryById(input.id)).rejects.toThrow(expectedError);
-
-      // OUTPUT REALITY
-      console.log('🎯 OUTPUT REALITY: Thrown error -', expectedError);
+      await expectServiceError(
+        () => CategoryService.getCategoryById(input.id),
+        { statusCode: 404, message: 'Category không tồn tại' },
+      );
     });
 
-    it('CategoryService - getCategoryById - TC-03: should throw 404 when category is deleted', async () => {
-      console.log('\n' + '='.repeat(50));
-      console.log('CategoryService - GET_BY_ID - TC-3: Lỗi 404 khi category đã bị xóa');
-      console.log('='.repeat(50));
+    it('CategoryService - getCategoryById - TC-03: trả lỗi khi category đã bị xóa mềm', async () => {
+      const input = { id: 5 };
 
-      // INPUT
-      const input = { id: 1 };
-      console.log('\n📝 INPUT:', JSON.stringify(input, null, 2));
+      logCase({
+        method: 'getCategoryById',
+        tcid: 'TC-03',
+        crud: 'READ',
+        input,
+        outputExpect: 'Ném lỗi 404: Category đã bị xóa',
+      });
 
-      // Arrange
-      const mockDeletedCategory = { id: 1, name: 'Cà phê', is_deleted: 1 };
-      CategoryRepository.findById.mockResolvedValue(mockDeletedCategory);
+      CategoryRepository.findById.mockResolvedValue({
+        id: 5,
+        name: 'Đã xóa',
+        is_deleted: 1,
+      });
 
-      // OUTPUT EXPECT
-      const expectedError = 'Category đã bị xóa';
-      console.log('✅ OUTPUT EXPECT: Error 404 -', expectedError);
-
-      // Act & Assert
-      await expect(CategoryService.getCategoryById(input.id)).rejects.toThrow(expectedError);
-
-      // OUTPUT REALITY
-      console.log('🎯 OUTPUT REALITY: Thrown error -', expectedError);
+      await expectServiceError(
+        () => CategoryService.getCategoryById(input.id),
+        { statusCode: 404, message: 'Category đã bị xóa' },
+      );
     });
   });
 
-  // ========== CREATE CATEGORY TESTS ==========
   describe('createCategory', () => {
-    it('CategoryService - createCategory - TC-01: should create category successfully', async () => {
-      console.log('\n' + '='.repeat(50));
-      console.log('CategoryService - CREATE - TC-1: Tạo danh mục thành công');
-      console.log('='.repeat(50));
-
-      // INPUT
+    it('CategoryService - createCategory - TC-01: tạo category thành công', async () => {
       const input = {
-        name: 'Sinh tố',
-        image_url: 'smoothie.jpg',
-      };
-      console.log('\n📝 INPUT:', JSON.stringify(input, null, 2));
-
-      // Arrange
-      CategoryRepository.findByName.mockResolvedValue(null);
-      const mockCreatedCategory = { id: 3, name: 'Sinh tố', image_url: 'smoothie.jpg' };
-      CategoryRepository.create.mockResolvedValue(mockCreatedCategory);
-
-      // OUTPUT EXPECT
-      console.log('✅ OUTPUT EXPECT: Created category with id = 3');
-
-      // Act
-      const result = await CategoryService.createCategory(input);
-
-      // OUTPUT REALITY
-      console.log('🎯 OUTPUT REALITY:', JSON.stringify(result, null, 2));
-
-      // Assert
-      expect(CategoryRepository.findByName).toHaveBeenCalledWith(input.name);
-      expect(CategoryRepository.create).toHaveBeenCalledWith({
-        name: input.name.trim(),
-        image_url: input.image_url,
-      });
-      expect(result.id).toBe(3);
-    });
-
-    it('CategoryService - createCategory - TC-02: should throw 409 when name exists', async () => {
-      console.log('\n' + '='.repeat(50));
-      console.log('CategoryService - CREATE - TC-2: Lỗi 409 khi tên đã tồn tại');
-      console.log('='.repeat(50));
-
-      // INPUT
-      const input = {
-        name: 'Cà phê',
+        name: '  Cà phê đá  ',
+        code: ' cf01 ',
         image_url: 'coffee.jpg',
       };
-      console.log('\n📝 INPUT:', JSON.stringify(input, null, 2));
 
-      // Arrange
-      const existingCategory = { id: 1, name: 'Cà phê' };
-      CategoryRepository.findByName.mockResolvedValue(existingCategory);
+      logCase({
+        method: 'createCategory',
+        tcid: 'TC-01',
+        crud: 'CREATE',
+        input,
+        outputExpect: 'Tạo category mới với name trim, code upper, slug duy nhất',
+      });
 
-      // OUTPUT EXPECT
-      const expectedError = 'Tên category đã tồn tại';
-      console.log('✅ OUTPUT EXPECT: Error 409 -', expectedError);
+      slugify.mockReturnValue('ca-phe-da');
+      CategoryRepository.findByName.mockResolvedValue(null);
+      CategoryRepository.findByCode.mockResolvedValue(null);
+      CategoryRepository.findBySlug.mockResolvedValue(null);
 
-      // Act & Assert
-      await expect(CategoryService.createCategory(input)).rejects.toThrow(expectedError);
+      const created = {
+        id: 10,
+        name: 'Cà phê đá',
+        code: 'CF01',
+        image_url: 'coffee.jpg',
+        slug: 'ca-phe-da',
+      };
+      CategoryRepository.create.mockResolvedValue(created);
 
-      // OUTPUT REALITY
-      console.log('🎯 OUTPUT REALITY: Thrown error -', expectedError);
+      const result = await CategoryService.createCategory(input);
+      logReality(result);
 
+      expect(CategoryRepository.findByName).toHaveBeenCalledWith(input.name);
+      expect(CategoryRepository.findByCode).toHaveBeenCalledWith(input.code);
+      expect(slugify).toHaveBeenCalled();
+      expect(CategoryRepository.create).toHaveBeenCalledWith({
+        name: 'Cà phê đá',
+        code: 'CF01',
+        image_url: 'coffee.jpg',
+        slug: 'ca-phe-da',
+      });
+      expect(result).toEqual(created);
+    });
+
+    it('CategoryService - createCategory - TC-02: trả lỗi khi tên category đã tồn tại', async () => {
+      const input = { name: 'Cà phê', code: 'CF01' };
+
+      logCase({
+        method: 'createCategory',
+        tcid: 'TC-02',
+        crud: 'CREATE',
+        input,
+        outputExpect: 'Ném lỗi 409: Tên category đã tồn tại',
+      });
+
+      CategoryRepository.findByName.mockResolvedValue({ id: 1, name: 'Cà phê' });
+
+      await expectServiceError(
+        () => CategoryService.createCategory(input),
+        { statusCode: 409, message: 'Tên category đã tồn tại' },
+      );
+
+      expect(CategoryRepository.findByCode).not.toHaveBeenCalled();
       expect(CategoryRepository.create).not.toHaveBeenCalled();
+    });
+
+    it('CategoryService - createCategory - TC-03: trả lỗi khi code category đã tồn tại', async () => {
+      const input = { name: 'Trà đào', code: 'TD01' };
+
+      logCase({
+        method: 'createCategory',
+        tcid: 'TC-03',
+        crud: 'CREATE',
+        input,
+        outputExpect: 'Ném lỗi 409: Mã code category đã tồn tại',
+      });
+
+      CategoryRepository.findByName.mockResolvedValue(null);
+      CategoryRepository.findByCode.mockResolvedValue({ id: 2, code: 'TD01' });
+
+      await expectServiceError(
+        () => CategoryService.createCategory(input),
+        { statusCode: 409, message: 'Mã code category đã tồn tại' },
+      );
+
+      expect(CategoryRepository.findBySlug).not.toHaveBeenCalled();
+      expect(CategoryRepository.create).not.toHaveBeenCalled();
+    });
+
+    it('CategoryService - createCategory - TC-04: tự tăng hậu tố slug khi bị trùng', async () => {
+      const input = { name: 'Trà sữa', code: 'TS01' };
+
+      logCase({
+        method: 'createCategory',
+        tcid: 'TC-04',
+        crud: 'CREATE',
+        input,
+        outputExpect: 'Slug bị trùng sẽ thành tra-sua-1',
+      });
+
+      slugify.mockReturnValue('tra-sua');
+      CategoryRepository.findByName.mockResolvedValue(null);
+      CategoryRepository.findByCode.mockResolvedValue(null);
+      CategoryRepository.findBySlug
+        .mockResolvedValueOnce({ id: 1, slug: 'tra-sua' })
+        .mockResolvedValueOnce(null);
+      CategoryRepository.create.mockResolvedValue({ id: 20, slug: 'tra-sua-1' });
+
+      const result = await CategoryService.createCategory(input);
+      logReality(result);
+
+      expect(CategoryRepository.findBySlug).toHaveBeenNthCalledWith(1, 'tra-sua');
+      expect(CategoryRepository.findBySlug).toHaveBeenNthCalledWith(2, 'tra-sua-1');
+      expect(CategoryRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({ slug: 'tra-sua-1' }),
+      );
     });
   });
 
-  // ========== UPDATE CATEGORY TESTS ==========
   describe('updateCategory', () => {
-    it('CategoryService - updateCategory - TC-01: should update category successfully', async () => {
-      console.log('\n' + '='.repeat(50));
-      console.log('CategoryService - UPDATE - TC-1: Cập nhật danh mục thành công');
-      console.log('='.repeat(50));
-
-      // INPUT
+    it('CategoryService - updateCategory - TC-01: cập nhật name/code/image thành công', async () => {
       const input = {
         id: 1,
-        name: 'Coffee Updated',
-        image_url: 'updated.jpg',
+        data: {
+          name: '  Trà đào cam sả  ',
+          code: ' td02 ',
+          image_url: 'new-image.jpg',
+        },
       };
-      console.log('\n📝 INPUT:', JSON.stringify(input, null, 2));
 
-      // Arrange
-      const existingCategory = { id: 1, name: 'Cà phê', is_deleted: 0 };
-      CategoryRepository.findById.mockResolvedValue(existingCategory);
-      CategoryRepository.findByName.mockResolvedValue(null);
-      const mockUpdatedCategory = { ...existingCategory, ...input };
-      CategoryRepository.update.mockResolvedValue(mockUpdatedCategory);
-
-      // OUTPUT EXPECT
-      console.log('✅ OUTPUT EXPECT: Updated category');
-
-      // Act
-      const result = await CategoryService.updateCategory(input.id, input);
-
-      // OUTPUT REALITY
-      console.log('🎯 OUTPUT REALITY:', JSON.stringify(result, null, 2));
-
-      // Assert
-      expect(CategoryRepository.update).toHaveBeenCalledWith(1, {
-        name: input.name.trim(),
-        image_url: input.image_url,
+      logCase({
+        method: 'updateCategory',
+        tcid: 'TC-01',
+        crud: 'UPDATE',
+        input,
+        outputExpect: 'Cập nhật dữ liệu và tạo slug mới duy nhất',
       });
-      expect(result.name).toBe('Coffee Updated');
+
+      CategoryRepository.findById.mockResolvedValue({
+        id: 1,
+        name: 'Cà phê',
+        code: 'CF01',
+        is_deleted: 0,
+      });
+      slugify.mockReturnValue('tra-dao-cam-sa');
+      CategoryRepository.findByName.mockResolvedValue(null);
+      CategoryRepository.findBySlug
+        .mockResolvedValueOnce({ id: 2, slug: 'tra-dao-cam-sa' })
+        .mockResolvedValueOnce(null);
+      CategoryRepository.findByCode.mockResolvedValue(null);
+      CategoryRepository.update.mockResolvedValue({ id: 1, name: 'Trà đào cam sả' });
+
+      const result = await CategoryService.updateCategory(input.id, input.data);
+      logReality(result);
+
+      expect(CategoryRepository.update).toHaveBeenCalledWith(1, {
+        name: 'Trà đào cam sả',
+        slug: 'tra-dao-cam-sa-1',
+        code: 'TD02',
+        image_url: 'new-image.jpg',
+      });
     });
 
-    it('CategoryService - updateCategory - TC-02: should throw 409 when new name exists', async () => {
-      console.log('\n' + '='.repeat(50));
-      console.log('CategoryService - UPDATE - TC-2: Lỗi 409 khi tên mới đã tồn tại');
-      console.log('='.repeat(50));
+    it('CategoryService - updateCategory - TC-02: trả lỗi khi tên mới đã tồn tại ở category khác', async () => {
+      const input = { id: 1, data: { name: 'Trà sữa' } };
 
-      // INPUT
-      const input = {
+      logCase({
+        method: 'updateCategory',
+        tcid: 'TC-02',
+        crud: 'UPDATE',
+        input,
+        outputExpect: 'Ném lỗi 409: Tên danh mục đã tồn tại',
+      });
+
+      CategoryRepository.findById.mockResolvedValue({
         id: 1,
-        name: 'Trà sữa',
-      };
-      console.log('\n📝 INPUT:', JSON.stringify(input, null, 2));
+        name: 'Cà phê',
+        code: 'CF01',
+        is_deleted: 0,
+      });
+      CategoryRepository.findByName.mockResolvedValue({ id: 2, name: 'Trà sữa' });
 
-      // Arrange
-      const existingCategory = { id: 1, name: 'Cà phê', is_deleted: 0 };
-      CategoryRepository.findById.mockResolvedValue(existingCategory);
-      const anotherCategory = { id: 2, name: 'Trà sữa' };
-      CategoryRepository.findByName.mockResolvedValue(anotherCategory);
-
-      // OUTPUT EXPECT
-      const expectedError = 'Tên category đã tồn tại';
-      console.log('✅ OUTPUT EXPECT: Error 409 -', expectedError);
-
-      // Act & Assert
-      await expect(CategoryService.updateCategory(input.id, input)).rejects.toThrow(expectedError);
-
-      // OUTPUT REALITY
-      console.log('🎯 OUTPUT REALITY: Thrown error -', expectedError);
+      await expectServiceError(
+        () => CategoryService.updateCategory(input.id, input.data),
+        { statusCode: 409, message: 'Tên danh mục đã tồn tại' },
+      );
 
       expect(CategoryRepository.update).not.toHaveBeenCalled();
     });
+
+    it('CategoryService - updateCategory - TC-03: trả lỗi khi code mới đã tồn tại ở category khác', async () => {
+      const input = { id: 1, data: { code: 'TS01' } };
+
+      logCase({
+        method: 'updateCategory',
+        tcid: 'TC-03',
+        crud: 'UPDATE',
+        input,
+        outputExpect: 'Ném lỗi 409: Mã Code danh mục đã tồn tại',
+      });
+
+      CategoryRepository.findById.mockResolvedValue({
+        id: 1,
+        name: 'Cà phê',
+        code: 'CF01',
+        is_deleted: 0,
+      });
+      CategoryRepository.findByCode.mockResolvedValue({ id: 2, code: 'TS01' });
+
+      await expectServiceError(
+        () => CategoryService.updateCategory(input.id, input.data),
+        { statusCode: 409, message: 'Mã Code danh mục đã tồn tại' },
+      );
+
+      expect(CategoryRepository.update).not.toHaveBeenCalled();
+    });
+
+    it('CategoryService - updateCategory - TC-04: chỉ cập nhật image_url khi name/code không đổi', async () => {
+      const input = {
+        id: 7,
+        data: { name: 'Cà phê', code: 'CF01', image_url: 'new.jpg' },
+      };
+
+      logCase({
+        method: 'updateCategory',
+        tcid: 'TC-04',
+        crud: 'UPDATE',
+        input,
+        outputExpect: 'Không check trùng name/code nếu không đổi giá trị',
+      });
+
+      CategoryRepository.findById.mockResolvedValue({
+        id: 7,
+        name: 'Cà phê',
+        code: 'CF01',
+        is_deleted: 0,
+      });
+      CategoryRepository.update.mockResolvedValue({ id: 7, image_url: 'new.jpg' });
+
+      const result = await CategoryService.updateCategory(input.id, input.data);
+      logReality(result);
+
+      expect(CategoryRepository.findByName).not.toHaveBeenCalled();
+      expect(CategoryRepository.findByCode).not.toHaveBeenCalled();
+      expect(CategoryRepository.findBySlug).not.toHaveBeenCalled();
+      expect(CategoryRepository.update).toHaveBeenCalledWith(7, { image_url: 'new.jpg' });
+    });
   });
 
-  // ========== DELETE CATEGORY TESTS ==========
   describe('deleteCategory', () => {
-    it('CategoryService - deleteCategory - TC-01: should delete category successfully', async () => {
-      console.log('\n' + '='.repeat(50));
-      console.log('CategoryService - DELETE - TC-1: Xóa danh mục thành công');
-      console.log('='.repeat(50));
-
-      // INPUT
+    it('CategoryService - deleteCategory - TC-01: xóa mềm category thành công', async () => {
       const input = { id: 1 };
-      console.log('\n📝 INPUT:', JSON.stringify(input, null, 2));
 
-      // Arrange
-      const existingCategory = { id: 1, name: 'Cà phê', is_deleted: 0 };
-      CategoryRepository.findById.mockResolvedValue(existingCategory);
+      logCase({
+        method: 'deleteCategory',
+        tcid: 'TC-01',
+        crud: 'DELETE',
+        input,
+        outputExpect: 'Trả về true khi xóa mềm thành công',
+      });
+
+      CategoryRepository.findById.mockResolvedValue({ id: 1, is_deleted: 0 });
       CategoryRepository.hasProducts.mockResolvedValue(false);
       CategoryRepository.softDelete.mockResolvedValue(true);
 
-      // OUTPUT EXPECT
-      console.log('✅ OUTPUT EXPECT: Category soft deleted');
-
-      // Act
       const result = await CategoryService.deleteCategory(input.id);
+      logReality({ result });
 
-      // OUTPUT REALITY
-      console.log('🎯 OUTPUT REALITY: Deleted =', result);
-
-      // Assert
       expect(CategoryRepository.hasProducts).toHaveBeenCalledWith(1);
       expect(CategoryRepository.softDelete).toHaveBeenCalledWith(1);
       expect(result).toBe(true);
     });
 
-    it('CategoryService - deleteCategory - TC-02: should throw 400 when category has products', async () => {
-      console.log('\n' + '='.repeat(50));
-      console.log('CategoryService - DELETE - TC-2: Lỗi 400 khi danh mục có sản phẩm');
-      console.log('='.repeat(50));
-
-      // INPUT
+    it('CategoryService - deleteCategory - TC-02: trả lỗi khi category đang có sản phẩm sử dụng', async () => {
       const input = { id: 1 };
-      console.log('\n📝 INPUT:', JSON.stringify(input, null, 2));
 
-      // Arrange
-      const existingCategory = { id: 1, name: 'Cà phê', is_deleted: 0 };
-      CategoryRepository.findById.mockResolvedValue(existingCategory);
+      logCase({
+        method: 'deleteCategory',
+        tcid: 'TC-02',
+        crud: 'DELETE',
+        input,
+        outputExpect: 'Ném lỗi 400: Không thể xóa danh mục vì có sản phẩm đang sử dụng',
+      });
+
+      CategoryRepository.findById.mockResolvedValue({ id: 1, is_deleted: 0 });
       CategoryRepository.hasProducts.mockResolvedValue(true);
 
-      // OUTPUT EXPECT
-      const expectedError = 'Không thể xóa category vì có sản phẩm đang sử dụng';
-      console.log('✅ OUTPUT EXPECT: Error 400 -', expectedError);
-
-      // Act & Assert
-      await expect(CategoryService.deleteCategory(input.id)).rejects.toThrow(expectedError);
-
-      // OUTPUT REALITY
-      console.log('🎯 OUTPUT REALITY: Thrown error -', expectedError);
+      await expectServiceError(
+        () => CategoryService.deleteCategory(input.id),
+        {
+          statusCode: 400,
+          message: 'Không thể xóa danh mục vì có sản phẩm đang sử dụng',
+        },
+      );
 
       expect(CategoryRepository.softDelete).not.toHaveBeenCalled();
     });
-  });
 
-  // ========== SEARCH CATEGORIES TESTS ==========
-  describe('searchCategories', () => {
-    it('CategoryService - searchCategories - TC-01: should search categories by keyword', async () => {
-      console.log('\n' + '='.repeat(50));
-      console.log('CategoryService - SEARCH - TC-1: Tìm kiếm danh mục theo từ khóa');
-      console.log('='.repeat(50));
+    it('CategoryService - deleteCategory - TC-03: trả lỗi khi soft delete thất bại', async () => {
+      const input = { id: 3 };
 
-      // INPUT
-      const input = { keyword: 'Cà phê' };
-      console.log('\n📝 INPUT:', JSON.stringify(input, null, 2));
+      logCase({
+        method: 'deleteCategory',
+        tcid: 'TC-03',
+        crud: 'DELETE',
+        input,
+        outputExpect: 'Ném lỗi 500: Xóa danh mục thất bại',
+      });
 
-      // Arrange
-      const mockResults = [
-        { id: 1, name: 'Cà phê', is_deleted: 0 },
-      ];
-      CategoryRepository.search.mockResolvedValue(mockResults);
+      CategoryRepository.findById.mockResolvedValue({ id: 3, is_deleted: 0 });
+      CategoryRepository.hasProducts.mockResolvedValue(false);
+      CategoryRepository.softDelete.mockResolvedValue(false);
 
-      // OUTPUT EXPECT
-      console.log('✅ OUTPUT EXPECT: Array of matching categories');
-
-      // Act
-      const result = await CategoryService.searchCategories(input.keyword);
-
-      // OUTPUT REALITY
-      console.log('🎯 OUTPUT REALITY:', JSON.stringify(result, null, 2));
-
-      // Assert
-      expect(CategoryRepository.search).toHaveBeenCalledWith('Cà phê', {});
-      expect(result).toHaveLength(1);
+      await expectServiceError(
+        () => CategoryService.deleteCategory(input.id),
+        { statusCode: 500, message: 'Xóa danh mục thất bại' },
+      );
     });
 
-    it('CategoryService - searchCategories - TC-02: should return all when keyword empty', async () => {
-      console.log('\n' + '='.repeat(50));
-      console.log('CategoryService - SEARCH - TC-2: Trả về tất cả khi keyword trống');
-      console.log('='.repeat(50));
+    it('CategoryService - deleteCategory - TC-04: trả lỗi khi category không tồn tại', async () => {
+      const input = { id: 404 };
 
-      // Arrange
-      const mockCategories = [
-        { id: 1, name: 'Cà phê' },
-        { id: 2, name: 'Trà sữa' },
-      ];
-      CategoryRepository.findAllActive.mockResolvedValue(mockCategories);
+      logCase({
+        method: 'deleteCategory',
+        tcid: 'TC-04',
+        crud: 'DELETE',
+        input,
+        outputExpect: 'Ném lỗi 404: Category không tồn tại',
+      });
 
-      // OUTPUT EXPECT
-      console.log('✅ OUTPUT EXPECT: All active categories');
+      CategoryRepository.findById.mockResolvedValue(null);
 
-      // Act
-      const result = await CategoryService.searchCategories('');
+      await expectServiceError(
+        () => CategoryService.deleteCategory(input.id),
+        { statusCode: 404, message: 'Category không tồn tại' },
+      );
 
-      // OUTPUT REALITY
-      console.log('🎯 OUTPUT REALITY: Got all categories');
-
-      // Assert
-      expect(CategoryRepository.findAllActive).toHaveBeenCalled();
-      expect(CategoryRepository.search).not.toHaveBeenCalled();
-    });
-  });
-
-  // ========== RESTORE CATEGORY TESTS ==========
-  describe('restoreCategory', () => {
-    it('CategoryService - restoreCategory - TC-01: should restore deleted category', async () => {
-      console.log('\n' + '='.repeat(50));
-      console.log('CategoryService - RESTORE - TC-1: Khôi phục danh mục đã xóa');
-      console.log('='.repeat(50));
-
-      // INPUT
-      const input = { id: 1 };
-      console.log('\n📝 INPUT:', JSON.stringify(input, null, 2));
-
-      // Arrange
-      const deletedCategory = { id: 1, name: 'Cà phê', is_deleted: 1 };
-      CategoryRepository.findById.mockResolvedValueOnce(deletedCategory);
-      CategoryRepository.findByName.mockResolvedValue(null);
-      const restoredCategory = { ...deletedCategory, is_deleted: 0 };
-      CategoryRepository.update.mockResolvedValue(restoredCategory);
-
-      // OUTPUT EXPECT
-      console.log('✅ OUTPUT EXPECT: Restored category with is_deleted = 0');
-
-      // Act
-      const result = await CategoryService.restoreCategory(input.id);
-
-      // OUTPUT REALITY
-      console.log('🎯 OUTPUT REALITY:', JSON.stringify(result, null, 2));
-
-      // Assert
-      expect(CategoryRepository.update).toHaveBeenCalledWith(1, { is_deleted: 0 });
-      expect(result.is_deleted).toBe(0);
-    });
-
-    it('CategoryService - restoreCategory - TC-02: should throw 400 when category not deleted', async () => {
-      console.log('\n' + '='.repeat(50));
-      console.log('CategoryService - RESTORE - TC-2: Lỗi 400 khi category chưa bị xóa');
-      console.log('='.repeat(50));
-
-      // INPUT
-      const input = { id: 1 };
-      console.log('\n📝 INPUT:', JSON.stringify(input, null, 2));
-
-      // Arrange
-      const activeCategory = { id: 1, name: 'Cà phê', is_deleted: 0 };
-      CategoryRepository.findById.mockResolvedValue(activeCategory);
-
-      // OUTPUT EXPECT
-      const expectedError = 'Category chưa bị xóa';
-      console.log('✅ OUTPUT EXPECT: Error 400 -', expectedError);
-
-      // Act & Assert
-      await expect(CategoryService.restoreCategory(input.id)).rejects.toThrow(expectedError);
-
-      // OUTPUT REALITY
-      console.log('🎯 OUTPUT REALITY: Thrown error -', expectedError);
-
-      expect(CategoryRepository.update).not.toHaveBeenCalled();
-    });
-
-    it('CategoryService - restoreCategory - TC-03: should throw 409 when name conflicts', async () => {
-      console.log('\n' + '='.repeat(50));
-      console.log('CategoryService - RESTORE - TC-3: Lỗi 409 khi tên bị trùng');
-      console.log('='.repeat(50));
-
-      // INPUT
-      const input = { id: 1 };
-      console.log('\n📝 INPUT:', JSON.stringify(input, null, 2));
-
-      // Arrange
-      const deletedCategory = { id: 1, name: 'Cà phê', is_deleted: 1 };
-      CategoryRepository.findById.mockResolvedValue(deletedCategory);
-      const existingCategory = { id: 2, name: 'Cà phê', is_deleted: 0 };
-      CategoryRepository.findByName.mockResolvedValue(existingCategory);
-
-      // OUTPUT EXPECT
-      const expectedError = 'Không thể khôi phục vì tên category đã tồn tại';
-      console.log('✅ OUTPUT EXPECT: Error 409 -', expectedError);
-
-      // Act & Assert
-      await expect(CategoryService.restoreCategory(input.id)).rejects.toThrow(expectedError);
-
-      // OUTPUT REALITY
-      console.log('🎯 OUTPUT REALITY: Thrown error -', expectedError);
-
-      expect(CategoryRepository.update).not.toHaveBeenCalled();
+      expect(CategoryRepository.hasProducts).not.toHaveBeenCalled();
+      expect(CategoryRepository.softDelete).not.toHaveBeenCalled();
     });
   });
 });
