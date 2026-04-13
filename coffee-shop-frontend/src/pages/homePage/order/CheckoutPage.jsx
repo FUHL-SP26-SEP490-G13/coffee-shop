@@ -29,7 +29,6 @@ import { validateOrderField } from "@/utils/orderValidation";
 import PayOSLogo from "/logo/payOS.svg";
 import reputationService from "@/services/reputationService";
 import {
-  getReputationTierLabel,
   validateOrderPermissions,
 } from "@/utils/reputationValidation";
 import { toast } from "sonner";
@@ -291,14 +290,6 @@ export default function CheckoutPage() {
 
   const selectedAddress =
     addresses.find((item) => item.id === selectedAddressId) || null;
-
-  const normalizedReputationTier = useMemo(() => {
-    const tier = String(reputationTier || "").toUpperCase();
-    if (["BRONZE", "SILVER", "GOLD", "DIAMOND"].includes(tier)) {
-      return tier;
-    }
-    return getReputationTierLabel(reputationScore);
-  }, [reputationTier, reputationScore]);
 
   const subtotalAmount = useMemo(() => {
     return cart.reduce((sum, item) => sum + getItemSubtotal(item), 0);
@@ -1135,7 +1126,6 @@ export default function CheckoutPage() {
         open={isReputationDialogOpen}
         onClose={() => setIsReputationDialogOpen(false)}
         currentScore={reputationScore}
-        currentTier={normalizedReputationTier}
         reputationRules={reputationRules}
       />
     </div>
