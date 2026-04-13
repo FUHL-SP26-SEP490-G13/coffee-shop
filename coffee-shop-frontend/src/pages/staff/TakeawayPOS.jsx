@@ -80,7 +80,7 @@ function TakeawayPOS() {
         setToppings(
           rawToppings
             .filter((t) => !t.is_deleted || t.is_deleted === 0 || t.is_deleted === '0')
-            .map((t) => ({ id: t.id, name: t.name, price: Number(t.price) })),
+            .map((t) => ({ id: t.id, name: t.name, price: Number(t.price), type: t.type })),
         );
       } catch (e) {
         toast.error('Không tải được danh mục');
@@ -149,10 +149,10 @@ function TakeawayPOS() {
             0,
             Number(
               receipt?.amount ??
-                receipt?.subtotal_amount ??
-                orderSeed?.amount ??
-                orderSeed?.subtotal_amount ??
-                0,
+              receipt?.subtotal_amount ??
+              orderSeed?.amount ??
+              orderSeed?.subtotal_amount ??
+              0,
             ),
           ),
           printed_by: printerName,
@@ -308,7 +308,7 @@ function TakeawayPOS() {
       setOrders((prev) =>
         prev.map((o) =>
           (o.order_id || o.id) ===
-          (cancelingOrder.order_id || cancelingOrder.id)
+            (cancelingOrder.order_id || cancelingOrder.id)
             ? { ...o, status: 'cancelled' }
             : o,
         ),
@@ -359,34 +359,32 @@ function TakeawayPOS() {
         <div className='flex gap-2 px-5 py-3 overflow-x-auto shrink-0 scrollbar-none border-b border-gray-100 dark:border-gray-800'>
           <button
             onClick={() => setActiveCategory('all')}
-            className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
-              activeCategory === 'all'
+            className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${activeCategory === 'all'
                 ? 'bg-amber-500 text-white shadow-sm dark:shadow-none'
                 : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:bg-gray-700'
-            }`}
+              }`}
           >
             Tất cả
           </button>
           {metaLoading
             ? [1, 2, 3].map((i) => (
-                <div
-                  key={i}
-                  className='h-7 w-16 rounded-full bg-gray-100 dark:bg-gray-800 animate-pulse shrink-0'
-                />
-              ))
+              <div
+                key={i}
+                className='h-7 w-16 rounded-full bg-gray-100 dark:bg-gray-800 animate-pulse shrink-0'
+              />
+            ))
             : categories.map((cat) => (
-                <button
-                  key={cat.id}
-                  onClick={() => setActiveCategory(cat.id)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
-                    activeCategory === cat.id
-                      ? 'bg-amber-500 text-white shadow-sm dark:shadow-none'
-                      : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:bg-gray-700'
+              <button
+                key={cat.id}
+                onClick={() => setActiveCategory(cat.id)}
+                className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${activeCategory === cat.id
+                    ? 'bg-amber-500 text-white shadow-sm dark:shadow-none'
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:bg-gray-700'
                   }`}
-                >
-                  {cat.name}
-                </button>
-              ))}
+              >
+                {cat.name}
+              </button>
+            ))}
         </div>
 
         {/* ProductGrid — tự quản lý fetch + phân trang */}
@@ -481,7 +479,7 @@ function TakeawayPOS() {
                           (s, t) => s + t.price * t.quantity,
                           0,
                         )) *
-                        item.quantity,
+                      item.quantity,
                     )}
                   </span>
                 </div>

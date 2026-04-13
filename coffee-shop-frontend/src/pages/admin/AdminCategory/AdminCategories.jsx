@@ -1,6 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Plus, Search, Edit, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
-import { toast } from 'sonner';
 import categoryService from '../../../services/categoryService';
 import useFetch from '../../../hooks/useFetch';
 import { Button } from '../../../components/ui/button';
@@ -14,11 +13,8 @@ import {
   TableHeader,
   TableRow,
 } from '../../../components/ui/table';
-
 import CreateCategory from './Action/CreateCategory';
-
 import UpdateCategory from './Action/UpdateCategory';
-
 import DeleteCategory from './Action/DeleteCategory';
 
 export default function AdminCategories() {
@@ -149,6 +145,7 @@ export default function AdminCategories() {
               <TableHead className="text-center w-[60px]">STT</TableHead>
               <TableHead className="min-w-[180px]">Tên danh mục</TableHead>
               <TableHead className="text-center min-w-[120px]">Mã Code</TableHead>
+              <TableHead className="text-center min-w-[120px]">Loại</TableHead>
               <TableHead className="text-center min-w-[120px]">Hình ảnh</TableHead>
               <TableHead className="text-center min-w-[140px]">Hành động</TableHead>
             </TableRow>
@@ -157,7 +154,7 @@ export default function AdminCategories() {
           <TableBody>
             {loading && (
               <TableRow>
-                <TableCell colSpan={5} className='text-center py-6'>
+                <TableCell colSpan={6} className='text-center py-6'>
                   Đang tải...
                 </TableCell>
               </TableRow>
@@ -165,7 +162,7 @@ export default function AdminCategories() {
 
             {!loading && filteredCategories.length === 0 && (
               <TableRow>
-                <TableCell colSpan={5} className='text-center py-6'>
+                <TableCell colSpan={6} className='text-center py-6'>
                   Không có danh mục nào
                 </TableCell>
               </TableRow>
@@ -184,6 +181,10 @@ export default function AdminCategories() {
 
                   <TableCell className="text-center">
                     <div className='font-medium'>{category.code}</div>
+                  </TableCell>
+
+                  <TableCell className="text-center">
+                    <Badge variant={category.type ? 'secondary' : 'outline'}>{category.type || 'N/A'}</Badge>
                   </TableCell>
 
                   <TableCell className="text-center">
@@ -247,7 +248,7 @@ export default function AdminCategories() {
             >
               <ChevronLeft className='w-4 h-4 mr-1' /> Trước
             </Button>
-            
+
             <div className='text-sm font-medium'>
               Trang {currentPage} / {totalPages}
             </div>

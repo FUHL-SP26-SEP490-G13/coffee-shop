@@ -477,6 +477,11 @@ export default function ProductDetailPage({ productIdOverride, initialProductDat
     fetchToppings();
   }, []);
 
+  const availableToppings = useMemo(() => {
+    if (!product || !product.category_type) return [];
+    return toppings.filter((t) => t.type === product.category_type);
+  }, [toppings, product?.category_type]);
+
   useEffect(() => {
     const fetchReviews = async () => {
       if (!product?.id) return;
@@ -1068,7 +1073,7 @@ export default function ProductDetailPage({ productIdOverride, initialProductDat
               </div>
             )}
 
-            {toppings.length > 0 && (
+            {availableToppings.length > 0 && (
               <div className="mb-8">
                 <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-3">
                   Topping
@@ -1095,7 +1100,7 @@ export default function ProductDetailPage({ productIdOverride, initialProductDat
 
                 {showToppings && (
                   <div className="mt-4 max-h-[320px] overflow-y-auto pr-2 space-y-3">
-                    {toppings.map((topping) => {
+                    {availableToppings.map((topping) => {
                       const checked = isToppingSelected(topping.id);
                       const selectedTopping = getSelectedTopping(topping.id);
 

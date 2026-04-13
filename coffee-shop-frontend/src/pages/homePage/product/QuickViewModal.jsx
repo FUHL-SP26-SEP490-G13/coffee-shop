@@ -57,6 +57,11 @@ export default function QuickViewModal({ product, isOpen, onClose, activeSale, i
     return product.sizes.find((s) => s.id === selectedSize) || product.sizes[0];
   }, [product, selectedSize]);
 
+  const availableToppings = useMemo(() => {
+    if (!product || !product.category_type) return [];
+    return toppings.filter(t => t.type === product.category_type);
+  }, [toppings, product?.category_type]);
+
   // Pricing calculations
   const isFlashSale = activeSale && activeSale.product_ids?.includes(product?.id);
   const flashSaleDiscount = activeSale?.discount_percent || 0;
@@ -251,7 +256,7 @@ export default function QuickViewModal({ product, isOpen, onClose, activeSale, i
               </div>
 
               {/* Toppings */}
-              {toppings && toppings.length > 0 && (
+              {availableToppings && availableToppings.length > 0 && (
                 <div className="mb-6 rounded-none border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-hidden shadow-sm transition-all duration-300">
                   <div 
                     className="px-5 py-4 flex justify-between items-center cursor-pointer bg-gray-50/80 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
@@ -273,7 +278,7 @@ export default function QuickViewModal({ product, isOpen, onClose, activeSale, i
                   {isToppingExpanded && (
                     <div className="p-5 max-h-[260px] overflow-y-auto custom-scrollbar border-t border-gray-100 dark:border-gray-800">
                       <div className="space-y-4">
-                        {toppings.map((topping) => {
+                        {availableToppings.map((topping) => {
                           const selected = isToppingSelected(topping.id);
                           return (
                             <div key={topping.id} className="flex items-center justify-between space-x-2">

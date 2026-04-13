@@ -186,7 +186,8 @@ export default function OrderQRMenu() {
               {selected.map((item, idx) => {
                 const menuItem = menu.find(m => m.id === item.id || m._id === item.id);
                 const sizes = menuItem?.sizes || [];
-                const toppings = Array.isArray(menuItem?.toppings) && menuItem.toppings.length > 0 ? menuItem.toppings : toppingsList;
+                const availableToppings = toppingsList.filter(t => t.type === menuItem?.category_type);
+                const toppings = Array.isArray(menuItem?.toppings) && menuItem.toppings.length > 0 ? menuItem.toppings : availableToppings;
                 return (
                   <div key={item.cartKey || idx} className="py-4">
                     <div className="flex items-center justify-between mb-2">

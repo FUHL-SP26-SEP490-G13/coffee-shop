@@ -31,7 +31,8 @@ class ProductRepository extends BaseRepository {
         p.category_id,
         p.is_deleted,
         c.name AS category_name,
-        c.slug AS category_slug
+        c.slug AS category_slug,
+        c.type AS category_type
       FROM products p
       LEFT JOIN category c ON p.category_id = c.id
       WHERE p.slug = ? AND p.is_deleted = 0
@@ -84,7 +85,8 @@ class ProductRepository extends BaseRepository {
         p.category_id,
         p.is_deleted,
         c.name AS category_name,
-        c.slug AS category_slug
+        c.slug AS category_slug,
+        c.type AS category_type
       FROM products p
       LEFT JOIN category c ON p.category_id = c.id
       WHERE p.id = ? AND p.is_deleted = 0
@@ -243,6 +245,7 @@ class ProductRepository extends BaseRepository {
       SELECT 
         p.*,
         c.name as category_name,
+        c.type as category_type,
         (SELECT COALESCE(AVG(rating), 0) FROM reviews WHERE product_id = p.id) as rating
       FROM products p
       LEFT JOIN category c ON p.category_id = c.id
@@ -278,6 +281,7 @@ class ProductRepository extends BaseRepository {
       SELECT 
         p.*,
         c.name as category_name,
+        c.type as category_type,
         (SELECT COALESCE(AVG(rating), 0) FROM reviews WHERE product_id = p.id) as rating
       FROM products p
       LEFT JOIN category c ON p.category_id = c.id
@@ -331,6 +335,7 @@ class ProductRepository extends BaseRepository {
       SELECT 
         p.*,
         c.name as category_name,
+        c.type as category_type,
         (SELECT COALESCE(AVG(rating), 0) FROM reviews WHERE product_id = p.id) as rating
       FROM products p
       LEFT JOIN category c ON p.category_id = c.id
@@ -419,6 +424,7 @@ class ProductRepository extends BaseRepository {
     SELECT
       p.*,
       c.name AS category_name,
+      c.type AS category_type,
       SUM(od.quantity) AS total_sold,
       (SELECT COALESCE(AVG(rating), 0) FROM reviews WHERE product_id = p.id) as rating
     FROM order_details od

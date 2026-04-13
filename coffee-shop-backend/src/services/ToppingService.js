@@ -41,6 +41,7 @@ class ToppingService {
     const topping = await ToppingRepository.create({
       name: data.name.trim(),
       price: data.price || 0,
+      type: data.type || null,
     });
 
     return topping;
@@ -66,6 +67,7 @@ class ToppingService {
     const updatedTopping = await ToppingRepository.update(id, {
       name: data.name ? data.name.trim() : topping.name,
       price: data.price !== undefined ? data.price : topping.price,
+      type: data.type !== undefined ? data.type : topping.type,
     });
 
     return updatedTopping;

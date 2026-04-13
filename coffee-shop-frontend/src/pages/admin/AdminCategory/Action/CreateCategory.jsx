@@ -14,6 +14,7 @@ import { Label } from '../../../../components/ui/label';
 export default function CreateCategory({ open, onClose, onSuccess }) {
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
+  const [type, setType] = useState('');
   const [image, setImage] = useState(null);
   const [preview, setPreview] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -26,6 +27,7 @@ export default function CreateCategory({ open, onClose, onSuccess }) {
     if (!open) {
       setName('');
       setCode('');
+      setType('');
       setImage(null);
       setPreview(null);
       setFieldErrors({});
@@ -95,6 +97,10 @@ export default function CreateCategory({ open, onClose, onSuccess }) {
       formData.append('name', name.trim());
 
       formData.append('code', code.trim().toUpperCase());
+      
+      if (type.trim()) {
+        formData.append('type', type.trim());
+      }
 
       if (image) {
         formData.append('image', image);
@@ -220,6 +226,19 @@ export default function CreateCategory({ open, onClose, onSuccess }) {
                 {fieldErrors.code}
               </p>
             )}
+          </div>
+
+          <div className='space-y-2'>
+            <Label htmlFor='type'>
+              Loại (Type) <span className='text-xs text-muted-foreground'>(tùy chọn)</span>
+            </Label>
+            <Input
+              id='type'
+              placeholder='VD: TEA, COFFEE,... (tùy chọn)'
+              value={type}
+              onChange={(e) => setType(e.target.value)}
+              disabled={loading}
+            />
           </div>
 
           {/* Hình ảnh */}

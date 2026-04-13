@@ -65,6 +65,11 @@ function ProductModalInner({ product, toppings, initialItem, onClose, onAdd }) {
     });
   }, [product.sizes]);
 
+  const availableToppings = useMemo(() => {
+    if (!product || !product.category_type) return [];
+    return toppings.filter((t) => t.type === product.category_type);
+  }, [toppings, product?.category_type]);
+
   const [selectedSize, setSelectedSize] = useState(() => {
     if (initialItem && initialItem.size) {
       return sortedSizes.find((s) => s.size === initialItem.size) || sortedSizes[0];
@@ -139,16 +144,18 @@ function ProductModalInner({ product, toppings, initialItem, onClose, onAdd }) {
           </div>
 
           {/* Toppings */}
-          <div>
-            <p className='text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2'>
-              Topping
-            </p>
-            <ToppingPicker
-              selected={selectedToppings}
-              onChange={setSelectedToppings}
-              toppings={toppings}
-            />
-          </div>
+          {availableToppings.length > 0 && (
+            <div>
+              <p className='text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2'>
+                Topping
+              </p>
+              <ToppingPicker
+                selected={selectedToppings}
+                onChange={setSelectedToppings}
+                toppings={availableToppings}
+              />
+            </div>
+          )}
 
           {/* Note */}
           <div>

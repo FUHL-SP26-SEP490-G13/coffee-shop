@@ -116,7 +116,7 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange, editingO
         setToppings(
           rawToppings
             .filter((t) => !t.is_deleted || t.is_deleted === 0 || t.is_deleted === '0')
-            .map((t) => ({ id: t.id, name: t.name, price: Number(t.price) }))
+            .map((t) => ({ id: t.id, name: t.name, price: Number(t.price), type: t.type }))
         );
       } catch {
         toast.error('Không tải được dữ liệu sản phẩm');

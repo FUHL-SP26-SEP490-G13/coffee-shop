@@ -15,6 +15,9 @@ const createToppingSchema = Joi.object({
     'number.min': 'Giá topping không được âm',
     'any.required': 'Giá topping là bắt buộc',
   }),
+  type: Joi.string().max(50).allow('', null).optional().messages({
+    'string.max': 'Loại topping không được vượt quá 50 ký tự',
+  }),
 });
 
 /**
@@ -29,6 +32,9 @@ const updateToppingSchema = Joi.object({
   price: Joi.number().precision(2).min(0).optional().messages({
     'number.base': 'Giá topping phải là số',
     'number.min': 'Giá topping không được âm',
+  }),
+  type: Joi.string().max(50).allow('', null).optional().messages({
+    'string.max': 'Loại topping không được vượt quá 50 ký tự',
   }),
 });
 

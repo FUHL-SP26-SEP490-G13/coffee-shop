@@ -29,7 +29,7 @@ export default function CartPage() {
   const { cart, updateToppings, updateQuantity, updateItemSize, removeTopping, removeItem, clearCart, getTotalAmount, getItemUnitPrice, getItemSubtotal } = useCartStore();
   const [allToppings, setAllToppings] = useState([]);
   const [editingIndex, setEditingIndex] = useState(null);
-  const [productSizesMap, setProductSizesMap] = useState({});
+  const [productInfoMap, setProductInfoMap] = useState({});
   const [activeSale, setActiveSale] = useState(null);
   const [timeLeft, setTimeLeft] = useState(null);
   const [addedCartItem, setAddedCartItem] = useState(null);
@@ -84,25 +84,24 @@ export default function CartPage() {
   useEffect(() => {
     const fetchSizes = async () => {
       const ids = [...new Set(cart.map((item) => item.product_id || item.id).filter(Boolean))];
-      const missingIds = ids.filter(id => !productSizesMap[id]);
+      const missingIds = ids.filter(id => !productInfoMap[id]);
 
       if (missingIds.length === 0) return;
 
-      const map = { ...productSizesMap };
+      const map = { ...productInfoMap };
       await Promise.all(
         missingIds.map(async (id) => {
           try {
             const res = await productService.getById(id);
-            const sizes = res?.data?.data?.sizes || res?.data?.sizes || [];
-            if (sizes.length > 0) {
-              map[id] = sizes;
-            }
+            const data = res?.data?.data || res?.data || {};
+            const sizes = data.sizes || [];
+            map[id] = { sizes, category_type: data.category?.type || data.category_type };
           } catch (error) {
-            console.error("Lỗi lấy size", error);
+            console.error("Lỗi lấy thông tin sản phẩm", error);
           }
         })
       );
-      setProductSizesMap(map);
+      setProductInfoMap(map);
     };
 
     fetchSizes();
@@ -151,10 +150,10 @@ export default function CartPage() {
 
   const handleSizeChange = (item, newSizeId) => {
     const productId = item.product_id || item.id;
-    const sizes = productSizesMap[productId];
-    if (!sizes) return;
+    const info = productInfoMap[productId];
+    if (!info || !info.sizes) return;
 
-    const newSizeObj = sizes.find((s) => Number(s.id) === Number(newSizeId));
+    const newSizeObj = info.sizes.find((s) => Number(s.id) === Number(newSizeId));
     if (!newSizeObj) return;
 
     let newPrice = Number(newSizeObj.price);
@@ -254,13 +253,13 @@ export default function CartPage() {
 
                               <div className="mt-2 flex items-center gap-2">
                                 <span className="text-sm text-gray-500 dark:text-gray-400">Size:</span>
-                                {productSizesMap[item.product_id || item.id]?.length > 0 ? (
+                                {productInfoMap[item.product_id || item.id]?.sizes?.length > 0 ? (
                                   <select
                                     value={item.productSizeId || item.product_size_id}
                                     onChange={(e) => handleSizeChange(item, e.target.value)}
                                     className="border rounded px-2 py-1 text-sm bg-gray-50 dark:bg-gray-950 outline-none hover:border-amber-500 transition-colors cursor-pointer"
                                   >
-                                    {productSizesMap[item.product_id || item.id].map(size => (
+                                    {productInfoMap[item.product_id || item.id].sizes.map(size => (
                                       <option key={size.id} value={size.id}>
                                         {size.size}
                                       </option>
@@ -385,19 +384,19 @@ export default function CartPage() {
                               +
                             </button>
 
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setEditingIndex(isEditing ? null : index)
-                              }
-                              className="text-amber-600 text-sm font-medium hover:underline px-2"
-                            >
-                              {isEditing ? "Đóng thêm topping" : "Thêm topping"}
-                            </button>
+                            {allToppings.filter(t => t.type === productInfoMap[item.product_id || item.id]?.category_type).length > 0 && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setEditingIndex(isEditing ? null : index)
+                                }
+                                className="text-amber-600 text-sm font-medium hover:underline px-2"
+                              >
+                                {isEditing ? "Đóng thêm topping" : "Thêm topping"}
+                              </button>
+                            )}
 
                             <div className="flex items-center gap-2 ml-auto border-l pl-3 dark:border-gray-800">
-
-
                               <button
                                 type="button"
                                 onClick={() => {
@@ -423,7 +422,7 @@ export default function CartPage() {
                           </p>
 
                           <div className="max-h-[280px] overflow-y-auto custom-scrollbar pr-2 space-y-3">
-                            {allToppings.map((topping) => {
+                            {allToppings.filter(t => t.type === productInfoMap[item.product_id || item.id]?.category_type).map((topping) => {
                               const checked = isToppingSelected(
                                 item,
                                 topping.id

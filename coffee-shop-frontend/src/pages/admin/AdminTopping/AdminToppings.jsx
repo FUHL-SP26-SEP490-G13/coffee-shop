@@ -1,10 +1,10 @@
-
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Plus, Search, Edit, Trash2 } from 'lucide-react';
 import toppingService from '../../../services/toppingService';
 import useFetch from '../../../hooks/useFetch';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
+import { Badge } from '../../../components/ui/badge';
 import {
   Table,
   TableBody,
@@ -96,6 +96,7 @@ export default function AdminToppings() {
             <TableRow>
               <TableHead className="text-center w-[60px]">STT</TableHead>
               <TableHead className="min-w-[180px]">Tên topping</TableHead>
+              <TableHead className="text-center min-w-[120px]">Loại</TableHead>
               <TableHead className="text-center min-w-[130px]">Giá</TableHead>
               <TableHead className="text-center min-w-[140px]">Hành động</TableHead>
             </TableRow>
@@ -103,18 +104,21 @@ export default function AdminToppings() {
           <TableBody>
             {loading && (
               <TableRow>
-                <TableCell colSpan={4} className='text-center py-6'>Đang tải...</TableCell>
+                <TableCell colSpan={5} className='text-center py-6'>Đang tải...</TableCell>
               </TableRow>
             )}
             {!loading && filteredToppings.length === 0 && (
               <TableRow>
-                <TableCell colSpan={4} className='text-center py-6'>Không có topping nào</TableCell>
+                <TableCell colSpan={5} className='text-center py-6'>Không có topping nào</TableCell>
               </TableRow>
             )}
             {!loading && currentToppings.map((topping, idx) => (
               <TableRow key={topping.id}>
                 <TableCell className="text-center font-medium">{(currentPage - 1) * PAGE_SIZE + idx + 1}</TableCell>
                 <TableCell>{topping.name}</TableCell>
+                <TableCell className="text-center">
+                  <Badge variant={topping.type ? 'secondary' : 'outline'}>{topping.type || 'N/A'}</Badge>
+                </TableCell>
                 <TableCell className="text-center">{Number(topping.price).toLocaleString('vi-VN')}đ</TableCell>
                 <TableCell>
                   <div className='flex items-center justify-center gap-1'>
