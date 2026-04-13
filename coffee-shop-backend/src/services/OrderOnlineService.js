@@ -2,7 +2,6 @@ const OrderRepository = require("../repositories/OrderRepository");
 const CashSessionRepository = require("../repositories/CashSessionRepository");
 const ReputationService = require("./ReputationService");
 const LoyaltyService = require("./LoyaltyService");
-const DeliveryAreaService = require("./DeliveryAreaService");
 const ErrorResponse = require("../utils/ErrorResponse");
 
 class OrderOnlineService {
@@ -270,8 +269,6 @@ class OrderOnlineService {
       receiver_phone,
       receiver_email,
       address,
-      province_id,
-      ward_id,
       note,
       discount_code,
       used_points,
@@ -296,25 +293,6 @@ class OrderOnlineService {
 
     if (order_type !== "dine-in" && (!receiver_name || !receiver_phone)) {
       throw new ErrorResponse(400, "Vui lòng nhập tên và số điện thoại người nhận");
-    }
-
-    const normalizedProvinceId =
-      province_id !== undefined && province_id !== null && String(province_id).trim() !== ""
-        ? Number(province_id)
-        : null;
-    const normalizedWardId =
-      ward_id !== undefined && ward_id !== null && String(ward_id).trim() !== ""
-        ? Number(ward_id)
-        : null;
-
-    if (order_type === "delivery") {
-      if (!Number.isInteger(normalizedProvinceId) || normalizedProvinceId <= 0) {
-        throw new ErrorResponse(400, "Tỉnh/Thành không hợp lệ");
-      }
-
-      if (!Number.isInteger(normalizedWardId) || normalizedWardId <= 0) {
-        throw new ErrorResponse(400, "Xã/Phường không hợp lệ");
-      }
     }
 
     const connection = await OrderRepository.getConnection();
@@ -388,7 +366,6 @@ class OrderOnlineService {
       const normalizedItems = cartTotals.normalizedItems;
       let deliveryDistanceKm = 0;
       let shippingFee = 0;
-      let selectedWard = null;
       let existingAmount = 0;
       let existingDiscountAmount = 0;
 
@@ -406,15 +383,8 @@ class OrderOnlineService {
       }
 
       if (order_type === "delivery") {
-        selectedWard = await DeliveryAreaService.getDeliverableWard(
-          {
-            wardId: normalizedWardId,
-            provinceId: normalizedProvinceId,
-            connection,
-          }
-        );
-
-        shippingFee = Math.max(0, Number(selectedWard?.shipping_fee) || 0);
+        // Shipping fee feature by province/ward is disabled.
+        shippingFee = 0;
         deliveryDistanceKm = 0;
       }
 
@@ -569,8 +539,8 @@ class OrderOnlineService {
       if (order_type !== "dine-in" || (note && note.trim())) {
         const deliveryAddressWithArea = this.buildDeliveryAddressString(
           address,
-          order_type === "delivery" ? selectedWard?.name : null,
-          order_type === "delivery" ? selectedWard?.province_name : null
+          null,
+          null
         );
 
         const [existingInfo] = await connection.query(

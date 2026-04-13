@@ -33,7 +33,7 @@ class StaffDBRepository {
       JOIN shifts s ON sr.shift_id = s.id 
       WHERE sr.user_id = ? 
         AND s.shift_date = CURDATE() 
-        AND sr.status IN ('registered', 'swapped_in')
+        AND sr.status = 'registered'
     `, [userId]);
 
     return {

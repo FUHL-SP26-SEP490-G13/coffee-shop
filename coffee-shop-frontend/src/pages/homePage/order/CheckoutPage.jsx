@@ -1,11 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import {
-  Banknote,
-  CircleHelp,
-  MapPin,
-  Loader2,
-} from "lucide-react";
+import { Banknote, CircleHelp, MapPin, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,7 +35,6 @@ import {
 import { toast } from "sonner";
 import flashSaleService from "@/services/flashSaleService";
 import receiptSettingService from "@/services/receiptSettingService";
-import deliveryAreaService from "@/services/deliveryAreaService";
 import { useStoreHours } from "@/hooks/useStoreHours";
 
 const LOYALTY_MONEY_PER_POINT = 100;
@@ -82,19 +76,11 @@ export default function CheckoutPage() {
     receiver_phone: "",
     receiver_email: "",
     address: "",
-    province_id: "",
-    ward_id: "",
     note: "",
     discount_code: "",
     used_points: 0,
   });
   const [activeSale, setActiveSale] = useState(null);
-
-  const [provinces, setProvinces] = useState([]);
-  const [wards, setWards] = useState([]);
-  const [isProvinceLoading, setIsProvinceLoading] = useState(false);
-  const [isWardLoading, setIsWardLoading] = useState(false);
-  const [shippingFee, setShippingFee] = useState(0);
 
   useEffect(() => {
     flashSaleService
@@ -112,24 +98,6 @@ export default function CheckoutPage() {
   }, [cart, navigate]);
 
   useEffect(() => {
-    const loadProvinces = async () => {
-      try {
-        setIsProvinceLoading(true);
-        const res = await deliveryAreaService.getProvinces();
-        const data = Array.isArray(res?.data?.data)
-          ? res.data.data
-          : Array.isArray(res?.data)
-            ? res.data
-            : [];
-        setProvinces(data);
-      } catch (error) {
-        console.error("Lỗi tải danh sách tỉnh/thành:", error);
-        setProvinces([]);
-      } finally {
-        setIsProvinceLoading(false);
-      }
-    };
-
     receiptSettingService
       .getSettings()
       .then((settingsRes) => {
@@ -145,8 +113,6 @@ export default function CheckoutPage() {
         }
       })
       .catch(console.error);
-
-    loadProvinces();
 
     const loadCheckoutData = async () => {
       if (!token) return;
@@ -178,16 +144,6 @@ export default function CheckoutPage() {
           receiver_phone: defaultAddress?.receiver_phone || user?.phone || "",
           receiver_email: user?.email || "",
           address: defaultAddress?.address || user?.address || "",
-          province_id:
-            defaultAddress?.province_id !== undefined &&
-              defaultAddress?.province_id !== null
-              ? String(defaultAddress.province_id)
-              : "",
-          ward_id:
-            defaultAddress?.ward_id !== undefined &&
-              defaultAddress?.ward_id !== null
-              ? String(defaultAddress.ward_id)
-              : "",
         }));
       } catch (error) {
         console.error("Không lấy được thông tin profile:", error);
@@ -288,7 +244,7 @@ export default function CheckoutPage() {
         setReputationTier(String(reputation?.reputation_tier || "SILVER"));
         setReputationFrozen(
           Number(reputation?.is_frozen || 0) === 1 ||
-          reputation?.is_frozen === true
+            reputation?.is_frozen === true
         );
       } catch (error) {
         console.error("Lỗi lấy điểm uy tín theo số điện thoại:", error);
@@ -304,78 +260,6 @@ export default function CheckoutPage() {
     return () => clearTimeout(timeoutId);
   }, [form.receiver_phone]);
 
-  useEffect(() => {
-    const selectedProvinceId = Number(form.province_id || 0);
-
-    if (form.order_type !== "delivery" || selectedProvinceId <= 0) {
-      setWards([]);
-      setShippingFee(form.order_type === "delivery" ? 0 : 0);
-      return;
-    }
-
-    let mounted = true;
-
-    const loadWards = async () => {
-      try {
-        setIsWardLoading(true);
-        const res = await deliveryAreaService.getWardsByProvince(selectedProvinceId);
-        const data = Array.isArray(res?.data?.data)
-          ? res.data.data
-          : Array.isArray(res?.data)
-            ? res.data
-            : [];
-
-        if (!mounted) return;
-
-        setWards(data);
-
-        const exists = data.some(
-          (item) => Number(item.id) === Number(form.ward_id || 0)
-        );
-
-        if (!exists) {
-          setForm((prev) => ({
-            ...prev,
-            ward_id: "",
-          }));
-          setShippingFee(0);
-        }
-      } catch (error) {
-        console.error("Lỗi tải xã/phường:", error);
-        if (!mounted) return;
-        setWards([]);
-        setForm((prev) => ({
-          ...prev,
-          ward_id: "",
-        }));
-        setShippingFee(0);
-      } finally {
-        if (mounted) {
-          setIsWardLoading(false);
-        }
-      }
-    };
-
-    loadWards();
-
-    return () => {
-      mounted = false;
-    };
-  }, [form.order_type, form.province_id, form.ward_id]);
-
-  useEffect(() => {
-    if (form.order_type !== "delivery") {
-      setShippingFee(0);
-      return;
-    }
-
-    const selectedWard = wards.find(
-      (item) => Number(item.id) === Number(form.ward_id || 0)
-    );
-
-    setShippingFee(Math.max(0, Number(selectedWard?.shipping_fee || 0)));
-  }, [form.order_type, form.ward_id, wards]);
-
   const getAddressTypeLabel = (type) => {
     if (type === "work") return "Văn phòng";
     if (type === "other") return "Khác";
@@ -389,14 +273,6 @@ export default function CheckoutPage() {
       receiver_name: item.receiver_name || prev.receiver_name,
       receiver_phone: item.receiver_phone || prev.receiver_phone,
       address: item.address || "",
-      province_id:
-        item?.province_id !== undefined && item?.province_id !== null
-          ? String(item.province_id)
-          : "",
-      ward_id:
-        item?.ward_id !== undefined && item?.ward_id !== null
-          ? String(item.ward_id)
-          : "",
     }));
     setErrors((prev) => ({
       ...prev,
@@ -409,11 +285,6 @@ export default function CheckoutPage() {
         item.receiver_phone || form.receiver_phone
       ),
       address: validateOrderField("address", item.address || ""),
-      province_id: validateOrderField(
-        "province_id",
-        item?.province_id ?? ""
-      ),
-      ward_id: validateOrderField("ward_id", item?.ward_id ?? ""),
     }));
     setIsAddressDialogOpen(false);
   };
@@ -430,10 +301,7 @@ export default function CheckoutPage() {
   }, [reputationTier, reputationScore]);
 
   const subtotalAmount = useMemo(() => {
-    return cart.reduce(
-      (sum, item) => sum + getItemSubtotal(item),
-      0
-    );
+    return cart.reduce((sum, item) => sum + getItemSubtotal(item), 0);
   }, [cart, getItemSubtotal]);
 
   const regularAmount = useMemo(() => {
@@ -448,6 +316,7 @@ export default function CheckoutPage() {
     }, 0);
   }, [cart, activeSale, getItemSubtotal]);
 
+  const shippingFee = 0;
   const discountAmount = Number(appliedDiscount?.discount_amount || 0);
   const amountAfterDiscount = Math.max(
     0,
@@ -480,16 +349,11 @@ export default function CheckoutPage() {
   const loyaltyDiscountAmount = usedPoints * LOYALTY_MONEY_PER_POINT;
   const totalAmount = Math.max(0, amountAfterDiscount - loyaltyDiscountAmount);
   const isPointsInputExceeded = parsedUsedPoints > maxRedeemablePoints;
-  const isDeliveryOrder = form.order_type === "delivery";
-  const isCheckoutBlockedByAdministrativeArea =
-    isDeliveryOrder && (!Number(form.province_id) || !Number(form.ward_id));
-  const isCheckoutBlocked = isCheckoutBlockedByAdministrativeArea;
+  const isCheckoutBlocked = false;
 
   const placeOrderLabel = !isOpen
     ? nextOpenMessage || "Đã đóng cửa"
-    : isCheckoutBlockedByAdministrativeArea
-      ? "Chọn khu vực giao hàng"
-      : "Đặt hàng";
+    : "Đặt hàng";
 
   useEffect(() => {
     setForm((prev) => {
@@ -615,8 +479,6 @@ export default function CheckoutPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900">
-
-
       <section className="flex-1 w-full px-4 sm:px-6 lg:px-8 py-10">
         <div className="w-full mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 border rounded-2xl p-6 bg-white dark:bg-gray-900">
@@ -681,8 +543,9 @@ export default function CheckoutPage() {
                 )}
                 {!errors.receiver_phone && form.receiver_phone ? (
                   <p
-                    className={`mt-1 text-xs ${reputationFrozen ? "text-red-600" : "text-emerald-600"
-                      }`}
+                    className={`mt-1 text-xs ${
+                      reputationFrozen ? "text-red-600" : "text-emerald-600"
+                    }`}
                   >
                     {reputationFrozen
                       ? "Số điện thoại này đã bị khóa"
@@ -721,7 +584,11 @@ export default function CheckoutPage() {
                 <label className="text-sm font-medium mb-2 block">
                   Hình thức nhận hàng
                 </label>
-                <Input value="Giao hàng" disabled className="bg-gray-100 dark:bg-gray-800" />
+                <Input
+                  value="Giao hàng"
+                  disabled
+                  className="bg-gray-100 dark:bg-gray-800"
+                />
               </div>
             </div>
 
@@ -732,7 +599,8 @@ export default function CheckoutPage() {
                     <div className="flex items-center gap-2 mb-2">
                       <MapPin className="w-4 h-4 text-amber-600" />
                       <label className="text-sm font-medium block">
-                        Địa chỉ đã lưu (Sử dụng theo đơn vị hành chính 2 cấp Xã phường, tỉnh thành từ 01/07/2025)
+                        Địa chỉ đã lưu (Sử dụng theo đơn vị hành chính 2 cấp Xã
+                        phường, tỉnh thành từ 01/07/2025)
                       </label>
                     </div>
 
@@ -745,8 +613,8 @@ export default function CheckoutPage() {
                       {isAddressLoading
                         ? "Đang tải địa chỉ..."
                         : addresses.length === 0
-                          ? "Chưa có địa chỉ đã lưu"
-                          : "Chọn địa chỉ giao hàng"}
+                        ? "Chưa có địa chỉ đã lưu"
+                        : "Chọn địa chỉ giao hàng"}
                     </Button>
 
                     {addresses.length === 0 && !isAddressLoading && (
@@ -773,9 +641,6 @@ export default function CheckoutPage() {
                         </p>
                         <p className="text-sm text-gray-800 dark:text-gray-200 mt-1">
                           {selectedAddress.address}
-                        </p>
-                        <p className="text-xs text-gray-600 mt-1">
-                          Vui lòng chọn đúng Tỉnh/Thành và Xã/Phường bên dưới để hệ thống xác nhận khu vực giao hàng.
                         </p>
                       </div>
                     )}
@@ -807,94 +672,6 @@ export default function CheckoutPage() {
                       {errors.address}
                     </p>
                   )}
-
-                  <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-sm font-medium mb-2 block">
-                        Tỉnh/Thành phố *
-                      </label>
-                      <select
-                        value={form.province_id}
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          setForm((prev) => ({
-                            ...prev,
-                            province_id: value,
-                            ward_id: "",
-                          }));
-                          setErrors((prev) => ({
-                            ...prev,
-                            province_id: validateOrderField("province_id", value),
-                            ward_id: "",
-                          }));
-                        }}
-                        className="w-full border rounded-md h-10 px-3"
-                        disabled={isProvinceLoading}
-                      >
-                        <option value="">
-                          {isProvinceLoading
-                            ? "Đang tải tỉnh/thành..."
-                            : "Chọn Tỉnh/Thành"}
-                        </option>
-                        {provinces.map((province) => (
-                          <option key={province.id} value={province.id}>
-                            {province.name}
-                          </option>
-                        ))}
-                      </select>
-                      {errors.province_id && (
-                        <p className="text-sm text-red-500 mt-1">
-                          {errors.province_id}
-                        </p>
-                      )}
-                    </div>
-
-                    <div>
-                      <label className="text-sm font-medium mb-2 block">
-                        Xã/Phường *
-                      </label>
-                      <select
-                        value={form.ward_id}
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          setForm((prev) => ({
-                            ...prev,
-                            ward_id: value,
-                          }));
-                          setErrors((prev) => ({
-                            ...prev,
-                            ward_id: validateOrderField("ward_id", value),
-                          }));
-                        }}
-                        className="w-full border rounded-md h-10 px-3"
-                        disabled={!form.province_id || isWardLoading}
-                      >
-                        <option value="">
-                          {!form.province_id
-                            ? "Chọn Tỉnh/Thành trước"
-                            : isWardLoading
-                              ? "Đang tải xã/phường..."
-                              : "Chọn Xã/Phường"}
-                        </option>
-                        {wards.map((ward) => (
-                          <option key={ward.id} value={ward.id}>
-                            {ward.name}
-                          </option>
-                        ))}
-                      </select>
-                      {errors.ward_id && (
-                        <p className="text-sm text-red-500 mt-1">
-                          {errors.ward_id}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  {isDeliveryOrder && form.ward_id && (
-                    <p className="text-xs text-emerald-600 mt-2">
-                      Phí giao hàng của khu vực đã chọn: {shippingFee.toLocaleString("vi-VN")}đ
-                    </p>
-                  )}
                 </div>
               </div>
             )}
@@ -905,10 +682,11 @@ export default function CheckoutPage() {
               </label>
               {paymentValidation && (
                 <div
-                  className={`mb-3 p-3 rounded-lg text-sm ${paymentValidation.forcePayOS
-                    ? "bg-yellow-50 text-yellow-800 border border-yellow-200"
-                    : "bg-blue-50 text-blue-800 border border-blue-200"
-                    }`}
+                  className={`mb-3 p-3 rounded-lg text-sm ${
+                    paymentValidation.forcePayOS
+                      ? "bg-yellow-50 text-yellow-800 border border-yellow-200"
+                      : "bg-blue-50 text-blue-800 border border-blue-200"
+                  }`}
                 >
                   <p className="font-medium">{paymentValidation.message}</p>
                   {paymentValidation.reason && (
@@ -968,20 +746,22 @@ export default function CheckoutPage() {
                           payment_method: opt.value,
                         }));
                       }}
-                      className={`flex items-center gap-3 rounded-xl border-2 px-4 py-3 text-left transition-all ${isDisabled
-                        ? "border-gray-200  bg-gray-100 dark:bg-gray-800 opacity-50 cursor-not-allowed"
-                        : selected
+                      className={`flex items-center gap-3 rounded-xl border-2 px-4 py-3 text-left transition-all ${
+                        isDisabled
+                          ? "border-gray-200  bg-gray-100 dark:bg-gray-800 opacity-50 cursor-not-allowed"
+                          : selected
                           ? "border-amber-500 bg-amber-50 dark:bg-amber-900/20"
                           : "border-gray-200  bg-white dark:bg-gray-900 hover:border-gray-300"
-                        }`}
+                      }`}
                     >
                       <span
-                        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${isDisabled
-                          ? "bg-gray-200"
-                          : selected
+                        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
+                          isDisabled
+                            ? "bg-gray-200"
+                            : selected
                             ? "bg-amber-100 dark:bg-amber-900/30"
                             : "bg-gray-100 dark:bg-gray-800"
-                          }`}
+                        }`}
                       >
                         {isDisabled ? (
                           <span className="text-xs text-gray-500 dark:text-gray-400">
@@ -993,30 +773,33 @@ export default function CheckoutPage() {
                       </span>
                       <span>
                         <span
-                          className={`block text-sm font-medium ${isDisabled
-                            ? "text-gray-500 dark:text-gray-400"
-                            : "text-gray-900 dark:text-gray-100"
-                            }`}
+                          className={`block text-sm font-medium ${
+                            isDisabled
+                              ? "text-gray-500 dark:text-gray-400"
+                              : "text-gray-900 dark:text-gray-100"
+                          }`}
                         >
                           {opt.label}
                           {isDisabled && " (Không khả dụng)"}
                         </span>
                         <span
-                          className={`block text-xs ${isDisabled
-                            ? "text-gray-400"
-                            : "text-gray-500 dark:text-gray-400"
-                            }`}
+                          className={`block text-xs ${
+                            isDisabled
+                              ? "text-gray-400"
+                              : "text-gray-500 dark:text-gray-400"
+                          }`}
                         >
                           {opt.sub}
                         </span>
                       </span>
                       <span
-                        className={`ml-auto h-4 w-4 shrink-0 rounded-full border-2 ${isDisabled
-                          ? "border-gray-300 bg-gray-300"
-                          : selected
+                        className={`ml-auto h-4 w-4 shrink-0 rounded-full border-2 ${
+                          isDisabled
+                            ? "border-gray-300 bg-gray-300"
+                            : selected
                             ? "border-amber-500 bg-amber-50 dark:bg-amber-900/200"
                             : "border-gray-300"
-                          }`}
+                        }`}
                       />
                     </button>
                   );
@@ -1066,8 +849,9 @@ export default function CheckoutPage() {
                         className="w-12 h-12 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-100 dark:border-gray-800 flex items-center justify-center p-1.5 overflow-hidden mix-blend-multiply dark:mix-blend-normal cursor-pointer transition-opacity hover:opacity-80"
                         onClick={() =>
                           navigate(
-                            `/${item.slug ||
-                            "products/" + (item.product_id || item.id)
+                            `/${
+                              item.slug ||
+                              "products/" + (item.product_id || item.id)
                             }`
                           )
                         }
@@ -1085,19 +869,23 @@ export default function CheckoutPage() {
                           }}
                         />
                       </div>
-                      {activeSale && activeSale.product_ids?.includes(Number(item.product_id || item.id)) && (
-                        <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[8px] font-bold px-1 py-0.5 rounded-sm shadow-sm whitespace-nowrap z-10">
-                          -{activeSale.discount_percent}%
-                        </span>
-                      )}
+                      {activeSale &&
+                        activeSale.product_ids?.includes(
+                          Number(item.product_id || item.id)
+                        ) && (
+                          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[8px] font-bold px-1 py-0.5 rounded-sm shadow-sm whitespace-nowrap z-10">
+                            -{activeSale.discount_percent}%
+                          </span>
+                        )}
                     </div>
                     <div>
                       <p
                         className="font-medium text-sm leading-snug cursor-pointer hover:text-amber-600 transition-colors"
                         onClick={() =>
                           navigate(
-                            `/${item.slug ||
-                            "products/" + (item.product_id || item.id)
+                            `/${
+                              item.slug ||
+                              "products/" + (item.product_id || item.id)
                             }`
                           )
                         }
@@ -1251,13 +1039,6 @@ export default function CheckoutPage() {
                 </div>
               ) : null}
 
-              {shippingFee > 0 ? (
-                <div className="flex justify-between text-sm text-gray-700 dark:text-gray-300">
-                  <span>Phí vận chuyển</span>
-                  <span>+ {shippingFee.toLocaleString("vi-VN")}đ</span>
-                </div>
-              ) : null}
-
               <div className="flex justify-between text-base font-bold">
                 <div className="flex flex-col">
                   <span>Tổng cộng</span>
@@ -1282,7 +1063,6 @@ export default function CheckoutPage() {
               form={form}
               cart={cart}
               totalAmount={totalAmount}
-              shippingFee={shippingFee}
               disabled={!isOpen || isCheckoutBlocked}
               label={placeOrderLabel}
               onValidateError={(errs) => setErrors(errs)}
@@ -1315,10 +1095,11 @@ export default function CheckoutPage() {
                     key={item.id}
                     type="button"
                     onClick={() => handleSelectAddress(item)}
-                    className={`w-full text-left border rounded-xl p-4 transition ${isSelected
-                      ? "border-amber-500 bg-amber-50 dark:bg-amber-900/20"
-                      : "border-gray-200  hover:border-gray-300 bg-white dark:bg-gray-900"
-                      }`}
+                    className={`w-full text-left border rounded-xl p-4 transition ${
+                      isSelected
+                        ? "border-amber-500 bg-amber-50 dark:bg-amber-900/20"
+                        : "border-gray-200  hover:border-gray-300 bg-white dark:bg-gray-900"
+                    }`}
                   >
                     <div className="flex items-center justify-between gap-3 mb-2">
                       <div className="flex items-center gap-2">
@@ -1357,7 +1138,6 @@ export default function CheckoutPage() {
         currentTier={normalizedReputationTier}
         reputationRules={reputationRules}
       />
-
     </div>
   );
 }

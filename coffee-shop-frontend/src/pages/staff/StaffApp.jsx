@@ -8,7 +8,6 @@ import {
   Clock,
   ClipboardList,
   FileText,
-  ArrowLeftRight,
   User,
   LogOut,
   Menu,
@@ -140,7 +139,6 @@ export function StaffApp() {
         "/staff/orders/cancelled": "Đơn đã hủy",
         "/staff/kitchen": "Bếp",
         "/staff/inventory": "Kho hàng",
-        "/staff/requests": "Đổi ca",
         "/staff/attendance": "Điểm danh ca làm",
         "/staff/schedule": "Lịch làm việc",
         "/staff/profile": "Thông tin cá nhân",
@@ -180,7 +178,6 @@ export function StaffApp() {
     if (path.includes('attendance')) return 'attendance';
     if (path.includes('schedule')) return 'schedule';
     if (path.includes('inventory')) return 'inventory';
-    if (path.includes('requests')) return 'requests';
     if (path.includes('profile')) return 'profile';
     if (path.includes('pos')) return 'pos';
     return 'dashboard';
@@ -210,7 +207,6 @@ export function StaffApp() {
     {
       title: 'Cá Nhân',
       items: [
-        { id: 'requests', icon: ArrowLeftRight, label: 'Đổi ca', path: '/staff/requests' },
         { id: 'schedule', icon: Calendar, label: 'Lịch làm việc', path: '/staff/schedule' },
         { id: 'profile', icon: User, label: 'Thông tin cá nhân', path: '/staff/profile' },
       ],

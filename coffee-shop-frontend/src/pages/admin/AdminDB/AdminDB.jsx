@@ -40,7 +40,7 @@ const getOrderTypeLabel = (type) => {
   if (normalized === "takeaway" || normalized === "take-away") return "Mang đi";
   return type || "Khác";
 };
-
+//  Doanh thu theo ngày trong khoảng thời gian đã chọn (dạng series để vẽ biểu đồ)
 function fillMissingDates(series, startDateStr, endDateStr) {
   if (!startDateStr || !endDateStr) return series;
   const map = new Map(series.map((x) => [x.date, x.revenue]));
@@ -56,7 +56,7 @@ function fillMissingDates(series, startDateStr, endDateStr) {
   }
   return result;
 }
-
+// Top sản phẩm bán chạy nhất trong khoảng thời gian đã chọn
 export default function AdminDB() {
   const [rangeType, setRangeType] = useState("7"); // '7', '30', 'year', 'custom'
   const [customRange, setCustomRange] = useState({
@@ -73,7 +73,7 @@ export default function AdminDB() {
   const [overview, setOverview] = useState(null);
   const [revenueSeries, setRevenueSeries] = useState([]);
   const [topProducts, setTopProducts] = useState([]);
-
+// top 5 sản phẩm bán chạy nhất trong khoảng thời gian
   const [loading, setLoading] = useState(true);
   const [errors, setErrors] = useState(null);
 
@@ -322,7 +322,7 @@ export default function AdminDB() {
                 Doanh thu {dateInfo.displayDays} ngày
               </h3>
               <p className="text-sm text-muted-foreground">
-                Tính theo đơn đã thanh toán (orders.is_paid = 1)
+                Tính theo đơn đã thanh toán
               </p>
             </div>
           </div>

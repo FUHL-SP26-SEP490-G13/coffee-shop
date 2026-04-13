@@ -73,7 +73,7 @@ class OrderController {
       next(error);
     }
   }
-
+//admin
   async getAllOrders(req, res, next) {
     try {
       const {

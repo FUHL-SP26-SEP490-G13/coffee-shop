@@ -10,26 +10,12 @@ import { Avatar, AvatarFallback } from '../../components/ui/avatar';
 
 import { toast } from 'sonner';
 import authenticationService from '../../services/authenticationService';
-import deliveryAreaService from '../../services/deliveryAreaService';
 import receiptSettingService from '../../services/receiptSettingService';
 import { APP_ROUTES, STORAGE_KEYS } from '../../constants';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 const getStoredValue = (key) =>
   localStorage.getItem(key) || sessionStorage.getItem(key);
-
-const unwrapApiData = (response) => {
-  if (
-    response &&
-    typeof response.data === 'object' &&
-    response.data !== null &&
-    Object.prototype.hasOwnProperty.call(response.data, 'data')
-  ) {
-    return response.data.data;
-  }
-
-  return response?.data;
-};
 
 export function UserProfile() {
   useDocumentTitle('Hồ sơ của tôi');
@@ -46,15 +32,9 @@ export function UserProfile() {
     receiver_name: '',
     receiver_phone: '',
     address: '',
-    province_id: '',
-    ward_id: '',
     address_type: 'home',
   });
   const [editingAddressId, setEditingAddressId] = useState(null);
-  const [provinces, setProvinces] = useState([]);
-  const [wards, setWards] = useState([]);
-  const [isAreaLoading, setIsAreaLoading] = useState(false);
-  const [isWardLoading, setIsWardLoading] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -204,97 +184,13 @@ export function UserProfile() {
     loadAddresses();
   }, [loadAddresses]);
 
-  const loadProvinces = useCallback(async () => {
-    const response = await deliveryAreaService.getProvinces();
-    const data = unwrapApiData(response);
-    const provinceList = Array.isArray(data) ? data : [];
-    setProvinces(provinceList);
-    return provinceList;
-  }, []);
-
-  const loadWardsByProvince = useCallback(async (provinceId) => {
-    const normalizedProvinceId = Number(provinceId || 0);
-    if (normalizedProvinceId <= 0) {
-      setWards([]);
-      return [];
-    }
-
-    const response = await deliveryAreaService.getWardsByProvince(normalizedProvinceId);
-    const data = unwrapApiData(response);
-    const wardList = Array.isArray(data) ? data : [];
-    setWards(wardList);
-    return wardList;
-  }, []);
-
-  useEffect(() => {
-    if (!isCustomer) return;
-
-    let mounted = true;
-
-    const fetchProvinces = async () => {
-      try {
-        setIsAreaLoading(true);
-        await loadProvinces();
-      } catch (error) {
-        if (!mounted) return;
-        toast.error(getApiErrorMessage(error, 'Không thể tải danh sách Tỉnh/Thành'));
-      } finally {
-        if (mounted) {
-          setIsAreaLoading(false);
-        }
-      }
-    };
-
-    fetchProvinces();
-
-    return () => {
-      mounted = false;
-    };
-  }, [isCustomer, loadProvinces]);
-
-  useEffect(() => {
-    if (!addressDialogOpen) return;
-
-    let mounted = true;
-
-    const fetchWards = async () => {
-      const provinceId = Number(addressForm.province_id || 0);
-
-      if (provinceId <= 0) {
-        setWards([]);
-        return;
-      }
-
-      try {
-        setIsWardLoading(true);
-        await loadWardsByProvince(provinceId);
-      } catch (error) {
-        if (!mounted) return;
-        toast.error(getApiErrorMessage(error, 'Không thể tải danh sách Xã/Phường'));
-      } finally {
-        if (mounted) {
-          setIsWardLoading(false);
-        }
-      }
-    };
-
-    fetchWards();
-
-    return () => {
-      mounted = false;
-    };
-  }, [addressDialogOpen, addressForm.province_id, loadWardsByProvince]);
-
   const resetAddressForm = () => {
     setAddressForm({
       receiver_name: '',
       receiver_phone: '',
       address: '',
-      province_id: '',
-      ward_id: '',
       address_type: 'home',
     });
-    setWards([]);
     setEditingAddressId(null);
   };
 
@@ -305,21 +201,9 @@ export function UserProfile() {
 
   const validateAddressForm = () => {
     const normalizedAddress = String(addressForm.address || '').trim();
-    const normalizedProvinceId = Number(addressForm.province_id || 0);
-    const normalizedWardId = Number(addressForm.ward_id || 0);
 
     if (!normalizedAddress) {
       toast.error('Vui lòng nhập địa chỉ nhận hàng');
-      return false;
-    }
-
-    if (normalizedProvinceId <= 0) {
-      toast.error('Vui lòng chọn Tỉnh/Thành');
-      return false;
-    }
-
-    if (normalizedWardId <= 0) {
-      toast.error('Vui lòng chọn Xã/Phường');
       return false;
     }
 
@@ -334,8 +218,6 @@ export function UserProfile() {
       receiver_name: addressForm.receiver_name.trim() || null,
       receiver_phone: addressForm.receiver_phone.trim() || null,
       address: normalizedAddress,
-      province_id: Number(addressForm.province_id || 0) || null,
-      ward_id: Number(addressForm.ward_id || 0) || null,
       address_type: addressForm.address_type,
     };
 
@@ -369,34 +251,15 @@ export function UserProfile() {
     }
   };
 
-  const handleEditAddress = async (item) => {
-    const itemProvinceId = Number(item.province_id || 0);
-    const itemWardId = Number(item.ward_id || 0);
-
+  const handleEditAddress = (item) => {
     setEditingAddressId(item.id);
     setAddressForm({
       receiver_name: item.receiver_name || '',
       receiver_phone: item.receiver_phone || '',
       address: item.address || '',
-      province_id: itemProvinceId > 0 ? String(itemProvinceId) : '',
-      ward_id: itemWardId > 0 ? String(itemWardId) : '',
       address_type: item.address_type || 'home',
     });
     setAddressDialogOpen(true);
-
-    if (itemProvinceId > 0) {
-      try {
-        setIsWardLoading(true);
-        await loadWardsByProvince(itemProvinceId);
-      } catch (error) {
-        toast.error(getApiErrorMessage(error, 'Không thể tải khu vực địa chỉ'));
-      } finally {
-        setIsWardLoading(false);
-      }
-      return;
-    }
-
-    setWards([]);
   };
 
   const handleDeleteAddress = async (id) => {
@@ -871,70 +734,6 @@ export function UserProfile() {
                 placeholder="Số nhà, hẻm, tên đường..."
                 className="h-11 rounded-xl bg-gray-50/80 dark:bg-black/20 focus-visible:ring-amber-500/50 focus-visible:border-amber-500"
               />
-            </div>
-
-            <div className="space-y-3 rounded-2xl border border-amber-200/60 bg-amber-50/40 dark:bg-amber-900/10 dark:border-amber-900/30 p-4">
-              <p className="text-sm font-bold flex items-center gap-2 text-amber-800 dark:text-amber-400">
-                <MapPin className="w-4 h-4" />
-                Khu vực hành chính giao hàng
-              </p>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label htmlFor="province_id" className="text-xs font-semibold text-gray-500 ml-1">Tỉnh/Thành</Label>
-                  <select
-                    id="province_id"
-                    value={addressForm.province_id}
-                    onChange={(e) =>
-                      setAddressForm((prev) => ({
-                        ...prev,
-                        province_id: e.target.value,
-                        ward_id: '',
-                      }))
-                    }
-                    disabled={isAreaLoading}
-                    className="w-full h-11 rounded-xl bg-gray-50/80 dark:bg-black/20 border border-gray-200 dark:border-gray-700 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50"
-                  >
-                    <option value="">
-                      {isAreaLoading ? 'Đang tải Tỉnh/Thành...' : 'Chọn Tỉnh/Thành'}
-                    </option>
-                    {provinces.map((province) => (
-                      <option key={province.id} value={province.id}>
-                        {province.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="ward_id" className="text-xs font-semibold text-gray-500 ml-1">Xã/Phường</Label>
-                  <select
-                    id="ward_id"
-                    value={addressForm.ward_id}
-                    onChange={(e) =>
-                      setAddressForm((prev) => ({
-                        ...prev,
-                        ward_id: e.target.value,
-                      }))
-                    }
-                    disabled={!addressForm.province_id || isWardLoading}
-                    className="w-full h-11 rounded-xl bg-gray-50/80 dark:bg-black/20 border border-gray-200 dark:border-gray-700 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50"
-                  >
-                    <option value="">
-                      {!addressForm.province_id
-                        ? 'Chọn Tỉnh/Thành trước'
-                        : isWardLoading
-                        ? 'Đang tải Xã/Phường...'
-                        : 'Chọn Xã/Phường'}
-                    </option>
-                    {wards.map((ward) => (
-                      <option key={ward.id} value={ward.id}>
-                        {ward.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
             </div>
 
             <div className="flex justify-end gap-3 pt-2">
