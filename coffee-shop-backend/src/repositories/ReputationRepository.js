@@ -131,7 +131,7 @@ class ReputationRepository {
     );
   }
 
-  async findReputationProfiles({ keyword = "", limit = 20, offset = 0 } = {}) {
+  async findReputationProfiles({ keyword = "", sort = "", limit = 20, offset = 0 } = {}) {
     const normalizedPhoneExpr = buildNormalizedPhoneExpr("odi.receiver_phone");
 
     const params = [];
@@ -139,6 +139,13 @@ class ReputationRepository {
     if (keyword) {
       whereClause = "WHERE rp.phone_number LIKE ?";
       params.push(`%${keyword}%`);
+    }
+
+    let orderClause = "ORDER BY rp.updated_at DESC, rp.phone_number ASC";
+    if (sort === "score_desc") {
+      orderClause = "ORDER BY rp.current_score DESC, rp.phone_number ASC";
+    } else if (sort === "score_asc") {
+      orderClause = "ORDER BY rp.current_score ASC, rp.phone_number ASC";
     }
 
     const [rows] = await db.query(
@@ -166,7 +173,7 @@ class ReputationRepository {
         rp.total_orders_cancelled,
         rp.is_frozen,
         rp.updated_at
-      ORDER BY rp.updated_at DESC, rp.phone_number ASC
+      ${orderClause}
       LIMIT ? OFFSET ?
       `,
       [...params, Number(limit), Number(offset)]

@@ -4,7 +4,6 @@ import categoryService from '../../../services/categoryService';
 import useFetch from '../../../hooks/useFetch';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
-import { Badge } from '../../../components/ui/badge';
 import {
   Table,
   TableBody,
@@ -145,7 +144,6 @@ export default function AdminCategories() {
               <TableHead className="text-center w-[60px]">STT</TableHead>
               <TableHead className="min-w-[180px]">Tên danh mục</TableHead>
               <TableHead className="text-center min-w-[120px]">Mã Code</TableHead>
-              <TableHead className="text-center min-w-[120px]">Loại</TableHead>
               <TableHead className="text-center min-w-[120px]">Hình ảnh</TableHead>
               <TableHead className="text-center min-w-[140px]">Hành động</TableHead>
             </TableRow>
@@ -154,7 +152,7 @@ export default function AdminCategories() {
           <TableBody>
             {loading && (
               <TableRow>
-                <TableCell colSpan={6} className='text-center py-6'>
+                <TableCell colSpan={5} className='text-center py-6'>
                   Đang tải...
                 </TableCell>
               </TableRow>
@@ -162,7 +160,7 @@ export default function AdminCategories() {
 
             {!loading && filteredCategories.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className='text-center py-6'>
+                <TableCell colSpan={5} className='text-center py-6'>
                   Không có danh mục nào
                 </TableCell>
               </TableRow>
@@ -181,10 +179,6 @@ export default function AdminCategories() {
 
                   <TableCell className="text-center">
                     <div className='font-medium'>{category.code}</div>
-                  </TableCell>
-
-                  <TableCell className="text-center">
-                    <Badge variant={category.type ? 'secondary' : 'outline'}>{category.type || 'N/A'}</Badge>
                   </TableCell>
 
                   <TableCell className="text-center">

@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react";
-import { Loader2, ArrowRight, Star, ShoppingCart } from "lucide-react";
+import { Loader2, Star, ShoppingCart } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import flashSaleService from "@/services/flashSaleService";
 import productService from "@/services/productService";
-import { STORAGE_KEYS } from "@/constants";
 import { useCartStore } from "@/store/useCartStore";
 import { toast } from "sonner";
 import { useStoreHours } from "@/hooks/useStoreHours";
@@ -19,12 +18,6 @@ export default function BestSellerSection({
   const navigate = useNavigate();
   const { isOpen, nextOpenMessage } = useStoreHours();
   const { addItem } = useCartStore();
-
-  const token =
-    localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN) ||
-    sessionStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
-
-  const isLoggedIn = !!token;
 
   const [activeSale, setActiveSale] = useState(null);
   const [addedCartItem, setAddedCartItem] = useState(null);

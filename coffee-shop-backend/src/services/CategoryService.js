@@ -54,7 +54,6 @@ class CategoryService {
       code: data.code.trim().toUpperCase(),
       image_url: data.image_url || null,
       slug: slug,
-      type: data.type || null,
     });
   }
 
@@ -103,9 +102,6 @@ class CategoryService {
       updateData.image_url = data.image_url;
     }
 
-    if (data.type !== undefined) {
-      updateData.type = data.type;
-    }
 
     return CategoryRepository.update(id, updateData);
   }

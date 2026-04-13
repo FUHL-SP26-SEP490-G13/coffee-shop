@@ -399,23 +399,30 @@ export default function ProductListPage({
           <div className="flex items-center space-x-3 overflow-x-auto custom-scrollbar pb-3 mb-4">
             <button
               onClick={() => handleCategoryChange(null)}
-              className={`whitespace-nowrap px-6 py-2.5 rounded-full font-semibold transition-all ${!categoryId
+              className={`whitespace-nowrap px-6 py-2.5 rounded-full font-semibold transition-all flex items-center gap-2 ${!categoryId
                 ? "bg-amber-600 text-white shadow-md shadow-amber-200 dark:shadow-none"
                 : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200"
                 }`}
             >
-              Tất cả
+              <span>Tất cả</span>
             </button>
             {categories.map((cat) => (
               <button
                 key={cat.id}
                 onClick={() => handleCategoryChange(cat)}
-                className={`whitespace-nowrap px-6 py-2.5 rounded-full font-semibold transition-all ${String(categoryId) === String(cat.id)
+                className={`whitespace-nowrap px-5 py-2.5 rounded-full font-semibold transition-all flex items-center gap-2 ${String(categoryId) === String(cat.id)
                   ? "bg-amber-600 text-white shadow-md shadow-amber-200 dark:shadow-none"
                   : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200"
                   }`}
               >
-                {cat.name}
+                {cat.image_url && (
+                  <img
+                    src={cat.image_url}
+                    alt={cat.name}
+                    className="w-5 h-5 rounded-full object-cover bg-white shrink-0"
+                  />
+                )}
+                <span>{cat.name}</span>
               </button>
             ))}
           </div>

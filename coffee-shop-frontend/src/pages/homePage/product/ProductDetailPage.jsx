@@ -478,9 +478,15 @@ export default function ProductDetailPage({ productIdOverride, initialProductDat
   }, []);
 
   const availableToppings = useMemo(() => {
-    if (!product || !product.category_type) return [];
-    return toppings.filter((t) => t.type === product.category_type);
-  }, [toppings, product?.category_type]);
+    if (!product || !product.category_id) return [];
+    return toppings.filter((t) => {
+      let ids = t.category_ids || [];
+      if (typeof ids === 'string') {
+        try { ids = JSON.parse(ids); } catch(e) { ids = []; }
+      }
+      return Array.isArray(ids) && ids.includes(product.category_id);
+    });
+  }, [toppings, product?.category_id]);
 
   useEffect(() => {
     const fetchReviews = async () => {

@@ -58,9 +58,15 @@ export default function QuickViewModal({ product, isOpen, onClose, activeSale, i
   }, [product, selectedSize]);
 
   const availableToppings = useMemo(() => {
-    if (!product || !product.category_type) return [];
-    return toppings.filter(t => t.type === product.category_type);
-  }, [toppings, product?.category_type]);
+    if (!product || !product.category_id) return [];
+    return toppings.filter((t) => {
+      let ids = t.category_ids || [];
+      if (typeof ids === 'string') {
+        try { ids = JSON.parse(ids); } catch(e) { ids = []; }
+      }
+      return Array.isArray(ids) && ids.includes(product.category_id);
+    });
+  }, [toppings, product?.category_id]);
 
   // Pricing calculations
   const isFlashSale = activeSale && activeSale.product_ids?.includes(product?.id);

@@ -116,7 +116,7 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange, editingO
         setToppings(
           rawToppings
             .filter((t) => !t.is_deleted || t.is_deleted === 0 || t.is_deleted === '0')
-            .map((t) => ({ id: t.id, name: t.name, price: Number(t.price), type: t.type }))
+            .map((t) => ({ id: t.id, name: t.name, price: Number(t.price), category_ids: t.category_ids }))
         );
       } catch {
         toast.error('Không tải được dữ liệu sản phẩm');
@@ -626,12 +626,19 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange, editingO
                   <button
                     key={cat.id}
                     onClick={() => setActiveCategory(cat.id)}
-                    className={`px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all flex-shrink-0 ${activeCategory === cat.id
+                    className={`px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1.5 flex-shrink-0 ${activeCategory === cat.id
                       ? 'bg-amber-500 text-white shadow-sm dark:shadow-none'
                       : 'bg-muted text-slate-700 dark:text-slate-200 hover:bg-muted/80'
                       }`}
                   >
-                    {cat.name}
+                    {cat.image_url && (
+                      <img
+                        src={cat.image_url}
+                        alt={cat.name}
+                        className="w-4 h-4 rounded-full object-cover bg-white shrink-0"
+                      />
+                    )}
+                    <span>{cat.name}</span>
                   </button>
                 ))}
               </div>

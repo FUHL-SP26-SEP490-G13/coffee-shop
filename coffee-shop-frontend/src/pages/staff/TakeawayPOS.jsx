@@ -80,7 +80,7 @@ function TakeawayPOS() {
         setToppings(
           rawToppings
             .filter((t) => !t.is_deleted || t.is_deleted === 0 || t.is_deleted === '0')
-            .map((t) => ({ id: t.id, name: t.name, price: Number(t.price), type: t.type })),
+            .map((t) => ({ id: t.id, name: t.name, price: Number(t.price), category_ids: t.category_ids })),
         );
       } catch (e) {
         toast.error('Không tải được danh mục');
@@ -377,12 +377,19 @@ function TakeawayPOS() {
               <button
                 key={cat.id}
                 onClick={() => setActiveCategory(cat.id)}
-                className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${activeCategory === cat.id
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${activeCategory === cat.id
                     ? 'bg-amber-500 text-white shadow-sm dark:shadow-none'
                     : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:bg-gray-700'
                   }`}
               >
-                {cat.name}
+                {cat.image_url && (
+                  <img
+                    src={cat.image_url}
+                    alt={cat.name}
+                    className="w-4 h-4 rounded-full object-cover bg-white shrink-0"
+                  />
+                )}
+                <span>{cat.name}</span>
               </button>
             ))}
         </div>

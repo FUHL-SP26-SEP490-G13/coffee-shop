@@ -1,13 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, Outlet } from 'react-router-dom';
 import {
-  LayoutGrid,
-  ChefHat,
   Users,
   Calendar,
   Clock,
   ClipboardList,
-  FileText,
   User,
   LogOut,
   Menu,
@@ -430,7 +427,18 @@ export function StaffApp() {
     return (
       <div className="h-screen w-full bg-background overflow-hidden relative">
         <main className="h-full w-full overflow-hidden relative">
-          <Outlet />
+          <style>{`
+            @keyframes staffPageFadeUp {
+              from { opacity: 0; transform: translateY(10px); }
+              to { opacity: 1; transform: translateY(0); }
+            }
+            .staff-page-transition {
+              animation: staffPageFadeUp 320ms ease-out forwards;
+            }
+          `}</style>
+          <div key={location.pathname} className="staff-page-transition w-full h-full">
+            <Outlet />
+          </div>
         </main>
       </div>
     );
@@ -495,7 +503,7 @@ export function StaffApp() {
             src={storeLogo}
             onError={(e) => { e.currentTarget.src = Logo; }}
             alt='Coffee Shop Logo'
-            className={`w-auto object-contain rounded-2xl ${isSidebarCompact ? 'h-12' : 'h-20'}`}
+            className={`w-auto object-contain rounded-2xl animate-pulse cursor-pointer hover:scale-105 transition-transform ${isSidebarCompact ? 'h-12' : 'h-20'}`}
           />
           <p className={`text-sm text-muted-foreground mt-1 ${isSidebarCompact ? 'md:hidden' : ''}`}>
             Cổng Nhân viên
@@ -596,31 +604,39 @@ export function StaffApp() {
 
             <CashSessionButton isSidebarCompact={isSidebarCompact} />
 
-            <AlertDialog>
+                        <AlertDialog>
               <AlertDialogTrigger asChild>
                 <button
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all mb-2 text-muted-foreground hover:bg-accent hover:text-accent-foreground ${isSidebarCompact ? 'md:justify-center md:px-2' : ''}`}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all mb-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 hover:text-red-600 ${isSidebarCompact ? 'md:justify-center md:px-2' : ''}`}
                   title={isSidebarCompact ? 'Đăng xuất' : undefined}
                 >
                   <LogOut className='w-5 h-5 flex-shrink-0' />
-                  <span className={`text-sm ${isSidebarCompact ? 'md:hidden' : ''}`}>
+                  <span className={`font-semibold text-sm ${isSidebarCompact ? 'md:hidden' : ''}`}>
                     Đăng xuất
                   </span>
                 </button>
               </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Xác nhận đăng xuất</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Bạn có chắc chắn muốn đăng xuất khỏi hệ thống không?
+              <AlertDialogContent className="rounded-3xl border-0 shadow-2xl p-0 overflow-hidden sm:max-w-[400px]">
+                <div className="bg-gradient-to-br from-amber-50 to-orange-100/60 dark:from-orange-950/40 dark:to-amber-900/20 px-6 py-6 text-center">
+                  <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 dark:bg-primary/20 mb-4 ring-8 ring-primary/5 dark:ring-primary/10">
+                    <LogOut className="h-8 w-8 text-primary translate-x-0.5" />
+                  </div>
+                  <AlertDialogTitle className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-2">Đăng xuất hệ thống</AlertDialogTitle>
+                  <AlertDialogDescription className="text-slate-500 dark:text-slate-400">
+                    Bạn có chắc chắn muốn kết thúc phiên làm việc hiện tại và đăng xuất không?
                   </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Hủy</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleLogout}>
-                    Đăng xuất
-                  </AlertDialogAction>
-                </AlertDialogFooter>
+                </div>
+                <div className="px-6 py-4 bg-background dark:bg-card border-t border-border/50">
+                  <AlertDialogFooter className="flex flex-row gap-3 w-full sm:justify-between">
+                    <AlertDialogCancel className="mt-0 flex-1 rounded-xl font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 hover:text-slate-900 border border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 dark:border-slate-700 transition-colors">Hủy bỏ</AlertDialogCancel>
+                    <AlertDialogAction 
+                      onClick={handleLogout} 
+                      className="flex-1 rounded-xl bg-primary hover:opacity-90 text-primary-foreground shadow-lg shadow-primary/30 animate-[pulse_2s_cubic-bezier(0.4,0,0.6,1)_infinite] transition-all"
+                    >
+                      Xác nhận đăng xuất
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </div>
               </AlertDialogContent>
             </AlertDialog>
           </nav>
@@ -714,7 +730,18 @@ export function StaffApp() {
           )}
         </div>
         <main className="flex-1 flex flex-col overflow-hidden relative custom-scrollbar">
-          <Outlet />
+          <style>{`
+            @keyframes staffPageFadeUp {
+              from { opacity: 0; transform: translateY(10px); }
+              to { opacity: 1; transform: translateY(0); }
+            }
+            .staff-page-transition {
+              animation: staffPageFadeUp 320ms ease-out forwards;
+            }
+          `}</style>
+          <div key={location.pathname} className="staff-page-transition w-full h-full flex flex-col flex-1">
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>

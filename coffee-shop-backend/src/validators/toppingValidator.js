@@ -15,8 +15,9 @@ const createToppingSchema = Joi.object({
     'number.min': 'Giá topping không được âm',
     'any.required': 'Giá topping là bắt buộc',
   }),
-  type: Joi.string().max(50).allow('', null).optional().messages({
-    'string.max': 'Loại topping không được vượt quá 50 ký tự',
+  category_ids: Joi.array().items(Joi.number().integer().positive()).optional().messages({
+    'array.base': 'Category IDs phải là một mảng',
+    'number.base': 'Category ID phải là số nguyên dương',
   }),
 });
 
@@ -33,8 +34,9 @@ const updateToppingSchema = Joi.object({
     'number.base': 'Giá topping phải là số',
     'number.min': 'Giá topping không được âm',
   }),
-  type: Joi.string().max(50).allow('', null).optional().messages({
-    'string.max': 'Loại topping không được vượt quá 50 ký tự',
+  category_ids: Joi.array().items(Joi.number().integer().positive()).optional().messages({
+    'array.base': 'Category IDs phải là một mảng',
+    'number.base': 'Category ID phải là số nguyên dương',
   }),
 });
 

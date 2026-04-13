@@ -42,17 +42,18 @@ export default function AdminNewsList() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [keyword, setKeyword] = useState("");
+  const [sortOrder, setSortOrder] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedNewsId, setSelectedNewsId] = useState(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleteId, setDeleteId] = useState(null);
 
-  const fetchNews = async (currentPage = 1, search = "") => {
+  const fetchNews = async (currentPage = 1, search = "", sort = "") => {
     try {
       setIsLoading(true);
       setError(null);
 
-      const res = await newsService.getAllAdmin(currentPage, search);
+      const res = await newsService.getAllAdmin(currentPage, search, sort);
       const payload = res.data?.data || res.data;
 
       setData(payload.items || []);
@@ -68,11 +69,11 @@ export default function AdminNewsList() {
 
   useEffect(() => {
     const timeout = setTimeout(() => {
-      fetchNews(page, keyword);
+      fetchNews(page, keyword, sortOrder);
     }, 600);
 
     return () => clearTimeout(timeout);
-  }, [page, keyword]);
+  }, [page, keyword, sortOrder]);
 
   const handleSearchChange = (e) => {
     const value = e.target.value;
@@ -98,7 +99,7 @@ export default function AdminNewsList() {
       if (data.length === 1 && page > 1) {
         setPage((prev) => prev - 1);
       } else {
-        fetchNews(page, keyword);
+        fetchNews(page, keyword, sortOrder);
       }
     } catch (error) {
       console.error(error);
@@ -119,7 +120,8 @@ export default function AdminNewsList() {
           onClick={() => {
             setPage(1);
             setKeyword("");
-            fetchNews(1, "");
+            setSortOrder("");
+            fetchNews(1, "", "");
           }}
         >
           Thử lại
@@ -147,12 +149,27 @@ export default function AdminNewsList() {
           </Button>
         </div>
 
-        <Input
-          placeholder="Tìm theo tiêu đề hoặc tag..."
-          value={keyword}
-          onChange={handleSearchChange}
-          className="pl-9"
-        />
+        <div className="flex flex-col sm:flex-row gap-3">
+          <Input
+            placeholder="Tìm theo tiêu đề hoặc tag..."
+            value={keyword}
+            onChange={handleSearchChange}
+            className="pl-9 flex-1"
+          />
+
+          <select
+            value={sortOrder}
+            onChange={(e) => {
+              setSortOrder(e.target.value);
+              setPage(1);
+            }}
+            className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background cursor-pointer focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 min-w-[200px]"
+          >
+            <option value="">Ngày tạo mới nhất</option>
+            <option value="views_desc">Lượt xem (Cao - Thấp)</option>
+            <option value="views_asc">Lượt xem (Thấp - Cao)</option>
+          </select>
+        </div>
       </div>
 
       <div className="relative bg-card rounded-xl border border-border overflow-hidden">
@@ -288,7 +305,7 @@ export default function AdminNewsList() {
           setSelectedNewsId(null);
         }}
         newsId={selectedNewsId}
-        onSuccess={() => fetchNews(page, keyword)}
+        onSuccess={() => fetchNews(page, keyword, sortOrder)}
       />
 
       <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>

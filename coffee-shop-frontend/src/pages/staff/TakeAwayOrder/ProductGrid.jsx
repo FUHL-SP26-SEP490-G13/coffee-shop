@@ -14,7 +14,6 @@ const mapProducts = (rawProducts) =>
       image_url: (p.images || []).find((img) => img.isThumbnail === 1)?.image_url || null,
       category: p.category_name || '',
       category_id: p.category_id,
-      category_type: p.category_type,
       sizes: (p.sizes || [])
         .filter((s) => !s.is_deleted)
         .map((s) => ({ id: s.id, size: s.size, price: Number(s.price) })),

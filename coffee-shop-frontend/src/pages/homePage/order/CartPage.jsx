@@ -95,7 +95,7 @@ export default function CartPage() {
             const res = await productService.getById(id);
             const data = res?.data?.data || res?.data || {};
             const sizes = data.sizes || [];
-            map[id] = { sizes, category_type: data.category?.type || data.category_type };
+            map[id] = { sizes, category_id: data.category_id };
           } catch (error) {
             console.error("Lỗi lấy thông tin sản phẩm", error);
           }
@@ -384,7 +384,13 @@ export default function CartPage() {
                               +
                             </button>
 
-                            {allToppings.filter(t => t.type === productInfoMap[item.product_id || item.id]?.category_type).length > 0 && (
+                            {allToppings.filter(t => {
+                              let ids = t.category_ids || [];
+                              if (typeof ids === 'string') {
+                                try { ids = JSON.parse(ids); } catch(e) { ids = []; }
+                              }
+                              return Array.isArray(ids) && ids.includes(productInfoMap[item.product_id || item.id]?.category_id);
+                            }).length > 0 && (
                               <button
                                 type="button"
                                 onClick={() =>
@@ -422,7 +428,13 @@ export default function CartPage() {
                           </p>
 
                           <div className="max-h-[280px] overflow-y-auto custom-scrollbar pr-2 space-y-3">
-                            {allToppings.filter(t => t.type === productInfoMap[item.product_id || item.id]?.category_type).map((topping) => {
+                            {allToppings.filter(t => {
+                              let ids = t.category_ids || [];
+                              if (typeof ids === 'string') {
+                                try { ids = JSON.parse(ids); } catch(e) { ids = []; }
+                              }
+                              return Array.isArray(ids) && ids.includes(productInfoMap[item.product_id || item.id]?.category_id);
+                            }).map((topping) => {
                               const checked = isToppingSelected(
                                 item,
                                 topping.id

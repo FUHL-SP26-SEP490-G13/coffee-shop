@@ -14,7 +14,6 @@ import { Label } from '../../../../components/ui/label';
 export default function UpdateCategory({ category, open, onClose, onSuccess }) {
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
-  const [type, setType] = useState('');
   const [image, setImage] = useState(null);
   const [preview, setPreview] = useState(null);
   const [removeImage, setRemoveImage] = useState(false);
@@ -28,7 +27,6 @@ export default function UpdateCategory({ category, open, onClose, onSuccess }) {
     if (category) {
       setName(category.name || '');
       setCode(category.code || '');
-      setType(category.type || '');
       setPreview(category.image_url || null);
       setRemoveImage(false);
       setImage(null);
@@ -111,9 +109,6 @@ export default function UpdateCategory({ category, open, onClose, onSuccess }) {
       formData.append('name', name.trim());
 
       formData.append('code', code.trim().toUpperCase());
-
-      // Gửi type. Nếu trống thì gửi string rỗng để BE cũng xóa hoặc cập nhật.
-      formData.append('type', type.trim());
 
       // Nếu có upload ảnh mới
       if (image) {
@@ -246,19 +241,6 @@ export default function UpdateCategory({ category, open, onClose, onSuccess }) {
                 {fieldErrors.code}
               </p>
             )}
-          </div>
-
-          <div className='space-y-2'>
-            <Label htmlFor='type'>
-              Loại (Type) <span className='text-xs text-muted-foreground'>(tùy chọn)</span>
-            </Label>
-            <Input
-              id='type'
-              placeholder='VD: TEA, COFFEE,... (tùy chọn)'
-              value={type}
-              onChange={(e) => setType(e.target.value)}
-              disabled={loading}
-            />
           </div>
 
           {/* Ảnh */}
