@@ -17,6 +17,18 @@ import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 const getStoredValue = (key) =>
   localStorage.getItem(key) || sessionStorage.getItem(key);
 
+const normalizePhoneInput = (value) => String(value || '').trim().replace(/\s+/g, '');
+
+const isValidPhoneNumber = (value) => {
+  const phone = normalizePhoneInput(value);
+
+  if (phone.startsWith('+84')) {
+    return /^\d{9,10}$/.test(phone.slice(3));
+  }
+
+  return /^\d{10,11}$/.test(phone);
+};
+
 export function UserProfile() {
   useDocumentTitle('Hồ sơ của tôi');
   const navigate = useNavigate();
@@ -35,6 +47,8 @@ export function UserProfile() {
     address_type: 'home',
   });
   const [editingAddressId, setEditingAddressId] = useState(null);
+  const [profileFieldErrors, setProfileFieldErrors] = useState({});
+  const [addressFieldErrors, setAddressFieldErrors] = useState({});
 
   useEffect(() => {
     let isMounted = true;
@@ -71,6 +85,34 @@ export function UserProfile() {
       isMounted = false;
     };
   }, []);
+
+  const getProfilePhoneError = (value) => {
+    const normalizedPhone = normalizePhoneInput(value);
+
+    if (!normalizedPhone) {
+      return 'Số điện thoại không được để trống';
+    }
+
+    if (!isValidPhoneNumber(normalizedPhone)) {
+      return 'Số điện thoại phải có 10-11 chữ số hoặc bắt đầu bằng +84';
+    }
+
+    return '';
+  };
+
+  const getReceiverPhoneError = (value) => {
+    const normalizedReceiverPhone = normalizePhoneInput(value);
+
+    if (!normalizedReceiverPhone) {
+      return '';
+    }
+
+    if (!isValidPhoneNumber(normalizedReceiverPhone)) {
+      return 'Số điện thoại người nhận phải có 10-11 chữ số hoặc bắt đầu bằng +84';
+    }
+
+    return '';
+  };
 
   const displayName = useMemo(() => {
     if (!profile) return '';
@@ -115,13 +157,24 @@ export function UserProfile() {
   }, []);
 
   const handleSave = async () => {
+    const normalizedPhone = normalizePhoneInput(profile?.phone);
+    const phoneError = getProfilePhoneError(normalizedPhone);
+
+    if (phoneError) {
+      setProfileFieldErrors((prev) => ({ ...prev, phone: phoneError }));
+      toast.error(phoneError);
+      return;
+    }
+
+    setProfileFieldErrors((prev) => ({ ...prev, phone: '' }));
+
     setIsSaving(true);
     try {
       // Only send editable fields
       const updateData = {
         first_name: profile.first_name,
         last_name: profile.last_name,
-        phone: profile.phone,
+        phone: normalizedPhone,
       };
 
       const response = await authenticationService.updateProfile(updateData);
@@ -191,6 +244,7 @@ export function UserProfile() {
       address: '',
       address_type: 'home',
     });
+    setAddressFieldErrors({});
     setEditingAddressId(null);
   };
 
@@ -200,10 +254,22 @@ export function UserProfile() {
   };
 
   const validateAddressForm = () => {
+    const errors = {};
     const normalizedAddress = String(addressForm.address || '').trim();
+    const receiverPhoneError = getReceiverPhoneError(addressForm.receiver_phone);
 
     if (!normalizedAddress) {
-      toast.error('Vui lòng nhập địa chỉ nhận hàng');
+      errors.address = 'Vui lòng nhập địa chỉ nhận hàng';
+    }
+
+    if (receiverPhoneError) {
+      errors.receiver_phone = receiverPhoneError;
+    }
+
+    setAddressFieldErrors(errors);
+
+    if (Object.keys(errors).length > 0) {
+      toast.error(errors.address || errors.receiver_phone);
       return false;
     }
 
@@ -213,10 +279,11 @@ export function UserProfile() {
   const handleSubmitAddress = async () => {
     if (!validateAddressForm()) return;
     const normalizedAddress = String(addressForm.address || '').trim();
+    const normalizedReceiverPhone = normalizePhoneInput(addressForm.receiver_phone);
 
     const payload = {
       receiver_name: addressForm.receiver_name.trim() || null,
-      receiver_phone: addressForm.receiver_phone.trim() || null,
+      receiver_phone: normalizedReceiverPhone || null,
       address: normalizedAddress,
       address_type: addressForm.address_type,
     };
@@ -253,6 +320,7 @@ export function UserProfile() {
 
   const handleEditAddress = (item) => {
     setEditingAddressId(item.id);
+    setAddressFieldErrors({});
     setAddressForm({
       receiver_name: item.receiver_name || '',
       receiver_phone: item.receiver_phone || '',
@@ -333,13 +401,19 @@ export function UserProfile() {
                 <Card className="rounded-[24px] border-white/50 dark:border-gray-800/80 bg-white/70 dark:bg-gray-900/70 backdrop-blur-xl shadow-lg border relative overflow-hidden animate-in slide-in-from-bottom-4 duration-700">
                   <div className="absolute top-0 right-0 p-6 z-10">
                     {!isEditing ? (
-                      <Button variant="outline" size="sm" onClick={() => setIsEditing(true)} className="rounded-xl border-amber-200 text-amber-700 bg-amber-50/50 hover:bg-amber-100 hover:text-amber-800 dark:border-amber-900/40 dark:bg-amber-900/20 dark:text-amber-400 dark:hover:bg-amber-900/40">
+                      <Button variant="outline" size="sm" onClick={() => {
+                        setProfileFieldErrors({});
+                        setIsEditing(true);
+                      }} className="rounded-xl border-amber-200 text-amber-700 bg-amber-50/50 hover:bg-amber-100 hover:text-amber-800 dark:border-amber-900/40 dark:bg-amber-900/20 dark:text-amber-400 dark:hover:bg-amber-900/40">
                         <Edit2 className="w-4 h-4 mr-2" />
                         Chỉnh sửa
                       </Button>
                     ) : (
                       <div className="flex gap-2">
-                        <Button variant="ghost" size="sm" onClick={() => setIsEditing(false)} disabled={isSaving} className="rounded-xl hover:bg-gray-100">
+                        <Button variant="ghost" size="sm" onClick={() => {
+                          setProfileFieldErrors({});
+                          setIsEditing(false);
+                        }} disabled={isSaving} className="rounded-xl hover:bg-gray-100">
                           Hủy
                         </Button>
                         <Button size="sm" onClick={handleSave} disabled={isSaving} className="rounded-xl bg-amber-600 hover:bg-amber-700 text-white shadow-md">
@@ -462,15 +536,25 @@ export function UserProfile() {
                               type="tel"
                               value={profile?.phone || ''}
                               disabled={!isEditing}
-                              className={`pl-10 rounded-xl transition-all font-medium ${isEditing ? "bg-white dark:bg-black/40 border-gray-200 dark:border-gray-700 focus-visible:ring-2 focus-visible:ring-amber-500/50 focus-visible:border-amber-500" : "bg-transparent border-transparent font-semibold text-gray-900 dark:text-gray-100 shadow-none"}`}
-                              onChange={(e) =>
+                              className={`pl-10 rounded-xl transition-all font-medium ${isEditing ? `bg-white dark:bg-black/40 ${profileFieldErrors.phone ? 'border-destructive focus-visible:border-destructive focus-visible:ring-2 focus-visible:ring-destructive/40' : 'border-gray-200 dark:border-gray-700 focus-visible:ring-2 focus-visible:ring-amber-500/50 focus-visible:border-amber-500'}` : "bg-transparent border-transparent font-semibold text-gray-900 dark:text-gray-100 shadow-none"}`}
+                              onChange={(e) => {
+                                const value = e.target.value;
                                 setProfile((prev) => ({
                                   ...prev,
-                                  phone: e.target.value,
-                                }))
-                              }
+                                  phone: value,
+                                }));
+
+                                const phoneError = getProfilePhoneError(value);
+                                setProfileFieldErrors((prev) => ({
+                                  ...prev,
+                                  phone: phoneError,
+                                }));
+                              }}
                             />
                           </div>
+                          {isEditing && profileFieldErrors.phone && (
+                            <p className="text-xs text-destructive ml-1">{profileFieldErrors.phone}</p>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -683,11 +767,23 @@ export function UserProfile() {
                   <Input
                     id="receiver_phone"
                     value={addressForm.receiver_phone}
-                    onChange={(e) => setAddressForm((prev) => ({ ...prev, receiver_phone: e.target.value }))}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setAddressForm((prev) => ({ ...prev, receiver_phone: value }));
+
+                      const phoneError = getReceiverPhoneError(value);
+                      setAddressFieldErrors((prev) => ({
+                        ...prev,
+                        receiver_phone: phoneError,
+                      }));
+                    }}
                     placeholder="09xx..."
-                    className="pl-9 h-11 rounded-xl bg-gray-50/80 dark:bg-black/20 focus-visible:ring-amber-500/50 focus-visible:border-amber-500"
+                    className={`pl-9 h-11 rounded-xl bg-gray-50/80 dark:bg-black/20 ${addressFieldErrors.receiver_phone ? 'border-destructive focus-visible:border-destructive focus-visible:ring-destructive/40' : 'focus-visible:ring-amber-500/50 focus-visible:border-amber-500'}`}
                   />
                 </div>
+                {addressFieldErrors.receiver_phone && (
+                  <p className="text-xs text-destructive ml-1">{addressFieldErrors.receiver_phone}</p>
+                )}
               </div>
             </div>
 
@@ -725,15 +821,24 @@ export function UserProfile() {
               <Input
                 id="shipping_address"
                 value={addressForm.address}
-                onChange={(e) =>
+                onChange={(e) => {
+                  const value = e.target.value;
                   setAddressForm((prev) => ({
                     ...prev,
-                    address: e.target.value,
-                  }))
-                }
+                    address: value,
+                  }));
+
+                  setAddressFieldErrors((prev) => ({
+                    ...prev,
+                    address: value.trim() ? '' : prev.address,
+                  }));
+                }}
                 placeholder="Số nhà, hẻm, tên đường..."
-                className="h-11 rounded-xl bg-gray-50/80 dark:bg-black/20 focus-visible:ring-amber-500/50 focus-visible:border-amber-500"
+                className={`h-11 rounded-xl bg-gray-50/80 dark:bg-black/20 ${addressFieldErrors.address ? 'border-destructive focus-visible:border-destructive focus-visible:ring-destructive/40' : 'focus-visible:ring-amber-500/50 focus-visible:border-amber-500'}`}
               />
+              {addressFieldErrors.address && (
+                <p className="text-xs text-destructive ml-1">{addressFieldErrors.address}</p>
+              )}
             </div>
 
             <div className="flex justify-end gap-3 pt-2">

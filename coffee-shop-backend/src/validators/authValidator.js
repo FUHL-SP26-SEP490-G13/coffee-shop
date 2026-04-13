@@ -1,17 +1,30 @@
 const Joi = require('joi');
 
+const PHONE_REGEX = /^(?:\+84\d{9,10}|84\d{9,10}|\d{10,11})$/;
+
+const requiredPhoneSchema = Joi.string()
+  .trim()
+  .pattern(PHONE_REGEX)
+  .required()
+  .messages({
+    'string.empty': 'Số điện thoại không được để trống',
+    'string.pattern.base': 'Số điện thoại phải có 10-11 chữ số hoặc bắt đầu bằng +84',
+    'any.required': 'Số điện thoại là bắt buộc',
+  });
+
+const optionalPhoneSchema = Joi.string()
+  .trim()
+  .pattern(PHONE_REGEX)
+  .optional()
+  .messages({
+    'string.pattern.base': 'Số điện thoại phải có 10-11 chữ số hoặc bắt đầu bằng +84',
+  });
+
 /**
  * Validation schema for user registration
  */
 const registerSchema = Joi.object({
-  phone: Joi.string()
-    .pattern(/^(\+84|0)[0-9]{9,11}$/)
-    .required()
-    .messages({
-      'string.empty': 'Số điện thoại không được để trống',
-      'string.pattern.base': 'Số điện thoại không hợp lệ (0xxx hoặc +84xxx)',
-      'any.required': 'Số điện thoại là bắt buộc',
-    }),
+  phone: requiredPhoneSchema,
 
   username: Joi.string().min(3).max(50).alphanum().required().messages({
     'string.empty': 'Username không được để trống',
@@ -64,14 +77,7 @@ const registerSchema = Joi.object({
  * Validation schema for staff creation (admin)
  */
 const staffCreateSchema = Joi.object({
-  phone: Joi.string()
-    .pattern(/^[0-9]{10,11}$/)
-    .required()
-    .messages({
-      'string.empty': 'Số điện thoại không được để trống',
-      'string.pattern.base': 'Số điện thoại phải có 10-11 chữ số',
-      'any.required': 'Số điện thoại là bắt buộc',
-    }),
+  phone: requiredPhoneSchema,
 
   username: Joi.string().min(3).max(50).alphanum().required().messages({
     'string.empty': 'Username không được để trống',
@@ -158,12 +164,7 @@ const updateProfileSchema = Joi.object({
     'string.max': 'Tên không được vượt quá 30 ký tự',
   }),
 
-  phone: Joi.string()
-    .pattern(/^[0-9]{10,11}$/)
-    .optional()
-    .messages({
-      'string.pattern.base': 'Số điện thoại phải có 10-11 chữ số',
-    }),
+  phone: optionalPhoneSchema,
 
   address: Joi.string().max(255).optional().allow(null, ''),
 });
@@ -238,113 +239,6 @@ const resetPasswordWithOtpSchema = Joi.object({
   }),
 });
 
-/**
- * Validation schema for create address
- */
-const createAddressSchema = Joi.object({
-  receiver_name: Joi.string().trim().max(100).optional().allow(null, '').messages({
-    'string.max': 'Tên người nhận không được vượt quá 100 ký tự',
-  }),
-  receiver_phone: Joi.string()
-    .trim()
-    .max(20)
-    .optional()
-    .allow(null, '')
-    .messages({
-      'string.max': 'Số điện thoại không được vượt quá 20 ký tự',
-    }),
-  address: Joi.string().trim().min(5).max(255).required().messages({
-    'string.empty': 'Địa chỉ không được để trống',
-    'string.min': 'Địa chỉ phải có ít nhất 5 ký tự',
-    'string.max': 'Địa chỉ không được vượt quá 255 ký tự',
-    'any.required': 'Địa chỉ là bắt buộc',
-  }),
-  address_type: Joi.string().valid('home', 'work', 'other').default('home').messages({
-    'any.only': 'Loại địa chỉ không hợp lệ',
-  }),
-  province_id: Joi.number().integer().positive().optional().allow(null).messages({
-    'number.base': 'Tỉnh/Thành không hợp lệ',
-    'number.integer': 'Tỉnh/Thành không hợp lệ',
-    'number.positive': 'Tỉnh/Thành không hợp lệ',
-  }),
-  ward_id: Joi.number().integer().positive().optional().allow(null).messages({
-    'number.base': 'Xã/Phường không hợp lệ',
-    'number.integer': 'Xã/Phường không hợp lệ',
-    'number.positive': 'Xã/Phường không hợp lệ',
-  }),
-  is_default: Joi.number().integer().valid(0, 1).optional(),
-}).custom((value, helpers) => {
-  const hasProvince = value.province_id !== undefined && value.province_id !== null;
-  const hasWard = value.ward_id !== undefined && value.ward_id !== null;
-
-  if (hasProvince !== hasWard) {
-    return helpers.message('Vui lòng chọn đầy đủ cả Tỉnh/Thành và Xã/Phường');
-  }
-
-  return value;
-});
-
-/**
- * Validation schema for update address
- */
-const updateAddressSchema = Joi.object({
-  receiver_name: Joi.string().trim().max(100).optional().allow(null, '').messages({
-    'string.max': 'Tên người nhận không được vượt quá 100 ký tự',
-  }),
-  receiver_phone: Joi.string()
-    .trim()
-    .max(20)
-    .optional()
-    .allow(null, '')
-    .messages({
-      'string.max': 'Số điện thoại không được vượt quá 20 ký tự',
-    }),
-  address: Joi.string().trim().min(5).max(255).optional().messages({
-    'string.min': 'Địa chỉ phải có ít nhất 5 ký tự',
-    'string.max': 'Địa chỉ không được vượt quá 255 ký tự',
-  }),
-  address_type: Joi.string().valid('home', 'work', 'other').optional().messages({
-    'any.only': 'Loại địa chỉ không hợp lệ',
-  }),
-  province_id: Joi.number().integer().positive().optional().allow(null).messages({
-    'number.base': 'Tỉnh/Thành không hợp lệ',
-    'number.integer': 'Tỉnh/Thành không hợp lệ',
-    'number.positive': 'Tỉnh/Thành không hợp lệ',
-  }),
-  ward_id: Joi.number().integer().positive().optional().allow(null).messages({
-    'number.base': 'Xã/Phường không hợp lệ',
-    'number.integer': 'Xã/Phường không hợp lệ',
-    'number.positive': 'Xã/Phường không hợp lệ',
-  }),
-  is_default: Joi.number().integer().valid(0, 1).optional(),
-})
-  .custom((value, helpers) => {
-    const hasProvince = value.province_id !== undefined && value.province_id !== null;
-    const hasWard = value.ward_id !== undefined && value.ward_id !== null;
-
-    if (hasProvince !== hasWard) {
-      return helpers.message('Vui lòng chọn đầy đủ cả Tỉnh/Thành và Xã/Phường');
-    }
-
-    return value;
-  })
-  .min(1)
-  .messages({
-    'object.min': 'Cần ít nhất 1 trường để cập nhật địa chỉ',
-  });
-
-/**
- * Validation schema for address id param
- */
-const addressIdParamSchema = Joi.object({
-  id: Joi.number().integer().positive().required().messages({
-    'number.base': 'ID địa chỉ phải là số',
-    'number.integer': 'ID địa chỉ phải là số nguyên',
-    'number.positive': 'ID địa chỉ phải lớn hơn 0',
-    'any.required': 'ID địa chỉ là bắt buộc',
-  }),
-});
-
 module.exports = {
   registerSchema,
   staffCreateSchema,
@@ -355,7 +249,4 @@ module.exports = {
   resetPasswordSchema,
   verifyForgotPasswordOtpSchema,
   resetPasswordWithOtpSchema,
-  createAddressSchema,
-  updateAddressSchema,
-  addressIdParamSchema,
 };

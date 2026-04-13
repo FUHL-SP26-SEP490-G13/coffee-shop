@@ -12,10 +12,12 @@ const {
   resetPasswordSchema,
   verifyForgotPasswordOtpSchema,
   resetPasswordWithOtpSchema,
+} = require("../validators/authValidator");
+const {
   createAddressSchema,
   updateAddressSchema,
   addressIdParamSchema,
-} = require("../validators/authValidator");
+} = require("../validators/addressValidator");
 
 /**
  * Public routes (no authentication required)

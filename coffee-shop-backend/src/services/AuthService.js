@@ -54,16 +54,14 @@ class AuthService {
       throw new ErrorResponse(400, "Số điện thoại không được để trống");
     }
 
-    const cleaned = phone.replace(/\s/g, "");
+    const cleaned = String(phone).trim();
 
-    // Check length (max 12 characters)
-    if (cleaned.length > 12) {
-      throw new ErrorResponse(400, "Số điện thoại tối đa 12 ký tự");
-    }
-
-    // Check format: starts with 0 or +84, followed by 9-11 digits
-    if (!/^(\+84|0)[0-9]{9,11}$/.test(cleaned)) {
-      throw new ErrorResponse(400, "Số điện thoại không hợp lệ (0xxx hoặc +84xxx)");
+    // Accept local 10-11 digits or international +84/84 prefix.
+    if (!/^(?:\+84\d{9,10}|84\d{9,10}|\d{10,11})$/.test(cleaned)) {
+      throw new ErrorResponse(
+        400,
+        "Số điện thoại phải có 10-11 chữ số hoặc bắt đầu bằng +84"
+      );
     }
   }
 
