@@ -31,6 +31,7 @@ const shiftRoutes = require('./shift.routes');
 const loyaltyRoutes = require('./loyalty.routes');
 const cashSessionRoutes = require('./cashSession.routes');
 const aiRoutes = require('./ai.routes');
+const attendanceSettingRoutes = require('./attendanceSetting.routes');
 
 const cartRoutes = require('./cart.routes');
 const deliveryAreaRoutes = require('./deliveryArea.routes');
@@ -88,6 +89,7 @@ router.use('/qr-order', qrOrderRoutes);
 router.use('/shifts', shiftRoutes);
 router.use('/loyalty', loyaltyRoutes);
 router.use('/ai', aiRoutes);
+router.use('/attendance-settings', attendanceSettingRoutes);
 router.use('/cash-sessions', cashSessionRoutes);
 
 router.use('/cart', cartRoutes);

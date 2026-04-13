@@ -73,12 +73,18 @@ module.exports = {
     CANCELLED: "cancelled",
   },
 
-  // Attendance Status
+  // Attendance Status (check-in)
   ATTENDANCE_STATUS: {
     PRESENT: "present",
-    ABSENT: "absent",
     LATE: "late",
-    LEAVE: "leave",
+    ABSENT: "absent",
+  },
+
+  // Attendance Checkout Status (check-out)
+  ATTENDANCE_CHECKOUT_STATUS: {
+    ON_TIME: "on_time",
+    EARLY: "early",
+    MISSING: "missing",
   },
 
   // Leave Request Status
