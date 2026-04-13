@@ -1,5 +1,5 @@
 import orderService from "@/services/orderOnlineService";
-import { cartService } from "@/services/cartService";
+import { useCartStore } from "@/store/useCartStore";
 import productService from "@/services/productService";
 import { toast } from "sonner";
 
@@ -79,7 +79,7 @@ export async function handleBuyAgain(orderId, navigate) {
         item.image_url || defaultImage
       );
 
-      cartService.addItem({
+      useCartStore.getState().addItem({
         id: productId,
         product_id: productId,
         productId: productId,

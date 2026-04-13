@@ -4,7 +4,7 @@ import authenticationService from "@/services/authenticationService";
 import { APP_ROUTES, STORAGE_KEYS } from "@/constants";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { cartService } from "@/services/cartService";
+import { useCartStore } from "@/store/useCartStore";
 
 export default function GoogleButton() {
   const navigate = useNavigate();
@@ -34,7 +34,7 @@ export default function GoogleButton() {
         sessionStorage.removeItem(STORAGE_KEYS.AUTH_PROVIDER);
 
         try {
-          await cartService.syncAfterLogin();
+          await useCartStore.getState().syncAfterLogin();
         } catch (cartError) {
           console.error("Cart sync failed after Google login:", cartError);
           toast.error(

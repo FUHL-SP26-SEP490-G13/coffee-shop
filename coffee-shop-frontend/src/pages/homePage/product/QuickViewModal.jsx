@@ -8,10 +8,11 @@ import { Button } from "@/components/ui/button";
 import { Minus, Plus, ShoppingCart, Zap, Star, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, X } from "lucide-react";
 import { toast } from "sonner";
 import toppingService from "@/services/toppingService";
-import { cartService } from "@/services/cartService";
+import { useCartStore } from "@/store/useCartStore";
 
 export default function QuickViewModal({ product, isOpen, onClose, activeSale, isStoreOpen, nextOpenMessage, notifySuccess }) {
   const navigate = useNavigate();
+  const { addItem } = useCartStore();
   const [selectedSize, setSelectedSize] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [toppings, setToppings] = useState([]);
@@ -123,8 +124,7 @@ export default function QuickViewModal({ product, isOpen, onClose, activeSale, i
       })),
     };
 
-    cartService.addItem(cartItem);
-    window.dispatchEvent(new Event("cartUpdated"));
+    addItem(cartItem);
     if (notifySuccess) notifySuccess(cartItem);
     onClose();
   };

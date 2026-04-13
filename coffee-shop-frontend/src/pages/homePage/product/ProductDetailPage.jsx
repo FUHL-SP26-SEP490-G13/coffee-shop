@@ -21,7 +21,7 @@ import QuickViewModal from "@/pages/homePage/product/QuickViewModal";
 import { Button } from "@/components/ui/button";
 import productService from "@/services/productService";
 import toppingService from "@/services/toppingService";
-import { cartService } from "@/services/cartService";
+import { useCartStore } from "@/store/useCartStore";
 import useFetch from "@/hooks/useFetch";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Pagination, Navigation, Autoplay } from "swiper/modules";
@@ -282,6 +282,7 @@ export default function ProductDetailPage({ productIdOverride, initialProductDat
   const productId = productIdOverride || id;
   const navigate = useNavigate();
   const { isOpen: isStoreOpen, nextOpenMessage } = useStoreHours();
+  const { addItem } = useCartStore();
 
   const token =
     localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN) ||
@@ -814,9 +815,8 @@ export default function ProductDetailPage({ productIdOverride, initialProductDat
     }
 
     const cartItem = buildCartItem();
-    cartService.addItem(cartItem);
+    addItem(cartItem);
     notifyCartSuccess(cartItem);
-    window.dispatchEvent(new Event("cartUpdated"));
   };
 
   const buyNow = () => {
@@ -826,7 +826,7 @@ export default function ProductDetailPage({ productIdOverride, initialProductDat
     }
 
     const cartItem = buildCartItem();
-    cartService.addItem(cartItem);
+    addItem(cartItem);
     navigate("/checkout");
   };
 
@@ -878,9 +878,8 @@ export default function ProductDetailPage({ productIdOverride, initialProductDat
       toppings: [],
     };
 
-    cartService.addItem(cartItem);
+    addItem(cartItem);
     notifyCartSuccess(cartItem);
-    window.dispatchEvent(new Event("cartUpdated"));
   };
 
   const renderBreadcrumbs = () => (

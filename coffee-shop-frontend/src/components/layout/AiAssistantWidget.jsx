@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Bot, Send, X, Coffee, ShoppingBag, Sparkles, User, RefreshCw, Loader2 } from "lucide-react";
 import aiService from "@/services/aiService";
-import { cartService } from "@/services/cartService";
+import { useCartStore } from "@/store/useCartStore";
 
 const getGreeting = () => {
   const hour = new Date().getHours();
@@ -37,6 +37,7 @@ const MessageContent = ({ text, role, isNew }) => {
 
 export default function AiAssistantWidget() {
   const [isOpen, setIsOpen] = useState(false);
+  const { addItem } = useCartStore();
   const [messages, setMessages] = useState([
     {
       role: 'ai',
@@ -95,7 +96,7 @@ export default function AiAssistantWidget() {
       if (data?.type === "action" && data?.action?.type === "add_to_cart_multiple") {
         const items = data.action.payload || [];
         items.forEach(item => {
-          cartService.addItem({
+          addItem({
             id: item.product_id,
             product_id: item.product_id,
             name: item.product_name,

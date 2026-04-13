@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Loader2, ArrowLeft, RotateCcw, CheckCircle2, Package, Truck, ClipboardList, XCircle, Check } from "lucide-react";
-
-
 import { Button } from "@/components/ui/button";
 import orderService from "@/services/orderOnlineService";
 import flashSaleService from "@/services/flashSaleService";

@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { Loader2, Filter, X, Star, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import productService from "@/services/productService";
-import { cartService } from "@/services/cartService";
+import { useCartStore } from "@/store/useCartStore";
 import { toast } from "sonner";
 import categoryService from "@/services/categoryService";
 import useFetch from "@/hooks/useFetch";
@@ -49,6 +49,7 @@ export default function ProductListPage({
   const [searchParams, setSearchParams] = useSearchParams();
   const sidebarRef = useRef(null);
   const { isOpen: isStoreOpen, nextOpenMessage } = useStoreHours();
+  const { addItem } = useCartStore();
   const [addedCartItem, setAddedCartItem] = useState(null);
   const [quickViewProduct, setQuickViewProduct] = useState(null);
 
@@ -157,8 +158,7 @@ export default function ProductListPage({
       toppings: [],
     };
 
-    cartService.addItem(cartItem);
-    window.dispatchEvent(new Event("cartUpdated"));
+    addItem(cartItem);
     setAddedCartItem(cartItem);
   };
 

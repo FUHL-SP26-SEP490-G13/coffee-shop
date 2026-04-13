@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { APP_ROUTES, STORAGE_KEYS } from "@/constants";
 import authenticationService from "@/services/authenticationService";
-import { cartService } from "@/services/cartService";
+import { useCartStore } from "@/store/useCartStore";
 import receiptSettingService from "@/services/receiptSettingService";
 import { toast } from "sonner";
 
@@ -127,7 +127,7 @@ export default function LoginPage() {
 			}
 
 			try {
-				await cartService.syncAfterLogin();
+				await useCartStore.getState().syncAfterLogin();
 			} catch (cartError) {
 				console.error('Cart sync failed after login:', cartError);
 				toast.error('Đồng bộ giỏ hàng không thành công. Bạn vẫn có thể tiếp tục.');

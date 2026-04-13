@@ -23,7 +23,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { cartService } from "@/services/cartService";
+import { useCartStore } from "@/store/useCartStore";
 import authenticationService from "@/services/authenticationService";
 import PlaceOrderButton from "@/components/order/PlaceOrderButton";
 import ReputationScoreDialog from "@/components/order/ReputationScoreDialog";
@@ -50,16 +50,8 @@ import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 export default function CheckoutPage() {
   useDocumentTitle("Thanh toán");
   const navigate = useNavigate();
-  const [cart, setCart] = useState(() => cartService.getCart());
+  const { cart, getItemSubtotal } = useCartStore();
   const { isOpen, nextOpenMessage } = useStoreHours();
-
-  useEffect(() => {
-    const handleCartUpdate = () => {
-      setCart(cartService.getCart());
-    };
-    window.addEventListener("cartUpdated", handleCartUpdate);
-    return () => window.removeEventListener("cartUpdated", handleCartUpdate);
-  }, []);
   const token =
     localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN) ||
     sessionStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
@@ -188,12 +180,12 @@ export default function CheckoutPage() {
           address: defaultAddress?.address || user?.address || "",
           province_id:
             defaultAddress?.province_id !== undefined &&
-            defaultAddress?.province_id !== null
+              defaultAddress?.province_id !== null
               ? String(defaultAddress.province_id)
               : "",
           ward_id:
             defaultAddress?.ward_id !== undefined &&
-            defaultAddress?.ward_id !== null
+              defaultAddress?.ward_id !== null
               ? String(defaultAddress.ward_id)
               : "",
         }));
@@ -439,10 +431,10 @@ export default function CheckoutPage() {
 
   const subtotalAmount = useMemo(() => {
     return cart.reduce(
-      (sum, item) => sum + cartService.getItemSubtotal(item),
+      (sum, item) => sum + getItemSubtotal(item),
       0
     );
-  }, [cart]);
+  }, [cart, getItemSubtotal]);
 
   const regularAmount = useMemo(() => {
     return cart.reduce((sum, item) => {
@@ -452,9 +444,9 @@ export default function CheckoutPage() {
       if (isFlashSale) {
         return sum; // Do not include in regular amount
       }
-      return sum + cartService.getItemSubtotal(item);
+      return sum + getItemSubtotal(item);
     }, 0);
-  }, [cart, activeSale]);
+  }, [cart, activeSale, getItemSubtotal]);
 
   const discountAmount = Number(appliedDiscount?.discount_amount || 0);
   const amountAfterDiscount = Math.max(
@@ -977,18 +969,18 @@ export default function CheckoutPage() {
                         }));
                       }}
                       className={`flex items-center gap-3 rounded-xl border-2 px-4 py-3 text-left transition-all ${isDisabled
-                          ? "border-gray-200  bg-gray-100 dark:bg-gray-800 opacity-50 cursor-not-allowed"
-                          : selected
-                            ? "border-amber-500 bg-amber-50 dark:bg-amber-900/20"
-                            : "border-gray-200  bg-white dark:bg-gray-900 hover:border-gray-300"
+                        ? "border-gray-200  bg-gray-100 dark:bg-gray-800 opacity-50 cursor-not-allowed"
+                        : selected
+                          ? "border-amber-500 bg-amber-50 dark:bg-amber-900/20"
+                          : "border-gray-200  bg-white dark:bg-gray-900 hover:border-gray-300"
                         }`}
                     >
                       <span
                         className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${isDisabled
-                            ? "bg-gray-200"
-                            : selected
-                              ? "bg-amber-100 dark:bg-amber-900/30"
-                              : "bg-gray-100 dark:bg-gray-800"
+                          ? "bg-gray-200"
+                          : selected
+                            ? "bg-amber-100 dark:bg-amber-900/30"
+                            : "bg-gray-100 dark:bg-gray-800"
                           }`}
                       >
                         {isDisabled ? (
@@ -1002,8 +994,8 @@ export default function CheckoutPage() {
                       <span>
                         <span
                           className={`block text-sm font-medium ${isDisabled
-                              ? "text-gray-500 dark:text-gray-400"
-                              : "text-gray-900 dark:text-gray-100"
+                            ? "text-gray-500 dark:text-gray-400"
+                            : "text-gray-900 dark:text-gray-100"
                             }`}
                         >
                           {opt.label}
@@ -1011,8 +1003,8 @@ export default function CheckoutPage() {
                         </span>
                         <span
                           className={`block text-xs ${isDisabled
-                              ? "text-gray-400"
-                              : "text-gray-500 dark:text-gray-400"
+                            ? "text-gray-400"
+                            : "text-gray-500 dark:text-gray-400"
                             }`}
                         >
                           {opt.sub}
@@ -1020,10 +1012,10 @@ export default function CheckoutPage() {
                       </span>
                       <span
                         className={`ml-auto h-4 w-4 shrink-0 rounded-full border-2 ${isDisabled
-                            ? "border-gray-300 bg-gray-300"
-                            : selected
-                              ? "border-amber-500 bg-amber-50 dark:bg-amber-900/200"
-                              : "border-gray-300"
+                          ? "border-gray-300 bg-gray-300"
+                          : selected
+                            ? "border-amber-500 bg-amber-50 dark:bg-amber-900/200"
+                            : "border-gray-300"
                           }`}
                       />
                     </button>
@@ -1141,7 +1133,7 @@ export default function CheckoutPage() {
                   </div>
 
                   <p className="text-sm font-semibold mt-0.5 shrink-0">
-                    {cartService.getItemSubtotal(item).toLocaleString("vi-VN")}đ
+                    {getItemSubtotal(item).toLocaleString("vi-VN")}đ
                   </p>
                 </div>
               ))}

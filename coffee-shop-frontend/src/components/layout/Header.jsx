@@ -47,7 +47,7 @@ import loyaltyService from "@/services/loyaltyService";
 import flashSaleService from "@/services/flashSaleService";
 import LoyaltyHistoryModal from "@/components/loyalty/LoyaltyHistoryModal";
 import receiptSettingService from "@/services/receiptSettingService";
-import { cartService } from "@/services/cartService";
+import { useCartStore } from "@/store/useCartStore";
 import { useStoreHours } from "@/hooks/useStoreHours";
 
 const placeholders = [
@@ -116,8 +116,9 @@ function Header() {
     }
   });
   const [focusedResultIndex, setFocusedResultIndex] = useState(-1);
+  const { cart: cartItems, removeItem, clearCart, hydrateFromDatabase } = useCartStore();
+  const cartCount = cartItems.reduce((sum, item) => sum + (Number(item.quantity) || 1), 0);
   const [mobileResultOpen, setMobileResultOpen] = useState(false);
-  const [cartCount, setCartCount] = useState(0);
   const [cartBump, setCartBump] = useState(false);
 
   const [searchViewMode, setSearchViewMode] = useState("list");
@@ -128,8 +129,6 @@ function Header() {
 
   const [loyaltyPoints, setLoyaltyPoints] = useState(0);
   const [loyaltyModalOpen, setLoyaltyModalOpen] = useState(false);
-
-  const [cartItems, setCartItems] = useState([]);
   const [showCartPreview, setShowCartPreview] = useState(false);
   const [activeSale, setActiveSale] = useState(null);
   const [popularSearches, setPopularSearches] = useState([]);
@@ -139,12 +138,13 @@ function Header() {
       .then(res => setActiveSale(res?.data || null))
       .catch(console.error);
 
+    // Lấy 6 sản phẩm bán chạy nhất
     productService.getBestSellers({ limit: 6 })
       .then(res => {
         const products = Array.isArray(res?.data) ? res.data : (res?.data?.data || []);
         if (products.length > 0) {
           const names = products.slice(0, 6).map(p => p.name);
-          // ensure no duplicates
+          // Loại bỏ tên trùng lặp và lưu vào state `popularSearches`
           setPopularSearches([...new Set(names)]);
         }
       })
@@ -219,18 +219,6 @@ function Header() {
   const defaultImage =
     "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085";
 
-  const loadCartItems = useCallback(() => {
-    try {
-      const list = cartService.getCart();
-      setCartItems(list);
-      const total = list.reduce((sum, item) => sum + (Number(item.quantity) || 1), 0);
-      setCartCount(total);
-    } catch {
-      setCartItems([]);
-      setCartCount(0);
-    }
-  }, []);
-
   const getCartSubtotal = () => {
     return cartItems.reduce((sum, item) => {
       const basePrice =
@@ -256,10 +244,9 @@ function Header() {
 
   const handleRemoveFromCart = (indexToRemove) => {
     try {
-      const cart = cartService.getCart();
-      const item = cart[indexToRemove];
+      const item = cartItems[indexToRemove];
       if (!item) return;
-      cartService.removeItem(item.cartKey);
+      removeItem(item.cartKey);
       toast.success("Đã xóa sản phẩm khỏi giỏ hàng");
     } catch (e) {
       console.error("Lỗi xóa sản phẩm header preview:", e);
@@ -303,26 +290,17 @@ function Header() {
 
   useEffect(() => {
     if (token) {
-      cartService.hydrateFromDatabase().catch(() => undefined);
+      hydrateFromDatabase().catch(() => undefined);
     }
+  }, [token, hydrateFromDatabase]);
 
-    loadCartItems();
-
-    window.addEventListener("storage", loadCartItems);
-    window.addEventListener("cartUpdated", loadCartItems);
-
-    const handleCartBump = () => {
+  useEffect(() => {
+    if (cartCount > 0) {
       setCartBump(true);
-      setTimeout(() => setCartBump(false), 600);
-    };
-    window.addEventListener("cartAdded", handleCartBump);
-
-    return () => {
-      window.removeEventListener("storage", loadCartItems);
-      window.removeEventListener("cartUpdated", loadCartItems);
-      window.removeEventListener("cartAdded", handleCartBump);
-    };
-  }, [loadCartItems]);
+      const timer = setTimeout(() => setCartBump(false), 600);
+      return () => clearTimeout(timer);
+    }
+  }, [cartCount]);
 
   useEffect(() => {
     if (subIndex < placeholders[index].length) {
@@ -433,16 +411,17 @@ function Header() {
 
   useEffect(() => {
     const handleGlobalKeyDown = (e) => {
+      // (e.ctrlKey || e.metaKey) hỗ trợ cho cả Windows (Ctrl) và MacOS (Cmd)
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
-        e.preventDefault();
+        e.preventDefault(); // Khóa các action mặc định của Chrome
         if (searchRef.current) {
           const input = searchRef.current.querySelector('input');
-          if (input) input.focus();
+          if (input) input.focus(); // Tự động quét chuột tới ô input
         }
       }
     };
     window.addEventListener("keydown", handleGlobalKeyDown);
-    return () => window.removeEventListener("keydown", handleGlobalKeyDown);
+    return () => window.removeEventListener("keydown", handleGlobalKeyDown); // Dọn dẹp event khi rời khỏi file
   }, []);
 
   const goToCategory = (category) => {
@@ -500,7 +479,7 @@ function Header() {
 
       const res = await productService.search({
         keyword: trimmed,
-        limit: 5,
+        limit: 100,
         status: "available",
       });
 
@@ -549,8 +528,11 @@ function Header() {
     const trimmed = kw.trim();
     if (!trimmed) return;
     setRecentSearches((prev) => {
+      // 1. Xóa từ khóa bị trùng để đẩy nó lên đầu (nếu đã từng tìm)
       const filtered = prev.filter((s) => s.toLowerCase() !== trimmed.toLowerCase());
+      // 2. Thêm từ khóa mới lên mảng và cắt ra lấy tối đa 5 phần tử
       const updated = [trimmed, ...filtered].slice(0, 5);
+      // 3. Lưu vào Local Storage
       localStorage.setItem("recent_searches", JSON.stringify(updated));
       return updated;
     });
@@ -835,10 +817,10 @@ function Header() {
                   <button
                     type="button"
                     onClick={() => {
-                      setKeyword("");
-                      setFocusedResultIndex(-1);
+                      setKeyword(""); // Xóa nội dung
+                      setFocusedResultIndex(-1); // Bỏ chọn các kết quả xổ xuống
                       const input = searchRef.current?.querySelector('input');
-                      if (input) input.focus();
+                      if (input) input.focus(); // Focus vào ô tìm kiếm
                     }}
                     className="absolute right-12 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:text-gray-400 p-1"
                   >
@@ -1112,10 +1094,7 @@ function Header() {
             <div className="hidden sm:flex items-center gap-1 lg:gap-2">
               <div
                 className="relative"
-                onMouseEnter={() => {
-                  loadCartItems();
-                  setShowCartPreview(true);
-                }}
+                onMouseEnter={() => setShowCartPreview(true)}
                 onMouseLeave={() => setShowCartPreview(false)}
               >
                 <Button
@@ -1145,7 +1124,7 @@ function Header() {
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              cartService.clearCart();
+                              clearCart();
                               toast.success("Đã làm trống giỏ hàng");
                             }}
                             className="text-xs text-red-500 hover:text-red-700 font-medium transition-colors"
