@@ -217,7 +217,7 @@ export default function CartPage() {
                       <div className="flex gap-4">
                         <div className="relative shrink-0">
                           <img
-                            src={item.image}
+                            src={item.image || item.image_url || item.thumbnail || item.product_image || "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085"}
                             alt={item.name}
                             onClick={() => navigate(`/${item.slug || 'products/' + (item.product_id || item.id)}`)}
                             className="w-24 h-24 text-gray-900 dark:text-gray-100 rounded-xl object-cover border cursor-pointer hover:opacity-80 transition-opacity"
