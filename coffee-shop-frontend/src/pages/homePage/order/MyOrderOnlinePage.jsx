@@ -442,9 +442,7 @@ export default function MyOrderOnlinePage() {
             </>
           )}
         </div>
-      </section>
-
-      
+      </section>     
     </div>
   );
 }

@@ -182,6 +182,8 @@ export default function AdminDiscounts() {
     );
   }
 
+  const discountToDelete = data.find((item) => item.id === deleteId);
+
   return (
     <div className="p-6">
       {/* HEADER */}
@@ -385,7 +387,7 @@ export default function AdminDiscounts() {
           <AlertDialogHeader>
             <AlertDialogTitle>Xác nhận xóa</AlertDialogTitle>
             <AlertDialogDescription>
-              Bạn có chắc chắn muốn xóa mã giảm giá này?
+              Bạn có chắc chắn muốn xóa mã giảm giá <strong>{discountToDelete?.code}</strong>?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

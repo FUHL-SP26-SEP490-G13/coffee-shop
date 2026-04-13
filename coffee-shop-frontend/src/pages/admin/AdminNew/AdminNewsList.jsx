@@ -1,13 +1,8 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import {
   Loader2,
-  ChevronLeft,
-  ChevronRight,
   Trash2,
-  Eye,
   Edit,
-  Newspaper,
   Plus,
 } from "lucide-react";
 import newsService from "@/services/newsService";
@@ -25,6 +20,16 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import PaginationControl from "@/components/common/PaginationControl";
 import AdminNewsModal from "./AdminNewsModal";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const PAGE_SIZE = 7;
 
@@ -39,6 +44,8 @@ export default function AdminNewsList() {
   const [keyword, setKeyword] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedNewsId, setSelectedNewsId] = useState(null);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleteId, setDeleteId] = useState(null);
 
   const fetchNews = async (currentPage = 1, search = "") => {
     try {
@@ -73,13 +80,19 @@ export default function AdminNewsList() {
     setPage(1);
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Bạn có chắc muốn xóa bài viết này?")) return;
+  const handleDeleteClick = (id) => {
+    setDeleteId(id);
+    setDeleteConfirmOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteId) return;
 
     try {
-      setLoadingId(id);
+      setLoadingId(deleteId);
+      setDeleteConfirmOpen(false);
 
-      await newsService.delete(id);
+      await newsService.delete(deleteId);
       toast.success("Xóa bài viết thành công");
 
       if (data.length === 1 && page > 1) {
@@ -89,8 +102,10 @@ export default function AdminNewsList() {
       }
     } catch (error) {
       console.error(error);
+      toast.error("Có lỗi xảy ra khi xóa bài viết");
     } finally {
       setLoadingId(null);
+      setDeleteId(null);
     }
   };
 
@@ -233,7 +248,7 @@ export default function AdminNewsList() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleDelete(item.id)}
+                            onClick={() => handleDeleteClick(item.id)}
                             disabled={loadingId === item.id}
                             title="Xóa"
                             className="hover:text-red-600"
@@ -275,6 +290,27 @@ export default function AdminNewsList() {
         newsId={selectedNewsId}
         onSuccess={() => fetchNews(page, keyword)}
       />
+
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Xác nhận xóa</AlertDialogTitle>
+            <AlertDialogDescription>
+              Bạn có chắc chắn muốn xóa bài viết <strong>{data.find((item) => item.id === deleteId)?.title}</strong>?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={loadingId !== null}>Hủy</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              disabled={loadingId !== null}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Xóa
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
