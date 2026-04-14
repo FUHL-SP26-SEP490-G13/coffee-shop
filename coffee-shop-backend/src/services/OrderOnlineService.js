@@ -793,7 +793,7 @@ class OrderOnlineService {
       await OrderRepository.updateOrderStatus(orderId, "preparing");
 
       return {
-        order_id: orderId,
+        order_id: Number(orderId),
         user_id: order.user_id,
         status: "preparing",
       };
