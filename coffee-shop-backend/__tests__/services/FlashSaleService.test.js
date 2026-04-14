@@ -94,6 +94,23 @@ describe('FlashSaleService', () => {
       expect(FlashSaleRepository.create).toHaveBeenCalledWith(input.data);
       expect(result).toEqual(mockResult);
     });
+
+    it('FlashSaleService - create - TC-02: should throw error when active campaign time overlaps', async () => {
+      const input = {
+        title: 'Overlap campaign',
+        status: 'active',
+        start_time: '2026-04-14T10:00:00.000Z',
+        end_time: '2026-04-14T12:00:00.000Z',
+      };
+
+      FlashSaleRepository.checkOverlap.mockResolvedValue({ title: 'Flash trùng giờ' });
+
+      await expect(FlashSaleService.create(input)).rejects.toThrow(
+        'Không thể tạo. Bị trùng khung giờ với chiến dịch đang chạy: "Flash trùng giờ"'
+      );
+
+      expect(FlashSaleRepository.create).not.toHaveBeenCalled();
+    });
   });
 
   describe('update', () => {

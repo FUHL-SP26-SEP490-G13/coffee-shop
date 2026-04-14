@@ -410,6 +410,47 @@ describe('RecipeService', () => {
       expect(actualError).toContain(expectedError);
       expect(RecipeRepository.recipeExists).not.toHaveBeenCalled();
     });
+
+    it('RecipeService - createRecipe - TC-05: RCP-SVC-CR-006 - CRUD: CREATE', async () => {
+      const input = {
+        productSizeId: 10,
+        ingredientId: 2,
+        quantity: -3,
+      };
+      const mockIngredient = {
+        id: 2,
+        name: 'Sữa đặc',
+        unit_type: 'volume',
+        unit: 'ml',
+      };
+      const expected = {
+        id: 401,
+        product_size_id: 10,
+        ingredient_id: 2,
+        quantity: 7,
+      };
+      logCase({
+        tcid: 'RCP-SVC-CR-006',
+        crud: 'CREATE',
+        scenario: 'quantity âm vẫn được cộng dồn theo logic hiện tại',
+        input,
+        expected,
+      });
+
+      RecipeRepository.getIngredientById.mockResolvedValue(mockIngredient);
+      RecipeRepository.recipeExists.mockResolvedValue({ id: 401, quantity: 10 });
+      RecipeRepository.updateRecipe.mockResolvedValue(expected);
+
+      const result = await RecipeService.createRecipe(
+        input.productSizeId,
+        input.ingredientId,
+        input.quantity
+      );
+      logReality(result);
+
+      expect(RecipeRepository.updateRecipe).toHaveBeenCalledWith(401, 2, 7);
+      expect(result).toEqual(expected);
+    });
   });
 
   describe('updateRecipe', () => {

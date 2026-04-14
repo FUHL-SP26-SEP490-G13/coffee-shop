@@ -96,6 +96,12 @@ describe("BannerService", () => {
         )
       ).toThrow(expectedError);
     });
+
+    it("BannerService - validateDateRange - TC-05: should throw error when start date is full-space string", () => {
+      expect(() =>
+        BannerService.validateDateRange("        ", "2025-01-01T00:00:00")
+      ).toThrow("Ngày bắt đầu hoặc ngày kết thúc không hợp lệ");
+    });
   });
 
   describe("create", () => {

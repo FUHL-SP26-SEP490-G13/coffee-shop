@@ -355,5 +355,20 @@ describe('AreaService', () => {
       expect(AreaRepository.db.query).toHaveBeenCalled();
       expect(result).toHaveLength(1);
     });
+
+    it('AreaService - searchAreas - TC-02: should keep full-space keyword as raw LIKE input', async () => {
+      const input = { keyword: '        ', limit: 5, offset: 2 };
+      AreaRepository.db = {
+        query: jest.fn().mockResolvedValue([[]]),
+      };
+
+      const result = await AreaService.searchAreas(input.keyword, { limit: input.limit, offset: input.offset });
+
+      expect(AreaRepository.db.query).toHaveBeenCalledWith(
+        expect.any(String),
+        ['%        %', 5, 2]
+      );
+      expect(result).toEqual([]);
+    });
   });
 });

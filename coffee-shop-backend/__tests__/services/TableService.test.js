@@ -77,6 +77,26 @@ describe('TableService', () => {
       expect(params).toEqual(['available']);
       expect(result).toEqual(rows);
     });
+
+    it('TableService - getAllTables - TC-03: should still append status filter when status is full-space', async () => {
+      const input = { status: '   ' };
+      const rows = [];
+      TableRepository.db.query.mockResolvedValue([rows]);
+
+      const result = await TableService.getAllTables(input);
+
+      logCase({
+        title: 'TableService - getAllTables - TC-03',
+        input,
+        expected: rows,
+        reality: result,
+      });
+
+      const [query, params] = TableRepository.db.query.mock.calls[0];
+      expect(query).toContain('AND t.status = ?');
+      expect(params).toEqual(['   ']);
+      expect(result).toEqual(rows);
+    });
   });
 
   describe('getTableById', () => {

@@ -121,6 +121,17 @@ describe('AuthService - Reset Password Flow', () => {
       expect(EmailVerificationRepository.create).not.toHaveBeenCalled();
       expect(EmailService.sendPasswordResetOtpEmail).not.toHaveBeenCalled();
     });
+
+    it('AuthService - resetPassword - TC-03: should return generic message when email is full-space string', async () => {
+      UserRepository.findByEmail.mockResolvedValue(null);
+
+      const result = await AuthService.resetPassword('        ');
+
+      expect(result.message).toBe('Nếu email tồn tại, mã OTP đã được gửi đến email của bạn');
+      expect(result.otp).toBeUndefined();
+      expect(UserRepository.findByEmail).toHaveBeenCalledWith('        ');
+      expect(EmailVerificationRepository.create).not.toHaveBeenCalled();
+    });
   });
 
   // method 2: verifyForgotPasswordOtp

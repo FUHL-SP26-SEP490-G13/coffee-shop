@@ -403,6 +403,39 @@ describe('CategoryService', () => {
       expect(CategoryRepository.findBySlug).not.toHaveBeenCalled();
       expect(CategoryRepository.update).toHaveBeenCalledWith(7, { image_url: 'new.jpg' });
     });
+
+    it('CategoryService - updateCategory - TC-05: xử lý name full-space bằng trim trước khi cập nhật', async () => {
+      const input = {
+        id: 8,
+        data: { name: '        ' },
+      };
+
+      logCase({
+        method: 'updateCategory',
+        tcid: 'TC-05',
+        crud: 'UPDATE',
+        input,
+        outputExpect: 'Trim name full-space thành chuỗi rỗng và vẫn cập nhật slug',
+      });
+
+      CategoryRepository.findById.mockResolvedValue({
+        id: 8,
+        name: 'Đồ uống',
+        code: 'DU01',
+        is_deleted: 0,
+      });
+      CategoryRepository.findByName.mockResolvedValue(null);
+      CategoryRepository.findBySlug.mockResolvedValue(null);
+      CategoryRepository.update.mockResolvedValue({ id: 8, name: '' });
+
+      const result = await CategoryService.updateCategory(input.id, input.data);
+      logReality(result);
+
+      expect(CategoryRepository.update).toHaveBeenCalledWith(8, {
+        name: '',
+        slug: 'default-slug',
+      });
+    });
   });
 
   describe('deleteCategory', () => {

@@ -24,8 +24,6 @@ describe('AuthService - Register', () => {
       phone: '0912345678',
       username: 'newuser',
       password: 'Password123!',
-      gender: 1,
-      dob: '2000-01-01',
     };
 
     const buildRegisterInput = (overrides = {}) => ({
@@ -58,8 +56,6 @@ describe('AuthService - Register', () => {
         username: input.username,
         first_name: input.first_name,
         last_name: input.last_name,
-        gender: input.gender,
-        dob: input.dob,
         role_id: 4,
         isActive: 1,
         isVerified: 0,
@@ -76,8 +72,6 @@ describe('AuthService - Register', () => {
           username: mockCreatedUser.username,
           first_name: mockCreatedUser.first_name,
           last_name: mockCreatedUser.last_name,
-          gender: mockCreatedUser.gender,
-          dob: mockCreatedUser.dob,
           role_id: mockCreatedUser.role_id,
           isActive: mockCreatedUser.isActive,
           isVerified: mockCreatedUser.isVerified,
@@ -106,8 +100,6 @@ describe('AuthService - Register', () => {
           password: 'hashed-password',
           first_name: input.first_name,
           last_name: input.last_name,
-          gender: input.gender,
-          dob: input.dob,
           isActive: 1,
           isVerified: 0,
         })
@@ -238,8 +230,6 @@ describe('AuthService - Register', () => {
         username: input.username,
         first_name: input.first_name,
         last_name: input.last_name,
-        gender: input.gender,
-        dob: input.dob,
         role_id: 4,
         isActive: 1,
         isVerified: 0,
@@ -290,8 +280,6 @@ describe('AuthService - Register', () => {
         username: input.username,
         first_name: input.first_name,
         last_name: input.last_name,
-        gender: input.gender,
-        dob: input.dob,
         role_id: 4,
         isActive: 1,
         isVerified: 0,
@@ -479,6 +467,34 @@ describe('AuthService - Register', () => {
 
       // OUTPUT REALITY
       console.log('🎯 OUTPUT REALITY: throw error -', expectedError);
+
+      expect(UserRepository.findByEmail).not.toHaveBeenCalled();
+      expect(UserRepository.create).not.toHaveBeenCalled();
+    });
+
+    it('AuthService - register - TC-13: should throw error when phone is full-space string', async () => {
+      const input = buildRegisterInput({
+        email: 'space.phone.tc13@example.com',
+        phone: '        ',
+        username: 'space_phone_tc13',
+      });
+
+      await expect(AuthService.register(input)).rejects.toThrow(
+        'Số điện thoại phải có 10-11 chữ số hoặc bắt đầu bằng +84'
+      );
+
+      expect(UserRepository.findByEmail).not.toHaveBeenCalled();
+      expect(UserRepository.create).not.toHaveBeenCalled();
+    });
+
+    it('AuthService - register - TC-14: should throw error when email format is invalid', async () => {
+      const input = buildRegisterInput({
+        email: 'invalid-email-format',
+        phone: '0912345614',
+        username: 'invalid_email_tc14',
+      });
+
+      await expect(AuthService.register(input)).rejects.toThrow('Email không hợp lệ');
 
       expect(UserRepository.findByEmail).not.toHaveBeenCalled();
       expect(UserRepository.create).not.toHaveBeenCalled();

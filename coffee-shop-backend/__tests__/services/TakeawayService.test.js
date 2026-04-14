@@ -194,6 +194,41 @@ describe("TakeawayService", () => {
       expect(actualError).toContain(expectedError);
       expect(TakeawayRepository.getConnection).not.toHaveBeenCalled();
     });
+
+    it("TakeawayService - createTakeawayOrder - TC-04: TKW-SVC-CR-004 - CRUD: CREATE", async () => {
+      const input = {
+        payload: {
+          payment_method: "cash",
+          items: [{ product_size_id: "   ", quantity: 1 }],
+        },
+        staffUser: { id: 2 },
+      };
+      const expectedError = "Sản phẩm không tồn tại";
+      logCase({
+        tcid: "TKW-SVC-CR-004",
+        crud: "CREATE",
+        scenario: "lỗi product_size_id chỉ chứa khoảng trắng",
+        input,
+        expected: { error: expectedError },
+      });
+
+      let actualError = null;
+      try {
+        await TakeawayService.createTakeawayOrder(input.payload, input.staffUser);
+      } catch (error) {
+        actualError = error.message;
+      }
+      logReality({ error: actualError });
+
+      expect(actualError).toContain(expectedError);
+      expect(TakeawayRepository.getConnection).toHaveBeenCalled();
+      expect(mockConnection.rollback).toHaveBeenCalled();
+      expect(mockConnection.release).toHaveBeenCalled();
+      expect(TakeawayRepository.findProductSizeById).toHaveBeenCalledWith(
+        mockConnection,
+        "   "
+      );
+    });
   });
 
   describe("assignToBarista", () => {

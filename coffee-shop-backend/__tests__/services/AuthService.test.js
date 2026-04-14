@@ -313,8 +313,6 @@ describe('AuthService - Login', () => {
       phone: '0912345678',
       username: 'newuser',
       password: 'Password123!',
-      gender: 'male',
-      dob: '2000-01-01',
     };
 
     const createdUser = {
@@ -324,8 +322,6 @@ describe('AuthService - Login', () => {
       password: 'hashed-password',
       first_name: 'Test',
       last_name: 'User',
-      gender: 'male',
-      dob: '2000-01-01',
       role_id: 4,
       isActive: 1,
       isVerified: 0,
@@ -356,8 +352,6 @@ describe('AuthService - Login', () => {
           username: createdUser.username,
           first_name: createdUser.first_name,
           last_name: createdUser.last_name,
-          gender: createdUser.gender,
-          dob: createdUser.dob,
           role_id: createdUser.role_id,
           isActive: createdUser.isActive,
           isVerified: createdUser.isVerified,
@@ -386,8 +380,6 @@ describe('AuthService - Login', () => {
           password: 'hashed-password',
           first_name: registerInput.first_name,
           last_name: registerInput.last_name,
-          gender: registerInput.gender,
-          dob: registerInput.dob,
           isActive: 1,
           isVerified: 0,
         })
@@ -474,6 +466,18 @@ describe('AuthService - Login', () => {
       console.log('🎯 OUTPUT REALITY: throw error -', expectedError);
 
       expect(UserRepository.findByUsername).toHaveBeenCalledWith(registerInput.username);
+      expect(UserRepository.create).not.toHaveBeenCalled();
+    });
+
+    it('AuthService - register - TC-05: should throw error when email format is invalid', async () => {
+      const invalidEmailInput = {
+        ...registerInput,
+        email: 'invalid-email',
+      };
+
+      await expect(AuthService.register(invalidEmailInput)).rejects.toThrow('Email không hợp lệ');
+
+      expect(UserRepository.findByEmail).not.toHaveBeenCalled();
       expect(UserRepository.create).not.toHaveBeenCalled();
     });
   });

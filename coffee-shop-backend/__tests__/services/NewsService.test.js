@@ -72,6 +72,34 @@ describe("NewsService", () => {
       expect(NewsRepository.findBySlug).toHaveBeenNthCalledWith(3, "tin-hot-2");
       expect(result).toBe("tin-hot-2");
     });
+
+    it("NewsService - generateUniqueSlug - TC-03: should return empty slug when title contains only spaces", async () => {
+      console.log("\n" + "=".repeat(50));
+      console.log(
+        "NewsService - GENERATE_UNIQUE_SLUG - TC-3: Tiêu đề chỉ khoảng trắng trả về slug rỗng"
+      );
+      console.log("=".repeat(50));
+
+      // INPUT
+      const input = { title: "     " };
+      console.log("\n📝 INPUT:", JSON.stringify(input, null, 2));
+
+      // Arrange
+      NewsRepository.findBySlug.mockResolvedValue(null);
+
+      // OUTPUT EXPECT
+      console.log("✅ OUTPUT EXPECT: \"\"");
+
+      // Act
+      const result = await NewsService.generateUniqueSlug(input.title);
+
+      // OUTPUT REALITY
+      console.log("🎯 OUTPUT REALITY:", JSON.stringify(result));
+
+      // Assert
+      expect(NewsRepository.findBySlug).toHaveBeenCalledWith("");
+      expect(result).toBe("");
+    });
   });
 
   describe("getAllPublished", () => {
