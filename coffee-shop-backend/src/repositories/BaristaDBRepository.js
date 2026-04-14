@@ -84,10 +84,10 @@ class BaristaDBRepository {
 
     const currentSession = await CashSessionRepository.getCurrentSession();
     if (currentSession && currentSession.id) {
-       dateFilterSql += " AND (o.cash_session_id IS NULL OR o.cash_session_id = ?)";
+       dateFilterSql += " AND (o.status IN ('pending', 'preparing', 'served', 'delivering') OR o.cash_session_id IS NULL OR o.cash_session_id = ?)";
        queryParams.push(currentSession.id);
     } else {
-       dateFilterSql += " AND o.cash_session_id IS NULL";
+       dateFilterSql += " AND (o.status IN ('pending', 'preparing', 'served', 'delivering') OR o.cash_session_id IS NULL)";
     }
 
     const [rows] = await pool.query(

@@ -9,11 +9,11 @@ class CashSessionService {
     const shiftEndTime = currentShift ? currentShift.end_time : null;
 
     if (session) {
-      const generatedSystemCash = await repository.getSystemCash(session.opened_at);
+      const generatedSystemCash = await repository.getSystemCash(session.id);
       session.closing_cash_system = session.opening_cash + generatedSystemCash;
       session.generated_cash = generatedSystemCash;
 
-      const stats = await repository.getHandoverStats(session.opened_at);
+      const stats = await repository.getHandoverStats();
       session.handoverStats = stats;
     }
 
@@ -77,7 +77,7 @@ class CashSessionService {
       shiftEndTimeStr = currentShift ? currentShift.end_time : null;
     }
 
-    const generatedSystemCash = await repository.getSystemCash(session.opened_at);
+    const generatedSystemCash = await repository.getSystemCash(session.id);
     const closingCashSystem = session.opening_cash + generatedSystemCash;
     const actual = Number(actualCash) || 0;
     const difference = actual - closingCashSystem;

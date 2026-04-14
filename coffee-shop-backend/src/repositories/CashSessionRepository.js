@@ -94,15 +94,15 @@ class CashSessionRepository {
     return rows[0]?.end_time || null;
   }
 
-  async getSystemCash(openedAt) {
+  async getSystemCash(sessionId) {
     const [rows] = await pool.query(
       `SELECT IFNULL(SUM(op.paid_amount), 0) AS total_cash
        FROM order_payments op
        JOIN orders o ON o.id = op.order_id
        WHERE op.payment_method = 'cash' 
          AND (op.payment_status = 'paid' OR o.is_paid = 1)
-         AND o.created_at >= ?`,
-      [openedAt]
+         AND o.cash_session_id = ?`,
+      [sessionId]
     );
     return Number(rows[0]?.total_cash || 0);
   }
@@ -113,7 +113,19 @@ class CashSessionRepository {
        VALUES (?, ?, NOW(), ?, 'open', ?)`,
       [code, opened_by, opening_cash, shift_registration_id || null]
     );
-    return result.insertId;
+    const sessionId = result.insertId;
+
+    // Khi mở ca mới, các đơn hàng từ ca trước chưa thanh toán sẽ được cập nhật ID ca mới
+    // để doanh thu tiền mặt (khi thu) sẽ được tính cho ca này.
+    await pool.query(
+      `UPDATE orders 
+       SET cash_session_id = ? 
+       WHERE is_paid = 0 
+         AND status NOT IN ('completed', 'cancelled')`,
+      [sessionId]
+    );
+
+    return sessionId;
   }
 
   async closeSession({ id, closed_by, closing_cash_actual, closing_cash_system, cash_difference, closing_note }) {
@@ -158,19 +170,16 @@ class CashSessionRepository {
     return rows;
   }
 
-  async getHandoverStats(openedAt) {
+  async getHandoverStats() {
     const [rows] = await pool.query(
       `SELECT 
          SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending_count,
          SUM(CASE WHEN status = 'preparing' THEN 1 ELSE 0 END) as preparing_count,
-         SUM(CASE WHEN status = 'preparing_done' THEN 1 ELSE 0 END) as done_count,
-         SUM(CASE WHEN is_paid = 0 AND status != 'cancelled' THEN 1 ELSE 0 END) as unpaid_count
-       FROM orders
-       WHERE created_at >= ?`,
-      [openedAt]
+         SUM(CASE WHEN status = 'preparing_done' OR status = 'served' THEN 1 ELSE 0 END) as done_count,
+         SUM(CASE WHEN is_paid = 0 AND status NOT IN ('completed', 'cancelled') THEN 1 ELSE 0 END) as unpaid_count
+       FROM orders`
     );
 
-    // Filter purely active orders for pending, preparing, done:
     const stats = rows[0] || {};
     return {
       pending_count: Number(stats.pending_count || 0),
