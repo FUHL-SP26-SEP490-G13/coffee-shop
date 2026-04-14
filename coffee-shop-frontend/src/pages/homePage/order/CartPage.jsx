@@ -11,6 +11,16 @@ import { useStoreHours } from "@/hooks/useStoreHours";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import CartSuccessModal from "@/pages/homePage/order/CartSuccessModal";
 import QuickViewModal from "@/pages/homePage/product/QuickViewModal";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function CartPage() {
   useDocumentTitle("Giỏ hàng");
@@ -19,11 +29,12 @@ export default function CartPage() {
   const { cart, updateToppings, updateQuantity, updateItemSize, removeTopping, removeItem, clearCart, getTotalAmount, getItemUnitPrice, getItemSubtotal } = useCartStore();
   const [allToppings, setAllToppings] = useState([]);
   const [editingIndex, setEditingIndex] = useState(null);
-  const [productSizesMap, setProductSizesMap] = useState({});
+  const [productInfoMap, setProductInfoMap] = useState({});
   const [activeSale, setActiveSale] = useState(null);
   const [timeLeft, setTimeLeft] = useState(null);
   const [addedCartItem, setAddedCartItem] = useState(null);
   const [quickViewProduct, setQuickViewProduct] = useState(null);
+  const [isClearDialogOpen, setIsClearDialogOpen] = useState(false);
 
   useEffect(() => {
     const fetchToppings = async () => {
@@ -73,25 +84,24 @@ export default function CartPage() {
   useEffect(() => {
     const fetchSizes = async () => {
       const ids = [...new Set(cart.map((item) => item.product_id || item.id).filter(Boolean))];
-      const missingIds = ids.filter(id => !productSizesMap[id]);
+      const missingIds = ids.filter(id => !productInfoMap[id]);
 
       if (missingIds.length === 0) return;
 
-      const map = { ...productSizesMap };
+      const map = { ...productInfoMap };
       await Promise.all(
         missingIds.map(async (id) => {
           try {
             const res = await productService.getById(id);
-            const sizes = res?.data?.data?.sizes || res?.data?.sizes || [];
-            if (sizes.length > 0) {
-              map[id] = sizes;
-            }
+            const data = res?.data?.data || res?.data || {};
+            const sizes = data.sizes || [];
+            map[id] = { sizes, category_id: data.category_id };
           } catch (error) {
-            console.error("Lỗi lấy size", error);
+            console.error("Lỗi lấy thông tin sản phẩm", error);
           }
         })
       );
-      setProductSizesMap(map);
+      setProductInfoMap(map);
     };
 
     fetchSizes();
@@ -140,10 +150,10 @@ export default function CartPage() {
 
   const handleSizeChange = (item, newSizeId) => {
     const productId = item.product_id || item.id;
-    const sizes = productSizesMap[productId];
-    if (!sizes) return;
+    const info = productInfoMap[productId];
+    if (!info || !info.sizes) return;
 
-    const newSizeObj = sizes.find((s) => Number(s.id) === Number(newSizeId));
+    const newSizeObj = info.sizes.find((s) => Number(s.id) === Number(newSizeId));
     if (!newSizeObj) return;
 
     let newPrice = Number(newSizeObj.price);
@@ -157,22 +167,17 @@ export default function CartPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900">
-      <section className="flex-1 w-full px-4 sm:px-6 lg:px-8 py-10">
-        <div className="w-full mx-auto">
-          <div className="flex items-center justify-between gap-4 mb-8 flex-wrap">
+      <section className="flex-1 w-full px-4 sm:px-6 lg:px-8 py-10 flex flex-col">
+        <div className="w-full mx-auto flex-1 flex flex-col">
+          <div className="flex items-center justify-between gap-4 mb-8 flex-wrap shrink-0">
             <h1 className="text-2xl md:text-2xl font-semibold text-amber-900 dark:text-amber-500" style={{ fontFamily: 'serif' }}>Giỏ hàng</h1>
 
-            <div className="flex gap-3">
+            <div className="flex gap-3 shrink-0">
               {cart.length > 0 && (
                 <Button
                   variant="ghost"
                   className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
-                  onClick={() => {
-                    if (window.confirm("Bạn có chắc muốn xóa tất cả sản phẩm khỏi giỏ hàng không?")) {
-                      clearCart();
-                      toast.success("Đã làm trống giỏ hàng");
-                    }
-                  }}
+                  onClick={() => setIsClearDialogOpen(true)}
                 >
                   Xóa tất cả
                 </Button>
@@ -181,24 +186,26 @@ export default function CartPage() {
           </div>
 
           {cart.length === 0 ? (
-            <div className="text-center py-20 flex flex-col items-center justify-center bg-gray-50/50 dark:bg-gray-800/20 rounded-3xl border border-dashed border-gray-200 dark:border-gray-700">
-              <div className="w-24 h-24 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center mb-6">
-                <ShoppingBag className="w-12 h-12 text-amber-500" strokeWidth={1.5} />
+            <div className="flex-1 flex flex-col items-center pt-8 w-full">
+              <div className="text-center py-16 px-6 w-full flex flex-col items-center justify-center bg-gray-50/50 dark:bg-gray-800/20 rounded-3xl border border-dashed border-gray-200 dark:border-gray-700">
+                <div className="w-24 h-24 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center mb-6">
+                  <ShoppingBag className="w-12 h-12 text-amber-500" strokeWidth={1.5} />
+                </div>
+                <h3 className="text-md font-semibold text-gray-600 dark:text-gray-100 mb-5">
+                  Giỏ hàng của bạn đang trống
+                </h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-8 max-w-sm">
+                  Giỏ hàng đang kêu réo vì trống trơn. Khám phá bộ sưu tập đồ uống và chọn món bạn yêu thích ngay nhé!
+                </p>
+                <Button
+                  onClick={() => navigate("/products")}
+                  size="lg"
+                  className="bg-amber-600 hover:bg-amber-700 text-white rounded-full px-8 shadow-md shadow-amber-600/20"
+                >
+                  <ShoppingBag className="w-5 h-5 mr-2" />
+                  Xem Menu ngay
+                </Button>
               </div>
-              <h3 className="text-md font-semibold text-gray-600 dark:text-gray-100 mb-5">
-                Giỏ hàng của bạn đang trống
-              </h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-8 max-w-sm">
-                Giỏ hàng đang kêu réo vì trống trơn. Khám phá bộ sưu tập đồ uống và chọn món bạn yêu thích ngay nhé!
-              </p>
-              <Button
-                onClick={() => navigate("/products")}
-                size="lg"
-                className="bg-amber-600 hover:bg-amber-700 text-white rounded-full px-8 shadow-md shadow-amber-600/20"
-              >
-                <ShoppingBag className="w-5 h-5 mr-2" />
-                Xem Menu ngay
-              </Button>
             </div>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -246,13 +253,13 @@ export default function CartPage() {
 
                               <div className="mt-2 flex items-center gap-2">
                                 <span className="text-sm text-gray-500 dark:text-gray-400">Size:</span>
-                                {productSizesMap[item.product_id || item.id]?.length > 0 ? (
+                                {productInfoMap[item.product_id || item.id]?.sizes?.length > 0 ? (
                                   <select
                                     value={item.productSizeId || item.product_size_id}
                                     onChange={(e) => handleSizeChange(item, e.target.value)}
                                     className="border rounded px-2 py-1 text-sm bg-gray-50 dark:bg-gray-950 outline-none hover:border-amber-500 transition-colors cursor-pointer"
                                   >
-                                    {productSizesMap[item.product_id || item.id].map(size => (
+                                    {productInfoMap[item.product_id || item.id].sizes.map(size => (
                                       <option key={size.id} value={size.id}>
                                         {size.size}
                                       </option>
@@ -377,19 +384,25 @@ export default function CartPage() {
                               +
                             </button>
 
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setEditingIndex(isEditing ? null : index)
+                            {allToppings.filter(t => {
+                              let ids = t.category_ids || [];
+                              if (typeof ids === 'string') {
+                                try { ids = JSON.parse(ids); } catch(e) { ids = []; }
                               }
-                              className="text-amber-600 text-sm font-medium hover:underline px-2"
-                            >
-                              {isEditing ? "Đóng thêm topping" : "Thêm topping"}
-                            </button>
+                              return Array.isArray(ids) && ids.includes(productInfoMap[item.product_id || item.id]?.category_id);
+                            }).length > 0 && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setEditingIndex(isEditing ? null : index)
+                                }
+                                className="text-amber-600 text-sm font-medium hover:underline px-2"
+                              >
+                                {isEditing ? "Đóng thêm topping" : "Thêm topping"}
+                              </button>
+                            )}
 
                             <div className="flex items-center gap-2 ml-auto border-l pl-3 dark:border-gray-800">
-
-
                               <button
                                 type="button"
                                 onClick={() => {
@@ -415,7 +428,13 @@ export default function CartPage() {
                           </p>
 
                           <div className="max-h-[280px] overflow-y-auto custom-scrollbar pr-2 space-y-3">
-                            {allToppings.map((topping) => {
+                            {allToppings.filter(t => {
+                              let ids = t.category_ids || [];
+                              if (typeof ids === 'string') {
+                                try { ids = JSON.parse(ids); } catch(e) { ids = []; }
+                              }
+                              return Array.isArray(ids) && ids.includes(productInfoMap[item.product_id || item.id]?.category_id);
+                            }).map((topping) => {
                               const checked = isToppingSelected(
                                 item,
                                 topping.id
@@ -504,6 +523,30 @@ export default function CartPage() {
         nextOpenMessage={nextOpenMessage}
         notifySuccess={(item) => setAddedCartItem(item)}
       />
+
+      <AlertDialog open={isClearDialogOpen} onOpenChange={setIsClearDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Xác nhận xóa giỏ hàng</AlertDialogTitle>
+            <AlertDialogDescription>
+              Bạn có chắc chắn muốn xóa tất cả sản phẩm khỏi giỏ hàng không?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Hủy</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700"
+              onClick={() => {
+                clearCart();
+                toast.success("Đã làm trống giỏ hàng");
+                setIsClearDialogOpen(false);
+              }}
+            >
+              Xóa tất cả
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

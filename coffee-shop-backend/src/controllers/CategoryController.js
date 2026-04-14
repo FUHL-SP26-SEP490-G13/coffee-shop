@@ -46,6 +46,7 @@ class CategoryController {
         name: req.body.name,
         code: req.body.code,
         image_url: imageUrl,
+        type: req.body.type !== undefined ? req.body.type : null,
       };
 
       const category = await CategoryService.createCategory(categoryData);
@@ -85,6 +86,10 @@ class CategoryController {
 
       if (req.body.code) {
         categoryData.code = req.body.code;
+      }
+
+      if (req.body.type !== undefined) {
+        categoryData.type = req.body.type;
       }
 
       if (req.file) {

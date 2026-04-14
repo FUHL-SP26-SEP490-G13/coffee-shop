@@ -7,8 +7,6 @@ import {
   Newspaper,
 } from "lucide-react";
 import newsService from "@/services/newsService";
-
-
 import { Button } from "@/components/ui/button";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 

@@ -558,8 +558,6 @@ export default function MyOrderDetailPage() {
           </div>
         </div>
       </section>
-
-
     </div>
   );
 }

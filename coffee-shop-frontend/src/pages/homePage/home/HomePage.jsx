@@ -12,14 +12,9 @@ import HomeBanner from "@/pages/homePage/banner/HomeBanner";
 import FlashSaleSection from "@/pages/homePage/product/FlashSaleSection";
 import BestSellerSection from "@/pages/homePage/product/BestSellerSection";
 import ReviewSection from "@/pages/homePage/review/ReviewSection";
-
 import "swiper/css";
 import "swiper/css/pagination";
 import "swiper/css/navigation";
-
-
-
-
 
 export default function HomePage() {
   const [activeBannerIndex, setActiveBannerIndex] = useState(0);

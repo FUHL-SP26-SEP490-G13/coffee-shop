@@ -56,18 +56,21 @@ export default function AdminProducts() {
   };
 
   const fetchProducts = useCallback(() => {
+    const params = {
+      page,
+      limit: PAGE_SIZE,
+    };
+    if (filterCategory) params.category_id = filterCategory;
+    if (filterStatus) params.status = filterStatus;
+
     if (debouncedQuery.trim()) {
       return productService.search({
         keyword: debouncedQuery.trim(),
-        page,
-        limit: PAGE_SIZE,
+        ...params,
       });
     }
-    return productService.getAll({
-      page,
-      limit: PAGE_SIZE,
-    });
-  }, [page, debouncedQuery]);
+    return productService.getAll(params);
+  }, [page, debouncedQuery, filterCategory, filterStatus]);
 
   const {
     data: response,
@@ -94,13 +97,7 @@ export default function AdminProducts() {
     ? categoryResponse.data
     : [];
 
-  const filteredProducts = useMemo(() => {
-    return products.filter((p) => {
-      const matchCategory = filterCategory === '' || String(p.category_id) === filterCategory;
-      const matchStatus = filterStatus === '' || p.status === filterStatus;
-      return matchCategory && matchStatus;
-    });
-  }, [products, filterCategory, filterStatus]);
+  const filteredProducts = products;
 
   const getThumbnail = (product) => {
     if (!product.images || product.images.length === 0) {

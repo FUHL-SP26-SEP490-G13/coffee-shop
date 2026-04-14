@@ -152,35 +152,35 @@ const AdminEndOfDayReport = () => {
 
   if (loading && data.length === 0) {
     return (
-      <div className="min-h-screen bg-slate-50/50 p-6">
+      <div className="min-h-screen bg-background p-6">
         <div className="animate-pulse space-y-6">
-          <div className="rounded-2xl border bg-white p-5 shadow-sm">
-            <div className="h-6 w-48 rounded bg-slate-200" />
-            <div className="mt-3 h-4 w-80 rounded bg-slate-100" />
+          <div className="rounded-2xl border bg-card text-card-foreground p-5 shadow-sm">
+            <div className="h-6 w-48 rounded bg-muted border border-border" />
+            <div className="mt-3 h-4 w-80 rounded bg-muted" />
             <div className="mt-6 flex flex-wrap gap-3">
-              <div className="h-10 w-36 rounded-xl bg-slate-100" />
-              <div className="h-10 w-48 rounded-xl bg-slate-100" />
-              <div className="h-10 w-52 rounded-xl bg-slate-100" />
+              <div className="h-10 w-36 rounded-xl bg-muted" />
+              <div className="h-10 w-48 rounded-xl bg-muted" />
+              <div className="h-10 w-52 rounded-xl bg-muted" />
             </div>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             {Array.from({ length: 4 }).map((_, index) => (
-              <div key={index} className="rounded-2xl border bg-white p-4 shadow-sm">
-                <div className="h-3 w-24 rounded bg-slate-200" />
-                <div className="mt-3 h-8 w-32 rounded bg-slate-100" />
+              <div key={index} className="rounded-2xl border bg-card text-card-foreground p-4 shadow-sm">
+                <div className="h-3 w-24 rounded bg-muted border border-border" />
+                <div className="mt-3 h-8 w-32 rounded bg-muted" />
               </div>
             ))}
           </div>
 
-          <div className="overflow-hidden rounded-2xl border bg-white shadow-sm">
-            <div className="h-14 bg-slate-100" />
+          <div className="overflow-hidden rounded-2xl border bg-card text-card-foreground shadow-sm">
+            <div className="h-14 bg-muted" />
             {Array.from({ length: 6 }).map((_, index) => (
               <div key={index} className="grid grid-cols-9 gap-3 border-t px-4 py-4">
                 {Array.from({ length: 9 }).map((__, cellIndex) => (
                   <div
                     key={cellIndex}
-                    className={`h-4 rounded ${cellIndex % 3 === 0 ? "bg-slate-200" : "bg-slate-100"}`}
+                    className={`h-4 rounded ${cellIndex % 3 === 0 ? "bg-muted border border-border" : "bg-muted"}`}
                   />
                 ))}
               </div>
@@ -192,14 +192,14 @@ const AdminEndOfDayReport = () => {
   }
 
   return (
-    <div className="report-shell space-y-6 p-6 min-h-screen bg-slate-50/50 print:bg-white print:p-0">
+    <div className="report-shell space-y-6 p-6 min-h-screen bg-background print:bg-card text-card-foreground print:p-0">
       {/* Header - Hidden on print */}
-      <div className="report-card flex items-center justify-between gap-4 rounded-2xl border bg-gradient-to-br from-white via-slate-50 to-sky-50/60 p-5 shadow-sm print:hidden">
+      <div className="report-card flex items-center justify-between gap-4 rounded-2xl border bg-card text-card-foreground p-5 shadow-sm print:hidden">
         <div className="space-y-1">
-          <div className="inline-flex items-center rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-medium text-sky-700">
+          <div className="inline-flex items-center rounded-full border border-sky-200 bg-sky-50 dark:bg-sky-900/30 px-3 py-1 text-xs font-medium text-sky-700 dark:text-sky-200">
             Báo cáo cuối ngày
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Báo cáo tổng kết</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">Báo cáo tổng kết</h1>
           <p className="text-sm text-muted-foreground">Chỉ bao gồm các đơn hàng đã thanh toán</p>
         </div>
         <div className="flex flex-wrap items-center justify-end gap-3">
@@ -263,24 +263,24 @@ const AdminEndOfDayReport = () => {
             className={`report-card rounded-2xl border bg-gradient-to-br ${metric.tone} p-4 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md`}
             style={{ animationDelay: `${index * 70}ms` }}
           >
-            <p className="text-xs uppercase tracking-[0.24em] text-slate-500">{metric.label}</p>
-            <div className="mt-2 text-2xl font-semibold tracking-tight text-slate-900">{metric.value}</div>
+            <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">{metric.label}</p>
+            <div className="mt-2 text-2xl font-semibold tracking-tight text-foreground">{metric.value}</div>
           </div>
         ))}
       </div>
 
       {/* Main Table */}
-      <div className="report-card relative overflow-hidden rounded-2xl border bg-white shadow-sm transition-all duration-300 print:border-none print:shadow-none">
+      <div className="report-card relative overflow-hidden rounded-2xl border bg-card text-card-foreground shadow-sm transition-all duration-300 print:border-none print:shadow-none">
         {isRefreshing && (
-          <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-center justify-center bg-white/70 py-3 backdrop-blur-sm">
+          <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-center justify-center bg-card/70 dark:bg-slate-900/70 py-3 backdrop-blur-sm">
             <Loader2 className="mr-2 h-4 w-4 animate-spin text-primary" />
-            <span className="text-sm font-medium text-slate-600">Đang cập nhật dữ liệu</span>
+            <span className="text-sm font-medium text-muted-foreground">Đang cập nhật dữ liệu</span>
           </div>
         )}
         <div className={`overflow-x-auto transition-opacity duration-300 ${isRefreshing ? "opacity-70" : "opacity-100"}`}>
           <table className="w-full text-sm">
             <thead className="sticky top-0 z-[1]">
-              <tr className="border-b font-medium text-slate-900">
+              <tr className="border-b font-medium text-foreground">
                 <th className="px-4 py-3 text-left">Mã chứng từ</th>
                 <th className="px-4 py-3 text-left">Khách hàng</th>
                 <th className="px-4 py-3 text-left">Nhân viên</th>
@@ -294,7 +294,7 @@ const AdminEndOfDayReport = () => {
             </thead>
             <tbody>
               {/* Grouping row */}
-              <tr className="bg-[#fefce8] font-medium border-b cursor-pointer transition-colors hover:bg-[#fff9c4]"
+              <tr className="bg-yellow-50 dark:bg-yellow-900/30 font-medium border-b cursor-pointer transition-colors hover:bg-yellow-100 dark:hover:bg-yellow-900/50"
                 onClick={() => {
                   const next = new Set(expandedRows);
                   if (next.has(0)) next.delete(0);
@@ -304,9 +304,9 @@ const AdminEndOfDayReport = () => {
                 style={{ animationDelay: "40ms" }}>
                 <td className="px-4 py-3 flex items-center gap-2">
                   {expandedRows.has(0) ? (
-                    <Minus className="h-4 w-4 text-slate-500" />
+                    <Minus className="h-4 w-4 text-muted-foreground" />
                   ) : (
-                    <Plus className="h-4 w-4 text-slate-500" />
+                    <Plus className="h-4 w-4 text-muted-foreground" />
                   )}
                   Hóa đơn: {data.length}
                 </td>
@@ -320,10 +320,10 @@ const AdminEndOfDayReport = () => {
               {expandedRows.has(0) && data.map((order, index) => (
                 <tr
                   key={order.orderId}
-                  className="report-row border-b transition-colors hover:bg-slate-50"
+                  className="report-row border-b transition-colors hover:bg-muted dark:hover:bg-muted/50"
                   style={{ "--row-index": index }}
                 >
-                  <td className="px-4 py-3 font-medium text-slate-700">#{order.orderId}</td>
+                  <td className="px-4 py-3 font-medium text-foreground">#{order.orderId}</td>
                   <td className="px-4 py-3">{order.customerName}</td>
                   <td className="px-4 py-3">{order.staffName}</td>
                   <td className="px-4 py-3">{format(new Date(order.time), "HH:mm dd/MM")}</td>
@@ -337,16 +337,16 @@ const AdminEndOfDayReport = () => {
 
               {data.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="px-4 py-8 text-center text-slate-500 italic">
+                  <td colSpan={9} className="px-4 py-8 text-center text-muted-foreground italic">
                     Không tìm thấy dữ liệu đã thanh toán trong khoảng thời gian này
                   </td>
                 </tr>
               )}
             </tbody>
             {data.length > 0 && (
-              <tfoot className="bg-slate-50 font-bold border-t-2">
+              <tfoot className="bg-muted dark:bg-muted/50 font-bold border-t-2">
                 <tr>
-                  <td colSpan={5} className="px-4 py-4 text-center text-slate-900 border-r">TỔNG CỘNG</td>
+                  <td colSpan={5} className="px-4 py-4 text-center text-foreground border-r">TỔNG CỘNG</td>
                   <td className="px-4 py-4 text-right border-r">{totals.qty}</td>
                   <td className="px-4 py-4 text-right border-r">{formatMoney(totals.itemsPrice)}</td>
                   <td className="px-4 py-4 text-right border-r text-blue-600">+{formatMoney(totals.delivery)}</td>
@@ -361,7 +361,7 @@ const AdminEndOfDayReport = () => {
       {/* Print Footer */}
       <div className="hidden print:flex flex-col items-end gap-1 mt-8 border-t pt-4">
         <p className="font-bold">Người lập biểu</p>
-        <p className="text-xs text-slate-500 mt-12">(Ký và ghi rõ họ tên)</p>
+        <p className="text-xs text-muted-foreground mt-12">(Ký và ghi rõ họ tên)</p>
       </div>
 
       <style dangerouslySetInnerHTML={{

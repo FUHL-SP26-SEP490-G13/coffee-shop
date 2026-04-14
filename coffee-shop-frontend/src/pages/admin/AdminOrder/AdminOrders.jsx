@@ -123,37 +123,37 @@ export default function AdminOrders() {
         return {
           key: "pending",
           label: "Chờ xác nhận",
-          color: "bg-yellow-100 text-yellow-800 border-yellow-200",
+          color: "bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900 dark:text-yellow-200 dark:border-yellow-800",
         };
       case "preparing":
         return {
           key: "preparing",
           label: "Đang chuẩn bị",
-          color: "bg-blue-100 text-blue-800 border-blue-200",
+          color: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900 dark:text-blue-200 dark:border-blue-800",
         };
       case "preparing_done":
         return {
           key: "preparing_done",
           label: "Đã chuẩn bị xong",
-          color: "bg-indigo-100 text-indigo-800 border-indigo-200",
+          color: "bg-indigo-100 text-indigo-800 border-indigo-200 dark:bg-indigo-900 dark:text-indigo-200 dark:border-indigo-800",
         };
       case "completed":
         return {
           key: "completed",
           label: "Hoàn thành",
-          color: "bg-green-100 text-green-800 border-green-200",
+          color: "bg-green-100 text-green-800 border-green-200 dark:bg-green-900 dark:text-green-200 dark:border-green-800",
         };
       case "cancelled":
         return {
           key: "cancelled",
           label: "Đã hủy",
-          color: "bg-red-100 text-red-800 border-red-200",
+          color: "bg-red-100 text-red-800 border-red-200 dark:bg-red-900 dark:text-red-200 dark:border-red-800",
         };
       default:
         return {
           key: String(status).toLowerCase(),
           label: status,
-          color: "bg-gray-100 text-gray-800",
+          color: "bg-muted text-muted-foreground text-foreground",
         };
     }
   };
@@ -163,20 +163,20 @@ export default function AdminOrders() {
       case "dine-in":
         return {
           label: "Tại quán",
-          color: "bg-purple-100 text-purple-800 border-purple-200",
+          color: "bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900 dark:text-purple-200 dark:border-purple-800",
         };
       case "takeaway":
         return {
           label: "Mang đi",
-          color: "bg-orange-100 text-orange-800 border-orange-200",
+          color: "bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900 dark:text-orange-200 dark:border-orange-800",
         };
       case "delivery":
         return {
           label: "Giao hàng",
-          color: "bg-cyan-100 text-cyan-800 border-cyan-200",
+          color: "bg-cyan-100 text-cyan-800 border-cyan-200 dark:bg-cyan-900 dark:text-cyan-200 dark:border-cyan-800",
         };
       default:
-        return { label: type, color: "bg-slate-100 text-slate-800" };
+        return { label: type, color: "bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200" };
     }
   };
 // Tính tổng tiền của đơn hàng dựa trên các món và topping, dùng để đối chiếu với total_amount từ API để suy ra phí giao hàng nếu có
@@ -254,10 +254,10 @@ export default function AdminOrders() {
           </div>
         </div>
 
-        <div className="rounded-xl border bg-white p-3 sm:p-4 shadow-sm space-y-3">
+        <div className="rounded-xl border bg-card text-card-foreground p-3 sm:p-4 shadow-sm space-y-3">
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3">
             <div className="space-y-1">
-              <p className="text-xs font-medium text-gray-500">Mã đơn</p>
+              <p className="text-xs font-medium text-muted-foreground">Mã đơn</p>
               <Input
                 value={orderCodeFilter}
                 onChange={(e) => {
@@ -268,7 +268,7 @@ export default function AdminOrders() {
             </div>
 
             <div className="space-y-1">
-              <p className="text-xs font-medium text-gray-500">Từ ngày</p>
+              <p className="text-xs font-medium text-muted-foreground">Từ ngày</p>
               <Input
                 type="date"
                 value={startDateFilter}
@@ -280,7 +280,7 @@ export default function AdminOrders() {
             </div>
 
             <div className="space-y-1">
-              <p className="text-xs font-medium text-gray-500">Đến ngày</p>
+              <p className="text-xs font-medium text-muted-foreground">Đến ngày</p>
               <Input
                 type="date"
                 value={endDateFilter}
@@ -292,7 +292,7 @@ export default function AdminOrders() {
             </div>
 
             <div className="space-y-1">
-              <p className="text-xs font-medium text-gray-500">Trạng thái</p>
+              <p className="text-xs font-medium text-muted-foreground">Trạng thái</p>
               <Select value={statusFilter} onValueChange={handleStatusChange}>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Chọn trạng thái" />
@@ -309,7 +309,7 @@ export default function AdminOrders() {
             </div>
 
             <div className="space-y-1">
-              <p className="text-xs font-medium text-gray-500">Loại đơn</p>
+              <p className="text-xs font-medium text-muted-foreground">Loại đơn</p>
               <Select value={orderTypeFilter} onValueChange={handleOrderTypeChange}>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Chọn loại đơn" />
@@ -330,7 +330,7 @@ export default function AdminOrders() {
                 Khoảng ngày không hợp lệ: ngày bắt đầu phải nhỏ hơn hoặc bằng ngày kết thúc.
               </p>
             ) : (
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-muted-foreground">
                 Lọc theo mã đơn, ngày tạo, trạng thái và loại đơn hàng.
               </p>
             )}
@@ -359,17 +359,17 @@ export default function AdminOrders() {
               type="button"
               onClick={() => handleStatusChange(filter.value)}
               className={`rounded-xl border px-3 py-2 text-left transition-colors ${isActive
-                ? "border-primary/40 bg-primary/5"
-                : "border-gray-200 bg-white hover:bg-gray-50"
+                ? "border-primary/40 bg-primary/10"
+                : "border-border bg-card text-card-foreground hover:bg-muted"
                 }`}
             >
               <p
-                className={`text-xs font-medium ${isActive ? "text-primary" : "text-gray-500"
+                className={`text-xs font-medium ${isActive ? "text-primary" : "text-muted-foreground"
                   }`}
               >
                 {filter.label}
               </p>
-              <p className="text-xl font-bold text-gray-900 leading-tight mt-1">
+              <p className="text-xl font-bold text-foreground leading-tight mt-1">
                 {count}
               </p>
             </button>
@@ -379,47 +379,47 @@ export default function AdminOrders() {
 
       <div className="space-y-3">
         {loading ? (
-          <div className="h-64 rounded-2xl border bg-white flex flex-col items-center justify-center text-muted-foreground gap-3">
+          <div className="h-64 rounded-2xl border bg-card text-card-foreground flex flex-col items-center justify-center text-muted-foreground gap-3">
             <Loader2 className="w-8 h-8 animate-spin text-primary/50" />
             <span className="text-sm font-medium">
               Đang tải danh sách đơn hàng...
             </span>
           </div>
         ) : orders.length === 0 ? (
-          <div className="h-64 rounded-2xl border bg-white flex flex-col items-center justify-center text-muted-foreground gap-3">
-            <div className="p-4 bg-gray-50 rounded-full">
+          <div className="h-64 rounded-2xl border bg-card text-card-foreground flex flex-col items-center justify-center text-muted-foreground gap-3">
+            <div className="p-4 bg-muted rounded-full">
               <ShoppingBag className="w-8 h-8 text-gray-400" />
             </div>
             <span className="text-sm font-medium">Chưa có đơn hàng nào</span>
           </div>
         ) : (
-          <div className="rounded-2xl border bg-white shadow-sm overflow-hidden">
+          <div className="rounded-2xl border bg-card text-card-foreground shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
               <table className="min-w-full text-sm">
-                <thead className="bg-gray-50 border-b border-gray-100">
+                <thead className="bg-muted border-b border-border">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                       Mã đơn
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                       Thời gian
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                       Trạng thái
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                       Loại
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                       Món
                     </th>
-                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-600">
+                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                       Tổng tiền
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                       Khách
                     </th>
-                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-600">
+                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                       Xem chi tiết
                     </th>
                   </tr>
@@ -441,13 +441,13 @@ export default function AdminOrders() {
                       "Khách lẻ";
 
                     return (
-                      <tr key={order.id} className="hover:bg-gray-50/80 transition-colors">
+                      <tr key={order.id} className="hover:bg-muted/80 transition-colors">
                         <td className="px-4 py-3 align-top">
-                          <span className="font-mono font-semibold text-gray-700 bg-gray-100 px-2.5 py-1 rounded-md text-xs">
+                          <span className="font-mono font-semibold text-foreground bg-muted px-2.5 py-1 rounded-md text-xs">
                             #{String(order.id).padStart(5, "0")}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-700 align-top whitespace-nowrap">
+                        <td className="px-4 py-3 text-sm text-foreground align-top whitespace-nowrap">
                           {new Date(order.created_at).toLocaleString("vi-VN", {
                             hour: "2-digit",
                             minute: "2-digit",
@@ -471,10 +471,10 @@ export default function AdminOrders() {
                           </Badge>
                         </td>
                         <td className="px-4 py-3 align-top max-w-[260px]">
-                          <p className="font-medium text-gray-800 leading-5">
+                          <p className="font-medium text-foreground leading-5">
                             {itemCount} món
                           </p>
-                          <p className="text-xs text-gray-500 mt-1 truncate" title={itemPreview || "Không có sản phẩm"}>
+                          <p className="text-xs text-muted-foreground mt-1 truncate" title={itemPreview || "Không có sản phẩm"}>
                             {itemPreview || "Không có sản phẩm"}
                             {itemCount > 2 ? ` +${itemCount - 2}` : ""}
                           </p>
@@ -485,10 +485,10 @@ export default function AdminOrders() {
                           </p>
                         </td>
                         <td className="px-4 py-3 align-top min-w-[160px]">
-                          <p className="text-sm font-medium text-gray-800 leading-5">
+                          <p className="text-sm font-medium text-foreground leading-5">
                             {customerName}
                           </p>
-                          <p className="text-xs text-gray-500 mt-1">
+                          <p className="text-xs text-muted-foreground mt-1">
                             {order.receiver_phone || "Không có số điện thoại"}
                           </p>
                         </td>
@@ -523,7 +523,7 @@ export default function AdminOrders() {
         >
           {selectedOrder && (
             <>
-              <DialogHeader className="p-6 border-b bg-gray-50 dark:bg-gray-800/50 sticky top-0 z-10 backdrop-blur-sm">
+              <DialogHeader className="p-6 border-b bg-muted bg-muted sticky top-0 z-10 backdrop-blur-sm">
                 <div className="flex items-center justify-between">
                   <div className="space-y-1">
                     <DialogTitle className="text-xl flex items-center gap-2">
@@ -560,15 +560,15 @@ export default function AdminOrders() {
               <div className="p-6 grid grid-cols-1 md:grid-cols-12 gap-6">
                 <div className="md:col-span-5 space-y-4">
                   {/* Customer Info */}
-                  <div className="rounded-xl border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-900 dark:border-gray-800 p-4 space-y-3 shadow-sm">
+                  <div className="rounded-xl border border-border  bg-card text-card-foreground   p-4 space-y-3 shadow-sm">
                     <div className="flex items-center gap-2 text-primary font-medium border-b border-gray-50 pb-2">
                       <User className="w-4 h-4" />
                       Thông tin đơn hàng
                     </div>
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
-                        <span className="text-gray-500">Trạng thái:</span>
-                        <span className="font-medium text-gray-900">
+                        <span className="text-muted-foreground">Trạng thái:</span>
+                        <span className="font-medium text-foreground">
                           {getStatusInfo(selectedOrder.status).label}
                         </span>
                       </div>
@@ -576,29 +576,29 @@ export default function AdminOrders() {
                       {(selectedOrder.receiver_name ||
                         selectedOrder.receiver_phone ||
                         selectedOrder.receiver_email) && (
-                          <div className="pt-2 border-t border-dashed border-gray-100" />
+                          <div className="pt-2 border-t border-dashed border-border" />
                         )}
 
                       {selectedOrder.receiver_name && (
                         <div className="flex justify-between">
-                          <span className="text-gray-500">Tên nhận:</span>
-                          <span className="font-medium text-gray-900">
+                          <span className="text-muted-foreground">Tên nhận:</span>
+                          <span className="font-medium text-foreground">
                             {selectedOrder.receiver_name}
                           </span>
                         </div>
                       )}
                       {selectedOrder.receiver_phone && (
                         <div className="flex justify-between">
-                          <span className="text-gray-500">SĐT:</span>
-                          <span className="font-medium text-gray-900">
+                          <span className="text-muted-foreground">SĐT:</span>
+                          <span className="font-medium text-foreground">
                             {selectedOrder.receiver_phone}
                           </span>
                         </div>
                       )}
                       {selectedOrder.receiver_email && (
                         <div className="flex justify-between">
-                          <span className="text-gray-500">Email:</span>
-                          <span className="font-medium text-gray-900">
+                          <span className="text-muted-foreground">Email:</span>
+                          <span className="font-medium text-foreground">
                             {selectedOrder.receiver_email}
                           </span>
                         </div>
@@ -607,7 +607,7 @@ export default function AdminOrders() {
                   </div>
 
                   {/* Delivery Info */}
-                  <div className="rounded-xl border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-900 dark:border-gray-800 p-4 space-y-3 shadow-sm">
+                  <div className="rounded-xl border border-border  bg-card text-card-foreground   p-4 space-y-3 shadow-sm">
                     <div className="flex items-center gap-2 text-primary font-medium border-b border-gray-50 pb-2">
                       <MapPin className="w-4 h-4" />
                       Chi tiết nhận hàng
@@ -615,27 +615,27 @@ export default function AdminOrders() {
                     <div className="space-y-2 text-sm">
                       {selectedOrder.address ? (
                         <div>
-                          <span className="text-gray-500 block mb-1">
+                          <span className="text-muted-foreground block mb-1">
                             Địa chỉ:
                           </span>
-                          <p className="font-medium text-gray-900 dark:text-gray-100 leading-relaxed">
+                          <p className="font-medium text-foreground  leading-relaxed">
                             {selectedOrder.address}
                           </p>
                         </div>
                       ) : (
                         <div className="flex justify-between">
-                          <span className="text-gray-500">Hình thức:</span>
-                          <span className="font-medium text-gray-900 dark:text-gray-100">
+                          <span className="text-muted-foreground">Hình thức:</span>
+                          <span className="font-medium text-foreground ">
                             {getOrderTypeInfo(selectedOrder.order_type).label}
                           </span>
                         </div>
                       )}
                       {selectedOrder.note && (
-                        <div className="mt-2 pt-2 border-t border-dashed border-gray-100 dark:border-gray-700">
-                          <span className="text-gray-500 block mb-1">
+                        <div className="mt-2 pt-2 border-t border-dashed border-border ">
+                          <span className="text-muted-foreground block mb-1">
                             Ghi chú giao hàng:
                           </span>
-                          <span className="text-gray-800 dark:text-gray-100 bg-yellow-50/50 p-2 rounded block">
+                          <span className="text-foreground  bg-yellow-50/50 p-2 rounded block">
                             {selectedOrder.note}
                           </span>
                         </div>
@@ -646,8 +646,8 @@ export default function AdminOrders() {
 
                 <div className="md:col-span-7 space-y-4">
                   {/* Items List */}
-                  <div className="rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
-                    <div className="bg-gray-50 dark:bg-gray-800/50 p-3 border-b border-gray-100 dark:border-gray-700 flex items-center gap-2 text-primary font-medium">
+                  <div className="rounded-xl border border-border  shadow-sm overflow-hidden">
+                    <div className="bg-muted bg-muted p-3 border-b border-border  flex items-center gap-2 text-primary font-medium">
                       <ReceiptText className="w-4 h-4" />
                       Danh sách sản phẩm
                     </div>
@@ -672,16 +672,16 @@ export default function AdminOrders() {
                           return (
                             <div
                               key={index}
-                              className="p-4 flex justify-between gap-4 bg-white dark:bg-gray-900 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 dark:bg-gray-800/30 transition-colors"
+                              className="p-4 flex justify-between gap-4 bg-card text-card-foreground   hover:bg-muted dark:hover:bg-gray-800 /30 transition-colors"
                             >
                               <div className="flex gap-3">
-                                <span className="font-semibold text-gray-900 dark:text-gray-100 bg-gray-100 dark:bg-gray-800 w-6 h-6 flex items-center justify-center rounded text-sm shrink-0">
+                                <span className="font-semibold text-foreground bg-muted  w-6 h-6 flex items-center justify-center rounded text-sm shrink-0">
                                   {item.quantity}
                                 </span>
                                 <div className="space-y-1">
-                                  <p className="font-medium text-gray-900 dark:text-gray-100 leading-none">
+                                  <p className="font-medium text-foreground  leading-none">
                                     {item.product?.name || "Sản phẩm"}
-                                    <span className="ml-2 font-normal text-gray-500">
+                                    <span className="ml-2 font-normal text-muted-foreground">
                                       (
                                       {Number(baseDrinkPrice).toLocaleString(
                                         "vi-VN",
@@ -690,18 +690,18 @@ export default function AdminOrders() {
                                     </span>
                                   </p>
                                   {item.size && (
-                                    <p className="text-xs text-gray-500">
+                                    <p className="text-xs text-muted-foreground">
                                       Size:{" "}
-                                      <span className="font-medium text-gray-700 dark:text-gray-200">
+                                      <span className="font-medium text-foreground ">
                                         {item.size}
                                       </span>
                                     </p>
                                   )}
                                   {toppings.length > 0 && (
-                                    <ul className="text-xs text-gray-500 list-disc pl-4 space-y-0.5 mt-1">
+                                    <ul className="text-xs text-muted-foreground list-disc pl-4 space-y-0.5 mt-1">
                                       {toppings.map((t, idx) => (
                                         <li key={idx}>
-                                          <span className="text-gray-700 dark:text-gray-200">
+                                          <span className="text-foreground ">
                                             {t.name}
                                           </span>{" "}
                                           (+
@@ -721,7 +721,7 @@ export default function AdminOrders() {
                                 </div>
                               </div>
                               <div className="text-right shrink-0">
-                                <p className="font-medium text-gray-900 dark:text-gray-100">
+                                <p className="font-medium text-foreground ">
                                   {Number(
                                     unitTotal * item.quantity,
                                   ).toLocaleString("vi-VN")}
@@ -748,12 +748,12 @@ export default function AdminOrders() {
                     const discountAmount = Math.max(0, subtotal + shippingFee - total);
 
                     return (
-                      <div className="rounded-xl bg-gray-50 dark:bg-gray-800 p-4 space-y-3">
-                        <div className="flex items-center gap-2 text-gray-700 dark:text-gray-200 font-medium pb-2 border-b border-gray-200 dark:border-gray-700">
+                      <div className="rounded-xl bg-muted  p-4 space-y-3">
+                        <div className="flex items-center gap-2 text-foreground  font-medium pb-2 border-b border-border ">
                           <CreditCard className="w-4 h-4" />
                           Thanh toán
                         </div>
-                        <div className="flex justify-between text-sm text-gray-600 dark:text-gray-300">
+                        <div className="flex justify-between text-sm text-muted-foreground ">
                           <span>Tạm tính</span>
                           <span>
                             {Number(subtotal).toLocaleString("vi-VN")}
@@ -778,7 +778,7 @@ export default function AdminOrders() {
                             </span>
                           </div>
                         )}
-                        <div className="flex justify-between text-base font-bold text-gray-900 pt-2 border-t border-gray-200">
+                        <div className="flex justify-between text-base font-bold text-foreground pt-2 border-t border-border">
                           <span>Tổng thanh toán</span>
                           <span className="text-primary">
                             {Number(selectedOrder.total_amount).toLocaleString(
@@ -788,10 +788,10 @@ export default function AdminOrders() {
                           </span>
                         </div>
 
-                        <div className="pt-2 flex items-center justify-between text-xs text-gray-500">
+                        <div className="pt-2 flex items-center justify-between text-xs text-muted-foreground">
                           <span>
                             Phương thức:{" "}
-                            <span className="font-medium text-gray-700 dark:text-gray-200">
+                            <span className="font-medium text-foreground ">
                               {(selectedOrder.payment_method === "cash"
                                 ? "Tiền mặt"
                                 : "PayOS"

@@ -40,12 +40,13 @@ const reputationService = {
     }
   },
 
-  getAdminReputationList: async ({ page = 1, limit = 20, keyword = "" } = {}) => {
+  getAdminReputationList: async ({ page = 1, limit = 20, keyword = "", sort = "" } = {}) => {
     return await axiosClient.get('/reputation/admin', {
       params: {
         page,
         limit,
         keyword,
+        sort,
       },
     });
   },
