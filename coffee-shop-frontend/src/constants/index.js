@@ -144,6 +144,14 @@ export const API_ENDPOINTS = {
     SCHEDULE: '/shifts/schedule',
     MY_SCHEDULE: '/shifts/schedule/me',
   },
+  ATTENDANCE_SETTINGS: {
+    BASE: '/attendance-settings',
+  },
+  ATTENDANCE: {
+    BASE: '/attendance',
+    CLOCK: '/attendance/clock',
+    BY_ID: (id) => `/attendance/${id}`,
+  },
   APP_SETTINGS: {
     BASE: '/settings',
     ADMIN: '/settings/admin'
