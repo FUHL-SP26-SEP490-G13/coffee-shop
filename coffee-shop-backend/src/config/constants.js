@@ -5,6 +5,7 @@ module.exports = {
     STAFF: 2,
     BARISTA: 3,
     CUSTOMER: 4,
+    ATTENDANCE: 5,
   },
 
   ROLES_STRING: {
@@ -20,6 +21,7 @@ module.exports = {
     2: "staff",
     3: "barista",
     4: "customer",
+    5: "attendance",
   },
 
   // Order Status

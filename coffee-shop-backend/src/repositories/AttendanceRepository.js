@@ -52,10 +52,7 @@ class AttendanceRepository extends BaseRepository {
       LEFT JOIN attendances a ON sr.id = a.registration_id
       WHERE sr.user_id = ? 
         AND sr.status = 'registered'
-        AND (
-           s.shift_date = ? 
-           OR (a.check_in IS NOT NULL AND a.check_out IS NULL AND s.shift_date >= DATE_SUB(?, INTERVAL 1 DAY))      -- Lấy thêm những ca ngày hôm qua đang bị kẹt chưa Check-out
-        )
+        AND s.shift_date BETWEEN DATE_SUB(?, INTERVAL 1 DAY) AND DATE_ADD(?, INTERVAL 1 DAY)
       ORDER BY st.start_time ASC
     `;
 

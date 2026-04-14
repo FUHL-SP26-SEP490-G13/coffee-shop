@@ -45,10 +45,14 @@ class AttendanceSettingService {
     const lateAfter = payload.late_after_minutes ?? current.late_after_minutes;
     const maxLate = payload.max_late_minutes ?? current.max_late_minutes;
 
+    if (maxLate <= 0) {
+      throw new ErrorResponse(400, `Thời gian "Chặn check-in sau" bắt buộc phải lớn hơn 0 để giới hạn ca làm việc.`);
+    }
+
     if (lateAfter >= maxLate) {
       throw new ErrorResponse(
         400,
-        `Giá trị "Tính muộn sau" (${lateAfter} phút) bắt buộc phải nhỏ hơn "Chặn check-in sau" (${maxLate} phút)`
+        `Giá trị "Tính muộn sau" (${lateAfter} phút) bắt buộc phải nhỏ hơn "Chặn check-in sau" (${maxLate} phút).`
       );
     }
 

@@ -53,34 +53,37 @@ class AttendanceService {
     let specificErrorMsg = null;
 
     if (!targetShift) {
+      let closestShiftDiff = null;
+      const nowMs = now.getTime();
+
       for (const shift of todayShifts) {
         if (!shift.check_in) {
-          const [startH, startM] = shift.start_time.split(':').map(Number);
-          const shiftStartMinutes = startH * 60 + startM;   // tg bắt đầu ( chuyển qua phút)
+          const shiftDateStr = formatDateStr(new Date(shift.shift_date));
+          const [startH, startM] = shift.start_time.split(':');
+          const startDateObj = new Date(`${shiftDateStr}T${startH}:${startM}:00`);
+          const startMs = startDateObj.getTime();
 
-          const [endH, endM] = shift.end_time.split(':').map(Number);
-          // Cho phép qua ngày (end_time < start_time)
-          let shiftEndMinutes = endH * 60 + endM;
-          if (shiftEndMinutes < shiftStartMinutes) shiftEndMinutes += 24 * 60;
+          const minCheckinMs = startMs - (settings.early_checkin_minutes * 60000);
+          const maxCheckinMs = startMs + (settings.max_late_minutes * 60000);
 
-          const currentMinutesAdjusted = currentMinutes < shiftStartMinutes - 12 * 60 ? currentMinutes + 24 * 60 : currentMinutes;
-
-          // Điều kiện chốt chặn checkin
-          const minCheckinRaw = shiftStartMinutes - settings.early_checkin_minutes;
-          const maxCheckinRaw = shiftStartMinutes + settings.max_late_minutes;
-
-          // Nếu thời gian hiện tại nằm trong khoảng có thể check-in
-          if (currentMinutesAdjusted >= minCheckinRaw && currentMinutesAdjusted <= maxCheckinRaw) {
+          if (nowMs >= minCheckinMs && nowMs <= maxCheckinMs) {
             targetShift = shift;
             clockType = 'in';
-            specificErrorMsg = null; // Xóa lỗi nếu tìm thấy ca hợp lệ
+            specificErrorMsg = null;
             break;
           } else {
-            // Lưu lại lỗi cụ thể nếu không hợp lệ
-            if (currentMinutesAdjusted < minCheckinRaw) {
-              specificErrorMsg = `Xin chào ${user.first_name}, ca ${shift.shift_name} chưa mở điểm danh. (Chỉ cho phép check-in sớm ${settings.early_checkin_minutes} phút trước ${shift.start_time})`;
-            } else if (currentMinutesAdjusted > maxCheckinRaw) {
-              specificErrorMsg = `Xin chào ${user.first_name}, bạn đã bị chặn điểm danh vì đến quá muộn cho ca ${shift.shift_name}. (Chỉ cho đi muộn tối đa ${settings.max_late_minutes} phút sau ${shift.start_time})`;
+            const diffMs = Math.abs(nowMs - startMs);
+
+            // Bỏ qua các ca quá xa (quá 12 tiếng) tránh báo lỗi khó hiểu (như phàn nàn về ca ngày hôm qua)
+            if (diffMs <= 12 * 3600 * 1000) {
+              if (closestShiftDiff === null || diffMs < closestShiftDiff) {
+                closestShiftDiff = diffMs;
+                if (nowMs < minCheckinMs) {
+                  specificErrorMsg = `Xin chào ${user.first_name}, ca ${shift.shift_name} (${shiftDateStr}) chưa mở điểm danh. (Chỉ cho phép check-in sớm ${settings.early_checkin_minutes} phút trước ${shift.start_time})`;
+                } else if (nowMs > maxCheckinMs) {
+                  specificErrorMsg = `Xin chào ${user.first_name}, bạn đã bị chặn điểm danh vì đến quá muộn cho ca ${shift.shift_name} (${shiftDateStr}).`;
+                }
+              }
             }
           }
         }
