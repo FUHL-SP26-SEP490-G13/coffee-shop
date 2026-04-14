@@ -722,7 +722,7 @@ export function StaffApp() {
 }
 
 const CashSessionButton = ({ isSidebarCompact }) => {
-  const { session, handleTriggerClose, isTimeToClose } = useCashSession();
+  const { session, handleTriggerClose } = useCashSession();
   const [isHandoverModalOpen, setIsHandoverModalOpen] = useState(false);
 
   const closeButton = session ? (

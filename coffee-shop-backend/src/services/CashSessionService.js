@@ -12,6 +12,9 @@ class CashSessionService {
       const generatedSystemCash = await repository.getSystemCash(session.opened_at);
       session.closing_cash_system = session.opening_cash + generatedSystemCash;
       session.generated_cash = generatedSystemCash;
+
+      const stats = await repository.getHandoverStats(session.opened_at);
+      session.handoverStats = stats;
     }
 
     return {
@@ -61,7 +64,7 @@ class CashSessionService {
 
   async closeSession(userId, sessionId, actualCash, note) {
     const session = await repository.getCurrentSession();
-    if (!session || session.id !== sessionId) {
+    if (!session || Number(session.id) !== Number(sessionId)) {
       throw { statusCode: 400, message: "Ca làm việc không tồn tại hoặc đã đóng." };
     }
 

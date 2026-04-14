@@ -348,9 +348,9 @@ export function OrderDelivery() {
   const loadOrders = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await baristaDBService.getActiveOrders(
-        STAFF_TAB_STATUSES.filter(s => s !== "barista-window")
-      );
+      const res = await baristaDBService.getActiveOrders([
+        "pending", "preparing", "served", "completed", "cancelled"
+      ]);
       const list = res?.data?.data || res?.data || [];
 
       const activeOrders = list

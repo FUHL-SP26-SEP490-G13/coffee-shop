@@ -27,6 +27,7 @@ export const CashSessionProvider = ({ children }) => {
   // States for Modals
   const [showOpenModal, setShowOpenModal] = useState(false);
   const [showCloseModal, setShowCloseModal] = useState(false);
+  const [isForcedClose, setIsForcedClose] = useState(false);
   const [userName, setUserName] = useState('');
   
   // Forms
@@ -63,6 +64,25 @@ export const CashSessionProvider = ({ children }) => {
     checkSession();
   }, [checkSession]);
 
+  useEffect(() => {
+    let interval;
+    if (session && shiftEndTime) {
+      interval = setInterval(() => {
+        const now = new Date();
+        const [h, m, s] = shiftEndTime.split(':').map(Number);
+        const end = new Date();
+        end.setHours(h, m, s || 0, 0);
+
+        const diffMinutes = (now - end) / 60000;
+        if (diffMinutes >= 15) {
+          setIsForcedClose(true);
+          setShowCloseModal(true);
+        }
+      }, 10000);
+    }
+    return () => clearInterval(interval);
+  }, [session, shiftEndTime]);
+
   const handleOpenSession = async (e) => {
     e.preventDefault();
     setErrorMessage("");
@@ -92,20 +112,7 @@ export const CashSessionProvider = ({ children }) => {
     }
   };
 
-  const isTimeToClose = () => {
-    if (!shiftEndTime) return true; // Let them close if no shift found
-    const now = new Date();
-    const [h, m, s] = shiftEndTime.split(':').map(Number);
-    const end = new Date();
-    end.setHours(h, m, s || 0, 0);
-    return now >= end;
-  };
-
   const handleTriggerClose = () => {
-    if (!isTimeToClose()) {
-      toast.error(`Chưa đến giờ kết thúc ca làm việc (${shiftEndTime}).`);
-      return;
-    }
     checkSession().then(() => {
       setClosingCashActual("");
       setClosingNote("");
@@ -129,6 +136,7 @@ export const CashSessionProvider = ({ children }) => {
       });
       toast.success(`Đóng ca thành công. Tiền chênh lệch: ${Number(res.data.difference).toLocaleString('vi-VN')} đ`);
       setShowCloseModal(false);
+      setIsForcedClose(false);
       setSession(null);
       setShowOpenModal(true); // Must open a new session or wait for the next shift
       // In this system, one staff per shift, so maybe they just log out after closing.
@@ -144,7 +152,7 @@ export const CashSessionProvider = ({ children }) => {
   const moneyFormat = (num) => Number(num || 0).toLocaleString('vi-VN') + " đ";
 
   return (
-    <CashSessionContext.Provider value={{ session, shiftEndTime, handleTriggerClose, isTimeToClose }}>
+    <CashSessionContext.Provider value={{ session, shiftEndTime, handleTriggerClose }}>
       {!loading && children}
 
       {/* Force Open Shift Modal */}
@@ -216,8 +224,8 @@ export const CashSessionProvider = ({ children }) => {
       </Dialog>
 
       {/* Close Shift Modal */}
-      <Dialog open={showCloseModal} onOpenChange={setShowCloseModal}>
-        <DialogContent className="sm:max-w-xl">
+      <Dialog open={showCloseModal} onOpenChange={isForcedClose ? () => {} : setShowCloseModal}>
+        <DialogContent className={isForcedClose ? "sm:max-w-xl [&>button]:hidden" : "sm:max-w-xl"}>
           <DialogHeader>
             <DialogTitle>Kết Thúc Ca Làm Việc</DialogTitle>
             <DialogDescription>
@@ -244,6 +252,30 @@ export const CashSessionProvider = ({ children }) => {
                   <p className="text-base font-bold text-rose-600">{moneyFormat(session.closing_cash_system)}</p>
                 </div>
               </div>
+
+              {session.handoverStats && (
+                <div className="bg-amber-50 p-4 rounded-xl border border-amber-100 flex flex-col gap-2">
+                  <p className="text-sm font-bold text-amber-800 border-b border-amber-200/60 pb-2">Thống kê đơn hàng bàn giao cho ca sau</p>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm text-amber-900">
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium">Chờ xử lý:</span>
+                      <span className="font-bold bg-white px-2 py-0.5 rounded">{session.handoverStats.pending_count}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium">Đang chuẩn bị:</span>
+                      <span className="font-bold bg-white px-2 py-0.5 rounded">{session.handoverStats.preparing_count}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium">Chờ phục vụ/giao:</span>
+                      <span className="font-bold bg-white px-2 py-0.5 rounded">{session.handoverStats.done_count}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-rose-600">
+                      <span className="font-bold">Đơn chưa thu tiền:</span>
+                      <span className="font-bold bg-white px-2 py-0.5 rounded shadow-sm">{session.handoverStats.unpaid_count}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="space-y-3 pt-2">
                 <div className="space-y-2">
@@ -277,9 +309,11 @@ export const CashSessionProvider = ({ children }) => {
               </div>
 
               <div className="flex justify-end gap-2 pt-2">
-                <Button type="button" variant="outline" onClick={() => setShowCloseModal(false)} disabled={isSubmitting}>
-                  Hủy
-                </Button>
+                {!isForcedClose && (
+                  <Button type="button" variant="outline" onClick={() => setShowCloseModal(false)} disabled={isSubmitting}>
+                    Hủy
+                  </Button>
+                )}
                 <Button type="submit" disabled={isSubmitting}>
                   {isSubmitting ? "Đang đóng..." : "Đóng ca làm"}
                 </Button>

@@ -157,6 +157,28 @@ class CashSessionRepository {
     const [rows] = await pool.query(query, params);
     return rows;
   }
+
+  async getHandoverStats(openedAt) {
+    const [rows] = await pool.query(
+      `SELECT 
+         SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending_count,
+         SUM(CASE WHEN status = 'preparing' THEN 1 ELSE 0 END) as preparing_count,
+         SUM(CASE WHEN status = 'preparing_done' THEN 1 ELSE 0 END) as done_count,
+         SUM(CASE WHEN is_paid = 0 AND status != 'cancelled' THEN 1 ELSE 0 END) as unpaid_count
+       FROM orders
+       WHERE created_at >= ?`,
+      [openedAt]
+    );
+
+    // Filter purely active orders for pending, preparing, done:
+    const stats = rows[0] || {};
+    return {
+      pending_count: Number(stats.pending_count || 0),
+      preparing_count: Number(stats.preparing_count || 0),
+      done_count: Number(stats.done_count || 0),
+      unpaid_count: Number(stats.unpaid_count || 0),
+    };
+  }
 }
 
 module.exports = new CashSessionRepository();
