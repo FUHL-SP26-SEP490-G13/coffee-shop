@@ -26,10 +26,7 @@ class AttendanceSettingRepository {
       values.push(data.max_late_minutes);
     }
 
-    if (data.early_checkout_before_minutes !== undefined) {
-      fields.push("early_checkout_before_minutes = ?");
-      values.push(data.early_checkout_before_minutes);
-    }
+
 
     if (fields.length === 0) {
       return this.findSetting();

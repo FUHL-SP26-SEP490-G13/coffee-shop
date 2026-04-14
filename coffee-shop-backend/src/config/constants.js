@@ -12,6 +12,7 @@ module.exports = {
     STAFF: "staff",
     BARISTA: "barista",
     CUSTOMER: "customer",
+    ATTENDANCE: "attendance",
   },
 
   ROLE_NAMES: {
@@ -80,12 +81,6 @@ module.exports = {
     ABSENT: "absent",
   },
 
-  // Attendance Checkout Status (check-out)
-  ATTENDANCE_CHECKOUT_STATUS: {
-    ON_TIME: "on_time",
-    EARLY: "early",
-    MISSING: "missing",
-  },
 
   // Leave Request Status
   LEAVE_STATUS: {

@@ -9,13 +9,13 @@ const { ROLES_STRING } = require("../config/constants");
 const MANAGER_ONLY = [ROLES_STRING.MANAGER];
 
 router.get("/",
-  // authenticate,
-  // authorize(MANAGER_ONLY),
+  authenticate,
+  authorize(MANAGER_ONLY),
   AsyncMiddleware(controller.getSetting));
 
 router.put("/",
-  // authenticate,
-  // authorize(MANAGER_ONLY),
+  authenticate,
+  authorize(MANAGER_ONLY),
   AsyncMiddleware(controller.updateSetting));
 
 module.exports = router;

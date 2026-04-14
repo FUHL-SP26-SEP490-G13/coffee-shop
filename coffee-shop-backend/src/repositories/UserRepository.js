@@ -34,6 +34,15 @@ class UserRepository extends BaseRepository {
   }
 
   /**
+   * Find user by pin_code
+   */
+  async findByPinCode(pin) {
+    const query = `SELECT * FROM ${this.tableName} WHERE pin_code = ?`;
+    const [rows] = await db.query(query, [pin]);
+    return rows[0] || null;
+  }
+
+  /**
    * Get user with role information
    */
   async findByIdWithRole(userId) {

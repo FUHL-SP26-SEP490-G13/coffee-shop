@@ -107,4 +107,12 @@ router.delete(
   UserController.delete
 );
 
+// Generate new PIN
+router.post(
+  '/:id/generate-pin',
+  // authenticate,
+  // authorize(['manager']),
+  UserController.generatePin
+);
+
 module.exports = router;

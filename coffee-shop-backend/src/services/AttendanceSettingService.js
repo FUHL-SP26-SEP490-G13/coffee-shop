@@ -16,7 +16,6 @@ class AttendanceSettingService {
       { key: "early_checkin_minutes", label: "Check-in sớm tối đa" },
       { key: "late_after_minutes", label: "Tính muộn sau" },
       { key: "max_late_minutes", label: "Chặn check-in sau" },
-      { key: "early_checkout_before_minutes", label: "Về sớm nếu trước" },
     ];
 
     const payload = {};
