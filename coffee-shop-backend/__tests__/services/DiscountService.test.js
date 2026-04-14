@@ -633,10 +633,10 @@ describe("DiscountService", () => {
   });
 
   describe("delete", () => {
-    it("DiscountService - delete - TC-01: should soft delete discount successfully", async () => {
+    it("DiscountService - delete - TC-01: should hard delete discount when never used", async () => {
       console.log("\n" + "=".repeat(50));
       console.log(
-        "DiscountService - DELETE - TC-1: Xóa mềm discount thành công"
+        "DiscountService - DELETE - TC-1: Xóa cứng discount khi chưa từng được sử dụng"
       );
       console.log("=".repeat(50));
 
@@ -648,9 +648,10 @@ describe("DiscountService", () => {
       const mockDiscount = {
         id: 1,
         code: "SUMMER2024",
+        used_count: 0,
       };
       DiscountRepository.findById.mockResolvedValue(mockDiscount);
-      DiscountRepository.softDelete.mockResolvedValue(true);
+      DiscountRepository.hardDelete.mockResolvedValue(true);
 
       // OUTPUT EXPECT
       console.log("✅ OUTPUT EXPECT: true");
@@ -663,19 +664,60 @@ describe("DiscountService", () => {
 
       // Assert
       expect(DiscountRepository.findById).toHaveBeenCalledWith(1);
-      expect(DiscountRepository.softDelete).toHaveBeenCalledTimes(1);
-
-      const [deletedId, newCode] = DiscountRepository.softDelete.mock.calls[0];
-      expect(deletedId).toBe(1);
-      expect(newCode).toContain("SUMMER2024__deleted__1__");
+      expect(DiscountRepository.hardDelete).toHaveBeenCalledWith(1);
+      expect(DiscountRepository.softDelete).not.toHaveBeenCalled();
 
       expect(result).toBe(true);
     });
 
-    it("DiscountService - delete - TC-02: should throw error when discount not found", async () => {
+    it("DiscountService - delete - TC-02: should soft delete discount when already used", async () => {
       console.log("\n" + "=".repeat(50));
       console.log(
-        "DiscountService - DELETE - TC-2: Lỗi khi không tìm thấy discount để xóa"
+        "DiscountService - DELETE - TC-2: Xóa mềm discount khi đã từng được sử dụng"
+      );
+      console.log("=".repeat(50));
+
+      // INPUT
+      const input = { id: 1 };
+      console.log("\n📝 INPUT:", JSON.stringify(input, null, 2));
+
+      // Arrange
+      const mockDiscount = {
+        id: 1,
+        code: "SUMMER2024",
+        used_count: 3,
+      };
+      DiscountRepository.findById.mockResolvedValue(mockDiscount);
+      DiscountRepository.softDelete.mockResolvedValue(true);
+
+      const nowSpy = jest.spyOn(Date, "now").mockReturnValue(1713072000000);
+
+      // OUTPUT EXPECT
+      console.log("✅ OUTPUT EXPECT: true");
+
+      // Act
+      const result = await DiscountService.delete(1);
+
+      // OUTPUT REALITY
+      console.log("🎯 OUTPUT REALITY:", result);
+
+      // Assert
+      expect(DiscountRepository.findById).toHaveBeenCalledWith(1);
+      expect(DiscountRepository.hardDelete).not.toHaveBeenCalled();
+      expect(DiscountRepository.softDelete).toHaveBeenCalledTimes(1);
+
+      const [deletedId, newCode] = DiscountRepository.softDelete.mock.calls[0];
+      expect(deletedId).toBe(1);
+      expect(newCode).toBe("SUMMER2024__deleted__1__1713072000000");
+      expect(result).toBe(true);
+
+      nowSpy.mockRestore();
+    });
+
+    it("DiscountService - delete - TC-03: should throw error when discount not found", async () => {
+      console.log("\n" + "=".repeat(50));
+      console.log(
+        "DiscountService - DELETE - TC-3: Lỗi khi không tìm thấy discount để xóa"
       );
       console.log("=".repeat(50));
 
@@ -696,6 +738,7 @@ describe("DiscountService", () => {
       // OUTPUT REALITY
       console.log("🎯 OUTPUT REALITY: throw error -", expectedError);
 
+      expect(DiscountRepository.hardDelete).not.toHaveBeenCalled();
       expect(DiscountRepository.softDelete).not.toHaveBeenCalled();
     });
   });

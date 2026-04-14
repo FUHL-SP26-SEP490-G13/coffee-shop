@@ -1,10 +1,42 @@
 const NewsService = require("../../src/services/NewsService");
 const NewsRepository = require("../../src/repositories/NewsRepository");
 
+const { logTestCase } = require("../utils/logger");
+
 jest.mock("../../src/repositories/NewsRepository");
-jest.mock("slugify", () =>
-  jest.fn((title) => title.toLowerCase().replace(/\s+/g, "-"))
-);
+
+let pendingLogCase = null;
+
+const logCase = (payload = {}) => {
+  pendingLogCase = payload;
+};
+
+const logReality = (actual) => {
+  const payload = pendingLogCase || {};
+  const {
+    title,
+    method,
+    tcid,
+    crud,
+    scenario,
+    input,
+    expected,
+    outputExpect,
+    reality,
+  } = payload;
+
+  const nameParts = [title, method, scenario, tcid].filter(Boolean);
+  if (crud) nameParts.push(`CRUD: ${crud}`);
+
+  logTestCase({
+    name: nameParts.join(" - ") || "Test case",
+    input,
+    expected: expected !== undefined ? expected : outputExpect,
+    actual: actual !== undefined ? actual : reality,
+  });
+
+  pendingLogCase = null;
+};
 
 describe("NewsService", () => {
   beforeEach(() => {
@@ -13,60 +45,44 @@ describe("NewsService", () => {
 
   describe("generateUniqueSlug", () => {
     it("NewsService - generateUniqueSlug - TC-01: should generate base slug when slug does not exist", async () => {
-      console.log("\n" + "=".repeat(50));
-      console.log(
-        "NewsService - GENERATE_UNIQUE_SLUG - TC-1: Tạo slug cơ bản khi chưa tồn tại"
-      );
-      console.log("=".repeat(50));
-
-      // INPUT
       const input = { title: "Bài viết mới" };
-      console.log("\n📝 INPUT:", JSON.stringify(input, null, 2));
 
-      // Arrange
       NewsRepository.findBySlug.mockResolvedValue(null);
 
-      // OUTPUT EXPECT
-      console.log("✅ OUTPUT EXPECT: bai-viet-moi");
+      logCase({
+        method: "generateUniqueSlug",
+        tcid: "TC-01",
+        crud: "TRANSFORM",
+        input,
+        outputExpect: "Slug cơ bản được tạo khi chưa trùng",
+      });
 
-      // Act
       const result = await NewsService.generateUniqueSlug(input.title);
+      logReality(result);
 
-      // OUTPUT REALITY
-      console.log("🎯 OUTPUT REALITY:", result);
-
-      // Assert
-      expect(NewsRepository.findBySlug).toHaveBeenCalledWith("bài-viết-mới");
-      expect(result).toBe("bài-viết-mới");
+      expect(NewsRepository.findBySlug).toHaveBeenCalledWith("bai-viet-moi");
+      expect(result).toBe("bai-viet-moi");
     });
 
     it("NewsService - generateUniqueSlug - TC-02: should append number when slug already exists", async () => {
-      console.log("\n" + "=".repeat(50));
-      console.log(
-        "NewsService - GENERATE_UNIQUE_SLUG - TC-2: Tạo slug duy nhất khi slug đã tồn tại"
-      );
-      console.log("=".repeat(50));
-
-      // INPUT
       const input = { title: "Tin Hot" };
-      console.log("\n📝 INPUT:", JSON.stringify(input, null, 2));
 
-      // Arrange
       NewsRepository.findBySlug
         .mockResolvedValueOnce({ id: 1, slug: "tin-hot" })
         .mockResolvedValueOnce({ id: 2, slug: "tin-hot-1" })
         .mockResolvedValueOnce(null);
 
-      // OUTPUT EXPECT
-      console.log("✅ OUTPUT EXPECT: tin-hot-2");
+      logCase({
+        method: "generateUniqueSlug",
+        tcid: "TC-02",
+        crud: "TRANSFORM",
+        input,
+        expected: "tin-hot-2",
+      });
 
-      // Act
       const result = await NewsService.generateUniqueSlug(input.title);
+      logReality(result);
 
-      // OUTPUT REALITY
-      console.log("🎯 OUTPUT REALITY:", result);
-
-      // Assert
       expect(NewsRepository.findBySlug).toHaveBeenNthCalledWith(1, "tin-hot");
       expect(NewsRepository.findBySlug).toHaveBeenNthCalledWith(2, "tin-hot-1");
       expect(NewsRepository.findBySlug).toHaveBeenNthCalledWith(3, "tin-hot-2");
@@ -74,29 +90,21 @@ describe("NewsService", () => {
     });
 
     it("NewsService - generateUniqueSlug - TC-03: should return empty slug when title contains only spaces", async () => {
-      console.log("\n" + "=".repeat(50));
-      console.log(
-        "NewsService - GENERATE_UNIQUE_SLUG - TC-3: Tiêu đề chỉ khoảng trắng trả về slug rỗng"
-      );
-      console.log("=".repeat(50));
-
-      // INPUT
       const input = { title: "     " };
-      console.log("\n📝 INPUT:", JSON.stringify(input, null, 2));
 
-      // Arrange
       NewsRepository.findBySlug.mockResolvedValue(null);
 
-      // OUTPUT EXPECT
-      console.log("✅ OUTPUT EXPECT: \"\"");
+      logCase({
+        method: "generateUniqueSlug",
+        tcid: "TC-03",
+        crud: "TRANSFORM",
+        input,
+        expected: "",
+      });
 
-      // Act
       const result = await NewsService.generateUniqueSlug(input.title);
+      logReality(result);
 
-      // OUTPUT REALITY
-      console.log("🎯 OUTPUT REALITY:", JSON.stringify(result));
-
-      // Assert
       expect(NewsRepository.findBySlug).toHaveBeenCalledWith("");
       expect(result).toBe("");
     });
@@ -104,37 +112,30 @@ describe("NewsService", () => {
 
   describe("getAllPublished", () => {
     it("NewsService - getAllPublished - TC-01: should get published news successfully", async () => {
-      console.log("\n" + "=".repeat(50));
-      console.log(
-        "NewsService - GET_ALL_PUBLISHED - TC-1: Lấy danh sách tin published thành công"
-      );
-      console.log("=".repeat(50));
-
-      // INPUT
       const input = { page: 2, limit: 6 };
-      console.log("\n📝 INPUT:", JSON.stringify(input, null, 2));
-
-      // Arrange
       const mockItems = [{ id: 1, title: "Tin 1" }];
+
       NewsRepository.findPublishedPaginated.mockResolvedValue(mockItems);
       NewsRepository.countAll.mockResolvedValue(13);
 
-      // OUTPUT EXPECT
       const expectedOutput = {
         items: mockItems,
         total: 13,
         page: 2,
         totalPages: 3,
       };
-      console.log("✅ OUTPUT EXPECT:", JSON.stringify(expectedOutput, null, 2));
 
-      // Act
+      logCase({
+        method: "getAllPublished",
+        tcid: "TC-01",
+        crud: "READ",
+        input,
+        expected: expectedOutput,
+      });
+
       const result = await NewsService.getAllPublished(input);
+      logReality(result);
 
-      // OUTPUT REALITY
-      console.log("🎯 OUTPUT REALITY:", JSON.stringify(result, null, 2));
-
-      // Assert
       expect(NewsRepository.findPublishedPaginated).toHaveBeenCalledWith(6, 6);
       expect(NewsRepository.countAll).toHaveBeenCalledWith();
       expect(result).toEqual(expectedOutput);
@@ -143,83 +144,76 @@ describe("NewsService", () => {
 
   describe("getDetailBySlug", () => {
     it("NewsService - getDetailBySlug - TC-01: should get detail and increase view successfully", async () => {
-      console.log("\n" + "=".repeat(50));
-      console.log(
-        "NewsService - GET_DETAIL_BY_SLUG - TC-1: Lấy chi tiết bài viết và tăng lượt xem thành công"
-      );
-      console.log("=".repeat(50));
-
-      // INPUT
       const input = { slug: "bai-viet-ca-phe" };
-      console.log("\n📝 INPUT:", JSON.stringify(input, null, 2));
-
-      // Arrange
       const mockNews = {
         id: 1,
         slug: "bai-viet-ca-phe",
         title: "Bài viết cà phê",
       };
+
       NewsRepository.findBySlug.mockResolvedValue(mockNews);
       NewsRepository.increaseView.mockResolvedValue(true);
 
-      // OUTPUT EXPECT
-      console.log("✅ OUTPUT EXPECT:", JSON.stringify(mockNews, null, 2));
+      logCase({
+        method: "getDetailBySlug",
+        tcid: "TC-01",
+        crud: "READ",
+        input,
+        expected: mockNews,
+      });
 
-      // Act
       const result = await NewsService.getDetailBySlug(input.slug);
+      logReality(result);
 
-      // OUTPUT REALITY
-      console.log("🎯 OUTPUT REALITY:", JSON.stringify(result, null, 2));
-
-      // Assert
       expect(NewsRepository.findBySlug).toHaveBeenCalledWith("bai-viet-ca-phe");
       expect(NewsRepository.increaseView).toHaveBeenCalledWith(1);
       expect(result).toEqual(mockNews);
     });
 
     it("NewsService - getDetailBySlug - TC-02: should throw error when news does not exist", async () => {
-      console.log("\n" + "=".repeat(50));
-      console.log(
-        "NewsService - GET_DETAIL_BY_SLUG - TC-2: Lỗi khi tin không tồn tại"
-      );
-      console.log("=".repeat(50));
-
-      // INPUT
       const input = { slug: "not-found" };
-      console.log("\n📝 INPUT:", JSON.stringify(input, null, 2));
+      const expectedError = "Tin không tồn tại";
 
-      // Arrange
       NewsRepository.findBySlug.mockResolvedValue(null);
 
-      // OUTPUT EXPECT
-      const expectedError = "Tin không tồn tại";
-      console.log("✅ OUTPUT EXPECT: Error -", expectedError);
+      logCase({
+        method: "getDetailBySlug",
+        tcid: "TC-02",
+        crud: "READ",
+        input,
+        expected: { error: expectedError },
+      });
 
-      // Act & Assert
-      await expect(NewsService.getDetailBySlug(input.slug)).rejects.toThrow(
-        expectedError
-      );
+      let actualError = null;
+      try {
+        await NewsService.getDetailBySlug(input.slug);
+      } catch (error) {
+        actualError = error.message;
+      }
+      logReality({ error: actualError });
 
-      // OUTPUT REALITY
-      console.log("🎯 OUTPUT REALITY: throw error -", expectedError);
-
+      expect(actualError).toContain(expectedError);
       expect(NewsRepository.increaseView).not.toHaveBeenCalled();
     });
   });
 
   describe("getFeatured", () => {
     it("NewsService - getFeatured - TC-01: should get featured news successfully", async () => {
-      console.log("\n" + "=".repeat(50));
-      console.log(
-        "NewsService - GET_FEATURED - TC-1: Lấy tin nổi bật thành công"
-      );
-      console.log("=".repeat(50));
-
-      // Arrange
+      const input = { limit: 3 };
       const mockNews = [{ id: 1 }, { id: 2 }, { id: 3 }];
+
       NewsRepository.findFeatured.mockResolvedValue(mockNews);
 
+      logCase({
+        method: "getFeatured",
+        tcid: "TC-01",
+        crud: "READ",
+        input,
+        expected: mockNews,
+      });
+
       const result = await NewsService.getFeatured(3);
+      logReality(result);
 
       expect(NewsRepository.findFeatured).toHaveBeenCalledWith(3);
       expect(result).toEqual(mockNews);
@@ -228,11 +222,6 @@ describe("NewsService", () => {
 
   describe("createNews", () => {
     it("NewsService - createNews - TC-01: should create news successfully", async () => {
-      console.log("\n" + "=".repeat(50));
-      console.log("NewsService - CREATE_NEWS - TC-1: Tạo bài viết thành công");
-      console.log("=".repeat(50));
-
-      // INPUT
       const input = {
         data: {
           title: "Bài viết mới về cà phê",
@@ -243,119 +232,108 @@ describe("NewsService", () => {
         },
         userId: 1,
       };
-      console.log("\n📝 INPUT:", JSON.stringify(input, null, 2));
 
-      // Arrange
-      NewsRepository.findByTitle.mockResolvedValue(null);
-      NewsRepository.findBySlug.mockResolvedValue(null);
       const createdNews = {
         id: 10,
         ...input.data,
-        slug: "bài-viết-mới-về-cà-phê",
+        slug: "bai-viet-moi-ve-ca-phe",
         created_by: 1,
       };
+
+      NewsRepository.findByTitle.mockResolvedValue(null);
+      NewsRepository.findBySlug.mockResolvedValue(null);
       NewsRepository.create.mockResolvedValue(createdNews);
 
-      // OUTPUT EXPECT
-      console.log("✅ OUTPUT EXPECT:", JSON.stringify(createdNews, null, 2));
+      logCase({
+        method: "createNews",
+        tcid: "TC-01",
+        crud: "CREATE",
+        input,
+        expected: createdNews,
+      });
 
-      // Act
       const result = await NewsService.createNews(input.data, input.userId);
+      logReality(result);
 
-      // OUTPUT REALITY
-      console.log("🎯 OUTPUT REALITY:", JSON.stringify(result, null, 2));
-
-      // Assert
       expect(NewsRepository.findByTitle).toHaveBeenCalledWith(input.data.title);
       expect(NewsRepository.create).toHaveBeenCalledWith({
         ...input.data,
-        slug: "bài-viết-mới-về-cà-phê",
+        slug: "bai-viet-moi-ve-ca-phe",
         created_by: 1,
       });
       expect(result).toEqual(createdNews);
     });
 
     it("NewsService - createNews - TC-02: should throw error when title already exists", async () => {
-      console.log("\n" + "=".repeat(50));
-      console.log(
-        "NewsService - CREATE_NEWS - TC-2: Lỗi khi tiêu đề bài viết đã tồn tại"
-      );
-      console.log("=".repeat(50));
-
-      // INPUT
       const input = {
-        title: "Bài viết trùng tiêu đề",
+        data: {
+          title: "Bài viết trùng tiêu đề",
+          summary: "summary",
+          content: "content",
+          tag: "#tag",
+          thumbnail: null,
+        },
+        userId: 1,
       };
-      console.log("\n📝 INPUT:", JSON.stringify(input, null, 2));
+      const expectedError = "Tiêu đề bài viết đã tồn tại";
 
-      // Arrange
       NewsRepository.findByTitle.mockResolvedValue({
         id: 1,
-        title: input.title,
+        title: input.data.title,
       });
 
-      // OUTPUT EXPECT
-      const expectedError = "Tiêu đề bài viết đã tồn tại";
-      console.log("✅ OUTPUT EXPECT: Error -", expectedError);
+      logCase({
+        method: "createNews",
+        tcid: "TC-02",
+        crud: "CREATE",
+        input,
+        expected: { error: expectedError },
+      });
 
-      // Act & Assert
-      await expect(
-        NewsService.createNews(
-          {
-            title: input.title,
-            summary: "summary",
-            content: "content",
-            tag: "#tag",
-            thumbnail: null,
-          },
-          1
-        )
-      ).rejects.toThrow(expectedError);
+      let actualError = null;
+      try {
+        await NewsService.createNews(input.data, input.userId);
+      } catch (error) {
+        actualError = error.message;
+      }
+      logReality({ error: actualError });
 
-      // OUTPUT REALITY
-      console.log("🎯 OUTPUT REALITY: throw error -", expectedError);
-
+      expect(actualError).toContain(expectedError);
       expect(NewsRepository.create).not.toHaveBeenCalled();
     });
   });
 
   describe("getAllAdmin", () => {
     it("NewsService - getAllAdmin - TC-01: should get all admin news successfully", async () => {
-      console.log("\n" + "=".repeat(50));
-      console.log(
-        "NewsService - GET_ALL_ADMIN - TC-1: Lấy danh sách tin admin thành công"
-      );
-      console.log("=".repeat(50));
-
-      // INPUT
       const input = { page: 2, limit: 10, keyword: "coffee" };
-      console.log("\n📝 INPUT:", JSON.stringify(input, null, 2));
-
-      // Arrange
       const mockItems = [{ id: 1, title: "Coffee News" }];
+
       NewsRepository.findAllAdminPaginated.mockResolvedValue(mockItems);
       NewsRepository.countAll.mockResolvedValue(13);
 
-      // OUTPUT EXPECT
       const expectedOutput = {
         items: mockItems,
         total: 13,
         page: 2,
         totalPages: 2,
       };
-      console.log("✅ OUTPUT EXPECT:", JSON.stringify(expectedOutput, null, 2));
 
-      // Act
+      logCase({
+        method: "getAllAdmin",
+        tcid: "TC-01",
+        crud: "READ",
+        input,
+        expected: expectedOutput,
+      });
+
       const result = await NewsService.getAllAdmin(input);
+      logReality(result);
 
-      // OUTPUT REALITY
-      console.log("🎯 OUTPUT REALITY:", JSON.stringify(result, null, 2));
-
-      // Assert
       expect(NewsRepository.findAllAdminPaginated).toHaveBeenCalledWith(
         10,
         10,
-        "coffee"
+        "coffee",
+        ""
       );
       expect(NewsRepository.countAll).toHaveBeenCalledWith("coffee");
       expect(result).toEqual(expectedOutput);
@@ -364,28 +342,22 @@ describe("NewsService", () => {
 
   describe("deleteNews", () => {
     it("NewsService - deleteNews - TC-01: should delete news successfully", async () => {
-      console.log("\n" + "=".repeat(50));
-      console.log("NewsService - DELETE_NEWS - TC-1: Xóa bài viết thành công");
-      console.log("=".repeat(50));
-
-      // INPUT
       const input = { id: 1 };
-      console.log("\n📝 INPUT:", JSON.stringify(input, null, 2));
-
-      // Arrange
       const mockResult = { affectedRows: 1 };
+
       NewsRepository.deleteById.mockResolvedValue(mockResult);
 
-      // OUTPUT EXPECT
-      console.log("✅ OUTPUT EXPECT:", JSON.stringify(mockResult, null, 2));
+      logCase({
+        method: "deleteNews",
+        tcid: "TC-01",
+        crud: "DELETE",
+        input,
+        expected: mockResult,
+      });
 
-      // Act
       const result = await NewsService.deleteNews(input.id);
+      logReality(result);
 
-      // OUTPUT REALITY
-      console.log("🎯 OUTPUT REALITY:", JSON.stringify(result, null, 2));
-
-      // Assert
       expect(NewsRepository.deleteById).toHaveBeenCalledWith(1);
       expect(result).toEqual(mockResult);
     });
@@ -393,13 +365,6 @@ describe("NewsService", () => {
 
   describe("updateNews", () => {
     it("NewsService - updateNews - TC-01: should update news successfully", async () => {
-      console.log("\n" + "=".repeat(50));
-      console.log(
-        "NewsService - UPDATE_NEWS - TC-1: Cập nhật bài viết thành công"
-      );
-      console.log("=".repeat(50));
-
-      // INPUT
       const input = {
         id: 1,
         data: {
@@ -410,22 +375,21 @@ describe("NewsService", () => {
           thumbnail: "uploads/news/new-thumb.jpg",
         },
       };
-      console.log("\n📝 INPUT:", JSON.stringify(input, null, 2));
 
-      // Arrange
       NewsRepository.findByTitleExcludeId.mockResolvedValue(null);
       NewsRepository.updateById.mockResolvedValue(true);
 
-      // OUTPUT EXPECT
-      console.log("✅ OUTPUT EXPECT: true");
+      logCase({
+        method: "updateNews",
+        tcid: "TC-01",
+        crud: "UPDATE",
+        input,
+        expected: true,
+      });
 
-      // Act
       const result = await NewsService.updateNews(input.id, input.data);
+      logReality(result);
 
-      // OUTPUT REALITY
-      console.log("🎯 OUTPUT REALITY:", result);
-
-      // Assert
       expect(NewsRepository.findByTitleExcludeId).toHaveBeenCalledWith(
         "Tiêu đề mới",
         1
@@ -435,154 +399,128 @@ describe("NewsService", () => {
     });
 
     it("NewsService - updateNews - TC-02: should throw error when title already exists", async () => {
-      console.log("\n" + "=".repeat(50));
-      console.log(
-        "NewsService - UPDATE_NEWS - TC-2: Lỗi khi tiêu đề bài viết đã tồn tại"
-      );
-      console.log("=".repeat(50));
-
-      // INPUT
       const input = {
         id: 1,
-        title: "Tiêu đề trùng",
-      };
-      console.log("\n📝 INPUT:", JSON.stringify(input, null, 2));
-
-      // Arrange
-      NewsRepository.findByTitleExcludeId.mockResolvedValue({
-        id: 99,
-        title: input.title,
-      });
-
-      // OUTPUT EXPECT
-      const expectedError = "Tiêu đề bài viết đã tồn tại";
-      console.log("✅ OUTPUT EXPECT: Error -", expectedError);
-
-      // Act & Assert
-      await expect(
-        NewsService.updateNews(1, {
+        data: {
           title: "Tiêu đề trùng",
           summary: "summary",
           content: "content",
           tag: "#tag",
           thumbnail: undefined,
-        })
-      ).rejects.toThrow(expectedError);
+        },
+      };
+      const expectedError = "Tiêu đề bài viết đã tồn tại";
 
-      // OUTPUT REALITY
-      console.log("🎯 OUTPUT REALITY: throw error -", expectedError);
+      NewsRepository.findByTitleExcludeId.mockResolvedValue({
+        id: 99,
+        title: input.data.title,
+      });
 
+      logCase({
+        method: "updateNews",
+        tcid: "TC-02",
+        crud: "UPDATE",
+        input,
+        expected: { error: expectedError },
+      });
+
+      let actualError = null;
+      try {
+        await NewsService.updateNews(input.id, input.data);
+      } catch (error) {
+        actualError = error.message;
+      }
+      logReality({ error: actualError });
+
+      expect(actualError).toContain(expectedError);
       expect(NewsRepository.updateById).not.toHaveBeenCalled();
     });
   });
 
   describe("getById", () => {
     it("NewsService - getById - TC-01: should get news by id successfully", async () => {
-      console.log("\n" + "=".repeat(50));
-      console.log(
-        "NewsService - GET_BY_ID - TC-1: Lấy bài viết theo id thành công"
-      );
-      console.log("=".repeat(50));
-
-      // INPUT
       const input = { id: 1 };
-      console.log("\n📝 INPUT:", JSON.stringify(input, null, 2));
-
-      // Arrange
       const mockNews = { id: 1, title: "Tin 1" };
+
       NewsRepository.findOne.mockResolvedValue(mockNews);
 
-      // OUTPUT EXPECT
-      console.log("✅ OUTPUT EXPECT:", JSON.stringify(mockNews, null, 2));
+      logCase({
+        method: "getById",
+        tcid: "TC-01",
+        crud: "READ",
+        input,
+        expected: mockNews,
+      });
 
-      // Act
-      const result = await NewsService.getById(1);
+      const result = await NewsService.getById(input.id);
+      logReality(result);
 
-      // OUTPUT REALITY
-      console.log("🎯 OUTPUT REALITY:", JSON.stringify(result, null, 2));
-
-      // Assert
       expect(NewsRepository.findOne).toHaveBeenCalledWith({ id: 1 });
       expect(result).toEqual(mockNews);
     });
 
     it("NewsService - getById - TC-02: should throw error when news not found", async () => {
-      console.log("\n" + "=".repeat(50));
-      console.log(
-        "NewsService - GET_BY_ID - TC-2: Lỗi khi không tìm thấy bài viết"
-      );
-      console.log("=".repeat(50));
-
-      // INPUT
       const input = { id: 999 };
-      console.log("\n📝 INPUT:", JSON.stringify(input, null, 2));
+      const expectedError = "Không tìm thấy bài viết";
 
-      // Arrange
       NewsRepository.findOne.mockResolvedValue(null);
 
-      // OUTPUT EXPECT
-      const expectedError = "Không tìm thấy bài viết";
-      console.log("✅ OUTPUT EXPECT: Error -", expectedError);
+      logCase({
+        method: "getById",
+        tcid: "TC-02",
+        crud: "READ",
+        input,
+        expected: { error: expectedError },
+      });
 
-      // Act & Assert
-      await expect(NewsService.getById(999)).rejects.toThrow(expectedError);
+      let actualError = null;
+      try {
+        await NewsService.getById(input.id);
+      } catch (error) {
+        actualError = error.message;
+      }
+      logReality({ error: actualError });
 
-      // OUTPUT REALITY
-      console.log("🎯 OUTPUT REALITY: throw error -", expectedError);
+      expect(actualError).toContain(expectedError);
     });
   });
 
   describe("getRelated", () => {
     it("NewsService - getRelated - TC-01: should return empty array when tag is missing", async () => {
-      console.log("\n" + "=".repeat(50));
-      console.log(
-        "NewsService - GET_RELATED - TC-1: Trả về mảng rỗng khi không có tag"
-      );
-      console.log("=".repeat(50));
-
-      // INPUT
       const input = { tag: "", excludeId: 1 };
-      console.log("\n📝 INPUT:", JSON.stringify(input, null, 2));
 
-      // OUTPUT EXPECT
-      console.log("✅ OUTPUT EXPECT: []");
+      logCase({
+        method: "getRelated",
+        tcid: "TC-01",
+        crud: "READ",
+        input,
+        expected: [],
+      });
 
-      // Act
       const result = await NewsService.getRelated(input.tag, input.excludeId);
+      logReality(result);
 
-      // OUTPUT REALITY
-      console.log("🎯 OUTPUT REALITY:", JSON.stringify(result));
-
-      // Assert
       expect(result).toEqual([]);
       expect(NewsRepository.findRelatedByTag).not.toHaveBeenCalled();
     });
 
     it("NewsService - getRelated - TC-02: should get related news successfully", async () => {
-      console.log("\n" + "=".repeat(50));
-      console.log(
-        "NewsService - GET_RELATED - TC-2: Lấy tin liên quan thành công"
-      );
-      console.log("=".repeat(50));
-
-      // INPUT
       const input = { tag: "#coffee", excludeId: 1 };
-      console.log("\n📝 INPUT:", JSON.stringify(input, null, 2));
-
-      // Arrange
       const mockNews = [{ id: 2 }, { id: 3 }];
+
       NewsRepository.findRelatedByTag.mockResolvedValue(mockNews);
 
-      // OUTPUT EXPECT
-      console.log("✅ OUTPUT EXPECT:", JSON.stringify(mockNews, null, 2));
+      logCase({
+        method: "getRelated",
+        tcid: "TC-02",
+        crud: "READ",
+        input,
+        expected: mockNews,
+      });
 
-      // Act
       const result = await NewsService.getRelated(input.tag, input.excludeId);
+      logReality(result);
 
-      // OUTPUT REALITY
-      console.log("🎯 OUTPUT REALITY:", JSON.stringify(result, null, 2));
-
-      // Assert
       expect(NewsRepository.findRelatedByTag).toHaveBeenCalledWith(
         "#coffee",
         1,
