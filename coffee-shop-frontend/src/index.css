@@ -85,6 +85,17 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+
+  --animate-wiggle: wiggle 2s linear infinite;
+
+  @keyframes wiggle {
+    0%, 10% { transform: rotate(0deg); }
+    15% { transform: rotate(-15deg); }
+    20% { transform: rotate(10deg); }
+    25% { transform: rotate(-10deg); }
+    30% { transform: rotate(5deg); }
+    35%, 100% { transform: rotate(0deg); }
+  }
 }
 
 /* =========================

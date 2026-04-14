@@ -207,6 +207,16 @@ class DiscountRepository {
     const [result] = await pool.query(sql, [newCode, id]);
     return result.affectedRows > 0;
   }
+
+  async hardDelete(id) {
+    const sql = `
+      DELETE FROM discount
+      WHERE id = ?
+    `;
+
+    const [result] = await pool.query(sql, [id]);
+    return result.affectedRows > 0;
+  }
 }
 
 module.exports = new DiscountRepository();

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { Plus, Edit, Trash2, Calendar, Clock, Zap, Loader2 } from "lucide-react";
+import { Plus, Edit, Trash2, Clock, Loader2, Search } from "lucide-react";
 import { toast } from "sonner";
 import { adminFlashSaleService } from "@/services/adminFlashSaleService";
+import PaginationControl from "@/components/common/PaginationControl";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -13,6 +14,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -28,9 +30,13 @@ export default function AdminFlashSales() {
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedSale, setSelectedSale] = useState(null);
-  
+
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [saleToDelete, setSaleToDelete] = useState(null);
+
+  const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   const fetchSales = async () => {
     try {
@@ -47,6 +53,20 @@ export default function AdminFlashSales() {
   useEffect(() => {
     fetchSales();
   }, []);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
+  const filteredSales = sales.filter(sale =>
+    sale.title.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const totalPages = Math.ceil(filteredSales.length / itemsPerPage);
+  const paginatedSales = filteredSales.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
   const handleOpenAdd = () => {
     setSelectedSale(null);
@@ -106,7 +126,7 @@ export default function AdminFlashSales() {
     if (sale.status === 'inactive') {
       return <span className="px-2 py-1 text-xs rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300">Đã tắt</span>;
     }
-    
+
     if (now < start) {
       return <span className="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-600">Sắp diễn ra</span>;
     } else if (now > end) {
@@ -126,9 +146,20 @@ export default function AdminFlashSales() {
             </h1>
           </div>
         </div>
-        <Button onClick={handleOpenAdd}>
-          <Plus className="w-4 h-4 mr-2" /> Tạo chiến dịch mới
-        </Button>
+        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
+            <Input
+              placeholder="Tìm kiếm chiến dịch..."
+              className="pl-9 w-full sm:w-[350px]"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          <Button onClick={handleOpenAdd}>
+            <Plus className="w-4 h-4 mr-2" /> Tạo chiến dịch mới
+          </Button>
+        </div>
       </div>
 
       <div className="relative bg-card rounded-xl border border-border overflow-hidden">
@@ -151,20 +182,20 @@ export default function AdminFlashSales() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {sales.length === 0 ? (
+              {filteredSales.length === 0 ? (
                 <TableRow>
                   <TableCell
                     colSpan={6}
                     className="text-center py-8 text-muted-foreground"
                   >
-                    Chưa có chiến dịch Flash Sale nào
+                    Không tìm thấy chiến dịch Flash Sale nào
                   </TableCell>
                 </TableRow>
               ) : (
-                sales.map((sale, index) => (
+                paginatedSales.map((sale, index) => (
                   <TableRow key={sale.id}>
                     <TableCell className="text-center font-medium">
-                      {index + 1}
+                      {(currentPage - 1) * itemsPerPage + index + 1}
                     </TableCell>
                     <TableCell>
                       <div className="font-medium">{sale.title}</div>
@@ -206,6 +237,19 @@ export default function AdminFlashSales() {
             </TableBody>
           </Table>
         )}
+
+        {!loading && filteredSales.length > 0 && (
+          <div className="p-4 border-t border-border">
+            <PaginationControl
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+              totalItems={filteredSales.length}
+              itemsPerPage={itemsPerPage}
+              itemName="chiến dịch"
+            />
+          </div>
+        )}
       </div>
 
       <AdminFlashSaleModal
@@ -220,7 +264,7 @@ export default function AdminFlashSales() {
           <AlertDialogHeader>
             <AlertDialogTitle>Xác nhận xóa Flash Sale</AlertDialogTitle>
             <AlertDialogDescription>
-              Bạn có chắc chắn muốn xóa chiến dịch <strong>{saleToDelete?.title}</strong>? Không thể hoàn tác hành động này.
+              Bạn có chắc chắn muốn xóa chiến dịch <strong>{saleToDelete?.title}</strong>?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -9,7 +9,7 @@ describe('FlashSaleService', () => {
   });
 
   describe('getCurrentActive', () => {
-    it('FlashSaleService - getCurrentActive - TC-1: should call findCurrentActive', async () => {
+    it('FlashSaleService - getCurrentActive - TC-01: should call findCurrentActive', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('FlashSaleService - getCurrentActive - TC-1: Lấy flash sale đang active');
       console.log('='.repeat(50));
@@ -30,7 +30,7 @@ describe('FlashSaleService', () => {
   });
 
   describe('getAll', () => {
-    it('FlashSaleService - getAll - TC-1: should call findAll', async () => {
+    it('FlashSaleService - getAll - TC-01: should call findAll', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('FlashSaleService - getAll - TC-1: Lấy tất cả flash sales');
       console.log('='.repeat(50));
@@ -51,7 +51,7 @@ describe('FlashSaleService', () => {
   });
 
   describe('getById', () => {
-    it('FlashSaleService - getById - TC-1: should call findById', async () => {
+    it('FlashSaleService - getById - TC-01: should call findById', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('FlashSaleService - getById - TC-1: Lấy flash sale theo ID');
       console.log('='.repeat(50));
@@ -74,7 +74,7 @@ describe('FlashSaleService', () => {
   });
 
   describe('create', () => {
-    it('FlashSaleService - create - TC-1: should call create', async () => {
+    it('FlashSaleService - create - TC-01: should call create', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('FlashSaleService - create - TC-1: Tạo mới flash sale');
       console.log('='.repeat(50));
@@ -94,10 +94,27 @@ describe('FlashSaleService', () => {
       expect(FlashSaleRepository.create).toHaveBeenCalledWith(input.data);
       expect(result).toEqual(mockResult);
     });
+
+    it('FlashSaleService - create - TC-02: should throw error when active campaign time overlaps', async () => {
+      const input = {
+        title: 'Overlap campaign',
+        status: 'active',
+        start_time: '2026-04-14T10:00:00.000Z',
+        end_time: '2026-04-14T12:00:00.000Z',
+      };
+
+      FlashSaleRepository.checkOverlap.mockResolvedValue({ title: 'Flash trùng giờ' });
+
+      await expect(FlashSaleService.create(input)).rejects.toThrow(
+        'Không thể tạo. Bị trùng khung giờ với chiến dịch đang chạy: "Flash trùng giờ"'
+      );
+
+      expect(FlashSaleRepository.create).not.toHaveBeenCalled();
+    });
   });
 
   describe('update', () => {
-    it('FlashSaleService - update - TC-1: should call update', async () => {
+    it('FlashSaleService - update - TC-01: should call update', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('FlashSaleService - update - TC-1: Cập nhật flash sale');
       console.log('='.repeat(50));
@@ -119,7 +136,7 @@ describe('FlashSaleService', () => {
   });
 
   describe('delete', () => {
-    it('FlashSaleService - delete - TC-1: should call delete', async () => {
+    it('FlashSaleService - delete - TC-01: should call delete', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('FlashSaleService - delete - TC-1: Xóa flash sale');
       console.log('='.repeat(50));

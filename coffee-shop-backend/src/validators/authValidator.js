@@ -1,17 +1,30 @@
 const Joi = require('joi');
 
+const PHONE_REGEX = /^(?:\+84\d{9,10}|84\d{9,10}|\d{10,11})$/;
+
+const requiredPhoneSchema = Joi.string()
+  .trim()
+  .pattern(PHONE_REGEX)
+  .required()
+  .messages({
+    'string.empty': 'Số điện thoại không được để trống',
+    'string.pattern.base': 'Số điện thoại phải có 10-11 chữ số hoặc bắt đầu bằng +84',
+    'any.required': 'Số điện thoại là bắt buộc',
+  });
+
+const optionalPhoneSchema = Joi.string()
+  .trim()
+  .pattern(PHONE_REGEX)
+  .optional()
+  .messages({
+    'string.pattern.base': 'Số điện thoại phải có 10-11 chữ số hoặc bắt đầu bằng +84',
+  });
+
 /**
  * Validation schema for user registration
  */
 const registerSchema = Joi.object({
-  phone: Joi.string()
-    .pattern(/^(\+84|0)[0-9]{9,11}$/)
-    .required()
-    .messages({
-      'string.empty': 'Số điện thoại không được để trống',
-      'string.pattern.base': 'Số điện thoại không hợp lệ (0xxx hoặc +84xxx)',
-      'any.required': 'Số điện thoại là bắt buộc',
-    }),
+  phone: requiredPhoneSchema,
 
   username: Joi.string().min(3).max(50).alphanum().required().messages({
     'string.empty': 'Username không được để trống',
@@ -64,14 +77,7 @@ const registerSchema = Joi.object({
  * Validation schema for staff creation (admin)
  */
 const staffCreateSchema = Joi.object({
-  phone: Joi.string()
-    .pattern(/^[0-9]{10,11}$/)
-    .required()
-    .messages({
-      'string.empty': 'Số điện thoại không được để trống',
-      'string.pattern.base': 'Số điện thoại phải có 10-11 chữ số',
-      'any.required': 'Số điện thoại là bắt buộc',
-    }),
+  phone: requiredPhoneSchema,
 
   username: Joi.string().min(3).max(50).alphanum().required().messages({
     'string.empty': 'Username không được để trống',
@@ -158,12 +164,7 @@ const updateProfileSchema = Joi.object({
     'string.max': 'Tên không được vượt quá 30 ký tự',
   }),
 
-  phone: Joi.string()
-    .pattern(/^[0-9]{10,11}$/)
-    .optional()
-    .messages({
-      'string.pattern.base': 'Số điện thoại phải có 10-11 chữ số',
-    }),
+  phone: optionalPhoneSchema,
 
   address: Joi.string().max(255).optional().allow(null, ''),
 });
@@ -238,118 +239,6 @@ const resetPasswordWithOtpSchema = Joi.object({
   }),
 });
 
-/**
- * Validation schema for create address
- */
-const createAddressSchema = Joi.object({
-  receiver_name: Joi.string().trim().max(100).optional().allow(null, '').messages({
-    'string.max': 'Tên người nhận không được vượt quá 100 ký tự',
-  }),
-  receiver_phone: Joi.string()
-    .trim()
-    .max(20)
-    .optional()
-    .allow(null, '')
-    .messages({
-      'string.max': 'Số điện thoại không được vượt quá 20 ký tự',
-    }),
-  address: Joi.string().trim().min(5).max(255).required().messages({
-    'string.empty': 'Địa chỉ không được để trống',
-    'string.min': 'Địa chỉ phải có ít nhất 5 ký tự',
-    'string.max': 'Địa chỉ không được vượt quá 255 ký tự',
-    'any.required': 'Địa chỉ là bắt buộc',
-  }),
-  address_type: Joi.string().valid('home', 'work', 'other').default('home').messages({
-    'any.only': 'Loại địa chỉ không hợp lệ',
-  }),
-  latitude: Joi.number().min(-90).max(90).required().messages({
-    'number.base': 'Vĩ độ không hợp lệ',
-    'number.min': 'Vĩ độ không hợp lệ',
-    'number.max': 'Vĩ độ không hợp lệ',
-    'any.required': 'Vui lòng ghim vị trí để lấy tọa độ',
-  }),
-  longitude: Joi.number().min(-180).max(180).required().messages({
-    'number.base': 'Kinh độ không hợp lệ',
-    'number.min': 'Kinh độ không hợp lệ',
-    'number.max': 'Kinh độ không hợp lệ',
-    'any.required': 'Vui lòng ghim vị trí để lấy tọa độ',
-  }),
-  location_source: Joi.string()
-    .valid('manual_pin', 'gps', 'geocode', 'imported')
-    .optional()
-    .messages({
-      'any.only': 'Nguồn tọa độ không hợp lệ',
-    }),
-  is_default: Joi.number().integer().valid(0, 1).optional(),
-});
-
-/**
- * Validation schema for update address
- */
-const updateAddressSchema = Joi.object({
-  receiver_name: Joi.string().trim().max(100).optional().allow(null, '').messages({
-    'string.max': 'Tên người nhận không được vượt quá 100 ký tự',
-  }),
-  receiver_phone: Joi.string()
-    .trim()
-    .max(20)
-    .optional()
-    .allow(null, '')
-    .messages({
-      'string.max': 'Số điện thoại không được vượt quá 20 ký tự',
-    }),
-  address: Joi.string().trim().min(5).max(255).optional().messages({
-    'string.min': 'Địa chỉ phải có ít nhất 5 ký tự',
-    'string.max': 'Địa chỉ không được vượt quá 255 ký tự',
-  }),
-  address_type: Joi.string().valid('home', 'work', 'other').optional().messages({
-    'any.only': 'Loại địa chỉ không hợp lệ',
-  }),
-  latitude: Joi.number().min(-90).max(90).optional().allow(null).messages({
-    'number.base': 'Vĩ độ không hợp lệ',
-    'number.min': 'Vĩ độ không hợp lệ',
-    'number.max': 'Vĩ độ không hợp lệ',
-  }),
-  longitude: Joi.number().min(-180).max(180).optional().allow(null).messages({
-    'number.base': 'Kinh độ không hợp lệ',
-    'number.min': 'Kinh độ không hợp lệ',
-    'number.max': 'Kinh độ không hợp lệ',
-  }),
-  location_source: Joi.string()
-    .valid('manual_pin', 'gps', 'geocode', 'imported')
-    .optional()
-    .messages({
-      'any.only': 'Nguồn tọa độ không hợp lệ',
-    }),
-  is_default: Joi.number().integer().valid(0, 1).optional(),
-})
-  .custom((value, helpers) => {
-    const hasLat = value.latitude !== undefined && value.latitude !== null;
-    const hasLng = value.longitude !== undefined && value.longitude !== null;
-
-    if (hasLat !== hasLng) {
-      return helpers.message('Vui lòng cung cấp đầy đủ cả vĩ độ và kinh độ');
-    }
-
-    return value;
-  })
-  .min(1)
-  .messages({
-    'object.min': 'Cần ít nhất 1 trường để cập nhật địa chỉ',
-  });
-
-/**
- * Validation schema for address id param
- */
-const addressIdParamSchema = Joi.object({
-  id: Joi.number().integer().positive().required().messages({
-    'number.base': 'ID địa chỉ phải là số',
-    'number.integer': 'ID địa chỉ phải là số nguyên',
-    'number.positive': 'ID địa chỉ phải lớn hơn 0',
-    'any.required': 'ID địa chỉ là bắt buộc',
-  }),
-});
-
 module.exports = {
   registerSchema,
   staffCreateSchema,
@@ -360,7 +249,4 @@ module.exports = {
   resetPasswordSchema,
   verifyForgotPasswordOtpSchema,
   resetPasswordWithOtpSchema,
-  createAddressSchema,
-  updateAddressSchema,
-  addressIdParamSchema,
 };

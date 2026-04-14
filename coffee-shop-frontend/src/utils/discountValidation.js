@@ -30,7 +30,7 @@ export const validateDiscountField = (name, value, all = {}) => {
         return "Phần trăm là bắt buộc";
       }
       if (Number.isNaN(n)) return "Phần trăm phải là số";
-      if (n < 0) return "Phần trăm phải >= 0";
+      if (n <= 0) return "Phần trăm phải > 0";
       if (n > 100) return "Phần trăm phải <= 100";
       return "";
     }
@@ -42,6 +42,14 @@ export const validateDiscountField = (name, value, all = {}) => {
       }
       if (Number.isNaN(n)) return "Đơn tối thiểu phải là số";
       if (n < 0) return "Đơn tối thiểu phải >= 0";
+
+      if (all.max_discount_amount !== undefined && all.max_discount_amount !== "") {
+        const maxDiscount = toNumber(all.max_discount_amount);
+        if (!Number.isNaN(maxDiscount) && n < maxDiscount) {
+          return "Đơn tối thiểu phải >= Giảm tối đa";
+        }
+      }
+
       return "";
     }
 
@@ -52,6 +60,14 @@ export const validateDiscountField = (name, value, all = {}) => {
       }
       if (Number.isNaN(n)) return "Giảm tối đa phải là số";
       if (n < 0) return "Giảm tối đa phải >= 0";
+
+      if (all.min_order_amount !== undefined && all.min_order_amount !== "") {
+        const minOrder = toNumber(all.min_order_amount);
+        if (!Number.isNaN(minOrder) && n > minOrder) {
+          return "Giảm tối đa phải <= Đơn tối thiểu";
+        }
+      }
+
       return "";
     }
 

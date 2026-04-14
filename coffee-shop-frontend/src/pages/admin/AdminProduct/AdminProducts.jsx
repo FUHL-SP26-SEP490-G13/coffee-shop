@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
-import { Plus, Search, Edit, Trash2 } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Filter } from 'lucide-react';
 
 import productService from '../../../services/productService';
 import categoryService from '../../../services/categoryService';
@@ -29,6 +29,8 @@ const PAGE_SIZE = 8;
 export default function AdminProducts() {
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
+  const [filterCategory, setFilterCategory] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
   const [page, setPage] = useState(1);
 
   // Debounce search query
@@ -54,18 +56,21 @@ export default function AdminProducts() {
   };
 
   const fetchProducts = useCallback(() => {
+    const params = {
+      page,
+      limit: PAGE_SIZE,
+    };
+    if (filterCategory) params.category_id = filterCategory;
+    if (filterStatus) params.status = filterStatus;
+
     if (debouncedQuery.trim()) {
       return productService.search({
         keyword: debouncedQuery.trim(),
-        page,
-        limit: PAGE_SIZE,
+        ...params,
       });
     }
-    return productService.getAll({
-      page,
-      limit: PAGE_SIZE,
-    });
-  }, [page, debouncedQuery]);
+    return productService.getAll(params);
+  }, [page, debouncedQuery, filterCategory, filterStatus]);
 
   const {
     data: response,
@@ -144,8 +149,9 @@ export default function AdminProducts() {
         </Button>
       </div>
 
-      <div className='mb-4'>
-        <div className='relative max-w-sm'>
+      <div className='mb-4 flex flex-wrap items-center gap-3'>
+        {/* Search */}
+        <div className='relative min-w-[220px] flex-1 max-w-sm'>
           <Search className='absolute left-3 top-2.5 w-4 h-4 text-muted-foreground' />
           <Input
             placeholder='Tìm kiếm sản phẩm...'
@@ -154,6 +160,45 @@ export default function AdminProducts() {
             className='pl-9'
           />
         </div>
+
+        {/* Filter danh mục */}
+        <div className='relative'>
+          <Filter className='absolute left-3 top-2.5 w-4 h-4 text-muted-foreground pointer-events-none' />
+          <select
+            value={filterCategory}
+            onChange={(e) => { setFilterCategory(e.target.value); setPage(1); }}
+            className='pl-9 pr-4 h-10 rounded-md border border-input bg-background text-sm text-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-ring min-w-[160px] cursor-pointer'
+          >
+            <option value=''>Tất cả danh mục</option>
+            {categories.map((cat) => (
+              <option key={cat.id} value={String(cat.id)}>{cat.name}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Filter trạng thái */}
+        <div className='relative'>
+          <Filter className='absolute left-3 top-2.5 w-4 h-4 text-muted-foreground pointer-events-none' />
+          <select
+            value={filterStatus}
+            onChange={(e) => { setFilterStatus(e.target.value); setPage(1); }}
+            className='pl-9 pr-4 h-10 rounded-md border border-input bg-background text-sm text-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-ring min-w-[150px] cursor-pointer'
+          >
+            <option value=''>Tất cả trạng thái</option>
+            <option value='available'>Đang bán</option>
+            <option value='unavailable'>Ngừng bán</option>
+          </select>
+        </div>
+
+        {/* Reset filters */}
+        {(filterCategory || filterStatus || searchQuery) && (
+          <button
+            onClick={() => { setFilterCategory(''); setFilterStatus(''); setSearchQuery(''); setPage(1); }}
+            className='text-sm text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors'
+          >
+            Xóa bộ lọc
+          </button>
+        )}
       </div>
 
       <div className='bg-card rounded-xl border border-border'>

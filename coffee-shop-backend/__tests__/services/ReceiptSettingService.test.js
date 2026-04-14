@@ -9,7 +9,7 @@ describe('ReceiptSettingService', () => {
   });
 
   describe('normalizePayload', () => {
-    it('ReceiptSettingService - normalizePayload - TC-1: should normalize payload arrays correctly', () => {
+    it('ReceiptSettingService - normalizePayload - TC-01: should normalize payload arrays correctly', () => {
       console.log('\n' + '='.repeat(50));
       console.log('ReceiptSettingService - normalizePayload - TC-1: Khởi tạo/chuẩn hóa payload');
       console.log('='.repeat(50));
@@ -43,10 +43,42 @@ describe('ReceiptSettingService', () => {
 
       expect(result).toEqual(expectedOutput);
     });
+
+    it('ReceiptSettingService - normalizePayload - TC-02: should convert full-space address to null', () => {
+      console.log('\n' + '='.repeat(50));
+      console.log('ReceiptSettingService - normalizePayload - TC-2: Address chỉ khoảng trắng sẽ thành null');
+      console.log('='.repeat(50));
+
+      const input = {
+        store_name: 'Coffee Cafe',
+        address: '    ',
+      };
+      console.log('\n📝 INPUT:', JSON.stringify(input, null, 2));
+
+      const expectedOutput = {
+        store_name: 'Coffee Cafe',
+        address: null,
+        phone: undefined,
+        header_lines: undefined,
+        footer_lines: undefined,
+        logo_url: undefined,
+        is_active: undefined,
+        open_time: undefined,
+        close_time: undefined,
+        reputation_rules: undefined,
+      };
+      console.log('✅ OUTPUT EXPECT:', JSON.stringify(expectedOutput, null, 2));
+
+      const result = ReceiptSettingService.normalizePayload(input);
+
+      console.log('🎯 OUTPUT REALITY:', JSON.stringify(result, null, 2));
+
+      expect(result).toEqual(expectedOutput);
+    });
   });
 
   describe('mapOutput', () => {
-    it('ReceiptSettingService - mapOutput - TC-1: should map output strings to arrays automatically', () => {
+    it('ReceiptSettingService - mapOutput - TC-01: should map output strings to arrays automatically', () => {
       console.log('\n' + '='.repeat(50));
       console.log('ReceiptSettingService - mapOutput - TC-1: Map dữ liệu DB list/string array');
       console.log('='.repeat(50));
@@ -75,7 +107,7 @@ describe('ReceiptSettingService', () => {
       expect(result).toEqual(expectedOutput);
     });
 
-    it('ReceiptSettingService - mapOutput - TC-2: should return null if setting is null', () => {
+    it('ReceiptSettingService - mapOutput - TC-02: should return null if setting is null', () => {
       console.log('\n' + '='.repeat(50));
       console.log('ReceiptSettingService - mapOutput - TC-2: Return null nếu db = null');
       console.log('='.repeat(50));
@@ -90,10 +122,26 @@ describe('ReceiptSettingService', () => {
 
       expect(result).toBeNull();
     });
+
+    it('ReceiptSettingService - mapOutput - TC-03: should throw error when header_lines has invalid JSON format', () => {
+      console.log('\n' + '='.repeat(50));
+      console.log('ReceiptSettingService - mapOutput - TC-3: Lỗi parse khi header_lines sai định dạng JSON');
+      console.log('='.repeat(50));
+
+      const input = {
+        id: 10,
+        header_lines: 'not-json',
+        footer_lines: '[]',
+      };
+      console.log('\n📝 INPUT:', JSON.stringify(input, null, 2));
+      console.log('✅ OUTPUT EXPECT: throw parse error');
+
+      expect(() => ReceiptSettingService.mapOutput(input)).toThrow();
+    });
   });
 
   describe('getActiveSetting', () => {
-    it('ReceiptSettingService - getActiveSetting - TC-1: should find active setting and map it', async () => {
+    it('ReceiptSettingService - getActiveSetting - TC-01: should find active setting and map it', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('ReceiptSettingService - getActiveSetting - TC-1: Lấy cấu hình in đang Active');
       console.log('='.repeat(50));
@@ -126,7 +174,7 @@ describe('ReceiptSettingService', () => {
   });
 
   describe('upsertActiveSetting', () => {
-    it('ReceiptSettingService - upsertActiveSetting - TC-1: should create new active setting if none exists', async () => {
+    it('ReceiptSettingService - upsertActiveSetting - TC-01: should create new active setting if none exists', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('ReceiptSettingService - upsertActiveSetting - TC-1: Tạo mới config In hóa đơn');
       console.log('='.repeat(50));
@@ -155,7 +203,7 @@ describe('ReceiptSettingService', () => {
       expect(result).toEqual(expectedOutput);
     });
 
-    it('ReceiptSettingService - upsertActiveSetting - TC-2: should update existing active setting if one exists', async () => {
+    it('ReceiptSettingService - upsertActiveSetting - TC-02: should update existing active setting if one exists', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('ReceiptSettingService - upsertActiveSetting - TC-2: Cập nhật config In hóa đơn');
       console.log('='.repeat(50));

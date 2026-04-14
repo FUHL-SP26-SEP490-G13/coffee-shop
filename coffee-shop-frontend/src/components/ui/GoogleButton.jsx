@@ -4,7 +4,7 @@ import authenticationService from "@/services/authenticationService";
 import { APP_ROUTES, STORAGE_KEYS } from "@/constants";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { cartService } from "@/services/cartService";
+import { useCartStore } from "@/store/useCartStore";
 
 export default function GoogleButton() {
   const navigate = useNavigate();
@@ -30,9 +30,11 @@ export default function GoogleButton() {
         if (refreshToken) {
           localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, refreshToken);
         }
+        localStorage.setItem(STORAGE_KEYS.AUTH_PROVIDER, "google");
+        sessionStorage.removeItem(STORAGE_KEYS.AUTH_PROVIDER);
 
         try {
-          await cartService.syncAfterLogin();
+          await useCartStore.getState().syncAfterLogin();
         } catch (cartError) {
           console.error("Cart sync failed after Google login:", cartError);
           toast.error(
@@ -85,7 +87,7 @@ export default function GoogleButton() {
         </div>
         <div className="relative flex justify-center text-xs uppercase">
           <span className="bg-card px-2 text-muted-foreground">
-            Hoặc tiếp tục với
+            Hoặc
           </span>
         </div>
       </div>

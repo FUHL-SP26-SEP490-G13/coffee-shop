@@ -24,7 +24,7 @@ describe('ProductService', () => {
   // getAllProducts
   // ============================================================
   describe('getAllProducts', () => {
-    it('TC-1: should get all products without filter', async () => {
+    it('ProductService - getAllProducts - TC-01: should get all products without filter', async () => {
       console.log('\n===== ProductService.getAllProducts (TC-1) =====');
       console.log('INPUT: options = {}');
       
@@ -42,7 +42,7 @@ describe('ProductService', () => {
       expect(result).toEqual(mockProducts);
     });
 
-    it('TC-2: should get products with status filter', async () => {
+    it('ProductService - getAllProducts - TC-02: should get products with status filter', async () => {
       console.log('\n===== ProductService.getAllProducts (TC-2) =====');
       console.log('INPUT: options = { status: "available", page: 1, limit: 10 }');
       
@@ -67,7 +67,7 @@ describe('ProductService', () => {
   // getProductById
   // ============================================================
   describe('getProductById', () => {
-    it('TC-1: should return product when exists', async () => {
+    it('ProductService - getProductById - TC-01: should return product when exists', async () => {
       console.log('\n===== ProductService.getProductById (TC-1) =====');
       console.log('INPUT: id = 1');
       
@@ -81,7 +81,7 @@ describe('ProductService', () => {
       expect(result).toEqual(mockProduct);
     });
 
-    it('TC-2: should throw 404 when product not found', async () => {
+    it('ProductService - getProductById - TC-02: should throw 404 when product not found', async () => {
       console.log('\n===== ProductService.getProductById (TC-2) =====');
       console.log('INPUT: id = 999');
       
@@ -97,7 +97,7 @@ describe('ProductService', () => {
   // getProductsByCategory
   // ============================================================
   describe('getProductsByCategory', () => {
-    it('TC-1: should return products when category exists', async () => {
+    it('ProductService - getProductsByCategory - TC-01: should return products when category exists', async () => {
       console.log('\n===== ProductService.getProductsByCategory (TC-1) =====');
       console.log('INPUT: categoryId = 1, options = {}');
       
@@ -114,7 +114,7 @@ describe('ProductService', () => {
       expect(result).toEqual(mockProducts);
     });
 
-    it('TC-2: should throw 404 when category not found', async () => {
+    it('ProductService - getProductsByCategory - TC-02: should throw 404 when category not found', async () => {
       console.log('\n===== ProductService.getProductsByCategory (TC-2) =====');
       console.log('INPUT: categoryId = 999');
       
@@ -125,7 +125,7 @@ describe('ProductService', () => {
       console.log('OUTPUT REALITY: threw error as expected');
     });
 
-    it('TC-3: should throw 404 when category is deleted', async () => {
+    it('ProductService - getProductsByCategory - TC-03: should throw 404 when category is deleted', async () => {
       console.log('\n===== ProductService.getProductsByCategory (TC-3) =====');
       console.log('INPUT: categoryId = 1 (deleted)');
       
@@ -141,10 +141,11 @@ describe('ProductService', () => {
   // createProduct
   // ============================================================
   describe('createProduct', () => {
-    it('TC-1: should create product successfully with images', async () => {
+    it('ProductService - createProduct - TC-01: should create product successfully with images', async () => {
       console.log('\n===== ProductService.createProduct (TC-1) =====');
       const data = {
         name: 'Cà phê đen',
+        code: 'cf01',
         category_id: 1,
         status: 'available',
         description: 'Ngon',
@@ -157,6 +158,8 @@ describe('ProductService', () => {
       
       CategoryRepository.findById.mockResolvedValue({ id: 1, is_deleted: 0 });
       ProductRepository.findByName.mockResolvedValue(null);
+      ProductRepository.findByCode.mockResolvedValue(null);
+      ProductRepository.findBySlug.mockResolvedValue(null);
       ProductRepository.create.mockResolvedValue({ id: 1 });
       ProductImageRepository.create.mockResolvedValue({});
       ProductRepository.findByIdWithDetails.mockResolvedValue({ id: 1, name: 'Cà phê đen' });
@@ -167,9 +170,11 @@ describe('ProductService', () => {
 
       expect(ProductRepository.create).toHaveBeenCalledWith({
         name: 'Cà phê đen',
+        code: 'CF01',
         category_id: 1,
         status: 'available',
-        description: 'Ngon'
+        description: 'Ngon',
+        slug: 'ca-phe-den'
       });
       expect(ProductImageRepository.create).toHaveBeenCalledTimes(2);
       expect(ProductImageRepository.create).toHaveBeenNthCalledWith(1, {
@@ -184,7 +189,7 @@ describe('ProductService', () => {
       });
     });
 
-    it('TC-2: should throw 404 when category not exists', async () => {
+    it('ProductService - createProduct - TC-02: should throw 404 when category not exists', async () => {
       console.log('\n===== ProductService.createProduct (TC-2) =====');
       console.log('INPUT: category_id = 999 (not exists)');
       
@@ -196,7 +201,7 @@ describe('ProductService', () => {
       console.log('OUTPUT REALITY: threw error as expected');
     });
 
-    it('TC-3: should throw 409 when product name already exists', async () => {
+    it('ProductService - createProduct - TC-03: should throw 409 when product name already exists', async () => {
       console.log('\n===== ProductService.createProduct (TC-3) =====');
       console.log('INPUT: name = "Cà phê đen" (exists)');
       
@@ -204,27 +209,43 @@ describe('ProductService', () => {
       ProductRepository.findByName.mockResolvedValue({ id: 1, name: 'Cà phê đen' });
 
       console.log('OUTPUT EXPECT: throw ErrorResponse(409)');
-      await expect(ProductService.createProduct({ name: 'Cà phê đen', category_id: 1 }))
-        .rejects.toThrow('Tên product đã tồn tại');
+      await expect(ProductService.createProduct({ name: 'Cà phê đen', code: 'CF02', category_id: 1 }))
+        .rejects.toThrow('Tên sản phẩm đã tồn tại');
       console.log('OUTPUT REALITY: threw error as expected');
     });
 
-    it('TC-4: should throw 400 when too many images', async () => {
+    it('ProductService - createProduct - TC-04: should throw 400 when too many images', async () => {
       console.log('\n===== ProductService.createProduct (TC-4) =====');
-      console.log('INPUT: images.length = 6 (> 5)');
+      console.log('INPUT: images.length = 6 (> 3)');
       
       CategoryRepository.findById.mockResolvedValue({ id: 1, is_deleted: 0 });
       ProductRepository.findByName.mockResolvedValue(null);
 
       const data = {
         name: 'Test',
+        code: 'TEST01',
         category_id: 1,
         images: [1, 2, 3, 4, 5, 6].map(i => ({ url: `http://img${i}.jpg` }))
       };
 
       console.log('OUTPUT EXPECT: throw ErrorResponse(400)');
       await expect(ProductService.createProduct(data))
-        .rejects.toThrow('Tối đa chỉ được upload 5 ảnh');
+        .rejects.toThrow('Tối đa chỉ được upload 3 ảnh');
+      console.log('OUTPUT REALITY: threw error as expected');
+    });
+
+    it('ProductService - createProduct - TC-05: should throw 409 when product code already exists', async () => {
+      console.log('\n===== ProductService.createProduct (TC-5) =====');
+      console.log('INPUT: code = "CF-001" (exists)');
+
+      CategoryRepository.findById.mockResolvedValue({ id: 1, is_deleted: 0 });
+      ProductRepository.findByName.mockResolvedValue(null);
+      ProductRepository.findByCode.mockResolvedValue({ id: 99, code: 'CF-001' });
+
+      console.log('OUTPUT EXPECT: throw ErrorResponse(409)');
+      await expect(
+        ProductService.createProduct({ name: 'Cà phê muối', code: 'CF-001', category_id: 1 }),
+      ).rejects.toThrow('Mã code sản phẩm đã tồn tại');
       console.log('OUTPUT REALITY: threw error as expected');
     });
   });
@@ -233,7 +254,7 @@ describe('ProductService', () => {
   // updateProduct
   // ============================================================
   describe('updateProduct', () => {
-    it('TC-1: should update basic product info', async () => {
+    it('ProductService - updateProduct - TC-01: should update basic product info', async () => {
       console.log('\n===== ProductService.updateProduct (TC-1) =====');
       const data = {
         name: 'Cà phê đen mới',
@@ -244,6 +265,7 @@ describe('ProductService', () => {
       
       ProductRepository.findById.mockResolvedValue({ id: 1, name: 'Old' });
       ProductRepository.findByName.mockResolvedValue(null);
+      ProductRepository.findBySlug.mockResolvedValue(null);
       ProductRepository.update.mockResolvedValue(true);
       ProductRepository.findByIdWithDetails.mockResolvedValue({ id: 1, name: 'Cà phê đen mới' });
 
@@ -253,12 +275,13 @@ describe('ProductService', () => {
 
       expect(ProductRepository.update).toHaveBeenCalledWith(1, {
         name: 'Cà phê đen mới',
+        slug: 'ca-phe-den-moi',
         status: 'unavailable',
         description: 'Updated'
       });
     });
 
-    it('TC-2: should throw 404 when product not found', async () => {
+    it('ProductService - updateProduct - TC-02: should throw 404 when product not found', async () => {
       console.log('\n===== ProductService.updateProduct (TC-2) =====');
       console.log('INPUT: id = 999');
       
@@ -270,7 +293,7 @@ describe('ProductService', () => {
       console.log('OUTPUT REALITY: threw error as expected');
     });
 
-    it('TC-3: should throw 409 when duplicate name', async () => {
+    it('ProductService - updateProduct - TC-03: should throw 409 when duplicate name', async () => {
       console.log('\n===== ProductService.updateProduct (TC-3) =====');
       console.log('INPUT: name = "Cà phê sữa" (exists for another product)');
       
@@ -279,11 +302,11 @@ describe('ProductService', () => {
 
       console.log('OUTPUT EXPECT: throw ErrorResponse(409)');
       await expect(ProductService.updateProduct(1, { name: 'Cà phê sữa' }))
-        .rejects.toThrow('Tên product đã tồn tại');
+        .rejects.toThrow('Tên sản phẩm đã tồn tại');
       console.log('OUTPUT REALITY: threw error as expected');
     });
 
-    it('TC-4: should update sizes correctly', async () => {
+    it('ProductService - updateProduct - TC-04: should update sizes correctly', async () => {
       console.log('\n===== ProductService.updateProduct (TC-4) =====');
       const data = {
         sizes: [
@@ -308,7 +331,7 @@ describe('ProductService', () => {
       expect(ProductSizeRepository.upsert).toHaveBeenCalledWith(1, 'M', 25000);
     });
 
-    it('TC-5: should handle image deletion and upload', async () => {
+    it('ProductService - updateProduct - TC-05: should handle image deletion and upload', async () => {
       console.log('\n===== ProductService.updateProduct (TC-5) =====');
       const data = {
         deleteImageIds: [5],
@@ -342,7 +365,7 @@ describe('ProductService', () => {
       });
     });
 
-    it('TC-6: should throw 400 for invalid size', async () => {
+    it('ProductService - updateProduct - TC-06: should throw 400 for invalid size', async () => {
       console.log('\n===== ProductService.updateProduct (TC-6) =====');
       console.log('INPUT: sizes = [{ size: "XL", price: 30000 }]');
       
@@ -354,7 +377,7 @@ describe('ProductService', () => {
       console.log('OUTPUT REALITY: threw error as expected');
     });
 
-    it('TC-7: should throw 400 for duplicate sizes', async () => {
+    it('ProductService - updateProduct - TC-07: should throw 400 for duplicate sizes', async () => {
       console.log('\n===== ProductService.updateProduct (TC-7) =====');
       console.log('INPUT: sizes with duplicates [S, M, S]');
       
@@ -370,13 +393,39 @@ describe('ProductService', () => {
       })).rejects.toThrow('Không được có size trùng lặp');
       console.log('OUTPUT REALITY: threw error as expected');
     });
+
+    it('ProductService - updateProduct - TC-08: should throw 400 when size format has extra spaces', async () => {
+      console.log('\n===== ProductService.updateProduct (TC-8) =====');
+      console.log('INPUT: sizes = [{ size: " S ", price: 22000 }]');
+
+      ProductRepository.findById.mockResolvedValue({ id: 1 });
+
+      console.log('OUTPUT EXPECT: throw ErrorResponse(400)');
+      await expect(
+        ProductService.updateProduct(1, { sizes: [{ size: ' S ', price: 22000 }] }),
+      ).rejects.toThrow('Size " S " không hợp lệ');
+      console.log('OUTPUT REALITY: threw error as expected');
+    });
+
+    it('ProductService - updateProduct - TC-09: should throw 400 when price is not positive', async () => {
+      console.log('\n===== ProductService.updateProduct (TC-9) =====');
+      console.log('INPUT: sizes = [{ size: "S", price: 0 }]');
+
+      ProductRepository.findById.mockResolvedValue({ id: 1 });
+
+      console.log('OUTPUT EXPECT: throw ErrorResponse(400)');
+      await expect(
+        ProductService.updateProduct(1, { sizes: [{ size: 'S', price: 0 }] }),
+      ).rejects.toThrow('Giá cho size S phải là số dương');
+      console.log('OUTPUT REALITY: threw error as expected');
+    });
   });
 
   // ============================================================
   // deleteProduct
   // ============================================================
   describe('deleteProduct', () => {
-    it('TC-1: should delete product successfully', async () => {
+    it('ProductService - deleteProduct - TC-01: should delete product successfully', async () => {
       console.log('\n===== ProductService.deleteProduct (TC-1) =====');
       console.log('INPUT: id = 1');
       
@@ -390,7 +439,7 @@ describe('ProductService', () => {
       expect(result).toBe(true);
     });
 
-    it('TC-2: should throw 404 when product not found', async () => {
+    it('ProductService - deleteProduct - TC-02: should throw 404 when product not found', async () => {
       console.log('\n===== ProductService.deleteProduct (TC-2) =====');
       console.log('INPUT: id = 999');
       
@@ -406,7 +455,7 @@ describe('ProductService', () => {
   // searchProducts
   // ============================================================
   describe('searchProducts', () => {
-    it('TC-1: should search products by keyword', async () => {
+    it('ProductService - searchProducts - TC-01: should search products by keyword', async () => {
       console.log('\n===== ProductService.searchProducts (TC-1) =====');
       console.log('INPUT: keyword = "cà phê"');
       
@@ -421,7 +470,7 @@ describe('ProductService', () => {
       expect(result).toEqual(mockProducts);
     });
 
-    it('TC-2: should return all products when keyword is empty', async () => {
+    it('ProductService - searchProducts - TC-02: should return all products when keyword is empty', async () => {
       console.log('\n===== ProductService.searchProducts (TC-2) =====');
       console.log('INPUT: keyword = ""');
       
@@ -436,7 +485,7 @@ describe('ProductService', () => {
       expect(result).toEqual(mockProducts);
     });
 
-    it('TC-3: should return all products when keyword is only whitespace', async () => {
+    it('ProductService - searchProducts - TC-03: should return all products when keyword is only whitespace', async () => {
       console.log('\n===== ProductService.searchProducts (TC-3) =====');
       console.log('INPUT: keyword = "   "');
       
@@ -449,17 +498,32 @@ describe('ProductService', () => {
 
       expect(ProductRepository.findAllWithDetails).toHaveBeenCalled();
     });
+
+    it('ProductService - searchProducts - TC-04: should return all products when keyword is full spaces', async () => {
+      console.log('\n===== ProductService.searchProducts (TC-4) =====');
+      console.log('INPUT: keyword = "        "');
+
+      const mockProducts = [{ id: 1 }, { id: 2 }];
+      ProductRepository.findAllWithDetails.mockResolvedValue(mockProducts);
+
+      console.log('OUTPUT EXPECT: call getAllProducts');
+      const result = await ProductService.searchProducts('        ', {});
+      console.log('OUTPUT REALITY:', result);
+
+      expect(ProductRepository.findAllWithDetails).toHaveBeenCalled();
+      expect(result).toEqual(mockProducts);
+    });
   });
 
   // ============================================================
   // restoreProduct
   // ============================================================
   describe('restoreProduct', () => {
-    it('TC-1: should restore deleted product', async () => {
+    it('ProductService - restoreProduct - TC-01: should restore deleted product', async () => {
       console.log('\n===== ProductService.restoreProduct (TC-1) =====');
       console.log('INPUT: id = 1');
       
-      ProductRepository.findById.mockResolvedValue({ id: 1, status: 'unavailable' });
+      ProductRepository.findById.mockResolvedValue({ id: 1, status: 'unavailable', is_deleted: 1 });
       ProductRepository.update.mockResolvedValue(true);
       ProductRepository.findByIdWithDetails.mockResolvedValue({ id: 1, status: 'available' });
 
@@ -467,11 +531,11 @@ describe('ProductService', () => {
       const result = await ProductService.restoreProduct(1);
       console.log('OUTPUT REALITY:', result);
 
-      expect(ProductRepository.update).toHaveBeenCalledWith(1, { status: 'available' });
+      expect(ProductRepository.update).toHaveBeenCalledWith(1, { is_deleted: 0 });
       expect(result).toEqual({ id: 1, status: 'available' });
     });
 
-    it('TC-2: should throw 404 when product not found', async () => {
+    it('ProductService - restoreProduct - TC-02: should throw 404 when product not found', async () => {
       console.log('\n===== ProductService.restoreProduct (TC-2) =====');
       console.log('INPUT: id = 999');
       
@@ -482,7 +546,7 @@ describe('ProductService', () => {
       console.log('OUTPUT REALITY: threw error as expected');
     });
 
-    it('TC-3: should throw 400 when product is not deleted', async () => {
+    it('ProductService - restoreProduct - TC-03: should throw 400 when product is not deleted', async () => {
       console.log('\n===== ProductService.restoreProduct (TC-3) =====');
       console.log('INPUT: id = 1 (status = available)');
       

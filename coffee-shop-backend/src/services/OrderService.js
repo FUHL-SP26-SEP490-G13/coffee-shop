@@ -216,6 +216,10 @@ class OrderService {
       }
 
       const finalAmount = Math.max(0, amountAfterVoucher - loyaltyDiscountAmount);
+      const totalDiscountAmount = Math.max(
+        0,
+        discountAmount + loyaltyDiscountAmount
+      );
 
       const normalizedCashReceived =
         payment_method === "cash"
@@ -240,16 +244,14 @@ class OrderService {
         user_id: userId,
         created_by: userId,
 
-        // Đơn tại quán sẽ bắt đầu ở trạng thái "preparing" để nhân viên bếp có 
-        // thể thấy và xử lý ngay, không phải chờ khách thanh toán xong mới hiển thị
-        status: order_type === "dine-in" ? "preparing" : "pending",
+        // Đơn tại quán và mang về sẽ bắt đầu ở trạng thái "preparing" để nhân viên bếp 
+        // có thể thấy và xử lý ngay, không phải chờ khách thanh toán xong mới hiển thị
+        status: (order_type === "dine-in" || order_type === "takeaway") ? "preparing" : "pending",
         customer_type: user ? "registered" : "guest",
         order_type,
         table_id: order_type === "dine-in" ? payload.table_id : null,
-        // amount = tổng giá sản phẩm chưa giảm (subtotal)
         amount: totalAmount,
-        // discount_amount = tổng tiền giảm (voucher + loyalty points)
-        discount_amount: discountAmount + loyaltyDiscountAmount,
+        discount_amount: totalDiscountAmount,
         total_amount: finalAmount,
         used_points: normalizedUsedPoints,
         session_id: sessionId
@@ -606,8 +608,11 @@ class OrderService {
         }
       }
 
-      // Update order total and payment amount
-      await connection.query('UPDATE orders SET total_amount = ? WHERE id = ?', [totalAmount, orderId]);
+      // Keep order amount fields aligned after staff edits unpaid items.
+      await connection.query(
+        'UPDATE orders SET total_amount = ?, amount = ?, discount_amount = 0 WHERE id = ?',
+        [totalAmount, totalAmount, orderId]
+      );
       await connection.query('UPDATE order_payments SET amount = ? WHERE order_id = ?', [totalAmount, orderId]);
 
       await connection.commit();

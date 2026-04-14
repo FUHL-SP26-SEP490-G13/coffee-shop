@@ -9,7 +9,7 @@ describe("BannerService", () => {
   });
 
   describe("getActive", () => {
-    it("BannerService - GET_ACTIVE - TC-1: should return active banner successfully", async () => {
+    it("BannerService - getActive - TC-01: should return active banner successfully", async () => {
       console.log("\n" + "=".repeat(50));
       console.log(
         "BannerService - GET_ACTIVE - TC-1: Lấy banner active thành công"
@@ -27,7 +27,7 @@ describe("BannerService", () => {
   });
 
   describe("getAll", () => {
-    it("BannerService - GET_ALL - TC-1: should return banner list successfully", async () => {
+    it("BannerService - getAll - TC-01: should return banner list successfully", async () => {
       console.log("\n" + "=".repeat(50));
       console.log(
         "BannerService - GET_ALL - TC-1: Lấy danh sách banner thành công"
@@ -56,7 +56,7 @@ describe("BannerService", () => {
   });
 
   describe("validateDateRange", () => {
-    it("BannerService - VALIDATE_DATE_RANGE - TC-1: should pass when end date is greater than start date", () => {
+    it("BannerService - validateDateRange - TC-01: should pass when end date is greater than start date", () => {
       expect(() =>
         BannerService.validateDateRange(
           "2025-01-01T00:00:00",
@@ -65,7 +65,7 @@ describe("BannerService", () => {
       ).not.toThrow();
     });
 
-    it("BannerService - VALIDATE_DATE_RANGE - TC-2: should pass when end date equals start date", () => {
+    it("BannerService - validateDateRange - TC-02: should pass when end date equals start date", () => {
       expect(() =>
         BannerService.validateDateRange(
           "2025-01-01T00:00:00",
@@ -74,7 +74,7 @@ describe("BannerService", () => {
       ).not.toThrow();
     });
 
-    it("BannerService - VALIDATE_DATE_RANGE - TC-3: should throw error when dates are invalid", () => {
+    it("BannerService - validateDateRange - TC-03: should throw error when dates are invalid", () => {
       const expectedError = "Ngày bắt đầu hoặc ngày kết thúc không hợp lệ";
 
       expect(() =>
@@ -86,7 +86,7 @@ describe("BannerService", () => {
       ).toThrow(expectedError);
     });
 
-    it("BannerService - VALIDATE_DATE_RANGE - TC-4: should throw error when end date is before start date", () => {
+    it("BannerService - validateDateRange - TC-04: should throw error when end date is before start date", () => {
       const expectedError = "Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu";
 
       expect(() =>
@@ -96,10 +96,16 @@ describe("BannerService", () => {
         )
       ).toThrow(expectedError);
     });
+
+    it("BannerService - validateDateRange - TC-05: should throw error when start date is full-space string", () => {
+      expect(() =>
+        BannerService.validateDateRange("        ", "2025-01-01T00:00:00")
+      ).toThrow("Ngày bắt đầu hoặc ngày kết thúc không hợp lệ");
+    });
   });
 
   describe("create", () => {
-    it("BannerService - CREATE - TC-1: should create banner successfully", async () => {
+    it("BannerService - create - TC-01: should create banner successfully", async () => {
       console.log("\n" + "=".repeat(50));
       console.log("BannerService - CREATE - TC-1: Tạo banner thành công");
       console.log("=".repeat(50));
@@ -124,7 +130,7 @@ describe("BannerService", () => {
       expect(result).toBe(true);
     });
 
-    it("BannerService - CREATE - TC-2: should throw error when title already exists", async () => {
+    it("BannerService - create - TC-02: should throw error when title already exists", async () => {
       const input = {
         title: "Banner trùng",
         start_date: "2025-01-01T00:00:00",
@@ -143,7 +149,7 @@ describe("BannerService", () => {
       expect(bannerRepository.create).not.toHaveBeenCalled();
     });
 
-    it("BannerService - CREATE - TC-3: should throw error when dates are invalid", async () => {
+    it("BannerService - create - TC-03: should throw error when dates are invalid", async () => {
       const input = {
         title: "Banner mới",
         start_date: "invalid-date",
@@ -159,7 +165,7 @@ describe("BannerService", () => {
       expect(bannerRepository.create).not.toHaveBeenCalled();
     });
 
-    it("BannerService - CREATE - TC-4: should throw error when end date is before start date", async () => {
+    it("BannerService - create - TC-04: should throw error when end date is before start date", async () => {
       const input = {
         title: "Banner mới",
         start_date: "2025-01-10T00:00:00",
@@ -177,7 +183,7 @@ describe("BannerService", () => {
   });
 
   describe("update", () => {
-    it("BannerService - UPDATE - TC-1: should update banner successfully", async () => {
+    it("BannerService - update - TC-01: should update banner successfully", async () => {
       console.log("\n" + "=".repeat(50));
       console.log("BannerService - UPDATE - TC-1: Cập nhật banner thành công");
       console.log("=".repeat(50));
@@ -206,7 +212,7 @@ describe("BannerService", () => {
       expect(result).toBe(true);
     });
 
-    it("BannerService - UPDATE - TC-2: should throw error when title already exists", async () => {
+    it("BannerService - update - TC-02: should throw error when title already exists", async () => {
       const id = 1;
       const input = {
         title: "Banner trùng",
@@ -226,7 +232,7 @@ describe("BannerService", () => {
       expect(bannerRepository.update).not.toHaveBeenCalled();
     });
 
-    it("BannerService - UPDATE - TC-3: should throw error when dates are invalid", async () => {
+    it("BannerService - update - TC-03: should throw error when dates are invalid", async () => {
       const id = 1;
       const input = {
         title: "Banner mới",
@@ -243,7 +249,7 @@ describe("BannerService", () => {
       expect(bannerRepository.update).not.toHaveBeenCalled();
     });
 
-    it("BannerService - UPDATE - TC-4: should throw error when end date is before start date", async () => {
+    it("BannerService - update - TC-04: should throw error when end date is before start date", async () => {
       const id = 1;
       const input = {
         title: "Banner mới",
@@ -260,7 +266,7 @@ describe("BannerService", () => {
       expect(bannerRepository.update).not.toHaveBeenCalled();
     });
 
-    it("BannerService - UPDATE - TC-5: should propagate repository error when banner not found", async () => {
+    it("BannerService - update - TC-05: should propagate repository error when banner not found", async () => {
       const id = 999;
       const input = {
         title: "Banner mới",
@@ -280,7 +286,7 @@ describe("BannerService", () => {
   });
 
   describe("delete", () => {
-    it("BannerService - DELETE - TC-1: should delete banner successfully", async () => {
+    it("BannerService - delete - TC-01: should delete banner successfully", async () => {
       console.log("\n" + "=".repeat(50));
       console.log("BannerService - DELETE - TC-1: Xóa banner thành công");
       console.log("=".repeat(50));
@@ -295,7 +301,7 @@ describe("BannerService", () => {
   });
 
   describe("getById", () => {
-    it("BannerService - GET_BY_ID - TC-1: should get banner by id successfully", async () => {
+    it("BannerService - getById - TC-01: should get banner by id successfully", async () => {
       const mockBanner = { id: 1, title: "Banner 1" };
       bannerRepository.findById.mockResolvedValue(mockBanner);
 
@@ -307,7 +313,7 @@ describe("BannerService", () => {
   });
 
   describe("getActiveList", () => {
-    it("BannerService - GET_ACTIVE_LIST - TC-1: should get active banner list successfully", async () => {
+    it("BannerService - getActiveList - TC-01: should get active banner list successfully", async () => {
       const mockList = [{ id: 1 }, { id: 2 }];
       bannerRepository.findActiveList.mockResolvedValue(mockList);
 

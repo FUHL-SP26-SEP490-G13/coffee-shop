@@ -1,10 +1,12 @@
 const OrderRepository = require("../repositories/OrderRepository");
+const CashSessionRepository = require("../repositories/CashSessionRepository");
 const ReputationService = require("./ReputationService");
 const LoyaltyService = require("./LoyaltyService");
 const ErrorResponse = require("../utils/ErrorResponse");
 
 class OrderOnlineService {
   static LEGACY_DELIVERY_SHIPPING_FEE = 20000;
+  static DEFAULT_DELIVERY_SHIPPING_FEE = 15000;
   static DYNAMIC_SHIPPING_ROLLOUT_AT = new Date("2026-04-07T00:00:00.000Z").getTime();
   static MONEY_ROUNDING_UNIT = 100;
   static MAX_DELIVERY_DISTANCE_KM = 10;
@@ -32,6 +34,24 @@ class OrderOnlineService {
     }
 
     return onlyDigits;
+  }
+
+  buildDeliveryAddressString(address, wardName, provinceName) {
+    const parts = [address, wardName, provinceName]
+      .map((value) => String(value || "").trim())
+      .filter(Boolean);
+
+    const uniqueParts = [];
+    const seen = new Set();
+
+    for (const part of parts) {
+      const key = part.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      uniqueParts.push(part);
+    }
+
+    return uniqueParts.length > 0 ? uniqueParts.join(", ") : null;
   }
 
   getHaversineDistanceMeters(lat1, lon1, lat2, lon2) {
@@ -249,9 +269,6 @@ class OrderOnlineService {
       receiver_phone,
       receiver_email,
       address,
-      customer_latitude,
-      customer_longitude,
-      customer_location_source,
       note,
       discount_code,
       used_points,
@@ -276,30 +293,6 @@ class OrderOnlineService {
 
     if (order_type !== "dine-in" && (!receiver_name || !receiver_phone)) {
       throw new ErrorResponse(400, "Vui lòng nhập tên và số điện thoại người nhận");
-    }
-
-    let normalizedCustomerLatitude = null;
-    let normalizedCustomerLongitude = null;
-
-    if (order_type === "delivery") {
-      normalizedCustomerLatitude = Number(customer_latitude);
-      normalizedCustomerLongitude = Number(customer_longitude);
-
-      if (
-        !Number.isFinite(normalizedCustomerLatitude) ||
-        normalizedCustomerLatitude < -90 ||
-        normalizedCustomerLatitude > 90
-      ) {
-        throw new ErrorResponse(400, "Vĩ độ giao hàng không hợp lệ");
-      }
-
-      if (
-        !Number.isFinite(normalizedCustomerLongitude) ||
-        normalizedCustomerLongitude < -180 ||
-        normalizedCustomerLongitude > 180
-      ) {
-        throw new ErrorResponse(400, "Kinh độ giao hàng không hợp lệ");
-      }
     }
 
     const connection = await OrderRepository.getConnection();
@@ -345,6 +338,7 @@ class OrderOnlineService {
 
       let activeOrderId = null;
       let existingOrderAmount = 0;
+      let activeOrderSnapshot = null;
 
       if (order_type === "dine-in") {
         const activeOrder = await OrderRepository.findActiveOrderByTableId(
@@ -352,6 +346,7 @@ class OrderOnlineService {
           payload.table_id
         );
         if (activeOrder) {
+          activeOrderSnapshot = activeOrder;
           activeOrderId = activeOrder.id;
           existingOrderAmount = Number(activeOrder.total_amount);
 
@@ -366,45 +361,31 @@ class OrderOnlineService {
 
       const cartTotals = await this.calculateCartAmounts(connection, items);
       let totalAmount = cartTotals.totalAmount;
+      const itemSubtotalAmount = cartTotals.totalAmount;
       let regularAmount = cartTotals.regularAmount;
       const normalizedItems = cartTotals.normalizedItems;
-      let storeLatitude = null;
-      let storeLongitude = null;
       let deliveryDistanceKm = 0;
       let shippingFee = 0;
+      let existingAmount = 0;
+      let existingDiscountAmount = 0;
+
+      if (activeOrderId) {
+        existingAmount = Math.max(
+          0,
+          Number(
+            activeOrderSnapshot?.amount ?? activeOrderSnapshot?.total_amount
+          ) || 0
+        );
+        existingDiscountAmount = Math.max(
+          0,
+          Number(activeOrderSnapshot?.discount_amount) || 0
+        );
+      }
 
       if (order_type === "delivery") {
-        const ReceiptSettingService = require("./ReceiptSettingService");
-        const activeSetting = await ReceiptSettingService.getActiveSetting();
-        storeLatitude = Number(activeSetting?.latitude);
-        storeLongitude = Number(activeSetting?.longitude);
-
-        if (
-          !Number.isFinite(storeLatitude) ||
-          storeLatitude < -90 ||
-          storeLatitude > 90 ||
-          !Number.isFinite(storeLongitude) ||
-          storeLongitude < -180 ||
-          storeLongitude > 180
-        ) {
-          throw new ErrorResponse(
-            400,
-            "Cửa hàng chưa ghim tọa độ. Vui lòng liên hệ quản lý để cập nhật cấu hình địa chỉ."
-          );
-        }
-
-        storeLatitude = Number(storeLatitude.toFixed(7));
-        storeLongitude = Number(storeLongitude.toFixed(7));
-        normalizedCustomerLatitude = Number(normalizedCustomerLatitude.toFixed(7));
-        normalizedCustomerLongitude = Number(normalizedCustomerLongitude.toFixed(7));
-
-        deliveryDistanceKm = await this.getDrivingDistanceKm(
-          storeLatitude,
-          storeLongitude,
-          normalizedCustomerLatitude,
-          normalizedCustomerLongitude
-        );
-        shippingFee = this.calculateShippingFeeByDistanceKm(deliveryDistanceKm);
+        // Shipping fee feature by province/ward is disabled.
+        shippingFee = 0;
+        deliveryDistanceKm = 0;
       }
 
       totalAmount += shippingFee;
@@ -490,9 +471,16 @@ class OrderOnlineService {
       }
 
       const finalAmount = Math.max(0, amountAfterVoucher - loyaltyDiscountAmount);
+      const totalDiscountAmount = Math.max(
+        0,
+        discountAmount + loyaltyDiscountAmount
+      );
 
       let orderId = activeOrderId;
       if (!orderId) {
+        // Lấy ca đang mở để gán vào đơn hàng
+        const activeSession = await CashSessionRepository.findOpenSession();
+
         orderId = await OrderRepository.createOrder(connection, {
           user_id: userId,
           created_by: userId,
@@ -501,8 +489,11 @@ class OrderOnlineService {
           table_id: order_type === "dine-in" ? payload.table_id : null,
           status: "pending",
           total_amount: finalAmount,
+          amount: itemSubtotalAmount,
+          discount_amount: totalDiscountAmount,
           delivery_fee: shippingFee,
           used_points: normalizedUsedPoints,
+          cash_session_id: activeSession ? activeSession.id : null,
         });
 
         if (order_type === "dine-in") {
@@ -513,7 +504,14 @@ class OrderOnlineService {
         }
       } else {
         const newTotal = existingOrderAmount + finalAmount;
-        await OrderRepository.updateOrderTotalAmount(connection, orderId, newTotal);
+        const newAmount = existingAmount + itemSubtotalAmount;
+        const newDiscountAmount = existingDiscountAmount + totalDiscountAmount;
+
+        await OrderRepository.updateOrderTotalAmount(connection, orderId, {
+          totalAmount: newTotal,
+          amount: newAmount,
+          discountAmount: newDiscountAmount,
+        });
       }
 
       for (const item of normalizedItems) {
@@ -539,18 +537,22 @@ class OrderOnlineService {
       }
 
       if (order_type !== "dine-in" || (note && note.trim())) {
+        const deliveryAddressWithArea = this.buildDeliveryAddressString(
+          address,
+          null,
+          null
+        );
+
         const [existingInfo] = await connection.query(
           "SELECT id FROM order_delivery_info WHERE order_id = ?",
           [orderId]
         );
 
         if (existingInfo.length > 0) {
-          if (note && note.trim()) {
-            await connection.query(
-              "UPDATE order_delivery_info SET note = ? WHERE order_id = ?",
-              [note.trim(), orderId]
-            );
-          }
+          await connection.query(
+            "UPDATE order_delivery_info SET address = ?, note = ? WHERE order_id = ?",
+            [deliveryAddressWithArea, note?.trim() || null, orderId]
+          );
         } else {
           await OrderRepository.createOrderDeliveryInfo(connection, {
             order_id: orderId,
@@ -559,21 +561,13 @@ class OrderOnlineService {
               ? this.normalizePhoneNumber(receiver_phone)
               : "",
             receiver_email: receiver_email?.trim() || null,
-            address: address?.trim() || null,
+            address: deliveryAddressWithArea,
             note: note?.trim() || null,
-            store_latitude: storeLatitude,
-            store_longitude: storeLongitude,
-            customer_latitude: normalizedCustomerLatitude,
-            customer_longitude: normalizedCustomerLongitude,
-            coordinates_source:
-              order_type === "delivery" &&
-              ["manual_pin", "gps", "geocode"].includes(
-                String(customer_location_source || "").toLowerCase()
-              )
-                ? String(customer_location_source).toLowerCase()
-                : order_type === "delivery"
-                ? "gps"
-                : null,
+            store_latitude: null,
+            store_longitude: null,
+            customer_latitude: null,
+            customer_longitude: null,
+            coordinates_source: null,
           });
         }
       }

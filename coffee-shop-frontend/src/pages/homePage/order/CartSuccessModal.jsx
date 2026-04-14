@@ -1,10 +1,11 @@
 import { CheckCircle2, X } from "lucide-react";
-import { cartService } from "@/services/cartService";
+import { useCartStore } from "@/store/useCartStore";
 import { useNavigate } from "react-router-dom";
 import { createPortal } from "react-dom";
 
 export default function CartSuccessModal({ addedCartItem, onClose }) {
   const navigate = useNavigate();
+  const { cart, getTotalAmount } = useCartStore();
 
   if (!addedCartItem) return null;
 
@@ -56,9 +57,9 @@ export default function CartSuccessModal({ addedCartItem, onClose }) {
         <div className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <span className="text-gray-800 dark:text-gray-200 font-medium text-[15px]">Giỏ hàng hiện có</span>
           <div className="flex items-end gap-2 sm:flex-col sm:gap-0 sm:items-end">
-            <span className="text-amber-600 font-bold text-[18px] leading-none">{cartService.getTotalAmount().toLocaleString('vi-VN')}đ</span>
+            <span className="text-amber-600 font-bold text-[18px] leading-none">{getTotalAmount().toLocaleString('vi-VN')}đ</span>
             <span className="text-gray-400 text-[13px] font-medium leading-loose mt-0 sm:mt-1">
-              ({cartService.getCart().reduce((sum, item) => sum + (Number(item.quantity) || 1), 0)}) sản phẩm
+              ({cart.reduce((sum, item) => sum + (Number(item.quantity) || 1), 0)}) sản phẩm
             </span>
           </div>
         </div>

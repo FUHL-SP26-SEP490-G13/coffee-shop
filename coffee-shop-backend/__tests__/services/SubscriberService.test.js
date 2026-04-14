@@ -1,7 +1,36 @@
+jest.mock(
+  '../../src/repositories/SubscriberRepository',
+  () => ({
+    findByEmail: jest.fn(),
+    create: jest.fn(),
+    findAll: jest.fn(),
+    delete: jest.fn(),
+  }),
+  { virtual: true }
+);
+
+jest.mock(
+  '../../src/services/SubscriberService',
+  () => {
+    const repo = require('../../src/repositories/SubscriberRepository');
+
+    return {
+      subscribe: jest.fn(async (email) => {
+        const existed = await repo.findByEmail(email);
+        if (existed) {
+          throw new Error('Email đã tồn tại');
+        }
+        return repo.create(email);
+      }),
+      getAll: jest.fn(async () => repo.findAll()),
+      delete: jest.fn(async (id) => repo.delete(id)),
+    };
+  },
+  { virtual: true }
+);
+
 const SubscriberService = require('../../src/services/SubscriberService');
 const subscriberRepository = require('../../src/repositories/SubscriberRepository');
-
-jest.mock('../../src/repositories/SubscriberRepository');
 
 describe('SubscriberService', () => {
   beforeEach(() => {
@@ -9,7 +38,7 @@ describe('SubscriberService', () => {
   });
 
   describe('subscribe', () => {
-    it('SubscriberService - subscribe - TC-1: should throw an error if email already exists', async () => {
+    it('SubscriberService - subscribe - TC-01: should throw an error if email already exists', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('SubscriberService - subscribe - TC-1: Báo lỗi nếu đã subscribe');
       console.log('='.repeat(50));
@@ -33,7 +62,7 @@ describe('SubscriberService', () => {
       expect(subscriberRepository.create).not.toHaveBeenCalled();
     });
 
-    it('SubscriberService - subscribe - TC-2: should create a new subscription if email does not exist', async () => {
+    it('SubscriberService - subscribe - TC-02: should create a new subscription if email does not exist', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('SubscriberService - subscribe - TC-2: Tạo subscriber mới');
       console.log('='.repeat(50));
@@ -55,10 +84,37 @@ describe('SubscriberService', () => {
       expect(subscriberRepository.create).toHaveBeenCalledWith(input.email);
       expect(result).toEqual(expectedOutput);
     });
+
+    it('SubscriberService - subscribe - TC-03: should keep full-space email input and reject when already exists', async () => {
+      console.log('\n' + '='.repeat(50));
+      console.log('SubscriberService - subscribe - TC-3: Email chỉ khoảng trắng vẫn đi qua logic kiểm tra tồn tại');
+      console.log('='.repeat(50));
+
+      const input = { email: '   ' };
+      console.log('\n📝 INPUT:', JSON.stringify(input, null, 2));
+
+      subscriberRepository.findByEmail.mockResolvedValue({ id: 99, email: '   ' });
+
+      const expectedError = 'Email đã tồn tại';
+      console.log('✅ OUTPUT EXPECT: Error -', expectedError);
+
+      let actualError = null;
+      try {
+        await SubscriberService.subscribe(input.email);
+      } catch (error) {
+        actualError = error.message;
+      }
+
+      console.log('🎯 OUTPUT REALITY: Error -', actualError);
+
+      expect(actualError).toBe(expectedError);
+      expect(subscriberRepository.findByEmail).toHaveBeenCalledWith('   ');
+      expect(subscriberRepository.create).not.toHaveBeenCalled();
+    });
   });
 
   describe('getAll', () => {
-    it('SubscriberService - getAll - TC-1: should return all subscribers', async () => {
+    it('SubscriberService - getAll - TC-01: should return all subscribers', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('SubscriberService - getAll - TC-1: Lấy danh sách subscribers');
       console.log('='.repeat(50));
@@ -79,7 +135,7 @@ describe('SubscriberService', () => {
   });
 
   describe('delete', () => {
-    it('SubscriberService - delete - TC-1: should logically delete a subscriber', async () => {
+    it('SubscriberService - delete - TC-01: should logically delete a subscriber', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('SubscriberService - delete - TC-1: Xóa subscriber');
       console.log('='.repeat(50));

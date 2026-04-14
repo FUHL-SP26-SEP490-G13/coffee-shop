@@ -30,7 +30,7 @@ export default function DeleteTopping({ open, onClose, onSuccess, topping }) {
         <DialogHeader>
           <DialogTitle>Xóa topping</DialogTitle>
         </DialogHeader>
-        <div className="py-4">Bạn có chắc muốn xóa topping "{topping?.name}"?</div>
+        <div className="py-4">Bạn có chắc muốn xóa topping <span className='font-semibold text-foreground'>{topping?.name}</span>?</div>
         <div className="flex gap-2 justify-end">
           <Button variant="outline" onClick={onClose}>Hủy</Button>
           <Button variant="destructive" onClick={handleDelete}>Xóa</Button>

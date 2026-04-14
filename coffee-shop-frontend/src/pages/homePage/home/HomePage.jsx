@@ -12,15 +12,9 @@ import HomeBanner from "@/pages/homePage/banner/HomeBanner";
 import FlashSaleSection from "@/pages/homePage/product/FlashSaleSection";
 import BestSellerSection from "@/pages/homePage/product/BestSellerSection";
 import ReviewSection from "@/pages/homePage/review/ReviewSection";
-import OrderGuideSection from "@/pages/homePage/order/OrderGuideSection";
-import InstagramFeedSection from "@/pages/homePage/follow/InstagramFeedSection";
 import "swiper/css";
 import "swiper/css/pagination";
 import "swiper/css/navigation";
-
-
-
-
 
 export default function HomePage() {
   const [activeBannerIndex, setActiveBannerIndex] = useState(0);
@@ -77,22 +71,31 @@ export default function HomePage() {
   };
 
   const fetchProducts = useCallback(() => {
-    return productService.getBestSellers({ limit: 8 });
+    return productService.getBestSellers({ limit: 20, status: 'available' });
   }, []);
 
   const { data, loading } = useFetch(fetchProducts);
 
   const products = useMemo(() => {
-    return Array.isArray(data?.data) ? data.data : [];
+    const rawList = Array.isArray(data?.data) ? data.data : [];
+    // Lọc kỹ: đang bán (available) và chưa bị xoá (is_deleted = 0)
+    return rawList
+      .filter(
+        (p) =>
+          p.status === "available" &&
+          (!p.is_deleted || p.is_deleted === 0 || p.is_deleted === "0")
+      )
+      .slice(0, 8);
   }, [data]);
 
   const fetchCategories = useCallback(() => {
-    return categoryService.getAll({ page: 1, limit: 100 });
+    return categoryService.getAll({ page: 1, limit: 100, is_deleted: 0 });
   }, []);
   const { data: catData } = useFetch(fetchCategories);
 
   const categories = useMemo(() => {
-    return Array.isArray(catData?.data) ? catData.data : [];
+    const rawList = Array.isArray(catData?.data) ? catData.data : [];
+    return rawList.filter((c) => !c.is_deleted || c.is_deleted === 0 || c.is_deleted === "0");
   }, [catData]);
 
   const fetchBanners = useCallback(() => {
@@ -160,7 +163,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900 dark:border-gray-800">
-      
+
 
       <FadeInView delay={0} duration={1200}>
         <div className="w-full bg-white dark:bg-gray-950 pb-4">
@@ -199,10 +202,6 @@ export default function HomePage() {
         <ReviewSection />
       </FadeInView>
 
-      <FadeInView>
-        <OrderGuideSection />
-      </FadeInView>
-
       <FadeInView delay={200}>
         <div className="w-full h-px bg-gradient-to-r from-transparent via-amber-300 to-transparent" />
       </FadeInView>
@@ -212,13 +211,9 @@ export default function HomePage() {
         <FeaturedNews />
       </FadeInView>
 
-      <FadeInView>
-        <InstagramFeedSection />
-      </FadeInView>
 
-      
 
-      
+
 
       {/* Scroll to Top Button */}
       <button

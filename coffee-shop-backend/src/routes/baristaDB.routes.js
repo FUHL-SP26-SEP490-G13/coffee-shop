@@ -44,7 +44,7 @@ router.get(
 router.put(
   "/orders/:id/status",
   authenticate,
-  authorize([ROLES_STRING.BARISTA, ROLES_STRING.MANAGER]),
+  authorize([ROLES_STRING.BARISTA, ROLES_STRING.MANAGER, ROLES_STRING.STAFF]),
   controller.updateStatus
 );
 

@@ -36,7 +36,15 @@ class BaristaDBController {
         .map((status) => status.trim())
         .filter(Boolean);
 
-      const data = await service.getActiveOrders(statuses);
+      const filters = {};
+      if (req.query.startDate && req.query.endDate) {
+        filters.startDate = req.query.startDate;
+        filters.endDate = req.query.endDate;
+      } else if (req.query.today === 'true') {
+        filters.today = true;
+      }
+
+      const data = await service.getActiveOrders(statuses, filters);
 
       return res.json({
         success: true,

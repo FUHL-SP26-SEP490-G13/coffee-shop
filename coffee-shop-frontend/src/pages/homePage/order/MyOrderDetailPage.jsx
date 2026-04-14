@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Loader2, ArrowLeft, RotateCcw, CheckCircle2, Package, Truck, ClipboardList, XCircle, Check } from "lucide-react";
-
-
 import { Button } from "@/components/ui/button";
 import orderService from "@/services/orderOnlineService";
 import flashSaleService from "@/services/flashSaleService";
@@ -26,7 +24,6 @@ export default function MyOrderDetailPage() {
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [buyAgainLoading, setBuyAgainLoading] = useState(false);
-  const [cancelLoading, setCancelLoading] = useState(false);
   const [activeSale, setActiveSale] = useState(null);
   const { isOpen } = useStoreHours();
 
@@ -115,32 +112,6 @@ export default function MyOrderDetailPage() {
       await handleBuyAgain(id, navigate);
     } finally {
       setBuyAgainLoading(false);
-    }
-  };
-
-  const isPaidOrder =
-    Number(order?.is_paid) === 1 ||
-    String(order?.payment_status || "").toLowerCase() === "paid";
-
-  const canCancelOrder = ["pending"].includes(order?.status) && !isPaidOrder;
-
-  const onCancelOrder = async () => {
-    if (!id || !canCancelOrder) return;
-
-    const confirmed = window.confirm(
-      "Bạn có chắc muốn hủy đơn hàng này không?"
-    );
-    if (!confirmed) return;
-
-    try {
-      setCancelLoading(true);
-      await orderService.cancel(id);
-      await fetchOrderDetail();
-      alert("Đã hủy đơn hàng thành công");
-    } catch (error) {
-      alert(error?.response?.data?.message || "Không thể hủy đơn hàng");
-    } finally {
-      setCancelLoading(false);
     }
   };
 
@@ -565,24 +536,6 @@ export default function MyOrderDetailPage() {
             </div>
 
             <div className="mt-8 flex gap-3 flex-wrap">
-              {canCancelOrder && (
-                <Button
-                  variant="outline"
-                  onClick={onCancelOrder}
-                  disabled={cancelLoading}
-                  className="text-red-600 border-red-300 hover:bg-red-50 hover:text-red-700"
-                >
-                  {cancelLoading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Đang hủy...
-                    </>
-                  ) : (
-                    "Hủy đơn hàng"
-                  )}
-                </Button>
-              )}
-
               <Button
                 onClick={onBuyAgain}
                 disabled={buyAgainLoading || !isOpen}
@@ -605,8 +558,6 @@ export default function MyOrderDetailPage() {
           </div>
         </div>
       </section>
-
-
     </div>
   );
 }

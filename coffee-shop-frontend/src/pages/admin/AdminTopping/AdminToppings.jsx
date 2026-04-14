@@ -1,10 +1,10 @@
-
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Plus, Search, Edit, Trash2 } from 'lucide-react';
 import toppingService from '../../../services/toppingService';
 import useFetch from '../../../hooks/useFetch';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
+import { Badge } from '../../../components/ui/badge';
 import {
   Table,
   TableBody,
@@ -20,6 +20,7 @@ import DeleteTopping from './Action/DeleteTopping';
 
 export default function AdminToppings() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [sortOrder, setSortOrder] = useState('');
   const [modal, setModal] = useState({ type: null, data: null });
 
   const openModal = (type, data = null) => setModal({ type, data });
@@ -42,10 +43,18 @@ export default function AdminToppings() {
   // Search Filter
   const filteredToppings = useMemo(() => {
     if (!Array.isArray(toppings)) return [];
-    return toppings.filter((t) =>
+    let result = toppings.filter((t) =>
       t.name?.toLowerCase().includes(searchQuery.toLowerCase()),
     );
-  }, [toppings, searchQuery]);
+
+    if (sortOrder === 'price_desc') {
+      result = [...result].sort((a, b) => Number(b.price) - Number(a.price));
+    } else if (sortOrder === 'price_asc') {
+      result = [...result].sort((a, b) => Number(a.price) - Number(b.price));
+    }
+
+    return result;
+  }, [toppings, searchQuery, sortOrder]);
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -76,17 +85,32 @@ export default function AdminToppings() {
         </Button>
       </div>
 
-      {/* ===== SEARCH ===== */}
-      <div className='mb-4'>
-        <div className='relative max-w-sm'>
+      {/* ===== SEARCH & SORT ===== */}
+      <div className='mb-4 flex flex-col sm:flex-row gap-3'>
+        <div className='relative max-w-sm flex-1'>
           <Search className='absolute left-3 top-2.5 w-4 h-4 text-muted-foreground' />
           <Input
             placeholder='Tìm kiếm topping...'
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setCurrentPage(1);
+            }}
             className='pl-9'
           />
         </div>
+        <select
+          value={sortOrder}
+          onChange={(e) => {
+            setSortOrder(e.target.value);
+            setCurrentPage(1);
+          }}
+          className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background cursor-pointer focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 min-w-[200px]"
+        >
+          <option value="">Sắp xếp mặc định</option>
+          <option value="price_desc">Giá (Cao - Thấp)</option>
+          <option value="price_asc">Giá (Thấp - Cao)</option>
+        </select>
       </div>
 
       {/* ===== TABLE ===== */}
@@ -96,6 +120,7 @@ export default function AdminToppings() {
             <TableRow>
               <TableHead className="text-center w-[60px]">STT</TableHead>
               <TableHead className="min-w-[180px]">Tên topping</TableHead>
+              <TableHead className="text-center min-w-[120px]">Áp dụng</TableHead>
               <TableHead className="text-center min-w-[130px]">Giá</TableHead>
               <TableHead className="text-center min-w-[140px]">Hành động</TableHead>
             </TableRow>
@@ -103,18 +128,23 @@ export default function AdminToppings() {
           <TableBody>
             {loading && (
               <TableRow>
-                <TableCell colSpan={4} className='text-center py-6'>Đang tải...</TableCell>
+                <TableCell colSpan={5} className='text-center py-6'>Đang tải...</TableCell>
               </TableRow>
             )}
             {!loading && filteredToppings.length === 0 && (
               <TableRow>
-                <TableCell colSpan={4} className='text-center py-6'>Không có topping nào</TableCell>
+                <TableCell colSpan={5} className='text-center py-6'>Không có topping nào</TableCell>
               </TableRow>
             )}
             {!loading && currentToppings.map((topping, idx) => (
               <TableRow key={topping.id}>
                 <TableCell className="text-center font-medium">{(currentPage - 1) * PAGE_SIZE + idx + 1}</TableCell>
                 <TableCell>{topping.name}</TableCell>
+                <TableCell className="text-center">
+                  <Badge variant={topping.category_ids && topping.category_ids.length > 0 ? 'secondary' : 'outline'}>
+                    {topping.category_ids ? (typeof topping.category_ids === 'string' ? JSON.parse(topping.category_ids).length : topping.category_ids.length) || 0 : 0} danh mục
+                  </Badge>
+                </TableCell>
                 <TableCell className="text-center">{Number(topping.price).toLocaleString('vi-VN')}đ</TableCell>
                 <TableCell>
                   <div className='flex items-center justify-center gap-1'>

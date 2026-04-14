@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Mail, Phone, Edit2, Save, MapPin, Plus, Trash2, LocateFixed, Loader2, Lock, Navigation, Home, Briefcase, Star, BriefcaseBusiness, Coffee } from 'lucide-react';
+import { User, Mail, Phone, Edit2, Save, MapPin, Plus, Trash2, Loader2, Lock, Navigation, Home, Star, BriefcaseBusiness } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -11,8 +11,23 @@ import { Avatar, AvatarFallback } from '../../components/ui/avatar';
 import { toast } from 'sonner';
 import authenticationService from '../../services/authenticationService';
 import receiptSettingService from '../../services/receiptSettingService';
-import { APP_ROUTES } from '../../constants';
+import { APP_ROUTES, STORAGE_KEYS } from '../../constants';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+
+const getStoredValue = (key) =>
+  localStorage.getItem(key) || sessionStorage.getItem(key);
+
+const normalizePhoneInput = (value) => String(value || '').trim().replace(/\s+/g, '');
+
+const isValidPhoneNumber = (value) => {
+  const phone = normalizePhoneInput(value);
+
+  if (phone.startsWith('+84')) {
+    return /^\d{9,10}$/.test(phone.slice(3));
+  }
+
+  return /^\d{10,11}$/.test(phone);
+};
 
 export function UserProfile() {
   useDocumentTitle('Hồ sơ của tôi');
@@ -29,14 +44,11 @@ export function UserProfile() {
     receiver_name: '',
     receiver_phone: '',
     address: '',
-    latitude: '',
-    longitude: '',
-    location_source: 'manual_pin',
     address_type: 'home',
   });
   const [editingAddressId, setEditingAddressId] = useState(null);
-  const [editingAddressOriginal, setEditingAddressOriginal] = useState('');
-  const [isPinningAddressLocation, setIsPinningAddressLocation] = useState(false);
+  const [profileFieldErrors, setProfileFieldErrors] = useState({});
+  const [addressFieldErrors, setAddressFieldErrors] = useState({});
 
   useEffect(() => {
     let isMounted = true;
@@ -74,6 +86,34 @@ export function UserProfile() {
     };
   }, []);
 
+  const getProfilePhoneError = (value) => {
+    const normalizedPhone = normalizePhoneInput(value);
+
+    if (!normalizedPhone) {
+      return 'Số điện thoại không được để trống';
+    }
+
+    if (!isValidPhoneNumber(normalizedPhone)) {
+      return 'Số điện thoại phải có 10-11 chữ số hoặc bắt đầu bằng +84';
+    }
+
+    return '';
+  };
+
+  const getReceiverPhoneError = (value) => {
+    const normalizedReceiverPhone = normalizePhoneInput(value);
+
+    if (!normalizedReceiverPhone) {
+      return '';
+    }
+
+    if (!isValidPhoneNumber(normalizedReceiverPhone)) {
+      return 'Số điện thoại người nhận phải có 10-11 chữ số hoặc bắt đầu bằng +84';
+    }
+
+    return '';
+  };
+
   const displayName = useMemo(() => {
     if (!profile) return '';
     const firstName = profile.first_name || '';
@@ -86,6 +126,11 @@ export function UserProfile() {
     if (!profile) return '';
     return profile.role_name || profile.role || 'staff';
   }, [profile]);
+
+  const isGoogleLogin = useMemo(
+    () => getStoredValue(STORAGE_KEYS.AUTH_PROVIDER) === 'google',
+    [],
+  );
 
   const [storeName, setStoreName] = useState(() => {
     return localStorage.getItem("cached_store_name") || "Coffee Shop";
@@ -100,7 +145,7 @@ export function UserProfile() {
           setStoreName(data.store_name);
           localStorage.setItem("cached_store_name", data.store_name);
         }
-      } catch (error) {
+      } catch {
         // Fallback or ignore
       }
     };
@@ -112,13 +157,24 @@ export function UserProfile() {
   }, []);
 
   const handleSave = async () => {
+    const normalizedPhone = normalizePhoneInput(profile?.phone);
+    const phoneError = getProfilePhoneError(normalizedPhone);
+
+    if (phoneError) {
+      setProfileFieldErrors((prev) => ({ ...prev, phone: phoneError }));
+      toast.error(phoneError);
+      return;
+    }
+
+    setProfileFieldErrors((prev) => ({ ...prev, phone: '' }));
+
     setIsSaving(true);
     try {
       // Only send editable fields
       const updateData = {
         first_name: profile.first_name,
         last_name: profile.last_name,
-        phone: profile.phone,
+        phone: normalizedPhone,
       };
 
       const response = await authenticationService.updateProfile(updateData);
@@ -186,13 +242,10 @@ export function UserProfile() {
       receiver_name: '',
       receiver_phone: '',
       address: '',
-      latitude: '',
-      longitude: '',
-      location_source: 'manual_pin',
       address_type: 'home',
     });
+    setAddressFieldErrors({});
     setEditingAddressId(null);
-    setEditingAddressOriginal('');
   };
 
   const openCreateAddressDialog = () => {
@@ -201,98 +254,37 @@ export function UserProfile() {
   };
 
   const validateAddressForm = () => {
+    const errors = {};
     const normalizedAddress = String(addressForm.address || '').trim();
-    const lat = String(addressForm.latitude || '').trim();
-    const lng = String(addressForm.longitude || '').trim();
-    const hasLat = lat.length > 0;
-    const hasLng = lng.length > 0;
+    const receiverPhoneError = getReceiverPhoneError(addressForm.receiver_phone);
 
     if (!normalizedAddress) {
-      toast.error('Vui lòng nhập địa chỉ nhận hàng');
-      return false;
+      errors.address = 'Vui lòng nhập địa chỉ nhận hàng';
     }
 
-    if (hasLat !== hasLng) {
-      toast.error('Vui lòng nhập đầy đủ cả vĩ độ và kinh độ');
-      return false;
+    if (receiverPhoneError) {
+      errors.receiver_phone = receiverPhoneError;
     }
 
-    const isAddressChanged =
-      !editingAddressId ||
-      normalizedAddress !== String(editingAddressOriginal || '').trim();
+    setAddressFieldErrors(errors);
 
-    if (isAddressChanged && !hasLat) {
-      toast.error('Khi nhập địa chỉ mới, bạn cần ghim tọa độ hoặc nhập tọa độ thủ công');
+    if (Object.keys(errors).length > 0) {
+      toast.error(errors.address || errors.receiver_phone);
       return false;
-    }
-
-    if (hasLat && hasLng) {
-      const latNum = Number(lat);
-      const lngNum = Number(lng);
-
-      if (!Number.isFinite(latNum) || latNum < -90 || latNum > 90) {
-        toast.error('Vĩ độ không hợp lệ');
-        return false;
-      }
-
-      if (!Number.isFinite(lngNum) || lngNum < -180 || lngNum > 180) {
-        toast.error('Kinh độ không hợp lệ');
-        return false;
-      }
     }
 
     return true;
   };
 
-  const handlePinCurrentAddressLocation = () => {
-    if (!navigator.geolocation) {
-      toast.error('Trình duyệt không hỗ trợ định vị GPS');
-      return;
-    }
-
-    setIsPinningAddressLocation(true);
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setAddressForm((prev) => ({
-          ...prev,
-          latitude: String(Number(position.coords.latitude.toFixed(7))),
-          longitude: String(Number(position.coords.longitude.toFixed(7))),
-          location_source: 'gps',
-        }));
-        toast.success('Đã ghim vị trí hiện tại thành công');
-        setIsPinningAddressLocation(false);
-      },
-      (error) => {
-        const message =
-          error?.code === 1
-            ? 'Bạn đã từ chối quyền truy cập vị trí'
-            : 'Không lấy được vị trí hiện tại, vui lòng thử lại';
-        toast.error(message);
-        setIsPinningAddressLocation(false);
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 12000,
-        maximumAge: 0,
-      }
-    );
-  };
-
   const handleSubmitAddress = async () => {
     if (!validateAddressForm()) return;
+    const normalizedAddress = String(addressForm.address || '').trim();
+    const normalizedReceiverPhone = normalizePhoneInput(addressForm.receiver_phone);
 
     const payload = {
       receiver_name: addressForm.receiver_name.trim() || null,
-      receiver_phone: addressForm.receiver_phone.trim() || null,
-      address: addressForm.address.trim(),
-      latitude:
-        addressForm.latitude === '' ? null : Number(addressForm.latitude),
-      longitude:
-        addressForm.longitude === '' ? null : Number(addressForm.longitude),
-      location_source:
-        addressForm.latitude === ''
-          ? null
-          : addressForm.location_source || 'manual_pin',
+      receiver_phone: normalizedReceiverPhone || null,
+      address: normalizedAddress,
       address_type: addressForm.address_type,
     };
 
@@ -328,20 +320,11 @@ export function UserProfile() {
 
   const handleEditAddress = (item) => {
     setEditingAddressId(item.id);
-    setEditingAddressOriginal(item.address || '');
+    setAddressFieldErrors({});
     setAddressForm({
       receiver_name: item.receiver_name || '',
       receiver_phone: item.receiver_phone || '',
       address: item.address || '',
-      latitude:
-        item.latitude === null || item.latitude === undefined
-          ? ''
-          : String(item.latitude),
-      longitude:
-        item.longitude === null || item.longitude === undefined
-          ? ''
-          : String(item.longitude),
-      location_source: item.location_source || 'manual_pin',
       address_type: item.address_type || 'home',
     });
     setAddressDialogOpen(true);
@@ -418,13 +401,19 @@ export function UserProfile() {
                 <Card className="rounded-[24px] border-white/50 dark:border-gray-800/80 bg-white/70 dark:bg-gray-900/70 backdrop-blur-xl shadow-lg border relative overflow-hidden animate-in slide-in-from-bottom-4 duration-700">
                   <div className="absolute top-0 right-0 p-6 z-10">
                     {!isEditing ? (
-                      <Button variant="outline" size="sm" onClick={() => setIsEditing(true)} className="rounded-xl border-amber-200 text-amber-700 bg-amber-50/50 hover:bg-amber-100 hover:text-amber-800 dark:border-amber-900/40 dark:bg-amber-900/20 dark:text-amber-400 dark:hover:bg-amber-900/40">
+                      <Button variant="outline" size="sm" onClick={() => {
+                        setProfileFieldErrors({});
+                        setIsEditing(true);
+                      }} className="rounded-xl border-amber-200 text-amber-700 bg-amber-50/50 hover:bg-amber-100 hover:text-amber-800 dark:border-amber-900/40 dark:bg-amber-900/20 dark:text-amber-400 dark:hover:bg-amber-900/40">
                         <Edit2 className="w-4 h-4 mr-2" />
                         Chỉnh sửa
                       </Button>
                     ) : (
                       <div className="flex gap-2">
-                        <Button variant="ghost" size="sm" onClick={() => setIsEditing(false)} disabled={isSaving} className="rounded-xl hover:bg-gray-100">
+                        <Button variant="ghost" size="sm" onClick={() => {
+                          setProfileFieldErrors({});
+                          setIsEditing(false);
+                        }} disabled={isSaving} className="rounded-xl hover:bg-gray-100">
                           Hủy
                         </Button>
                         <Button size="sm" onClick={handleSave} disabled={isSaving} className="rounded-xl bg-amber-600 hover:bg-amber-700 text-white shadow-md">
@@ -547,15 +536,25 @@ export function UserProfile() {
                               type="tel"
                               value={profile?.phone || ''}
                               disabled={!isEditing}
-                              className={`pl-10 rounded-xl transition-all font-medium ${isEditing ? "bg-white dark:bg-black/40 border-gray-200 dark:border-gray-700 focus-visible:ring-2 focus-visible:ring-amber-500/50 focus-visible:border-amber-500" : "bg-transparent border-transparent font-semibold text-gray-900 dark:text-gray-100 shadow-none"}`}
-                              onChange={(e) =>
+                              className={`pl-10 rounded-xl transition-all font-medium ${isEditing ? `bg-white dark:bg-black/40 ${profileFieldErrors.phone ? 'border-destructive focus-visible:border-destructive focus-visible:ring-2 focus-visible:ring-destructive/40' : 'border-gray-200 dark:border-gray-700 focus-visible:ring-2 focus-visible:ring-amber-500/50 focus-visible:border-amber-500'}` : "bg-transparent border-transparent font-semibold text-gray-900 dark:text-gray-100 shadow-none"}`}
+                              onChange={(e) => {
+                                const value = e.target.value;
                                 setProfile((prev) => ({
                                   ...prev,
-                                  phone: e.target.value,
-                                }))
-                              }
+                                  phone: value,
+                                }));
+
+                                const phoneError = getProfilePhoneError(value);
+                                setProfileFieldErrors((prev) => ({
+                                  ...prev,
+                                  phone: phoneError,
+                                }));
+                              }}
                             />
                           </div>
+                          {isEditing && profileFieldErrors.phone && (
+                            <p className="text-xs text-destructive ml-1">{profileFieldErrors.phone}</p>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -618,13 +617,12 @@ export function UserProfile() {
                                       <p className="text-sm font-medium text-gray-700 dark:text-gray-300 line-clamp-2 leading-relaxed">
                                         {item.address}
                                       </p>
-                                      {item.latitude && item.longitude ? (
-                                        <p className="text-[11px] font-medium text-emerald-600 dark:text-emerald-500 flex items-center gap-1 opacity-70">
-                                          <LocateFixed className="w-3 h-3" /> Đã ghim toạ độ
-                                        </p>
-                                      ) : (
-                                        <p className="text-[11px] font-medium text-amber-500 flex items-center gap-1 opacity-70">
-                                          <AlertCircle className="w-3 h-3" /> Chưa ghim toạ độ
+                                      {(item.ward_name || item.province_name) && (
+                                        <p className="text-[11px] font-medium text-amber-600 dark:text-amber-400 flex items-center gap-1 opacity-90">
+                                          <MapPin className="w-3 h-3" />
+                                          {[item.ward_name, item.province_name]
+                                            .filter(Boolean)
+                                            .join(', ')}
                                         </p>
                                       )}
                                     </div>
@@ -692,17 +690,21 @@ export function UserProfile() {
                           </div>
                           <div>
                             <p className="font-semibold text-sm">Bảo mật</p>
-                            <p className="text-xs text-muted-foreground mt-0.5">Mật khẩu & Đăng nhập</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              {isGoogleLogin ? 'Đăng nhập Google' : 'Mật khẩu & Đăng nhập'}
+                            </p>
                           </div>
                         </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="rounded-xl border-gray-200 shadow-sm"
-                          onClick={() => navigate(APP_ROUTES.CHANGE_PASSWORD)}
-                        >
-                          Đổi mật khẩu
-                        </Button>
+                        {!isGoogleLogin && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="rounded-xl border-gray-200 shadow-sm"
+                            onClick={() => navigate(APP_ROUTES.CHANGE_PASSWORD)}
+                          >
+                            Đổi mật khẩu
+                          </Button>
+                        )}
                       </div>
                     </div>
                   </CardContent>
@@ -765,11 +767,23 @@ export function UserProfile() {
                   <Input
                     id="receiver_phone"
                     value={addressForm.receiver_phone}
-                    onChange={(e) => setAddressForm((prev) => ({ ...prev, receiver_phone: e.target.value }))}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setAddressForm((prev) => ({ ...prev, receiver_phone: value }));
+
+                      const phoneError = getReceiverPhoneError(value);
+                      setAddressFieldErrors((prev) => ({
+                        ...prev,
+                        receiver_phone: phoneError,
+                      }));
+                    }}
                     placeholder="09xx..."
-                    className="pl-9 h-11 rounded-xl bg-gray-50/80 dark:bg-black/20 focus-visible:ring-amber-500/50 focus-visible:border-amber-500"
+                    className={`pl-9 h-11 rounded-xl bg-gray-50/80 dark:bg-black/20 ${addressFieldErrors.receiver_phone ? 'border-destructive focus-visible:border-destructive focus-visible:ring-destructive/40' : 'focus-visible:ring-amber-500/50 focus-visible:border-amber-500'}`}
                   />
                 </div>
+                {addressFieldErrors.receiver_phone && (
+                  <p className="text-xs text-destructive ml-1">{addressFieldErrors.receiver_phone}</p>
+                )}
               </div>
             </div>
 
@@ -807,67 +821,24 @@ export function UserProfile() {
               <Input
                 id="shipping_address"
                 value={addressForm.address}
-                onChange={(e) =>
+                onChange={(e) => {
+                  const value = e.target.value;
                   setAddressForm((prev) => ({
                     ...prev,
-                    address: e.target.value,
-                    ...(e.target.value.trim() !== String(editingAddressOriginal || '').trim()
-                      ? {
-                          latitude: '',
-                          longitude: '',
-                          location_source: 'manual_pin',
-                        }
-                      : {}),
-                  }))
-                }
-                placeholder="Số nhà, hẻm, tên đường, phường, quận..."
-                className="h-11 rounded-xl bg-gray-50/80 dark:bg-black/20 focus-visible:ring-amber-500/50 focus-visible:border-amber-500"
+                    address: value,
+                  }));
+
+                  setAddressFieldErrors((prev) => ({
+                    ...prev,
+                    address: value.trim() ? '' : prev.address,
+                  }));
+                }}
+                placeholder="Số nhà, hẻm, tên đường..."
+                className={`h-11 rounded-xl bg-gray-50/80 dark:bg-black/20 ${addressFieldErrors.address ? 'border-destructive focus-visible:border-destructive focus-visible:ring-destructive/40' : 'focus-visible:ring-amber-500/50 focus-visible:border-amber-500'}`}
               />
-            </div>
-
-            <div className="space-y-3 rounded-2xl border border-amber-200/60 bg-amber-50/40 dark:bg-amber-900/10 dark:border-amber-900/30 p-4">
-              <div className="flex items-center justify-between gap-2 flex-wrap">
-                <p className="text-sm font-bold flex items-center gap-2 text-amber-800 dark:text-amber-400">
-                  <LocateFixed className="w-4 h-4" />
-                  Toạ độ bản đồ (bắt buộc)
-                </p>
-                <Button
-                  type="button"
-                  variant="default"
-                  size="sm"
-                  onClick={handlePinCurrentAddressLocation}
-                  disabled={isPinningAddressLocation}
-                  className="rounded-lg h-8 bg-amber-600 hover:bg-amber-700 shadow-sm text-xs"
-                >
-                  {isPinningAddressLocation ? (
-                    <>
-                      <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
-                      Đang lấy GPS...
-                    </>
-                  ) : (
-                    'Sử dụng vị trí hiện tại'
-                  )}
-                </Button>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <Input
-                  value={addressForm.latitude}
-                  onChange={(e) => setAddressForm((prev) => ({ ...prev, latitude: e.target.value, location_source: 'manual_pin'}))}
-                  placeholder="Vĩ độ (Latitude)"
-                  className="h-10 rounded-lg text-sm bg-white dark:bg-black/40 border-amber-100 dark:border-gray-800 focus-visible:ring-amber-500"
-                />
-                <Input
-                  value={addressForm.longitude}
-                  onChange={(e) => setAddressForm((prev) => ({ ...prev, longitude: e.target.value, location_source: 'manual_pin'}))}
-                  placeholder="Kinh độ (Longitude)"
-                  className="h-10 rounded-lg text-sm bg-white dark:bg-black/40 border-amber-100 dark:border-gray-800 focus-visible:ring-amber-500"
-                />
-              </div>
-
-              <p className="text-[11px] text-amber-600/80 dark:text-amber-500/80 leading-relaxed font-medium">
-                * Khi cập nhật địa chỉ, vui lòng ghim lại toạ độ để hệ thống điều phối giao hàng chính xác nhất.
-              </p>
+              {addressFieldErrors.address && (
+                <p className="text-xs text-destructive ml-1">{addressFieldErrors.address}</p>
+              )}
             </div>
 
             <div className="flex justify-end gap-3 pt-2">

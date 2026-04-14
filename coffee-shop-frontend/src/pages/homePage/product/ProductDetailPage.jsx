@@ -21,7 +21,7 @@ import QuickViewModal from "@/pages/homePage/product/QuickViewModal";
 import { Button } from "@/components/ui/button";
 import productService from "@/services/productService";
 import toppingService from "@/services/toppingService";
-import { cartService } from "@/services/cartService";
+import { useCartStore } from "@/store/useCartStore";
 import useFetch from "@/hooks/useFetch";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Pagination, Navigation, Autoplay } from "swiper/modules";
@@ -41,8 +41,9 @@ import { getCurrentUser } from "@/utils/auth";
 // Module-level cache: tồn tại xuyên suốt session, không bị xóa khi component unmount
 const productDetailCache = {};
 
-const ReviewItem = ({ item, currentUserId }) => {
+const ReviewItem = ({ item, currentUserId, categoryName }) => {
   const [expandedIndex, setExpandedIndex] = useState(null);
+  const [expandedReplyIndex, setExpandedReplyIndex] = useState(null);
 
   const isVideo = (url) => {
     if (!url) return false;
@@ -67,10 +68,16 @@ const ReviewItem = ({ item, currentUserId }) => {
             />
           ))}
         </div>
-        <div className="text-gray-400 text-xs mb-3 flex items-center gap-1.5">
+        <div className="text-gray-400 text-xs mb-3 flex items-center gap-1.5 flex-wrap">
           <span>
-            {new Date(item.created_at || Date.now()).toLocaleString("vi-VN")}
+            {new Date(item.updated_at || item.created_at || Date.now()).toLocaleString("vi-VN")}
           </span>
+          {categoryName && (
+            <>
+              <span className="text-gray-300 mx-0.5">|</span>
+              <span>Phân loại hàng: {categoryName}</span>
+            </>
+          )}
           {item.updated_at &&
             item.created_at &&
             item.updated_at !== item.created_at && (
@@ -172,6 +179,99 @@ const ReviewItem = ({ item, currentUserId }) => {
             )}
           </div>
         )}
+
+        {(item.reply_comment || (item.reply_images && item.reply_images.length > 0)) && (
+          <div className="mt-4 bg-[#fcfcfc] dark:bg-gray-900 border-l-[3px] border-[#ee4d2d] p-3 shadow-sm">
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className="font-semibold text-gray-800 dark:text-gray-200 text-[13px]">Phản hồi của Người Bán</span>
+              {item.replied_at && (
+                <span className="text-gray-400 text-[11px] font-medium">
+                  vào lúc {new Date(item.replied_at).toLocaleString("vi-VN")}
+                </span>
+              )}
+            </div>
+            {item.reply_comment && (
+              <div className="text-gray-600 dark:text-gray-400 text-[13px] whitespace-pre-line mb-2 leading-relaxed">
+                {item.reply_comment}
+              </div>
+            )}
+            {item.reply_images && item.reply_images.length > 0 && (
+              <div className="mt-2">
+                <div className="flex flex-wrap gap-1.5">
+                  {item.reply_images.map((img, idx) => {
+                    const videoMode = isVideo(img.url);
+                    return (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() =>
+                          setExpandedReplyIndex(expandedReplyIndex === idx ? null : idx)
+                        }
+                        className={`relative block w-[60px] h-[60px] bg-gray-50 overflow-hidden cursor-zoom-in group ${expandedReplyIndex === idx
+                          ? "border-2 border-[#ee4d2d]"
+                          : "border border-gray-200 hover:border-gray-400 transition-colors"
+                          }`}
+                      >
+                        {videoMode ? (
+                          <>
+                            <video src={img.url} className="w-full h-full object-cover pointer-events-none group-hover:scale-110 transition-transform duration-300" />
+                            <div className="absolute inset-0 bg-black/10 flex items-center justify-center pointer-events-none">
+                              <span className="w-0 h-0 border-t-[5px] border-t-transparent border-l-[8px] border-l-white border-b-[5px] border-b-transparent ml-0.5 shadow-sm" />
+                            </div>
+                          </>
+                        ) : (
+                          <img src={img.url} className="w-full h-full object-cover pointer-events-none group-hover:scale-110 transition-transform duration-300" alt="reply img" />
+                        )}
+                      </button>
+                    )
+                  })}
+                </div>
+                {expandedReplyIndex !== null && (
+                  <div className="relative w-full max-w-[400px] mt-3 bg-black flex items-center justify-center border border-gray-200 dark:border-gray-800 overflow-hidden group/large">
+                    {isVideo(item.reply_images[expandedReplyIndex].url) ? (
+                      <video
+                        src={item.reply_images[expandedReplyIndex].url}
+                        controls
+                        autoPlay
+                        className="w-full max-h-[400px] object-contain"
+                      />
+                    ) : (
+                      <img
+                        src={item.reply_images[expandedReplyIndex].url}
+                        alt="Expanded reply"
+                        className="w-full max-h-[400px] object-contain"
+                      />
+                    )}
+                    {item.reply_images.length > 1 && (
+                      <>
+                        <button
+                          onClick={() =>
+                            setExpandedReplyIndex((prev) =>
+                              prev === 0 ? item.reply_images.length - 1 : prev - 1
+                            )
+                          }
+                          className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center bg-white/50 hover:bg-white text-gray-800 rounded-full shadow-sm transition opacity-0 group-hover/large:opacity-100"
+                        >
+                          <ChevronLeft className="w-5 h-5" />
+                        </button>
+                        <button
+                          onClick={() =>
+                            setExpandedReplyIndex((prev) =>
+                              prev === item.reply_images.length - 1 ? 0 : prev + 1
+                            )
+                          }
+                          className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center bg-white/50 hover:bg-white text-gray-800 rounded-full shadow-sm transition opacity-0 group-hover/large:opacity-100"
+                        >
+                          <ChevronRight className="w-5 h-5" />
+                        </button>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -182,6 +282,7 @@ export default function ProductDetailPage({ productIdOverride, initialProductDat
   const productId = productIdOverride || id;
   const navigate = useNavigate();
   const { isOpen: isStoreOpen, nextOpenMessage } = useStoreHours();
+  const { addItem } = useCartStore();
 
   const token =
     localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN) ||
@@ -375,6 +476,17 @@ export default function ProductDetailPage({ productIdOverride, initialProductDat
 
     fetchToppings();
   }, []);
+
+  const availableToppings = useMemo(() => {
+    if (!product || !product.category_id) return [];
+    return toppings.filter((t) => {
+      let ids = t.category_ids || [];
+      if (typeof ids === 'string') {
+        try { ids = JSON.parse(ids); } catch(e) { ids = []; }
+      }
+      return Array.isArray(ids) && ids.includes(product.category_id);
+    });
+  }, [toppings, product?.category_id]);
 
   useEffect(() => {
     const fetchReviews = async () => {
@@ -714,9 +826,8 @@ export default function ProductDetailPage({ productIdOverride, initialProductDat
     }
 
     const cartItem = buildCartItem();
-    cartService.addItem(cartItem);
+    addItem(cartItem);
     notifyCartSuccess(cartItem);
-    window.dispatchEvent(new Event("cartUpdated"));
   };
 
   const buyNow = () => {
@@ -726,7 +837,7 @@ export default function ProductDetailPage({ productIdOverride, initialProductDat
     }
 
     const cartItem = buildCartItem();
-    cartService.addItem(cartItem);
+    addItem(cartItem);
     navigate("/checkout");
   };
 
@@ -778,9 +889,8 @@ export default function ProductDetailPage({ productIdOverride, initialProductDat
       toppings: [],
     };
 
-    cartService.addItem(cartItem);
+    addItem(cartItem);
     notifyCartSuccess(cartItem);
-    window.dispatchEvent(new Event("cartUpdated"));
   };
 
   const renderBreadcrumbs = () => (
@@ -969,7 +1079,7 @@ export default function ProductDetailPage({ productIdOverride, initialProductDat
               </div>
             )}
 
-            {toppings.length > 0 && (
+            {availableToppings.length > 0 && (
               <div className="mb-8">
                 <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-3">
                   Topping
@@ -996,7 +1106,7 @@ export default function ProductDetailPage({ productIdOverride, initialProductDat
 
                 {showToppings && (
                   <div className="mt-4 max-h-[320px] overflow-y-auto pr-2 space-y-3">
-                    {toppings.map((topping) => {
+                    {availableToppings.map((topping) => {
                       const checked = isToppingSelected(topping.id);
                       const selectedTopping = getSelectedTopping(topping.id);
 
@@ -1363,7 +1473,7 @@ export default function ProductDetailPage({ productIdOverride, initialProductDat
             ) : (
               <div className="flex flex-col max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
                 {filteredReviews.map((item) => (
-                  <ReviewItem key={item.id} item={item} currentUserId={currentUserId} />
+                  <ReviewItem key={item.id} item={item} currentUserId={currentUserId} categoryName={product?.category_name} />
                 ))}
               </div>
             )}

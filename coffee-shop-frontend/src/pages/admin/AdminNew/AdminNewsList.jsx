@@ -1,13 +1,8 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import {
   Loader2,
-  ChevronLeft,
-  ChevronRight,
   Trash2,
-  Eye,
   Edit,
-  Newspaper,
   Plus,
 } from "lucide-react";
 import newsService from "@/services/newsService";
@@ -25,6 +20,16 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import PaginationControl from "@/components/common/PaginationControl";
 import AdminNewsModal from "./AdminNewsModal";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const PAGE_SIZE = 7;
 
@@ -37,15 +42,18 @@ export default function AdminNewsList() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [keyword, setKeyword] = useState("");
+  const [sortOrder, setSortOrder] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedNewsId, setSelectedNewsId] = useState(null);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleteId, setDeleteId] = useState(null);
 
-  const fetchNews = async (currentPage = 1, search = "") => {
+  const fetchNews = async (currentPage = 1, search = "", sort = "") => {
     try {
       setIsLoading(true);
       setError(null);
 
-      const res = await newsService.getAllAdmin(currentPage, search);
+      const res = await newsService.getAllAdmin(currentPage, search, sort);
       const payload = res.data?.data || res.data;
 
       setData(payload.items || []);
@@ -61,11 +69,11 @@ export default function AdminNewsList() {
 
   useEffect(() => {
     const timeout = setTimeout(() => {
-      fetchNews(page, keyword);
+      fetchNews(page, keyword, sortOrder);
     }, 600);
 
     return () => clearTimeout(timeout);
-  }, [page, keyword]);
+  }, [page, keyword, sortOrder]);
 
   const handleSearchChange = (e) => {
     const value = e.target.value;
@@ -73,24 +81,32 @@ export default function AdminNewsList() {
     setPage(1);
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Bạn có chắc muốn xóa bài viết này?")) return;
+  const handleDeleteClick = (id) => {
+    setDeleteId(id);
+    setDeleteConfirmOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteId) return;
 
     try {
-      setLoadingId(id);
+      setLoadingId(deleteId);
+      setDeleteConfirmOpen(false);
 
-      await newsService.delete(id);
+      await newsService.delete(deleteId);
       toast.success("Xóa bài viết thành công");
 
       if (data.length === 1 && page > 1) {
         setPage((prev) => prev - 1);
       } else {
-        fetchNews(page, keyword);
+        fetchNews(page, keyword, sortOrder);
       }
     } catch (error) {
       console.error(error);
+      toast.error("Có lỗi xảy ra khi xóa bài viết");
     } finally {
       setLoadingId(null);
+      setDeleteId(null);
     }
   };
 
@@ -104,7 +120,8 @@ export default function AdminNewsList() {
           onClick={() => {
             setPage(1);
             setKeyword("");
-            fetchNews(1, "");
+            setSortOrder("");
+            fetchNews(1, "", "");
           }}
         >
           Thử lại
@@ -132,12 +149,27 @@ export default function AdminNewsList() {
           </Button>
         </div>
 
-        <Input
-          placeholder="Tìm theo tiêu đề hoặc tag..."
-          value={keyword}
-          onChange={handleSearchChange}
-          className="pl-9"
-        />
+        <div className="flex flex-col sm:flex-row gap-3">
+          <Input
+            placeholder="Tìm theo tiêu đề hoặc tag..."
+            value={keyword}
+            onChange={handleSearchChange}
+            className="pl-9 flex-1"
+          />
+
+          <select
+            value={sortOrder}
+            onChange={(e) => {
+              setSortOrder(e.target.value);
+              setPage(1);
+            }}
+            className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background cursor-pointer focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 min-w-[200px]"
+          >
+            <option value="">Ngày tạo mới nhất</option>
+            <option value="views_desc">Lượt xem (Cao - Thấp)</option>
+            <option value="views_asc">Lượt xem (Thấp - Cao)</option>
+          </select>
+        </div>
       </div>
 
       <div className="relative bg-card rounded-xl border border-border overflow-hidden">
@@ -233,7 +265,7 @@ export default function AdminNewsList() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleDelete(item.id)}
+                            onClick={() => handleDeleteClick(item.id)}
                             disabled={loadingId === item.id}
                             title="Xóa"
                             className="hover:text-red-600"
@@ -273,8 +305,29 @@ export default function AdminNewsList() {
           setSelectedNewsId(null);
         }}
         newsId={selectedNewsId}
-        onSuccess={() => fetchNews(page, keyword)}
+        onSuccess={() => fetchNews(page, keyword, sortOrder)}
       />
+
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Xác nhận xóa</AlertDialogTitle>
+            <AlertDialogDescription>
+              Bạn có chắc chắn muốn xóa bài viết <strong>{data.find((item) => item.id === deleteId)?.title}</strong>?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={loadingId !== null}>Hủy</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              disabled={loadingId !== null}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Xóa
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

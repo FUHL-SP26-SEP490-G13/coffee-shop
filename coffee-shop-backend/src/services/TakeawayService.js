@@ -1,4 +1,5 @@
 const TakeawayRepository = require('../repositories/TakeawayRepository');
+const CashSessionRepository = require('../repositories/CashSessionRepository');
 const ErrorResponse = require('../utils/ErrorResponse');
 
 const { payOS } = require('../config/payos');
@@ -188,13 +189,21 @@ class TakeawayService {
         : 0;
       const changeAmt = isCash ? Math.max(0, cashReceivedAmt - finalAmount) : 0;
 
+      // Lấy cash_session_id của ca đang mở (nếu có)
+      // Đơn takeaway luôn phát sinh tại quầy → gán vào ca hiện tại
+      const activeSession = await CashSessionRepository.findOpenSession();
+      const cashSessionId = activeSession ? activeSession.id : null;
+
       // create order
       const orderId = await TakeawayRepository.createOrder(connection, {
         user_id: null,
         created_by: staffUser.id,
         order_type: 'takeaway',
         total_amount: finalAmount,
+        amount: subtotal,
+        discount_amount: discountAmount,
         discount_id: discountId,
+        cash_session_id: cashSessionId,
       });
 
       for (const item of normalizedItems) {
@@ -250,13 +259,14 @@ class TakeawayService {
 
       const response = {
         order_id: orderId,
+        amount: subtotal,
         subtotal_amount: subtotal,
         discount_amount: discountAmount,
         discount_code: discountCode,
         total_amount: finalAmount,
         payment_method,
         is_paid: isCash,
-        status: 'pending',
+        status: 'preparing',
         cash_received: cashReceivedAmt,
         change_amount: changeAmt,
       };
@@ -547,10 +557,21 @@ class TakeawayService {
     const items = await TakeawayRepository.findOrderItems(orderId);
     const payment = await TakeawayRepository.findOrderPayment(orderId);
 
-    const subtotal = items.reduce(
+    const fallbackSubtotal = items.reduce(
       (sum, item) => sum + Number(item.price) * Number(item.quantity),
       0,
     );
+      const subtotal = Math.max(0, Number(order.amount || 0));
+    const amountForDiscountCalc = Math.max(
+      0,
+      Number(order.amount || 0) || fallbackSubtotal,
+    );
+    const discountAmount = Math.max(
+      0,
+      Number(order.discount_amount || 0) ||
+        Math.max(0, amountForDiscountCalc + Number(order.delivery_fee || 0) - Number(order.total_amount || 0)),
+    );
+    const deliveryFee = Math.max(0, Number(order.delivery_fee || 0));
 
     const paidAmount = payment ? Number(payment.paid_amount || 0) : 0;
     const cashReceived = payment ? Number(payment.cash_received || 0) : 0;
@@ -592,12 +613,14 @@ class TakeawayService {
             toppings,
           };
         }),
+        amount: subtotal,
         subtotal_amount: subtotal,
         discount_code: order.discount_code || null,
         discount_percentage: order.discount_percentage
           ? Number(order.discount_percentage)
           : null,
-        discount_amount: subtotal - Number(order.total_amount),
+        discount_amount: discountAmount,
+        delivery_fee: deliveryFee,
         total_amount: Number(order.total_amount),
         receiver_name: order.receiver_name || null,
         receiver_phone: order.receiver_phone || null,

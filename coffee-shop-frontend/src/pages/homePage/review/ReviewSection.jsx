@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Star, Quote, X } from "lucide-react";
+import { Star, Quote, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Pagination, Navigation, Autoplay } from "swiper/modules";
 import "swiper/css";
@@ -13,6 +13,7 @@ export default function ReviewSection() {
   const [reviews, setReviews] = useState([]);
   const [showAll, setShowAll] = useState(false);
   const [storeName, setStoreName] = useState("Coffee Shop");
+  const [expandedImage, setExpandedImage] = useState(null);
 
   useEffect(() => {
     const fetchReviews = async () => {
@@ -91,15 +92,18 @@ export default function ReviewSection() {
               const isVideo = img.url?.match(/\.(mp4|webm|ogg)$/i) || img.url?.includes("video/upload");
               if (isVideo) {
                 return (
-                  <div key={idx} className="flex-1 rounded-xl overflow-hidden shadow-sm border border-amber-100 bg-black">
-                    <video src={img.url} controls className="w-full h-full object-cover" />
-                  </div>
+                  <button key={idx} onClick={() => setExpandedImage({ images: imgs, index: idx })} className="flex-1 rounded-xl overflow-hidden shadow-sm border border-amber-100 bg-black relative group cursor-zoom-in">
+                    <video src={img.url} className="w-full h-full object-cover pointer-events-none" />
+                    <div className="absolute inset-0 bg-black/10 flex items-center justify-center group-hover:bg-black/30 transition-colors pointer-events-none">
+                      <span className="w-0 h-0 border-t-[5px] border-t-transparent border-l-[8px] border-l-white border-b-[5px] border-b-transparent ml-0.5 shadow-sm" />
+                    </div>
+                  </button>
                 );
               }
               return (
-                <a key={idx} href={img.url} target="_blank" rel="noopener noreferrer" className="flex-1 rounded-xl overflow-hidden shadow-sm border border-amber-100 block hover:opacity-90 transition-opacity">
-                  <img src={img.url} alt={`Review ${idx}`} className="w-full h-full object-cover" loading="lazy" />
-                </a>
+                <button key={idx} onClick={() => setExpandedImage({ images: imgs, index: idx })} className="flex-1 rounded-xl overflow-hidden shadow-sm border border-amber-100 block hover:opacity-90 transition-opacity relative group cursor-zoom-in">
+                  <img src={img.url} alt={`Review ${idx}`} className="w-full h-full object-cover pointer-events-none" loading="lazy" />
+                </button>
               );
             })
           ) : (
@@ -195,6 +199,51 @@ export default function ReviewSection() {
         )}
         </div>
       </div>
+
+      {expandedImage && (
+        <div className="fixed inset-0 z-[9999] bg-black/90 flex items-center justify-center animate-in fade-in duration-200" onClick={() => setExpandedImage(null)}>
+          <button onClick={() => setExpandedImage(null)} className="absolute top-6 right-6 text-white/50 hover:text-white transition-colors">
+            <X className="w-10 h-10" />
+          </button>
+          
+          <div className="relative max-w-[90vw] max-h-[90vh] flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+            {expandedImage.images[expandedImage.index].url.match(/\.(mp4|webm|ogg)$/i) || expandedImage.images[expandedImage.index].url.includes("video/upload") ? (
+              <video src={expandedImage.images[expandedImage.index].url} controls autoPlay className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl" />
+            ) : (
+              <img src={expandedImage.images[expandedImage.index].url} className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl" />
+            )}
+            
+            {expandedImage.images.length > 1 && (
+              <>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setExpandedImage(prev => ({
+                      ...prev,
+                      index: prev.index === 0 ? prev.images.length - 1 : prev.index - 1
+                    }))
+                  }}
+                  className="absolute left-4 sm:-left-16 top-1/2 -translate-y-1/2 w-12 h-12 flex items-center justify-center bg-white/10 hover:bg-white/30 text-white rounded-full shadow-lg transition"
+                >
+                  <ChevronLeft className="w-8 h-8" />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setExpandedImage(prev => ({
+                      ...prev,
+                      index: prev.index === prev.images.length - 1 ? 0 : prev.index + 1
+                    }))
+                  }}
+                  className="absolute right-4 sm:-right-16 top-1/2 -translate-y-1/2 w-12 h-12 flex items-center justify-center bg-white/10 hover:bg-white/30 text-white rounded-full shadow-lg transition"
+                >
+                  <ChevronRight className="w-8 h-8" />
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </section>
   );
 }

@@ -16,10 +16,8 @@ import {
   ChevronDown,
   Menu,
   X,
-  MapPin,
   LayoutGrid,
   Bell,
-  Settings,
   MessageSquare,
   Shield,
   Coins,
@@ -28,7 +26,6 @@ import {
   Moon,
   Sun,
   Mailbox,
-  ArrowLeftRight,
   FileText,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -51,14 +48,24 @@ import { getNotificationLink } from "@/utils/getNotificationLink";
 import receiptSettingService from "@/services/receiptSettingService";
 
 export default function AdminApp() {
-   const [openMenu, setOpenMenu] = useState(false);
-   const [openScheduleMenu, setOpenScheduleMenu] = useState(false);
+   const navigate = useNavigate();
+   const location = useLocation();
+
+   const [openMenu, setOpenMenu] = useState(() => 
+     location.pathname.includes('/admin/menu') || location.pathname.includes('/admin/toppings')
+   );
+   const [openScheduleMenu, setOpenScheduleMenu] = useState(() => 
+     location.pathname.includes('/admin/schedule/templates') || location.pathname.includes('/admin/schedule/list')
+   );
    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
    const [notifications, setNotifications] = useState([]);
    const [showNotifications, setShowNotifications] = useState(false);
    const notificationRef = useRef(null);
-   const navigate = useNavigate();
-   const location = useLocation();
+
+   useEffect(() => {
+     if (location.pathname.includes('/admin/menu') || location.pathname.includes('/admin/toppings')) setOpenMenu(true);
+     if (location.pathname.includes('/admin/schedule/templates') || location.pathname.includes('/admin/schedule/list')) setOpenScheduleMenu(true);
+   }, [location.pathname]);
 
    useEffect(() => {
      const routeTitles = {
@@ -78,10 +85,10 @@ export default function AdminApp() {
        "/admin/flash-sales": "Flash sale",
        "/admin/banners": "Quảng cáo",
        "/admin/news-list": "Bài viết",
-       "/admin/newsletter": "Email",
+
        "/admin/schedule/templates": "Quản lý ca làm",
        "/admin/schedule/list": "Lịch làm việc",
-       "/admin/receipt-settings": "Cấu hình hóa đơn",
+       "/admin/receipt-settings": "Cấu hình hệ thống",
        "/admin/profile": "Thông tin cá nhân"
      };
 
@@ -244,8 +251,6 @@ export default function AdminApp() {
           }
         };
 
-
-
   const handleToggleRead = async (item, e) => {
     e.stopPropagation();
 
@@ -349,11 +354,11 @@ export default function AdminApp() {
             alignItems: "center",
           }}
         >
-          <img src={storeLogo} onError={(e) => { e.currentTarget.src = Logo; }} alt="Coffee Shop Logo" className="h-20 w-auto object-contain rounded-2xl" />
+          <img src={storeLogo} onError={(e) => { e.currentTarget.src = Logo; }} alt="Coffee Shop Logo" className="h-20 w-auto object-contain rounded-2xl animate-pulse cursor-pointer hover:scale-105 transition-transform" />
           <p className="text-sm text-muted-foreground">Cổng Quản lý</p>
         </div>
 
-        <nav className="p-4 overflow-y-auto flex-1 pb-24">
+        <nav className="p-4 overflow-y-auto flex-1 pb-24 custom-scrollbar">
           <div className="space-y-6">
             {/* ================= TỔNG QUAN ================= */}
             <div>
@@ -433,7 +438,11 @@ export default function AdminApp() {
                 <div>
                   <button
                     onClick={() => setOpenMenu(!openMenu)}
-                    className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:bg-secondary transition-colors"
+                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                      location.pathname.includes('/admin/menu') || location.pathname.includes('/admin/toppings')
+                        ? 'text-primary font-bold bg-primary/5'
+                        : 'text-muted-foreground hover:bg-secondary'
+                    }`}
                   >
                     <Package className="w-4 h-4" />
                     <span className="text-sm tracking-wide flex-1 text-left">Thực đơn</span>
@@ -442,8 +451,9 @@ export default function AdminApp() {
                     />
                   </button>
 
-                  {openMenu && (
-                    <div className="ml-6 mt-1 space-y-1">
+                  <div className={`grid transition-all duration-300 ease-in-out ${openMenu ? "grid-rows-[1fr] opacity-100 mt-1" : "grid-rows-[0fr] opacity-0"}`}>
+                    <div className="overflow-hidden">
+                      <div className="ml-6 space-y-1 flex flex-col">
                       <NavLink
                         to="/admin/menu/categories"
                         className={({ isActive }) =>
@@ -477,8 +487,9 @@ export default function AdminApp() {
                         <PlusCircle className="w-4 h-4" />
                         Topping
                       </NavLink>
+                      </div>
                     </div>
-                  )}
+                  </div>
                 </div>
                 
                 <NavLink
@@ -598,18 +609,7 @@ export default function AdminApp() {
                   <ClipboardList className="w-4 h-4" />
                   <span className="text-sm tracking-wide">Bài viết</span>
                 </NavLink>
-                <NavLink
-                  to="/admin/newsletter"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={({ isActive }) =>
-                    `w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
-                      isActive ? "bg-primary text-white" : "text-muted-foreground hover:bg-secondary"
-                    }`
-                  }
-                >
-                  <Mailbox className="w-4 h-4" />
-                  <span className="text-sm tracking-wide">Email</span>
-                </NavLink>
+
               </div>
             </div>
 
@@ -624,7 +624,11 @@ export default function AdminApp() {
                 <div>
                   <button
                     onClick={() => setOpenScheduleMenu(!openScheduleMenu)}
-                    className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:bg-secondary transition-colors"
+                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                      location.pathname.includes('/admin/schedule/templates') || location.pathname.includes('/admin/schedule/list')
+                        ? 'text-primary font-bold bg-primary/5'
+                        : 'text-muted-foreground hover:bg-secondary'
+                    }`}
                   >
                     <Calendar className="w-4 h-4" />
                     <span className="text-sm tracking-wide flex-1 text-left">Lịch làm việc</span>
@@ -633,8 +637,9 @@ export default function AdminApp() {
                     />
                   </button>
 
-                  {openScheduleMenu && (
-                    <div className="ml-6 mt-1 space-y-1">
+                  <div className={`grid transition-all duration-300 ease-in-out ${openScheduleMenu ? "grid-rows-[1fr] opacity-100 mt-1" : "grid-rows-[0fr] opacity-0"}`}>
+                    <div className="overflow-hidden">
+                      <div className="ml-6 space-y-1 flex flex-col">
                       <NavLink
                         to="/admin/schedule/templates"
                         onClick={() => setMobileMenuOpen(false)}
@@ -659,21 +664,10 @@ export default function AdminApp() {
                         <Calendar className="w-4 h-4" />
                         Lịch làm việc
                       </NavLink>
+                      </div>
                     </div>
-                  )}
+                  </div>
                 </div>
-                <NavLink
-                  to="/admin/schedule/requests"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={({ isActive }) =>
-                    `w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
-                      isActive ? "bg-primary text-white" : "text-muted-foreground hover:bg-secondary"
-                    }`
-                  }
-                >
-                  <ArrowLeftRight className="w-4 h-4" />
-                  <span className="text-sm tracking-wide">Đơn đổi ca</span>
-                </NavLink>
                 <NavLink
                   to="/admin/receipt-settings"
                   onClick={() => setMobileMenuOpen(false)}
@@ -684,7 +678,7 @@ export default function AdminApp() {
                   }
                 >
                   <ClipboardList className="w-4 h-4" />
-                  <span className="text-sm tracking-wide">Cấu hình hóa đơn</span>
+                  <span className="text-sm tracking-wide">Cấu hình hệ thống</span>
                 </NavLink>
                 <NavLink
                   to="/admin/profile"
@@ -703,26 +697,34 @@ export default function AdminApp() {
           </div>
 
           <div className="mt-8 mb-4 border-t border-border pt-4">
-            <AlertDialog>
+                        <AlertDialog>
               <AlertDialogTrigger asChild>
-                <button className="w-full flex items-center gap-3 px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors">
-                  <LogOut className="w-4 h-4" />
+                <button className="w-full flex items-center gap-3 px-3 py-2 text-primary hover:text-primary hover:bg-primary/5 dark:hover:bg-primary/10 rounded-lg transition-colors">
+                  <LogOut className="w-4 h-4 flex-shrink-0" />
                   <span className="text-sm font-bold tracking-wide">Đăng xuất</span>
                 </button>
               </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Xác nhận đăng xuất</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Bạn có chắc muốn đăng xuất?
+              <AlertDialogContent className="rounded-3xl border-0 shadow-2xl p-0 overflow-hidden sm:max-w-[400px]">
+                <div className="bg-gradient-to-br from-amber-50 to-orange-100/60 dark:from-orange-950/40 dark:to-amber-900/20 px-6 py-6 text-center">
+                  <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 dark:bg-primary/20 mb-4 ring-8 ring-primary/5 dark:ring-primary/10">
+                    <LogOut className="h-8 w-8 text-primary translate-x-0.5" />
+                  </div>
+                  <AlertDialogTitle className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-2">Đăng xuất hệ thống</AlertDialogTitle>
+                  <AlertDialogDescription className="text-slate-500 dark:text-slate-400">
+                    Bạn có chắc chắn muốn kết thúc phiên làm việc hiện tại và đăng xuất không?
                   </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Hủy</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleLogout} className="bg-red-600 hover:bg-red-700">
-                    Đăng xuất
-                  </AlertDialogAction>
-                </AlertDialogFooter>
+                </div>
+                <div className="px-6 py-4 bg-background dark:bg-card border-t border-border/50">
+                  <AlertDialogFooter className="flex flex-row gap-3 w-full sm:justify-between">
+                    <AlertDialogCancel className="mt-0 flex-1 rounded-xl font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 hover:text-slate-900 border border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 dark:border-slate-700 transition-colors">Hủy bỏ</AlertDialogCancel>
+                    <AlertDialogAction 
+                      onClick={handleLogout} 
+                      className="flex-1 rounded-xl bg-primary hover:opacity-90 text-primary-foreground shadow-lg shadow-primary/30 animate-[pulse_2s_cubic-bezier(0.4,0,0.6,1)_infinite] transition-all"
+                    >
+                      Xác nhận đăng xuất
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </div>
               </AlertDialogContent>
             </AlertDialog>
           </div>
@@ -826,7 +828,18 @@ export default function AdminApp() {
         </div>
 
         <div className="p-4 md:px-8 md:pb-8 pt-2 md:pt-2">
-          <Outlet />
+          <style>{`
+            @keyframes adminPageFadeUp {
+              from { opacity: 0; transform: translateY(10px); }
+              to { opacity: 1; transform: translateY(0); }
+            }
+            .admin-page-transition {
+              animation: adminPageFadeUp 320ms ease-out forwards;
+            }
+          `}</style>
+          <div key={location.pathname} className="admin-page-transition">
+            <Outlet context={{ notifications }} />
+          </div>
         </div>
       </div>
     </div>

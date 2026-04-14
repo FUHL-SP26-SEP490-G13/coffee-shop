@@ -67,6 +67,7 @@ class ShiftController {
             next(err);
         }
     }
+
 }
 
 module.exports = new ShiftController();

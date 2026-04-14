@@ -80,7 +80,7 @@ function TakeawayPOS() {
         setToppings(
           rawToppings
             .filter((t) => !t.is_deleted || t.is_deleted === 0 || t.is_deleted === '0')
-            .map((t) => ({ id: t.id, name: t.name, price: Number(t.price) })),
+            .map((t) => ({ id: t.id, name: t.name, price: Number(t.price), category_ids: t.category_ids })),
         );
       } catch (e) {
         toast.error('Không tải được danh mục');
@@ -107,30 +107,6 @@ function TakeawayPOS() {
     loadProfile();
   }, []);
 
-  // ─── Socket listener PayOS ────────────────────────────────────────────────
-  useEffect(() => {
-    if (!socket.connected) socket.connect();
-
-    const handlePaymentCompleted = (data) => {
-      const orderId = data.order_id;
-      // Socket event handler is no longer primarily used to render the receipt for PayOS 
-      // because we redirect the page, but we keep it here just in case another client completes it.
-      if (orderId && checkoutResult && (checkoutResult.order_id === orderId || checkoutResult.id === orderId)) {
-        toast.success(`Thanh toán PayOS thành công cho đơn #${orderId}!`);
-        setViewingReceipt({
-          ...checkoutResult,
-          order_id: checkoutResult.order_id || checkoutResult.id,
-          order_code: `DH-${String(checkoutResult.order_id || checkoutResult.id).padStart(6, '0')}`,
-          printed_by: printerName,
-        });
-        setCheckoutResult(null);
-      }
-    };
-
-    socket.on('order:payment-completed', handlePaymentCompleted);
-    return () => socket.off('order:payment-completed', handlePaymentCompleted);
-  }, [printerName, checkoutResult]);
-
   // ─── Load orders ──────────────────────────────────────────────────────────
   const loadOrders = useCallback(async () => {
     setOrdersLoading(true);
@@ -148,6 +124,73 @@ function TakeawayPOS() {
   useEffect(() => {
     loadOrders();
   }, [loadOrders]);
+
+  const openReceiptFromOrder = useCallback(
+    async (orderSeed) => {
+      const orderId = Number(orderSeed?.order_id || orderSeed?.id || 0);
+      if (!orderId) {
+        toast.error('Không xác định được đơn để in hóa đơn');
+        return;
+      }
+
+      try {
+        toast.info('Đang lấy dữ liệu hóa đơn...');
+        const res = await takeawayService.getReceipt(orderId);
+        const receipt = res?.data?.receipt;
+
+        if (!receipt) {
+          throw new Error('Receipt data is empty');
+        }
+
+        setViewingReceipt({
+          ...orderSeed,
+          ...receipt,
+          amount: Math.max(
+            0,
+            Number(
+              receipt?.amount ??
+              receipt?.subtotal_amount ??
+              orderSeed?.amount ??
+              orderSeed?.subtotal_amount ??
+              0,
+            ),
+          ),
+          printed_by: printerName,
+          autoPrint: true,
+        });
+      } catch (error) {
+        console.error('Lỗi lấy dữ liệu hóa đơn:', error);
+        toast.error('Không thể lấy dữ liệu in hóa đơn');
+      }
+    },
+    [printerName],
+  );
+
+  // ─── Socket listener PayOS ────────────────────────────────────────────────
+  useEffect(() => {
+    if (!socket.connected) socket.connect();
+
+    const handlePaymentCompleted = async (data) => {
+      const orderId = data.order_id;
+      // Socket event handler is no longer primarily used to render the receipt for PayOS
+      // because we redirect the page, but we keep it here just in case another client completes it.
+      if (
+        orderId &&
+        checkoutResult &&
+        (checkoutResult.order_id === orderId || checkoutResult.id === orderId)
+      ) {
+        toast.success(`Thanh toán PayOS thành công cho đơn #${orderId}!`);
+        await openReceiptFromOrder({
+          ...checkoutResult,
+          order_id: checkoutResult.order_id || checkoutResult.id,
+        });
+        setCheckoutResult(null);
+      }
+    };
+
+    socket.on('order:payment-completed', handlePaymentCompleted);
+    return () => socket.off('order:payment-completed', handlePaymentCompleted);
+  }, [checkoutResult, openReceiptFromOrder]);
 
   // ─── Computed ─────────────────────────────────────────────────────────────
   const subtotal = cart.reduce((s, item) => {
@@ -196,7 +239,7 @@ function TakeawayPOS() {
         discount_code: discountCode || '',
         returnUrl,
         cancelUrl: returnUrl,
-        cash_received: paymentMethod === 'cash' ? receivedAmount || 0 : 0, 
+        cash_received: paymentMethod === 'cash' ? receivedAmount || 0 : 0,
         items: cart.map((item) => ({
           product_size_id: item.product_size_id,
           quantity: item.quantity,
@@ -212,6 +255,10 @@ function TakeawayPOS() {
 
       const newOrder = {
         ...data,
+        amount: Math.max(
+          0,
+          Number(data?.amount ?? data?.subtotal_amount ?? subtotal),
+        ),
         items: cart.map((i) => ({
           product_name: i.productName,
           size: i.size,
@@ -222,10 +269,11 @@ function TakeawayPOS() {
         })),
         discount_code: discountCode || null,
         discount_amount: discountAmount || data.discount_amount || 0,
-        is_paid: paymentMethod === 'cash' ? 1 : (data.is_paid ? 1 : 0),
+        is_paid: paymentMethod === 'cash' ? 1 : data.is_paid ? 1 : 0,
         payment: {
           method: paymentMethod,
-          status: paymentMethod === 'cash' ? 'paid' : (data.is_paid ? 'paid' : 'pending'),
+          status:
+            paymentMethod === 'cash' ? 'paid' : data.is_paid ? 'paid' : 'pending',
         },
       };
 
@@ -239,7 +287,7 @@ function TakeawayPOS() {
         toast.success(
           `Tạo đơn #${data.order_id} thành công · ${fmt(data.total_amount)}`,
         );
-        setViewingReceipt({ ...newOrder, autoPrint: true });
+        await openReceiptFromOrder(newOrder);
       }
     } catch (e) {
       toast.error(e?.response?.data?.message || 'Lỗi tạo đơn');
@@ -260,7 +308,7 @@ function TakeawayPOS() {
       setOrders((prev) =>
         prev.map((o) =>
           (o.order_id || o.id) ===
-          (cancelingOrder.order_id || cancelingOrder.id)
+            (cancelingOrder.order_id || cancelingOrder.id)
             ? { ...o, status: 'cancelled' }
             : o,
         ),
@@ -311,34 +359,39 @@ function TakeawayPOS() {
         <div className='flex gap-2 px-5 py-3 overflow-x-auto shrink-0 scrollbar-none border-b border-gray-100 dark:border-gray-800'>
           <button
             onClick={() => setActiveCategory('all')}
-            className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
-              activeCategory === 'all'
+            className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${activeCategory === 'all'
                 ? 'bg-amber-500 text-white shadow-sm dark:shadow-none'
                 : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:bg-gray-700'
-            }`}
+              }`}
           >
             Tất cả
           </button>
           {metaLoading
             ? [1, 2, 3].map((i) => (
-                <div
-                  key={i}
-                  className='h-7 w-16 rounded-full bg-gray-100 dark:bg-gray-800 animate-pulse shrink-0'
-                />
-              ))
+              <div
+                key={i}
+                className='h-7 w-16 rounded-full bg-gray-100 dark:bg-gray-800 animate-pulse shrink-0'
+              />
+            ))
             : categories.map((cat) => (
-                <button
-                  key={cat.id}
-                  onClick={() => setActiveCategory(cat.id)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
-                    activeCategory === cat.id
-                      ? 'bg-amber-500 text-white shadow-sm dark:shadow-none'
-                      : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:bg-gray-700'
+              <button
+                key={cat.id}
+                onClick={() => setActiveCategory(cat.id)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${activeCategory === cat.id
+                    ? 'bg-amber-500 text-white shadow-sm dark:shadow-none'
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:bg-gray-700'
                   }`}
-                >
-                  {cat.name}
-                </button>
-              ))}
+              >
+                {cat.image_url && (
+                  <img
+                    src={cat.image_url}
+                    alt={cat.name}
+                    className="w-4 h-4 rounded-full object-cover bg-white shrink-0"
+                  />
+                )}
+                <span>{cat.name}</span>
+              </button>
+            ))}
         </div>
 
         {/* ProductGrid — tự quản lý fetch + phân trang */}
@@ -433,7 +486,7 @@ function TakeawayPOS() {
                           (s, t) => s + t.price * t.quantity,
                           0,
                         )) *
-                        item.quantity,
+                      item.quantity,
                     )}
                   </span>
                 </div>

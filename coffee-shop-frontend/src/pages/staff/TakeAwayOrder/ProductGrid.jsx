@@ -2,17 +2,17 @@ import { useState, useEffect } from 'react';
 import { Coffee, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import productService from '@/services/productService';
 
-const fmt       = (n) => Number(n).toLocaleString('vi-VN') + ' đ';
+const fmt = (n) => Number(n).toLocaleString('vi-VN') + ' đ';
 const PAGE_SIZE = 12;
 
 const mapProducts = (rawProducts) =>
   rawProducts
     .map((p) => ({
-      id:          p.id,
-      name:        p.name,
-      status:      p.status,
-      image_url:   (p.images || []).find((img) => img.isThumbnail === 1)?.image_url || null,
-      category:    p.category_name || '',
+      id: p.id,
+      name: p.name,
+      status: p.status,
+      image_url: (p.images || []).find((img) => img.isThumbnail === 1)?.image_url || null,
+      category: p.category_name || '',
       category_id: p.category_id,
       sizes: (p.sizes || [])
         .filter((s) => !s.is_deleted)
@@ -27,10 +27,10 @@ const mapProducts = (rawProducts) =>
  * }} props
  */
 export function ProductGrid({ activeCategory, onSelectProduct }) {
-  const [products,    setProducts]    = useState([]);
-  const [loading,     setLoading]     = useState(true);
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages,  setTotalPages]  = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   // Reset về trang 1 mỗi khi đổi category
   useEffect(() => {
@@ -43,15 +43,15 @@ export function ProductGrid({ activeCategory, onSelectProduct }) {
       setLoading(true);
       try {
         const params = {
-          status:     'available',
+          status: 'available',
           is_deleted: 0,
-          limit:      PAGE_SIZE,
-          page:       currentPage,
+          limit: PAGE_SIZE,
+          page: currentPage,
         };
         if (activeCategory !== 'all') params.category_id = activeCategory;
 
-        const res        = await productService.getAll(params);
-        const rawData    = res?.data       || [];
+        const res = await productService.getAll(params);
+        const rawData = res?.data || [];
         const pagination = res?.pagination;
 
         setProducts(mapProducts(rawData));
@@ -153,11 +153,10 @@ export function ProductGrid({ activeCategory, onSelectProduct }) {
             <button
               key={n}
               onClick={() => goToPage(n)}
-              className={`w-8 h-8 rounded-lg text-xs font-semibold transition-all ${
-                n === currentPage
+              className={`w-8 h-8 rounded-lg text-xs font-semibold transition-all ${n === currentPage
                   ? 'bg-amber-500 text-white border border-amber-500 shadow-sm dark:shadow-none'
                   : 'border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 dark:bg-gray-800/50'
-              }`}
+                }`}
             >
               {n}
             </button>

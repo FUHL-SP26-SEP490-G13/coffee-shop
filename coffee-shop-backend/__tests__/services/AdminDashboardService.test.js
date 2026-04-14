@@ -11,7 +11,7 @@ describe('AdminDashboardService', () => {
 
   // ========== GET OVERVIEW TESTS ==========
   describe('getOverview', () => {
-    it('AdminDashboard - GET_OVERVIEW - TC-1: should get dashboard overview successfully', async () => {
+    it('AdminDashboardService - getOverview - TC-01: should get dashboard overview successfully', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AdminDashboard - GET_OVERVIEW - TC-1: Lấy tổng quan dashboard thành công');
       console.log('='.repeat(50));
@@ -21,7 +21,7 @@ describe('AdminDashboardService', () => {
       AdminDashboardRepository.getOrdersToday.mockResolvedValue(25);
       AdminDashboardRepository.getTotalUsers.mockResolvedValue(150);
       AdminDashboardRepository.getActiveDiscounts.mockResolvedValue(5);
-      AdminDashboardRepository.getTotalNewsletterSubscribers.mockResolvedValue(80);
+
       
       const mockRevenueSeries = [
         { date: '2026-03-01', revenue: 4500000 },
@@ -49,7 +49,7 @@ describe('AdminDashboardService', () => {
       expect(result.ordersToday).toBe(25);
       expect(result.totalUsers).toBe(150);
       expect(result.activeDiscounts).toBe(5);
-      expect(result.totalNewsletterSubscribers).toBe(80);
+
       expect(result.revenueSeries7Days).toHaveLength(2);
       expect(result.topProducts7Days).toHaveLength(2);
       
@@ -63,7 +63,7 @@ describe('AdminDashboardService', () => {
 
   // ========== GET REVENUE SERIES TESTS ==========
   describe('getRevenueSeries', () => {
-    it('AdminDashboard - GET_REVENUE_SERIES - TC-1: should get revenue series for 7 days', async () => {
+    it('AdminDashboardService - getRevenueSeries - TC-01: should get revenue series for 7 days', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AdminDashboard - GET_REVENUE_SERIES - TC-1: Lấy series doanh thu 7 ngày');
       console.log('='.repeat(50));
@@ -96,7 +96,7 @@ describe('AdminDashboardService', () => {
       expect(result[0]).toHaveProperty('revenue');
     });
 
-    it('AdminDashboard - GET_REVENUE_SERIES - TC-2: should get revenue series for 30 days', async () => {
+    it('AdminDashboardService - getRevenueSeries - TC-02: should get revenue series for 30 days', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AdminDashboard - GET_REVENUE_SERIES - TC-2: Lấy series doanh thu 30 ngày');
       console.log('='.repeat(50));
@@ -120,11 +120,21 @@ describe('AdminDashboardService', () => {
       // Assert
       expect(AdminDashboardRepository.getRevenueSeries).toHaveBeenCalledWith({ days: 30 });
     });
+
+    it('AdminDashboardService - getRevenueSeries - TC-03: should pass through full-space days value for repository handling', async () => {
+      const input = { days: '        ' };
+      AdminDashboardRepository.getRevenueSeries.mockResolvedValue([]);
+
+      const result = await AdminDashboardService.getRevenueSeries(input);
+
+      expect(AdminDashboardRepository.getRevenueSeries).toHaveBeenCalledWith(input);
+      expect(result).toEqual([]);
+    });
   });
 
   // ========== GET TOP PRODUCTS TESTS ==========
   describe('getTopProducts', () => {
-    it('AdminDashboard - GET_TOP_PRODUCTS - TC-1: should get top 5 products', async () => {
+    it('AdminDashboardService - getTopProducts - TC-01: should get top 5 products', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AdminDashboard - GET_TOP_PRODUCTS - TC-1: Lấy top 5 sản phẩm bán chạy');
       console.log('='.repeat(50));
@@ -159,7 +169,7 @@ describe('AdminDashboardService', () => {
 
   // ========== GET PAYMENT METHOD BREAKDOWN TESTS ==========
   describe('getPaymentMethodBreakdown', () => {
-    it('AdminDashboard - GET_PAYMENT_BREAKDOWN - TC-1: should get payment method breakdown', async () => {
+    it('AdminDashboardService - getPaymentMethodBreakdown - TC-01: should get payment method breakdown', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AdminDashboard - GET_PAYMENT_BREAKDOWN - TC-1: Lấy thống kê phương thức thanh toán');
       console.log('='.repeat(50));
@@ -192,7 +202,7 @@ describe('AdminDashboardService', () => {
 
   // ========== GET ORDER TYPE REVENUE TESTS ==========
   describe('getOrderTypeRevenue', () => {
-    it('AdminDashboard - GET_ORDER_TYPE_REVENUE - TC-1: should get revenue by order type', async () => {
+    it('AdminDashboardService - getOrderTypeRevenue - TC-01: should get revenue by order type', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AdminDashboard - GET_ORDER_TYPE_REVENUE - TC-1: Lấy doanh thu theo loại đơn hàng');
       console.log('='.repeat(50));
@@ -225,7 +235,7 @@ describe('AdminDashboardService', () => {
 
   // ========== GET TABLE STATUS SUMMARY TESTS ==========
   describe('getTableStatusSummary', () => {
-    it('AdminDashboard - GET_TABLE_STATUS - TC-1: should get table status summary', async () => {
+    it('AdminDashboardService - getTableStatusSummary - TC-01: should get table status summary', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AdminDashboard - GET_TABLE_STATUS - TC-1: Lấy tổng quan trạng thái bàn');
       console.log('='.repeat(50));
@@ -257,7 +267,7 @@ describe('AdminDashboardService', () => {
 
   // ========== GET COMPARISON TESTS ==========
   describe('getComparison', () => {
-    it('AdminDashboard - GET_COMPARISON - TC-1: should get comparison data', async () => {
+    it('AdminDashboardService - getComparison - TC-01: should get comparison data', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AdminDashboard - GET_COMPARISON - TC-1: Lấy dữ liệu so sánh');
       console.log('='.repeat(50));
@@ -292,7 +302,7 @@ describe('AdminDashboardService', () => {
 
   // ========== GET STAFF SUMMARY TESTS ==========
   describe('getStaffSummary', () => {
-    it('AdminDashboard - GET_STAFF_SUMMARY - TC-1: should get staff summary by role', async () => {
+    it('AdminDashboardService - getStaffSummary - TC-01: should get staff summary by role', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AdminDashboard - GET_STAFF_SUMMARY - TC-1: Lấy tổng quan nhân viên theo vai trò');
       console.log('='.repeat(50));
@@ -324,7 +334,7 @@ describe('AdminDashboardService', () => {
 
   // ========== GET TABLE STATUS TESTS ==========
   describe('getTableStatus', () => {
-    it('AdminDashboard - GET_TABLE_STATUS - TC-1: should get formatted table status', async () => {
+    it('AdminDashboardService - getTableStatus - TC-01: should get formatted table status', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AdminDashboard - GET_TABLE_STATUS - TC-1: Lấy trạng thái bàn formatted');
       console.log('='.repeat(50));

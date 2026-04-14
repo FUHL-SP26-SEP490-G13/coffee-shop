@@ -25,7 +25,7 @@ describe('AuthService - ChangePassword', () => {
       password: 'hashed-old-password',
     };
 
-    it('AuthService - CHANGE_PASSWORD - TC-1: should change password successfully', async () => {
+    it('AuthService - changePassword - TC-01: should change password successfully', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AuthService - CHANGE_PASSWORD - TC-1: Đổi mật khẩu thành công');
       console.log('='.repeat(50));
@@ -61,7 +61,7 @@ describe('AuthService - ChangePassword', () => {
       expect(result).toBe(true);
     });
 
-    it('AuthService - CHANGE_PASSWORD - TC-2: should throw error when old password is incorrect', async () => {
+    it('AuthService - changePassword - TC-02: should throw error when old password is incorrect', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AuthService - CHANGE_PASSWORD - TC-2: Lỗi khi mật khẩu cũ không đúng');
       console.log('='.repeat(50));
@@ -94,7 +94,7 @@ describe('AuthService - ChangePassword', () => {
       expect(UserRepository.updatePassword).not.toHaveBeenCalled();
     });
 
-    it('AuthService - CHANGE_PASSWORD - TC-3: should throw error when user not found', async () => {
+    it('AuthService - changePassword - TC-03: should throw error when user not found', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AuthService - CHANGE_PASSWORD - TC-3: Lỗi khi user không tồn tại');
       console.log('='.repeat(50));
@@ -124,7 +124,7 @@ describe('AuthService - ChangePassword', () => {
       expect(comparePassword).not.toHaveBeenCalled();
     });
 
-    it('AuthService - CHANGE_PASSWORD - TC-4: should throw error when new password is less than 8 characters', async () => {
+    it('AuthService - changePassword - TC-04: should throw error when new password is less than 8 characters', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AuthService - CHANGE_PASSWORD - TC-4: Lỗi khi mật khẩu mới ngắn hơn 8 ký tự');
       console.log('='.repeat(50));
@@ -154,7 +154,7 @@ describe('AuthService - ChangePassword', () => {
       expect(hashPassword).not.toHaveBeenCalled();
     });
 
-    it('AuthService - CHANGE_PASSWORD - TC-5: should throw error when new password is greater than 20 characters', async () => {
+    it('AuthService - changePassword - TC-05: should throw error when new password is greater than 20 characters', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AuthService - CHANGE_PASSWORD - TC-5: Lỗi khi mật khẩu mới dài hơn 20 ký tự');
       console.log('='.repeat(50));
@@ -184,7 +184,7 @@ describe('AuthService - ChangePassword', () => {
       expect(hashPassword).not.toHaveBeenCalled();
     });
 
-    it('AuthService - CHANGE_PASSWORD - TC-6: should throw error when new password has no uppercase letter', async () => {
+    it('AuthService - changePassword - TC-06: should throw error when new password has no uppercase letter', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AuthService - CHANGE_PASSWORD - TC-6: Lỗi khi mật khẩu mới không có chữ hoa');
       console.log('='.repeat(50));
@@ -214,7 +214,7 @@ describe('AuthService - ChangePassword', () => {
       expect(hashPassword).not.toHaveBeenCalled();
     });
 
-    it('AuthService - CHANGE_PASSWORD - TC-7: should throw error when new password has no lowercase letter', async () => {
+    it('AuthService - changePassword - TC-07: should throw error when new password has no lowercase letter', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AuthService - CHANGE_PASSWORD - TC-7: Lỗi khi mật khẩu mới không có chữ thường');
       console.log('='.repeat(50));
@@ -244,7 +244,7 @@ describe('AuthService - ChangePassword', () => {
       expect(hashPassword).not.toHaveBeenCalled();
     });
 
-    it('AuthService - CHANGE_PASSWORD - TC-8: should throw error when new password has no number', async () => {
+    it('AuthService - changePassword - TC-08: should throw error when new password has no number', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AuthService - CHANGE_PASSWORD - TC-8: Lỗi khi mật khẩu mới không có số');
       console.log('='.repeat(50));
@@ -274,7 +274,7 @@ describe('AuthService - ChangePassword', () => {
       expect(hashPassword).not.toHaveBeenCalled();
     });
 
-    it('AuthService - CHANGE_PASSWORD - TC-9: should throw error when new password has no special character', async () => {
+    it('AuthService - changePassword - TC-09: should throw error when new password has no special character', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AuthService - CHANGE_PASSWORD - TC-9: Lỗi khi mật khẩu mới không có ký tự đặc biệt');
       console.log('='.repeat(50));
@@ -304,7 +304,7 @@ describe('AuthService - ChangePassword', () => {
       expect(hashPassword).not.toHaveBeenCalled();
     });
 
-    it('AuthService - CHANGE_PASSWORD - TC-10: should change password successfully with minimum length (8)', async () => {
+    it('AuthService - changePassword - TC-10: should change password successfully with minimum length (8)', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AuthService - CHANGE_PASSWORD - TC-10: Đổi mật khẩu thành công với mật khẩu dài 8 ký tự');
       console.log('='.repeat(50));
@@ -338,7 +338,7 @@ describe('AuthService - ChangePassword', () => {
       expect(result).toBe(true);
     });
 
-    it('AuthService - CHANGE_PASSWORD - TC-11: should change password successfully with maximum length (20)', async () => {
+    it('AuthService - changePassword - TC-11: should change password successfully with maximum length (20)', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AuthService - CHANGE_PASSWORD - TC-11: Đổi mật khẩu thành công với mật khẩu dài 20 ký tự');
       console.log('='.repeat(50));
@@ -370,6 +370,18 @@ describe('AuthService - ChangePassword', () => {
       expect(hashPassword).toHaveBeenCalledWith('Aa1!abcdefghijklmnoP');
       expect(UserRepository.updatePassword).toHaveBeenCalled();
       expect(result).toBe(true);
+    });
+
+    it('AuthService - changePassword - TC-12: should throw error when new password is full-space string', async () => {
+      UserRepository.findById.mockResolvedValue(mockUser);
+      comparePassword.mockResolvedValue(true);
+
+      await expect(AuthService.changePassword(userId, oldPassword, '        ')).rejects.toThrow(
+        'Mật khẩu phải chứa chữ thường (a-z)'
+      );
+
+      expect(hashPassword).not.toHaveBeenCalled();
+      expect(UserRepository.updatePassword).not.toHaveBeenCalled();
     });
   });
 });

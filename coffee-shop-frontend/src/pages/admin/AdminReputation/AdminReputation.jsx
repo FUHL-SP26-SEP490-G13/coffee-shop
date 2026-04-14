@@ -3,7 +3,6 @@ import {
   Eye,
   Loader2,
   Search,
-  ShieldCheck,
   Phone,
   TrendingUp,
   TrendingDown,
@@ -45,6 +44,7 @@ const formatDateTime = (value) => {
 
 export default function AdminReputation() {
   const [keyword, setKeyword] = useState("");
+  const [sortOrder, setSortOrder] = useState("");
   const [page, setPage] = useState(1);
   const [profiles, setProfiles] = useState([]);
   const [pagination, setPagination] = useState({
@@ -130,6 +130,22 @@ export default function AdminReputation() {
         return;
       }
 
+      // Mốc điểm cao hơn phải có hạn mức tiền mặt cao hơn (strictly increasing).
+      for (let i = 1; i < sorted.length; i += 1) {
+        const prev = sorted[i - 1];
+        const current = sorted[i];
+        const prevCash = prev.maxCash === null ? Number.POSITIVE_INFINITY : Number(prev.maxCash);
+        const currentCash = current.maxCash === null ? Number.POSITIVE_INFINITY : Number(current.maxCash);
+
+        if (prevCash >= currentCash) {
+          toast.error(
+            `Mốc từ ${prev.minScore} điểm phải có hạn mức tiền mặt nhỏ hơn mốc từ ${current.minScore} điểm`,
+          );
+          setSettingsSaving(false);
+          return;
+        }
+      }
+
       await receiptSettingService.upsertSettings({
         reputation_rules: JSON.stringify(sorted.map(r => ({ minScore: r.minScore, maxCash: r.maxCash })))
       });
@@ -154,7 +170,7 @@ export default function AdminReputation() {
     setRules(prev => prev.map(r => r.id === id ? { ...r, [field]: value } : r));
   };
 
-  const fetchProfiles = useCallback(async (currentPage = 1, currentKeyword = "") => {
+  const fetchProfiles = useCallback(async (currentPage = 1, currentKeyword = "", currentSort = "") => {
     try {
       setIsLoading(true);
       setError("");
@@ -163,6 +179,7 @@ export default function AdminReputation() {
         page: currentPage,
         limit: PAGE_SIZE,
         keyword: currentKeyword,
+        sort: currentSort,
       });
 
       const data = res?.data || res?.data?.data || {};
@@ -187,11 +204,11 @@ export default function AdminReputation() {
 
   useEffect(() => {
     const timeout = setTimeout(() => {
-      fetchProfiles(page, keyword.trim());
+      fetchProfiles(page, keyword.trim(), sortOrder);
     }, 350);
 
     return () => clearTimeout(timeout);
-  }, [page, keyword, fetchProfiles]);
+  }, [page, keyword, sortOrder, fetchProfiles]);
 
   const handleOpenHistory = async (profile) => {
     setSelectedProfile(profile);
@@ -252,17 +269,32 @@ export default function AdminReputation() {
         </Button>
       </div>
 
-      <div className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          value={keyword}
-          onChange={(event) => {
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={keyword}
+            onChange={(event) => {
+              setPage(1);
+              setKeyword(event.target.value);
+            }}
+            className="pl-9"
+            placeholder="Tìm theo số điện thoại"
+          />
+        </div>
+        
+        <select
+          value={sortOrder}
+          onChange={(e) => {
+            setSortOrder(e.target.value);
             setPage(1);
-            setKeyword(event.target.value);
           }}
-          className="pl-9"
-          placeholder="Tìm theo số điện thoại"
-        />
+          className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background cursor-pointer focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 min-w-[200px]"
+        >
+          <option value="">Sắp xếp mặc định</option>
+          <option value="score_desc">Điểm hiện tại (Cao - Thấp)</option>
+          <option value="score_asc">Điểm hiện tại (Thấp - Cao)</option>
+        </select>
       </div>
 
       <div className="rounded-xl border border-border bg-card overflow-hidden">
@@ -273,7 +305,7 @@ export default function AdminReputation() {
         ) : error ? (
           <div className="space-y-3 p-6 text-center">
             <p className="text-sm text-red-600">{error}</p>
-            <Button variant="outline" onClick={() => fetchProfiles(page, keyword.trim())}>
+            <Button variant="outline" onClick={() => fetchProfiles(page, keyword.trim(), sortOrder)}>
               Tải lại
             </Button>
           </div>
@@ -472,27 +504,27 @@ export default function AdminReputation() {
                   <strong>Quy tắc:</strong> Hệ thống sẽ tìm Mốc có điểm yêu cầu cao nhất mà Quý khách đạt được để áp dụng. Bạn bắt buộc phải có 1 dòng quy định mức <strong>Từ 0 điểm trở lên</strong> dành cho người dùng mới. 
                 </div>
 
-                <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
+                <div className="space-y-3 max-h-[400px] overflow-y-auto overflow-x-hidden pr-2 custom-scrollbar">
                   {rules.map((rule, idx) => (
-                    <div key={rule.id} className="flex flex-col sm:flex-row items-center gap-4 bg-gray-50 dark:bg-gray-900 border rounded-xl p-4 relative">
-                      <div className="flex-1 space-y-1 w-full">
-                        <label className="text-xs font-semibold uppercase text-muted-foreground">Điều kiện điểm</label>
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium">Từ</span>
+                    <div key={rule.id} className="flex flex-col sm:flex-row items-start sm:items-center gap-4 bg-gray-50 dark:bg-gray-900 border rounded-xl p-4 relative">
+                      <div className="flex-1 space-y-1 min-w-0 w-full sm:w-auto">
+                        <label className="text-xs font-semibold uppercase text-muted-foreground truncate block">Điều kiện điểm</label>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-sm font-medium whitespace-nowrap">Từ</span>
                           <Input 
                             type="number" 
                             min="0" max="100" 
                             value={rule.minScore} 
                             onChange={(e) => updateRule(rule.id, "minScore", e.target.value)}
-                            className="w-24 bg-white dark:bg-black"
+                            className="w-20 bg-white dark:bg-black"
                           />
-                          <span className="text-sm font-medium">trở lên</span>
+                          <span className="text-sm font-medium whitespace-nowrap">trở lên</span>
                         </div>
                       </div>
 
-                      <div className="flex-1 space-y-1 w-full">
-                        <label className="text-xs font-semibold uppercase text-muted-foreground">Giới hạn COD (Tiền mặt)</label>
-                        <div className="flex items-center gap-3">
+                      <div className="flex-1 space-y-1 min-w-0 w-full sm:w-auto">
+                        <label className="text-xs font-semibold uppercase text-muted-foreground truncate block">Giới hạn COD (Tiền mặt)</label>
+                        <div className="flex items-center gap-3 flex-wrap">
                           <Input 
                             type="number" 
                             min="0"
@@ -500,14 +532,14 @@ export default function AdminReputation() {
                             value={rule.maxCash === null ? "" : rule.maxCash} 
                             onChange={(e) => updateRule(rule.id, "maxCash", e.target.value)}
                             disabled={rule.maxCash === null}
-                            className="bg-white dark:bg-black w-32"
+                            className="bg-white dark:bg-black w-28 sm:w-32 flex-shrink-0"
                           />
-                          <label className="flex items-center gap-2 cursor-pointer whitespace-nowrap">
+                          <label className="flex items-center gap-2 cursor-pointer">
                             <input 
                               type="checkbox" 
                               checked={rule.maxCash === null}
                               onChange={(e) => updateRule(rule.id, "maxCash", e.target.checked ? null : 0)}
-                              className="w-4 h-4"
+                              className="w-4 h-4 flex-shrink-0"
                             />
                             <span className="text-sm text-gray-700 dark:text-gray-300">Không giới hạn</span>
                           </label>
@@ -515,7 +547,7 @@ export default function AdminReputation() {
                       </div>
 
                       <Button 
-                        variant="destructive" size="icon" className="shrink-0 sm:self-end" 
+                        variant="destructive" size="icon" className="shrink-0 sm:self-end mt-2 sm:mt-0" 
                         onClick={() => removeRule(rule.id)}
                         disabled={rules.length <= 1}
                       >

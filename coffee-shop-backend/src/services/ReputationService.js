@@ -64,7 +64,7 @@ class ReputationService {
     };
   }
 
-  async getAdminReputationProfiles({ page = 1, limit = 20, keyword = "" } = {}) {
+  async getAdminReputationProfiles({ page = 1, limit = 20, keyword = "", sort = "" } = {}) {
     const normalizedPage = Math.max(1, Number(page) || 1);
     const normalizedLimit = Math.min(100, Math.max(1, Number(limit) || 20));
     const offset = (normalizedPage - 1) * normalizedLimit;
@@ -73,6 +73,7 @@ class ReputationService {
     const [items, total] = await Promise.all([
       ReputationRepository.findReputationProfiles({
         keyword: trimmedKeyword,
+        sort,
         limit: normalizedLimit,
         offset,
       }),

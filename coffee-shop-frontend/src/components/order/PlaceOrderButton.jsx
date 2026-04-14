@@ -1,11 +1,9 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { cartService } from "@/services/cartService";
+import { useCartStore } from "@/store/useCartStore";
 import orderService from "@/services/orderOnlineService";
 import { validateOrderForm } from "@/utils/orderValidation";
-
-
 
 /**
  * Nút đặt hàng tái sử dụng cho cả trang Checkout (khách) lẫn Staff.
@@ -29,12 +27,10 @@ export default function PlaceOrderButton({
   backPath = "/cart",
   backLabel = "← Quay lại giỏ hàng",
   label = "Đặt hàng",
-  shippingFee = 0,
-  customerCoords = null,
-  customerLocationSource = "gps",
   disabled = false,
 }) {
   const navigate = useNavigate();
+  const { clearCart } = useCartStore();
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async () => {
@@ -68,12 +64,6 @@ export default function PlaceOrderButton({
             : [],
         })),
       };
-
-      if (form.order_type === "delivery" && Array.isArray(customerCoords) && customerCoords.length === 2) {
-        payload.customer_latitude = Number(customerCoords[0]);
-        payload.customer_longitude = Number(customerCoords[1]);
-        payload.customer_location_source = customerLocationSource || "gps";
-      }
 
       console.log("Checkout payload:", payload);
 
@@ -116,14 +106,6 @@ export default function PlaceOrderButton({
           );
         });
 
-        if (form.order_type === "delivery" && shippingFee > 0) {
-          payosItems.push({
-            name: "Phí vận chuyển",
-            quantity: 1,
-            price: shippingFee,
-          });
-        }
-
         const amountFromCheckout = Number(orderData?.total_amount || 0);
 
         const payosRes = await orderService.createPaymentLink({
@@ -136,7 +118,7 @@ export default function PlaceOrderButton({
           items: payosItems,
         });
 
-        cartService.clearCart();
+        clearCart();
         const checkoutUrl = payosRes?.data?.checkoutUrl;
         if (checkoutUrl) {
           window.location.href = checkoutUrl;
@@ -144,7 +126,7 @@ export default function PlaceOrderButton({
           alert("Không lấy được link thanh toán PayOS");
         }
       } else {
-        cartService.clearCart();
+        clearCart();
         alert("Đặt hàng thành công");
         if (onSuccess) {
           onSuccess();

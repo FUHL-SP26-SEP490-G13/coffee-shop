@@ -12,6 +12,7 @@ import { Label } from '../../../components/ui/label';
 import { Switch } from '../../../components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../components/ui/tabs';
 import PaginationControl from '../../../components/common/PaginationControl';
+import { toast } from 'sonner';
 
 export default function AdminUsers() {
   const [users, setUsers] = useState([]);
@@ -42,14 +43,13 @@ export default function AdminUsers() {
   const USERS_PER_PAGE = 10;
 
   const normalizePhoneNumber = (phone) => {
-    const digitsOnly = (phone || '').replace(/\D/g, '');
-
-    // Convert +84xxxxxxxxx / 84xxxxxxxxx to local 0xxxxxxxxx format
-    if (digitsOnly.startsWith('84') && digitsOnly.length >= 11 && digitsOnly.length <= 12) {
-      return `0${digitsOnly.slice(2)}`;
+    const digits = String(phone || '').replace(/\D/g, '');
+    if (!digits) return '';
+    if (digits.startsWith('84') && digits.length >= 11) {
+      return `0${digits.slice(2)}`;
     }
-
-    return digitsOnly;
+    if (digits.length === 9) return `0${digits}`;
+    return digits;
   };
 
   const fetchUsers = async () => {
@@ -73,37 +73,70 @@ export default function AdminUsers() {
   }, []);
 
   const handleCreateChange = (field, value) => {
-    setCreateForm((prev) => ({ ...prev, [field]: value }));
+    setCreateError('');
+    setCreateForm((prev) => {
+      const nextForm = { ...prev, [field]: value };
+      const fieldError = validateCreateField(field, value);
+
+      setCreateFieldErrors((prevErrors) => {
+        const nextErrors = { ...prevErrors };
+        if (fieldError) {
+          nextErrors[field] = fieldError;
+        } else {
+          delete nextErrors[field];
+        }
+        return nextErrors;
+      });
+
+      return nextForm;
+    });
+  };
+
+  const validateCreateField = (field, value) => {
+    const normalizedValue = String(value || '').trim();
+
+    switch (field) {
+      case 'first_name':
+        if (!normalizedValue) return 'Họ không được để trống';
+        return '';
+      case 'last_name':
+        if (!normalizedValue) return 'Tên không được để trống';
+        return '';
+      case 'email':
+        if (!normalizedValue) return 'Email không được để trống';
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedValue)) {
+          return 'Email không hợp lệ';
+        }
+        return '';
+      case 'phone': {
+        if (!normalizedValue) return 'Số điện thoại không được để trống';
+        const normalizedPhone = normalizePhoneNumber(normalizedValue);
+        if (!/^[0-9]{10,11}$/.test(normalizedPhone)) {
+          return 'Số điện thoại phải có 10-11 chữ số';
+        }
+        return '';
+      }
+      case 'username':
+        if (!normalizedValue) return 'Username không được để trống';
+        return '';
+      case 'role_id':
+        if (!['2', '3'].includes(String(value))) return 'Vai trò không hợp lệ';
+        return '';
+      default:
+        return '';
+    }
   };
 
   const validateCreateForm = () => {
     const errors = {};
+    const fields = ['first_name', 'last_name', 'email', 'phone', 'username', 'role_id'];
 
-    if (!createForm.first_name.trim()) {
-      errors.first_name = 'Họ không được để trống';
-    }
-    if (!createForm.last_name.trim()) {
-      errors.last_name = 'Tên không được để trống';
-    }
-    if (!createForm.email.trim()) {
-      errors.email = 'Email không được để trống';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(createForm.email)) {
-      errors.email = 'Email không hợp lệ';
-    }
-    if (!createForm.phone.trim()) {
-      errors.phone = 'Số điện thoại không được để trống';
-    } else {
-      const normalizedPhone = normalizePhoneNumber(createForm.phone);
-      if (!/^[0-9]{10,11}$/.test(normalizedPhone)) {
-        errors.phone = 'Số điện thoại phải có 10-11 chữ số';
+    fields.forEach((field) => {
+      const fieldError = validateCreateField(field, createForm[field]);
+      if (fieldError) {
+        errors[field] = fieldError;
       }
-    }
-    if (!createForm.username.trim()) {
-      errors.username = 'Username không được để trống';
-    }
-    if (!['2', '3'].includes(createForm.role_id)) {
-      errors.role_id = 'Vai trò không hợp lệ';
-    }
+    });
 
     setCreateFieldErrors(errors);
     return Object.keys(errors).length === 0;
@@ -181,6 +214,8 @@ export default function AdminUsers() {
       );
 
       if (response.success) {
+        const isDeactivating = selectedUser?.isActive === 1;
+
         // Update local state
         setUsers(prevUsers =>
           prevUsers.map(u =>
@@ -189,6 +224,10 @@ export default function AdminUsers() {
               : u
           )
         );
+
+        if (isDeactivating) {
+          toast.success('Đã tạm khóa người dùng thành công');
+        }
 
         setIsPasswordOpen(false);
         setSelectedUser(null);

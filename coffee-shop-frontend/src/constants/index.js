@@ -144,13 +144,6 @@ export const API_ENDPOINTS = {
     SCHEDULE: '/shifts/schedule',
     MY_SCHEDULE: '/shifts/schedule/me',
   },
-  SWAP_REQUESTS: {
-    BASE: '/swap-requests',
-    BY_ID: (id) => `/swap-requests/${id}`,
-    ACCEPT: (id) => `/swap-requests/${id}/accept`,
-    REJECT: (id) => `/swap-requests/${id}/reject`,
-    CANCEL: (id) => `/swap-requests/${id}/cancel`,
-  },
   APP_SETTINGS: {
     BASE: '/settings',
     ADMIN: '/settings/admin'
@@ -161,6 +154,7 @@ export const API_ENDPOINTS = {
 export const STORAGE_KEYS = {
   ACCESS_TOKEN: 'access_token',
   REFRESH_TOKEN: 'refresh_token',
+  AUTH_PROVIDER: 'auth_provider',
 };
 
 export const DEFAULT_PAGINATION = {

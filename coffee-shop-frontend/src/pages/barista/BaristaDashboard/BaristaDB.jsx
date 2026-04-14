@@ -3,7 +3,6 @@ import {
   PackageOpen,
   TrendingUp,
   Clock,
-  Coffee,
   AlertCircle,
   CheckCircle,
   Activity,
@@ -484,134 +483,8 @@ export function BaristaDB() {
             </CardContent>
           </Card>
 
-          <Card className="mb-8 border-orange-200">
-            <CardHeader>
-              <CardTitle>Đơn bị trễ trên 15 phút</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {delayedOrders.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  Không có đơn bị trễ
-                </p>
-              ) : (
-                <div className="space-y-3">
-                  {delayedOrders.map((order) => (
-                    <div
-                      key={order.id}
-                      className="flex items-center justify-between rounded-lg border border-orange-200 bg-orange-50 p-3"
-                    >
-                      <div>
-                        <p className="font-medium">Đơn #{order.id}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {order.order_type} • {getStatusLabel(order.status)}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-bold text-orange-600">
-                          {order.waitingMinutes} phút
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {formatTime(order.created_at)}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
 
-          <div className="mb-8 grid grid-cols-1 gap-6 xl:grid-cols-3">
-            <Card className="xl:col-span-2">
-              <CardHeader>
-                <CardTitle>Đơn cần xử lý ngay</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {activeOrders.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">
-                    Không có đơn đang xử lý
-                  </p>
-                ) : (
-                  <div className="space-y-4">
-                    {activeOrders.map((order) => (
-                      <div key={order.id} className="rounded-lg border p-4">
-                        <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-                          <div>
-                            <div className="flex flex-wrap items-center gap-2">
-                              <p className="font-semibold">Đơn #{order.id}</p>
-                              <span
-                                className={`rounded-full border px-2 py-1 text-xs font-medium ${getStatusBadgeClass(
-                                  order.status
-                                )}`}
-                              >
-                                {getStatusLabel(order.status)}
-                              </span>
-                            </div>
-
-                            <p className="mt-2 text-sm text-muted-foreground">
-                              {order.order_type} • {order.itemCount} món
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                              {formatDateTime(order.created_at)}
-                            </p>
-                          </div>
-
-                          <div className="xl:text-right">
-                            <p className="font-bold">
-                              {formatPrice(order.total_amount)}đ
-                            </p>
-
-                            {getNextStatus(order.status) && (
-                              <Button
-                                className="mt-2"
-                                size="sm"
-                                disabled={actionLoadingId === order.id}
-                                onClick={() =>
-                                  handleQuickUpdateStatus(
-                                    order.id,
-                                    order.status
-                                  )
-                                }
-                              >
-                                {actionLoadingId === order.id
-                                  ? "Đang xử lý..."
-                                  : getNextStatusLabel(order.status)}
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-
-                        {Array.isArray(order.items) &&
-                          order.items.length > 0 && (
-                            <div className="mt-4 rounded-md bg-muted/40 p-3">
-                              <p className="mb-2 text-sm font-medium">
-                                Danh sách món
-                              </p>
-                              <div className="space-y-2">
-                                {order.items.map((item, idx) => (
-                                  <div
-                                    key={`${order.id}-${idx}`}
-                                    className="flex flex-col justify-between gap-1 text-sm md:flex-row"
-                                  >
-                                    <span>
-                                      {item.productName} ({item.size}) x{" "}
-                                      {item.quantity}
-                                    </span>
-                                    <span className="text-muted-foreground">
-                                      {item.note || "-"}
-                                    </span>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
+          <div className="mb-8">
             <Card>
               <CardHeader>
                 <CardTitle>Top sản phẩm hôm nay</CardTitle>
@@ -652,27 +525,7 @@ export function BaristaDB() {
             </Card>
           </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Hành động nhanh</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                <Button className="bg-green-600 hover:bg-green-700">
-                  <CheckCircle className="mr-2 h-4 w-4" />
-                  Bắt đầu ca làm việc
-                </Button>
-                <Button variant="outline">
-                  <Clock className="mr-2 h-4 w-4" />
-                  Chấm công
-                </Button>
-                <Button variant="outline">
-                  <Coffee className="mr-2 h-4 w-4" />
-                  Báo cáo sự cố
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+
         </>
       )}
     </div>

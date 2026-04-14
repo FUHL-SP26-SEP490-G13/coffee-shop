@@ -20,7 +20,6 @@ import AdminCategories from "@/pages/admin/AdminCategory/AdminCategories";
 import NewsDetailPage from "@/pages/homePage/news/NewsDetailPage";
 import NewsListPage from "@/pages/homePage/news/NewsListPage";
 import AdminDiscounts from "@/pages/admin/AdminDiscount/AdminDiscounts";
-import AdminRequests from "../pages/admin/AdminRequest/AdminRequests";
 import OrderPolicy from "@/pages/common/OrderPolicy";
 import PrivacyPolicy from "@/pages/common/PrivacyPolicy";
 import AdminApp from "../pages/admin/AdminApp";
@@ -28,7 +27,6 @@ import AdminApp from "../pages/admin/AdminApp";
 import { StaffAttendance } from "@/pages/staff/StaffAttendance";
 import { StaffKitchen } from "@/pages/staff/StaffKitchen";
 import { StaffInventory } from "@/pages/staff/StaffInventory";
-import { StaffRequests } from "@/pages/staff/StaffRequests";
 import { StaffTables } from "@/pages/staff/StaffTables";
 import { StaffSchedule } from "@/pages/staff/StaffSchedule";
 import AdminBanner from "@/pages/admin/AdminBanner/AdminBanner";
@@ -39,8 +37,7 @@ import { BaristaDB } from "@/pages/barista/BaristaDashboard/BaristaDB";
 import { BaristaOrders } from "@/pages/barista/BaristaOrder/BaristaOrders";
 import { BaristaAttendance } from "@/pages/barista/BaristaAttendance/BaristaAttendance";
 import { BaristaSchedule } from "@/pages/barista/BaristaSchedule/BaristaSchedule";
-import { BaristaRequests } from "@/pages/barista/BaristaRequest/BaristaRequests";
-import { StaffApp } from "@/pages/staff/StaffApp";
+import { StaffAppWrapped } from "../pages/staff/StaffApp";
 import { BaristaApp } from "@/pages/barista/BaristaApp";
 import ProductListPage from "../pages/homePage/product/ProductListPage";
 import ProductDetailPage from "../pages/homePage/product/ProductDetailPage";
@@ -57,11 +54,11 @@ import AdminReceiptSettings from "@/pages/admin/AdminReceiptSettings/AdminReceip
 import AdminFlashSales from "@/pages/admin/AdminFlashSale/AdminFlashSales";
 import AdminReputation from "@/pages/admin/AdminReputation/AdminReputation";
 import AdminLoyalty from "@/pages/admin/AdminLoyalty/AdminLoyalty";
-import AdminNewsletterPage from "@/pages/admin/AdminNewsletter/AdminNewsletterPage";
+
 import AdminEndOfDayReport from "@/pages/admin/AdminEndOfDayReport/AdminEndOfDayReport";
 import TakeawayPOS from '../pages/staff/TakeawayPOS'
 import { OrderDelivery } from '@/pages/staff/StaffOrderList';
-import { StaffDashboard } from "@/pages/staff/StaffDashboard";
+import { StaffDashboard } from "@/pages/staff/StaffDashboard/StaffDashboard";
 import StaffPayOSReturn from "@/pages/staff/StaffPayOSReturn";
 import StoreInfoPage from "@/pages/common/StoreInfoPage";
 import GenericSlugResolver from "../pages/common/GenericSlugResolver";
@@ -121,6 +118,43 @@ const RoleGuard = ({ allowedRoles, children }) => {
   return children;
 };
 
+const HomeEntryGuard = () => {
+  const token = getStoredValue(STORAGE_KEYS.ACCESS_TOKEN);
+  const [roleId, setRoleId] = useState(null);
+  const [isLoading, setIsLoading] = useState(Boolean(token));
+
+  useEffect(() => {
+    if (!token) {
+      return;
+    }
+
+    authenticationService
+      .getProfile()
+      .then((res) => {
+        setRoleId(Number(res?.data?.role_id));
+      })
+      .catch(() => {
+        setRoleId(null);
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
+  }, [token]);
+
+  if (isLoading)
+    return (
+      <div className="flex h-screen items-center justify-center">
+        Đang tải...
+      </div>
+    );
+
+  if ([1, 2, 3].includes(roleId)) {
+    return <Navigate to={getRoleHomeRoute(roleId)} replace />;
+  }
+
+  return <HomePage />;
+};
+
 const AppRoutes = () => {
   return (
     <Routes>
@@ -144,7 +178,7 @@ const AppRoutes = () => {
         path="/staff"
         element={
           <RoleGuard allowedRoles={[2]}>
-            <StaffApp />
+            <StaffAppWrapped />
           </RoleGuard>
         }
       >
@@ -155,10 +189,10 @@ const AppRoutes = () => {
         <Route path="payment-result" element={<StaffPayOSReturn />} />
         <Route path="orders" element={<Navigate to="pending" replace />} />
         <Route path="orders/:status" element={<OrderDelivery />} />
+        <Route path="barista-window" element={<OrderDelivery />} />
         <Route path="attendance" element={<StaffAttendance />} />
         <Route path="inventory" element={<StaffInventory />} />
         <Route path="kitchen" element={<StaffKitchen />} />
-        <Route path="requests" element={<StaffRequests />} />
         <Route path="tables" element={<StaffTables />} />
         <Route path="schedule" element={<StaffSchedule />} />
         <Route path="profile" element={<UserProfile />} />
@@ -177,7 +211,6 @@ const AppRoutes = () => {
         <Route path="orders" element={<BaristaOrders />} />
         <Route path="attendance" element={<BaristaAttendance />} />
         <Route path="schedule" element={<BaristaSchedule />} />
-        <Route path="requests" element={<BaristaRequests />} />
         <Route path="profile" element={<UserProfile />} />
       </Route>
       {/* ADMIN NESTED ROUTES */}
@@ -201,7 +234,6 @@ const AppRoutes = () => {
           <Route index element={<ShiftTemplatePage />} />
           <Route path="templates" element={<ShiftTemplatePage />} />
           <Route path="list" element={<WorkSchedulePage />} />
-          <Route path="requests" element={<AdminRequests />} />
         </Route>
         <Route path="inventory" element={<AdminIngredients />} />
         <Route path="profile" element={<UserProfile />} />
@@ -215,10 +247,10 @@ const AppRoutes = () => {
         <Route path="loyalty" element={<AdminLoyalty />} />
         <Route path="receipt-settings" element={<AdminReceiptSettings />} />
         <Route path="flash-sales" element={<AdminFlashSales />} />
-        <Route path="newsletter" element={<AdminNewsletterPage />} />
+
       </Route>
       <Route element={<ClientLayout />}>
-        <Route path="/" element={<HomePage />} />
+        <Route path="/" element={<HomeEntryGuard />} />
         {/* Route /products đã được chuyển vào /:slug (GenericSlugResolver) để chống chớp giật Grid */}
         <Route path="/products/:id" element={<ProductDetailPage />} />
         

@@ -58,8 +58,8 @@ class BaristaDBService {
     return repository.getOrderTrends(hours);
   }
 
-  async getActiveOrders(statuses) {
-    const orders = await repository.getActiveOrders(statuses);
+  async getActiveOrders(statuses, filters) {
+    const orders = await repository.getActiveOrders(statuses, filters);
 
     const enrichedOrders = await Promise.all(
       orders.map(async (order) => {
@@ -70,6 +70,9 @@ class BaristaDBService {
           id: Number(order.id),
           itemCount: Number(order.itemCount || 0),
           total_amount: Number(order.total_amount || 0),
+          amount: Number(order.amount || 0),
+          discount_amount: Number(order.discount_amount || 0),
+          delivery_fee: Number(order.delivery_fee || 0),
           used_points: Number(order.used_points || 0),
           shipping_fee: getDerivedShippingFee(order, items),
           items,

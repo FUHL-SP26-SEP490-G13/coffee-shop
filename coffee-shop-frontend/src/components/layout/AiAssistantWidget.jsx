@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Bot, Send, X, Coffee, ShoppingBag, Sparkles, User, RefreshCw, Loader2 } from "lucide-react";
 import aiService from "@/services/aiService";
-import { cartService } from "@/services/cartService";
+import { useCartStore } from "@/store/useCartStore";
 
 const getGreeting = () => {
   const hour = new Date().getHours();
@@ -37,6 +37,7 @@ const MessageContent = ({ text, role, isNew }) => {
 
 export default function AiAssistantWidget() {
   const [isOpen, setIsOpen] = useState(false);
+  const { addItem } = useCartStore();
   const [messages, setMessages] = useState([
     {
       role: 'ai',
@@ -65,6 +66,18 @@ export default function AiAssistantWidget() {
     }
   }, [messages, isOpen]);
 
+  useEffect(() => {
+    if (!isOpen) {
+      setMessages(prev => {
+        // Tránh vòng lặp vô hạn do thay đổi state: chỉ set nếu thực sự có tin nhắn còn isNew
+        if (prev.some(m => m.isNew)) {
+          return prev.map(m => ({ ...m, isNew: false }));
+        }
+        return prev;
+      });
+    }
+  }, [isOpen]);
+
   const handleSend = async (text = inputValue) => {
     if (!text.trim() || isLoading) return;
 
@@ -83,7 +96,7 @@ export default function AiAssistantWidget() {
       if (data?.type === "action" && data?.action?.type === "add_to_cart_multiple") {
         const items = data.action.payload || [];
         items.forEach(item => {
-          cartService.addItem({
+          addItem({
             id: item.product_id,
             product_id: item.product_id,
             name: item.product_name,
@@ -241,7 +254,7 @@ export default function AiAssistantWidget() {
       {/* Floating Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`${isOpen ? 'scale-0 opacity-0' : 'scale-100 opacity-100 hover:scale-110'} transition-all duration-300 w-14 h-14 bg-[#7B4B36] rounded-full shadow-lg shadow-amber-900/20 flex items-center justify-center group relative border-2 border-white`}
+        className={`${isOpen ? 'scale-0 opacity-0' : 'scale-100 opacity-100 animate-wiggle hover:bg-[#683f2d]'} transition-all duration-300 w-14 h-14 bg-[#7B4B36] rounded-full shadow-lg shadow-amber-900/20 flex items-center justify-center group relative border-2 border-white cursor-pointer`}
       >
         <Sparkles className="absolute -top-1 -right-1 w-4 h-4 text-amber-300 animate-pulse" />
         <Bot className="w-7 h-7 text-white" />
