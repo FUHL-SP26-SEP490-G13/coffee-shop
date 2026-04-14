@@ -96,7 +96,7 @@ class UserService {
         isUnique = true;
       }
     }
-    
+
     return pinCode;
   }
 
@@ -388,6 +388,7 @@ class UserService {
    */
   async generateNewPinForUser(userId) {
     const user = await UserRepository.findById(userId);
+    // console.log(user);
     if (!user) {
       throw new ErrorResponse(404, 'User không tồn tại');
     }
@@ -397,10 +398,10 @@ class UserService {
     }
 
     const pinCode = await this.generateUniquePin();
-    
+
     const updatedUser = await UserRepository.update(userId, { pin_code: pinCode });
     delete updatedUser.password;
-    
+
     return updatedUser;
   }
 }

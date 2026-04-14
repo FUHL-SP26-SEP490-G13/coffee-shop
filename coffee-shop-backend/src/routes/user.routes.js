@@ -110,8 +110,8 @@ router.delete(
 // Generate new PIN
 router.post(
   '/:id/generate-pin',
-  // authenticate,
-  // authorize(['manager']),
+  authenticate,
+  authorize(['manager']),
   UserController.generatePin
 );
 
