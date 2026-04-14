@@ -73,6 +73,13 @@ export const CashSessionProvider = ({ children }) => {
         const end = new Date();
         end.setHours(h, m, s || 0, 0);
 
+        // Xử lý ca làm việc vắt qua đêm (cross-day shifts)
+        if (now - end > 12 * 60 * 60 * 1000) {
+          end.setDate(end.getDate() + 1);
+        } else if (end - now > 12 * 60 * 60 * 1000) {
+          end.setDate(end.getDate() - 1);
+        }
+
         const diffMinutes = (now - end) / 60000;
         if (diffMinutes >= 15) {
           setIsForcedClose(true);

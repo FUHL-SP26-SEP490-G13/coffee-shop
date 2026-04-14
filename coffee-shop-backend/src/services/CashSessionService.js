@@ -4,9 +4,13 @@ class CashSessionService {
   async getCurrentSession(userId) {
     const session = await repository.getCurrentSession();
     
-    // Fetch the user's active shift
-    const currentShift = await repository.getCurrentUserShift(userId);
-    const shiftEndTime = currentShift ? currentShift.end_time : null;
+    let shiftEndTime = null;
+    if (session && session.shift_registration_id) {
+       shiftEndTime = await repository.getShiftEndTimeById(session.shift_registration_id);
+    } else {
+       const currentShift = await repository.getCurrentUserShift(userId);
+       shiftEndTime = currentShift ? currentShift.end_time : null;
+    }
 
     if (session) {
       const generatedSystemCash = await repository.getSystemCash(session.id);
