@@ -44,6 +44,7 @@ const formatDateTime = (value) => {
 
 export default function AdminReputation() {
   const [keyword, setKeyword] = useState("");
+  const [sortOrder, setSortOrder] = useState("");
   const [page, setPage] = useState(1);
   const [profiles, setProfiles] = useState([]);
   const [pagination, setPagination] = useState({
@@ -169,7 +170,7 @@ export default function AdminReputation() {
     setRules(prev => prev.map(r => r.id === id ? { ...r, [field]: value } : r));
   };
 
-  const fetchProfiles = useCallback(async (currentPage = 1, currentKeyword = "") => {
+  const fetchProfiles = useCallback(async (currentPage = 1, currentKeyword = "", currentSort = "") => {
     try {
       setIsLoading(true);
       setError("");
@@ -178,6 +179,7 @@ export default function AdminReputation() {
         page: currentPage,
         limit: PAGE_SIZE,
         keyword: currentKeyword,
+        sort: currentSort,
       });
 
       const data = res?.data || res?.data?.data || {};
@@ -202,11 +204,11 @@ export default function AdminReputation() {
 
   useEffect(() => {
     const timeout = setTimeout(() => {
-      fetchProfiles(page, keyword.trim());
+      fetchProfiles(page, keyword.trim(), sortOrder);
     }, 350);
 
     return () => clearTimeout(timeout);
-  }, [page, keyword, fetchProfiles]);
+  }, [page, keyword, sortOrder, fetchProfiles]);
 
   const handleOpenHistory = async (profile) => {
     setSelectedProfile(profile);
@@ -267,17 +269,32 @@ export default function AdminReputation() {
         </Button>
       </div>
 
-      <div className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          value={keyword}
-          onChange={(event) => {
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={keyword}
+            onChange={(event) => {
+              setPage(1);
+              setKeyword(event.target.value);
+            }}
+            className="pl-9"
+            placeholder="Tìm theo số điện thoại"
+          />
+        </div>
+        
+        <select
+          value={sortOrder}
+          onChange={(e) => {
+            setSortOrder(e.target.value);
             setPage(1);
-            setKeyword(event.target.value);
           }}
-          className="pl-9"
-          placeholder="Tìm theo số điện thoại"
-        />
+          className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background cursor-pointer focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 min-w-[200px]"
+        >
+          <option value="">Sắp xếp mặc định</option>
+          <option value="score_desc">Điểm hiện tại (Cao - Thấp)</option>
+          <option value="score_asc">Điểm hiện tại (Thấp - Cao)</option>
+        </select>
       </div>
 
       <div className="rounded-xl border border-border bg-card overflow-hidden">
@@ -288,7 +305,7 @@ export default function AdminReputation() {
         ) : error ? (
           <div className="space-y-3 p-6 text-center">
             <p className="text-sm text-red-600">{error}</p>
-            <Button variant="outline" onClick={() => fetchProfiles(page, keyword.trim())}>
+            <Button variant="outline" onClick={() => fetchProfiles(page, keyword.trim(), sortOrder)}>
               Tải lại
             </Button>
           </div>

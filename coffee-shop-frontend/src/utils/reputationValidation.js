@@ -14,25 +14,16 @@
  *
  * @throws {Error} Nếu tài khoản bị chặn
  *
- * LOGIC QUYẾT ĐỊNH:
- * ─────────────────────────────────────────────────────────────────
- * 1. Nếu isBanned = true
- *    → Throw error: 'Account Blocked'
- *
- * 2. Nếu userScore < 20
- *    → Chỉ PayOS được phép, Disable Cash
- *
- * 3. Nếu userScore 20-39
- *    → Cash được phép nếu orderTotal < 30,000đ
- *    → Nếu vượt → force PayOS
- *
- * 4. Nếu userScore 40-80
- *    → Cash được phép nếu orderTotal < 100,000đ
- *    → Nếu vượt → force PayOS
- *
- * 5. Nếu userScore > 80
- *    → Tất cả payment methods được phép
- * ─────────────────────────────────────────────────────────────────
+  * Mô tả logic:
+  * - Hệ thống có thể có nhiều rule khác nhau do manager quyết định, mỗi rule áp
+  * dụng cho một khoảng điểm (minScore) và quy định hạn mức tiền mặt (maxCash).
+  * - Điểm uy tín của khách hàng sẽ được so sánh với các rule để xác định hạn chế áp dụng:
+  * - Nếu isBanned = true -> Cấm hoàn toàn, trả về lỗi
+  * - Nếu có rule nào phù hợp với điểm hiện tại:
+  *    - maxCash = 0 -> Cấm tiền mặt hoàn toàn, chỉ PayOS
+  *    - maxCash > 0 -> Cho phép tiền mặt trong hạn mức, nếu vượt thì bắt buộc PayOS
+  *    - maxCash = null -> Không giới hạn tiền mặt
+  * - Nếu không có rule nào phù hợp (ví dụ Admin chưa cấu hình), mặc định cho phép tất cả
  */
 export function validateOrderPermissions(userScore, orderTotal, isBanned = false, rules = []) {
   const DEFAULT_REPUTATION_SCORE = 50;
@@ -110,38 +101,6 @@ export function validateOrderPermissions(userScore, orderTotal, isBanned = false
   }
 }
 
-/**
- * Format điểm uy tín thành tier
- * @param {number} score - Điểm uy tín
- * @returns {string} Tier: BRONZE, SILVER, GOLD, DIAMOND
- */
-export function getReputationTierLabel(score) {
-  const validScore = typeof score === 'number' ? score : 50;
-  
-  if (validScore < 0) return 'BRONZE';
-  if (validScore < 40) return 'BRONZE';
-  if (validScore < 60) return 'SILVER';
-  if (validScore < 85) return 'GOLD';
-  return 'DIAMOND';
-}
-
-/**
- * Lấy màu sắc cho badge uy tín
- * @param {string} tier - Tier uy tín
- * @returns {string} Tailwind color class
- */
-export function getReputationColor(tier) {
-  const colorMap = {
-    BRONZE: 'bg-amber-100 text-amber-900',
-    SILVER: 'bg-slate-100 text-slate-900',
-    GOLD: 'bg-yellow-100 text-yellow-900',
-    DIAMOND: 'bg-blue-100 text-blue-900',
-  };
-  return colorMap[tier] || 'bg-gray-100 text-gray-900';
-}
-
 export default {
-  validateOrderPermissions,
-  getReputationTierLabel,
-  getReputationColor,
+  validateOrderPermissions
 };

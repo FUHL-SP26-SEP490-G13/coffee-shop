@@ -264,7 +264,7 @@ export default function AdminFlashSales() {
           <AlertDialogHeader>
             <AlertDialogTitle>Xác nhận xóa Flash Sale</AlertDialogTitle>
             <AlertDialogDescription>
-              Bạn có chắc chắn muốn xóa chiến dịch <strong>{saleToDelete?.title}</strong>? Không thể hoàn tác hành động này.
+              Bạn có chắc chắn muốn xóa chiến dịch <strong>{saleToDelete?.title}</strong>?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

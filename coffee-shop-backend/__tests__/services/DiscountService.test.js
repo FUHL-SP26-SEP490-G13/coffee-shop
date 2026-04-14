@@ -239,6 +239,27 @@ describe("DiscountService", () => {
       expect(DiscountRepository.findByCode).toHaveBeenCalledWith("SUMMER2024");
       expect(DiscountRepository.create).not.toHaveBeenCalled();
     });
+
+    it("DiscountService - create - TC-04: should trim full-space code to empty string before repository create", async () => {
+      const input = {
+        code: "        ",
+        description: "        ",
+        percentage: 5,
+      };
+
+      DiscountRepository.findByCode.mockResolvedValue(null);
+      DiscountRepository.create.mockResolvedValue(12);
+
+      const result = await DiscountService.create(input);
+
+      expect(DiscountRepository.findByCode).toHaveBeenCalledWith("");
+      expect(DiscountRepository.create).toHaveBeenCalledWith({
+        ...input,
+        code: "",
+        description: null,
+      });
+      expect(result).toBe(12);
+    });
   });
 
   describe("update", () => {

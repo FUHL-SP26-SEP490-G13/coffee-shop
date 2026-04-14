@@ -1,11 +1,9 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Plus, Search, Edit, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
-import { toast } from 'sonner';
 import categoryService from '../../../services/categoryService';
 import useFetch from '../../../hooks/useFetch';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
-import { Badge } from '../../../components/ui/badge';
 import {
   Table,
   TableBody,
@@ -14,11 +12,8 @@ import {
   TableHeader,
   TableRow,
 } from '../../../components/ui/table';
-
 import CreateCategory from './Action/CreateCategory';
-
 import UpdateCategory from './Action/UpdateCategory';
-
 import DeleteCategory from './Action/DeleteCategory';
 
 export default function AdminCategories() {
@@ -247,7 +242,7 @@ export default function AdminCategories() {
             >
               <ChevronLeft className='w-4 h-4 mr-1' /> Trước
             </Button>
-            
+
             <div className='text-sm font-medium'>
               Trang {currentPage} / {totalPages}
             </div>

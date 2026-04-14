@@ -28,8 +28,6 @@ describe('UserService - Staff Management', () => {
       username: 'staff_user',
       first_name: 'Staff',
       last_name: 'Member',
-      gender: 1,
-      dob: '1990-01-01',
       role_id: ROLES.STAFF,
     };
 
@@ -39,8 +37,6 @@ describe('UserService - Staff Management', () => {
       username: 'barista_user',
       first_name: 'Barista',
       last_name: 'Pro',
-      gender: 0,
-      dob: '1995-05-15',
       role_id: ROLES.BARISTA,
     };
 
@@ -68,8 +64,6 @@ describe('UserService - Staff Management', () => {
         username: input.username,
         first_name: input.first_name,
         last_name: input.last_name,
-        gender: input.gender,
-        dob: input.dob,
         role_id: ROLES.STAFF,
         isActive: 1,
         isVerified: 1,
@@ -85,8 +79,6 @@ describe('UserService - Staff Management', () => {
           username: mockCreatedUser.username,
           first_name: mockCreatedUser.first_name,
           last_name: mockCreatedUser.last_name,
-          gender: mockCreatedUser.gender,
-          dob: mockCreatedUser.dob,
           role_id: ROLES.STAFF,
           isActive: 1,
           isVerified: 1,
@@ -149,8 +141,6 @@ describe('UserService - Staff Management', () => {
         username: input.username,
         first_name: input.first_name,
         last_name: input.last_name,
-        gender: input.gender,
-        dob: input.dob,
         role_id: ROLES.BARISTA,
         isActive: 1,
         isVerified: 1,
@@ -345,6 +335,29 @@ describe('UserService - Staff Management', () => {
       expect(result.user.id).toBe(103);
       expect(result.emailSent).toBe(false); // Email sending failed
       expect(UserRepository.create).toHaveBeenCalled();
+    });
+
+    it('UserService - createStaffUser - TC-08: should throw error when role format is invalid string', async () => {
+      console.log('\n' + '='.repeat(50));
+      console.log('UserService - CREATE_STAFF - TC-8: Lỗi khi role_id sai định dạng chuỗi');
+      console.log('='.repeat(50));
+
+      // INPUT
+      const input = { ...mockStaffData, role_id: 'abc' };
+      console.log('\n📝 INPUT:', JSON.stringify(input, null, 2));
+
+      // OUTPUT EXPECT
+      const expectedError = 'Role không hợp lệ';
+      console.log('✅ OUTPUT EXPECT: Error -', expectedError);
+
+      // Act & Assert
+      await expect(UserService.createStaffUser(input)).rejects.toThrow(expectedError);
+
+      // OUTPUT REALITY
+      console.log('🎯 OUTPUT REALITY: Thrown error -', expectedError);
+
+      expect(UserRepository.findByEmail).not.toHaveBeenCalled();
+      expect(UserRepository.create).not.toHaveBeenCalled();
     });
   });
 
@@ -563,6 +576,36 @@ describe('UserService - Staff Management', () => {
       // Assert
       expect(UserRepository.search).toHaveBeenCalledWith('john', { limit: input.limit, offset: input.offset });
       expect(result.length).toBe(1);
+    });
+
+    it('UserService - searchUsers - TC-04: should return all users when keyword is full-space', async () => {
+      console.log('\n' + '='.repeat(50));
+      console.log('UserService - SEARCH_USERS - TC-4: Trả về tất cả user khi keyword chỉ có khoảng trắng');
+      console.log('='.repeat(50));
+
+      // INPUT
+      const input = { keyword: '    ', options: { limit: 5, offset: 0 } };
+      console.log('\n📝 INPUT:', JSON.stringify(input, null, 2));
+
+      // Arrange
+      const mockAllUsers = [
+        { id: 10, first_name: 'A', last_name: 'B', email: 'ab@example.com' },
+      ];
+      UserRepository.findAll.mockResolvedValue(mockAllUsers);
+
+      // OUTPUT EXPECT
+      console.log('✅ OUTPUT EXPECT: All users list via getAllUsers');
+
+      // Act
+      const result = await UserService.searchUsers(input.keyword, input.options);
+
+      // OUTPUT REALITY
+      console.log('🎯 OUTPUT REALITY:', JSON.stringify(result, null, 2));
+
+      // Assert
+      expect(UserRepository.findAll).toHaveBeenCalledWith({}, input.options);
+      expect(UserRepository.search).not.toHaveBeenCalled();
+      expect(result).toEqual(mockAllUsers);
     });
   });
 });

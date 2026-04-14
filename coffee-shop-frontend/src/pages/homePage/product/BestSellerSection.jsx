@@ -1,11 +1,9 @@
 import { useEffect, useState } from "react";
-import { Loader2, ArrowRight, Star, ShoppingCart } from "lucide-react";
+import { Loader2, Star, ShoppingCart } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
 import flashSaleService from "@/services/flashSaleService";
 import productService from "@/services/productService";
-import { STORAGE_KEYS } from "@/constants";
-import { cartService } from "@/services/cartService";
+import { useCartStore } from "@/store/useCartStore";
 import { toast } from "sonner";
 import { useStoreHours } from "@/hooks/useStoreHours";
 import receiptSettingService from "@/services/receiptSettingService";
@@ -16,16 +14,10 @@ export default function BestSellerSection({
   loading,
   products = [],
   getThumbnail,
-  getDisplayPrice,
 }) {
   const navigate = useNavigate();
   const { isOpen, nextOpenMessage } = useStoreHours();
-
-  const token =
-    localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN) ||
-    sessionStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
-
-  const isLoggedIn = !!token;
+  const { addItem } = useCartStore();
 
   const [activeSale, setActiveSale] = useState(null);
   const [addedCartItem, setAddedCartItem] = useState(null);
@@ -108,9 +100,8 @@ export default function BestSellerSection({
       toppings: [],
     };
 
-    cartService.addItem(cartItem);
+    addItem(cartItem);
     setAddedCartItem(cartItem);
-    window.dispatchEvent(new Event("cartUpdated"));
   };
 
   useEffect(() => {

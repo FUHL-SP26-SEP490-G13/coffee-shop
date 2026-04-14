@@ -333,6 +333,36 @@ describe("OrderService", () => {
       expect(mockConnection.rollback).toHaveBeenCalled();
       expect(mockConnection.release).toHaveBeenCalled();
     });
+
+    it("OrderService - checkout - TC-07: ORD-SVC-CO-007 - CRUD: CREATE", async () => {
+      const payload = {
+        order_type: "takeaway",
+        payment_method: "cash",
+        used_points: 1.5,
+        items: [{ product_size_id: 1, quantity: 1 }],
+      };
+      const expectedError = "Điểm sử dụng không hợp lệ";
+      logCase({
+        tcid: "ORD-SVC-CO-007",
+        crud: "CREATE",
+        scenario: "checkout lỗi used_points sai định dạng số nguyên",
+        input: { payload, user: { id: 1 } },
+        expected: { error: expectedError },
+      });
+
+      let actualError = null;
+      try {
+        await OrderService.checkout(payload, { id: 1 });
+      } catch (error) {
+        actualError = error.message;
+      }
+      logReality({ error: actualError });
+
+      expect(actualError).toContain(expectedError);
+      expect(mockConnection.rollback).toHaveBeenCalled();
+      expect(mockConnection.release).toHaveBeenCalled();
+      expect(OrderRepository.findProductSizeById).not.toHaveBeenCalled();
+    });
   });
 
   describe("getOrdersByUser", () => {

@@ -246,6 +246,78 @@ describe("ReviewService", () => {
       expect(ReviewRepository.createReview).not.toHaveBeenCalled();
       expect(result).toEqual(expected);
     });
+
+    it("ReviewService - createOrUpdateReview - TC-05: REV-SVC-CR-004 - CRUD: CREATE", async () => {
+      const input = {
+        userId: 1,
+        productId: 10,
+        rating: 5,
+        comment: "    ",
+      };
+      const expected = { message: "Đánh giá sản phẩm thành công" };
+      logCase({
+        tcid: "REV-SVC-CR-004",
+        crud: "CREATE",
+        scenario: "tạo review với comment chỉ chứa khoảng trắng",
+        input,
+        expected,
+      });
+
+      ReviewRepository.hasPurchasedProduct.mockResolvedValue(true);
+      ReviewRepository.findByUserAndProduct.mockResolvedValue(null);
+      ReviewRepository.createReview.mockResolvedValue({ insertId: 11 });
+
+      const result = await ReviewService.createOrUpdateReview(1, 10, 5, "    ");
+      logReality(result);
+
+      expect(ReviewRepository.createReview).toHaveBeenCalledWith(1, 10, 5, "    ", []);
+      expect(result).toEqual(expected);
+    });
+
+    it("ReviewService - createOrUpdateReview - TC-06: REV-SVC-CR-005 - CRUD: CREATE", async () => {
+      const input = {
+        userId: 1,
+        productId: 10,
+        rating: 5,
+        comment: "Có ảnh",
+        newImages: [
+          { public_id: "a", url: "https://cdn/1.jpg" },
+          { public_id: "b", url: "https://cdn/2.jpg" },
+          { public_id: "c", url: "https://cdn/3.jpg" },
+          { public_id: "d", url: "https://cdn/4.jpg" },
+          { public_id: "e", url: "https://cdn/5.jpg" },
+        ],
+      };
+      const expectedError = "Tối đa 3 ảnh và 1 video cho mỗi bài đánh giá";
+      logCase({
+        tcid: "REV-SVC-CR-005",
+        crud: "CREATE",
+        scenario: "lỗi khi upload quá số lượng tệp cho review mới",
+        input,
+        expected: { error: expectedError },
+      });
+
+      ReviewRepository.hasPurchasedProduct.mockResolvedValue(true);
+      ReviewRepository.findByUserAndProduct.mockResolvedValue(null);
+
+      let actualError = null;
+      try {
+        await ReviewService.createOrUpdateReview(
+          1,
+          10,
+          5,
+          "Có ảnh",
+          input.newImages,
+          []
+        );
+      } catch (error) {
+        actualError = error.message;
+      }
+      logReality({ error: actualError });
+
+      expect(actualError).toContain(expectedError);
+      expect(ReviewRepository.createReview).not.toHaveBeenCalled();
+    });
   });
 
   describe("getMyReview", () => {

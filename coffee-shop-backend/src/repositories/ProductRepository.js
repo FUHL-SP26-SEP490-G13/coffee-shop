@@ -212,7 +212,7 @@ class ProductRepository extends BaseRepository {
         SELECT 1 FROM product_sizes ps
         WHERE ps.product_id = p.id
           AND ps.is_deleted = 0`;
-      
+
       if (size !== undefined && size !== "") {
         sql += ` AND ps.size = ?`;
         params.push(size);

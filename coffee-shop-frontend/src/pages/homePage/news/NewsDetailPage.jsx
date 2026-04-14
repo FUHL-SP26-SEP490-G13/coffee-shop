@@ -8,8 +8,6 @@ import {
 } from "lucide-react";
 import useFetch from "@/hooks/useFetch";
 import newsService from "@/services/newsService";
-
-
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";

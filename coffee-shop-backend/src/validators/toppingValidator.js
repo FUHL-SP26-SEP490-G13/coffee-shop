@@ -15,6 +15,10 @@ const createToppingSchema = Joi.object({
     'number.min': 'Giá topping không được âm',
     'any.required': 'Giá topping là bắt buộc',
   }),
+  category_ids: Joi.array().items(Joi.number().integer().positive()).optional().messages({
+    'array.base': 'Category IDs phải là một mảng',
+    'number.base': 'Category ID phải là số nguyên dương',
+  }),
 });
 
 /**
@@ -29,6 +33,10 @@ const updateToppingSchema = Joi.object({
   price: Joi.number().precision(2).min(0).optional().messages({
     'number.base': 'Giá topping phải là số',
     'number.min': 'Giá topping không được âm',
+  }),
+  category_ids: Joi.array().items(Joi.number().integer().positive()).optional().messages({
+    'array.base': 'Category IDs phải là một mảng',
+    'number.base': 'Category ID phải là số nguyên dương',
   }),
 });
 

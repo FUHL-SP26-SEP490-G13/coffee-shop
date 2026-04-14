@@ -47,7 +47,7 @@ export default function DeleteIngredient({ ingredient, open, onClose, onSuccess 
             <span className='font-semibold text-foreground'>
               "{ingredient?.name}"
             </span>
-            ? Hành động này không thể hoàn tác.
+            ?
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

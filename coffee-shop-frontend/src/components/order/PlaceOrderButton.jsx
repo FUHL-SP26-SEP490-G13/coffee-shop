@@ -1,11 +1,9 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { cartService } from "@/services/cartService";
+import { useCartStore } from "@/store/useCartStore";
 import orderService from "@/services/orderOnlineService";
 import { validateOrderForm } from "@/utils/orderValidation";
-
-
 
 /**
  * Nút đặt hàng tái sử dụng cho cả trang Checkout (khách) lẫn Staff.
@@ -32,6 +30,7 @@ export default function PlaceOrderButton({
   disabled = false,
 }) {
   const navigate = useNavigate();
+  const { clearCart } = useCartStore();
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async () => {
@@ -119,7 +118,7 @@ export default function PlaceOrderButton({
           items: payosItems,
         });
 
-        cartService.clearCart();
+        clearCart();
         const checkoutUrl = payosRes?.data?.checkoutUrl;
         if (checkoutUrl) {
           window.location.href = checkoutUrl;
@@ -127,7 +126,7 @@ export default function PlaceOrderButton({
           alert("Không lấy được link thanh toán PayOS");
         }
       } else {
-        cartService.clearCart();
+        clearCart();
         alert("Đặt hàng thành công");
         if (onSuccess) {
           onSuccess();

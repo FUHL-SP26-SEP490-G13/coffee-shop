@@ -302,5 +302,18 @@ describe('AuthService - Login', () => {
       // Assert
       expect(result.user.password).toBeUndefined();
     });
+
+    it('AuthService - login - TC-08: should throw error when identifier is full-space string', async () => {
+      UserRepository.findByEmail.mockResolvedValue(null);
+      UserRepository.findByUsername.mockResolvedValue(null);
+
+      await expect(AuthService.login('        ', 'Password123!')).rejects.toThrow(
+        'Email/Username hoặc mật khẩu không đúng'
+      );
+
+      expect(UserRepository.findByEmail).toHaveBeenCalledWith('        ');
+      expect(UserRepository.findByUsername).toHaveBeenCalledWith('        ');
+      expect(comparePassword).not.toHaveBeenCalled();
+    });
   });
 });

@@ -371,5 +371,17 @@ describe('AuthService - ChangePassword', () => {
       expect(UserRepository.updatePassword).toHaveBeenCalled();
       expect(result).toBe(true);
     });
+
+    it('AuthService - changePassword - TC-12: should throw error when new password is full-space string', async () => {
+      UserRepository.findById.mockResolvedValue(mockUser);
+      comparePassword.mockResolvedValue(true);
+
+      await expect(AuthService.changePassword(userId, oldPassword, '        ')).rejects.toThrow(
+        'Mật khẩu phải chứa chữ thường (a-z)'
+      );
+
+      expect(hashPassword).not.toHaveBeenCalled();
+      expect(UserRepository.updatePassword).not.toHaveBeenCalled();
+    });
   });
 });

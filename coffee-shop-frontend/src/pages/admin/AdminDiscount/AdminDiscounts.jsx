@@ -21,6 +21,16 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import PaginationControl from "@/components/common/PaginationControl";
 import AdminDiscountModal from "./AdminDiscountModal";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function AdminDiscounts() {
   const [data, setData] = useState([]);
@@ -35,6 +45,9 @@ export default function AdminDiscounts() {
   const [statusFilter, setStatusFilter] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedDiscountId, setSelectedDiscountId] = useState(null);
+  
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [deleteId, setDeleteId] = useState(null);
 
   const abortRef = useRef(null);
 
@@ -97,18 +110,26 @@ export default function AdminDiscounts() {
     };
   }, []);
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Bạn có chắc muốn xóa mã giảm giá này?")) return;
+  const handleDeleteClick = (id) => {
+    setDeleteId(id);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteId) return;
 
     try {
-      setLoadingId(id);
-      await discountService.delete(id);
+      setLoadingId(deleteId);
+      setIsDeleteDialogOpen(false);
+      await discountService.delete(deleteId);
       toast.success("Xóa mã giảm giá thành công");
       await fetchDiscounts(page, keyword, statusFilter);
     } catch (err) {
       console.error(err);
+      toast.error("Có lỗi xảy ra khi xóa mã giảm giá");
     } finally {
       setLoadingId(null);
+      setDeleteId(null);
     }
   };
 
@@ -160,6 +181,8 @@ export default function AdminDiscounts() {
       </div>
     );
   }
+
+  const discountToDelete = data.find((item) => item.id === deleteId);
 
   return (
     <div className="p-6">
@@ -315,7 +338,7 @@ export default function AdminDiscounts() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleDelete(item.id)}
+                            onClick={() => handleDeleteClick(item.id)}
                             disabled={loadingId === item.id}
                             title="Xóa"
                             className="hover:text-red-600"
@@ -358,6 +381,27 @@ export default function AdminDiscounts() {
         discountId={selectedDiscountId}
         onSuccess={() => fetchDiscounts(page, keyword, statusFilter)}
       />
+
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Xác nhận xóa</AlertDialogTitle>
+            <AlertDialogDescription>
+              Bạn có chắc chắn muốn xóa mã giảm giá <strong>{discountToDelete?.code}</strong>?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={loadingId && deleteId !== null}>Hủy</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              disabled={loadingId && deleteId !== null}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Xóa
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

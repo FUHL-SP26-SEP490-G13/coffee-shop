@@ -21,7 +21,7 @@ import QuickViewModal from "@/pages/homePage/product/QuickViewModal";
 import { Button } from "@/components/ui/button";
 import productService from "@/services/productService";
 import toppingService from "@/services/toppingService";
-import { cartService } from "@/services/cartService";
+import { useCartStore } from "@/store/useCartStore";
 import useFetch from "@/hooks/useFetch";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Pagination, Navigation, Autoplay } from "swiper/modules";
@@ -282,6 +282,7 @@ export default function ProductDetailPage({ productIdOverride, initialProductDat
   const productId = productIdOverride || id;
   const navigate = useNavigate();
   const { isOpen: isStoreOpen, nextOpenMessage } = useStoreHours();
+  const { addItem } = useCartStore();
 
   const token =
     localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN) ||
@@ -475,6 +476,17 @@ export default function ProductDetailPage({ productIdOverride, initialProductDat
 
     fetchToppings();
   }, []);
+
+  const availableToppings = useMemo(() => {
+    if (!product || !product.category_id) return [];
+    return toppings.filter((t) => {
+      let ids = t.category_ids || [];
+      if (typeof ids === 'string') {
+        try { ids = JSON.parse(ids); } catch(e) { ids = []; }
+      }
+      return Array.isArray(ids) && ids.includes(product.category_id);
+    });
+  }, [toppings, product?.category_id]);
 
   useEffect(() => {
     const fetchReviews = async () => {
@@ -814,9 +826,8 @@ export default function ProductDetailPage({ productIdOverride, initialProductDat
     }
 
     const cartItem = buildCartItem();
-    cartService.addItem(cartItem);
+    addItem(cartItem);
     notifyCartSuccess(cartItem);
-    window.dispatchEvent(new Event("cartUpdated"));
   };
 
   const buyNow = () => {
@@ -826,7 +837,7 @@ export default function ProductDetailPage({ productIdOverride, initialProductDat
     }
 
     const cartItem = buildCartItem();
-    cartService.addItem(cartItem);
+    addItem(cartItem);
     navigate("/checkout");
   };
 
@@ -878,9 +889,8 @@ export default function ProductDetailPage({ productIdOverride, initialProductDat
       toppings: [],
     };
 
-    cartService.addItem(cartItem);
+    addItem(cartItem);
     notifyCartSuccess(cartItem);
-    window.dispatchEvent(new Event("cartUpdated"));
   };
 
   const renderBreadcrumbs = () => (
@@ -1069,7 +1079,7 @@ export default function ProductDetailPage({ productIdOverride, initialProductDat
               </div>
             )}
 
-            {toppings.length > 0 && (
+            {availableToppings.length > 0 && (
               <div className="mb-8">
                 <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-3">
                   Topping
@@ -1096,7 +1106,7 @@ export default function ProductDetailPage({ productIdOverride, initialProductDat
 
                 {showToppings && (
                   <div className="mt-4 max-h-[320px] overflow-y-auto pr-2 space-y-3">
-                    {toppings.map((topping) => {
+                    {availableToppings.map((topping) => {
                       const checked = isToppingSelected(topping.id);
                       const selectedTopping = getSelectedTopping(topping.id);
 

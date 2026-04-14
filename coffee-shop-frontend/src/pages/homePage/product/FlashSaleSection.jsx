@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { Zap, Clock, ShoppingCart, Star } from "lucide-react";
 import { toast } from "sonner";
 import flashSaleService from "@/services/flashSaleService";
-import { cartService } from "@/services/cartService";
+import { useCartStore } from "@/store/useCartStore";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, Navigation } from "swiper/modules";
 import { useStoreHours } from "@/hooks/useStoreHours";
@@ -13,6 +13,7 @@ import QuickViewModal from "@/pages/homePage/product/QuickViewModal";
 
 export default function FlashSaleSection({ products, getThumbnail, getDefaultCartSize }) {
   const { isOpen, nextOpenMessage } = useStoreHours();
+  const { addItem } = useCartStore();
   const [activeSale, setActiveSale] = useState(null);
   const [timeLeft, setTimeLeft] = useState({ hours: 0, minutes: 0, seconds: 0 });
   const [addedCartItem, setAddedCartItem] = useState(null);
@@ -103,9 +104,8 @@ export default function FlashSaleSection({ products, getThumbnail, getDefaultCar
       toppings: [],
     };
 
-    cartService.addItem(cartItem);
+    addItem(cartItem);
     setAddedCartItem(cartItem);
-    window.dispatchEvent(new Event("cartUpdated"));
   };
 
   return (
