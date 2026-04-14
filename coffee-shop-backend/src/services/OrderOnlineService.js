@@ -563,11 +563,6 @@ class OrderOnlineService {
             receiver_email: receiver_email?.trim() || null,
             address: deliveryAddressWithArea,
             note: note?.trim() || null,
-            store_latitude: null,
-            store_longitude: null,
-            customer_latitude: null,
-            customer_longitude: null,
-            coordinates_source: null,
           });
         }
       }
