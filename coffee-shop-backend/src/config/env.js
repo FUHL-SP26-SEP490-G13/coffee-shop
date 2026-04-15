@@ -20,7 +20,7 @@ module.exports = {
   JWT_REFRESH_EXPIRES_IN: process.env.JWT_REFRESH_EXPIRES_IN || '30d',
 
   // CORS
-  CLIENT_URL: process.env.CLIENT_URL || 'http://localhost:3000',
+  CLIENT_URL: process.env.CLIENT_URL || 'http://localhost:5173',
 
   // PayOS
   PAYOS_CLIENT_ID: process.env.PAYOS_CLIENT_ID || '',
