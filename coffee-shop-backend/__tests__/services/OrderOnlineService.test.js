@@ -223,6 +223,40 @@ describe("OrderOnlineService", () => {
       expect(actualError).toContain(expectedError);
       expect(OrderRepository.getConnection).not.toHaveBeenCalled();
     });
+
+    it("OrderOnlineService - checkout - TC-03: OON-SVC-CR-003 - CRUD: CREATE", async () => {
+      const payload = {
+        order_type: "delivery",
+        payment_method: "cash",
+        receiver_name: "   ",
+        receiver_phone: "   ",
+        items: [{ product_size_id: 1, quantity: 1 }],
+      };
+      const expectedError = "Số điện thoại không hợp lệ";
+      logCase({
+        tcid: "OON-SVC-CR-003",
+        crud: "CREATE",
+        scenario: "checkout lỗi receiver_phone chỉ chứa khoảng trắng",
+        input: { payload, user: null },
+        expected: { error: expectedError },
+      });
+
+      let actualError = null;
+      try {
+        await OrderOnlineService.checkout(payload, null);
+      } catch (error) {
+        actualError = error.message;
+      }
+      logReality({ error: actualError });
+
+      expect(actualError).toContain(expectedError);
+      expect(OrderRepository.getConnection).toHaveBeenCalled();
+      expect(mockConnection.rollback).toHaveBeenCalled();
+      expect(mockConnection.release).toHaveBeenCalled();
+      expect(
+        OrderRepository.countPendingUnpaidOnlineOrdersByPhone
+      ).not.toHaveBeenCalled();
+    });
   });
 
   describe("status and payment", () => {

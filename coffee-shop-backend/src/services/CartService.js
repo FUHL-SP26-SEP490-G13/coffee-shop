@@ -23,8 +23,6 @@ class CartService {
       .join("|");
   }
 
-
-
   buildCartKey(item) {
     return [
       Number(item.product_size_id),
@@ -35,11 +33,11 @@ class CartService {
   getBasePrice(item) {
     return Number(
       item?.basePrice ??
-        item?.base_price ??
-        item?.price ??
-        item?.selectedPrice ??
-        item?.unit_price ??
-        0
+      item?.base_price ??
+      item?.price ??
+      item?.selectedPrice ??
+      item?.unit_price ??
+      0
     );
   }
 
@@ -105,7 +103,6 @@ class CartService {
       quantity,
       basePrice,
       base_price: basePrice,
-      saved_for_later: Number(item?.saved_for_later) === 1 ? 1 : 0,
       toppings,
     };
   }
@@ -122,15 +119,9 @@ class CartService {
       const incomingCartItems = Array.isArray(payload?.items)
         ? payload.items
         : [];
-      const incomingSavedItems = Array.isArray(payload?.saved_items)
-        ? payload.saved_items
-        : [];
 
       for (const rawItem of incomingCartItems) {
-        const item = await this.validateItem(connection, {
-          ...rawItem,
-          saved_for_later: 0,
-        });
+        const item = await this.validateItem(connection, rawItem);
 
         const cartItemId = await CartRepository.insertCartItem(
           {
@@ -138,37 +129,6 @@ class CartService {
             product_size_id: item.product_size_id,
             quantity: item.quantity,
             base_price: item.base_price,
-            saved_for_later: 0,
-          },
-          connection
-        );
-
-        for (const topping of item.toppings) {
-          await CartRepository.insertCartItemTopping(
-            {
-              cart_item_id: cartItemId,
-              topping_id: topping.topping_id,
-              quantity: topping.quantity,
-              price: topping.price,
-            },
-            connection
-          );
-        }
-      }
-
-      for (const rawItem of incomingSavedItems) {
-        const item = await this.validateItem(connection, {
-          ...rawItem,
-          saved_for_later: 1,
-        });
-
-        const cartItemId = await CartRepository.insertCartItem(
-          {
-            cart_id: cartId,
-            product_size_id: item.product_size_id,
-            quantity: item.quantity,
-            base_price: item.base_price,
-            saved_for_later: 1,
           },
           connection
         );
@@ -234,14 +194,8 @@ class CartService {
       payload.items || []
     );
 
-    const mergedSavedItems = this.mergeCollections(
-      currentCart.savedItems,
-      payload.saved_items || []
-    );
-
     return await this.replaceCart(userId, {
       items: mergedItems,
-      saved_items: mergedSavedItems,
     });
   }
 
@@ -298,7 +252,6 @@ class CartService {
           basePrice,
           base_price: basePrice,
           price: basePrice,
-          saved_for_later: Number(row.saved_for_later || 0),
           toppings,
           cartKey: this.buildCartKey({
             product_size_id: row.product_size_id,
@@ -308,15 +261,7 @@ class CartService {
         };
       });
 
-      const cartItems = normalized.filter(
-        (item) => Number(item.saved_for_later) === 0
-      );
-
-      const savedItems = normalized.filter(
-        (item) => Number(item.saved_for_later) === 1
-      );
-
-      const totalAmount = cartItems.reduce(
+      const totalAmount = normalized.reduce(
         (sum, item) =>
           sum + item.unitPrice * Math.max(1, Number(item.quantity || 1)),
         0
@@ -324,8 +269,7 @@ class CartService {
 
       return {
         cartId,
-        cartItems,
-        savedItems,
+        cartItems: normalized,
         totalAmount,
       };
     } finally {

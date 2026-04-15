@@ -30,17 +30,15 @@ class CartRepository {
         cart_id,
         product_size_id,
         quantity,
-        base_price,
-        saved_for_later
+        base_price
       )
-      VALUES (?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?)
       `,
       [
         data.cart_id,
         data.product_size_id,
         data.quantity,
         data.base_price,
-        data.saved_for_later,
       ]
     );
 
@@ -109,7 +107,6 @@ class CartRepository {
         ci.product_size_id,
         ci.quantity,
         ci.base_price,
-        ci.saved_for_later,
         ps.size,
         p.id AS product_id,
         p.name,

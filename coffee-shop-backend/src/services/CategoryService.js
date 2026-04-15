@@ -102,6 +102,7 @@ class CategoryService {
       updateData.image_url = data.image_url;
     }
 
+
     return CategoryRepository.update(id, updateData);
   }
 

@@ -145,6 +145,7 @@ describe('ProductService', () => {
       console.log('\n===== ProductService.createProduct (TC-1) =====');
       const data = {
         name: 'Cà phê đen',
+        code: 'cf01',
         category_id: 1,
         status: 'available',
         description: 'Ngon',
@@ -157,6 +158,8 @@ describe('ProductService', () => {
       
       CategoryRepository.findById.mockResolvedValue({ id: 1, is_deleted: 0 });
       ProductRepository.findByName.mockResolvedValue(null);
+      ProductRepository.findByCode.mockResolvedValue(null);
+      ProductRepository.findBySlug.mockResolvedValue(null);
       ProductRepository.create.mockResolvedValue({ id: 1 });
       ProductImageRepository.create.mockResolvedValue({});
       ProductRepository.findByIdWithDetails.mockResolvedValue({ id: 1, name: 'Cà phê đen' });
@@ -167,9 +170,11 @@ describe('ProductService', () => {
 
       expect(ProductRepository.create).toHaveBeenCalledWith({
         name: 'Cà phê đen',
+        code: 'CF01',
         category_id: 1,
         status: 'available',
-        description: 'Ngon'
+        description: 'Ngon',
+        slug: 'ca-phe-den'
       });
       expect(ProductImageRepository.create).toHaveBeenCalledTimes(2);
       expect(ProductImageRepository.create).toHaveBeenNthCalledWith(1, {
@@ -204,27 +209,43 @@ describe('ProductService', () => {
       ProductRepository.findByName.mockResolvedValue({ id: 1, name: 'Cà phê đen' });
 
       console.log('OUTPUT EXPECT: throw ErrorResponse(409)');
-      await expect(ProductService.createProduct({ name: 'Cà phê đen', category_id: 1 }))
-        .rejects.toThrow('Tên product đã tồn tại');
+      await expect(ProductService.createProduct({ name: 'Cà phê đen', code: 'CF02', category_id: 1 }))
+        .rejects.toThrow('Tên sản phẩm đã tồn tại');
       console.log('OUTPUT REALITY: threw error as expected');
     });
 
     it('ProductService - createProduct - TC-04: should throw 400 when too many images', async () => {
       console.log('\n===== ProductService.createProduct (TC-4) =====');
-      console.log('INPUT: images.length = 6 (> 5)');
+      console.log('INPUT: images.length = 6 (> 3)');
       
       CategoryRepository.findById.mockResolvedValue({ id: 1, is_deleted: 0 });
       ProductRepository.findByName.mockResolvedValue(null);
 
       const data = {
         name: 'Test',
+        code: 'TEST01',
         category_id: 1,
         images: [1, 2, 3, 4, 5, 6].map(i => ({ url: `http://img${i}.jpg` }))
       };
 
       console.log('OUTPUT EXPECT: throw ErrorResponse(400)');
       await expect(ProductService.createProduct(data))
-        .rejects.toThrow('Tối đa chỉ được upload 5 ảnh');
+        .rejects.toThrow('Tối đa chỉ được upload 3 ảnh');
+      console.log('OUTPUT REALITY: threw error as expected');
+    });
+
+    it('ProductService - createProduct - TC-05: should throw 409 when product code already exists', async () => {
+      console.log('\n===== ProductService.createProduct (TC-5) =====');
+      console.log('INPUT: code = "CF-001" (exists)');
+
+      CategoryRepository.findById.mockResolvedValue({ id: 1, is_deleted: 0 });
+      ProductRepository.findByName.mockResolvedValue(null);
+      ProductRepository.findByCode.mockResolvedValue({ id: 99, code: 'CF-001' });
+
+      console.log('OUTPUT EXPECT: throw ErrorResponse(409)');
+      await expect(
+        ProductService.createProduct({ name: 'Cà phê muối', code: 'CF-001', category_id: 1 }),
+      ).rejects.toThrow('Mã code sản phẩm đã tồn tại');
       console.log('OUTPUT REALITY: threw error as expected');
     });
   });
@@ -244,6 +265,7 @@ describe('ProductService', () => {
       
       ProductRepository.findById.mockResolvedValue({ id: 1, name: 'Old' });
       ProductRepository.findByName.mockResolvedValue(null);
+      ProductRepository.findBySlug.mockResolvedValue(null);
       ProductRepository.update.mockResolvedValue(true);
       ProductRepository.findByIdWithDetails.mockResolvedValue({ id: 1, name: 'Cà phê đen mới' });
 
@@ -253,6 +275,7 @@ describe('ProductService', () => {
 
       expect(ProductRepository.update).toHaveBeenCalledWith(1, {
         name: 'Cà phê đen mới',
+        slug: 'ca-phe-den-moi',
         status: 'unavailable',
         description: 'Updated'
       });
@@ -279,7 +302,7 @@ describe('ProductService', () => {
 
       console.log('OUTPUT EXPECT: throw ErrorResponse(409)');
       await expect(ProductService.updateProduct(1, { name: 'Cà phê sữa' }))
-        .rejects.toThrow('Tên product đã tồn tại');
+        .rejects.toThrow('Tên sản phẩm đã tồn tại');
       console.log('OUTPUT REALITY: threw error as expected');
     });
 
@@ -370,6 +393,32 @@ describe('ProductService', () => {
       })).rejects.toThrow('Không được có size trùng lặp');
       console.log('OUTPUT REALITY: threw error as expected');
     });
+
+    it('ProductService - updateProduct - TC-08: should throw 400 when size format has extra spaces', async () => {
+      console.log('\n===== ProductService.updateProduct (TC-8) =====');
+      console.log('INPUT: sizes = [{ size: " S ", price: 22000 }]');
+
+      ProductRepository.findById.mockResolvedValue({ id: 1 });
+
+      console.log('OUTPUT EXPECT: throw ErrorResponse(400)');
+      await expect(
+        ProductService.updateProduct(1, { sizes: [{ size: ' S ', price: 22000 }] }),
+      ).rejects.toThrow('Size " S " không hợp lệ');
+      console.log('OUTPUT REALITY: threw error as expected');
+    });
+
+    it('ProductService - updateProduct - TC-09: should throw 400 when price is not positive', async () => {
+      console.log('\n===== ProductService.updateProduct (TC-9) =====');
+      console.log('INPUT: sizes = [{ size: "S", price: 0 }]');
+
+      ProductRepository.findById.mockResolvedValue({ id: 1 });
+
+      console.log('OUTPUT EXPECT: throw ErrorResponse(400)');
+      await expect(
+        ProductService.updateProduct(1, { sizes: [{ size: 'S', price: 0 }] }),
+      ).rejects.toThrow('Giá cho size S phải là số dương');
+      console.log('OUTPUT REALITY: threw error as expected');
+    });
   });
 
   // ============================================================
@@ -449,6 +498,21 @@ describe('ProductService', () => {
 
       expect(ProductRepository.findAllWithDetails).toHaveBeenCalled();
     });
+
+    it('ProductService - searchProducts - TC-04: should return all products when keyword is full spaces', async () => {
+      console.log('\n===== ProductService.searchProducts (TC-4) =====');
+      console.log('INPUT: keyword = "        "');
+
+      const mockProducts = [{ id: 1 }, { id: 2 }];
+      ProductRepository.findAllWithDetails.mockResolvedValue(mockProducts);
+
+      console.log('OUTPUT EXPECT: call getAllProducts');
+      const result = await ProductService.searchProducts('        ', {});
+      console.log('OUTPUT REALITY:', result);
+
+      expect(ProductRepository.findAllWithDetails).toHaveBeenCalled();
+      expect(result).toEqual(mockProducts);
+    });
   });
 
   // ============================================================
@@ -459,7 +523,7 @@ describe('ProductService', () => {
       console.log('\n===== ProductService.restoreProduct (TC-1) =====');
       console.log('INPUT: id = 1');
       
-      ProductRepository.findById.mockResolvedValue({ id: 1, status: 'unavailable' });
+      ProductRepository.findById.mockResolvedValue({ id: 1, status: 'unavailable', is_deleted: 1 });
       ProductRepository.update.mockResolvedValue(true);
       ProductRepository.findByIdWithDetails.mockResolvedValue({ id: 1, status: 'available' });
 
@@ -467,7 +531,7 @@ describe('ProductService', () => {
       const result = await ProductService.restoreProduct(1);
       console.log('OUTPUT REALITY:', result);
 
-      expect(ProductRepository.update).toHaveBeenCalledWith(1, { status: 'available' });
+      expect(ProductRepository.update).toHaveBeenCalledWith(1, { is_deleted: 0 });
       expect(result).toEqual({ id: 1, status: 'available' });
     });
 

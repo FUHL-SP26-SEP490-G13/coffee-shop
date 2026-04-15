@@ -1,21 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import {
-  Banknote,
-  CircleHelp,
-  MapPin,
-  Loader2,
-} from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { Banknote, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import {
   Dialog,
   DialogContent,
@@ -23,7 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { cartService } from "@/services/cartService";
+import { useCartStore } from "@/store/useCartStore";
 import authenticationService from "@/services/authenticationService";
 import PlaceOrderButton from "@/components/order/PlaceOrderButton";
 import ReputationScoreDialog from "@/components/order/ReputationScoreDialog";
@@ -34,7 +22,6 @@ import { validateOrderField } from "@/utils/orderValidation";
 import PayOSLogo from "/logo/payOS.svg";
 import reputationService from "@/services/reputationService";
 import {
-  getReputationTierLabel,
   validateOrderPermissions,
 } from "@/utils/reputationValidation";
 import { toast } from "sonner";
@@ -49,16 +36,8 @@ import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 export default function CheckoutPage() {
   useDocumentTitle("Thanh toán");
   const navigate = useNavigate();
-  const [cart, setCart] = useState(() => cartService.getCart());
+  const { cart, getItemSubtotal } = useCartStore();
   const { isOpen, nextOpenMessage } = useStoreHours();
-
-  useEffect(() => {
-    const handleCartUpdate = () => {
-      setCart(cartService.getCart());
-    };
-    window.addEventListener("cartUpdated", handleCartUpdate);
-    return () => window.removeEventListener("cartUpdated", handleCartUpdate);
-  }, []);
   const token =
     localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN) ||
     sessionStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
@@ -257,7 +236,7 @@ export default function CheckoutPage() {
         setReputationTier(String(reputation?.reputation_tier || "SILVER"));
         setReputationFrozen(
           Number(reputation?.is_frozen || 0) === 1 ||
-          reputation?.is_frozen === true
+            reputation?.is_frozen === true
         );
       } catch (error) {
         console.error("Lỗi lấy điểm uy tín theo số điện thoại:", error);
@@ -305,20 +284,9 @@ export default function CheckoutPage() {
   const selectedAddress =
     addresses.find((item) => item.id === selectedAddressId) || null;
 
-  const normalizedReputationTier = useMemo(() => {
-    const tier = String(reputationTier || "").toUpperCase();
-    if (["BRONZE", "SILVER", "GOLD", "DIAMOND"].includes(tier)) {
-      return tier;
-    }
-    return getReputationTierLabel(reputationScore);
-  }, [reputationTier, reputationScore]);
-
   const subtotalAmount = useMemo(() => {
-    return cart.reduce(
-      (sum, item) => sum + cartService.getItemSubtotal(item),
-      0
-    );
-  }, [cart]);
+    return cart.reduce((sum, item) => sum + getItemSubtotal(item), 0);
+  }, [cart, getItemSubtotal]);
 
   const regularAmount = useMemo(() => {
     return cart.reduce((sum, item) => {
@@ -328,9 +296,9 @@ export default function CheckoutPage() {
       if (isFlashSale) {
         return sum; // Do not include in regular amount
       }
-      return sum + cartService.getItemSubtotal(item);
+      return sum + getItemSubtotal(item);
     }, 0);
-  }, [cart, activeSale]);
+  }, [cart, activeSale, getItemSubtotal]);
 
   const shippingFee = 0;
   const discountAmount = Number(appliedDiscount?.discount_amount || 0);
@@ -495,8 +463,6 @@ export default function CheckoutPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900">
-
-
       <section className="flex-1 w-full px-4 sm:px-6 lg:px-8 py-10">
         <div className="w-full mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 border rounded-2xl p-6 bg-white dark:bg-gray-900">
@@ -561,8 +527,9 @@ export default function CheckoutPage() {
                 )}
                 {!errors.receiver_phone && form.receiver_phone ? (
                   <p
-                    className={`mt-1 text-xs ${reputationFrozen ? "text-red-600" : "text-emerald-600"
-                      }`}
+                    className={`mt-1 text-xs ${
+                      reputationFrozen ? "text-red-600" : "text-emerald-600"
+                    }`}
                   >
                     {reputationFrozen
                       ? "Số điện thoại này đã bị khóa"
@@ -601,7 +568,11 @@ export default function CheckoutPage() {
                 <label className="text-sm font-medium mb-2 block">
                   Hình thức nhận hàng
                 </label>
-                <Input value="Giao hàng" disabled className="bg-gray-100 dark:bg-gray-800" />
+                <Input
+                  value="Giao hàng"
+                  disabled
+                  className="bg-gray-100 dark:bg-gray-800"
+                />
               </div>
             </div>
 
@@ -612,7 +583,8 @@ export default function CheckoutPage() {
                     <div className="flex items-center gap-2 mb-2">
                       <MapPin className="w-4 h-4 text-amber-600" />
                       <label className="text-sm font-medium block">
-                        Địa chỉ đã lưu (Sử dụng theo đơn vị hành chính 2 cấp Xã phường, tỉnh thành từ 01/07/2025)
+                        Địa chỉ đã lưu (Sử dụng theo đơn vị hành chính 2 cấp Xã
+                        phường, tỉnh thành từ 01/07/2025)
                       </label>
                     </div>
 
@@ -625,8 +597,8 @@ export default function CheckoutPage() {
                       {isAddressLoading
                         ? "Đang tải địa chỉ..."
                         : addresses.length === 0
-                          ? "Chưa có địa chỉ đã lưu"
-                          : "Chọn địa chỉ giao hàng"}
+                        ? "Chưa có địa chỉ đã lưu"
+                        : "Chọn địa chỉ giao hàng"}
                     </Button>
 
                     {addresses.length === 0 && !isAddressLoading && (
@@ -694,10 +666,11 @@ export default function CheckoutPage() {
               </label>
               {paymentValidation && (
                 <div
-                  className={`mb-3 p-3 rounded-lg text-sm ${paymentValidation.forcePayOS
-                    ? "bg-yellow-50 text-yellow-800 border border-yellow-200"
-                    : "bg-blue-50 text-blue-800 border border-blue-200"
-                    }`}
+                  className={`mb-3 p-3 rounded-lg text-sm ${
+                    paymentValidation.forcePayOS
+                      ? "bg-yellow-50 text-yellow-800 border border-yellow-200"
+                      : "bg-blue-50 text-blue-800 border border-blue-200"
+                  }`}
                 >
                   <p className="font-medium">{paymentValidation.message}</p>
                   {paymentValidation.reason && (
@@ -757,20 +730,22 @@ export default function CheckoutPage() {
                           payment_method: opt.value,
                         }));
                       }}
-                      className={`flex items-center gap-3 rounded-xl border-2 px-4 py-3 text-left transition-all ${isDisabled
+                      className={`flex items-center gap-3 rounded-xl border-2 px-4 py-3 text-left transition-all ${
+                        isDisabled
                           ? "border-gray-200  bg-gray-100 dark:bg-gray-800 opacity-50 cursor-not-allowed"
                           : selected
-                            ? "border-amber-500 bg-amber-50 dark:bg-amber-900/20"
-                            : "border-gray-200  bg-white dark:bg-gray-900 hover:border-gray-300"
-                        }`}
+                          ? "border-amber-500 bg-amber-50 dark:bg-amber-900/20"
+                          : "border-gray-200  bg-white dark:bg-gray-900 hover:border-gray-300"
+                      }`}
                     >
                       <span
-                        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${isDisabled
+                        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
+                          isDisabled
                             ? "bg-gray-200"
                             : selected
-                              ? "bg-amber-100 dark:bg-amber-900/30"
-                              : "bg-gray-100 dark:bg-gray-800"
-                          }`}
+                            ? "bg-amber-100 dark:bg-amber-900/30"
+                            : "bg-gray-100 dark:bg-gray-800"
+                        }`}
                       >
                         {isDisabled ? (
                           <span className="text-xs text-gray-500 dark:text-gray-400">
@@ -782,30 +757,33 @@ export default function CheckoutPage() {
                       </span>
                       <span>
                         <span
-                          className={`block text-sm font-medium ${isDisabled
+                          className={`block text-sm font-medium ${
+                            isDisabled
                               ? "text-gray-500 dark:text-gray-400"
                               : "text-gray-900 dark:text-gray-100"
-                            }`}
+                          }`}
                         >
                           {opt.label}
                           {isDisabled && " (Không khả dụng)"}
                         </span>
                         <span
-                          className={`block text-xs ${isDisabled
+                          className={`block text-xs ${
+                            isDisabled
                               ? "text-gray-400"
                               : "text-gray-500 dark:text-gray-400"
-                            }`}
+                          }`}
                         >
                           {opt.sub}
                         </span>
                       </span>
                       <span
-                        className={`ml-auto h-4 w-4 shrink-0 rounded-full border-2 ${isDisabled
+                        className={`ml-auto h-4 w-4 shrink-0 rounded-full border-2 ${
+                          isDisabled
                             ? "border-gray-300 bg-gray-300"
                             : selected
-                              ? "border-amber-500 bg-amber-50 dark:bg-amber-900/200"
-                              : "border-gray-300"
-                          }`}
+                            ? "border-amber-500 bg-amber-50 dark:bg-amber-900/200"
+                            : "border-gray-300"
+                        }`}
                       />
                     </button>
                   );
@@ -855,8 +833,9 @@ export default function CheckoutPage() {
                         className="w-12 h-12 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-100 dark:border-gray-800 flex items-center justify-center p-1.5 overflow-hidden mix-blend-multiply dark:mix-blend-normal cursor-pointer transition-opacity hover:opacity-80"
                         onClick={() =>
                           navigate(
-                            `/${item.slug ||
-                            "products/" + (item.product_id || item.id)
+                            `/${
+                              item.slug ||
+                              "products/" + (item.product_id || item.id)
                             }`
                           )
                         }
@@ -874,19 +853,23 @@ export default function CheckoutPage() {
                           }}
                         />
                       </div>
-                      {activeSale && activeSale.product_ids?.includes(Number(item.product_id || item.id)) && (
-                        <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[8px] font-bold px-1 py-0.5 rounded-sm shadow-sm whitespace-nowrap z-10">
-                          -{activeSale.discount_percent}%
-                        </span>
-                      )}
+                      {activeSale &&
+                        activeSale.product_ids?.includes(
+                          Number(item.product_id || item.id)
+                        ) && (
+                          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[8px] font-bold px-1 py-0.5 rounded-sm shadow-sm whitespace-nowrap z-10">
+                            -{activeSale.discount_percent}%
+                          </span>
+                        )}
                     </div>
                     <div>
                       <p
                         className="font-medium text-sm leading-snug cursor-pointer hover:text-amber-600 transition-colors"
                         onClick={() =>
                           navigate(
-                            `/${item.slug ||
-                            "products/" + (item.product_id || item.id)
+                            `/${
+                              item.slug ||
+                              "products/" + (item.product_id || item.id)
                             }`
                           )
                         }
@@ -922,7 +905,7 @@ export default function CheckoutPage() {
                   </div>
 
                   <p className="text-sm font-semibold mt-0.5 shrink-0">
-                    {cartService.getItemSubtotal(item).toLocaleString("vi-VN")}đ
+                    {getItemSubtotal(item).toLocaleString("vi-VN")}đ
                   </p>
                 </div>
               ))}
@@ -1096,10 +1079,11 @@ export default function CheckoutPage() {
                     key={item.id}
                     type="button"
                     onClick={() => handleSelectAddress(item)}
-                    className={`w-full text-left border rounded-xl p-4 transition ${isSelected
-                      ? "border-amber-500 bg-amber-50 dark:bg-amber-900/20"
-                      : "border-gray-200  hover:border-gray-300 bg-white dark:bg-gray-900"
-                      }`}
+                    className={`w-full text-left border rounded-xl p-4 transition ${
+                      isSelected
+                        ? "border-amber-500 bg-amber-50 dark:bg-amber-900/20"
+                        : "border-gray-200  hover:border-gray-300 bg-white dark:bg-gray-900"
+                    }`}
                   >
                     <div className="flex items-center justify-between gap-3 mb-2">
                       <div className="flex items-center gap-2">
@@ -1135,10 +1119,8 @@ export default function CheckoutPage() {
         open={isReputationDialogOpen}
         onClose={() => setIsReputationDialogOpen(false)}
         currentScore={reputationScore}
-        currentTier={normalizedReputationTier}
         reputationRules={reputationRules}
       />
-
     </div>
   );
 }

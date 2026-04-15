@@ -120,6 +120,16 @@ describe('AdminDashboardService', () => {
       // Assert
       expect(AdminDashboardRepository.getRevenueSeries).toHaveBeenCalledWith({ days: 30 });
     });
+
+    it('AdminDashboardService - getRevenueSeries - TC-03: should pass through full-space days value for repository handling', async () => {
+      const input = { days: '        ' };
+      AdminDashboardRepository.getRevenueSeries.mockResolvedValue([]);
+
+      const result = await AdminDashboardService.getRevenueSeries(input);
+
+      expect(AdminDashboardRepository.getRevenueSeries).toHaveBeenCalledWith(input);
+      expect(result).toEqual([]);
+    });
   });
 
   // ========== GET TOP PRODUCTS TESTS ==========

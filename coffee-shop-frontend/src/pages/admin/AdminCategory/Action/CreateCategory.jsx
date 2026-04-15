@@ -222,6 +222,7 @@ export default function CreateCategory({ open, onClose, onSuccess }) {
             )}
           </div>
 
+
           {/* Hình ảnh */}
           <div className='space-y-2'>
             <Label htmlFor='image'>Hình ảnh</Label>
