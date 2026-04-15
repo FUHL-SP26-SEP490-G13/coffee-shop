@@ -106,14 +106,19 @@ class AttendanceService {
         shift.shift_date,
         shift.start_time,
       );
+      const shiftEnd = this._buildShiftEnd(
+        shift.shift_date,
+        shift.start_time,
+        shift.end_time,
+      );
       const shiftStartMs = shiftStart.getTime();
+      const shiftEndMs = shiftEnd.getTime();
 
       const minCheckinMs =
         shiftStartMs - Number(settings.early_checkin_minutes) * 60 * 1000;
-      const maxCheckinMs =
-        shiftStartMs + Number(settings.max_late_minutes) * 60 * 1000;
 
-      if (nowMs >= minCheckinMs && nowMs <= maxCheckinMs) {
+      // Cho phép check-in từ lúc mở cửa sớm đến TRƯỚC khi ca kết thúc
+      if (nowMs >= minCheckinMs && nowMs < shiftEndMs) {
         targetShift = shift;
         specificErrorMsg = null;
         break;
@@ -129,8 +134,8 @@ class AttendanceService {
             specificErrorMsg =
               `Xin chào ${user.first_name}, ca ${shift.shift_name} (${shiftDateStr}) chưa mở điểm danh. ` +
               `(Chỉ cho phép check-in sớm ${settings.early_checkin_minutes} phút trước ${shift.start_time})`;
-          } else if (nowMs > maxCheckinMs) {
-            specificErrorMsg = `Xin chào ${user.first_name}, bạn đã quá thời gian check-in cho ca ${shift.shift_name} (${shiftDateStr}).`;
+          } else if (nowMs >= shiftEndMs) {
+            specificErrorMsg = `Xin chào ${user.first_name}, ca ${shift.shift_name} (${shiftDateStr}) đã kết thúc, không thể check-in.`;
           }
         }
       }
@@ -177,6 +182,7 @@ class AttendanceService {
     );
 
     const diffMs = timeObj.getTime() - shiftStart.getTime();
+    // diffMinutes < 0 nghĩa là check-in sớm -> không tính muộn
     const diffMinutes = Math.floor(diffMs / 60000);
 
     let status = ATTENDANCE_STATUS.PRESENT;
