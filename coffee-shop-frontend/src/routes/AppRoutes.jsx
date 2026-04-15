@@ -57,6 +57,7 @@ import AdminReputation from "@/pages/admin/AdminReputation/AdminReputation";
 import AdminLoyalty from "@/pages/admin/AdminLoyalty/AdminLoyalty";
 
 import AdminEndOfDayReport from "@/pages/admin/AdminEndOfDayReport/AdminEndOfDayReport";
+import AdminShiftReport from "@/pages/admin/AdminShiftReport/AdminShiftReport";
 import TakeawayPOS from '../pages/staff/TakeawayPOS'
 import { OrderDelivery } from '@/pages/staff/StaffOrderList';
 import { StaffDashboard } from "@/pages/staff/StaffDashboard/StaffDashboard";
@@ -226,6 +227,7 @@ const AppRoutes = () => {
         <Route index element={<Navigate to="dashboard" replace />} />
         <Route path="dashboard" element={<AdminDB />} />
         <Route path="end-of-day-report" element={<AdminEndOfDayReport />} />
+        <Route path="shift-report" element={<AdminShiftReport />} />
         <Route path="menu/products" element={<AdminProducts />} />
         <Route path="menu/categories" element={<AdminCategories />} />
         <Route path="orders" element={<AdminOrders />} />

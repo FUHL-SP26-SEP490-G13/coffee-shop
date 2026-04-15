@@ -62,6 +62,13 @@ const adminDBService = {
     });
     return response.data;
   },
+
+  getShiftReport: async (date) => {
+    const res = await axiosClient.get(`/dashboard/shift-report`, {
+      params: { date },
+    });
+    return res.data;
+  },
 };
 
 export default adminDBService;
