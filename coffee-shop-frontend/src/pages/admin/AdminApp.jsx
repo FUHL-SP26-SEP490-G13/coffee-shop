@@ -27,6 +27,8 @@ import {
   Sun,
   Mailbox,
   FileText,
+  UserCheck,
+  Settings2,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import authenticationService from '../../services/authenticationService';
@@ -88,6 +90,7 @@ export default function AdminApp() {
 
        "/admin/schedule/templates": "Quản lý ca làm",
        "/admin/schedule/list": "Lịch làm việc",
+       "/admin/attendance": "Điểm danh nhân viên",
        "/admin/receipt-settings": "Cấu hình hệ thống",
        "/admin/profile": "Thông tin cá nhân"
      };
@@ -669,6 +672,18 @@ export default function AdminApp() {
                   </div>
                 </div>
                 <NavLink
+                  to="/admin/attendance"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={({ isActive }) =>
+                    `w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                      isActive ? "bg-primary text-white" : "text-muted-foreground hover:bg-secondary"
+                    }`
+                  }
+                >
+                  <UserCheck className="w-4 h-4" />
+                  <span className="text-sm tracking-wide">Điểm danh nhân viên</span>
+                </NavLink>
+                <NavLink
                   to="/admin/receipt-settings"
                   onClick={() => setMobileMenuOpen(false)}
                   className={({ isActive }) =>
@@ -677,7 +692,7 @@ export default function AdminApp() {
                     }`
                   }
                 >
-                  <ClipboardList className="w-4 h-4" />
+                  <Settings2 className="w-4 h-4" />
                   <span className="text-sm tracking-wide">Cấu hình hệ thống</span>
                 </NavLink>
                 <NavLink

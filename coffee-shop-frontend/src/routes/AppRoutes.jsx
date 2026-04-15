@@ -23,6 +23,7 @@ import AdminDiscounts from "@/pages/admin/AdminDiscount/AdminDiscounts";
 import OrderPolicy from "@/pages/common/OrderPolicy";
 import PrivacyPolicy from "@/pages/common/PrivacyPolicy";
 import AdminApp from "../pages/admin/AdminApp";
+import AdminAttendance from "../pages/admin/AdminAttendance/AdminAttendance";
 
 import { StaffAttendance } from "@/pages/staff/StaffAttendance";
 import { StaffKitchen } from "@/pages/staff/StaffKitchen";
@@ -229,6 +230,7 @@ const AppRoutes = () => {
         <Route path="menu/categories" element={<AdminCategories />} />
         <Route path="orders" element={<AdminOrders />} />
         <Route path="users" element={<AdminUsers />} />
+        <Route path="attendance" element={<AdminAttendance />} />
         <Route path="ingredients" element={<AdminIngredients />} />
         <Route path="schedule" element={<AdminSchedulePage />}>
           <Route index element={<ShiftTemplatePage />} />

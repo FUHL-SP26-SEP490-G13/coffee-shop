@@ -6,6 +6,8 @@ const { ATTENDANCE_STATUS } = require('../config/constants');
 const formatDateStr = require('../helpers/formatDateStr');
 const formatDateTimeStr = require('../helpers/formatDateTimeStr');
 
+const CHECKOUT_GRACE_MINUTES = 30;
+
 class AttendanceService {
   async clock(pinCode) {
     if (!pinCode || pinCode.length !== 4) {
@@ -14,117 +16,173 @@ class AttendanceService {
 
     const user = await UserRepository.findByPinCode(pinCode);
     if (!user || user.isActive === 0) {
-      throw new ErrorResponse(404, 'Mã PIN không hợp lệ hoặc tài khoản đã bị khóa');
+      throw new ErrorResponse(
+        404,
+        'Mã PIN không hợp lệ hoặc tài khoản đã bị khóa',
+      );
     }
 
-    // Lấy cấu hình điểm danh (attendance_settings)
     const settings = await AttendanceSettingRepository.findSetting();
     if (!settings) {
       throw new ErrorResponse(500, 'Hệ thống chưa được cấu hình điểm danh');
     }
 
-    // Tìm các ca làm việc đã đăng ký trong hôm nay (status: 'registered')
-    const todayShifts = await AttendanceRepository.findTodayShiftsForUser(user.id);
+    const candidateShifts = await AttendanceRepository.findTodayShiftsForUser(
+      user.id,
+    );
 
-    console.log(todayShifts);
-
-    if (todayShifts.length === 0) {
-      throw new ErrorResponse(400, `Xin chào ${user.first_name}, bạn không có ca làm việc nào được duyệt trong hôm nay.`);
+    if (candidateShifts.length === 0) {
+      throw new ErrorResponse(
+        400,
+        `Xin chào ${user.first_name}, bạn không có ca làm việc nào được duyệt trong thời điểm hiện tại.`,
+      );
     }
 
     const now = new Date();
-    // Tạo mốc thời gian hh:mm dạng phút từ đầu ngày để so sánh dễ dàng
-    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    const nowMs = now.getTime();
 
-    // Tìm ca làm việc 
     let targetShift = null;
-    let clockType = null; // 'in' or 'out'
+    let specificErrorMsg = null;
+    let closestShiftDiff = null;
 
-    // Ưu tiên ca đang active (đã check-in nhưng chưa check-out)
-    for (const shift of todayShifts) {
-      if (shift.check_in && !shift.check_out) {
-        targetShift = shift;
-        clockType = 'out';
-        break;
-      }
+    // 1. Lấy tất cả ca đang mở
+    const openShifts = candidateShifts.filter(
+      (shift) => shift.check_in && !shift.check_out,
+    );
+
+    // 2. Tìm các ca còn hạn checkout
+    const validOpenShifts = openShifts
+      .map((shift) => {
+        const shiftStart = this._buildShiftStart(
+          shift.shift_date,
+          shift.start_time,
+        );
+
+        const shiftEnd = this._buildShiftEnd(
+          shift.shift_date,
+          shift.start_time,
+          shift.end_time,
+        );
+
+        const latestCheckoutTime = new Date(
+          shiftEnd.getTime() + CHECKOUT_GRACE_MINUTES * 60 * 1000,
+        );
+
+        const checkInTime = shift.check_in ? new Date(shift.check_in) : null;
+
+        const checkoutWindowStart =
+          checkInTime && checkInTime > shiftStart ? checkInTime : shiftStart;
+
+        return {
+          ...shift,
+          _shiftStart: shiftStart,
+          _shiftEnd: shiftEnd,
+          _latestCheckoutTime: latestCheckoutTime,
+          _checkInTime: checkInTime ? checkInTime.getTime() : 0,
+          _checkoutWindowStart: checkoutWindowStart,
+        };
+      })
+      .filter(
+        (shift) =>
+          now >= shift._checkoutWindowStart && now <= shift._latestCheckoutTime,
+      )
+      .sort((a, b) => {
+        if (a._checkInTime !== b._checkInTime) {
+          return b._checkInTime - a._checkInTime;
+        }
+        return b._shiftEnd.getTime() - a._shiftEnd.getTime();
+      });
+
+    // 3. Nếu có ca đang mở và còn hạn checkout -> ưu tiên checkout ca gần nhất
+    if (validOpenShifts.length > 0) {
+      return this._handleClockOut(user, validOpenShifts[0], now);
     }
 
-    // Nếu không có ca nào đang active, tìm ca gần nhất để check-in
-    let specificErrorMsg = null;
+    // 4. Nếu các ca mở đều đã quá hạn checkout thì bỏ qua chúng, vẫn cho check-in ca mới
+    for (const shift of candidateShifts) {
+      if (shift.check_in) continue;
 
-    if (!targetShift) {
-      let closestShiftDiff = null;
-      const nowMs = now.getTime();
+      const shiftStart = this._buildShiftStart(
+        shift.shift_date,
+        shift.start_time,
+      );
+      const shiftStartMs = shiftStart.getTime();
 
-      for (const shift of todayShifts) {
-        if (!shift.check_in) {
+      const minCheckinMs =
+        shiftStartMs - Number(settings.early_checkin_minutes) * 60 * 1000;
+      const maxCheckinMs =
+        shiftStartMs + Number(settings.max_late_minutes) * 60 * 1000;
+
+      if (nowMs >= minCheckinMs && nowMs <= maxCheckinMs) {
+        targetShift = shift;
+        specificErrorMsg = null;
+        break;
+      }
+
+      const diffMs = Math.abs(nowMs - shiftStartMs);
+      if (diffMs <= 12 * 60 * 60 * 1000) {
+        if (closestShiftDiff === null || diffMs < closestShiftDiff) {
+          closestShiftDiff = diffMs;
           const shiftDateStr = formatDateStr(new Date(shift.shift_date));
-          const [startH, startM] = shift.start_time.split(':');
-          const startDateObj = new Date(`${shiftDateStr}T${startH}:${startM}:00`);
-          const startMs = startDateObj.getTime();
 
-          const minCheckinMs = startMs - (settings.early_checkin_minutes * 60000);
-          const maxCheckinMs = startMs + (settings.max_late_minutes * 60000);
-
-          if (nowMs >= minCheckinMs && nowMs <= maxCheckinMs) {
-            targetShift = shift;
-            clockType = 'in';
-            specificErrorMsg = null;
-            break;
-          } else {
-            const diffMs = Math.abs(nowMs - startMs);
-
-            // Bỏ qua các ca quá xa (quá 12 tiếng) tránh báo lỗi khó hiểu (như phàn nàn về ca ngày hôm qua)
-            if (diffMs <= 12 * 3600 * 1000) {
-              if (closestShiftDiff === null || diffMs < closestShiftDiff) {
-                closestShiftDiff = diffMs;
-                if (nowMs < minCheckinMs) {
-                  specificErrorMsg = `Xin chào ${user.first_name}, ca ${shift.shift_name} (${shiftDateStr}) chưa mở điểm danh. (Chỉ cho phép check-in sớm ${settings.early_checkin_minutes} phút trước ${shift.start_time})`;
-                } else if (nowMs > maxCheckinMs) {
-                  specificErrorMsg = `Xin chào ${user.first_name}, bạn đã bị chặn điểm danh vì đến quá muộn cho ca ${shift.shift_name} (${shiftDateStr}).`;
-                }
-              }
-            }
+          if (nowMs < minCheckinMs) {
+            specificErrorMsg =
+              `Xin chào ${user.first_name}, ca ${shift.shift_name} (${shiftDateStr}) chưa mở điểm danh. ` +
+              `(Chỉ cho phép check-in sớm ${settings.early_checkin_minutes} phút trước ${shift.start_time})`;
+          } else if (nowMs > maxCheckinMs) {
+            specificErrorMsg = `Xin chào ${user.first_name}, bạn đã quá thời gian check-in cho ca ${shift.shift_name} (${shiftDateStr}).`;
           }
         }
       }
     }
 
-    if (!targetShift) {
-      const allCompleted = todayShifts.every(s => s.check_in && s.check_out);
-      if (allCompleted) {
-        throw new ErrorResponse(400, `Xin chào ${user.first_name}, bạn đã hoàn thành (check-in và check-out) cho tất cả ca làm việc hôm nay.`);
-      }
-
-      // Ưu tiên báo lỗi chi tiết nếu có
-      if (specificErrorMsg) {
-        throw new ErrorResponse(400, specificErrorMsg);
-      }
-
-      throw new ErrorResponse(400, `Xin chào ${user.first_name}, hiện tại không nằm trong khung giờ điểm danh cho thẻ ca làm của bạn.`);
-    }
-
-    // Thực hiện clock in/out
-    if (clockType === 'in') {
+    if (targetShift) {
       return this._handleClockIn(user, targetShift, now, settings);
-    } else {
-      return this._handleClockOut(user, targetShift, now, settings);
     }
+
+    if (specificErrorMsg) {
+      throw new ErrorResponse(400, specificErrorMsg);
+    }
+
+    throw new ErrorResponse(
+      400,
+      `Xin chào ${user.first_name}, hiện tại không nằm trong khung giờ điểm danh cho ca làm của bạn.`,
+    );
+  }
+
+  _buildShiftStart(shiftDate, startTime) {
+    const shiftDateStr = formatDateStr(new Date(shiftDate));
+    const normalizedStart = String(startTime).slice(0, 5);
+    return new Date(`${shiftDateStr}T${normalizedStart}:00`);
+  }
+
+  _buildShiftEnd(shiftDate, startTime, endTime) {
+    const shiftDateStr = formatDateStr(new Date(shiftDate));
+    const normalizedStart = String(startTime).slice(0, 5);
+    const normalizedEnd = String(endTime).slice(0, 5);
+
+    let end = new Date(`${shiftDateStr}T${normalizedEnd}:00`);
+
+    if (normalizedEnd <= normalizedStart) {
+      end.setDate(end.getDate() + 1);
+    }
+
+    return end;
   }
 
   async _handleClockIn(user, targetShift, timeObj, settings) {
-    // Dùng Date object để tính toán lệch giờ chính xác
-    const shiftDateStr = formatDateStr(new Date(targetShift.shift_date));
-    const [startH, startM] = targetShift.start_time.split(':');
-    const startDateObj = new Date(`${shiftDateStr}T${startH}:${startM}:00`);
+    const shiftStart = this._buildShiftStart(
+      targetShift.shift_date,
+      targetShift.start_time,
+    );
 
-    const diffMs = timeObj.getTime() - startDateObj.getTime();
+    const diffMs = timeObj.getTime() - shiftStart.getTime();
     const diffMinutes = Math.floor(diffMs / 60000);
 
     let status = ATTENDANCE_STATUS.PRESENT;
     let lateMinutes = 0;
 
-    if (diffMinutes > settings.late_after_minutes) {
+    if (diffMinutes > Number(settings.late_after_minutes)) {
       status = ATTENDANCE_STATUS.LATE;
       lateMinutes = diffMinutes;
     }
@@ -134,42 +192,52 @@ class AttendanceService {
     const newRecord = await AttendanceRepository.create({
       registration_id: targetShift.registration_id,
       check_in: checkInTime,
-      status: status
+      status,
     });
 
     return {
       message: `Xin chào ${user.first_name}, CHECK-IN thành công cho ca ${targetShift.shift_name}!`,
       type: 'check_in',
       attendance: newRecord,
-      lateMinutes: lateMinutes > 0 ? lateMinutes : 0
+      lateMinutes: lateMinutes > 0 ? lateMinutes : 0,
     };
   }
 
-  async _handleClockOut(user, targetShift, timeObj, settings) {
+  async _handleClockOut(user, targetShift, timeObj) {
+    if (!targetShift.attendance_id) {
+      throw new ErrorResponse(
+        400,
+        'Không tìm thấy bản ghi attendance để check-out.',
+      );
+    }
+
+    if (!targetShift.check_in || targetShift.check_out) {
+      throw new ErrorResponse(
+        400,
+        'Bản ghi attendance không hợp lệ để check-out.',
+      );
+    }
+
     const checkOutTime = formatDateTimeStr(timeObj);
 
-    const updatedRecord = await AttendanceRepository.update(targetShift.attendance_id, {
-      check_out: checkOutTime
-    });
+    const updatedRecord = await AttendanceRepository.update(
+      targetShift.attendance_id,
+      {
+        check_out: checkOutTime,
+      },
+    );
 
     return {
       message: `Tạm biệt ${user.first_name}, CHECK-OUT thành công!`,
       type: 'check_out',
-      attendance: updatedRecord
+      attendance: updatedRecord,
     };
   }
 
-  /**
-   * Search attendances (Manager)
-   */
   async searchAttendances(filters) {
-    const list = await AttendanceRepository.searchAttendances(filters);
-    return list;
+    return await AttendanceRepository.searchAttendances(filters);
   }
 
-  /**
-   * Update attendance manual (Manager adds note only)
-   */
   async updateAttendance(id, data) {
     const record = await AttendanceRepository.findById(id);
     if (!record) {
@@ -177,30 +245,32 @@ class AttendanceService {
     }
 
     const updatePayload = {};
-    if (data.note !== undefined) updatePayload.note = data.note;
+
+    if (data.note !== undefined) {
+      updatePayload.note = data.note;
+    }
 
     if (Object.keys(updatePayload).length === 0) {
-      throw new ErrorResponse(400, 'Chỉ được phép cập nhật ghi chú (note). Tổ chức không cho phép thay đổi dữ liệu check-in/check-out gốc.');
+      throw new ErrorResponse(
+        400,
+        'Chỉ được phép cập nhật ghi chú (note). Không cho phép thay đổi dữ liệu check-in/check-out gốc.',
+      );
     }
 
     await AttendanceRepository.update(id, updatePayload);
     return await AttendanceRepository.getAttendanceDetails(id);
   }
 
-  /**
-   * CRON JOB LOGIC
-   * Tự động quét vắng mặt & quên check-out
-   */
   async executeAutoCronLogic() {
-    let result = { missing_checkout: 0, absent: 0 }; // Giữ key missing_checkout cho tương thích API
+    const result = { absent: 0, missing_checkout: 0 };
 
-    // 1. Quét vắng mặt nguyên ngày hôm qua (chưa hề có trong attendances)
     const absents = await AttendanceRepository.findAbsentRegistrations();
+
     for (const reg of absents) {
       await AttendanceRepository.create({
         registration_id: reg.registration_id,
         status: ATTENDANCE_STATUS.ABSENT,
-        note: 'Hệ thống đánh dấu vắng mặt (Không check-in)'
+        note: 'Hệ thống đánh dấu vắng mặt do không check-in',
       });
       result.absent++;
     }

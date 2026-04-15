@@ -487,7 +487,7 @@ export default function AdminUsers() {
                                   variant="ghost"
                                   size="icon"
                                   onClick={() => handleGeneratePinClick(user)}
-                                  title="Cấp lại mã PIN hệ thống"
+                                  title="Cấp lại mã PIN"
                                   disabled={isGeneratingPin || user.isActive === 0}
                                 >
                                   <Key className="h-4 w-4 text-blue-500" />
