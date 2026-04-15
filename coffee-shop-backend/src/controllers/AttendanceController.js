@@ -27,7 +27,7 @@ class AttendanceController {
    * Lấy danh sách điểm danh với filter (Admin)
    */
   async getAll(req, res) {
-    const { page = 1, limit = 20, startDate, endDate, userId, status } = req.query;
+    const { page = 1, limit = 10, startDate, endDate, userId, status } = req.query;
     const offset = calculateOffset(page, limit);
 
     const result = await AttendanceService.searchAttendances({
@@ -51,6 +51,38 @@ class AttendanceController {
         }
       },
       'Lấy danh sách điểm danh thành công'
+    );
+  }
+
+  /**
+   * GET /api/attendance/me
+   * Lấy danh sách điểm danh của bản thân (Staff/Barista/Manager)
+   */
+  async getMyAttendance(req, res) {
+    const { page = 1, limit = 10, startDate, endDate, status } = req.query;
+    const offset = calculateOffset(page, limit);
+
+    const result = await AttendanceService.searchAttendances({
+      startDate,
+      endDate,
+      userId: req.user.id,
+      status,
+      limit: parseInt(limit),
+      offset
+    });
+
+    return response.success(
+      res,
+      {
+        data: result.data,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total: result.total,
+          totalPages: Math.ceil(result.total / limit)
+        }
+      },
+      'Lấy danh sách điểm danh cá nhân thành công'
     );
   }
 

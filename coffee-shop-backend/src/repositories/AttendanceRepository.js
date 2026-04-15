@@ -149,20 +149,40 @@ class AttendanceRepository extends BaseRepository {
    * Find absent shift registrations (no check-in at all by end of day)
    */
   async findAbsentRegistrations() {
+    const now = new Date();
+    const today = formatDateStr(now);
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
-    const dateStr = formatDateStr(yesterday);
+    const yesterdayStr = formatDateStr(yesterday);
+
+    // Lấy giờ hiện tại dạng phút từ đầu ngày
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
     const query = `
-      SELECT sr.id as registration_id
-      FROM shift_registrations sr
-      JOIN shifts s ON sr.shift_id = s.id
-      LEFT JOIN attendances a ON sr.id = a.registration_id
-      WHERE s.shift_date = ?
-        AND sr.status = 'registered'
-        AND a.id IS NULL
-    `;
-    const [rows] = await db.query(query, [dateStr]);
+    SELECT sr.id as registration_id
+    FROM shift_registrations sr
+    JOIN shifts s ON sr.shift_id = s.id
+    JOIN shift_templates st ON s.template_id = st.id
+    LEFT JOIN attendances a ON sr.id = a.registration_id
+    WHERE sr.status = 'registered'
+      AND a.id IS NULL
+      AND (
+        -- Ca hôm qua: luôn đánh absent
+        s.shift_date = ?
+        OR
+        -- Ca hôm nay: chỉ đánh absent nếu giờ kết thúc ca đã qua
+        (
+          s.shift_date = ?
+          AND TIME_TO_SEC(st.end_time) / 60 < ?
+        )
+      )
+  `;
+
+    const [rows] = await db.query(query, [
+      yesterdayStr,
+      today,
+      currentMinutes
+    ]);
     return rows;
   }
 }
