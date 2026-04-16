@@ -3,7 +3,6 @@ import { Link, useNavigate } from "react-router-dom";
 import {
   LayoutGrid,
   ShoppingBag,
-  ChefHat,
   Users,
   Clock,
   Calendar,
@@ -14,6 +13,9 @@ import authenticationService from "@/services/authenticationService";
 import staffDBService from "@/services/staffDBService";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+
+const moneyFormatter = new Intl.NumberFormat("vi-VN");
+const formatMoney = (v) => moneyFormatter.format(Number(v) || 0);
 
 export function StaffDashboard() {
   const [user, setUser] = useState(null);
@@ -61,13 +63,13 @@ export function StaffDashboard() {
       link: "/staff/delivery",
     },
     {
-      title: "Khu vực Bếp",
-      description: "Món đang làm",
-      value: dashboardData ? dashboardData.kitchenPreparingItems : "...",
-      icon: ChefHat,
-      color: "text-red-600",
-      bg: "bg-red-100 dark:bg-red-900/40/50",
-      link: "/staff/kitchen",
+      title: "Doanh thu theo ca",
+      description: dashboardData?.currentShiftName ?? "Không có ca",
+      value: dashboardData ? formatMoney(dashboardData.shiftRevenue) : "...",
+      icon: TrendingUp,
+      color: "text-purple-600 dark:text-purple-400",
+      bg: "bg-purple-100 dark:bg-purple-900/40/50",
+      link: "/staff/attendance",
     },
     {
       title: "Ca của bạn",
