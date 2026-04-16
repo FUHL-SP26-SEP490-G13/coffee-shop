@@ -426,8 +426,8 @@ export function StaffApp() {
 
   if (isBaristaWindow) {
     return (
-      <div className="h-screen w-full bg-background overflow-hidden relative">
-        <main className="h-full w-full overflow-hidden relative">
+      <div className="min-h-screen w-full bg-background overflow-x-hidden relative">
+        <main className="min-h-screen w-full overflow-x-hidden overflow-y-auto relative">
           <style>{`
             @keyframes staffPageFadeUp {
               from { opacity: 0; transform: translateY(10px); }
@@ -437,7 +437,7 @@ export function StaffApp() {
               animation: staffPageFadeUp 320ms ease-out forwards;
             }
           `}</style>
-          <div key={location.pathname} className="staff-page-transition w-full h-full">
+          <div key={location.pathname} className="staff-page-transition w-full min-h-full">
             <Outlet />
           </div>
         </main>
@@ -446,7 +446,7 @@ export function StaffApp() {
   }
 
   return (
-    <div className='flex h-screen w-full bg-background overflow-hidden relative'>
+    <div className='flex min-h-screen w-full bg-background overflow-x-hidden relative'>
       <button
         onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
         className='md:hidden fixed top-4 left-4 z-50 p-2 bg-card border border-border rounded-lg shadow-lg dark:shadow-none'
@@ -644,7 +644,7 @@ export function StaffApp() {
         </TooltipProvider>
       </div>
 
-      <div className="flex-1 flex flex-col h-full w-full overflow-hidden bg-background">
+      <div className="flex-1 flex flex-col min-h-screen w-full bg-background">
         <div
           ref={notificationRef}
           className='flex-shrink-0 flex justify-end items-center gap-3 px-4 md:px-8 pt-4 md:pt-4 pb-0 relative'
@@ -730,7 +730,7 @@ export function StaffApp() {
             </div>
           )}
         </div>
-        <main className="flex-1 flex flex-col overflow-hidden relative custom-scrollbar">
+        <main className="flex-1 flex flex-col overflow-x-hidden overflow-y-auto relative custom-scrollbar min-h-0">
           <style>{`
             @keyframes staffPageFadeUp {
               from { opacity: 0; transform: translateY(10px); }
@@ -740,7 +740,7 @@ export function StaffApp() {
               animation: staffPageFadeUp 320ms ease-out forwards;
             }
           `}</style>
-          <div key={location.pathname} className="staff-page-transition w-full h-full flex flex-col flex-1">
+          <div key={location.pathname} className="staff-page-transition w-full min-h-full flex flex-col flex-1">
             <Outlet />
           </div>
         </main>
