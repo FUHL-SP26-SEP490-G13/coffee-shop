@@ -13,7 +13,9 @@ class ShiftRepository {
 
     async findTemplateById(id) {
         const [[row]] = await pool.query(
-            `SELECT id, name, start_time, end_time, color FROM shift_templates WHERE id = ?`,
+            `SELECT id, name, start_time, end_time, color
+         FROM shift_templates
+         WHERE id = ? AND is_deleted = 0`,
             [id],
         );
         return row || null;
@@ -149,6 +151,23 @@ class ShiftRepository {
     }
 
     // SHIFT REGISTRATIONS
+
+    // Kiểm tra ca đã có nhân viên role=staff chưa (mỗi ca chỉ 1 staff)
+    async findStaffInShift(shiftId) {
+        const [[row]] = await pool.query(
+            `SELECT sr.id, sr.user_id, u.first_name, u.last_name
+         FROM shift_registrations sr
+         JOIN users u ON sr.user_id = u.id
+         JOIN role r ON u.role_id = r.id
+         WHERE sr.shift_id = ?
+           AND sr.status != 'cancelled'
+           AND r.role_name = 'staff'
+         LIMIT 1`,
+            [shiftId],
+        );
+        return row || null;
+    }
+
     async findRegistration(userId, shiftId) {
         const [[row]] = await pool.query(
             `SELECT id, user_id, shift_id, status

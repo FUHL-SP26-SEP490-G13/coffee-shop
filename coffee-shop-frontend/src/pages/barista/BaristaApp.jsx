@@ -115,7 +115,7 @@ export function BaristaApp() {
     const routeTitles = {
       "/barista/dashboard": "Bảng điều khiển",
       "/barista/orders": "Đơn hàng",
-      "/barista/attendance": "Chấm công",
+      "/barista/attendance": "Lịch sử điểm danh",
       "/barista/schedule": "Lịch làm việc",
       "/barista/profile": "Thông tin cá nhân"
     };
@@ -181,7 +181,7 @@ export function BaristaApp() {
         {
           id: "attendance",
           icon: Clock,
-          label: "Chấm công",
+          label: "Lịch sử điểm danh",
           path: "/barista/attendance",
         },
         {

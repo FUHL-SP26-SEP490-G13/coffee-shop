@@ -13,6 +13,7 @@ export const APP_ROUTES = {
   PRODUCT_DETAIL: '/product/:id',
   AREAS: '/admin/area',
   PAYMENT_RESULT: '/payment-result',
+  ATTENDANCE: '/attendance'
 };
 
 // Quản lý API Endpoints
@@ -149,6 +150,7 @@ export const API_ENDPOINTS = {
   },
   ATTENDANCE: {
     BASE: '/attendance',
+    ME: '/attendance/me',
     CLOCK: '/attendance/clock',
     BY_ID: (id) => `/attendance/${id}`,
   },

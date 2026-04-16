@@ -12,6 +12,11 @@ const attendanceService = {
     return axiosClient.get(API_ENDPOINTS.ATTENDANCE.BASE, { params });
   },
 
+  // params: page, limit, startDate, endDate, status
+  getMyAttendance(params) {
+    return axiosClient.get(API_ENDPOINTS.ATTENDANCE.ME, { params });
+  },
+
   updateAttendance(id, note) {
     return axiosClient.put(API_ENDPOINTS.ATTENDANCE.BY_ID(id), { note });
   },
