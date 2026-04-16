@@ -142,32 +142,58 @@ class CashSessionRepository {
       [closed_by, closing_cash_actual, closing_cash_system, cash_difference, closing_note, id]
     );
   }
-  async getSessionsHistory({ startDate, endDate, userId }) {
+  async getSessionsHistory({ startDate, endDate, userId, limit, offset }) {
     let query = `
-      SELECT cs.*, u.first_name, u.last_name 
+      SELECT cs.*, u.first_name, u.last_name,
+        (SELECT COUNT(o.id) FROM orders o WHERE o.cash_session_id = cs.id AND (o.is_paid = 1 OR o.status = 'completed')) AS paid_orders_count
       FROM cash_sessions cs
       JOIN users u ON cs.opened_by = u.id
       WHERE 1=1
     `;
+    let countQuery = `
+      SELECT COUNT(*) as total
+      FROM cash_sessions cs
+      WHERE 1=1
+    `;
     const params = [];
+    const countParams = [];
 
     if (startDate) {
-      query += ` AND DATE(cs.opened_at) >= ?`;
+      const cond = ` AND DATE(cs.opened_at) >= ?`;
+      query += cond;
+      countQuery += cond;
       params.push(startDate);
+      countParams.push(startDate);
     }
     if (endDate) {
-      query += ` AND DATE(cs.opened_at) <= ?`;
+      const cond = ` AND DATE(cs.opened_at) <= ?`;
+      query += cond;
+      countQuery += cond;
       params.push(endDate);
+      countParams.push(endDate);
     }
     if (userId) {
-      query += ` AND cs.opened_by = ?`;
+      const cond = ` AND cs.opened_by = ?`;
+      query += cond;
+      countQuery += cond;
       params.push(userId);
+      countParams.push(userId);
     }
     
     query += ` ORDER BY cs.opened_at DESC`;
     
+    if (limit !== undefined && offset !== undefined) {
+      query += ` LIMIT ? OFFSET ?`;
+      params.push(Number(limit), Number(offset));
+    }
+    
     const [rows] = await pool.query(query, params);
-    return rows;
+    const [countRows] = await pool.query(countQuery, countParams);
+    
+    return {
+      data: rows,
+      total: countRows[0].total
+    };
   }
 
   async getHandoverStats() {
