@@ -80,7 +80,12 @@ class ShiftService {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
-        if (assignDate < today) {
+        // Cho phép ngược lại 1 ngày để xử lý ca qua đêm bắt đầu "hôm qua"
+        // nhưng chưa kết thúc (ví dụ: 22:30–03:00, check lúc 00:30 ngày hôm sau)
+        const yesterday = new Date(today);
+        yesterday.setDate(today.getDate() - 1);
+
+        if (assignDate < yesterday) {
             throw new ErrorResponse(400, 'Không thể gán ca cho ngày trong quá khứ');
         }
 
@@ -89,8 +94,9 @@ class ShiftService {
             throw new ErrorResponse(404, 'Ca làm việc không tồn tại');
         }
 
-        // Nếu gán cho hôm nay → kiểm tra ca có đã kết thúc chưa
-        if (assignDate.getTime() === today.getTime()) {
+        // Nếu là hôm nay hoặc hôm qua → kiểm tra ca có đã kết thúc chưa
+        // _buildShiftEndDatetime tự cộng +1 ngày cho ca qua đêm
+        if (assignDate <= today) {
             const shiftEndDatetime = this._buildShiftEndDatetime(date, template.start_time, template.end_time);
             if (new Date() > shiftEndDatetime) {
                 throw new ErrorResponse(
@@ -99,6 +105,7 @@ class ShiftService {
                 );
             }
         }
+
 
         const user = await ShiftRepository.findUserById(user_id);
         if (!user) {

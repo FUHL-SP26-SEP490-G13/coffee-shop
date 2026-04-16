@@ -8,19 +8,99 @@ const formatDateTimeStr = require('../helpers/formatDateTimeStr');
 
 const CHECKOUT_GRACE_MINUTES = 30;
 
+
+const MAX_FAILED_ATTEMPTS = 5;
+const LOCK_DURATION_MS = 30 * 1000;
+
+// Lưu tạm trong RAM của server
+const failedClockAttempts = new Map();
+
+function getClockAttemptState(key) {
+  const now = Date.now();
+  const state = failedClockAttempts.get(key);
+
+  if (!state) {
+    return { count: 0, lockedUntil: 0 };
+  }
+
+  if (state.lockedUntil && state.lockedUntil <= now) {
+    failedClockAttempts.delete(key);
+    return { count: 0, lockedUntil: 0 };
+  }
+
+  return state;
+}
+
+function clearClockAttemptState(key) {
+  failedClockAttempts.delete(key);
+}
+
+function registerClockFailure(key) {
+  const now = Date.now();
+  const state = getClockAttemptState(key);
+  const nextCount = (state.count || 0) + 1;
+
+  if (nextCount >= MAX_FAILED_ATTEMPTS) {
+    const lockedUntil = now + LOCK_DURATION_MS;
+    failedClockAttempts.set(key, { count: nextCount, lockedUntil });
+
+    return {
+      locked: true,
+      remainingSeconds: Math.ceil((lockedUntil - now) / 1000),
+    };
+  }
+
+  failedClockAttempts.set(key, {
+    count: nextCount,
+    lockedUntil: 0,
+  });
+
+  return {
+    locked: false,
+    remainingAttempts: MAX_FAILED_ATTEMPTS - nextCount,
+  };
+}
+
+
 class AttendanceService {
   async clock(pinCode) {
     if (!pinCode || pinCode.length !== 4) {
       throw new ErrorResponse(400, 'Mã PIN phải gồm 4 chữ số');
     }
 
+    const throttleKey = `pin:${pinCode}`;
+    const attemptState = getClockAttemptState(throttleKey);
+
+    if (attemptState.lockedUntil && attemptState.lockedUntil > Date.now()) {
+      const remainingSeconds = Math.ceil(
+        (attemptState.lockedUntil - Date.now()) / 1000
+      );
+
+      throw new ErrorResponse(
+        429,
+        `Bạn đã nhập sai quá nhiều lần. Vui lòng thử lại sau ${remainingSeconds} giây.`,
+      );
+    }
+
     const user = await UserRepository.findByPinCode(pinCode);
     if (!user || user.isActive === 0) {
+
+      const failure = registerClockFailure(throttleKey);
+
+      if (failure.locked) {
+        throw new ErrorResponse(
+          429,
+          `Bạn đã nhập sai quá 5 lần liên tiếp. Vui lòng thử lại sau ${failure.remainingSeconds} giây.`,
+        );
+      }
+
       throw new ErrorResponse(
         404,
         'Mã PIN không hợp lệ hoặc tài khoản đã bị khóa',
       );
     }
+
+    clearClockAttemptState(throttleKey);  // PIN đúng thì reset bộ đếm sai
 
     const settings = await AttendanceSettingRepository.findSetting();
     if (!settings) {
@@ -132,7 +212,7 @@ class AttendanceService {
 
           if (nowMs < minCheckinMs) {
             specificErrorMsg =
-              `Xin chào ${user.first_name}, ca ${shift.shift_name} (${shiftDateStr}) chưa mở điểm danh. ` +
+              `Xin chào ${user.first_name}, ${shift.shift_name} (${shiftDateStr}) chưa mở điểm danh. ` +
               `(Chỉ cho phép check-in sớm ${settings.early_checkin_minutes} phút trước ${shift.start_time})`;
           } else if (nowMs >= shiftEndMs) {
             specificErrorMsg = `Xin chào ${user.first_name}, ca ${shift.shift_name} (${shiftDateStr}) đã kết thúc, không thể check-in.`;
@@ -147,6 +227,25 @@ class AttendanceService {
 
     if (specificErrorMsg) {
       throw new ErrorResponse(400, specificErrorMsg);
+    }
+
+    // console.log(candidateShifts)
+
+    const todayStr = formatDateStr(now);
+
+    const todayShifts = candidateShifts.filter(
+      (shift) => formatDateStr(new Date(shift.shift_date)) === todayStr
+    );
+
+    const allTodayShiftsCompleted =
+      todayShifts.length > 0 &&
+      todayShifts.every((shift) => shift.check_in && shift.check_out);
+
+    if (allTodayShiftsCompleted) {
+      throw new ErrorResponse(
+        400,
+        `Xin chào ${user.first_name}, bạn đã hoàn thành check-in/check-out cho các ca làm hôm nay.`,
+      );
     }
 
     throw new ErrorResponse(

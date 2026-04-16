@@ -55,6 +55,7 @@ import AdminReceiptSettings from "@/pages/admin/AdminReceiptSettings/AdminReceip
 import AdminFlashSales from "@/pages/admin/AdminFlashSale/AdminFlashSales";
 import AdminReputation from "@/pages/admin/AdminReputation/AdminReputation";
 import AdminLoyalty from "@/pages/admin/AdminLoyalty/AdminLoyalty";
+import Attendance from "@/pages/attendance/Attendance";
 
 import AdminEndOfDayReport from "@/pages/admin/AdminEndOfDayReport/AdminEndOfDayReport";
 import AdminShiftReport from "@/pages/admin/AdminShiftReport/AdminShiftReport";
@@ -80,6 +81,8 @@ const getRoleHomeRoute = (roleId) => {
       return APP_ROUTES.BARISTA;
     case 4:
       return APP_ROUTES.CUSTOMER;
+    case 5:
+      return APP_ROUTES.ATTENDANCE;
     default:
       return APP_ROUTES.HOME;
   }
@@ -150,7 +153,7 @@ const HomeEntryGuard = () => {
       </div>
     );
 
-  if ([1, 2, 3].includes(roleId)) {
+  if ([1, 2, 3, 5].includes(roleId)) {
     return <Navigate to={getRoleHomeRoute(roleId)} replace />;
   }
 
@@ -172,6 +175,15 @@ const AppRoutes = () => {
         element={
           <RoleGuard allowedRoles={[1, 2, 3, 4]}>
             <ChangePasswordPage />
+          </RoleGuard>
+        }
+      />
+      {/* ATTENDANCE */}
+      <Route
+        path="/attendance"
+        element={
+          <RoleGuard allowedRoles={[5]}>
+            <Attendance />
           </RoleGuard>
         }
       />
@@ -257,7 +269,7 @@ const AppRoutes = () => {
         <Route path="/" element={<HomeEntryGuard />} />
         {/* Route /products đã được chuyển vào /:slug (GenericSlugResolver) để chống chớp giật Grid */}
         <Route path="/products/:id" element={<ProductDetailPage />} />
-        
+
         <Route path="/news/:slug" element={<NewsDetailPage />} />
         <Route path="/news" element={<NewsListPage />} />
         <Route path="/store" element={<StoreInfoPage />} />
