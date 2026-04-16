@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/select";
 import adminDBService from "../../../services/adminDBService";
 
-const EMPTY_TOTALS = { qty: 0, itemsPrice: 0, discount: 0, delivery: 0, revenue: 0 };
+const EMPTY_TOTALS = { qty: 0, itemsPrice: 0, discount: 0, revenue: 0 };
 const moneyFormatter = new Intl.NumberFormat("vi-VN");
 
 const toNumber = (value) => Number(value) || 0;
@@ -117,8 +117,7 @@ const AdminEndOfDayReport = () => {
           qty: acc.qty + toNumber(curr.totalQuantity),
           itemsPrice: acc.itemsPrice + toNumber(curr.totalItemsPrice),
           discount: acc.discount + toNumber(curr.discount),
-          delivery: acc.delivery + toNumber(curr.deliveryFee),
-          revenue: acc.revenue + toNumber(curr.revenue),
+          revenue: acc.revenue + (toNumber(curr.totalItemsPrice) - toNumber(curr.discount)),
         }),
         EMPTY_TOTALS
       ),
@@ -288,7 +287,7 @@ const AdminEndOfDayReport = () => {
                 <th className="px-4 py-3 text-left">T.Toán</th>
                 <th className="px-4 py-3 text-right">SL</th>
                 <th className="px-4 py-3 text-right">Tổng tiền hàng</th>
-                <th className="px-4 py-3 text-right">Phí ship</th>
+                <th className="px-4 py-3 text-right">Giảm giá</th>
                 <th className="px-4 py-3 text-right">Doanh thu </th>
               </tr>
             </thead>
@@ -313,7 +312,7 @@ const AdminEndOfDayReport = () => {
                 <td colSpan={4}></td>
                 <td className="px-4 py-3 text-right">{totals.qty}</td>
                 <td className="px-4 py-3 text-right">{formatMoney(totals.itemsPrice)}</td>
-                <td className="px-4 py-3 text-right font-medium text-blue-600">+{formatMoney(totals.delivery)}</td>
+                <td className="px-4 py-3 text-right font-medium text-red-600">-{formatMoney(totals.discount)}</td>
                 <td className="px-4 py-3 text-right font-bold text-green-700">{formatMoney(totals.revenue)}</td>
               </tr>
 
@@ -330,14 +329,14 @@ const AdminEndOfDayReport = () => {
                   <td className="px-4 py-3 capitalize">{order.paymentMethod === 'cash' ? 'Tiền mặt' : order.paymentMethod === 'payos' ? 'Chuyển khoản bằng PayOS' : 'Khác'}</td>
                   <td className="px-4 py-3 text-right">{order.totalQuantity}</td>
                   <td className="px-4 py-3 text-right">{formatMoney(order.totalItemsPrice)}</td>
-                  <td className="px-4 py-3 text-right text-blue-600">+{formatMoney(order.deliveryFee)}</td>
-                  <td className="px-4 py-3 text-right font-bold text-green-700">{formatMoney(order.revenue)}</td>
+                  <td className="px-4 py-3 text-right text-red-600">-{formatMoney(order.discount)}</td>
+                  <td className="px-4 py-3 text-right font-bold text-green-700">{formatMoney(toNumber(order.totalItemsPrice) - toNumber(order.discount))}</td>
                 </tr>
               ))}
 
               {data.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="px-4 py-8 text-center text-muted-foreground italic">
+                  <td colSpan={8} className="px-4 py-8 text-center text-muted-foreground italic">
                     Không tìm thấy dữ liệu đã thanh toán trong khoảng thời gian này
                   </td>
                 </tr>
@@ -349,7 +348,7 @@ const AdminEndOfDayReport = () => {
                   <td colSpan={5} className="px-4 py-4 text-center text-foreground border-r">TỔNG CỘNG</td>
                   <td className="px-4 py-4 text-right border-r">{totals.qty}</td>
                   <td className="px-4 py-4 text-right border-r">{formatMoney(totals.itemsPrice)}</td>
-                  <td className="px-4 py-4 text-right border-r text-blue-600">+{formatMoney(totals.delivery)}</td>
+                  <td className="px-4 py-4 text-right border-r text-red-600">-{formatMoney(totals.discount)}</td>
                   <td className="px-4 py-4 text-right text-green-700 text-lg">{formatMoney(totals.revenue)}</td>
                 </tr>
               </tfoot>
