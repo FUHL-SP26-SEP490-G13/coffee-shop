@@ -73,7 +73,7 @@ export default function AdminApp() {
      const routeTitles = {
        "/admin/dashboard": "Bảng điều khiển",
        "/admin/end-of-day-report": "Báo cáo tổng kết",
-       "/admin/shift-report": "Báo cáo theo ca",
+       "/admin/shift-report": "Báo cáo ca làm",
        "/admin/orders": "Đơn hàng",
        "/admin/tables": "Quản lý bàn",
        "/admin/menu/categories": "Danh mục",
@@ -407,8 +407,8 @@ export default function AdminApp() {
                     }`
                   }
                 >
-                  <Clock className="w-4 h-4" />
-                  <span className="text-sm tracking-wide">Báo cáo theo ca</span>
+                  <ClipboardList className="w-4 h-4" />
+                  <span className="text-sm tracking-wide">Báo cáo ca làm</span>
                 </NavLink>
               </div>
             </div>
