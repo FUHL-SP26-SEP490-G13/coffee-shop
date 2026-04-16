@@ -71,6 +71,7 @@ export default function AdminApp() {
      const routeTitles = {
        "/admin/dashboard": "Bảng điều khiển",
        "/admin/end-of-day-report": "Báo cáo tổng kết",
+       "/admin/shift-report": "Báo cáo ca làm",
        "/admin/orders": "Đơn hàng",
        "/admin/tables": "Quản lý bàn",
        "/admin/menu/categories": "Danh mục",
@@ -392,6 +393,19 @@ export default function AdminApp() {
                 >
                   <FileText className="w-4 h-4" />
                   <span className="text-sm tracking-wide">Báo cáo tổng kết</span>
+                </NavLink>
+                <NavLink
+                  to="/admin/shift-report"
+                  className={({ isActive }) =>
+                    `w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                      isActive
+                        ? "bg-primary text-white"
+                        : "text-muted-foreground hover:bg-secondary"
+                    }`
+                  }
+                >
+                  <ClipboardList className="w-4 h-4" />
+                  <span className="text-sm tracking-wide">Báo cáo ca làm</span>
                 </NavLink>
               </div>
             </div>
