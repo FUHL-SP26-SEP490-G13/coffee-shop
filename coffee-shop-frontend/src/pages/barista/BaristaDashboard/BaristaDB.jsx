@@ -24,19 +24,27 @@ const StatCard = ({
   value,
   subtitle,
   color = "bg-blue-500",
+  delay = 0,
 }) => {
   return (
-    <Card>
+    <Card
+      className="barista-fade-up group border-border/60 bg-card/90 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
+      style={{ animationDelay: `${delay}ms` }}
+    >
       <CardContent className="pt-6">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm text-muted-foreground">{title}</p>
-            <p className="mt-2 text-3xl font-bold">{value}</p>
+            <p className="mt-2 text-3xl font-bold tracking-tight transition-colors group-hover:text-primary">
+              {value}
+            </p>
             {subtitle && (
               <p className="mt-1 text-xs text-muted-foreground">{subtitle}</p>
             )}
           </div>
-          <div className={`${color} rounded-lg p-3 text-white`}>
+          <div
+            className={`${color} rounded-xl p-3 text-white transition-transform duration-300 group-hover:scale-110`}
+          >
             <Icon className="h-6 w-6" />
           </div>
         </div>
@@ -258,9 +266,37 @@ export function BaristaDB() {
   const maxOrders = Math.max(...chartData.map((s) => s.orders), 1);
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 space-y-6">
+    <div className="relative overflow-hidden p-4 sm:p-6 lg:p-8 space-y-6">
+      <style>{`
+        @keyframes baristaFadeUp {
+          from { opacity: 0; transform: translateY(12px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes baristaPulseSoft {
+          0%, 100% { opacity: 0.35; transform: scale(1); }
+          50% { opacity: 0.65; transform: scale(1.06); }
+        }
+        .barista-fade-up {
+          animation: baristaFadeUp 420ms ease-out both;
+        }
+        .barista-fade-up-delayed {
+          animation: baristaFadeUp 520ms ease-out 90ms both;
+        }
+        .barista-fade-up-late {
+          animation: baristaFadeUp 620ms ease-out 160ms both;
+        }
+        .barista-glow {
+          animation: baristaPulseSoft 8s ease-in-out infinite;
+        }
+      `}</style>
+
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="barista-glow absolute -top-20 right-[-5rem] h-44 w-44 rounded-full bg-blue-500/10 blur-3xl" />
+        <div className="barista-glow absolute bottom-6 left-[-4rem] h-52 w-52 rounded-full bg-primary/10 blur-3xl [animation-delay:2s]" />
+      </div>
+
       {loading && (
-        <div className="flex h-96 items-center justify-center">
+        <div className="flex h-96 items-center justify-center barista-fade-up">
           <div className="text-center">
             <div className="inline-block h-12 w-12 animate-spin rounded-full border-b-2 border-primary"></div>
             <p className="mt-4 text-muted-foreground">Đang tải dashboard...</p>
@@ -271,7 +307,7 @@ export function BaristaDB() {
       {!loading && (
         <>
           {error && (
-            <Card className="mb-8 border-red-200 bg-red-50">
+            <Card className="mb-8 border-red-200 bg-red-50 barista-fade-up">
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
@@ -292,7 +328,7 @@ export function BaristaDB() {
             </Card>
           )}
 
-          <div className="mb-8">
+          <div className="mb-8 barista-fade-up">
             <div className="flex items-center justify-between">
               <div>
                 <h1 className="text-xl font-bold tracking-tight">Tổng quan</h1>
@@ -316,6 +352,7 @@ export function BaristaDB() {
               value={pending}
               subtitle="Cần xử lý ngay"
               color="bg-orange-500"
+              delay={40}
             />
             <StatCard
               icon={Activity}
@@ -323,6 +360,7 @@ export function BaristaDB() {
               value={preparing}
               subtitle="Đang thực hiện"
               color="bg-blue-500"
+              delay={90}
             />
             <StatCard
               icon={CheckCircle}
@@ -330,6 +368,7 @@ export function BaristaDB() {
               value={ready}
               subtitle="Chờ giao / phục vụ"
               color="bg-green-500"
+              delay={140}
             />
             <StatCard
               icon={Clock}
@@ -337,11 +376,12 @@ export function BaristaDB() {
               value={`${dashboardData.avgPrepTime} min`}
               subtitle="Hoàn tất đơn"
               color="bg-purple-500"
+              delay={190}
             />
           </div>
 
           <div className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
-            <Card className="lg:col-span-2">
+            <Card className="lg:col-span-2 border-border/60 bg-card/90 shadow-sm barista-fade-up-delayed">
               <CardHeader>
                 <CardTitle>Trình trạng đơn hàng</CardTitle>
               </CardHeader>
@@ -394,7 +434,7 @@ export function BaristaDB() {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="border-border/60 bg-card/90 shadow-sm barista-fade-up-delayed">
               <CardHeader>
                 <CardTitle>Tóm tắt hôm nay</CardTitle>
               </CardHeader>
@@ -444,7 +484,7 @@ export function BaristaDB() {
             </Card>
           </div>
 
-          <Card className="mb-8">
+          <Card className="mb-8 border-border/60 bg-card/90 shadow-sm barista-fade-up-delayed">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle>Xu hướng đơn hàng ({hoursRange} giờ qua)</CardTitle>
@@ -464,12 +504,10 @@ export function BaristaDB() {
                       className="flex flex-1 flex-col items-center justify-end gap-2"
                     >
                       <div
-                        className="w-full rounded-t-lg bg-gradient-to-t from-blue-500 to-blue-400 transition-all hover:from-blue-600 hover:to-blue-500"
+                        className="barista-fade-up w-full rounded-t-lg bg-gradient-to-t from-blue-500 to-blue-400 transition-all duration-300 hover:from-blue-600 hover:to-blue-500"
                         style={{
-                          height: `${Math.max(
-                            (stat.orders / maxOrders) * 100,
-                            6
-                          )}%`,
+                          height: `${Math.max((stat.orders / maxOrders) * 100, 6)}%`,
+                          animationDelay: `${120 + idx * 40}ms`,
                         }}
                         title={`${stat.orders} đơn`}
                       ></div>
@@ -485,7 +523,7 @@ export function BaristaDB() {
 
 
           <div className="mb-8">
-            <Card>
+            <Card className="border-border/60 bg-card/90 shadow-sm barista-fade-up-late">
               <CardHeader>
                 <CardTitle>Top sản phẩm hôm nay</CardTitle>
               </CardHeader>
@@ -499,7 +537,8 @@ export function BaristaDB() {
                     {topProducts.map((product, index) => (
                       <div
                         key={product.id}
-                        className="flex items-center justify-between rounded-lg border p-3"
+                        className="barista-fade-up flex items-center justify-between rounded-lg border p-3 transition-colors hover:bg-accent/30"
+                        style={{ animationDelay: `${140 + index * 60}ms` }}
                       >
                         <div className="flex items-center gap-3">
                           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-sm font-bold">
