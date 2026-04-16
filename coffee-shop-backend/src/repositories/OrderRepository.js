@@ -156,14 +156,9 @@ class OrderRepository {
         receiver_phone,
         receiver_email,
         address,
-        note,
-        store_latitude,
-        store_longitude,
-        customer_latitude,
-        customer_longitude,
-        coordinates_source
+        note
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?)
       `,
       [
         data.order_id,
@@ -172,11 +167,6 @@ class OrderRepository {
         data.receiver_email,
         data.address,
         data.note,
-        data.store_latitude,
-        data.store_longitude,
-        data.customer_latitude,
-        data.customer_longitude,
-        data.coordinates_source,
       ]
     );
   }

@@ -156,23 +156,23 @@ export default function AdminDiscountModal({
     try {
       const payload = isLockedByUsedCount
         ? {
-            description: form.description.trim(),
-            valid_until: form.valid_until,
-          }
+          description: form.description.trim(),
+          valid_until: form.valid_until,
+        }
         : {
-            code: form.code.trim(),
-            description: form.description.trim(),
-            percentage: Number(form.percentage),
-            min_order_amount: Number(form.min_order_amount),
-            max_discount_amount:
-              form.max_discount_amount === ""
-                ? null
-                : Number(form.max_discount_amount),
-            usage_limit:
-              form.usage_limit === "" ? null : Number(form.usage_limit),
-            valid_from: form.valid_from,
-            valid_until: form.valid_until,
-          };
+          code: form.code.trim(),
+          description: form.description.trim(),
+          percentage: Number(form.percentage),
+          min_order_amount: Number(form.min_order_amount),
+          max_discount_amount:
+            form.max_discount_amount === ""
+              ? null
+              : Number(form.max_discount_amount),
+          usage_limit:
+            form.usage_limit === "" ? null : Number(form.usage_limit),
+          valid_from: form.valid_from,
+          valid_until: form.valid_until,
+        };
 
       await new Promise((resolve) => setTimeout(resolve, 500));
 
@@ -390,40 +390,39 @@ export default function AdminDiscountModal({
                 </div>
               </div>
 
-              {!isLockedByUsedCount && (
-                <div className="space-y-2">
-                  <Label htmlFor="usage_limit">
-                    Giới hạn lượt sử dụng{" "}
-                    <span className="text-destructive">*</span>
-                  </Label>
+              <div className="space-y-2">
+                <Label htmlFor="usage_limit">
+                  Giới hạn lượt sử dụng{" "}
+                  <span className="text-destructive">*</span>
+                </Label>
 
-                  <div className="relative">
-                    <Users className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="usage_limit"
-                      type="number"
-                      name="usage_limit"
-                      value={form.usage_limit}
-                      onChange={handleChange}
-                      placeholder="VD: 50"
-                      className="pl-10"
-                      min="0"
-                    />
-                  </div>
-
-                  {errors.usage_limit ? (
-                    <p className="text-xs text-destructive">
-                      {errors.usage_limit}
-                    </p>
-                  ) : (
-                    form.usage_limit !== "" && (
-                      <p className="text-xs text-muted-foreground">
-                        Giá trị đã nhập: {form.usage_limit}
-                      </p>
-                    )
-                  )}
+                <div className="relative">
+                  <Users className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="usage_limit"
+                    type="number"
+                    name="usage_limit"
+                    value={form.usage_limit}
+                    onChange={handleChange}
+                    placeholder="VD: 50"
+                    className="pl-10"
+                    min="0"
+                    disabled={isLockedByUsedCount}
+                  />
                 </div>
-              )}
+
+                {errors.usage_limit ? (
+                  <p className="text-xs text-destructive">
+                    {errors.usage_limit}
+                  </p>
+                ) : (
+                  form.usage_limit !== "" && (
+                    <p className="text-xs text-muted-foreground">
+                      Giá trị đã nhập: {form.usage_limit}
+                    </p>
+                  )
+                )}
+              </div>
             </div>
 
             <div className="space-y-4 pt-4 border-t">

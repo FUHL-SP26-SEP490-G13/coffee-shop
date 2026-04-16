@@ -59,8 +59,13 @@ function MyScheduleView({ weekStart, schedule, loading }) {
   const totalMinutes = Object.values(schedule).flat().reduce((sum, s) => {
     const [sh, sm] = (s.start_time || '').slice(0, 5).split(':').map(Number);
     const [eh, em] = (s.end_time || '').slice(0, 5).split(':').map(Number);
-    return sum + ((eh * 60 + em) - (sh * 60 + sm));
+    const startMins = sh * 60 + sm;
+    const endMins = eh * 60 + em;
+    // Ca qua đêm: end <= start → cộng thêm 1440 phút (24h)
+    const duration = endMins > startMins ? endMins - startMins : endMins - startMins + 1440;
+    return sum + duration;
   }, 0);
+
   const totalHours = Math.floor(totalMinutes / 60);
   const totalMins = totalMinutes % 60;
 

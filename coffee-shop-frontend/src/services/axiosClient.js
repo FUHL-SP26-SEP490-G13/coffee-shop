@@ -17,7 +17,7 @@ axiosClient.interceptors.request.use(
   (config) => {
     const token = getStoredToken();
     if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+      config.headers.set('Authorization', `Bearer ${token}`);
     }
 
     // ✅ FIX: Nếu data là FormData, xóa Content-Type để browser tự set

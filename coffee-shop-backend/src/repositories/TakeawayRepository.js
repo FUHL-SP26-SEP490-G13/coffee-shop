@@ -44,6 +44,7 @@ class TakeawayRepository {
       amount,
       discount_amount,
       discount_id,
+      cash_session_id,
     },
   ) {
     const [result] = await connection.query(
