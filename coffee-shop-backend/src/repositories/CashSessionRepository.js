@@ -29,10 +29,11 @@ class CashSessionRepository {
 
   async getCurrentActiveUserShift(userId) {
     const [rows] = await pool.query(
-      `SELECT sr.id as shift_registration_id, st.end_time, st.start_time 
+      `SELECT sr.id as shift_registration_id, st.end_time, st.start_time, a.check_in 
        FROM shift_registrations sr 
        JOIN shifts s ON sr.shift_id = s.id 
        JOIN shift_templates st ON s.template_id = st.id 
+       LEFT JOIN attendances a ON sr.id = a.registration_id
        WHERE sr.user_id = ? 
          AND s.shift_date = CURDATE() 
          AND sr.status = 'registered'
