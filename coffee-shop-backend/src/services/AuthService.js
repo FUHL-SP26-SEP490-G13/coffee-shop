@@ -674,10 +674,7 @@ class AuthService {
     const user = await UserRepository.findByEmail(email);
 
     if (!user) {
-      // Don't reveal if email exists for security
-      return {
-        message: "Nếu email tồn tại, mã OTP đã được gửi đến email của bạn",
-      };
+      throw new ErrorResponse(404, "Email không tồn tại");
     }
 
     // Generate 8-digit OTP
