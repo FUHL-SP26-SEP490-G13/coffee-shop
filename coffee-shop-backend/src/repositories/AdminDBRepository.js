@@ -234,6 +234,139 @@ class AdminDBRepository {
     );
     return rows;
   }
+
+  // Báo cáo theo ca làm việc (shifts are dynamic – loaded from shift_templates)
+  async getShiftReport({ date }) {
+    // 1. Load all active shift templates
+    const [templates] = await pool.query(
+      `SELECT id, name, start_time, end_time, color FROM shift_templates WHERE is_deleted = 0 ORDER BY start_time`
+    );
+
+    // 2. For each template, count orders AND fetch order list within that time window
+    const shiftStats = await Promise.all(
+      templates.map(async (tpl) => {
+        const start = tpl.start_time.slice(0, 5); // HH:MM
+        const end   = tpl.end_time.slice(0, 5);
+
+        // Overnight shift: end_time <= start_time (e.g. 23:00 → 07:00)
+        const isOvernight = end <= start;
+
+        const timeCondition = isOvernight
+          ? `(TIME(o.created_at) >= ? OR TIME(o.created_at) < ?)`
+          : `(TIME(o.created_at) >= ? AND TIME(o.created_at) < ?)`;
+
+        // Summary stats
+        const [[stats]] = await pool.query(
+          `SELECT
+              COUNT(*) AS totalOrders,
+              SUM(o.is_paid = 1) AS completedOrders,
+              IFNULL(SUM(CASE WHEN o.is_paid = 1 THEN o.total_amount ELSE 0 END), 0) AS revenue
+           FROM orders o
+           WHERE DATE(o.created_at) = ?
+             AND o.status != 'cancelled'
+             AND ${timeCondition}`,
+          [date, start, end]
+        );
+
+        // Order detail rows (same fields as getDetailedOrdersReport)
+        const [orders] = await pool.query(
+          `SELECT
+              o.id AS orderId,
+              COALESCE(odi.receiver_name, 'Khách vãng lai') AS customerName,
+              CONCAT(IFNULL(u.first_name, ''), ' ', IFNULL(u.last_name, '')) AS staffName,
+              o.created_at AS time,
+              COALESCE(op.payment_method, 'N/A') AS paymentMethod,
+              (SELECT COALESCE(SUM(quantity), 0) FROM order_details WHERE order_id = o.id) AS totalQuantity,
+              COALESCE(NULLIF(o.amount, 0),
+                (SELECT COALESCE(SUM(quantity * price), 0) FROM order_details WHERE order_id = o.id)
+              ) AS totalItemsPrice,
+              COALESCE(o.delivery_fee, 0) AS deliveryFee,
+              o.total_amount AS revenue,
+              o.is_paid AS isPaid,
+              o.status
+           FROM orders o
+           LEFT JOIN order_payments op ON o.id = op.order_id
+           LEFT JOIN users u ON o.created_by = u.id
+           LEFT JOIN order_delivery_info odi ON o.id = odi.order_id
+           WHERE DATE(o.created_at) = ?
+             AND o.status != 'cancelled'
+             AND ${timeCondition}
+           ORDER BY o.created_at DESC`,
+          [date, start, end]
+        );
+
+        // Cash session metrics for this shift template on the given date
+        // cash_sessions.shift_registration_id → shift_registrations → shifts → shift_templates
+        const [[cashSession]] = await pool.query(
+          `SELECT
+              IFNULL(SUM(cs.opening_cash), 0)        AS openingCash,
+              IFNULL(SUM(cs.closing_cash_actual), 0) AS closingCash,
+              IFNULL(SUM(cs.cash_difference), 0)     AS cashDifference,
+              COUNT(cs.id)                           AS sessionCount,
+              SUM(cs.status = 'open')                AS openSessions
+           FROM cash_sessions cs
+           JOIN shift_registrations sr ON cs.shift_registration_id = sr.id
+           JOIN shifts sh              ON sr.shift_id = sh.id
+           WHERE sh.template_id = ?
+             AND DATE(cs.opened_at) = ?`,
+          [tpl.id, date]
+        );
+
+        return {
+          templateId:       tpl.id,
+          name:             tpl.name,
+          startTime:        tpl.start_time.slice(0, 5),
+          endTime:          tpl.end_time.slice(0, 5),
+          color:            tpl.color,
+          totalOrders:      Number(stats.totalOrders    || 0),
+          completedOrders:  Number(stats.completedOrders || 0),
+          revenue:          Number(stats.revenue          || 0),
+          orders,
+          cashSession: {
+            openingCash:    Number(cashSession.openingCash    || 0),
+            closingCash:    Number(cashSession.closingCash    || 0),
+            cashDifference: Number(cashSession.cashDifference || 0),
+            sessionCount:   Number(cashSession.sessionCount   || 0),
+            openSessions:   Number(cashSession.openSessions   || 0),
+          },
+        };
+      })
+    );
+
+    // 3. Cash metrics for the full date
+    // storeCash: paid cash orders
+    const [[storeCashRow]] = await pool.query(
+      `SELECT IFNULL(SUM(op.paid_amount), 0) AS storeCash
+       FROM order_payments op
+       JOIN orders o ON o.id = op.order_id
+       WHERE op.payment_method = 'cash'
+         AND o.is_paid = 1
+         AND DATE(o.created_at) = ?`,
+      [date]
+    );
+
+    // employeeCash: cash orders that are NOT yet settled (is_paid = 0)
+    // payment_method lives on order_payments, not on orders
+    const [[empCashRow]] = await pool.query(
+      `SELECT IFNULL(SUM(o.total_amount), 0) AS employeeCash
+       FROM orders o
+       JOIN order_payments op ON op.order_id = o.id
+       WHERE op.payment_method = 'cash'
+         AND o.is_paid = 0
+         AND o.status != 'cancelled'
+         AND DATE(o.created_at) = ?`,
+      [date]
+    );
+
+    return {
+      date,
+      shifts: shiftStats,
+      cashMetrics: {
+        storeCash:    Number(storeCashRow.storeCash   || 0),
+        employeeCash: Number(empCashRow.employeeCash  || 0),
+      },
+    };
+  }
 }
 
 module.exports = new AdminDBRepository();

@@ -4,81 +4,188 @@ const validateDate = require('../helpers/validateDate');
 const formatDateStr = require('../helpers/formatDateStr');
 
 class ShiftService {
-    // GÁN CA TỪNG NGÀY LẺ 
+    // HELPER
+    timeToMinutes(timeStr) {
+        const [hour, minute] = String(timeStr).slice(0, 5).split(':').map(Number);
+        return hour * 60 + minute;
+    }
+
+    // Tính thời điểm kết thúc thực tế của ca (có xử lý ca qua đêm)
+    // dateStr: 'YYYY-MM-DD', startTime/endTime: 'HH:MM'
+    _buildShiftEndDatetime(dateStr, startTime, endTime) {
+        const [y, m, d] = dateStr.split('-').map(Number);
+        const [eh, em] = endTime.slice(0, 5).split(':').map(Number);
+        const [sh, sm] = startTime.slice(0, 5).split(':').map(Number);
+        const endMins = eh * 60 + em;
+        const startMins = sh * 60 + sm;
+
+        const endDate = new Date(y, m - 1, d, eh, em, 0, 0);
+        // Ca qua đêm: end <= start → ca kết thúc vào ngày hôm sau
+        if (endMins <= startMins) {
+            endDate.setDate(endDate.getDate() + 1);
+        }
+        return endDate;
+    }
+
+    // Biến 1 ca thành 1 hoặc 2 đoạn thời gian trong ngày
+    // Ví dụ:
+    // 08:00-12:00 => [[480, 720]]
+    // 22:00-02:00 => [[1320, 1440], [0, 120]]
+    splitShiftToRanges(startTime, endTime) {
+        const start = this.timeToMinutes(startTime);
+        const end = this.timeToMinutes(endTime);
+
+        // Ca trong ngày
+        if (end > start) {
+            return [[start, end]];
+        }
+
+        // Ca qua đêm
+        return [
+            [start, 1440],
+            [0, end],
+        ];
+    }
+
+    // Kiểm tra 2 ca có trùng giờ không
+    isTimeOverlap(startA, endA, startB, endB) {
+        const rangesA = this.splitShiftToRanges(startA, endA);
+        const rangesB = this.splitShiftToRanges(startB, endB);
+
+        for (const [aStart, aEnd] of rangesA) {
+            for (const [bStart, bEnd] of rangesB) {
+                if (aStart < bEnd && aEnd > bStart) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
     async assignSingle({ date, user_id, template_id }) {
-
         validateDate(date);
-        if (!user_id) throw new ErrorResponse(400, 'Thiếu user_id');
-        if (!template_id) throw new ErrorResponse(400, 'Thiếu template_id');
 
-        // Ngày gán ca không được trong quá khứ
-        const [y, m, d] = date.split('-').map(Number);
-        const assignDate = new Date(y, m - 1, d);
+        if (!user_id) {
+            throw new ErrorResponse(400, 'Thiếu user_id');
+        }
+
+        if (!template_id) {
+            throw new ErrorResponse(400, 'Thiếu template_id');
+        }
+
+        const [year, month, day] = date.split('-').map(Number);
+        const assignDate = new Date(year, month - 1, day);
+
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
-        if (assignDate < today) {
+        // Cho phép ngược lại 1 ngày để xử lý ca qua đêm bắt đầu "hôm qua"
+        // nhưng chưa kết thúc (ví dụ: 22:30–03:00, check lúc 00:30 ngày hôm sau)
+        const yesterday = new Date(today);
+        yesterday.setDate(today.getDate() - 1);
+
+        if (assignDate < yesterday) {
             throw new ErrorResponse(400, 'Không thể gán ca cho ngày trong quá khứ');
         }
 
-        // Ngày gán ca phải cách hiện tại ít nhất 1 ngày
-        // const minDate = new Date(today);
-        // minDate.setDate(today.getDate() + 1);
-        // if (assignDate < minDate) {
-        //     const minDateStr = `${minDate.getFullYear()}-${String(minDate.getMonth() + 1).padStart(2, '0')}-${String(minDate.getDate()).padStart(2, '0')}`;
-        //     throw new ErrorResponse(
-        //         400,
-        //         `Chỉ được gán ca trước ít nhất 1 ngày. Ngày sớm nhất có thể gán: ${minDateStr}`,
-        //     );
-        // }
-
         const template = await ShiftRepository.findTemplateById(template_id);
-        if (!template) throw new ErrorResponse(404, 'Ca làm việc không tồn tại');
+        if (!template) {
+            throw new ErrorResponse(404, 'Ca làm việc không tồn tại');
+        }
 
-        const user = await ShiftRepository.findUserById(user_id);
-        if (!user) throw new ErrorResponse(404, 'Nhân viên không tồn tại');
-        if (!user.isActive) throw new ErrorResponse(400, 'Nhân viên đã ngừng hoạt động');
-        if (!['staff', 'barista'].includes(user.role_name?.toLowerCase()))
-            throw new ErrorResponse(400, `Chỉ có thể gán ca cho nhân viên (staff/barista), không gán cho ${user.role_name}`);
-
-        // findOrCreate shift (slot ca của ngày đó)
-        const shift = await ShiftRepository.findOrCreateShift(template_id, date);
-
-        // Check overlap giờ làm trong ngày (bỏ qua shift cùng template — sẽ bị bắt ở bước duplicate check)
-        const existingShifts = await ShiftRepository.findUserShiftsOnDate(user_id, date);
-        const toMins = (hhmm) => { const [h, m] = hhmm.slice(0, 5).split(':').map(Number); return h * 60 + m; };
-        const newStart = toMins(template.start_time);
-        const newEnd = toMins(template.end_time);
-
-        for (const s of existingShifts) {
-            if (s.template_id === template_id) continue; // cùng ca → để duplicate check xử lý
-            const sStart = toMins(s.start_time);
-            const sEnd = toMins(s.end_time);
-            if (newStart < sEnd && newEnd > sStart) {
+        // Nếu là hôm nay hoặc hôm qua → kiểm tra ca có đã kết thúc chưa
+        // _buildShiftEndDatetime tự cộng +1 ngày cho ca qua đêm
+        if (assignDate <= today) {
+            const shiftEndDatetime = this._buildShiftEndDatetime(date, template.start_time, template.end_time);
+            if (new Date() > shiftEndDatetime) {
                 throw new ErrorResponse(
                     400,
-                    `${user.first_name} ${user.last_name} đã có ca "${s.template_name}" ` +
-                    `(${s.start_time.slice(0, 5)}–${s.end_time.slice(0, 5)}) ` +
-                    `trùng giờ với ca "${template.name}" ` +
+                    `${template.name} (${template.start_time.slice(0, 5)}–${template.end_time.slice(0, 5)}) đã kết thúc, không thể gán.`,
+                );
+            }
+        }
+
+
+        const user = await ShiftRepository.findUserById(user_id);
+        if (!user) {
+            throw new ErrorResponse(404, 'Nhân viên không tồn tại');
+        }
+
+        if (!user.isActive) {
+            throw new ErrorResponse(400, 'Nhân viên đã ngừng hoạt động');
+        }
+
+        if (!['staff', 'barista'].includes(user.role_name?.toLowerCase())) {
+            throw new ErrorResponse(
+                400,
+                `Chỉ có thể gán ca cho nhân viên (staff/barista), không gán cho ${user.role_name}`,
+            );
+        }
+
+        // Tạo hoặc lấy shift slot của ngày đó
+        const shift = await ShiftRepository.findOrCreateShift(template_id, date);
+
+        // 1. Check trùng giờ với các ca khác của user trong cùng ngày
+        const existingShifts = await ShiftRepository.findUserShiftsOnDate(user_id, date);
+
+        for (const existingShift of existingShifts) {
+            // Cùng template thì để duplicate registration xử lý bên dưới
+            if (existingShift.template_id === template_id) {
+                continue;
+            }
+
+            const isOverlap = this.isTimeOverlap(
+                template.start_time,
+                template.end_time,
+                existingShift.start_time,
+                existingShift.end_time,
+            );
+
+            if (isOverlap) {
+                throw new ErrorResponse(
+                    400,
+                    `${user.first_name} ${user.last_name} đã có ${existingShift.template_name} ` +
+                    `(${existingShift.start_time.slice(0, 5)}–${existingShift.end_time.slice(0, 5)}) ` +
+                    `trùng giờ với ${template.name}` +
                     `(${template.start_time.slice(0, 5)}–${template.end_time.slice(0, 5)}) ` +
                     `ngày ${date}`,
                 );
             }
         }
 
-        // Kiểm tra nhân viên đã được gán ca này chưa
-        const existing = await ShiftRepository.findRegistration(user_id, shift.id);
+        // 2. Check nhân viên đã có registration ở đúng shift này chưa
+        const existingRegistration = await ShiftRepository.findRegistration(user_id, shift.id);
 
-        if (existing && existing.status !== 'cancelled')
+        if (existingRegistration && existingRegistration.status !== 'cancelled') {
             throw new ErrorResponse(
                 400,
                 `${user.first_name} ${user.last_name} đã được phân vào ${template.name} ngày ${date}`,
             );
+        }
 
-        // Nếu đã có nhưng bị cancelled thủ công → reactivate
+        // 3. Nếu là staff -> mỗi ca chỉ có 1 staff
+        if (user.role_name?.toLowerCase() === 'staff') {
+            const existingStaff = await ShiftRepository.findStaffInShift(shift.id);
+
+            const isReactivatingSameRegistration =
+                existingRegistration &&
+                existingRegistration.status === 'cancelled' &&
+                existingStaff &&
+                existingStaff.id === existingRegistration.id;
+
+            if (existingStaff && !isReactivatingSameRegistration) {
+                throw new ErrorResponse(
+                    400,
+                    `${template.name} ngày ${date} đã có ${existingStaff.first_name} ${existingStaff.last_name} phụ trách. Mỗi ca chỉ được có 1 staff.`,
+                );
+            }
+        }
+
+        // 4. Tạo mới hoặc khôi phục registration
         let registration;
-        if (existing && existing.status === 'cancelled') {
-            registration = await ShiftRepository.reactivateRegistration(existing.id);
+        if (existingRegistration && existingRegistration.status === 'cancelled') {
+            registration = await ShiftRepository.reactivateRegistration(existingRegistration.id);
         } else {
             registration = await ShiftRepository.createRegistration(user_id, shift.id);
         }
@@ -101,8 +208,7 @@ class ShiftService {
         };
     }
 
-    // GÁN CA HÀNG LOẠT THEO TUẦN
-    // days_of_week: 0=CN, 1=T2, 2=T3, 3=T4, 4=T5, 5=T6, 6=T7
+    // days_of_week: 0=CN, 1=T2, ..., 6=T7
     async assignBulk({ start_date, weeks, assignments }) {
         validateDate(start_date, false);
 
@@ -110,188 +216,243 @@ class ShiftService {
             throw new ErrorResponse(400, 'Số tuần phải từ 1 đến 12');
         }
 
-        // start_date không được trong quá khứ
-        const [sy0, sm0, sd0] = start_date.split('-').map(Number);
-        const startDateObj = new Date(sy0, sm0 - 1, sd0);
+        const [year, month, day] = start_date.split('-').map(Number);
+        const startDate = new Date(year, month - 1, day);
+
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
-        if (startDateObj < today) {
+        if (startDate < today) {
             throw new ErrorResponse(400, 'Ngày bắt đầu gán ca không được trong quá khứ');
         }
-
-        // start_date phải cách hôm nay ít nhất 2 ngày
-        // const minDate = new Date(today);
-        // minDate.setDate(today.getDate() + 2);
-        // if (startDateObj < minDate) {
-        //     // dùng local time để tránh lệch một ngày do toISOString() đổi sang UTC
-        //     const minDateStr = `${minDate.getFullYear()}-${String(minDate.getMonth() + 1).padStart(2, '0')}-${String(minDate.getDate()).padStart(2, '0')}`;
-        //     throw new ErrorResponse(
-        //         400,
-        //         `Ngày bắt đầu gán ca phải cách hôm nay ít nhất 2 ngày. Ngày sớm nhất: ${minDateStr}`,
-        //     );
-        // }
 
         if (!Array.isArray(assignments) || assignments.length === 0) {
             throw new ErrorResponse(400, 'Danh sách gán ca trống');
         }
 
-        // Validate cấu trúc từng assignment
-        for (const a of assignments) {
-            if (!a.user_id || !a.template_id || !Array.isArray(a.days_of_week)) {
+        // 1. Validate input
+        for (const item of assignments) {
+            if (!item.user_id || !item.template_id || !Array.isArray(item.days_of_week)) {
                 throw new ErrorResponse(400, 'Dữ liệu gán ca không hợp lệ');
             }
 
-            if (a.days_of_week.length === 0) {
+            if (item.days_of_week.length === 0) {
                 throw new ErrorResponse(400, 'days_of_week không được rỗng');
             }
 
-            if (a.days_of_week.some((d) => d < 0 || d > 6)) {
-                throw new ErrorResponse(400, 'days_of_week phải từ 0 (CN) đến 6 (T7)');
+            for (const dayOfWeek of item.days_of_week) {
+                if (dayOfWeek < 0 || dayOfWeek > 6) {
+                    throw new ErrorResponse(400, 'days_of_week phải từ 0 (CN) đến 6 (T7)');
+                }
             }
         }
 
-        // Lấy danh sách user/template unique
-        const uniqueUserIds = [...new Set(assignments.map((a) => a.user_id))];
-        const uniqueTemplateIds = [...new Set(assignments.map((a) => a.template_id))];
+        //
+        const userMap = {};
+        const templateMap = {};
 
-        const [users, templates] = await Promise.all([
-            Promise.all(uniqueUserIds.map((id) => ShiftRepository.findUserById(id))),
-            Promise.all(uniqueTemplateIds.map((id) => ShiftRepository.findTemplateById(id))),
-        ]);
+        for (const item of assignments) {
+            if (!userMap[item.user_id]) {
+                const user = await ShiftRepository.findUserById(item.user_id);
 
-        const userMap = new Map(uniqueUserIds.map((id, i) => [id, users[i]]));
-        const templateMap = new Map(uniqueTemplateIds.map((id, i) => [id, templates[i]]));
+                if (!user) {
+                    throw new ErrorResponse(404, `Nhân viên id=${item.user_id} không tồn tại`);
+                }
 
-        // Validate user/template tồn tại
-        for (const a of assignments) {
-            const user = userMap.get(a.user_id);
-            if (!user) {
-                throw new ErrorResponse(404, `Nhân viên id=${a.user_id} không tồn tại`);
+                if (!user.isActive) {
+                    throw new ErrorResponse(400, `Nhân viên id=${item.user_id} đã ngừng hoạt động`);
+                }
+
+                if (!['staff', 'barista'].includes(user.role_name?.toLowerCase())) {
+                    throw new ErrorResponse(
+                        400,
+                        `${user.first_name} ${user.last_name} có vai trò ${user.role_name}, chỉ gán ca cho staff/barista`,
+                    );
+                }
+
+                userMap[item.user_id] = user;
             }
 
-            if (!user.isActive) {
-                throw new ErrorResponse(400, `Nhân viên id=${a.user_id} đã ngừng hoạt động`);
-            }
+            if (!templateMap[item.template_id]) {
+                const template = await ShiftRepository.findTemplateById(item.template_id);
 
-            if (!['staff', 'barista'].includes(user.role_name?.toLowerCase())) {
-                throw new ErrorResponse(
-                    400,
-                    `${user.first_name} ${user.last_name} có vai trò ${user.role_name}, chỉ gán ca cho staff/barista`,
-                );
-            }
+                if (!template) {
+                    throw new ErrorResponse(404, `Ca id=${item.template_id} không tồn tại`);
+                }
 
-            const template = templateMap.get(a.template_id);
-            if (!template) {
-                throw new ErrorResponse(404, `Ca id=${a.template_id} không tồn tại`);
+                templateMap[item.template_id] = template;
             }
         }
 
-        // Parse local date để tránh lệch ngày do timezone
-        const [sy, sm, sd] = start_date.split('-').map(Number);
-        const startDate = new Date(sy, sm - 1, sd);
         const totalDays = weeks * 7;
+        const plan = [];
 
-        // Helper đổi HH:MM[:SS] → phút
-        const toMins = (hhmm) => {
-            const [h, m] = hhmm.slice(0, 5).split(':').map(Number);
-            return h * 60 + m;
-        };
+        // Cache các ca active của từng user trong từng ngày
+        const userDayShiftCache = {};
+        // Dùng object thường thay vì Set cho dễ hiểu
+        const staffBatchMap = {};
 
-        /**
-         * Lưu ý: vòng lặp chạy từ start_date đi tới (dayOffset: 0 → totalDays-1).
-         * Nếu start_date giữa tuần (ví dụ 13/5 = Thứ 4), các ngày T2/T3 trong tuần
-         * đó (11/5, 12/5) sẽ không bị xử lý vì chúng trước start_date.
-         * T2/T3 gần nhất được gán sẽ là 18/5 và 19/5 (tuần tiếp theo).
-         */
+        const getUserShiftsInDay = async (userId, dateStr) => {
+            const cacheKey = `${userId}_${dateStr}`;
 
-        const plan = []; // { user, template, dateStr, existingShiftSlot, existingReg }
-
-        const shiftCache = new Map();
-        const getUserShifts = async (userId, dateStr) => {
-            const key = `${userId}_${dateStr}`;
-            if (!shiftCache.has(key)) {
-                const rows = await ShiftRepository.findUserShiftsOnDate(userId, dateStr);
-                shiftCache.set(key, rows || []);
+            if (!userDayShiftCache[cacheKey]) {
+                userDayShiftCache[cacheKey] = await ShiftRepository.findUserShiftsOnDate(userId, dateStr);
             }
-            return shiftCache.get(key);
+
+            return userDayShiftCache[cacheKey];
         };
 
-        // VALIDATE TOÀN BỘ
+        // 3. Validate toàn bộ trước
+        const now = new Date();
+        const todayStr = formatDateStr(today);
+
         for (let dayOffset = 0; dayOffset < totalDays; dayOffset++) {
             const currentDate = new Date(startDate);
             currentDate.setDate(startDate.getDate() + dayOffset);
-            const dayOfWeek = currentDate.getDay();
+
+            const currentDayOfWeek = currentDate.getDay();
             const dateStr = formatDateStr(currentDate);
 
-            for (const assignment of assignments) {
-                if (!assignment.days_of_week.includes(dayOfWeek)) continue;
+            for (const item of assignments) {
+                if (!item.days_of_week.includes(currentDayOfWeek)) {
+                    continue;
+                }
 
-                const user = userMap.get(assignment.user_id);
-                const template = templateMap.get(assignment.template_id);
-                const newStart = toMins(template.start_time);
-                const newEnd = toMins(template.end_time);
+                const user = userMap[item.user_id];
+                const template = templateMap[item.template_id];
 
-                // 1a) Check overlap với các ca KHÁC trong ngày
-                // (bỏ qua shift cùng template_id — sẽ bị bắt ở bước duplicate check với message rõ hơn)
-                const existingShifts = await getUserShifts(assignment.user_id, dateStr);
-                for (const s of existingShifts) {
-                    if (s.template_id === assignment.template_id) continue;
-                    if (newStart < toMins(s.end_time) && newEnd > toMins(s.start_time)) {
+                // 3.0 Nếu là hôm nay → kiểm tra ca có đã kết thúc chưa
+                if (dateStr === todayStr) {
+                    const shiftEndDatetime = this._buildShiftEndDatetime(dateStr, template.start_time, template.end_time);
+                    if (now > shiftEndDatetime) {
                         throw new ErrorResponse(
                             400,
-                            `${user.first_name} ${user.last_name} đã có ca "${s.template_name}" ` +
-                            `(${s.start_time.slice(0, 5)}–${s.end_time.slice(0, 5)}) ` +
-                            `trùng giờ với ca "${template.name}" ` +
+                            `${template.name} (${template.start_time.slice(0, 5)}–${template.end_time.slice(0, 5)}) ngày ${dateStr} đã kết thúc, không thể gán.`,
+                        );
+                    }
+                }
+
+                // 3.1 Check overlap
+                const existingShifts = await getUserShiftsInDay(item.user_id, dateStr);
+
+
+                for (const existingShift of existingShifts) {
+                    // Cùng template thì để duplicate registration xử lý bên dưới
+                    if (existingShift.template_id === item.template_id) {
+                        continue;
+                    }
+
+                    const isOverlap = this.isTimeOverlap(
+                        template.start_time,
+                        template.end_time,
+                        existingShift.start_time,
+                        existingShift.end_time,
+                    );
+
+                    if (isOverlap) {
+                        throw new ErrorResponse(
+                            400,
+                            `${user.first_name} ${user.last_name} đã có ${existingShift.template_name} ` +
+                            `(${existingShift.start_time.slice(0, 5)}–${existingShift.end_time.slice(0, 5)}) ` +
+                            `trùng giờ với ${template.name} ` +
                             `(${template.start_time.slice(0, 5)}–${template.end_time.slice(0, 5)}) ` +
                             `ngày ${dateStr}`,
                         );
                     }
                 }
 
-                // 1b) Tìm shift slot & registration đã có (chỉ tìm, không tạo)
+                // 3.2 Tìm shift slot hiện có
                 const existingShiftSlot = await ShiftRepository.findShiftSlot(
-                    assignment.template_id, dateStr,
+                    item.template_id,
+                    dateStr,
                 );
-                let existingReg = null;
+
+                let existingRegistration = null;
                 if (existingShiftSlot) {
-                    existingReg = await ShiftRepository.findRegistration(
-                        assignment.user_id, existingShiftSlot.id,
+                    existingRegistration = await ShiftRepository.findRegistration(
+                        item.user_id,
+                        existingShiftSlot.id,
                     );
                 }
 
-                // 1c) Validate trạng thái registration
-                if (existingReg && existingReg.status !== 'cancelled') {
+                if (existingRegistration && existingRegistration.status !== 'cancelled') {
                     throw new ErrorResponse(
                         400,
                         `${user.first_name} ${user.last_name} đã được phân vào ${template.name} ngày ${dateStr}`,
                     );
                 }
 
-                // Ghi nhớ để thực thi ở Pass 2
-                plan.push({ user, template, dateStr, existingShiftSlot, existingReg });
+                // 3.3 Nếu là staff -> mỗi ca chỉ có 1 staff
+                if (user.role_name?.toLowerCase() === 'staff') {
+                    if (existingShiftSlot) {
+                        const existingStaff = await ShiftRepository.findStaffInShift(existingShiftSlot.id);
 
-                // Cập nhật cache để check overlap trong cùng batch
-                const cacheKey = `${assignment.user_id}_${dateStr}`;
-                if (!shiftCache.has(cacheKey)) shiftCache.set(cacheKey, []);
-                shiftCache.get(cacheKey).push({
+                        const isReactivatingSameRegistration =
+                            existingRegistration &&
+                            existingRegistration.status === 'cancelled' &&
+                            existingStaff &&
+                            existingStaff.id === existingRegistration.id;
+
+                        if (existingStaff && !isReactivatingSameRegistration) {
+                            throw new ErrorResponse(
+                                400,
+                                `${template.name} ngày ${dateStr} đã có ${existingStaff.first_name} ${existingStaff.last_name} phụ trách. Mỗi ca chỉ được có 1 staff.`,
+                            );
+                        }
+                    }
+
+                    const staffBatchKey = `${item.template_id}_${dateStr}`;
+                    if (staffBatchMap[staffBatchKey]) {
+                        throw new ErrorResponse(
+                            400,
+                            `${template.name} ngày ${dateStr} đã được gán cho staff ${staffBatchMap[staffBatchKey]} trong lần gán này. Mỗi ca chỉ được có 1 staff.`,
+                        );
+                    }
+
+                    staffBatchMap[staffBatchKey] = `${user.first_name} ${user.last_name}`;
+                }
+
+                // 3.4 Lưu kế hoạch để pass 2 thực thi
+                plan.push({
+                    user,
+                    template,
+                    dateStr,
+                    existingShiftSlot,
+                    existingRegistration,
+                });
+
+                // 3.5 Cập nhật cache để check overlap trong chính batch này
+                const cacheKey = `${item.user_id}_${dateStr}`;
+                if (!userDayShiftCache[cacheKey]) {
+                    userDayShiftCache[cacheKey] = [];
+                }
+
+                userDayShiftCache[cacheKey].push({
+                    template_id: template.id,
+                    template_name: template.name,
                     start_time: template.start_time,
                     end_time: template.end_time,
-                    template_name: template.name,
                 });
             }
         }
 
+        // 4. Thực thi insert/reactivate
         const results = [];
-        for (const { user, template, dateStr, existingShiftSlot, existingReg } of plan) {
-            // Tạo shift slot nếu chưa có
-            const shift = existingShiftSlot
-                ?? await ShiftRepository.findOrCreateShift(template.id, dateStr);
 
-            // Tạo hoặc khôi phục registration
+        for (const row of plan) {
+            const user = row.user;
+            const template = row.template;
+            const dateStr = row.dateStr;
+            const existingShiftSlot = row.existingShiftSlot;
+            const existingRegistration = row.existingRegistration;
+
+            const shift =
+                existingShiftSlot ||
+                await ShiftRepository.findOrCreateShift(template.id, dateStr);
+
             let registration;
-            if (existingReg && existingReg.status === 'cancelled') {
-                registration = await ShiftRepository.reactivateRegistration(existingReg.id);
+            if (existingRegistration && existingRegistration.status === 'cancelled') {
+                registration = await ShiftRepository.reactivateRegistration(existingRegistration.id);
             } else {
                 registration = await ShiftRepository.createRegistration(user.id, shift.id);
             }
@@ -321,45 +482,48 @@ class ShiftService {
         };
     }
 
-
-    // XÓA NHÂN VIÊN KHỎI CA
     async removeRegistration(registrationId) {
         const reg = await ShiftRepository.findRegistrationById(registrationId);
-        if (!reg) throw new ErrorResponse(404, 'Không tìm thấy lịch làm việc này');
+        if (!reg) {
+            throw new ErrorResponse(404, 'Không tìm thấy lịch làm việc này');
+        }
 
         await ShiftRepository.cancelRegistration(registrationId);
     }
 
+
     // LỊCH TỔNG QUAN (calendar view)
     async getSchedule(start_date, end_date, userId = null) {
-        if (!start_date || !end_date)
+        if (!start_date || !end_date) {
             throw new ErrorResponse(400, 'Thiếu start_date hoặc end_date');
+        }
 
         const rows = await ShiftRepository.findSchedule(start_date, end_date, userId);
 
-        // Group theo nhân viên → ngày → danh sách ca
         const employeeMap = {};
 
         for (const row of rows) {
-            const key = row.user_id;
-            if (!employeeMap[key]) {
-                employeeMap[key] = {
+            const userKey = row.user_id;
+
+            if (!employeeMap[userKey]) {
+                employeeMap[userKey] = {
                     user_id: row.user_id,
                     name: `${row.first_name} ${row.last_name}`,
                     role: row.role_name,
-                    schedule: {}, // { '2026-03-27': [{ registration_id, shift_id, template_name, start_time, end_time }] }
+                    schedule: {},
                 };
             }
 
-            // Slice trực tiếp từ string 'YYYY-MM-DD' hoặc 'YYYY-MM-DDTHH:...' để tránh timezone issue
-            const dateKey = typeof row.shift_date === 'string'
-                ? row.shift_date.slice(0, 10)
-                : formatDateStr(row.shift_date);
-            if (!employeeMap[key].schedule[dateKey]) {
-                employeeMap[key].schedule[dateKey] = [];
+            const dateKey =
+                typeof row.shift_date === 'string'
+                    ? row.shift_date.slice(0, 10)
+                    : formatDateStr(row.shift_date);
+
+            if (!employeeMap[userKey].schedule[dateKey]) {
+                employeeMap[userKey].schedule[dateKey] = [];
             }
 
-            employeeMap[key].schedule[dateKey].push({
+            employeeMap[userKey].schedule[dateKey].push({
                 registration_id: row.registration_id,
                 shift_id: row.shift_id,
                 template_id: row.template_id,
@@ -372,7 +536,6 @@ class ShiftService {
 
         return Object.values(employeeMap);
     }
-
 }
 
 module.exports = new ShiftService();

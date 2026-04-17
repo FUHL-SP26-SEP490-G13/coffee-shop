@@ -136,7 +136,7 @@ export function StaffApp() {
         "/staff/orders/cancelled": "Đơn đã hủy",
         "/staff/kitchen": "Bếp",
         "/staff/inventory": "Kho hàng",
-        "/staff/attendance": "Điểm danh ca làm",
+        "/staff/attendance": "Lịch sử điểm danh",
         "/staff/schedule": "Lịch làm việc",
         "/staff/profile": "Thông tin cá nhân",
     };
@@ -204,6 +204,7 @@ export function StaffApp() {
     {
       title: 'Cá Nhân',
       items: [
+        { id: 'attendance', icon: Clock, label: 'Lịch sử điểm danh', path: '/staff/attendance' },
         { id: 'schedule', icon: Calendar, label: 'Lịch làm việc', path: '/staff/schedule' },
         { id: 'profile', icon: User, label: 'Thông tin cá nhân', path: '/staff/profile' },
       ],

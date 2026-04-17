@@ -1,12 +1,21 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
 import { format, startOfDay, endOfDay, subDays } from "date-fns";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { vi } from "date-fns/locale";
 import {
   Calendar as CalendarIcon,
-  Printer,
   Loader2,
+  Clock,
+  TrendingUp,
+  ShoppingCart,
+  BarChart2,
+  Banknote,
+  UserCheck,
+  ArrowUpDown,
+  LockOpen,
+  Lock,
   ChevronLeft,
   ChevronRight,
+  Printer,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -32,7 +41,10 @@ const formatMoney = (value) => moneyFormatter.format(toNumber(value));
 const formatRangeLabel = (range) => {
   if (!range?.from) return "Chọn ngày";
   if (!range?.to) return `${format(range.from, "dd/MM/yyyy")} - ...`;
-  return `${format(range.from, "dd/MM/yyyy")} - ${format(range.to, "dd/MM/yyyy")}`;
+  return `${format(range.from, "dd/MM/yyyy")} - ${format(
+    range.to,
+    "dd/MM/yyyy"
+  )}`;
 };
 
 const parseReportRows = (payload) => {
@@ -50,12 +62,17 @@ const AdminShiftReport = () => {
   const [filterType, setFilterType] = useState("7days");
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
-  
+
   // States for filter & pagination
   const [staffs, setStaffs] = useState([]);
   const [selectedStaff, setSelectedStaff] = useState("all");
-  const [pagination, setPagination] = useState({ currentPage: 1, totalPages: 1, total: 0, limit: 10 });
-  
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    totalPages: 1,
+    total: 0,
+    limit: 10,
+  });
+
   const isRefreshing = loading && data.length > 0;
 
   // Fetch staff list
@@ -67,11 +84,12 @@ const AdminShiftReport = () => {
         let users = [];
         if (Array.isArray(res)) users = res;
         else if (res?.data && Array.isArray(res.data)) users = res.data;
-        else if (res?.data?.data && Array.isArray(res.data.data)) users = res.data.data;
-        
+        else if (res?.data?.data && Array.isArray(res.data.data))
+          users = res.data.data;
+
         // Filter users who could open shifts (e.g. role admin/manager, staff, barista)
         // Usually roles: 1=manager, 2=staff, 3=barista
-        users = users.filter(u => [1, 2, 3].includes(Number(u.role_id)));
+        users = users.filter((u) => [1, 2, 3].includes(Number(u.role_id)));
         setStaffs(users);
       } catch (error) {
         console.error("Error fetching staffs for filter:", error);
@@ -87,20 +105,23 @@ const AdminShiftReport = () => {
 
     try {
       setLoading(true);
-      const startDate = format(startOfDay(dateRange.from), "yyyy-MM-dd HH:mm:ss");
+      const startDate = format(
+        startOfDay(dateRange.from),
+        "yyyy-MM-dd HH:mm:ss"
+      );
       const endDate = format(endOfDay(dateRange.to), "yyyy-MM-dd HH:mm:ss");
 
-      const res = await cashSessionService.getHistory({ 
-        startDate, 
+      const res = await cashSessionService.getHistory({
+        startDate,
         endDate,
         userId: selectedStaff === "all" ? undefined : selectedStaff,
         page: pagination.currentPage,
-        limit: pagination.limit
+        limit: pagination.limit,
       });
-      
+
       const responseData = res?.data || res;
       setData(parseReportRows(responseData));
-      
+
       if (responseData?.pagination) {
         setPagination(responseData.pagination);
       }
@@ -118,7 +139,7 @@ const AdminShiftReport = () => {
 
   const handleFilterChange = (value) => {
     setFilterType(value);
-    setPagination(p => ({ ...p, currentPage: 1 }));
+    setPagination((p) => ({ ...p, currentPage: 1 }));
     const today = new Date();
     switch (value) {
       case "today":
@@ -148,8 +169,8 @@ const AdminShiftReport = () => {
 
   const handleStaffChange = (val) => {
     setSelectedStaff(val);
-    setPagination(p => ({ ...p, currentPage: 1 }));
-  }
+    setPagination((p) => ({ ...p, currentPage: 1 }));
+  };
 
   const rangeLabel = useMemo(() => formatRangeLabel(dateRange), [dateRange]);
 
@@ -160,19 +181,27 @@ const AdminShiftReport = () => {
           let generatedCash = 0;
           let cashDiff = 0;
           if (curr.closed_at) {
-            generatedCash = toNumber(curr.closing_cash_system) - toNumber(curr.opening_cash);
+            generatedCash =
+              toNumber(curr.closing_cash_system) - toNumber(curr.opening_cash);
             cashDiff = toNumber(curr.cash_difference);
           }
 
           return {
             paidOrders: acc.paidOrders + toNumber(curr.paid_orders_count),
             openingCash: acc.openingCash + toNumber(curr.opening_cash),
-            closingCashSystem: acc.closingCashSystem + toNumber(curr.closing_cash_system),
+            closingCashSystem:
+              acc.closingCashSystem + toNumber(curr.closing_cash_system),
             generatedCash: acc.generatedCash + generatedCash,
             cashDifference: acc.cashDifference + cashDiff,
           };
         },
-        { paidOrders: 0, openingCash: 0, closingCashSystem: 0, generatedCash: 0, cashDifference: 0 }
+        {
+          paidOrders: 0,
+          openingCash: 0,
+          closingCashSystem: 0,
+          generatedCash: 0,
+          cashDifference: 0,
+        }
       ),
     [data]
   );
@@ -200,7 +229,12 @@ const AdminShiftReport = () => {
         tone: "from-amber-500/15 to-orange-500/5",
       },
     ],
-    [data.length, totals.paidOrders, totals.generatedCash, totals.cashDifference]
+    [
+      data.length,
+      totals.paidOrders,
+      totals.generatedCash,
+      totals.cashDifference,
+    ]
   );
 
   const handlePrint = () => {
@@ -227,22 +261,34 @@ const AdminShiftReport = () => {
           <div className="inline-flex items-center rounded-full border border-sky-200 bg-sky-50 dark:bg-sky-900/30 px-3 py-1 text-xs font-medium text-sky-700 dark:text-sky-200">
             Báo cáo ca làm việc
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">Báo cáo ca làm việc</h1>
-          <p className="text-sm text-muted-foreground">Theo dõi dòng tiền và đơn hàng theo từng ca</p>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">
+            Báo cáo ca làm việc
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Theo dõi dòng tiền và đơn hàng theo từng ca
+          </p>
         </div>
         <div className="flex flex-col md:flex-row items-end md:items-center justify-end gap-3">
-          <Button variant="outline" onClick={handlePrint} className="transition-transform duration-200 hover:-translate-y-0.5">
+          <Button
+            variant="outline"
+            onClick={handlePrint}
+            className="transition-transform duration-200 hover:-translate-y-0.5"
+          >
             <Printer className="mr-2 h-4 w-4" />
             In báo cáo
           </Button>
 
-          <Select value={selectedStaff} onValueChange={handleStaffChange} disabled={loading}>
+          <Select
+            value={selectedStaff}
+            onValueChange={handleStaffChange}
+            disabled={loading}
+          >
             <SelectTrigger className="w-[180px] transition-shadow duration-200 focus:shadow-md">
               <SelectValue placeholder="Tất cả nhân viên" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Tất cả nhân viên</SelectItem>
-              {staffs.map(staff => (
+              {staffs.map((staff) => (
                 <SelectItem key={staff.id} value={staff.id.toString()}>
                   {staff.first_name} {staff.last_name}
                 </SelectItem>
@@ -250,7 +296,11 @@ const AdminShiftReport = () => {
             </SelectContent>
           </Select>
 
-          <Select value={filterType} onValueChange={handleFilterChange} disabled={loading}>
+          <Select
+            value={filterType}
+            onValueChange={handleFilterChange}
+            disabled={loading}
+          >
             <SelectTrigger className="w-[180px] transition-shadow duration-200 focus:shadow-md">
               <SelectValue placeholder="Chọn thời gian" />
             </SelectTrigger>
@@ -268,7 +318,10 @@ const AdminShiftReport = () => {
             <div className="flex items-center gap-2">
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" className="w-[240px] justify-start text-left font-normal transition-shadow duration-200 focus:shadow-md">
+                  <Button
+                    variant="outline"
+                    className="w-[240px] justify-start text-left font-normal transition-shadow duration-200 focus:shadow-md"
+                  >
                     <CalendarIcon className="mr-2 h-4 w-4" />
                     <span>{rangeLabel}</span>
                   </Button>
@@ -281,7 +334,7 @@ const AdminShiftReport = () => {
                     selected={dateRange}
                     onSelect={(value) => {
                       setDateRange(value ?? { from: undefined, to: undefined });
-                      setPagination(p => ({ ...p, currentPage: 1 }));
+                      setPagination((p) => ({ ...p, currentPage: 1 }));
                     }}
                     numberOfMonths={2}
                     locale={vi}
@@ -297,7 +350,8 @@ const AdminShiftReport = () => {
       <div className="hidden print:block text-center mb-8 border-b pb-4">
         <h1 className="text-2xl font-bold uppercase">Báo cáo ca làm việc</h1>
         <p className="mt-2 text-sm">
-          Từ ngày: {format(dateRange.from, "dd/MM/yyyy")} - Đến ngày: {format(dateRange.to, "dd/MM/yyyy")}
+          Từ ngày: {format(dateRange.from, "dd/MM/yyyy")} - Đến ngày:{" "}
+          {format(dateRange.to, "dd/MM/yyyy")}
         </p>
       </div>
 
@@ -308,8 +362,12 @@ const AdminShiftReport = () => {
             className={`report-card rounded-2xl border bg-gradient-to-br ${metric.tone} p-4 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md`}
             style={{ animationDelay: `${index * 70}ms` }}
           >
-            <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">{metric.label}</p>
-            <div className="mt-2 text-2xl font-semibold tracking-tight text-foreground">{metric.value}</div>
+            <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
+              {metric.label}
+            </p>
+            <div className="mt-2 text-2xl font-semibold tracking-tight text-foreground">
+              {metric.value}
+            </div>
           </div>
         ))}
       </div>
@@ -318,10 +376,16 @@ const AdminShiftReport = () => {
         {isRefreshing && (
           <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-center justify-center bg-card/70 dark:bg-slate-900/70 py-3 backdrop-blur-sm">
             <Loader2 className="mr-2 h-4 w-4 animate-spin text-primary" />
-            <span className="text-sm font-medium text-muted-foreground">Đang cập nhật dữ liệu</span>
+            <span className="text-sm font-medium text-muted-foreground">
+              Đang cập nhật dữ liệu
+            </span>
           </div>
         )}
-        <div className={`overflow-x-auto transition-opacity duration-300 ${isRefreshing ? "opacity-70" : "opacity-100"}`}>
+        <div
+          className={`overflow-x-auto transition-opacity duration-300 ${
+            isRefreshing ? "opacity-70" : "opacity-100"
+          }`}
+        >
           <table className="w-full text-sm">
             <thead className="sticky top-0 z-[1] bg-muted/50 backdrop-blur">
               <tr className="border-b font-medium text-foreground">
@@ -340,34 +404,66 @@ const AdminShiftReport = () => {
               {data.map((session, index) => {
                 let generatedCash = 0;
                 let isDiff = false;
-                
+
                 if (session.closed_at) {
-                  generatedCash = toNumber(session.closing_cash_system) - toNumber(session.opening_cash);
+                  generatedCash =
+                    toNumber(session.closing_cash_system) -
+                    toNumber(session.opening_cash);
                   isDiff = toNumber(session.cash_difference) !== 0;
                 }
-                
+
                 return (
                   <tr
                     key={session.id}
                     className="report-row border-b transition-colors hover:bg-muted dark:hover:bg-muted/50"
                     style={{ "--row-index": index }}
                   >
-                    <td className="px-4 py-3 font-medium text-foreground">{session.code}</td>
-                    <td className="px-4 py-3">{session.first_name} {session.last_name}</td>
-                    <td className="px-4 py-3">{session.opened_at ? format(new Date(session.opened_at), "HH:mm dd/MM") : ""}</td>
-                    <td className="px-4 py-3">
-                      {session.closed_at ? format(new Date(session.closed_at), "HH:mm dd/MM") : <span className="text-amber-600">Đang mở</span>}
+                    <td className="px-4 py-3 font-medium text-foreground">
+                      {session.code}
                     </td>
-                    <td className="px-4 py-3 text-right font-medium text-blue-600">{session.paid_orders_count || 0}</td>
-                    <td className="px-4 py-3 text-right">{formatMoney(session.opening_cash)}</td>
+                    <td className="px-4 py-3">
+                      {session.first_name} {session.last_name}
+                    </td>
+                    <td className="px-4 py-3">
+                      {session.opened_at
+                        ? format(new Date(session.opened_at), "HH:mm dd/MM")
+                        : ""}
+                    </td>
+                    <td className="px-4 py-3">
+                      {session.closed_at ? (
+                        format(new Date(session.closed_at), "HH:mm dd/MM")
+                      ) : (
+                        <span className="text-amber-600">Đang mở</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-right font-medium text-blue-600">
+                      {session.paid_orders_count || 0}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      {formatMoney(session.opening_cash)}
+                    </td>
                     <td className="px-4 py-3 text-right text-emerald-600">
-                      {session.closed_at ? `+${formatMoney(generatedCash)}` : "—"}
+                      {session.closed_at
+                        ? `+${formatMoney(generatedCash)}`
+                        : "—"}
                     </td>
                     <td className="px-4 py-3 text-right font-semibold">
-                      {session.closed_at && session.closing_cash_actual != null ? formatMoney(session.closing_cash_actual) : "—"}
+                      {session.closed_at && session.closing_cash_actual != null
+                        ? formatMoney(session.closing_cash_actual)
+                        : "—"}
                     </td>
-                    <td className={`px-4 py-3 text-right font-bold ${isDiff ? (toNumber(session.cash_difference) > 0 ? 'text-blue-600' : 'text-red-600') : 'text-emerald-600'}`}>
-                      {session.closed_at && session.cash_difference != null ? formatMoney(session.cash_difference) : "—"}
+                    <td
+                      className={`px-4 py-3 text-right font-bold ${
+                        isDiff
+                          ? toNumber(session.cash_difference) > 0
+                            ? "text-blue-600"
+                            : "text-red-600"
+                          : "text-emerald-600"
+                      }`}
+                    >
+                      {session.closed_at && session.cash_difference != null
+                        ? formatMoney(session.cash_difference)
+                        : "—"}
                     </td>
                   </tr>
                 );
@@ -375,8 +471,12 @@ const AdminShiftReport = () => {
 
               {data.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="px-4 py-8 text-center text-muted-foreground italic">
-                    Không tìm thấy dữ liệu ca làm việc trong khoảng thời gian này
+                  <td
+                    colSpan={9}
+                    className="px-4 py-8 text-center text-muted-foreground italic"
+                  >
+                    Không tìm thấy dữ liệu ca làm việc trong khoảng thời gian
+                    này
                   </td>
                 </tr>
               )}
@@ -384,12 +484,25 @@ const AdminShiftReport = () => {
             {data.length > 0 && (
               <tfoot className="bg-muted dark:bg-muted/50 font-bold border-t-2">
                 <tr>
-                  <td colSpan={4} className="px-4 py-4 text-center text-foreground border-r">TỔNG CỘNG TRANG</td>
-                  <td className="px-4 py-4 text-right border-r text-blue-600">{totals.paidOrders}</td>
-                  <td className="px-4 py-4 text-right border-r">{formatMoney(totals.openingCash)}</td>
-                  <td className="px-4 py-4 text-right border-r text-emerald-600">+{formatMoney(totals.generatedCash)}</td>
+                  <td
+                    colSpan={4}
+                    className="px-4 py-4 text-center text-foreground border-r"
+                  >
+                    TỔNG CỘNG TRANG
+                  </td>
+                  <td className="px-4 py-4 text-right border-r text-blue-600">
+                    {totals.paidOrders}
+                  </td>
+                  <td className="px-4 py-4 text-right border-r">
+                    {formatMoney(totals.openingCash)}
+                  </td>
+                  <td className="px-4 py-4 text-right border-r text-emerald-600">
+                    +{formatMoney(totals.generatedCash)}
+                  </td>
                   <td className="px-4 py-4 text-right border-r">—</td>
-                  <td className="px-4 py-4 text-right text-lg">{formatMoney(totals.cashDifference)}</td>
+                  <td className="px-4 py-4 text-right text-lg">
+                    {formatMoney(totals.cashDifference)}
+                  </td>
                 </tr>
               </tfoot>
             )}
@@ -400,15 +513,26 @@ const AdminShiftReport = () => {
         {pagination.totalPages > 1 && (
           <div className="flex items-center justify-between px-4 py-3 border-t bg-muted/20 print:hidden">
             <div className="text-sm text-muted-foreground">
-              Hiển thị <span className="font-medium text-foreground">{data.length}</span> trong <span className="font-medium text-foreground">{pagination.total}</span> bản ghi
+              Hiển thị{" "}
+              <span className="font-medium text-foreground">{data.length}</span>{" "}
+              trong{" "}
+              <span className="font-medium text-foreground">
+                {pagination.total}
+              </span>{" "}
+              bản ghi
             </div>
-            
+
             <div className="flex items-center gap-1">
               <Button
                 variant="outline"
                 size="icon"
                 className="h-8 w-8"
-                onClick={() => setPagination(p => ({ ...p, currentPage: Math.max(1, p.currentPage - 1) }))}
+                onClick={() =>
+                  setPagination((p) => ({
+                    ...p,
+                    currentPage: Math.max(1, p.currentPage - 1),
+                  }))
+                }
                 disabled={pagination.currentPage === 1 || loading}
               >
                 <ChevronLeft className="h-4 w-4" />
@@ -420,8 +544,15 @@ const AdminShiftReport = () => {
                 variant="outline"
                 size="icon"
                 className="h-8 w-8"
-                onClick={() => setPagination(p => ({ ...p, currentPage: Math.min(p.totalPages, p.currentPage + 1) }))}
-                disabled={pagination.currentPage === pagination.totalPages || loading}
+                onClick={() =>
+                  setPagination((p) => ({
+                    ...p,
+                    currentPage: Math.min(p.totalPages, p.currentPage + 1),
+                  }))
+                }
+                disabled={
+                  pagination.currentPage === pagination.totalPages || loading
+                }
               >
                 <ChevronRight className="h-4 w-4" />
               </Button>
@@ -430,8 +561,9 @@ const AdminShiftReport = () => {
         )}
       </div>
 
-      <style dangerouslySetInnerHTML={{
-        __html: `
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
         @keyframes reportFadeUp {
           from { opacity: 0; transform: translateY(10px); }
           to { opacity: 1; transform: translateY(0); }
@@ -447,7 +579,9 @@ const AdminShiftReport = () => {
           th, td { border: 1px solid #e2e8f0 !important; padding: 8px !important; }
           th { background-color: #bce4f5 !important; -webkit-print-color-adjust: exact; }
         }
-      `}} />
+      `,
+        }}
+      />
     </div>
   );
 };

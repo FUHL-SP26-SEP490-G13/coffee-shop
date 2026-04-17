@@ -116,6 +116,18 @@ class AdminDBController {
       next(err);
     }
   }
+
+  async getShiftReport(req, res, next) {
+    try {
+      const { date } = req.query;
+      // Default to today's date in YYYY-MM-DD format
+      const reportDate = date || new Date().toISOString().slice(0, 10);
+      const data = await AdminDBService.getShiftReport({ date: reportDate });
+      return response.success(res, data, "Lấy báo cáo theo ca thành công");
+    } catch (err) {
+      next(err);
+    }
+  }
 }
 
 module.exports = new AdminDBController();
