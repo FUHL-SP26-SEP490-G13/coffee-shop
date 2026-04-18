@@ -1221,7 +1221,8 @@ export function OrderDelivery() {
                              <Button 
                                variant="outline" 
                                className="flex-1 rounded-2xl border-2 border-destructive/20 font-bold text-destructive hover:bg-destructive hover:text-white text-xs"
-                               onClick={() => {
+                               onClick={(e) => {
+                                 e.stopPropagation();
                                  setCancelConfirm({ open: true, orderId: order.id, mode: "pending" });
                                }}
                                disabled={cancelingId === order.id}
@@ -1231,7 +1232,10 @@ export function OrderDelivery() {
 
                              <Button 
                                className="flex-[2] rounded-2xl font-black text-xs shadow-lg shadow-primary/20"
-                               onClick={() => handleConfirmOrder(order.id)}
+                               onClick={(e) => {
+                                 e.stopPropagation();
+                                 handleConfirmOrder(order);
+                               }}
                                disabled={confirmingId === order.id}
                              >
                                {confirmingId === order.id ? (

@@ -7,7 +7,7 @@ class CashSessionController {
       const fullName = [req.user.last_name, req.user.first_name].filter(Boolean).join(' ');
       const userName = fullName || req.user.username || 'Nhân viên';
       const data = await service.getCurrentSession(userId);
-      res.json({ success: true, data: { ...data, userName } });
+      res.json({ success: true, data: { ...data, userName, currentUserId: userId } });
     } catch (error) {
       next(error);
     }
