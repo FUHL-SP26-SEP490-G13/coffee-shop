@@ -94,6 +94,11 @@ class BaristaDBController {
 
       await OrderRepository.updateOrderStatus(id, status);
 
+      if (status === 'completed') {
+        await OrderRepository.updateOrderPaidStatus(id, true);
+        await OrderRepository.updatePaymentByOrderCode(id, { payment_status: 'paid' });
+      }
+
       return res.json({
         success: true,
         message: "Cập nhật trạng thái thành công",
