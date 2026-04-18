@@ -7,6 +7,7 @@ import { ChevronLeft } from "lucide-react";
 import orderOnlineService from "@/services/orderOnlineService";
 import toppingService from "@/services/toppingService";
 import discountService from "@/services/discountService";
+import tableService from "@/services/tableService"; // Cập nhật hiển thị code bàn
 
 export default function MyOrderQRDetail() {
   const { state } = useLocation();
@@ -22,6 +23,7 @@ export default function MyOrderQRDetail() {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [toppingsList, setToppingsList] = useState([]);
   const [discounts, setDiscounts] = useState([]);
+  const [tableInfo, setTableInfo] = useState(null);
   const [modalConfig, setModalConfig] = useState({ show: false, title: "", message: "", type: "warning", onConfirm: null });
 
   useEffect(() => {
@@ -33,6 +35,12 @@ export default function MyOrderQRDetail() {
       setDiscounts(res?.data || res || []);
     }).catch(err => console.error("Error fetching discounts", err));
   }, []);
+
+  useEffect(() => {
+    if (tableId) {
+      tableService.getById(tableId).then(res => setTableInfo(res?.data)).catch(() => {});
+    }
+  }, [tableId]);
 
   useEffect(() => {
     if (!selected || selected.length === 0) {
@@ -170,7 +178,7 @@ export default function MyOrderQRDetail() {
         {/* Bàn */}
         <div className="bg-white dark:bg-gray-900 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 flex items-center justify-between">
           <span className="text-gray-600 dark:text-gray-400 font-medium">Bàn phục vụ</span>
-          <span className="font-bold text-lg text-primary">{tableId}</span>
+          <span className="font-bold text-lg text-primary">{tableInfo?.code || tableId}</span>
         </div>
 
         {/* Danh sách món */}

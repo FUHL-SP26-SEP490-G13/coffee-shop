@@ -39,7 +39,7 @@ export function BaristaOrders() {
   const fetchOrders = useCallback(async () => {
     try {
       setLoading(true);
-      const statuses = activeTab === 'new' ? ['pending'] : ['served', 'completed'];
+      const statuses = activeTab === 'new' ? ['pending', 'preparing'] : ['served', 'completed'];
       let filters = {};
 
       if (activeTab === 'completed') {

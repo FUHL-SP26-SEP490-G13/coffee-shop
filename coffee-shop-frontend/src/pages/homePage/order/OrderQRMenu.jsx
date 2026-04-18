@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import categoryService from "@/services/categoryService";
 import toppingService from "@/services/toppingService";
 import productService from "@/services/productService";
+import tableService from "@/services/tableService";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -35,6 +36,15 @@ export default function OrderQRMenu() {
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [warningMessage, setWarningMessage] = useState("");
+  const [tableInfo, setTableInfo] = useState(null);
+
+  useEffect(() => {
+    if (tableId) {
+      tableService.getById(tableId)
+        .then(res => setTableInfo(res?.data))
+        .catch(() => {});
+    }
+  }, [tableId]);
 
   // Lấy danh sách category
   useEffect(() => {
@@ -88,7 +98,7 @@ export default function OrderQRMenu() {
     <div className="max-w-lg mx-auto min-h-screen bg-white dark:bg-gray-900 flex flex-col pb-24">
       {/* HEADER + CATEGORY */}
       <header className="sticky top-0 z-10 bg-white dark:bg-gray-900 border-b py-4 px-4 shadow-sm">
-        <h1 className="text-xl font-bold text-center mb-2">Menu bàn {tableId}</h1>
+        <h1 className="text-xl font-bold text-center mb-2">Menu bàn {tableInfo?.code || tableId}</h1>
         {/* CATEGORY SCROLL */}
         <div className="overflow-x-auto hide-scrollbar -mx-4 px-4 pb-1">
           <div className="flex gap-2 w-max">
@@ -256,18 +266,6 @@ export default function OrderQRMenu() {
                         })}
                       </div>
                     )}
-                    {/* Ghi chú */}
-                    <input
-                      type="text"
-                      placeholder="Ghi chú cho món này"
-                      value={item.note || ""}
-                      onChange={e => {
-                        setSelected(sel =>
-                          sel.map((s, i) => i === idx ? { ...s, note: e.target.value } : s)
-                        );
-                      }}
-                      className="block w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 my-2 focus:outline-none focus:ring-2 focus:ring-primary"
-                    />
                   </div>
                 );
               })}

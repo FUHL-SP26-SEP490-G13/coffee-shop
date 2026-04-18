@@ -8,6 +8,11 @@ const tableService = {
     return response.data;
   },
 
+  getById: async (id) => {
+    const response = await axios.get(`${API_URL}/tables/${id}`);
+    return response.data;
+  },
+
   getByArea: async (areaId) => {
     const response = await axios.get(`${API_URL}/tables/area/${areaId}`);
     return response.data;

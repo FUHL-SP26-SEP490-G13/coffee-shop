@@ -101,29 +101,44 @@ class ReviewController {
         const managerNotification = await NotificationService.createForManager(notificationPayload);
         const staffNotification = await NotificationService.createForStaffs(notificationPayload);
 
-        const notification = managerNotification?.notification || staffNotification?.notification;
-        const recipients = [
-          ...(managerNotification?.recipient ? [managerNotification.recipient] : []),
-          ...(Array.isArray(staffNotification?.recipients) ? staffNotification.recipients : []),
-        ];
-
         const io = req.app.get("io");
-        if (io && notification && recipients.length > 0) {
-          for (const recipient of recipients) {
-            io.to(`user-${recipient.user_id}`).emit("admin:notification", {
-              recipient_id: recipient.id,
-              user_id: recipient.user_id,
-              is_read: recipient.is_read,
-              read_at: recipient.read_at,
-              id: notification.id,
-              type: notification.type,
-              title: notification.title,
-              message: notification.message,
-              link: notification.link,
-              entity_type: notification.entity_type,
-              entity_id: notification.entity_id,
-              created_at: notification.created_at,
-            });
+        if (io) {
+          if (managerNotification?.notification && Array.isArray(managerNotification.recipients)) {
+            for (const recipient of managerNotification.recipients) {
+              io.to(`user-${recipient.user_id}`).emit("admin:notification", {
+                recipient_id: recipient.id,
+                user_id: recipient.user_id,
+                is_read: recipient.is_read,
+                read_at: recipient.read_at,
+                id: managerNotification.notification.id,
+                type: managerNotification.notification.type,
+                title: managerNotification.notification.title,
+                message: managerNotification.notification.message,
+                link: managerNotification.notification.link,
+                entity_type: managerNotification.notification.entity_type,
+                entity_id: managerNotification.notification.entity_id,
+                created_at: managerNotification.notification.created_at,
+              });
+            }
+          }
+
+          if (staffNotification?.notification && Array.isArray(staffNotification.recipients)) {
+            for (const recipient of staffNotification.recipients) {
+              io.to(`user-${recipient.user_id}`).emit("staff:notification", {
+                recipient_id: recipient.id,
+                user_id: recipient.user_id,
+                is_read: recipient.is_read,
+                read_at: recipient.read_at,
+                id: staffNotification.notification.id,
+                type: staffNotification.notification.type,
+                title: staffNotification.notification.title,
+                message: staffNotification.notification.message,
+                link: staffNotification.notification.link,
+                entity_type: staffNotification.notification.entity_type,
+                entity_id: staffNotification.notification.entity_id,
+                created_at: staffNotification.notification.created_at,
+              });
+            }
           }
         }
       } catch (err) {

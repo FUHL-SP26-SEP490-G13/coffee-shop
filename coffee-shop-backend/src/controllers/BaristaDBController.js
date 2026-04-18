@@ -93,12 +93,16 @@ class BaristaDBController {
         return res.status(400).json({ success: false, message: "Thiếu trạng thái" });
       }
 
+      const order = await OrderRepository.findOrderById(id);
+
       await OrderRepository.updateOrderStatus(id, status);
 
       if (status === 'completed') {
-        await OrderRepository.updateOrderPaidStatus(id, true);
-        await OrderRepository.updatePaymentByOrderCode(id, { payment_status: 'paid' });
-        await OrderOnlineService.syncCompletionRewardsForDelivery(id);
+        if (order && order.order_type === 'delivery') {
+          await OrderRepository.updateOrderPaidStatus(id, true);
+          await OrderRepository.updatePaymentByOrderCode(id, { payment_status: 'paid' });
+          await OrderOnlineService.syncCompletionRewardsForDelivery(id);
+        }
       }
 
       return res.json({

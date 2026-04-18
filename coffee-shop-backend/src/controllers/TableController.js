@@ -21,6 +21,21 @@ class TableController {
   }
 
   /**
+   * Get single table
+   */
+  async getTable(req, res, next) {
+    try {
+      const table = await TableService.getTableById(req.params.id);
+      res.json({
+        success: true,
+        data: table,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
    * Get tables by area
    */
   async getTablesByArea(req, res, next) {

@@ -836,6 +836,15 @@ class OrderOnlineService {
 
       await OrderRepository.updateOrderStatus(orderId, "preparing");
 
+      if (!isAlreadyPaid) {
+        await OrderRepository.updateOrderPaidStatus(orderId, true);
+        const totalAmount = Number(order.total_amount || 0);
+        await OrderRepository.updatePaymentStatusByOrderId(orderId, "paid", {
+          cash_received: totalAmount,
+          change_amount: 0,
+        });
+      }
+
       return {
         order_id: Number(orderId),
         user_id: order.user_id,

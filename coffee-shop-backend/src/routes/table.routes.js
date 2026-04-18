@@ -31,6 +31,7 @@ router.put('/:id', validateRequest(updateTableSchema), TableController.updateTab
 
 // API cập nhật QR code cho bàn đã có sẵn
 router.put('/:id/update-qr', TableController.updateQrForTable);
+router.get('/:id', TableController.getTable);
 router.delete('/:id', TableController.deleteTable);
 
 router.post('/with-qr', validate(createTableSchema), TableController.createTableWithQrCode);

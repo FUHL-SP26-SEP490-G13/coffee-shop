@@ -234,6 +234,28 @@ class QrOrderService {
       }
 
       const finalAmount = Math.max(0, totalAmount - discountAmount);
+      
+      // Xử lý table session
+      let tableSessionId = null;
+      if (tableId) {
+        const [tableRows] = await connection.query(
+          'SELECT id, status, current_session_id FROM tables WHERE id = ? AND is_deleted = 0 FOR UPDATE',
+          [tableId]
+        );
+        if (tableRows.length > 0) {
+          const table = tableRows[0];
+          if (table.status === 'available' || !table.current_session_id) {
+            tableSessionId = `sess_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+            await connection.query(
+              "UPDATE tables SET status = 'occupied', current_session_id = ? WHERE id = ?",
+              [tableSessionId, tableId]
+            );
+          } else {
+            tableSessionId = table.current_session_id;
+          }
+        }
+      }
+
       const userId = user?.id || null;
 
       // Lấy ca đang mở để gán vào đơn QR
@@ -250,6 +272,7 @@ class QrOrderService {
         discount_amount: discountAmount,
         discount_id: discountIdApplied,
         cash_session_id: activeSession ? activeSession.id : null,
+        session_id: tableSessionId,
       });
 
       for (const item of normalizedItems) {

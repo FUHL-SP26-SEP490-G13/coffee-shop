@@ -78,9 +78,10 @@ class QrOrderRepository {
         total_amount,
         amount,
         discount_amount,
-        discount_id
+        discount_id,
+        session_id
       )
-      VALUES (?, ?, ?, ?, ?, 'pending', 0, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, 'preparing', 0, ?, ?, ?, ?, ?)
       `,
       [
         data.user_id,
@@ -91,7 +92,8 @@ class QrOrderRepository {
         data.total_amount,
         Math.max(0, Number(data.amount ?? data.total_amount) || 0),
         Math.max(0, Number(data.discount_amount) || 0),
-        data.discount_id || null
+        data.discount_id || null,
+        data.session_id || null
       ]
     );
 

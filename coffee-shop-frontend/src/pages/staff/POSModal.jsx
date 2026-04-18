@@ -838,8 +838,8 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange, editingO
                   {isSubmittingOrder ? 'Đang cập nhật...' : `Cập nhật đơn #${editingOrder.id} · ${formatVND(total)}`}
                 </Button>
               ) : (
-                <div className="grid grid-cols-2 gap-2">
-                  <Button
+                <div className="flex justify-center">
+                  {/* <Button
                     onClick={handleSendToBarista}
                     disabled={cart.length === 0 || isSubmittingOrder}
                     variant="outline"
@@ -847,11 +847,11 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange, editingO
                   >
                     <Send className="w-4 h-4 mr-1.5" />
                     Gửi barista
-                  </Button>
+                  </Button> */}
                   <Button
                     onClick={handleOpenPaymentModal}
                     disabled={cart.length === 0 || isSubmittingOrder}
-                    className="bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl h-11 text-sm"
+                    className="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl h-11 text-sm"
                   >
                     Thanh toán · {formatVND(total)}
                   </Button>
