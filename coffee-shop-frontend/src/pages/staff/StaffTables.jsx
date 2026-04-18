@@ -512,21 +512,23 @@ export function StaffTables() {
         return;
       }
 
-      // Splits were already done – go straight to payment modal
-      if (unpaidOrders.length > 1) {
-        setIsPaySplitBillModalOpen(true);
-        return;
+      // We want to ALWAYS show SplitBillModal to allow splitting items
+      let combinedItems = [];
+      for (const order of unpaidOrders) {
+        try {
+          const detailRes = await orderService.getOrderDetailForStaff(order.id);
+          if (detailRes.data && detailRes.data.items) {
+            combinedItems = combinedItems.concat(detailRes.data.items);
+          }
+        } catch {
+          if (order.items) combinedItems = combinedItems.concat(order.items);
+        }
       }
 
-      // Only 1 unpaid order → fresh split flow
-      const originalOrder = unpaidOrders[0];
-      try {
-        const detailRes = await orderService.getOrderDetailForStaff(originalOrder.id);
-        setActiveOrder(detailRes.data);
-      } catch {
-        // Fallback: use the summary object
-        setActiveOrder(originalOrder);
-      }
+      setActiveOrder({
+        ...unpaidOrders[0],
+        items: combinedItems
+      });
 
       setIsSplitBillModalOpen(true);
     } catch {
