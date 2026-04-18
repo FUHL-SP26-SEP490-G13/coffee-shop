@@ -6,7 +6,8 @@ const userService = {
   getAllUsers: async () => {
     const token = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN) || sessionStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
     
-    const response = await fetch(`${API_URL}/users`, {
+    // Add ?limit=1000 to bypass the backend default limit of 20, since AdminUsers does client-side filtering/pagination
+    const response = await fetch(`${API_URL}/users?limit=1000`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',

@@ -276,7 +276,7 @@ export default function AdminUsers() {
   };
 
   const getRoleInfo = (roleId) => {
-    switch (roleId) {
+    switch (Number(roleId)) {
       case 1:
         return { label: 'Quản lý', className: 'bg-red-500/10 text-red-700 border-red-500/20' };
       case 2:
@@ -295,10 +295,10 @@ export default function AdminUsers() {
     let result = [...users];
 
     // Loại bỏ admin (role_id = 1)
-    result = result.filter(user => user.role_id !== 1);
+    result = result.filter(user => Number(user.role_id) !== 1);
 
     // Lọc theo tab (role)
-    result = result.filter(user => user.role_id === parseInt(activeTab));
+    result = result.filter(user => Number(user.role_id) === Number(activeTab));
 
     // Tìm kiếm
     if (searchQuery) {
