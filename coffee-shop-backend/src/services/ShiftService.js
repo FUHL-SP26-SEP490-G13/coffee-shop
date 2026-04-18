@@ -1,4 +1,5 @@
 const ShiftRepository = require('../repositories/ShiftRepository');
+const AttendanceRepository = require('../repositories/AttendanceRepository');
 const ErrorResponse = require('../utils/ErrorResponse');
 const validateDate = require('../helpers/validateDate');
 const formatDateStr = require('../helpers/formatDateStr');
@@ -486,6 +487,25 @@ class ShiftService {
         const reg = await ShiftRepository.findRegistrationById(registrationId);
         if (!reg) {
             throw new ErrorResponse(404, 'Không tìm thấy lịch làm việc này');
+        }
+
+        // 1. Kiểm tra không cho xóa ca đã bắt đầu (trong quá khứ / đang diễn ra)
+        const shiftDateStr = typeof reg.shift_date === 'string'
+            ? reg.shift_date.slice(0, 10)
+            : formatDateStr(reg.shift_date);
+
+        const [y, m, d] = shiftDateStr.split('-').map(Number);
+        const [h, min] = reg.start_time.slice(0, 5).split(':').map(Number);
+        const shiftStart = new Date(y, m - 1, d, h, min, 0, 0);
+
+        if (new Date() >= shiftStart) {
+            throw new ErrorResponse(400, 'Không thể xóa phân ca đã bắt đầu hoặc ở trong quá khứ');
+        }
+
+        // 2. Kiểm tra không cho xóa nếu đã có dữ liệu điểm danh
+        const attendance = await AttendanceRepository.findByRegistrationId(registrationId);
+        if (attendance) {
+            throw new ErrorResponse(400, 'Nhân viên đã điểm danh cho ca này, không thể xóa');
         }
 
         await ShiftRepository.cancelRegistration(registrationId);
