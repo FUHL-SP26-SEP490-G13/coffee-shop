@@ -51,6 +51,15 @@ export const CashSessionProvider = ({ children }) => {
           setShowOpenModal(true);
         } else {
           setShowOpenModal(false);
+          // Ép đóng ca nếu ca đang mở là của người khác
+          if (
+            res.data.session.opened_by && 
+            res.data.currentUserId && 
+            res.data.session.opened_by !== res.data.currentUserId
+          ) {
+            setIsForcedClose(true);
+            setShowCloseModal(true);
+          }
         }
       }
     } catch (err) {
