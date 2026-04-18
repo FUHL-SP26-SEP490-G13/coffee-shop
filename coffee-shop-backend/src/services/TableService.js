@@ -938,7 +938,7 @@ class TableService {
         const [insertOrder] = await connection.query(
           `
           INSERT INTO orders (user_id, created_by, customer_type, order_type, table_id, status, is_paid, amount, discount_amount, total_amount, session_id)
-          VALUES (1, 1, 'guest', 'dine-in', ?, 'pending', 0, 0, 0, 0, ?)
+          VALUES (1, 1, 'guest', 'dine-in', ?, 'completed', 0, 0, 0, 0, ?)
           `,
           [tableId, table.current_session_id]
         );
@@ -1010,7 +1010,7 @@ class TableService {
         }
 
         await connection.query(
-          'UPDATE orders SET amount = ?, discount_amount = 0, total_amount = ?, is_paid = 0, status = "pending" WHERE id = ?',
+          'UPDATE orders SET amount = ?, discount_amount = 0, total_amount = ?, is_paid = 0, status = "completed" WHERE id = ?',
           [billTotal, billTotal, newOrderId]
         );
 
@@ -1034,7 +1034,7 @@ class TableService {
         const remainingTotal = await this.recalculateOrderTotal(connection, oId);
         if (remainingTotal > 0) {
           await connection.query(
-            'UPDATE orders SET amount = ?, discount_amount = 0, total_amount = ? WHERE id = ?',
+            'UPDATE orders SET amount = ?, discount_amount = 0, total_amount = ?, status = "completed" WHERE id = ?',
             [remainingTotal, remainingTotal, oId]
           );
           // Đồng bộ amount trong order_payments
