@@ -496,7 +496,7 @@ class TableService {
       const placeholders = orderIds.map(() => '?').join(',');
 
       await connection.query(
-        `UPDATE orders SET is_paid = 1, paid_at = NOW() WHERE id IN (${placeholders})`,
+        `UPDATE orders SET is_paid = 1, status = 'completed', paid_at = NOW() WHERE id IN (${placeholders})`,
         orderIds
       );
 
