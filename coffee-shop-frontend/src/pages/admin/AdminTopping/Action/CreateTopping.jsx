@@ -23,7 +23,7 @@ export default function CreateTopping({ open, onClose, onSuccess }) {
       try {
         const res = await categoryService.getAll();
         if (res.data) setCategories(res.data.filter(c => c.is_deleted === 0));
-      } catch (err) {}
+      } catch (err) { }
     };
     if (open) {
       fetchCategories();
@@ -81,25 +81,25 @@ export default function CreateTopping({ open, onClose, onSuccess }) {
           </div>
           <label className="font-medium">Kiểu đồ uống áp dụng</label>
           <div className="max-h-40 overflow-y-auto border p-3 rounded-md space-y-2">
-             {categories.length === 0 ? (
-               <span className="text-gray-400 text-sm">Chưa có danh mục...</span>
-             ) : (
-               categories.map(c => (
-                 <label key={c.id} className="flex items-center gap-2 cursor-pointer text-sm">
-                   <input
-                     type="checkbox"
-                     checked={categoryIds.includes(c.id)}
-                     onChange={(e) => {
-                       if (e.target.checked) setCategoryIds([...categoryIds, c.id]);
-                       else setCategoryIds(categoryIds.filter(id => id !== c.id));
-                     }}
-                     className="w-4 h-4 shrink-0"
-                   />
-                   {c.image_url && <img src={c.image_url} alt={c.name} className="w-6 h-6 object-cover rounded-md flex-shrink-0 border border-gray-200" />}
-                   <span className="flex-1">{c.name} - {c.code}</span>
-                 </label>
-               ))
-             )}
+            {categories.length === 0 ? (
+              <span className="text-gray-400 text-sm">Chưa có danh mục...</span>
+            ) : (
+              categories.map(c => (
+                <label key={c.id} className="flex items-center gap-2 cursor-pointer text-sm">
+                  <input
+                    type="checkbox"
+                    checked={categoryIds.includes(c.id)}
+                    onChange={(e) => {
+                      if (e.target.checked) setCategoryIds([...categoryIds, c.id]);
+                      else setCategoryIds(categoryIds.filter(id => id !== c.id));
+                    }}
+                    className="w-4 h-4 shrink-0"
+                  />
+                  {c.image_url && <img src={c.image_url} alt={c.name} className="w-6 h-6 object-cover rounded-md flex-shrink-0 border border-gray-200" />}
+                  <span className="flex-1">{c.name} - {c.code}</span>
+                </label>
+              ))
+            )}
           </div>
           <div className="flex gap-2 justify-end">
             <Button variant="outline" onClick={onClose} disabled={submitting}>

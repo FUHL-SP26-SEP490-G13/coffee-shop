@@ -88,6 +88,113 @@ const userService = {
     }
 
     return await response.json();
+  },
+
+  generatePin: async (userId) => {
+    const token = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN) || sessionStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
+
+    const response = await fetch(`${API_URL}/users/${userId}/generate-pin`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to generate PIN');
+    }
+
+    return await response.json();
+  },
+
+  getUsersByRole: async (roleId) => {
+    const token = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN) || sessionStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
+
+    const response = await fetch(`${API_URL}/users/role/${roleId}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch users by role');
+    }
+
+    return await response.json();
+  },
+
+  // Lấy thông tin profile hiện tại
+  getProfile: async () => {
+    const token = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN) || sessionStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
+
+    const response = await fetch(`${API_URL}/users/profile`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch profile');
+    }
+
+    return await response.json();
+  },
+
+  // Cập nhật thông tin profile
+  updateProfile: async (data) => {
+    const token = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN) || sessionStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
+
+    const response = await fetch(`${API_URL}/users/profile`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(data)
+    });
+
+    if (!response.ok) {
+      let errorMessage = 'Failed to update profile';
+
+      try {
+        const error = await response.json();
+        if (error?.message) {
+          errorMessage = error.message;
+        }
+      } catch {
+        // Keep fallback message when response is not JSON
+      }
+
+      throw new Error(errorMessage);
+    }
+
+    return await response.json();
+  },
+
+  updateUser: async (userId, data) => {
+    const token = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN) || sessionStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
+
+    const response = await fetch(`${API_URL}/users/${userId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(data)
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to update user');
+    }
+
+    return await response.json();
   }
 };
 

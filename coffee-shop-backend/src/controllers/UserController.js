@@ -190,6 +190,24 @@ class UserController {
   }
 
   /**
+   * Update current user profile
+   * PUT /api/users/profile
+   */
+  async updateProfile(req, res, next) {
+    try {
+      const user = await UserService.updateProfile(req.user.id, req.body);
+
+      return response.success(
+        res,
+        user,
+        'Cập nhật profile thành công'
+      );
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
    * Deactivate user
    * POST /api/users/:id/deactivate
    */
@@ -276,6 +294,24 @@ class UserController {
         res,
         stats,
         'Lấy thống kê users thành công'
+      );
+    } catch (error) {
+      next(error);
+    }
+  }
+  /**
+   * Generate new PIN for user
+   * POST /api/users/:id/generate-pin
+   */
+  async generatePin(req, res, next) {
+    try {
+      const { id } = req.params;
+      const updatedUser = await UserService.generateNewPinForUser(id);
+
+      return response.success(
+        res,
+        updatedUser,
+        'Tạo mã PIN mới thành công'
       );
     } catch (error) {
       next(error);

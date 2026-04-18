@@ -4,7 +4,7 @@ const UserController = require('../controllers/UserController');
 const { authenticate } = require('../middlewares/auth');
 const { authorize } = require('../middlewares/authorize');
 const validate = require('../middlewares/validate');
-const { registerSchema, staffCreateSchema } = require('../validators/authValidator');
+const { registerSchema, staffCreateSchema, updateProfileSchema } = require('../validators/authValidator');
 
 /**
  * Protected routes - Admin only
@@ -75,6 +75,14 @@ router.get(
   UserController.getById
 );
 
+// Update my profile
+router.put(
+  '/profile',
+  authenticate,
+  validate(updateProfileSchema),
+  UserController.updateProfile
+);
+
 // Update user
 router.put(
   '/:id',
@@ -105,6 +113,14 @@ router.delete(
   authenticate,
   authorize(['manager']),
   UserController.delete
+);
+
+// Generate new PIN
+router.post(
+  '/:id/generate-pin',
+  authenticate,
+  authorize(['manager']),
+  UserController.generatePin
 );
 
 module.exports = router;

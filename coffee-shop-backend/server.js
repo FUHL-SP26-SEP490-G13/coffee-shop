@@ -5,6 +5,7 @@ const app = require("./src/app");
 const env = require("./src/config/env");
 const { payOS } = require("./src/config/payos");
 const { startPayosPendingTimeoutJob } = require("./src/jobs/payosPendingTimeoutJob");
+const { startAttendanceJob } = require("./src/jobs/attendanceJob");
 
 const PORT = env.PORT || 5000;
 
@@ -21,10 +22,16 @@ const io = new Server(server, {
 app.set("io", io);
 
 let stopPayosPendingTimeoutJob = null;
+let stopAttendanceJob = null;
+
 if (env.NODE_ENV !== "test") {
   stopPayosPendingTimeoutJob = startPayosPendingTimeoutJob({
     timeoutMinutes: 5,
     intervalMs: 60 * 1000,
+  });
+
+  stopAttendanceJob = startAttendanceJob({
+    intervalMs: 30 * 60 * 1000, // Every 30 minutes
   });
 }
 
@@ -61,6 +68,9 @@ const gracefulShutdown = (signal) => {
 
   if (typeof stopPayosPendingTimeoutJob === "function") {
     stopPayosPendingTimeoutJob();
+  }
+  if (typeof stopAttendanceJob === "function") {
+    stopAttendanceJob();
   }
 
   server.close(() => {

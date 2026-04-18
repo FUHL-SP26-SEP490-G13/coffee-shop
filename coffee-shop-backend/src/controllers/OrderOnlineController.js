@@ -161,6 +161,10 @@ class OrderOnlineController {
   async confirmPreparing(req, res) {
     const orderId = Number(req.params.id);
 
+    if (!orderId || isNaN(orderId)) {
+      return res.status(400).json({ success: false, message: "Mã đơn hàng không hợp lệ" });
+    }
+
     const result = await OrderOnlineService.confirmDeliveryPreparing(orderId);
 
     const io = req.app.get("io");

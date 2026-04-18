@@ -69,4 +69,12 @@ router.get(
   AdminDBController.getDetailedOrdersReport
 );
 
+// /api/dashboard/shift-report?date=YYYY-MM-DD
+router.get(
+  "/shift-report",
+  authenticate,
+  authorize([ROLES_STRING.MANAGER]),
+  AdminDBController.getShiftReport
+);
+
 module.exports = router;

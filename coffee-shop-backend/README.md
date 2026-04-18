@@ -125,7 +125,7 @@ Authorization: Bearer <token>
 
 #### Update Profile
 ```http
-PUT /api/auth/profile
+PUT /api/users/profile
 Authorization: Bearer <token>
 Content-Type: application/json
 

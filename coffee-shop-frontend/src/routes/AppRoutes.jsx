@@ -23,6 +23,7 @@ import AdminDiscounts from "@/pages/admin/AdminDiscount/AdminDiscounts";
 import OrderPolicy from "@/pages/common/OrderPolicy";
 import PrivacyPolicy from "@/pages/common/PrivacyPolicy";
 import AdminApp from "../pages/admin/AdminApp";
+import AdminAttendance from "../pages/admin/AdminAttendance/AdminAttendance";
 
 import { StaffAttendance } from "@/pages/staff/StaffAttendance";
 import { StaffKitchen } from "@/pages/staff/StaffKitchen";
@@ -54,8 +55,10 @@ import AdminReceiptSettings from "@/pages/admin/AdminReceiptSettings/AdminReceip
 import AdminFlashSales from "@/pages/admin/AdminFlashSale/AdminFlashSales";
 import AdminReputation from "@/pages/admin/AdminReputation/AdminReputation";
 import AdminLoyalty from "@/pages/admin/AdminLoyalty/AdminLoyalty";
+import Attendance from "@/pages/attendance/Attendance";
 
 import AdminEndOfDayReport from "@/pages/admin/AdminEndOfDayReport/AdminEndOfDayReport";
+import AdminShiftReport from "@/pages/admin/AdminShiftReport/AdminShiftReport";
 import TakeawayPOS from '../pages/staff/TakeawayPOS'
 import { OrderDelivery } from '@/pages/staff/StaffOrderList';
 import { StaffDashboard } from "@/pages/staff/StaffDashboard/StaffDashboard";
@@ -78,6 +81,8 @@ const getRoleHomeRoute = (roleId) => {
       return APP_ROUTES.BARISTA;
     case 4:
       return APP_ROUTES.CUSTOMER;
+    case 5:
+      return APP_ROUTES.ATTENDANCE;
     default:
       return APP_ROUTES.HOME;
   }
@@ -148,7 +153,7 @@ const HomeEntryGuard = () => {
       </div>
     );
 
-  if ([1, 2, 3].includes(roleId)) {
+  if ([1, 2, 3, 5].includes(roleId)) {
     return <Navigate to={getRoleHomeRoute(roleId)} replace />;
   }
 
@@ -170,6 +175,15 @@ const AppRoutes = () => {
         element={
           <RoleGuard allowedRoles={[1, 2, 3, 4]}>
             <ChangePasswordPage />
+          </RoleGuard>
+        }
+      />
+      {/* ATTENDANCE */}
+      <Route
+        path="/attendance"
+        element={
+          <RoleGuard allowedRoles={[5]}>
+            <Attendance />
           </RoleGuard>
         }
       />
@@ -225,10 +239,12 @@ const AppRoutes = () => {
         <Route index element={<Navigate to="dashboard" replace />} />
         <Route path="dashboard" element={<AdminDB />} />
         <Route path="end-of-day-report" element={<AdminEndOfDayReport />} />
+        <Route path="shift-report" element={<AdminShiftReport />} />
         <Route path="menu/products" element={<AdminProducts />} />
         <Route path="menu/categories" element={<AdminCategories />} />
         <Route path="orders" element={<AdminOrders />} />
         <Route path="users" element={<AdminUsers />} />
+        <Route path="attendance" element={<AdminAttendance />} />
         <Route path="ingredients" element={<AdminIngredients />} />
         <Route path="schedule" element={<AdminSchedulePage />}>
           <Route index element={<ShiftTemplatePage />} />
@@ -253,7 +269,7 @@ const AppRoutes = () => {
         <Route path="/" element={<HomeEntryGuard />} />
         {/* Route /products đã được chuyển vào /:slug (GenericSlugResolver) để chống chớp giật Grid */}
         <Route path="/products/:id" element={<ProductDetailPage />} />
-        
+
         <Route path="/news/:slug" element={<NewsDetailPage />} />
         <Route path="/news" element={<NewsListPage />} />
         <Route path="/store" element={<StoreInfoPage />} />

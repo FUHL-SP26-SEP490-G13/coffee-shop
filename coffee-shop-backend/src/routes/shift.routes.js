@@ -14,7 +14,7 @@ const ALL_STAFF = [ROLES_STRING.MANAGER, ROLES_STRING.STAFF, ROLES_STRING.BARIST
 router.get(
     '/templates',
     authenticate,
-    authorize(ALL_STAFF),
+    authorize(MANAGER_ONLY),
     AsyncMiddleware(shiftTemplateController.getAll),
 );
 

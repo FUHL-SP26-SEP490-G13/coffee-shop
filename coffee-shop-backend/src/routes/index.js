@@ -31,6 +31,8 @@ const shiftRoutes = require('./shift.routes');
 const loyaltyRoutes = require('./loyalty.routes');
 const cashSessionRoutes = require('./cashSession.routes');
 const aiRoutes = require('./ai.routes');
+const attendanceSettingRoutes = require('./attendanceSetting.routes');
+const attendanceRoutes = require('./attendance.routes');
 
 const cartRoutes = require('./cart.routes');
 
@@ -87,6 +89,8 @@ router.use('/qr-order', qrOrderRoutes);
 router.use('/shifts', shiftRoutes);
 router.use('/loyalty', loyaltyRoutes);
 router.use('/ai', aiRoutes);
+router.use('/attendance-settings', attendanceSettingRoutes);
+router.use('/attendance', attendanceRoutes);
 router.use('/cash-sessions', cashSessionRoutes);
 
 router.use('/cart', cartRoutes);
@@ -111,7 +115,6 @@ router.get("/", (req, res) => {
         register: 'POST /api/auth/register',
         login: 'POST /api/auth/login',
         profile: 'GET /api/auth/profile',
-        updateProfile: 'PUT /api/auth/profile',
         changePassword: 'POST /api/auth/change-password',
         refreshToken: 'POST /api/auth/refresh-token',
         resetPassword: 'POST /api/auth/reset-password',
@@ -139,6 +142,7 @@ router.get("/", (req, res) => {
         getStaff: "GET /api/users/staff (Admin)",
         getCustomers: "GET /api/users/customers (Admin)",
         getStats: "GET /api/users/stats (Admin)",
+        profile: "PUT /api/users/profile",
         create: "POST /api/users (Admin)",
         update: "PUT /api/users/:id (Admin)",
         deactivate: "POST /api/users/:id/deactivate (Admin)",

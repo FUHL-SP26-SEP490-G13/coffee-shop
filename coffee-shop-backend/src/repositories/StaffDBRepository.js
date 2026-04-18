@@ -36,11 +36,53 @@ class StaffDBRepository {
         AND sr.status = 'registered'
     `, [userId]);
 
+    // Doanh thu theo ca hiện tại: tìm shift_template đang hoạt động ứng với giờ hiện tại
+    const [[currentShiftTemplate]] = await pool.query(`
+      SELECT id, name, start_time, end_time
+      FROM shift_templates
+      WHERE is_deleted = 0
+        AND (
+          -- ca bình thường: start_time <= end_time
+          (start_time <= end_time AND CURTIME() >= start_time AND CURTIME() < end_time)
+          OR
+          -- ca qua đêm: start_time > end_time
+          (start_time > end_time AND (CURTIME() >= start_time OR CURTIME() < end_time))
+        )
+      ORDER BY start_time
+      LIMIT 1
+    `);
+
+    let shiftRevenue = 0;
+    let currentShiftName = null;
+
+    if (currentShiftTemplate) {
+      const start = currentShiftTemplate.start_time.slice(0, 5);
+      const end = currentShiftTemplate.end_time.slice(0, 5);
+      const isOvernight = end <= start;
+      const timeCondition = isOvernight
+        ? `(TIME(o.created_at) >= ? OR TIME(o.created_at) < ?)`
+        : `(TIME(o.created_at) >= ? AND TIME(o.created_at) < ?)`;
+
+      const [[revenueRow]] = await pool.query(
+        `SELECT IFNULL(SUM(o.total_amount), 0) AS revenue
+         FROM orders o
+         WHERE o.is_paid = 1
+           AND o.status != 'cancelled'
+           AND DATE(o.created_at) = CURDATE()
+           AND ${timeCondition}`,
+        [start, end]
+      );
+      shiftRevenue = Number(revenueRow?.revenue || 0);
+      currentShiftName = currentShiftTemplate.name;
+    }
+
     return {
       takeawayPending: Number(takeaway?.pending || 0),
       deliveryWaiting: Number(delivery?.waiting || 0),
       kitchenPreparingItems: Number(kitchen?.totalItems || 0),
-      shiftStatus: shift && shift.count > 0 ? "Sẵn sàng" : "Chưa xếp ca"
+      shiftStatus: shift && shift.count > 0 ? "Sẵn sàng" : "Chưa xếp ca",
+      shiftRevenue,
+      currentShiftName,
     };
   }
 }

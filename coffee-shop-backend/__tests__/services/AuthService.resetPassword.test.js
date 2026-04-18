@@ -90,9 +90,9 @@ describe('AuthService - Reset Password Flow', () => {
       expect(result.otp).toMatch(/^\d{8}$/);  // OTP should be 8 digits
     });
 
-    it('AuthService - resetPassword - TC-02: should return generic message when email not found (security)', async () => {
+    it('AuthService - resetPassword - TC-02: should throw error when email not found', async () => {
       console.log('\n' + '='.repeat(50));
-      console.log('AuthService - RESET_PASSWORD - TC-2: Trả về tin nhắn chung để ngăn xác định email');
+      console.log('AuthService - RESET_PASSWORD - TC-2: Lỗi khi email không tồn tại');
       console.log('='.repeat(50));
 
       // INPUT
@@ -105,30 +105,26 @@ describe('AuthService - Reset Password Flow', () => {
       UserRepository.findByEmail.mockResolvedValue(null);
 
       // OUTPUT EXPECT
-      const expectedMessage = 'Nếu email tồn tại, mã OTP đã được gửi đến email của bạn';
-      console.log('✅ OUTPUT EXPECT:', JSON.stringify({ message: expectedMessage }, null, 2));
+      const expectedError = 'Email không tồn tại';
+      console.log('✅ OUTPUT EXPECT: Error -', expectedError);
 
-      // Act
-      const result = await AuthService.resetPassword(input.email);
+      // Act & Assert
+      await expect(AuthService.resetPassword(input.email)).rejects.toThrow(expectedError);
 
       // OUTPUT REALITY
-      console.log('🎯 OUTPUT REALITY:', JSON.stringify(result, null, 2));
+      console.log('🎯 OUTPUT REALITY: throw error -', expectedError);
 
-      // Assert - Should NOT throw, should return generic message for security
-      expect(result.message).toBe(expectedMessage);
-      expect(result.otp).toBeUndefined(); // No OTP in response when email not found
+      // Assert
       expect(UserRepository.findByEmail).toHaveBeenCalledWith(input.email);
       expect(EmailVerificationRepository.create).not.toHaveBeenCalled();
       expect(EmailService.sendPasswordResetOtpEmail).not.toHaveBeenCalled();
     });
 
-    it('AuthService - resetPassword - TC-03: should return generic message when email is full-space string', async () => {
+    it('AuthService - resetPassword - TC-03: should throw error when email is full-space string', async () => {
       UserRepository.findByEmail.mockResolvedValue(null);
 
-      const result = await AuthService.resetPassword('        ');
+      await expect(AuthService.resetPassword('        ')).rejects.toThrow('Email không tồn tại');
 
-      expect(result.message).toBe('Nếu email tồn tại, mã OTP đã được gửi đến email của bạn');
-      expect(result.otp).toBeUndefined();
       expect(UserRepository.findByEmail).toHaveBeenCalledWith('        ');
       expect(EmailVerificationRepository.create).not.toHaveBeenCalled();
     });

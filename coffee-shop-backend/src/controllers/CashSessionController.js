@@ -50,14 +50,34 @@ class CashSessionController {
   async getHistory(req, res, next) {
     try {
       const user = req.user;
-      let { startDate, endDate, userId } = req.query;
+      let { startDate, endDate, userId, page = 1, limit = 10 } = req.query;
       
       if (user.role_id !== 1) { // Không phải admin/manager thì chỉ lấy được của bản thân
          userId = user.id; 
       }
 
-      const data = await service.getSessionsHistory({ startDate, endDate, userId });
-      res.json({ success: true, data });
+      const offset = (Number(page) - 1) * Number(limit);
+
+      const result = await service.getSessionsHistory({ 
+        startDate, 
+        endDate, 
+        userId,
+        limit: Number(limit),
+        offset 
+      });
+
+      const totalPages = Math.ceil(result.total / Number(limit));
+
+      res.json({ 
+        success: true, 
+        data: result.data,
+        pagination: {
+          total: result.total,
+          totalPages,
+          currentPage: Number(page),
+          limit: Number(limit)
+        }
+      });
     } catch (error) {
       next(error);
     }

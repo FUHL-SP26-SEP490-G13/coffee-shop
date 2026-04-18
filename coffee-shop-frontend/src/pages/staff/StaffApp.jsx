@@ -131,12 +131,12 @@ export function StaffApp() {
         "/staff/tables": "Phòng bàn",
         "/staff/takeaway": "Đặt mang đi",
         "/staff/orders/pending": "Đơn chờ",
-        "/staff/orders/preparing": "Đơn đang làm",
+        "/staff/orders/management": "Đơn đang làm",
         "/staff/orders/completed": "Đơn đã xong",
         "/staff/orders/cancelled": "Đơn đã hủy",
         "/staff/kitchen": "Bếp",
         "/staff/inventory": "Kho hàng",
-        "/staff/attendance": "Điểm danh ca làm",
+        "/staff/attendance": "Lịch sử điểm danh",
         "/staff/schedule": "Lịch làm việc",
         "/staff/profile": "Thông tin cá nhân",
     };
@@ -165,7 +165,7 @@ export function StaffApp() {
   const getCurrentPage = () => {
     const path = location.pathname;
     if (path.includes('orders/pending')) return 'orders-pending';
-    if (path.includes('orders/preparing')) return 'orders-preparing';
+    if (path.includes('orders/management')) return 'orders-management';
     if (path.includes('orders/completed')) return 'orders-completed';
     if (path.includes('orders/cancelled')) return 'orders-cancelled';
     if (path.includes('takeaway')) return 'takeaway'; 
@@ -196,7 +196,7 @@ export function StaffApp() {
         { id: 'tables', icon: Users, label: 'Phòng bàn', path: '/staff/tables' },
         { id: 'takeaway', icon: ShoppingBag, label: 'Đặt mang đi', path: '/staff/takeaway' },
         { id: 'orders-pending', icon: ShoppingBag, label: 'Đơn online chờ xác nhận', path: '/staff/orders/pending' },
-        { id: 'orders-preparing', icon: ShoppingBag, label: 'Quản lý đơn hàng', path: '/staff/orders/preparing' },
+        { id: 'orders-management', icon: ShoppingBag, label: 'Quản lý đơn hàng', path: '/staff/orders/management' },
         { id: 'barista-window', icon: Coffee, label: 'Cửa sổ pha chế', path: '/staff/barista-window', openInNewTab: true },
 
       ],
@@ -204,6 +204,7 @@ export function StaffApp() {
     {
       title: 'Cá Nhân',
       items: [
+        { id: 'attendance', icon: Clock, label: 'Lịch sử điểm danh', path: '/staff/attendance' },
         { id: 'schedule', icon: Calendar, label: 'Lịch làm việc', path: '/staff/schedule' },
         { id: 'profile', icon: User, label: 'Thông tin cá nhân', path: '/staff/profile' },
       ],
@@ -425,8 +426,8 @@ export function StaffApp() {
 
   if (isBaristaWindow) {
     return (
-      <div className="h-screen w-full bg-background overflow-hidden relative">
-        <main className="h-full w-full overflow-hidden relative">
+      <div className="min-h-screen w-full bg-background overflow-x-hidden relative">
+        <main className="min-h-screen w-full overflow-x-hidden overflow-y-auto relative">
           <style>{`
             @keyframes staffPageFadeUp {
               from { opacity: 0; transform: translateY(10px); }
@@ -436,7 +437,7 @@ export function StaffApp() {
               animation: staffPageFadeUp 320ms ease-out forwards;
             }
           `}</style>
-          <div key={location.pathname} className="staff-page-transition w-full h-full">
+          <div key={location.pathname} className="staff-page-transition w-full min-h-full">
             <Outlet />
           </div>
         </main>
@@ -445,7 +446,7 @@ export function StaffApp() {
   }
 
   return (
-    <div className='flex h-screen w-full bg-background overflow-hidden relative'>
+    <div className='flex min-h-screen w-full bg-background overflow-x-hidden relative'>
       <button
         onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
         className='md:hidden fixed top-4 left-4 z-50 p-2 bg-card border border-border rounded-lg shadow-lg dark:shadow-none'
@@ -547,7 +548,7 @@ export function StaffApp() {
                                 {orderStats.onlineWaiting}
                               </span>
                             )}
-                            {['orders-preparing', 'barista-window'].includes(item.id) && orderStats.displayPreparing > 0 && (
+                            {['orders-management', 'barista-window'].includes(item.id) && orderStats.displayPreparing > 0 && (
                               <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-amber-500 text-[9px] font-black text-white ring-2 ring-card shadow-sm">
                                 {orderStats.displayPreparing}
                               </span>
@@ -571,7 +572,7 @@ export function StaffApp() {
                                {orderStats.onlineWaiting}
                             </span>
                           )}
-                          {['orders-preparing', 'barista-window'].includes(item.id) && orderStats.displayPreparing > 0 && (
+                          {['orders-management', 'barista-window'].includes(item.id) && orderStats.displayPreparing > 0 && (
                             <span className="ml-auto inline-flex items-center justify-center px-2 py-0.5 rounded-full bg-amber-500 text-[10px] font-black text-white italic">
                                {orderStats.displayPreparing}
                             </span>
@@ -643,7 +644,7 @@ export function StaffApp() {
         </TooltipProvider>
       </div>
 
-      <div className="flex-1 flex flex-col h-full w-full overflow-hidden bg-background">
+      <div className="flex-1 flex flex-col min-h-screen w-full bg-background">
         <div
           ref={notificationRef}
           className='flex-shrink-0 flex justify-end items-center gap-3 px-4 md:px-8 pt-4 md:pt-4 pb-0 relative'
@@ -729,7 +730,7 @@ export function StaffApp() {
             </div>
           )}
         </div>
-        <main className="flex-1 flex flex-col overflow-hidden relative custom-scrollbar">
+        <main className="flex-1 flex flex-col overflow-x-hidden overflow-y-auto relative custom-scrollbar min-h-0">
           <style>{`
             @keyframes staffPageFadeUp {
               from { opacity: 0; transform: translateY(10px); }
@@ -739,7 +740,7 @@ export function StaffApp() {
               animation: staffPageFadeUp 320ms ease-out forwards;
             }
           `}</style>
-          <div key={location.pathname} className="staff-page-transition w-full h-full flex flex-col flex-1">
+          <div key={location.pathname} className="staff-page-transition w-full min-h-full flex flex-col flex-1">
             <Outlet />
           </div>
         </main>
@@ -749,7 +750,7 @@ export function StaffApp() {
 }
 
 const CashSessionButton = ({ isSidebarCompact }) => {
-  const { session, handleTriggerClose, isTimeToClose } = useCashSession();
+  const { session, handleTriggerClose } = useCashSession();
   const [isHandoverModalOpen, setIsHandoverModalOpen] = useState(false);
 
   const closeButton = session ? (

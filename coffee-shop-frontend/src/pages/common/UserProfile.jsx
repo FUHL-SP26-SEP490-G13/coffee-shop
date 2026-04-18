@@ -10,6 +10,7 @@ import { Avatar, AvatarFallback } from '../../components/ui/avatar';
 
 import { toast } from 'sonner';
 import authenticationService from '../../services/authenticationService';
+import userService from '../../services/userService';
 import receiptSettingService from '../../services/receiptSettingService';
 import { APP_ROUTES, STORAGE_KEYS } from '../../constants';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
@@ -49,6 +50,32 @@ export function UserProfile() {
   const [editingAddressId, setEditingAddressId] = useState(null);
   const [profileFieldErrors, setProfileFieldErrors] = useState({});
   const [addressFieldErrors, setAddressFieldErrors] = useState({});
+
+  const [attendanceUser, setAttendanceUser] = useState(null);
+  const [isFetchingAttendance, setIsFetchingAttendance] = useState(false);
+  const [attendanceDialogOpen, setAttendanceDialogOpen] = useState(false);
+  const [attendancePassword, setAttendancePassword] = useState('');
+  const [isUpdatingAttendance, setIsUpdatingAttendance] = useState(false);
+
+  useEffect(() => {
+    if (profile?.role_id === 1) {
+      const fetchAttendanceUser = async () => {
+        setIsFetchingAttendance(true);
+        try {
+          const response = await userService.getUsersByRole(5); // 5 = ATTENDANCE role
+          if (response?.data && response.data.length > 0) {
+            setAttendanceUser(response.data[0]);
+          }
+        } catch (error) {
+          console.error("Failed to fetch attendance user", error);
+        } finally {
+          setIsFetchingAttendance(false);
+        }
+      };
+      
+      fetchAttendanceUser();
+    }
+  }, [profile?.role_id]);
 
   useEffect(() => {
     let isMounted = true;
@@ -177,7 +204,7 @@ export function UserProfile() {
         phone: normalizedPhone,
       };
 
-      const response = await authenticationService.updateProfile(updateData);
+          const response = await userService.updateProfile(updateData);
       
       if (!response?.success) {
         throw new Error(response?.message || 'Không thể cập nhật profile');
@@ -710,6 +737,41 @@ export function UserProfile() {
                   </CardContent>
                 </Card>
 
+                {profile?.role_id === 1 && attendanceUser && (
+                  <Card className="rounded-[24px] border-amber-200/50 dark:border-amber-900/40 bg-amber-50/30 dark:bg-amber-900/10 backdrop-blur-xl shadow-md border overflow-hidden mt-6 animate-in slide-in-from-bottom-6 duration-700">
+                    <CardHeader className="pb-3 border-b border-amber-100 dark:border-amber-900/30 bg-amber-100/50 dark:bg-amber-900/20">
+                       <CardTitle className="text-lg text-amber-800 dark:text-amber-400 flex items-center gap-2">
+                         <BriefcaseBusiness className="w-5 h-5" />
+                         Tài khoản Điểm danh
+                       </CardTitle>
+                    </CardHeader>
+                    <CardContent className="pt-4">
+                      <div className="space-y-4">
+                        <div className="space-y-1.5">
+                          <Label className="text-xs font-semibold text-amber-700/70 dark:text-amber-500/70 ml-1">Tên đăng nhập</Label>
+                          <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-white/60 dark:bg-black/20 border border-amber-100 dark:border-amber-900/30">
+                            <User className="w-4 h-4 text-amber-600/70" />
+                            <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{attendanceUser.username}</span>
+                          </div>
+                        </div>
+
+                         <div className="space-y-1.5">
+                          <Label className="text-xs font-semibold text-amber-700/70 dark:text-amber-500/70 ml-1">Mật khẩu</Label>
+                          <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-white/60 dark:bg-black/20 border border-amber-100 dark:border-amber-900/30">
+                            <div className="flex items-center gap-2 text-sm font-medium text-gray-500 dark:text-gray-400">
+                               <Lock className="w-4 h-4 text-amber-600/70" />
+                               **********
+                            </div>
+                            <Button size="sm" variant="outline" className="h-8 rounded-lg border-amber-200 text-amber-700 bg-amber-50 hover:bg-amber-100 hover:text-amber-800 shadow-sm transition-colors" onClick={() => setAttendanceDialogOpen(true)}>
+                               <Edit2 className="w-3 h-3 mr-1.5"/> Đổi
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
                 {/* Widget Information */}
                 <div className="p-5 rounded-[24px] border border-amber-200/50 bg-amber-50/50 dark:bg-amber-900/10 dark:border-amber-900/30 text-center">
                   <p className="text-sm font-medium text-amber-800 dark:text-amber-400 mb-2">Thành viên {storeName}</p>
@@ -722,6 +784,72 @@ export function UserProfile() {
           </div>
         </div>
       )}
+
+      {/* Attendance Account Password Dialog */}
+      <Dialog
+        open={attendanceDialogOpen}
+        onOpenChange={(open) => {
+          setAttendanceDialogOpen(open);
+          if (!open) setAttendancePassword('');
+        }}
+      >
+        <DialogContent className="sm:max-w-md bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border border-white/20 dark:border-gray-800 rounded-3xl p-6 sm:p-8 shadow-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold flex items-center gap-2 text-amber-600 dark:text-amber-500">
+              <Lock className="w-5 h-5 flex-shrink-0" />
+              Đổi mật khẩu Điểm danh
+            </DialogTitle>
+            <DialogDescription className="text-gray-500 dark:text-gray-400 font-medium pt-1">
+              Nhập mật khẩu mới cho tài khoản: <span className="text-amber-700 dark:text-amber-400 font-bold">{attendanceUser?.username}</span>
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 mt-2 p-4 bg-amber-50/50 dark:bg-black/20 rounded-2xl border border-amber-100 dark:border-amber-900/30">
+             <div className="space-y-2">
+                 <Label htmlFor="attendance_password" className="text-amber-800 dark:text-amber-300 font-semibold ml-1">Mật khẩu mới</Label>
+                 <Input 
+                   id="attendance_password"
+                   type="password"
+                   placeholder="Tối thiểu 6 ký tự"
+                   value={attendancePassword}
+                   onChange={(e) => setAttendancePassword(e.target.value)}
+                   className="rounded-xl border-amber-200/60 bg-white/80 dark:bg-gray-900/80 focus-visible:ring-amber-500/50 focus-visible:border-amber-500"
+                 />
+             </div>
+          </div>
+          
+          <div className="flex justify-end gap-3 pt-2">
+            <Button variant="ghost" onClick={() => setAttendanceDialogOpen(false)} disabled={isUpdatingAttendance} className="rounded-xl font-semibold hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300">
+              Hủy
+            </Button>
+            <Button onClick={async () => {
+              if (!attendancePassword.trim()) {
+                toast.error("Vui lòng nhập mật khẩu mới");
+                return;
+              }
+              if (attendancePassword.length < 6) {
+                toast.error("Mật khẩu phải có ít nhất 6 ký tự");
+                return;
+              }
+
+              setIsUpdatingAttendance(true);
+              try {
+                await userService.updateUser(attendanceUser.id, { password: attendancePassword });
+                toast.success("Thay đổi mật khẩu tài khoản điểm danh thành công!");
+                setAttendanceDialogOpen(false);
+                setAttendancePassword('');
+              } catch (error) {
+                toast.error(error.message || "Không thể đổi mật khẩu");
+              } finally {
+                setIsUpdatingAttendance(false);
+              }
+            }} disabled={isUpdatingAttendance} className="rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-semibold shadow-md">
+                {isUpdatingAttendance ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+                Lưu thay đổi
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Địa chỉ Modal */}
       <Dialog

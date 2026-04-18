@@ -5,6 +5,7 @@ module.exports = {
     STAFF: 2,
     BARISTA: 3,
     CUSTOMER: 4,
+    ATTENDANCE: 5,
   },
 
   ROLES_STRING: {
@@ -12,6 +13,7 @@ module.exports = {
     STAFF: "staff",
     BARISTA: "barista",
     CUSTOMER: "customer",
+    ATTENDANCE: "attendance",
   },
 
   ROLE_NAMES: {
@@ -19,6 +21,7 @@ module.exports = {
     2: "staff",
     3: "barista",
     4: "customer",
+    5: "attendance",
   },
 
   // Order Status
@@ -73,13 +76,13 @@ module.exports = {
     CANCELLED: "cancelled",
   },
 
-  // Attendance Status
+  // Attendance Status (check-in)
   ATTENDANCE_STATUS: {
     PRESENT: "present",
-    ABSENT: "absent",
     LATE: "late",
-    LEAVE: "leave",
+    ABSENT: "absent",
   },
+
 
   // Leave Request Status
   LEAVE_STATUS: {

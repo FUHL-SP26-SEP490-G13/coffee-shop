@@ -53,7 +53,7 @@ const authenticationService = {
 
   // Cập nhật thông tin profile
   updateProfile(data) {
-    return axiosClient.put(API_ENDPOINTS.AUTH.PROFILE, data);
+    return axiosClient.put(API_ENDPOINTS.USERS.PROFILE, data);
   },
 
   // Lấy danh sách địa chỉ của user hiện tại
