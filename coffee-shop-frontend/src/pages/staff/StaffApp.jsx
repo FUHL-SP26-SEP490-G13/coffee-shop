@@ -430,11 +430,11 @@ export function StaffApp() {
         <main className="min-h-screen w-full overflow-x-hidden overflow-y-auto relative">
           <style>{`
             @keyframes staffPageFadeUp {
-              from { opacity: 0; transform: translateY(10px); }
-              to { opacity: 1; transform: translateY(0); }
+              from { opacity: 0; }
+              to { opacity: 1; }
             }
             .staff-page-transition {
-              animation: staffPageFadeUp 320ms ease-out forwards;
+              animation: staffPageFadeUp 320ms ease-out;
             }
           `}</style>
           <div key={location.pathname} className="staff-page-transition w-full min-h-full">
@@ -733,11 +733,11 @@ export function StaffApp() {
         <main className="flex-1 flex flex-col overflow-x-hidden overflow-y-auto relative custom-scrollbar min-h-0">
           <style>{`
             @keyframes staffPageFadeUp {
-              from { opacity: 0; transform: translateY(10px); }
-              to { opacity: 1; transform: translateY(0); }
+              from { opacity: 0; }
+              to { opacity: 1; }
             }
             .staff-page-transition {
-              animation: staffPageFadeUp 320ms ease-out forwards;
+              animation: staffPageFadeUp 320ms ease-out;
             }
           `}</style>
           <div key={location.pathname} className="staff-page-transition w-full min-h-full flex flex-col flex-1">
