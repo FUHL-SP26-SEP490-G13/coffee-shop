@@ -247,7 +247,7 @@ export function UserProfile() {
 
     setIsAddressLoading(true);
     try {
-      const response = await authenticationService.getMyAddresses();
+      const response = await userService.getMyAddresses();
       if (!response?.success) {
         throw new Error(response?.message || 'Không thể tải danh sách địa chỉ');
       }
@@ -318,7 +318,7 @@ export function UserProfile() {
     setIsAddressSaving(true);
     try {
       if (editingAddressId) {
-        const response = await authenticationService.updateAddress(editingAddressId, payload);
+        const response = await userService.updateAddress(editingAddressId, payload);
 
         if (!response?.success) {
           throw new Error(response?.message || 'Không thể cập nhật địa chỉ');
@@ -326,7 +326,7 @@ export function UserProfile() {
 
         toast.success('Đã cập nhật địa chỉ');
       } else {
-        const response = await authenticationService.createAddress(payload);
+        const response = await userService.createAddress(payload);
 
         if (!response?.success) {
           throw new Error(response?.message || 'Không thể thêm địa chỉ');
@@ -360,7 +360,7 @@ export function UserProfile() {
   const handleDeleteAddress = async (id) => {
     setIsAddressSaving(true);
     try {
-      const response = await authenticationService.deleteAddress(id);
+      const response = await userService.deleteAddress(id);
 
       if (!response?.success) {
         throw new Error(response?.message || 'Không thể xóa địa chỉ');
@@ -382,7 +382,7 @@ export function UserProfile() {
   const handleSetDefaultAddress = async (id) => {
     setIsAddressSaving(true);
     try {
-      const response = await authenticationService.setDefaultAddress(id);
+      const response = await userService.setDefaultAddress(id);
 
       if (!response?.success) {
         throw new Error(response?.message || 'Không thể đặt địa chỉ mặc định');

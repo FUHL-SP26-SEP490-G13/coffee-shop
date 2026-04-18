@@ -1,5 +1,6 @@
 const service = require("../services/BaristaDBService");
 const OrderRepository = require("../repositories/OrderRepository");
+const OrderOnlineService = require("../services/OrderOnlineService");
 
 class BaristaDBController {
   async getOverview(req, res, next) {
@@ -97,6 +98,7 @@ class BaristaDBController {
       if (status === 'completed') {
         await OrderRepository.updateOrderPaidStatus(id, true);
         await OrderRepository.updatePaymentByOrderCode(id, { payment_status: 'paid' });
+        await OrderOnlineService.syncCompletionRewardsForDelivery(id);
       }
 
       return res.json({

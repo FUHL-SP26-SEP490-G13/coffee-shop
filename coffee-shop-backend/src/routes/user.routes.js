@@ -5,6 +5,11 @@ const { authenticate } = require('../middlewares/auth');
 const { authorize } = require('../middlewares/authorize');
 const validate = require('../middlewares/validate');
 const { registerSchema, staffCreateSchema, updateProfileSchema } = require('../validators/authValidator');
+const {
+  createAddressSchema,
+  updateAddressSchema,
+  addressIdParamSchema,
+} = require('../validators/addressValidator');
 
 /**
  * Protected routes - Admin only
@@ -67,20 +72,35 @@ router.get(
   UserController.getAll
 );
 
-// Get user by ID
-router.get(
-  '/:id',
-  authenticate,
-  authorize(['manager']),
-  UserController.getById
-);
-
 // Update my profile
 router.put(
   '/profile',
   authenticate,
   validate(updateProfileSchema),
   UserController.updateProfile
+);
+
+// Get my addresses
+router.get('/address', authenticate, UserController.getMyAddresses);
+
+// Create new address
+router.post('/address', authenticate, validate(createAddressSchema), UserController.createAddress);
+
+// Update address
+router.put('/address/:id', authenticate, validate(addressIdParamSchema, 'params'), validate(updateAddressSchema), UserController.updateAddress);
+
+// Delete address (soft delete)
+router.delete('/address/:id', authenticate, validate(addressIdParamSchema, 'params'), UserController.deleteAddress);
+
+// Set default address
+router.patch('/address/:id/default', authenticate, validate(addressIdParamSchema, 'params'), UserController.setDefaultAddress);
+
+// Get user by ID
+router.get(
+  '/:id',
+  authenticate,
+  authorize(['manager']),
+  UserController.getById
 );
 
 // Update user

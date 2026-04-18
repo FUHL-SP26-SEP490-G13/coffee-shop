@@ -177,6 +177,142 @@ const userService = {
     return await response.json();
   },
 
+  getMyAddresses: async () => {
+    const token = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN) || sessionStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
+
+    const response = await fetch(`${API_URL}/users/address`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch addresses');
+    }
+
+    return await response.json();
+  },
+
+  createAddress: async (payload) => {
+    const token = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN) || sessionStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
+
+    const response = await fetch(`${API_URL}/users/address`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      let errorMessage = 'Failed to create address';
+
+      try {
+        const error = await response.json();
+        if (error?.message) {
+          errorMessage = error.message;
+        }
+      } catch {
+        // Keep fallback message when response is not JSON
+      }
+
+      throw new Error(errorMessage);
+    }
+
+    return await response.json();
+  },
+
+  updateAddress: async (addressId, payload) => {
+    const token = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN) || sessionStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
+
+    const response = await fetch(`${API_URL}/users/address/${addressId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      let errorMessage = 'Failed to update address';
+
+      try {
+        const error = await response.json();
+        if (error?.message) {
+          errorMessage = error.message;
+        }
+      } catch {
+        // Keep fallback message when response is not JSON
+      }
+
+      throw new Error(errorMessage);
+    }
+
+    return await response.json();
+  },
+
+  deleteAddress: async (addressId) => {
+    const token = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN) || sessionStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
+
+    const response = await fetch(`${API_URL}/users/address/${addressId}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    if (!response.ok) {
+      let errorMessage = 'Failed to delete address';
+
+      try {
+        const error = await response.json();
+        if (error?.message) {
+          errorMessage = error.message;
+        }
+      } catch {
+        // Keep fallback message when response is not JSON
+      }
+
+      throw new Error(errorMessage);
+    }
+
+    return await response.json();
+  },
+
+  setDefaultAddress: async (addressId) => {
+    const token = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN) || sessionStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
+
+    const response = await fetch(`${API_URL}/users/address/${addressId}/default`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    if (!response.ok) {
+      let errorMessage = 'Failed to set default address';
+
+      try {
+        const error = await response.json();
+        if (error?.message) {
+          errorMessage = error.message;
+        }
+      } catch {
+        // Keep fallback message when response is not JSON
+      }
+
+      throw new Error(errorMessage);
+    }
+
+    return await response.json();
+  },
+
   updateUser: async (userId, data) => {
     const token = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN) || sessionStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
 

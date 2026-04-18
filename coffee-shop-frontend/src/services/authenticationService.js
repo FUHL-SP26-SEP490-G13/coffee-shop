@@ -51,36 +51,6 @@ const authenticationService = {
     return axiosClient.get(API_ENDPOINTS.AUTH.PROFILE);
   },
 
-  // Cập nhật thông tin profile
-  updateProfile(data) {
-    return axiosClient.put(API_ENDPOINTS.USERS.PROFILE, data);
-  },
-
-  // Lấy danh sách địa chỉ của user hiện tại
-  getMyAddresses() {
-    return axiosClient.get('/auth/address');
-  },
-
-  // Thêm địa chỉ mới
-  createAddress(payload) {
-    return axiosClient.post('/auth/address', payload);
-  },
-
-  // Cập nhật địa chỉ
-  updateAddress(addressId, payload) {
-    return axiosClient.put(`/auth/address/${addressId}`, payload);
-  },
-
-  // Xóa địa chỉ
-  deleteAddress(addressId) {
-    return axiosClient.delete(`/auth/address/${addressId}`);
-  },
-
-  // Đặt địa chỉ mặc định
-  setDefaultAddress(addressId) {
-    return axiosClient.patch(`/auth/address/${addressId}/default`);
-  },
-
   // Đổi mật khẩu
   changePassword(payload) {
     return axiosClient.post(API_ENDPOINTS.AUTH.CHANGE_PASSWORD, payload);

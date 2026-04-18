@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { useCartStore } from "@/store/useCartStore";
 import authenticationService from "@/services/authenticationService";
+import userService from "@/services/userService";
 import PlaceOrderButton from "@/components/order/PlaceOrderButton";
 import ReputationScoreDialog from "@/components/order/ReputationScoreDialog";
 import orderService from "@/services/orderOnlineService";
@@ -112,7 +113,7 @@ export default function CheckoutPage() {
       try {
         const [profileRes, addressesRes] = await Promise.all([
           authenticationService.getProfile(),
-          authenticationService.getMyAddresses(),
+          userService.getMyAddresses(),
         ]);
 
         const user = profileRes?.data;

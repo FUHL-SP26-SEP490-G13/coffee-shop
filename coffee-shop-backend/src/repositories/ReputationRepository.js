@@ -131,6 +131,24 @@ class ReputationRepository {
     );
   }
 
+  async findReputationHistoryByOrderAndReason(
+    connection,
+    { orderId, reasonType }
+  ) {
+    const [rows] = await connection.query(
+      `
+      SELECT id, phone_number, order_id, reason_type, created_at
+      FROM reputation_history
+      WHERE order_id = ? AND reason_type = ?
+      ORDER BY id DESC
+      LIMIT 1
+      `,
+      [Number(orderId), reasonType]
+    );
+
+    return rows[0] || null;
+  }
+
   async findReputationProfiles({ keyword = "", sort = "", limit = 20, offset = 0 } = {}) {
     const normalizedPhoneExpr = buildNormalizedPhoneExpr("odi.receiver_phone");
 

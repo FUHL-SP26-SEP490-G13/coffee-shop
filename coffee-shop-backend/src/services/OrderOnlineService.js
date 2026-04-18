@@ -751,6 +751,50 @@ class OrderOnlineService {
     };
   }
 
+  async syncCompletionRewardsForDelivery(orderId) {
+    const normalizedOrderId = Number(orderId || 0);
+    if (!normalizedOrderId) {
+      throw new ErrorResponse(400, "Mã đơn hàng không hợp lệ");
+    }
+
+    const order = await OrderRepository.findOrderById(normalizedOrderId);
+
+    if (!order) {
+      throw new ErrorResponse(404, "Đơn hàng không tồn tại");
+    }
+
+    const status = String(order.status || "").toLowerCase();
+    const orderType = String(order.order_type || "").toLowerCase();
+    const customerType = String(order.customer_type || "").toLowerCase();
+    const paymentStatus = String(order.payment_status || "").toLowerCase();
+    const isPaid = Number(order.is_paid) === 1 || paymentStatus === "paid";
+
+    if (orderType !== "delivery" || status !== "completed" || !isPaid) {
+      return {
+        synced: false,
+        reason: "order_not_completed_paid_delivery",
+      };
+    }
+
+    if (customerType === "registered") {
+      await LoyaltyService.syncOrderLoyaltyByOrderId(normalizedOrderId);
+    }
+
+    await ReputationService.applyScoreChangeByOrder({
+      orderId: normalizedOrderId,
+      changeAmount: 10,
+      reasonType: "ORDER_SUCCESS",
+      description:
+        "Khách hàng nhận đơn thành công (delivery completed + paid)",
+    });
+
+    return {
+      synced: true,
+      order_id: normalizedOrderId,
+      customer_type: customerType,
+    };
+  }
+
   async transitionOrderStatusByStaff(orderId, targetStatus, { cash_received } = {}) {
     const order = await OrderRepository.findOrderById(orderId);
 
@@ -867,18 +911,7 @@ class OrderOnlineService {
     }
 
     await OrderRepository.updateOrderStatus(orderId, "completed");
-    await LoyaltyService.syncOrderLoyaltyByOrderId(orderId);
-
-    // Delivery: preparing -> completed (khách nhận thành công) => +10 điểm uy tín
-    if (order.order_type === "delivery" && currentStatus === "preparing") {
-      await ReputationService.applyScoreChangeByOrder({
-        orderId,
-        changeAmount: 10,
-        reasonType: "ORDER_SUCCESS",
-        description:
-          "Khách hàng nhận đơn thành công (staff xác nhận completed từ preparing)",
-      });
-    }
+    await this.syncCompletionRewardsForDelivery(orderId);
 
     return {
       order_id: orderId,
@@ -1013,6 +1046,7 @@ class OrderOnlineService {
       await LoyaltyService.syncOrderLoyaltyByOrderId(orderCode);
     } else if (isPaid) {
       await OrderRepository.updateOrderPaidStatus(orderCode, true);
+      await this.syncCompletionRewardsForDelivery(orderCode);
     }
 
     return { 

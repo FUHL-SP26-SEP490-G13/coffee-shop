@@ -1,4 +1,5 @@
 const UserService = require('../services/UserService');
+const AddressService = require('../services/AddressService');
 const response = require('../utils/response');
 const { calculateOffset } = require('../utils/helpers');
 
@@ -202,6 +203,83 @@ class UserController {
         user,
         'Cập nhật profile thành công'
       );
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Get my addresses
+   * GET /api/users/address
+   */
+  async getMyAddresses(req, res, next) {
+    try {
+      const addresses = await AddressService.getMyAddresses(req.user.id);
+
+      return response.success(res, addresses, 'Lấy danh sách địa chỉ thành công');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Create address
+   * POST /api/users/address
+   */
+  async createAddress(req, res, next) {
+    try {
+      const address = await AddressService.createAddress(req.user.id, req.body);
+
+      return response.success(res, address, 'Thêm địa chỉ thành công', 201);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Update address
+   * PUT /api/users/address/:id
+   */
+  async updateAddress(req, res, next) {
+    try {
+      const address = await AddressService.updateAddress(
+        req.user.id,
+        Number(req.params.id),
+        req.body
+      );
+
+      return response.success(res, address, 'Cập nhật địa chỉ thành công');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Delete address (soft delete)
+   * DELETE /api/users/address/:id
+   */
+  async deleteAddress(req, res, next) {
+    try {
+      await AddressService.deleteAddress(req.user.id, Number(req.params.id));
+
+      return response.success(res, null, 'Xóa địa chỉ thành công');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Set default address
+   * PATCH /api/users/address/:id/default
+   */
+  async setDefaultAddress(req, res, next) {
+    try {
+      const address = await AddressService.setDefaultAddress(
+        req.user.id,
+        Number(req.params.id)
+      );
+
+      return response.success(res, address, 'Đặt địa chỉ mặc định thành công');
     } catch (error) {
       next(error);
     }

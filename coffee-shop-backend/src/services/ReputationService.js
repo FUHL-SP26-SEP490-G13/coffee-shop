@@ -190,6 +190,25 @@ class ReputationService {
         );
       }
 
+      const existingOrderReasonHistory =
+        await ReputationRepository.findReputationHistoryByOrderAndReason(
+          connection,
+          {
+            orderId: normalizedOrderId,
+            reasonType: normalizedReasonType,
+          },
+        );
+
+      if (existingOrderReasonHistory) {
+        await connection.commit();
+        return {
+          duplicated: true,
+          order_id: normalizedOrderId,
+          reason_type: normalizedReasonType,
+          phone_number: normalizedPhone,
+        };
+      }
+
       await ReputationRepository.createReputationProfileIfNotExists(
         connection,
         normalizedPhone,
