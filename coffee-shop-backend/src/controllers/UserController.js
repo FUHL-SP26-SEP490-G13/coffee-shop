@@ -190,6 +190,24 @@ class UserController {
   }
 
   /**
+   * Update current user profile
+   * PUT /api/users/profile
+   */
+  async updateProfile(req, res, next) {
+    try {
+      const user = await UserService.updateProfile(req.user.id, req.body);
+
+      return response.success(
+        res,
+        user,
+        'Cập nhật profile thành công'
+      );
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
    * Deactivate user
    * POST /api/users/:id/deactivate
    */

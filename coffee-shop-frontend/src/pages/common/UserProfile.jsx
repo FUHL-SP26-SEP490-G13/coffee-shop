@@ -204,7 +204,7 @@ export function UserProfile() {
         phone: normalizedPhone,
       };
 
-      const response = await authenticationService.updateProfile(updateData);
+          const response = await userService.updateProfile(updateData);
       
       if (!response?.success) {
         throw new Error(response?.message || 'Không thể cập nhật profile');

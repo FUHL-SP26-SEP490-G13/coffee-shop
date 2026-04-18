@@ -31,6 +31,7 @@ export const API_ENDPOINTS = {
   USERS: {
     GET_ALL: '/users',
     GET_BY_ID: '/users/{id}',
+    PROFILE: '/users/profile',
   },
   BANNERS: {
     ACTIVE: '/banners/active',

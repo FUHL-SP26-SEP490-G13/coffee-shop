@@ -127,6 +127,56 @@ const userService = {
     return await response.json();
   },
 
+  // Lấy thông tin profile hiện tại
+  getProfile: async () => {
+    const token = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN) || sessionStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
+
+    const response = await fetch(`${API_URL}/users/profile`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch profile');
+    }
+
+    return await response.json();
+  },
+
+  // Cập nhật thông tin profile
+  updateProfile: async (data) => {
+    const token = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN) || sessionStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
+
+    const response = await fetch(`${API_URL}/users/profile`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(data)
+    });
+
+    if (!response.ok) {
+      let errorMessage = 'Failed to update profile';
+
+      try {
+        const error = await response.json();
+        if (error?.message) {
+          errorMessage = error.message;
+        }
+      } catch {
+        // Keep fallback message when response is not JSON
+      }
+
+      throw new Error(errorMessage);
+    }
+
+    return await response.json();
+  },
+
   updateUser: async (userId, data) => {
     const token = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN) || sessionStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
 

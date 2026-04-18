@@ -106,20 +106,6 @@ class AuthController {
   }
 
   /**
-   * Update profile
-   * PUT /api/auth/profile
-   */
-  async updateProfile(req, res, next) {
-    try {
-      const user = await AuthService.updateProfile(req.user.id, req.body);
-
-      return response.success(res, user, "Cập nhật profile thành công");
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  /**
    * Change password
    * POST /api/auth/change-password
    */

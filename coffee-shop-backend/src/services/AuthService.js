@@ -640,34 +640,6 @@ class AuthService {
   }
 
   /**
-   * Update profile
-   */
-  async updateProfile(userId, data) {
-    // Check if user exists
-    const user = await UserRepository.findById(userId);
-
-    if (!user) {
-      throw new ErrorResponse(404, "User không tồn tại");
-    }
-
-    // If updating phone, check if it's already used by another user
-    if (data.phone && data.phone !== user.phone) {
-      const phoneExists = await UserRepository.phoneExists(data.phone, userId);
-      if (phoneExists) {
-        throw new ErrorResponse(400, "Số điện thoại đã được sử dụng");
-      }
-    }
-
-    // Update profile (only allowed fields: first_name, last_name, gender, dob)
-    const updatedUser = await UserRepository.updateProfile(userId, data);
-
-    // Remove password from response
-    delete updatedUser.password;
-
-    return updatedUser;
-  }
-
-  /**
    * Request password reset - Send OTP to email
    */
   async resetPassword(email) {

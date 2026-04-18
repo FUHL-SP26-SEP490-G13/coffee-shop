@@ -7,7 +7,6 @@ const {
   registerSchema,
   loginSchema,
   changePasswordSchema,
-  updateProfileSchema,
   refreshTokenSchema,
   resetPasswordSchema,
   verifyForgotPasswordOtpSchema,
@@ -72,14 +71,6 @@ router.post(
 
 // Get current user profile
 router.get("/profile", authenticate, AuthController.getProfile);
-
-// Update profile
-router.put(
-  "/profile",
-  authenticate,
-  validate(updateProfileSchema),
-  AuthController.updateProfile,
-);
 
 // Change password
 router.post(
