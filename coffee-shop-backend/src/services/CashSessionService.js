@@ -49,6 +49,10 @@ class CashSessionService {
       throw { statusCode: 403, message: `Hiện tại là ca của ${activeUserStr}. ${nextShiftStr}` };
     }
 
+    if (!currentShift.check_in) {
+      throw { statusCode: 403, message: "Bạn có lịch làm việc lúc này nhưng CHƯA CHẤM CÔNG. Vui lòng chấm công trước khi mở ca." };
+    }
+
     const current = await repository.getCurrentSession();
     if (current) {
       throw { statusCode: 400, message: "Đã có ca làm việc đang mở. Vui lòng đóng ca trước khi mở mới." };
