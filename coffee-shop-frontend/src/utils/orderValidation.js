@@ -89,6 +89,16 @@ export const validateOrderForm = (form) => {
     if (addressError) errors.address = addressError;
   }
 
+  if (form.order_type === "delivery") {
+    if (!Number(form.province_id || 0)) {
+      errors.province_id = "Vui lòng chọn tỉnh/thành";
+    }
+
+    if (!Number(form.ward_id || 0)) {
+      errors.ward_id = "Vui lòng chọn xã/phường";
+    }
+  }
+
   const noteError = validateOrderField("note", form.note);
   if (noteError) errors.note = noteError;
 

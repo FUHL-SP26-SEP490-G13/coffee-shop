@@ -39,12 +39,12 @@ const orderOnlineService = {
     return axiosClient.get(API_ENDPOINTS.ORDER_ONLINE.STAFF_ORDER_DETAIL(id));
   },
 
-  cancel(id) {
-    return axiosClient.put(API_ENDPOINTS.ORDER_ONLINE.CANCEL(id));
+  cancel(id, payload) {
+    return axiosClient.put(API_ENDPOINTS.ORDER_ONLINE.CANCEL(id), payload);
   },
 
-  cancelByStaff(id) {
-    return axiosClient.put(API_ENDPOINTS.ORDER_ONLINE.STAFF_CANCEL(id));
+  cancelByStaff(id, payload) {
+    return axiosClient.put(API_ENDPOINTS.ORDER_ONLINE.STAFF_CANCEL(id), payload);
   },
 
   confirmPreparing(id) {

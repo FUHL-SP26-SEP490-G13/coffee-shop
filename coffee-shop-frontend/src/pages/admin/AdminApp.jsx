@@ -29,6 +29,7 @@ import {
   FileText,
   UserCheck,
   Settings2,
+  MapPin,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import authenticationService from "../../services/authenticationService";
@@ -104,6 +105,7 @@ export default function AdminApp() {
       "/admin/schedule/templates": "Quản lý ca làm",
       "/admin/schedule/list": "Lịch làm việc",
       "/admin/attendance": "Điểm danh nhân viên",
+      "/admin/delivery-areas": "Khu vực giao hàng",
       "/admin/receipt-settings": "Cấu hình hệ thống",
       "/admin/profile": "Thông tin cá nhân",
     };
@@ -773,6 +775,22 @@ export default function AdminApp() {
                   <UserCheck className="w-4 h-4" />
                   <span className="text-sm tracking-wide">
                     Điểm danh nhân viên
+                  </span>
+                </NavLink>
+                <NavLink
+                  to="/admin/delivery-areas"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={({ isActive }) =>
+                    `w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                      isActive
+                        ? "bg-primary text-white"
+                        : "text-muted-foreground hover:bg-secondary"
+                    }`
+                  }
+                >
+                  <MapPin className="w-4 h-4" />
+                  <span className="text-sm tracking-wide">
+                    Khu vực giao hàng
                   </span>
                 </NavLink>
                 <NavLink

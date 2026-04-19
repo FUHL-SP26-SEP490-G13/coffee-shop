@@ -179,6 +179,31 @@ export default function AdminOrders() {
         return { label: type, color: "bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200" };
     }
   };
+
+  const formatCancelReason = (value) => {
+    const rawReason = String(value || "").trim();
+    if (!rawReason) return "Chưa ghi nhận lý do";
+
+    const match = rawReason.match(/^\[(.+?)\]\s*(.*)$/);
+    if (!match) return rawReason;
+
+    const reasonKey = match[1];
+    const reasonText = match[2] || "";
+    const reasonLabelMap = {
+      change_mind: "Khách đổi ý",
+      wrong_info: "Đặt nhầm thông tin",
+      long_wait: "Chờ quá lâu",
+      change_address: "Muốn đổi địa chỉ",
+      other: "Khác",
+      out_of_stock: "Hết nguyên liệu/món",
+      cannot_contact: "Không liên hệ được khách",
+      outside_area: "Ngoài khu vực giao hàng",
+      store_overload: "Quán quá tải",
+    };
+
+    const mappedLabel = reasonLabelMap[reasonKey] || reasonKey;
+    return reasonText ? `${mappedLabel}: ${reasonText}` : mappedLabel;
+  };
 // Tính tổng tiền của đơn hàng dựa trên các món và topping, dùng để đối chiếu với total_amount từ API để suy ra phí giao hàng nếu có
   const calculateSubtotal = (order) => {
     if (!order.items) return 0;
@@ -464,6 +489,11 @@ export default function AdminOrders() {
                             <span className="w-1.5 h-1.5 rounded-full bg-current mr-1.5 shrink-0 opacity-75" />
                             {statusInfo.label}
                           </Badge>
+                          {String(order.status).toLowerCase() === "cancelled" && order.cancel_reason && (
+                            <p className="mt-2 max-w-[260px] text-xs leading-5 text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950/40 border border-red-100 dark:border-red-900/40 rounded-lg px-2 py-1">
+                              <span className="font-semibold">Lý do hủy:</span> {formatCancelReason(order.cancel_reason)}
+                            </p>
+                          )}
                         </td>
                         <td className="px-4 py-3 align-top">
                           <Badge variant="outline" className={`font-medium ${typeInfo.color}`}>
@@ -601,6 +631,23 @@ export default function AdminOrders() {
                           <span className="font-medium text-foreground">
                             {selectedOrder.receiver_email}
                           </span>
+                        </div>
+                      )}
+
+                      {String(selectedOrder.status).toLowerCase() === "cancelled" && selectedOrder.cancel_reason && (
+                        <div className="pt-2 border-t border-dashed border-red-200 dark:border-red-900/40">
+                          <div className="rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-100 dark:border-red-900/40 p-3 space-y-1.5">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-red-700 dark:text-red-300">
+                              Lý do hủy đơn
+                            </p>
+                            <p className="text-sm text-red-800 dark:text-red-200 leading-6">
+                              {formatCancelReason(selectedOrder.cancel_reason)}
+                            </p>
+                            <p className="text-[11px] text-red-600/80 dark:text-red-300/70">
+                              {selectedOrder.cancel_role ? `Bởi: ${selectedOrder.cancel_role}` : ''}
+                              {selectedOrder.cancelled_at ? `${selectedOrder.cancel_role ? ' • ' : ''}${new Date(selectedOrder.cancelled_at).toLocaleString('vi-VN')}` : ''}
+                            </p>
+                          </div>
                         </div>
                       )}
                     </div>

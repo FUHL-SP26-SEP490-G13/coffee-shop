@@ -1,4 +1,6 @@
 const AddressRepository = require('../repositories/AddressRepository');
+const ProvinceRepository = require('../repositories/ProvinceRepository');
+const WardRepository = require('../repositories/WardRepository');
 const ErrorResponse = require('../utils/ErrorResponse');
 const { ADDRESS_TYPES } = require('../config/constants');
 
@@ -23,7 +25,34 @@ class AddressService {
     return AddressRepository.findByUserId(userId);
   }
 
+  async validateProvinceWard(provinceId, wardId) {
+    const normalizedProvinceId = Number(provinceId || 0);
+    const normalizedWardId = Number(wardId || 0);
+
+    if (!normalizedProvinceId || !normalizedWardId) {
+      throw new ErrorResponse(400, 'Vui lòng chọn tỉnh/thành và xã/phường');
+    }
+
+    const province = await ProvinceRepository.findById(normalizedProvinceId);
+    if (!province) {
+      throw new ErrorResponse(400, 'Tỉnh/thành không tồn tại');
+    }
+
+    const ward = await WardRepository.findActiveByIdAndProvince(
+      normalizedWardId,
+      normalizedProvinceId
+    );
+
+    if (!ward) {
+      throw new ErrorResponse(400, 'Xã/phường không hợp lệ hoặc đang tạm ngưng giao hàng');
+    }
+
+    return { province, ward };
+  }
+
   async createAddress(userId, payload) {
+    await this.validateProvinceWard(payload.province_id, payload.ward_id);
+
     const current = await AddressRepository.findByUserId(userId);
     const shouldSetDefault = Number(payload.is_default) === 1 || current.length === 0;
 
@@ -36,6 +65,8 @@ class AddressService {
       receiver_name: this.normalizeNullableText(payload.receiver_name),
       receiver_phone: this.normalizeNullableText(payload.receiver_phone),
       address: payload.address.trim(),
+      province_id: Number(payload.province_id),
+      ward_id: Number(payload.ward_id),
       address_type: this.normalizeAddressType(payload.address_type),
       is_default: shouldSetDefault ? 1 : 0,
       is_deleted: 0,
@@ -71,6 +102,19 @@ class AddressService {
 
     if (typeof payload.address === 'string') {
       updateData.address = payload.address.trim();
+    }
+
+    const hasProvince = payload.province_id !== undefined;
+    const hasWard = payload.ward_id !== undefined;
+
+    if (hasProvince !== hasWard) {
+      throw new ErrorResponse(400, 'Cần chọn đầy đủ tỉnh/thành và xã/phường');
+    }
+
+    if (hasProvince && hasWard) {
+      await this.validateProvinceWard(payload.province_id, payload.ward_id);
+      updateData.province_id = Number(payload.province_id);
+      updateData.ward_id = Number(payload.ward_id);
     }
 
     if (typeof payload.address_type === 'string') {

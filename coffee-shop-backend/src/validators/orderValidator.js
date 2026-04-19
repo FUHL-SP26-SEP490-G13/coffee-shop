@@ -158,6 +158,24 @@ const checkoutOrderSchema = Joi.object({
   }),
 
   items: itemsSchema,
+}).custom((value, helpers) => {
+  if (value.order_type === 'delivery') {
+    if (!value.province_id) {
+      return helpers.error('any.custom', {
+        message: 'Vui lòng chọn tỉnh/thành cho đơn giao hàng',
+      });
+    }
+
+    if (!value.ward_id) {
+      return helpers.error('any.custom', {
+        message: 'Vui lòng chọn xã/phường cho đơn giao hàng',
+      });
+    }
+  }
+
+  return value;
+}, 'delivery area validation').messages({
+  'any.custom': '{{#message}}',
 });
 
 const validateDiscountSchema = Joi.object({
@@ -168,7 +186,39 @@ const validateDiscountSchema = Joi.object({
   items: itemsSchema,
 });
 
+const cancelOrderByUserSchema = Joi.object({
+  reason: Joi.string().trim().max(500).required().messages({
+    'string.empty': 'Lý do hủy đơn là bắt buộc',
+    'string.max': 'Lý do hủy đơn không được vượt quá 500 ký tự',
+    'any.required': 'Lý do hủy đơn là bắt buộc',
+  }),
+  reason_option: Joi.string()
+    .valid('change_mind', 'wrong_info', 'long_wait', 'change_address', 'other')
+    .required()
+    .messages({
+      'any.only': 'Lý do hủy đơn không hợp lệ',
+      'any.required': 'Vui lòng chọn lý do hủy đơn',
+    }),
+});
+
+const cancelOrderByStaffSchema = Joi.object({
+  reason: Joi.string().trim().max(500).required().messages({
+    'string.empty': 'Lý do hủy đơn là bắt buộc',
+    'string.max': 'Lý do hủy đơn không được vượt quá 500 ký tự',
+    'any.required': 'Lý do hủy đơn là bắt buộc',
+  }),
+  reason_option: Joi.string()
+    .valid('out_of_stock', 'cannot_contact', 'outside_area', 'store_overload', 'other')
+    .required()
+    .messages({
+      'any.only': 'Lý do hủy đơn không hợp lệ',
+      'any.required': 'Vui lòng chọn lý do hủy đơn',
+    }),
+});
+
 module.exports = {
   checkoutOrderSchema,
   validateDiscountSchema,
+  cancelOrderByUserSchema,
+  cancelOrderByStaffSchema,
 };

@@ -1,5 +1,6 @@
 const OrderRepository = require("../repositories/OrderRepository");
 const CashSessionRepository = require("../repositories/CashSessionRepository");
+const WardRepository = require("../repositories/WardRepository");
 const ReputationService = require("./ReputationService");
 const LoyaltyService = require("./LoyaltyService");
 const ErrorResponse = require("../utils/ErrorResponse");
@@ -126,6 +127,27 @@ class OrderOnlineService {
       const unitPrice = Number(item?.price ?? item?.unit_price ?? 0);
       return sum + Math.max(0, unitPrice * itemQuantity);
     }, 0);
+  }
+
+  async validateDeliveryWard(provinceId, wardId, connection) {
+    const normalizedProvinceId = Number(provinceId || 0);
+    const normalizedWardId = Number(wardId || 0);
+
+    if (!normalizedProvinceId || !normalizedWardId) {
+      throw new ErrorResponse(400, "Vui lòng chọn tỉnh/thành và xã/phường cho đơn giao hàng");
+    }
+
+    const ward = await WardRepository.findActiveByIdAndProvince(
+      normalizedWardId,
+      normalizedProvinceId,
+      connection
+    );
+
+    if (!ward) {
+      throw new ErrorResponse(400, "Xã/phường không hợp lệ hoặc đang tạm ngưng giao hàng");
+    }
+
+    return ward;
   }
 
   shouldUseLegacyShippingFallback(order) {
@@ -269,6 +291,8 @@ class OrderOnlineService {
       receiver_phone,
       receiver_email,
       address,
+      province_id,
+      ward_id,
       note,
       discount_code,
       used_points,
@@ -366,6 +390,7 @@ class OrderOnlineService {
       const normalizedItems = cartTotals.normalizedItems;
       let deliveryDistanceKm = 0;
       let shippingFee = 0;
+      let deliveryWard = null;
       let existingAmount = 0;
       let existingDiscountAmount = 0;
 
@@ -383,6 +408,12 @@ class OrderOnlineService {
       }
 
       if (order_type === "delivery") {
+        deliveryWard = await this.validateDeliveryWard(
+          province_id,
+          ward_id,
+          connection
+        );
+
         // Shipping fee feature by province/ward is disabled.
         shippingFee = 0;
         deliveryDistanceKm = 0;
@@ -539,8 +570,8 @@ class OrderOnlineService {
       if (order_type !== "dine-in" || (note && note.trim())) {
         const deliveryAddressWithArea = this.buildDeliveryAddressString(
           address,
-          null,
-          null
+          deliveryWard?.name || null,
+          deliveryWard?.province_name || null
         );
 
         const [existingInfo] = await connection.query(
@@ -727,22 +758,34 @@ class OrderOnlineService {
     };
   }
 
-  // Hủy đơn hàng bởi khách hàng (khi đang ở trạng thái pending hoặc preparing)
-  async cancelOrderByUser(orderId, userId) {
+  async cancelOrderByUser(orderId, userId, payload = {}) {
     const order = await OrderRepository.findOrderByIdAndUser(orderId, userId);
 
     if (!order) {
       throw new ErrorResponse(404, "Đơn hàng không tồn tại");
     }
 
-    if (!["pending", "preparing"].includes(order.status)) {
+    const status = String(order.status || "").toLowerCase();
+    const isPaid = Number(order.is_paid) === 1;
+
+    if (status !== "pending" || isPaid) {
       throw new ErrorResponse(
         400,
-        "Chỉ có thể hủy đơn ở trạng thái chờ xác nhận hoặc đang chuẩn bị"
+        "Khách hàng chỉ được hủy đơn ở trạng thái chờ xác nhận và chưa thanh toán"
       );
     }
 
-    await OrderRepository.cancelOrderByUser(orderId, userId);
+    const reason = String(payload.reason || "").trim();
+    const reasonOption = String(payload.reason_option || "").trim();
+    if (!reason) {
+      throw new ErrorResponse(400, "Vui lòng nhập lý do hủy đơn");
+    }
+
+    const finalReason = reasonOption ? `[${reasonOption}] ${reason}` : reason;
+
+    await OrderRepository.cancelOrderByUser(orderId, userId, {
+      reason: finalReason,
+    });
     await LoyaltyService.syncOrderLoyaltyByOrderId(orderId);
 
     return {
@@ -936,9 +979,42 @@ class OrderOnlineService {
     return this.transitionOrderStatusByStaff(orderId, "preparing");
   }
 
-  // Hủy đơn hàng bởi nhân viên (chỉ từ preparing)
-  async cancelDeliveryOrderByStaff(orderId) {
-    return this.transitionOrderStatusByStaff(orderId, "cancelled");
+  async cancelDeliveryOrderByStaff(orderId, actor = {}, payload = {}) {
+    const order = await OrderRepository.findOrderById(orderId);
+
+    if (!order) {
+      throw new ErrorResponse(404, "Đơn hàng không tồn tại");
+    }
+
+    const status = String(order.status || "").toLowerCase();
+    const isPaid = Number(order.is_paid) === 1;
+    if (status !== "pending" || isPaid) {
+      throw new ErrorResponse(
+        400,
+        "Nhân viên chỉ được hủy đơn online ở bước nhận đơn (pending và chưa thanh toán)"
+      );
+    }
+
+    const reason = String(payload.reason || "").trim();
+    const reasonOption = String(payload.reason_option || "").trim();
+    if (!reason) {
+      throw new ErrorResponse(400, "Vui lòng nhập lý do hủy đơn");
+    }
+
+    const finalReason = reasonOption ? `[${reasonOption}] ${reason}` : reason;
+
+    await OrderRepository.cancelOrderByStaff(
+      orderId,
+      actor.user_id,
+      actor.role,
+      { reason: finalReason }
+    );
+    await LoyaltyService.syncOrderLoyaltyByOrderId(orderId);
+
+    return {
+      order_id: orderId,
+      status: "cancelled",
+    };
   }
 
   async markOrderPrintSuccess(orderId) {
