@@ -18,6 +18,7 @@
   "dependencies": {
     "@google/genai": "^1.44.0",
     "@payos/node": "^2.0.5",
+    "axios": "^1.15.1",
     "bcryptjs": "^2.4.3",
     "cloudinary": "^1.41.3",
     "compression": "^1.7.4",

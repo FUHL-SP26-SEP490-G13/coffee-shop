@@ -16,10 +16,12 @@ import authenticationService from "@/services/authenticationService";
 import userService from "@/services/userService";
 import PlaceOrderButton from "@/components/order/PlaceOrderButton";
 import ReputationScoreDialog from "@/components/order/ReputationScoreDialog";
+import VietmapAddressAutocomplete from "@/components/order/VietmapAddressAutocomplete";
 import orderService from "@/services/orderOnlineService";
 import loyaltyService from "@/services/loyaltyService";
 import { STORAGE_KEYS } from "@/constants";
 import { validateOrderField } from "@/utils/orderValidation";
+import { calculateHaversineDistance } from "@/utils/distance";
 import PayOSLogo from "/logo/payOS.svg";
 import reputationService from "@/services/reputationService";
 import {
@@ -72,6 +74,8 @@ export default function CheckoutPage() {
     note: "",
     discount_code: "",
     used_points: 0,
+    latitude: null,
+    longitude: null,
   });
   const [activeSale, setActiveSale] = useState(null);
 
@@ -237,7 +241,7 @@ export default function CheckoutPage() {
         setReputationTier(String(reputation?.reputation_tier || "SILVER"));
         setReputationFrozen(
           Number(reputation?.is_frozen || 0) === 1 ||
-            reputation?.is_frozen === true
+          reputation?.is_frozen === true
         );
       } catch (error) {
         console.error("Lỗi lấy điểm uy tín theo số điện thoại:", error);
@@ -334,7 +338,25 @@ export default function CheckoutPage() {
   const loyaltyDiscountAmount = usedPoints * LOYALTY_MONEY_PER_POINT;
   const totalAmount = Math.max(0, amountAfterDiscount - loyaltyDiscountAmount);
   const isPointsInputExceeded = parsedUsedPoints > maxRedeemablePoints;
-  const isCheckoutBlocked = false;
+
+  const shopLat = parseFloat(import.meta.env.VITE_SHOP_LATITUDE || "0");
+  const shopLng = parseFloat(import.meta.env.VITE_SHOP_LONGITUDE || "0");
+  const maxDeliveryDistance = parseFloat(import.meta.env.VITE_MAX_DELIVERY_DISTANCE || "8");
+
+  const deliveryDistance = useMemo(() => {
+    if (form.latitude && form.longitude && shopLat && shopLng) {
+      return calculateHaversineDistance(
+        shopLat,
+        shopLng,
+        parseFloat(form.latitude),
+        parseFloat(form.longitude)
+      );
+    }
+    return null;
+  }, [form.latitude, form.longitude, shopLat, shopLng]);
+
+  const isDeliveryOutOfRange = deliveryDistance !== null && deliveryDistance > maxDeliveryDistance;
+  const isCheckoutBlocked = isDeliveryOutOfRange;
 
   const placeOrderLabel = !isOpen
     ? nextOpenMessage || "Đã đóng cửa"
@@ -528,9 +550,8 @@ export default function CheckoutPage() {
                 )}
                 {!errors.receiver_phone && form.receiver_phone ? (
                   <p
-                    className={`mt-1 text-xs ${
-                      reputationFrozen ? "text-red-600" : "text-emerald-600"
-                    }`}
+                    className={`mt-1 text-xs ${reputationFrozen ? "text-red-600" : "text-emerald-600"
+                      }`}
                   >
                     {reputationFrozen
                       ? "Số điện thoại này đã bị khóa"
@@ -598,8 +619,8 @@ export default function CheckoutPage() {
                       {isAddressLoading
                         ? "Đang tải địa chỉ..."
                         : addresses.length === 0
-                        ? "Chưa có địa chỉ đã lưu"
-                        : "Chọn địa chỉ giao hàng"}
+                          ? "Chưa có địa chỉ đã lưu"
+                          : "Chọn địa chỉ giao hàng"}
                     </Button>
 
                     {addresses.length === 0 && !isAddressLoading && (
@@ -632,32 +653,35 @@ export default function CheckoutPage() {
                   </div>
                 )}
 
-                <div>
-                  <label className="text-sm font-medium mb-2 block">
-                    Địa chỉ giao hàng *
-                  </label>
-                  <Input
-                    required
-                    value={form.address}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      setSelectedAddressId(null);
-                      setForm((prev) => ({
-                        ...prev,
-                        address: value,
-                      }));
-                      setErrors((prev) => ({
-                        ...prev,
-                        address: validateOrderField("address", value),
-                      }));
-                    }}
-                  />
-                  {errors.address && (
-                    <p className="text-sm text-red-500 mt-1">
-                      {errors.address}
-                    </p>
-                  )}
-                </div>
+                <VietmapAddressAutocomplete
+                  initialAddress={form.address}
+                  error={errors.address}
+                  onAddressSelect={({ address, latitude, longitude }) => {
+                    setSelectedAddressId(null);
+                    setForm((prev) => ({
+                      ...prev,
+                      address,
+                      latitude,
+                      longitude,
+                    }));
+                    setErrors((prev) => ({
+                      ...prev,
+                      address: validateOrderField("address", address),
+                    }));
+                  }}
+                />
+
+                {isDeliveryOutOfRange && (
+                  <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm flex gap-3 shadow-sm items-start">
+                    <div>
+                      <p className="font-semibold mb-1">Ngoài phạm vi giao hàng</p>
+                      <p>
+                        Khoảng cách từ Quán đến địa chỉ của bạn là <strong>{deliveryDistance.toFixed(1)} km</strong> (Vượt quá giới hạn phục vụ <strong>{maxDeliveryDistance} km</strong>).
+                      </p>
+                      <p className="mt-1">Xin lỗi vì sự bất tiện này, bạn vui lòng chọn một địa chỉ khác gần hơn hoặc ghé quán mua trực tiếp nhé!</p>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -667,11 +691,10 @@ export default function CheckoutPage() {
               </label>
               {paymentValidation && (
                 <div
-                  className={`mb-3 p-3 rounded-lg text-sm ${
-                    paymentValidation.forcePayOS
+                  className={`mb-3 p-3 rounded-lg text-sm ${paymentValidation.forcePayOS
                       ? "bg-yellow-50 text-yellow-800 border border-yellow-200"
                       : "bg-blue-50 text-blue-800 border border-blue-200"
-                  }`}
+                    }`}
                 >
                   <p className="font-medium">{paymentValidation.message}</p>
                   {paymentValidation.reason && (
@@ -731,22 +754,20 @@ export default function CheckoutPage() {
                           payment_method: opt.value,
                         }));
                       }}
-                      className={`flex items-center gap-3 rounded-xl border-2 px-4 py-3 text-left transition-all ${
-                        isDisabled
+                      className={`flex items-center gap-3 rounded-xl border-2 px-4 py-3 text-left transition-all ${isDisabled
                           ? "border-gray-200  bg-gray-100 dark:bg-gray-800 opacity-50 cursor-not-allowed"
                           : selected
-                          ? "border-amber-500 bg-amber-50 dark:bg-amber-900/20"
-                          : "border-gray-200  bg-white dark:bg-gray-900 hover:border-gray-300"
-                      }`}
+                            ? "border-amber-500 bg-amber-50 dark:bg-amber-900/20"
+                            : "border-gray-200  bg-white dark:bg-gray-900 hover:border-gray-300"
+                        }`}
                     >
                       <span
-                        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
-                          isDisabled
+                        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${isDisabled
                             ? "bg-gray-200"
                             : selected
-                            ? "bg-amber-100 dark:bg-amber-900/30"
-                            : "bg-gray-100 dark:bg-gray-800"
-                        }`}
+                              ? "bg-amber-100 dark:bg-amber-900/30"
+                              : "bg-gray-100 dark:bg-gray-800"
+                          }`}
                       >
                         {isDisabled ? (
                           <span className="text-xs text-gray-500 dark:text-gray-400">
@@ -758,33 +779,30 @@ export default function CheckoutPage() {
                       </span>
                       <span>
                         <span
-                          className={`block text-sm font-medium ${
-                            isDisabled
+                          className={`block text-sm font-medium ${isDisabled
                               ? "text-gray-500 dark:text-gray-400"
                               : "text-gray-900 dark:text-gray-100"
-                          }`}
+                            }`}
                         >
                           {opt.label}
                           {isDisabled && " (Không khả dụng)"}
                         </span>
                         <span
-                          className={`block text-xs ${
-                            isDisabled
+                          className={`block text-xs ${isDisabled
                               ? "text-gray-400"
                               : "text-gray-500 dark:text-gray-400"
-                          }`}
+                            }`}
                         >
                           {opt.sub}
                         </span>
                       </span>
                       <span
-                        className={`ml-auto h-4 w-4 shrink-0 rounded-full border-2 ${
-                          isDisabled
+                        className={`ml-auto h-4 w-4 shrink-0 rounded-full border-2 ${isDisabled
                             ? "border-gray-300 bg-gray-300"
                             : selected
-                            ? "border-amber-500 bg-amber-50 dark:bg-amber-900/200"
-                            : "border-gray-300"
-                        }`}
+                              ? "border-amber-500 bg-amber-50 dark:bg-amber-900/200"
+                              : "border-gray-300"
+                          }`}
                       />
                     </button>
                   );
@@ -834,9 +852,8 @@ export default function CheckoutPage() {
                         className="w-12 h-12 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-100 dark:border-gray-800 flex items-center justify-center p-1.5 overflow-hidden mix-blend-multiply dark:mix-blend-normal cursor-pointer transition-opacity hover:opacity-80"
                         onClick={() =>
                           navigate(
-                            `/${
-                              item.slug ||
-                              "products/" + (item.product_id || item.id)
+                            `/${item.slug ||
+                            "products/" + (item.product_id || item.id)
                             }`
                           )
                         }
@@ -868,9 +885,8 @@ export default function CheckoutPage() {
                         className="font-medium text-sm leading-snug cursor-pointer hover:text-amber-600 transition-colors"
                         onClick={() =>
                           navigate(
-                            `/${
-                              item.slug ||
-                              "products/" + (item.product_id || item.id)
+                            `/${item.slug ||
+                            "products/" + (item.product_id || item.id)
                             }`
                           )
                         }
@@ -1080,11 +1096,10 @@ export default function CheckoutPage() {
                     key={item.id}
                     type="button"
                     onClick={() => handleSelectAddress(item)}
-                    className={`w-full text-left border rounded-xl p-4 transition ${
-                      isSelected
+                    className={`w-full text-left border rounded-xl p-4 transition ${isSelected
                         ? "border-amber-500 bg-amber-50 dark:bg-amber-900/20"
                         : "border-gray-200  hover:border-gray-300 bg-white dark:bg-gray-900"
-                    }`}
+                      }`}
                   >
                     <div className="flex items-center justify-between gap-3 mb-2">
                       <div className="flex items-center gap-2">

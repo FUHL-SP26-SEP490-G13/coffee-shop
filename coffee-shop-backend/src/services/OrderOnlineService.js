@@ -273,6 +273,8 @@ class OrderOnlineService {
       discount_code,
       used_points,
       items,
+      latitude,
+      longitude,
     } = payload;
 
     if (!Array.isArray(items) || items.length === 0) {
@@ -550,8 +552,8 @@ class OrderOnlineService {
 
         if (existingInfo.length > 0) {
           await connection.query(
-            "UPDATE order_delivery_info SET address = ?, note = ? WHERE order_id = ?",
-            [deliveryAddressWithArea, note?.trim() || null, orderId]
+            "UPDATE order_delivery_info SET address = ?, note = ?, latitude = ?, longitude = ? WHERE order_id = ?",
+            [deliveryAddressWithArea, note?.trim() || null, latitude ?? null, longitude ?? null, orderId]
           );
         } else {
           await OrderRepository.createOrderDeliveryInfo(connection, {
@@ -563,6 +565,8 @@ class OrderOnlineService {
             receiver_email: receiver_email?.trim() || null,
             address: deliveryAddressWithArea,
             note: note?.trim() || null,
+            latitude: latitude ?? null,
+            longitude: longitude ?? null,
           });
         }
       }
