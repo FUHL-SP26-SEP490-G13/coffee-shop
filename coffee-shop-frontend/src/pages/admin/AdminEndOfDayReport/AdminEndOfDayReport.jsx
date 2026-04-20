@@ -5,11 +5,14 @@ import {
   Calendar as CalendarIcon,
   Printer,
   Loader2,
-  Plus,
-  Minus
+  Minus,
+  Box,
+  LayoutDashboard
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "../../../components/ui/tabs";
+import { Badge } from "../../../components/ui/badge";
+import { Button } from "../../../components/ui/button";
+import { Calendar } from "../../../components/ui/calendar";
 import {
   Popover,
   PopoverContent,
@@ -50,10 +53,12 @@ const AdminEndOfDayReport = () => {
     to: new Date(),
   });
   const [filterType, setFilterType] = useState("7days");
+  const [activeTab, setActiveTab] = useState("overview");
   const [data, setData] = useState([]);
+  const [productData, setProductData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedRows, setExpandedRows] = useState(new Set([0])); // Start with first group expanded
-  const isRefreshing = loading && data.length > 0;
+  const isRefreshing = loading && (data.length > 0 || productData.length > 0);
 
   const fetchReportData = useCallback(async () => {
     if (!dateRange?.from || !dateRange?.to) {
@@ -65,11 +70,19 @@ const AdminEndOfDayReport = () => {
       const start = format(startOfDay(dateRange.from), "yyyy-MM-dd HH:mm:ss");
       const end = format(endOfDay(dateRange.to), "yyyy-MM-dd HH:mm:ss");
 
-      const res = await adminDBService.getDetailedReport(start, end);
-      setData(parseReportRows(res));
+      // Fetch both reports or just the active one?
+      // Better fetch both to keep tabs responsive
+      const [orderRes, productRes] = await Promise.all([
+        adminDBService.getDetailedReport(start, end),
+        adminDBService.getProductReport(start, end)
+      ]);
+
+      setData(parseReportRows(orderRes));
+      setProductData(parseReportRows(productRes));
     } catch (error) {
       console.error("Error fetching report data:", error);
       setData([]);
+      setProductData([]);
     } finally {
       setLoading(false);
     }
@@ -144,6 +157,14 @@ const AdminEndOfDayReport = () => {
     ],
     [data.length, totals.qty, totals.revenue]
   );
+
+  const productTotals = useMemo(() => {
+    return productData.reduce((acc, curr) => ({
+      qtySold: acc.qtySold + toNumber(curr.quantitySold),
+      revenue: acc.revenue + toNumber(curr.revenue),
+      netRevenue: acc.netRevenue + toNumber(curr.netRevenue),
+    }), { qtySold: 0, revenue: 0, netRevenue: 0 });
+  }, [productData]);
 
   const handlePrint = () => {
     window.print();
@@ -249,113 +270,186 @@ const AdminEndOfDayReport = () => {
 
       {/* Print Header */}
       <div className="hidden print:block text-center mb-8 border-b pb-4">
-        <h1 className="text-2xl font-bold uppercase">Báo cáo tổng kết doanh thu (Đã thanh toán)</h1>
+        <h1 className="text-2xl font-bold uppercase">
+          {activeTab === "overview" ? "Báo cáo tổng kết doanh thu" : "Báo cáo doanh thu theo hàng hóa"}
+        </h1>
         <p className="mt-2 text-sm">
           Từ ngày: {format(dateRange.from, "dd/MM/yyyy")} - Đến ngày: {format(dateRange.to, "dd/MM/yyyy")}
         </p>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-3 print:hidden">
-        {metrics.map((metric, index) => (
-          <div
-            key={metric.label}
-            className={`report-card rounded-2xl border bg-gradient-to-br ${metric.tone} p-4 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md`}
-            style={{ animationDelay: `${index * 70}ms` }}
-          >
-            <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">{metric.label}</p>
-            <div className="mt-2 text-2xl font-semibold tracking-tight text-foreground">{metric.value}</div>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="mb-4 bg-muted p-1 h-12 rounded-2xl w-fit">
+          <TabsTrigger value="overview" className="px-6 h-full rounded-xl data-[state=active]:bg-background data-[state=active]:shadow-sm">
+            <LayoutDashboard className="mr-2 h-4 w-4" />
+            Tổng quan
+          </TabsTrigger>
+          <TabsTrigger value="products" className="px-6 h-full rounded-xl data-[state=active]:bg-background data-[state=active]:shadow-sm">
+            <Box className="mr-2 h-4 w-4" />
+            Hàng hóa
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="space-y-6">
+          <div className="grid gap-3 sm:grid-cols-3 print:hidden">
+            {metrics.map((metric, index) => (
+              <div
+                key={metric.label}
+                className={`report-card rounded-2xl border bg-gradient-to-br ${metric.tone} p-4 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md`}
+                style={{ animationDelay: `${index * 70}ms` }}
+              >
+                <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">{metric.label}</p>
+                <div className="mt-2 text-2xl font-semibold tracking-tight text-foreground">{metric.value}</div>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
 
-      {/* Main Table */}
-      <div className="report-card relative overflow-hidden rounded-2xl border bg-card text-card-foreground shadow-sm transition-all duration-300 print:border-none print:shadow-none">
-        {isRefreshing && (
-          <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-center justify-center bg-card/70 dark:bg-slate-900/70 py-3 backdrop-blur-sm">
-            <Loader2 className="mr-2 h-4 w-4 animate-spin text-primary" />
-            <span className="text-sm font-medium text-muted-foreground">Đang cập nhật dữ liệu</span>
-          </div>
-        )}
-        <div className={`overflow-x-auto transition-opacity duration-300 ${isRefreshing ? "opacity-70" : "opacity-100"}`}>
-          <table className="w-full text-sm">
-            <thead className="sticky top-0 z-[1]">
-              <tr className="border-b font-medium text-foreground">
-                <th className="px-4 py-3 text-left">Mã chứng từ</th>
-                <th className="px-4 py-3 text-left">Khách hàng</th>
-                <th className="px-4 py-3 text-left">Nhân viên</th>
-                <th className="px-4 py-3 text-left">Thời gian</th>
-                <th className="px-4 py-3 text-left">T.Toán</th>
-                <th className="px-4 py-3 text-right">SL</th>
-                <th className="px-4 py-3 text-right">Tổng tiền hàng</th>
-                <th className="px-4 py-3 text-right">Giảm giá</th>
-                <th className="px-4 py-3 text-right">Doanh thu </th>
-              </tr>
-            </thead>
-            <tbody>
-              {/* Grouping row */}
-              <tr className="bg-yellow-50 dark:bg-yellow-900/30 font-medium border-b cursor-pointer transition-colors hover:bg-yellow-100 dark:hover:bg-yellow-900/50"
-                onClick={() => {
-                  const next = new Set(expandedRows);
-                  if (next.has(0)) next.delete(0);
-                  else next.add(0);
-                  setExpandedRows(next);
-                }}
-                style={{ animationDelay: "40ms" }}>
-                <td className="px-4 py-3 flex items-center gap-2">
-                  {expandedRows.has(0) ? (
-                    <Minus className="h-4 w-4 text-muted-foreground" />
-                  ) : (
-                    <Plus className="h-4 w-4 text-muted-foreground" />
-                  )}
-                  Hóa đơn: {data.length}
-                </td>
-                <td colSpan={4}></td>
-                <td className="px-4 py-3 text-right">{totals.qty}</td>
-                <td className="px-4 py-3 text-right">{formatMoney(totals.itemsPrice)}</td>
-                <td className="px-4 py-3 text-right font-medium text-red-600">-{formatMoney(totals.discount)}</td>
-                <td className="px-4 py-3 text-right font-bold text-green-700">{formatMoney(totals.revenue)}</td>
-              </tr>
-
-              {expandedRows.has(0) && data.map((order, index) => (
-                <tr
-                  key={order.orderId}
-                  className="report-row border-b transition-colors hover:bg-muted dark:hover:bg-muted/50"
-                  style={{ "--row-index": index }}
-                >
-                  <td className="px-4 py-3 font-medium text-foreground">#{order.orderId}</td>
-                  <td className="px-4 py-3">{order.customerName}</td>
-                  <td className="px-4 py-3">{order.staffName}</td>
-                  <td className="px-4 py-3">{format(new Date(order.time), "HH:mm dd/MM")}</td>
-                  <td className="px-4 py-3 capitalize">{order.paymentMethod === 'cash' ? 'Tiền mặt' : order.paymentMethod === 'payos' ? 'Chuyển khoản bằng PayOS' : 'Khác'}</td>
-                  <td className="px-4 py-3 text-right">{order.totalQuantity}</td>
-                  <td className="px-4 py-3 text-right">{formatMoney(order.totalItemsPrice)}</td>
-                  <td className="px-4 py-3 text-right text-red-600">-{formatMoney(order.discount)}</td>
-                  <td className="px-4 py-3 text-right font-bold text-green-700">{formatMoney(toNumber(order.totalItemsPrice) - toNumber(order.discount))}</td>
-                </tr>
-              ))}
-
-              {data.length === 0 && (
-                <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center text-muted-foreground italic">
-                    Không tìm thấy dữ liệu đã thanh toán trong khoảng thời gian này
-                  </td>
-                </tr>
-              )}
-            </tbody>
-            {data.length > 0 && (
-              <tfoot className="bg-muted dark:bg-muted/50 font-bold border-t-2">
-                <tr>
-                  <td colSpan={5} className="px-4 py-4 text-center text-foreground border-r">TỔNG CỘNG</td>
-                  <td className="px-4 py-4 text-right border-r">{totals.qty}</td>
-                  <td className="px-4 py-4 text-right border-r">{formatMoney(totals.itemsPrice)}</td>
-                  <td className="px-4 py-4 text-right border-r text-red-600">-{formatMoney(totals.discount)}</td>
-                  <td className="px-4 py-4 text-right text-green-700 text-lg">{formatMoney(totals.revenue)}</td>
-                </tr>
-              </tfoot>
+          <div className="report-card relative overflow-hidden rounded-2xl border bg-card text-card-foreground shadow-sm transition-all duration-300 print:border-none print:shadow-none">
+            {isRefreshing && (
+              <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-center justify-center bg-card/70 dark:bg-slate-900/70 py-3 backdrop-blur-sm">
+                <Loader2 className="mr-2 h-4 w-4 animate-spin text-primary" />
+                <span className="text-sm font-medium text-muted-foreground">Đang cập nhật dữ liệu</span>
+              </div>
             )}
-          </table>
-        </div>
-      </div>
+            <div className={`overflow-x-auto transition-opacity duration-300 ${isRefreshing ? "opacity-70" : "opacity-100"}`}>
+              <table className="w-full text-sm">
+                <thead className="sticky top-0 z-[1]">
+                  <tr className="border-b font-medium text-foreground bg-muted/50">
+                    <th className="px-4 py-3 text-left">Mã chứng từ</th>
+                    <th className="px-4 py-3 text-left">Khách hàng</th>
+                    <th className="px-4 py-3 text-left">Nhân viên</th>
+                    <th className="px-4 py-3 text-left">Thời gian</th>
+                    <th className="px-4 py-3 text-left">T.Toán</th>
+                    <th className="px-4 py-3 text-right">SL</th>
+                    <th className="px-4 py-3 text-right">Tổng tiền hàng</th>
+                    <th className="px-4 py-3 text-right">Giảm giá</th>
+                    <th className="px-4 py-3 text-right">Doanh thu </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="bg-yellow-50/50 dark:bg-yellow-900/10 font-medium border-b cursor-pointer transition-colors hover:bg-yellow-100/50 dark:hover:bg-yellow-900/20"
+                    onClick={() => {
+                      const next = new Set(expandedRows);
+                      if (next.has(0)) next.delete(0);
+                      else next.add(0);
+                      setExpandedRows(next);
+                    }}>
+                    <td className="px-4 py-3 flex items-center gap-2">
+                      {expandedRows.has(0) ? <Minus className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                      Hóa đơn: {data.length}
+                    </td>
+                    <td colSpan={4}></td>
+                    <td className="px-4 py-3 text-right">{totals.qty}</td>
+                    <td className="px-4 py-3 text-right">{formatMoney(totals.itemsPrice)}</td>
+                    <td className="px-4 py-3 text-right font-medium text-red-600">-{formatMoney(totals.discount)}</td>
+                    <td className="px-4 py-3 text-right font-bold text-green-700">{formatMoney(totals.revenue)}</td>
+                  </tr>
+
+                  {expandedRows.has(0) && data.map((order, index) => (
+                    <tr key={order.orderId} className="report-row border-b transition-colors hover:bg-muted/50">
+                      <td className="px-4 py-3 font-medium text-foreground">#{order.orderId}</td>
+                      <td className="px-4 py-3">{order.customerName}</td>
+                      <td className="px-4 py-3">{order.staffName}</td>
+                      <td className="px-4 py-3">{format(new Date(order.time), "HH:mm dd/MM")}</td>
+                      <td className="px-4 py-3 capitalize">{order.paymentMethod === 'cash' ? 'Tiền mặt' : order.paymentMethod === 'payos' ? 'Chuyển khoản' : 'Khác'}</td>
+                      <td className="px-4 py-3 text-right">{order.totalQuantity}</td>
+                      <td className="px-4 py-3 text-right">{formatMoney(order.totalItemsPrice)}</td>
+                      <td className="px-4 py-3 text-right text-red-600">-{formatMoney(order.discount)}</td>
+                      <td className="px-4 py-3 text-right font-bold text-green-700">{formatMoney(toNumber(order.totalItemsPrice) - toNumber(order.discount))}</td>
+                    </tr>
+                  ))}
+
+                  {data.length === 0 && (
+                    <tr>
+                      <td colSpan={9} className="px-4 py-8 text-center text-muted-foreground italic">
+                        Không tìm thấy dữ liệu đã thanh toán trong khoảng thời gian này
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+                {data.length > 0 && (
+                  <tfoot className="bg-muted dark:bg-muted/50 font-bold border-t-2">
+                    <tr>
+                      <td colSpan={5} className="px-4 py-4 text-center text-foreground border-r">TỔNG CỘNG</td>
+                      <td className="px-4 py-4 text-right border-r">{totals.qty}</td>
+                      <td className="px-4 py-4 text-right border-r">{formatMoney(totals.itemsPrice)}</td>
+                      <td className="px-4 py-4 text-right border-r text-red-600">-{formatMoney(totals.discount)}</td>
+                      <td className="px-4 py-4 text-right text-green-700 text-lg">{formatMoney(totals.revenue)}</td>
+                    </tr>
+                  </tfoot>
+                )}
+              </table>
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="products" className="space-y-6">
+          <div className="report-card relative overflow-hidden rounded-2xl border bg-card text-card-foreground shadow-sm transition-all duration-300 print:border-none print:shadow-none">
+            {isRefreshing && (
+              <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-center justify-center bg-card/70 dark:bg-slate-900/70 py-3 backdrop-blur-sm">
+                <Loader2 className="mr-2 h-4 w-4 animate-spin text-primary" />
+                <span className="text-sm font-medium text-muted-foreground">Đang cập nhật dữ liệu</span>
+              </div>
+            )}
+            <div className={`overflow-x-auto transition-opacity duration-300 ${isRefreshing ? "opacity-70" : "opacity-100"}`}>
+              <table className="w-full text-sm">
+                <thead className="sticky top-0 z-[1]">
+                  <tr className="border-b font-medium text-foreground bg-muted/50">
+                    <th className="px-4 py-3 text-left">Mã hàng</th>
+                    <th className="px-4 py-3 text-left">Tên hàng</th>
+                    <th className="px-4 py-3 text-right">SL bán</th>
+                    <th className="px-4 py-3 text-right">Giá niêm yết</th>
+                    <th className="px-4 py-3 text-right">Doanh thu</th>
+                    <th className="px-4 py-3 text-right">Chênh lệch</th>
+                    <th className="px-4 py-3 text-right">SL trả</th>
+                    <th className="px-4 py-3 text-right">Giá trị trả</th>
+                    <th className="px-4 py-3 text-right">Doanh thu thuần</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="bg-sky-50/50 dark:bg-sky-900/10 font-medium border-b">
+                    <td className="px-4 py-3" colSpan={2}>
+                      SL mặt hàng: {productData.length}
+                    </td>
+                    <td className="px-4 py-3 text-right">{productTotals.qtySold}</td>
+                    <td className="px-4 py-3 text-right"></td>
+                    <td className="px-4 py-3 text-right font-bold">{formatMoney(productTotals.revenue)}</td>
+                    <td className="px-4 py-3 text-right">0</td>
+                    <td className="px-4 py-3 text-right">0</td>
+                    <td className="px-4 py-3 text-right">0</td>
+                    <td className="px-4 py-3 text-right font-bold text-green-700">{formatMoney(productTotals.netRevenue)}</td>
+                  </tr>
+
+                  {productData.map((prod, index) => (
+                    <tr key={`${prod.productCode}-${prod.size}`} className="report-row border-b transition-colors hover:bg-muted/50">
+                      <td className="px-4 py-3 font-mono text-xs text-sky-700 dark:text-sky-400 capitalize">{prod.productCode}</td>
+                      <td className="px-4 py-3">
+                        <div className="font-medium">{prod.productName}</div>
+                        {prod.size && <Badge variant="outline" className="mt-1 text-[10px] h-4">{prod.size}</Badge>}
+                      </td>
+                      <td className="px-4 py-3 text-right">{prod.quantitySold}</td>
+                      <td className="px-4 py-3 text-right">{formatMoney(prod.listPrice)}</td>
+                      <td className="px-4 py-3 text-right">{formatMoney(prod.revenue)}</td>
+                      <td className="px-4 py-3 text-right text-muted-foreground">0</td>
+                      <td className="px-4 py-3 text-right text-muted-foreground">0</td>
+                      <td className="px-4 py-3 text-right text-muted-foreground">0</td>
+                      <td className="px-4 py-3 text-right font-bold text-green-700">{formatMoney(prod.netRevenue)}</td>
+                    </tr>
+                  ))}
+
+                  {productData.length === 0 && (
+                    <tr>
+                      <td colSpan={9} className="px-4 py-8 text-center text-muted-foreground italic">
+                        Không tìm thấy dữ liệu hàng hóa trong khoảng thời gian này
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </TabsContent>
+      </Tabs>
 
       {/* Print Footer */}
       <div className="hidden print:flex flex-col items-end gap-1 mt-8 border-t pt-4">

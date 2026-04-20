@@ -128,6 +128,19 @@ class AdminDBController {
       next(err);
     }
   }
+
+  async getProductReport(req, res, next) {
+    try {
+      const { startDate, endDate } = req.query;
+      const data = await AdminDBService.getProductReport({
+        startDate,
+        endDate,
+      });
+      return response.success(res, data, "Lấy báo cáo sản phẩm thành công");
+    } catch (err) {
+      next(err);
+    }
+  }
 }
 
 module.exports = new AdminDBController();

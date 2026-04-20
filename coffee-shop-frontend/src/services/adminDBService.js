@@ -69,6 +69,12 @@ const adminDBService = {
     });
     return res.data;
   },
+  getProductReport: async (startDate, endDate) => {
+    const response = await axiosClient.get(`/dashboard/product-report`, {
+      params: { startDate, endDate },
+    });
+    return response.data;
+  },
 };
 
 export default adminDBService;

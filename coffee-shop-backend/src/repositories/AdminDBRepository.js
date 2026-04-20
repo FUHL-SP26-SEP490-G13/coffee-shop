@@ -367,6 +367,34 @@ class AdminDBRepository {
       },
     };
   }
+
+  // Báo cáo chi tiết sản phẩm
+  async getProductReport({ startDate, endDate }) {
+    const [rows] = await pool.query(
+      `SELECT 
+        p.code as productCode,
+        p.name as productName,
+        ps.size as size,
+        SUM(od.quantity) as quantitySold,
+        ps.price as listPrice,
+        SUM(od.quantity * od.price) as revenue,
+        0 as difference,
+        0 as returnQuantity,
+        0 as returnValue,
+        SUM(od.quantity * od.price) as netRevenue
+      FROM order_details od
+      JOIN orders o ON o.id = od.order_id
+      JOIN product_sizes ps ON ps.id = od.product_size_id
+      JOIN products p ON p.id = ps.product_id
+      WHERE o.is_paid = 1
+        AND o.status != 'cancelled'
+        AND o.created_at >= ? AND o.created_at <= ?
+      GROUP BY p.id, p.code, p.name, ps.id, ps.size, ps.price
+      ORDER BY quantitySold DESC`,
+      [startDate, endDate]
+    );
+    return rows;
+  }
 }
 
 module.exports = new AdminDBRepository();

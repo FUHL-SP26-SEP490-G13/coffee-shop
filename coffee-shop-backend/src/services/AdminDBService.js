@@ -55,6 +55,9 @@ class AdminDBService {
     return AdminDBRepository.getShiftReport({ date });
   }
 
+  async getProductReport({ startDate, endDate }) {
+    return AdminDBRepository.getProductReport({ startDate, endDate });
+  }
 }
 
 module.exports = new AdminDBService();
