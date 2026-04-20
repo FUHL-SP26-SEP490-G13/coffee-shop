@@ -91,9 +91,11 @@ class OrderRepository {
         delivery_fee,
         used_points,
         session_id,
-        cash_session_id
+        cash_session_id,
+        note,
+        staff_id
       )
-      VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `,
       [
         data.user_id,
@@ -109,6 +111,8 @@ class OrderRepository {
         safeUsedPoints,
         data.session_id || null,
         cashSessionId,
+        data.note || null,
+        data.staff_id || null,
       ]
     );
 

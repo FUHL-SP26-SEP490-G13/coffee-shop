@@ -13,6 +13,12 @@ const vietmapService = {
       params: { refid },
     });
   },
+
+  reverse(lat, lng) {
+    return axiosClient.get("/vietmap/reverse", {
+      params: { lat, lng },
+    });
+  },
 };
 
 export default vietmapService;

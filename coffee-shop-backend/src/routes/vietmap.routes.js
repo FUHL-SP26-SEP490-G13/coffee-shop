@@ -19,5 +19,6 @@ router.use(vietmapLimiter);
 
 router.get('/autocomplete', VietmapController.autocomplete);
 router.get('/place', VietmapController.getPlaceDetail);
+router.get('/reverse', VietmapController.reverse);
 
 module.exports = router;

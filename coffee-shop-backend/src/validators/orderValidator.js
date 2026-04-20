@@ -131,6 +131,14 @@ const checkoutOrderSchema = Joi.object({
     }),
   }),
 
+  latitude: Joi.number().allow(null, "").optional().messages({
+    "number.base": "Vĩ độ không hợp lệ",
+  }),
+
+  longitude: Joi.number().allow(null, "").optional().messages({
+    "number.base": "Kinh độ không hợp lệ",
+  }),
+
   province_id: Joi.number().integer().positive().allow(null).optional().messages({
     "number.base": "Tỉnh/Thành không hợp lệ",
     "number.integer": "Tỉnh/Thành không hợp lệ",
@@ -143,8 +151,12 @@ const checkoutOrderSchema = Joi.object({
     "number.positive": "Xã/Phường không hợp lệ",
   }),
 
-  note: Joi.string().trim().allow("").max(500).messages({
-    "string.max": "Ghi chú không được vượt quá 500 ký tự",
+  order_note: Joi.string().trim().allow("").max(500).messages({
+    "string.max": "Ghi chú đơn hàng không được vượt quá 500 ký tự",
+  }),
+
+  delivery_note: Joi.string().trim().allow("").max(500).messages({
+    "string.max": "Ghi chú giao hàng không được vượt quá 500 ký tự",
   }),
 
   discount_code: Joi.string().trim().allow("").max(50).messages({

@@ -71,7 +71,8 @@ export default function CheckoutPage() {
     receiver_phone: "",
     receiver_email: "",
     address: "",
-    note: "",
+    order_note: "",
+    delivery_note: "",
     discount_code: "",
     used_points: 0,
     latitude: null,
@@ -664,6 +665,12 @@ export default function CheckoutPage() {
                       latitude,
                       longitude,
                     }));
+
+                    // console.log(form);
+                    // console.log("Selected address:", address);
+                    // console.log("Selected latitude:", latitude);
+                    // console.log("Selected longitude:", longitude);
+
                     setErrors((prev) => ({
                       ...prev,
                       address: validateOrderField("address", address),
@@ -682,6 +689,28 @@ export default function CheckoutPage() {
                     </div>
                   </div>
                 )}
+
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Ghi chú cho Shipper (Tùy chọn)</label>
+                  <Textarea
+                    value={form.delivery_note}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setForm((prev) => ({
+                        ...prev,
+                        delivery_note: value,
+                      }));
+                      setErrors((prev) => ({
+                        ...prev,
+                        delivery_note: validateOrderField("note", value),
+                      }));
+                    }}
+                    placeholder="VD: Nhờ shipper gọi khi tới nơi, dặn bảo vệ toà nhà..."
+                  />
+                  {errors.delivery_note && (
+                    <p className="text-sm text-red-500 mt-1">{errors.delivery_note}</p>
+                  )}
+                </div>
               </div>
             )}
 
@@ -692,8 +721,8 @@ export default function CheckoutPage() {
               {paymentValidation && (
                 <div
                   className={`mb-3 p-3 rounded-lg text-sm ${paymentValidation.forcePayOS
-                      ? "bg-yellow-50 text-yellow-800 border border-yellow-200"
-                      : "bg-blue-50 text-blue-800 border border-blue-200"
+                    ? "bg-yellow-50 text-yellow-800 border border-yellow-200"
+                    : "bg-blue-50 text-blue-800 border border-blue-200"
                     }`}
                 >
                   <p className="font-medium">{paymentValidation.message}</p>
@@ -755,18 +784,18 @@ export default function CheckoutPage() {
                         }));
                       }}
                       className={`flex items-center gap-3 rounded-xl border-2 px-4 py-3 text-left transition-all ${isDisabled
-                          ? "border-gray-200  bg-gray-100 dark:bg-gray-800 opacity-50 cursor-not-allowed"
-                          : selected
-                            ? "border-amber-500 bg-amber-50 dark:bg-amber-900/20"
-                            : "border-gray-200  bg-white dark:bg-gray-900 hover:border-gray-300"
+                        ? "border-gray-200  bg-gray-100 dark:bg-gray-800 opacity-50 cursor-not-allowed"
+                        : selected
+                          ? "border-amber-500 bg-amber-50 dark:bg-amber-900/20"
+                          : "border-gray-200  bg-white dark:bg-gray-900 hover:border-gray-300"
                         }`}
                     >
                       <span
                         className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${isDisabled
-                            ? "bg-gray-200"
-                            : selected
-                              ? "bg-amber-100 dark:bg-amber-900/30"
-                              : "bg-gray-100 dark:bg-gray-800"
+                          ? "bg-gray-200"
+                          : selected
+                            ? "bg-amber-100 dark:bg-amber-900/30"
+                            : "bg-gray-100 dark:bg-gray-800"
                           }`}
                       >
                         {isDisabled ? (
@@ -780,8 +809,8 @@ export default function CheckoutPage() {
                       <span>
                         <span
                           className={`block text-sm font-medium ${isDisabled
-                              ? "text-gray-500 dark:text-gray-400"
-                              : "text-gray-900 dark:text-gray-100"
+                            ? "text-gray-500 dark:text-gray-400"
+                            : "text-gray-900 dark:text-gray-100"
                             }`}
                         >
                           {opt.label}
@@ -789,8 +818,8 @@ export default function CheckoutPage() {
                         </span>
                         <span
                           className={`block text-xs ${isDisabled
-                              ? "text-gray-400"
-                              : "text-gray-500 dark:text-gray-400"
+                            ? "text-gray-400"
+                            : "text-gray-500 dark:text-gray-400"
                             }`}
                         >
                           {opt.sub}
@@ -798,10 +827,10 @@ export default function CheckoutPage() {
                       </span>
                       <span
                         className={`ml-auto h-4 w-4 shrink-0 rounded-full border-2 ${isDisabled
-                            ? "border-gray-300 bg-gray-300"
-                            : selected
-                              ? "border-amber-500 bg-amber-50 dark:bg-amber-900/200"
-                              : "border-gray-300"
+                          ? "border-gray-300 bg-gray-300"
+                          : selected
+                            ? "border-amber-500 bg-amber-50 dark:bg-amber-900/200"
+                            : "border-gray-300"
                           }`}
                       />
                     </button>
@@ -811,23 +840,23 @@ export default function CheckoutPage() {
             </div>
 
             <div>
-              <label className="text-sm font-medium mb-2 block">Ghi chú</label>
+              <label className="text-sm font-medium mb-2 block">Ghi chú đơn hàng</label>
               <Textarea
-                value={form.note}
+                value={form.order_note}
                 onChange={(e) => {
                   const value = e.target.value;
                   setForm((prev) => ({
                     ...prev,
-                    note: value,
+                    order_note: value,
                   }));
                   setErrors((prev) => ({
                     ...prev,
-                    note: validateOrderField("note", value),
+                    order_note: validateOrderField("note", value),
                   }));
                 }}
               />
-              {errors.note && (
-                <p className="text-sm text-red-500 mt-1">{errors.note}</p>
+              {errors.order_note && (
+                <p className="text-sm text-red-500 mt-1">{errors.order_note}</p>
               )}
             </div>
           </div>
@@ -1097,8 +1126,8 @@ export default function CheckoutPage() {
                     type="button"
                     onClick={() => handleSelectAddress(item)}
                     className={`w-full text-left border rounded-xl p-4 transition ${isSelected
-                        ? "border-amber-500 bg-amber-50 dark:bg-amber-900/20"
-                        : "border-gray-200  hover:border-gray-300 bg-white dark:bg-gray-900"
+                      ? "border-amber-500 bg-amber-50 dark:bg-amber-900/20"
+                      : "border-gray-200  hover:border-gray-300 bg-white dark:bg-gray-900"
                       }`}
                   >
                     <div className="flex items-center justify-between gap-3 mb-2">

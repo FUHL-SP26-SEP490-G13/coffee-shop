@@ -54,6 +54,28 @@ class VietmapService {
       throw new ErrorResponse(500, "Failed to get place detail from Vietmap");
     }
   }
+
+  async reverseGeocode(lat, lng) {
+    if (!this.apiKey) {
+      throw new ErrorResponse(500, "Vietmap API Key is missing");
+    }
+
+    try {
+      const response = await axios.get(`${this.baseUrl}/reverse/v3`, {
+        params: {
+          apikey: this.apiKey,
+          lat: lat,
+          lng: lng,
+        },
+        timeout: 5000,
+      });
+
+      return response.data;
+    } catch (error) {
+      console.error("Vietmap reverse geocode error:", error?.response?.data || error.message);
+      throw new ErrorResponse(500, "Failed to reverse geocode with Vietmap");
+    }
+  }
 }
 
 module.exports = new VietmapService();

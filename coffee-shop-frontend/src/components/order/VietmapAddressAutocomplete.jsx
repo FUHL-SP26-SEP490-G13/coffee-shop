@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Search, MapPin, Loader2, ChevronDown, Check } from "lucide-react";
+import { Search, MapPin, Loader2, ChevronDown, Check, Navigation } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import vietmapService from "@/services/vietmapService";
 
@@ -27,9 +27,8 @@ function SearchableSelect({ options, value, onChange, placeholder, disabled }) {
   return (
     <div className="relative w-full" ref={wrapperRef}>
       <div
-        className={`flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-amber-500 hover:bg-accent/50 transition-colors ${
-          disabled ? "opacity-50 cursor-not-allowed bg-gray-50 dark:bg-gray-800" : "cursor-pointer"
-        }`}
+        className={`flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-amber-500 hover:bg-accent/50 transition-colors ${disabled ? "opacity-50 cursor-not-allowed bg-gray-50 dark:bg-gray-800" : "cursor-pointer"
+          }`}
         onClick={() => !disabled && setIsOpen(!isOpen)}
       >
         <span className="truncate text-[13px]">{selectedOption ? selectedOption.name : placeholder}</span>
@@ -60,9 +59,8 @@ function SearchableSelect({ options, value, onChange, placeholder, disabled }) {
               filteredOptions.map((opt) => (
                 <div
                   key={opt.code}
-                  className={`relative flex w-full cursor-pointer select-none items-center rounded-sm py-2 pl-2 pr-8 text-[13px] outline-none hover:bg-amber-50 dark:hover:bg-gray-800 ${
-                    value === opt.code.toString() ? "bg-amber-50 dark:bg-gray-800 text-amber-700 dark:text-amber-500 font-medium" : "text-gray-700 dark:text-gray-300"
-                  }`}
+                  className={`relative flex w-full cursor-pointer select-none items-center rounded-sm py-2 pl-2 pr-8 text-[13px] outline-none hover:bg-amber-50 dark:hover:bg-gray-800 ${value === opt.code.toString() ? "bg-amber-50 dark:bg-gray-800 text-amber-700 dark:text-amber-500 font-medium" : "text-gray-700 dark:text-gray-300"
+                    }`}
                   onClick={() => {
                     onChange(opt.code.toString());
                     setIsOpen(false);
@@ -98,6 +96,10 @@ export default function VietmapAddressAutocomplete({
   const [suggestions, setSuggestions] = useState([]);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [mapCenter, setMapCenter] = useState(null); // Lưu trữ tạm tọa độ GPS
+  const [isLocating, setIsLocating] = useState(false); // Trạng thái đang quét GPS
+
+  const [pinnedAddress, setPinnedAddress] = useState("");
 
   const wrapperRef = useRef(null);
   const isSelectingRef = useRef(false);
@@ -139,7 +141,7 @@ export default function VietmapAddressAutocomplete({
           // Xây dựng chuỗi tìm kiếm ưu tiên Tỉnh/Phường đã chọn
           const pName = provinces.find((p) => p.code == selectedProvince)?.name || "";
           const wName = wards.find((w) => w.code == selectedWard)?.name || "";
-          
+
           // Thêm filter hành chính vào query ngữ cảnh để Vietmap đoán chuẩn hơn
           let contextQuery = searchTerm;
           if (wName) contextQuery += `, ${wName}`;
@@ -171,10 +173,10 @@ export default function VietmapAddressAutocomplete({
 
   const handleSelectSuggestion = async (suggestion) => {
     const shortName = suggestion.name || suggestion.address;
-    
+
     // Ngăn chặn useEffect gọi lại API tự động
     isSelectingRef.current = true;
-    
+
     // Giao diện chỉ hiện tên ngắn
     setSearchTerm(shortName);
     setIsDropdownOpen(false);
@@ -182,25 +184,38 @@ export default function VietmapAddressAutocomplete({
     // Gộp luôn cả tên xã huyện tỉnh để lưu xuống Database (đảm bảo Ship đủ thông tin)
     const pName = provinces.find((p) => p.code == selectedProvince)?.name || "";
     const wName = wards.find((w) => w.code == selectedWard)?.name || "";
-    
+
     let dbAddress = shortName;
     if (wName) dbAddress += `, ${wName}`;
     if (pName) dbAddress += `, ${pName}`;
-    
+
     try {
       if (suggestion.ref_id) {
         // Lấy toạ độ Place Detail
         const placeDetail = await vietmapService.getPlaceDetail(suggestion.ref_id);
         const lat = placeDetail?.data?.lat;
         const lng = placeDetail?.data?.lng;
-        
+
+        if (lat && lng) {
+          setMapCenter({ lat, lng });
+        }
+
+        setPinnedAddress(dbAddress);
+
         onAddressSelect({
           address: dbAddress,
           latitude: lat,
           longitude: lng,
         });
+
+        console.log("Selected address:", dbAddress);
+        console.log("Selected latitude:", lat);
+        console.log("Selected longitude:", lng);
+
       } else {
-         onAddressSelect({
+        setMapCenter(null);
+        setPinnedAddress("");
+        onAddressSelect({
           address: dbAddress,
           latitude: null,
           longitude: null,
@@ -261,13 +276,13 @@ export default function VietmapAddressAutocomplete({
             value={searchTerm}
             disabled={!selectedProvince || !selectedWard}
             onChange={(e) => {
-               setSearchTerm(e.target.value);
-               // Cập nhật ngầm form ở trang cha khi gõ chữ tự do để cho phép vượt rào valid
-               onAddressSelect({
-                  address: e.target.value,
-                  latitude: null, // đang gõ thì xoá tọa độ
-                  longitude: null,
-               });
+              setSearchTerm(e.target.value);
+              // CHÚ Ý: Không gọi onAddressSelect ở đây nữa. Gửi null để Validate báo lỗi nếu họ không bấm Map/GPS
+              onAddressSelect({
+                address: e.target.value,
+                latitude: null,
+                longitude: null,
+              });
             }}
             onFocus={() => {
               if (suggestions.length > 0) setIsDropdownOpen(true);
@@ -277,14 +292,83 @@ export default function VietmapAddressAutocomplete({
                 ? "Vui lòng chọn Tỉnh và Phường trước..."
                 : "Nhập tên đường, toà nhà, số nhà..."
             }
-            className="pl-10 h-10 disabled:opacity-60 disabled:bg-gray-100 placeholder:text-sm text-sm"
+            className="pl-10 pr-20 h-10 disabled:opacity-60 disabled:bg-gray-100 dark:disabled:bg-gray-800 placeholder:text-sm text-sm"
           />
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-          {isLoadingSuggestions && (
-            <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-amber-500" />
-          )}
+
+          <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+            {(isLoadingSuggestions || isLocating) && (
+              <Loader2 className="w-4 h-4 animate-spin text-amber-500" />
+            )}
+
+            <button
+              type="button"
+              className="p-1.5 text-gray-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-gray-800 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Lấy vị trí hiện tại (GPS)"
+              disabled={isLocating}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (navigator.geolocation) {
+                  setIsLocating(true);
+                  navigator.geolocation.getCurrentPosition(async (position) => {
+                    const { latitude, longitude } = position.coords;
+                    setMapCenter({ lat: latitude, lng: longitude });
+
+                    try {
+                      const reverseRes = await vietmapService.reverse(latitude, longitude);
+                      const reverseData = reverseRes?.data || [];
+
+                      let dbAddress = "Vị trí của bạn (từ GPS)";
+                      if (reverseData.length > 0) {
+                        // Lấy dòng hiển thị đầy đủ nhất từ Vietmap Reverse API
+                        dbAddress = reverseData[0].display || reverseData[0].address || reverseData[0].name || dbAddress;
+                      }
+
+                      setSearchTerm(dbAddress);
+
+                      setPinnedAddress(dbAddress);
+
+                      onAddressSelect({
+                        address: dbAddress,
+                        latitude,
+                        longitude,
+                      });
+                    } catch (err) {
+                      console.error("Lỗi lấy địa chỉ từ toạ độ:", err);
+
+                      // Fallback tĩnh
+                      const pName = provinces.find((p) => p.code == selectedProvince)?.name || "";
+                      const wName = wards.find((w) => w.code == selectedWard)?.name || "";
+                      let fallbackAddress = searchTerm || "Vị trí của bạn (từ GPS)";
+                      if (wName && !fallbackAddress.includes(wName)) fallbackAddress += `, ${wName}`;
+                      if (pName && !fallbackAddress.includes(pName)) fallbackAddress += `, ${pName}`;
+
+                      setSearchTerm(fallbackAddress);
+                      setPinnedAddress(fallbackAddress);
+
+                      onAddressSelect({
+                        address: fallbackAddress,
+                        latitude,
+                        longitude,
+                      });
+                    } finally {
+                      setIsLocating(false);
+                    }
+                  }, (error) => {
+                    console.error("Lỗi GPS:", error);
+                    alert("Không thể lấy định vị hoặc bạn đã từ chối quyền truy cập vị trí.");
+                    setIsLocating(false);
+                  }, { timeout: 10000 });
+                } else {
+                  alert("Trình duyệt không hỗ trợ dịch vụ định vị.");
+                }
+              }}
+            >
+              <Navigation className="w-4 h-4" />
+            </button>
+          </div>
         </div>
-        
+
         {error && <p className="text-sm text-red-500 mt-1">{error}</p>}
 
         {isDropdownOpen && suggestions.length > 0 && (

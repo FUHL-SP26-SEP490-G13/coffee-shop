@@ -41,6 +41,24 @@ class VietmapController {
       next(error);
     }
   }
+
+  async reverse(req, res, next) {
+    try {
+      const { lat, lng } = req.query;
+      if (!lat || !lng) {
+        return res.status(400).json({ success: false, message: 'lat and lng are required' });
+      }
+
+      const result = await VietmapService.reverseGeocode(lat, lng);
+      
+      res.json({
+        success: true,
+        data: result
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 module.exports = new VietmapController();
