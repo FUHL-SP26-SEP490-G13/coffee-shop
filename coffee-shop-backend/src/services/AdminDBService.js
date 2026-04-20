@@ -58,6 +58,10 @@ class AdminDBService {
   async getProductReport({ startDate, endDate }) {
     return AdminDBRepository.getProductReport({ startDate, endDate });
   }
+
+  async getTimeReport({ startDate, endDate }) {
+    return AdminDBRepository.getTimeReport({ startDate, endDate });
+  }
 }
 
 module.exports = new AdminDBService();

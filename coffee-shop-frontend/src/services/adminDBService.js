@@ -75,6 +75,12 @@ const adminDBService = {
     });
     return response.data;
   },
+  getTimeReport: async (startDate, endDate) => {
+    const response = await axiosClient.get(`/dashboard/time-report`, {
+      params: { startDate, endDate },
+    });
+    return response.data;
+  },
 };
 
 export default adminDBService;

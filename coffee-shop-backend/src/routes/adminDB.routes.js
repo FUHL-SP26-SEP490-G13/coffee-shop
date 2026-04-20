@@ -84,4 +84,11 @@ router.get(
   AdminDBController.getProductReport
 );
 
+router.get(
+  "/time-report",
+  authenticate,
+  authorize([ROLES_STRING.MANAGER]),
+  AdminDBController.getTimeReport
+);
+
 module.exports = router;

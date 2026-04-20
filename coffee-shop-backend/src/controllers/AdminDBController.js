@@ -141,6 +141,19 @@ class AdminDBController {
       next(err);
     }
   }
+
+  async getTimeReport(req, res, next) {
+    try {
+      const { startDate, endDate } = req.query;
+      const data = await AdminDBService.getTimeReport({
+        startDate,
+        endDate,
+      });
+      return response.success(res, data, "Lấy báo cáo theo thời gian thành công");
+    } catch (err) {
+      next(err);
+    }
+  }
 }
 
 module.exports = new AdminDBController();

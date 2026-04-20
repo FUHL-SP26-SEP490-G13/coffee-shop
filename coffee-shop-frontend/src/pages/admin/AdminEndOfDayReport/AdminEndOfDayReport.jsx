@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, Fragment } from "react";
 import { format, startOfDay, endOfDay, subDays } from "date-fns";
 import { vi } from "date-fns/locale";
 import {
@@ -6,8 +6,10 @@ import {
   Printer,
   Loader2,
   Minus,
+  Plus,
   Box,
-  LayoutDashboard
+  LayoutDashboard,
+  Clock
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "../../../components/ui/tabs";
 import { Badge } from "../../../components/ui/badge";
@@ -56,9 +58,11 @@ const AdminEndOfDayReport = () => {
   const [activeTab, setActiveTab] = useState("overview");
   const [data, setData] = useState([]);
   const [productData, setProductData] = useState([]);
+  const [timeData, setTimeData] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [expandedRows, setExpandedRows] = useState(new Set([0])); // Start with first group expanded
-  const isRefreshing = loading && (data.length > 0 || productData.length > 0);
+  const [expandedRows, setExpandedRows] = useState(new Set([0])); // For Overview
+  const [expandedTimeRows, setExpandedTimeRows] = useState(new Set()); // For Time report
+  const isRefreshing = loading && (data.length > 0 || productData.length > 0 || timeData.length > 0);
 
   const fetchReportData = useCallback(async () => {
     if (!dateRange?.from || !dateRange?.to) {
@@ -70,19 +74,20 @@ const AdminEndOfDayReport = () => {
       const start = format(startOfDay(dateRange.from), "yyyy-MM-dd HH:mm:ss");
       const end = format(endOfDay(dateRange.to), "yyyy-MM-dd HH:mm:ss");
 
-      // Fetch both reports or just the active one?
-      // Better fetch both to keep tabs responsive
-      const [orderRes, productRes] = await Promise.all([
+      const [orderRes, productRes, timeRes] = await Promise.all([
         adminDBService.getDetailedReport(start, end),
-        adminDBService.getProductReport(start, end)
+        adminDBService.getProductReport(start, end),
+        adminDBService.getTimeReport(start, end)
       ]);
 
       setData(parseReportRows(orderRes));
       setProductData(parseReportRows(productRes));
+      setTimeData(parseReportRows(timeRes));
     } catch (error) {
       console.error("Error fetching report data:", error);
       setData([]);
       setProductData([]);
+      setTimeData([]);
     } finally {
       setLoading(false);
     }
@@ -166,8 +171,25 @@ const AdminEndOfDayReport = () => {
     }), { qtySold: 0, revenue: 0, netRevenue: 0 });
   }, [productData]);
 
+  const timeTotals = useMemo(() => {
+    return timeData.reduce((acc, curr) => ({
+      orderCount: acc.orderCount + toNumber(curr.orderCount),
+      itemsPrice: acc.itemsPrice + toNumber(curr.totalItemsPrice),
+      discount: acc.discount + toNumber(curr.discount),
+      revenue: acc.revenue + toNumber(curr.revenue),
+      netRevenue: acc.netRevenue + toNumber(curr.netRevenue),
+    }), { orderCount: 0, itemsPrice: 0, discount: 0, revenue: 0, netRevenue: 0 });
+  }, [timeData]);
+
   const handlePrint = () => {
     window.print();
+  };
+
+  const toggleTimeRow = (hour) => {
+    const next = new Set(expandedTimeRows);
+    if (next.has(hour)) next.delete(hour);
+    else next.add(hour);
+    setExpandedTimeRows(next);
   };
 
   if (loading && data.length === 0) {
@@ -271,10 +293,10 @@ const AdminEndOfDayReport = () => {
       {/* Print Header */}
       <div className="hidden print:block text-center mb-8 border-b pb-4">
         <h1 className="text-2xl font-bold uppercase">
-          {activeTab === "overview" ? "Báo cáo tổng kết doanh thu" : "Báo cáo doanh thu theo hàng hóa"}
+          {activeTab === "overview" ? "Báo cáo tổng kết doanh thu" : activeTab === "products" ? "Báo cáo doanh thu theo hàng hóa" : "Báo cáo doanh thu theo thời gian"}
         </h1>
         <p className="mt-2 text-sm">
-          Từ ngày: {format(dateRange.from, "dd/MM/yyyy")} - Đến ngày: {format(dateRange.to, "dd/MM/yyyy")}
+          Từ ngày: {dateRange.from ? format(dateRange.from, "dd/MM/yyyy") : ""} - Đến ngày: {dateRange.to ? format(dateRange.to, "dd/MM/yyyy") : ""}
         </p>
       </div>
 
@@ -287,6 +309,10 @@ const AdminEndOfDayReport = () => {
           <TabsTrigger value="products" className="px-6 h-full rounded-xl data-[state=active]:bg-background data-[state=active]:shadow-sm">
             <Box className="mr-2 h-4 w-4" />
             Hàng hóa
+          </TabsTrigger>
+          <TabsTrigger value="time" className="px-6 h-full rounded-xl data-[state=active]:bg-background data-[state=active]:shadow-sm">
+            <CalendarIcon className="mr-2 h-4 w-4" />
+            Thời gian
           </TabsTrigger>
         </TabsList>
 
@@ -345,12 +371,12 @@ const AdminEndOfDayReport = () => {
                     <td className="px-4 py-3 text-right font-bold text-green-700">{formatMoney(totals.revenue)}</td>
                   </tr>
 
-                  {expandedRows.has(0) && data.map((order, index) => (
+                  {expandedRows.has(0) && data.map((order) => (
                     <tr key={order.orderId} className="report-row border-b transition-colors hover:bg-muted/50">
                       <td className="px-4 py-3 font-medium text-foreground">#{order.orderId}</td>
                       <td className="px-4 py-3">{order.customerName}</td>
                       <td className="px-4 py-3">{order.staffName}</td>
-                      <td className="px-4 py-3">{format(new Date(order.time), "HH:mm dd/MM")}</td>
+                      <td className="px-4 py-3">{order.time ? format(new Date(order.time), "HH:mm dd/MM") : ""}</td>
                       <td className="px-4 py-3 capitalize">{order.paymentMethod === 'cash' ? 'Tiền mặt' : order.paymentMethod === 'payos' ? 'Chuyển khoản' : 'Khác'}</td>
                       <td className="px-4 py-3 text-right">{order.totalQuantity}</td>
                       <td className="px-4 py-3 text-right">{formatMoney(order.totalItemsPrice)}</td>
@@ -420,7 +446,7 @@ const AdminEndOfDayReport = () => {
                     <td className="px-4 py-3 text-right font-bold text-green-700">{formatMoney(productTotals.netRevenue)}</td>
                   </tr>
 
-                  {productData.map((prod, index) => (
+                  {productData.map((prod) => (
                     <tr key={`${prod.productCode}-${prod.size}`} className="report-row border-b transition-colors hover:bg-muted/50">
                       <td className="px-4 py-3 font-mono text-xs text-sky-700 dark:text-sky-400 capitalize">{prod.productCode}</td>
                       <td className="px-4 py-3">
@@ -441,6 +467,108 @@ const AdminEndOfDayReport = () => {
                     <tr>
                       <td colSpan={9} className="px-4 py-8 text-center text-muted-foreground italic">
                         Không tìm thấy dữ liệu hàng hóa trong khoảng thời gian này
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="time" className="space-y-6">
+          <div className="report-card relative overflow-hidden rounded-2xl border bg-card text-card-foreground shadow-sm transition-all duration-300 print:border-none print:shadow-none">
+            {isRefreshing && (
+              <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-center justify-center bg-card/70 dark:bg-slate-900/70 py-3 backdrop-blur-sm">
+                <Loader2 className="mr-2 h-4 w-4 animate-spin text-primary" />
+                <span className="text-sm font-medium text-muted-foreground">Đang cập nhật dữ liệu</span>
+              </div>
+            )}
+            <div className={`overflow-x-auto transition-opacity duration-300 ${isRefreshing ? "opacity-70" : "opacity-100"}`}>
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b font-medium text-foreground bg-sky-100/50">
+                    <th className="px-4 py-3 text-left">Thời gian</th>
+                    <th className="px-4 py-3 text-right">SL đơn bán</th>
+                    <th className="px-4 py-3 text-right">Tổng tiền hàng</th>
+                    <th className="px-4 py-3 text-right">Giảm giá HĐ</th>
+                    <th className="px-4 py-3 text-right">Doanh thu</th>
+                    <th className="px-4 py-3 text-right">SL đơn trả</th>
+                    <th className="px-4 py-3 text-right">Giá trị trả</th>
+                    <th className="px-4 py-3 text-right">Doanh thu thuần</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="bg-yellow-50/80 font-medium border-b">
+                    <td className="px-4 py-3" colSpan={1}></td>
+                    <td className="px-4 py-3 text-right">{timeTotals.orderCount}</td>
+                    <td className="px-4 py-3 text-right">{formatMoney(timeTotals.itemsPrice)}</td>
+                    <td className="px-4 py-3 text-right text-red-600">-{formatMoney(timeTotals.discount)}</td>
+                    <td className="px-4 py-3 text-right font-bold">{formatMoney(timeTotals.revenue)}</td>
+                    <td className="px-4 py-3 text-right">0</td>
+                    <td className="px-4 py-3 text-right">0</td>
+                    <td className="px-4 py-3 text-right font-bold text-green-700">{formatMoney(timeTotals.netRevenue)}</td>
+                  </tr>
+
+                  {timeData.map((hourSlot) => (
+                    <Fragment key={hourSlot.timeHour}>
+                      <tr
+                        className="border-b cursor-pointer hover:bg-muted/30 transition-colors"
+                        onClick={() => toggleTimeRow(hourSlot.timeHour)}
+                      >
+                        <td className="px-4 py-3 flex items-center gap-2 font-medium">
+                          {expandedTimeRows.has(hourSlot.timeHour) ? <Minus className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                          {hourSlot.timeHour}
+                        </td>
+                        <td className="px-4 py-3 text-right">{hourSlot.orderCount}</td>
+                        <td className="px-4 py-3 text-right">{formatMoney(hourSlot.totalItemsPrice)}</td>
+                        <td className="px-4 py-3 text-right">0</td>
+                        <td className="px-4 py-3 text-right font-bold">{formatMoney(hourSlot.revenue)}</td>
+                        <td className="px-4 py-3 text-right">0</td>
+                        <td className="px-4 py-3 text-right">0</td>
+                        <td className="px-4 py-3 text-right font-bold text-green-700">{formatMoney(hourSlot.netRevenue)}</td>
+                      </tr>
+                      {expandedTimeRows.has(hourSlot.timeHour) && (
+                        <tr>
+                          <td colSpan={8} className="p-0">
+                            <div className="p-4 bg-muted/20">
+                              <table className="w-full text-xs rounded-lg overflow-hidden border bg-background">
+                                <thead>
+                                  <tr className="bg-emerald-100/50 text-emerald-800 font-semibold border-b">
+                                    <th className="px-4 py-2 text-left">Mã giao dịch</th>
+                                    <th className="px-4 py-2 text-left">Thời gian</th>
+                                    <th className="px-4 py-2 text-left">Nhân viên</th>
+                                    <th className="px-4 py-2 text-left">Khách hàng</th>
+                                    <th className="px-4 py-2 text-right">Tổng tiền hàng</th>
+                                    <th className="px-4 py-2 text-right">Giảm giá</th>
+                                    <th className="px-4 py-2 text-right">Doanh thu</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {hourSlot.orders?.map((ord) => (
+                                    <tr key={ord.orderId} className="border-b hover:bg-muted/10">
+                                      <td className="px-4 py-2 font-medium">#{ord.orderId}</td>
+                                      <td className="px-4 py-2">{ord.time ? format(new Date(ord.time), "dd/MM/yyyy HH:mm") : ""}</td>
+                                      <td className="px-4 py-2">{ord.staffName}</td>
+                                      <td className="px-4 py-2">{ord.customerName}</td>
+                                      <td className="px-4 py-2 text-right">{formatMoney(ord.totalItemsPrice)}</td>
+                                      <td className="px-4 py-2 text-right text-red-500">-{formatMoney(ord.discount)}</td>
+                                      <td className="px-4 py-2 text-right font-bold text-green-600">{formatMoney(ord.revenue)}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
+                  ))}
+
+                  {timeData.length === 0 && (
+                    <tr>
+                      <td colSpan={8} className="px-4 py-8 text-center text-muted-foreground italic">
+                        Không tìm thấy dữ liệu trong khoảng thời gian này
                       </td>
                     </tr>
                   )}
