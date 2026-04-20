@@ -426,9 +426,6 @@ const AdminEndOfDayReport = () => {
                     <th className="px-4 py-3 text-right">SL bán</th>
                     <th className="px-4 py-3 text-right">Giá niêm yết</th>
                     <th className="px-4 py-3 text-right">Doanh thu</th>
-                    <th className="px-4 py-3 text-right">Chênh lệch</th>
-                    <th className="px-4 py-3 text-right">SL trả</th>
-                    <th className="px-4 py-3 text-right">Giá trị trả</th>
                     <th className="px-4 py-3 text-right">Doanh thu thuần</th>
                   </tr>
                 </thead>
@@ -440,9 +437,6 @@ const AdminEndOfDayReport = () => {
                     <td className="px-4 py-3 text-right">{productTotals.qtySold}</td>
                     <td className="px-4 py-3 text-right"></td>
                     <td className="px-4 py-3 text-right font-bold">{formatMoney(productTotals.revenue)}</td>
-                    <td className="px-4 py-3 text-right">0</td>
-                    <td className="px-4 py-3 text-right">0</td>
-                    <td className="px-4 py-3 text-right">0</td>
                     <td className="px-4 py-3 text-right font-bold text-green-700">{formatMoney(productTotals.netRevenue)}</td>
                   </tr>
 
@@ -456,16 +450,13 @@ const AdminEndOfDayReport = () => {
                       <td className="px-4 py-3 text-right">{prod.quantitySold}</td>
                       <td className="px-4 py-3 text-right">{formatMoney(prod.listPrice)}</td>
                       <td className="px-4 py-3 text-right">{formatMoney(prod.revenue)}</td>
-                      <td className="px-4 py-3 text-right text-muted-foreground">0</td>
-                      <td className="px-4 py-3 text-right text-muted-foreground">0</td>
-                      <td className="px-4 py-3 text-right text-muted-foreground">0</td>
                       <td className="px-4 py-3 text-right font-bold text-green-700">{formatMoney(prod.netRevenue)}</td>
                     </tr>
                   ))}
 
                   {productData.length === 0 && (
                     <tr>
-                      <td colSpan={9} className="px-4 py-8 text-center text-muted-foreground italic">
+                      <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground italic">
                         Không tìm thấy dữ liệu hàng hóa trong khoảng thời gian này
                       </td>
                     </tr>
@@ -493,8 +484,6 @@ const AdminEndOfDayReport = () => {
                     <th className="px-4 py-3 text-right">Tổng tiền hàng</th>
                     <th className="px-4 py-3 text-right">Giảm giá HĐ</th>
                     <th className="px-4 py-3 text-right">Doanh thu</th>
-                    <th className="px-4 py-3 text-right">SL đơn trả</th>
-                    <th className="px-4 py-3 text-right">Giá trị trả</th>
                     <th className="px-4 py-3 text-right">Doanh thu thuần</th>
                   </tr>
                 </thead>
@@ -505,8 +494,6 @@ const AdminEndOfDayReport = () => {
                     <td className="px-4 py-3 text-right">{formatMoney(timeTotals.itemsPrice)}</td>
                     <td className="px-4 py-3 text-right text-red-600">-{formatMoney(timeTotals.discount)}</td>
                     <td className="px-4 py-3 text-right font-bold">{formatMoney(timeTotals.revenue)}</td>
-                    <td className="px-4 py-3 text-right">0</td>
-                    <td className="px-4 py-3 text-right">0</td>
                     <td className="px-4 py-3 text-right font-bold text-green-700">{formatMoney(timeTotals.netRevenue)}</td>
                   </tr>
 
@@ -522,15 +509,13 @@ const AdminEndOfDayReport = () => {
                         </td>
                         <td className="px-4 py-3 text-right">{hourSlot.orderCount}</td>
                         <td className="px-4 py-3 text-right">{formatMoney(hourSlot.totalItemsPrice)}</td>
-                        <td className="px-4 py-3 text-right">0</td>
+                        <td className="px-4 py-3 text-right">{formatMoney(hourSlot.discount)}</td>
                         <td className="px-4 py-3 text-right font-bold">{formatMoney(hourSlot.revenue)}</td>
-                        <td className="px-4 py-3 text-right">0</td>
-                        <td className="px-4 py-3 text-right">0</td>
                         <td className="px-4 py-3 text-right font-bold text-green-700">{formatMoney(hourSlot.netRevenue)}</td>
                       </tr>
                       {expandedTimeRows.has(hourSlot.timeHour) && (
                         <tr>
-                          <td colSpan={8} className="p-0">
+                          <td colSpan={6} className="p-0">
                             <div className="p-4 bg-muted/20">
                               <table className="w-full text-xs rounded-lg overflow-hidden border bg-background">
                                 <thead>
@@ -567,7 +552,7 @@ const AdminEndOfDayReport = () => {
 
                   {timeData.length === 0 && (
                     <tr>
-                      <td colSpan={8} className="px-4 py-8 text-center text-muted-foreground italic">
+                      <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground italic">
                         Không tìm thấy dữ liệu trong khoảng thời gian này
                       </td>
                     </tr>
