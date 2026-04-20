@@ -154,6 +154,19 @@ class AdminDBController {
       next(err);
     }
   }
+
+  async getStaffReport(req, res, next) {
+    try {
+      const { startDate, endDate } = req.query;
+      const data = await AdminDBService.getStaffReport({
+        startDate,
+        endDate,
+      });
+      return response.success(res, data, "Lấy báo cáo theo nhân viên thành công");
+    } catch (err) {
+      next(err);
+    }
+  }
 }
 
 module.exports = new AdminDBController();

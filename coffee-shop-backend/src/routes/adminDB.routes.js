@@ -91,4 +91,11 @@ router.get(
   AdminDBController.getTimeReport
 );
 
+router.get(
+  "/staff-report",
+  authenticate,
+  authorize([ROLES_STRING.MANAGER]),
+  AdminDBController.getStaffReport
+);
+
 module.exports = router;

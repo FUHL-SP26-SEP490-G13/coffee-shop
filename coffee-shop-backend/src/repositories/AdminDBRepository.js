@@ -445,6 +445,56 @@ class AdminDBRepository {
 
     return result;
   }
+
+  // Báo cáo theo nhân viên
+  async getStaffReport({ startDate, endDate }) {
+    const [rows] = await pool.query(
+      `SELECT 
+        u.id as staffId,
+        CONCAT(IFNULL(u.first_name, ''), ' ', IFNULL(u.last_name, '')) as staffName,
+        COUNT(o.id) as orderCount,
+        SUM(COALESCE(NULLIF(o.amount, 0), (SELECT SUM(quantity * price) FROM order_details WHERE order_id = o.id))) as totalItemsPrice,
+        SUM(COALESCE(o.discount_amount, 0)) as discount,
+        SUM(o.total_amount) as revenue,
+        0 as returnCount,
+        0 as returnValue,
+        SUM(o.total_amount) as netRevenue
+      FROM orders o
+      LEFT JOIN users u ON o.created_by = u.id
+      WHERE o.is_paid = 1
+        AND o.status != 'cancelled'
+        AND o.created_at >= ? AND o.created_at <= ?
+      GROUP BY u.id, u.first_name, u.last_name
+      ORDER BY revenue DESC`,
+      [startDate, endDate]
+    );
+
+    // For each staff member, fetch the individual orders
+    const result = await Promise.all(
+      rows.map(async (row) => {
+        const [orders] = await pool.query(
+          `SELECT 
+            o.id as orderId,
+            o.created_at as time,
+            COALESCE(odi.receiver_name, 'Khách vãng lai') as customerName,
+            COALESCE(NULLIF(o.amount, 0), (SELECT SUM(quantity * price) FROM order_details WHERE order_id = o.id)) as totalItemsPrice,
+            COALESCE(o.discount_amount, 0) as discount,
+            o.total_amount as revenue
+          FROM orders o
+          LEFT JOIN order_delivery_info odi ON o.id = odi.order_id
+          WHERE o.is_paid = 1
+            AND o.status != 'cancelled'
+            AND o.created_at >= ? AND o.created_at <= ?
+            AND o.created_by = ?
+          ORDER BY o.created_at DESC`,
+          [startDate, endDate, row.staffId]
+        );
+        return { ...row, orders };
+      })
+    );
+
+    return result;
+  }
 }
 
 module.exports = new AdminDBRepository();

@@ -9,8 +9,21 @@ import {
   Plus,
   Box,
   LayoutDashboard,
-  Clock
+  Clock,
+  User,
+  BarChart as BarChartIcon,
+  FileText
 } from "lucide-react";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Cell
+} from "recharts";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "../../../components/ui/tabs";
 import { Badge } from "../../../components/ui/badge";
 import { Button } from "../../../components/ui/button";
@@ -59,10 +72,13 @@ const AdminEndOfDayReport = () => {
   const [data, setData] = useState([]);
   const [productData, setProductData] = useState([]);
   const [timeData, setTimeData] = useState([]);
+  const [staffData, setStaffData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedRows, setExpandedRows] = useState(new Set([0])); // For Overview
   const [expandedTimeRows, setExpandedTimeRows] = useState(new Set()); // For Time report
-  const isRefreshing = loading && (data.length > 0 || productData.length > 0 || timeData.length > 0);
+  const [expandedStaffRows, setExpandedStaffRows] = useState(new Set()); // For Staff report
+  const [staffViewType, setStaffViewType] = useState("chart"); // 'chart' or 'report'
+  const isRefreshing = loading && (data.length > 0 || productData.length > 0 || timeData.length > 0 || staffData.length > 0);
 
   const fetchReportData = useCallback(async () => {
     if (!dateRange?.from || !dateRange?.to) {
@@ -74,20 +90,23 @@ const AdminEndOfDayReport = () => {
       const start = format(startOfDay(dateRange.from), "yyyy-MM-dd HH:mm:ss");
       const end = format(endOfDay(dateRange.to), "yyyy-MM-dd HH:mm:ss");
 
-      const [orderRes, productRes, timeRes] = await Promise.all([
+      const [orderRes, productRes, timeRes, staffRes] = await Promise.all([
         adminDBService.getDetailedReport(start, end),
         adminDBService.getProductReport(start, end),
-        adminDBService.getTimeReport(start, end)
+        adminDBService.getTimeReport(start, end),
+        adminDBService.getStaffReport(start, end)
       ]);
 
       setData(parseReportRows(orderRes));
       setProductData(parseReportRows(productRes));
       setTimeData(parseReportRows(timeRes));
+      setStaffData(parseReportRows(staffRes));
     } catch (error) {
       console.error("Error fetching report data:", error);
       setData([]);
       setProductData([]);
       setTimeData([]);
+      setStaffData([]);
     } finally {
       setLoading(false);
     }
@@ -181,6 +200,16 @@ const AdminEndOfDayReport = () => {
     }), { orderCount: 0, itemsPrice: 0, discount: 0, revenue: 0, netRevenue: 0 });
   }, [timeData]);
 
+  const staffTotals = useMemo(() => {
+    return staffData.reduce((acc, curr) => ({
+      orderCount: acc.orderCount + toNumber(curr.orderCount),
+      itemsPrice: acc.itemsPrice + toNumber(curr.totalItemsPrice),
+      discount: acc.discount + toNumber(curr.discount),
+      revenue: acc.revenue + toNumber(curr.revenue),
+      netRevenue: acc.netRevenue + toNumber(curr.netRevenue),
+    }), { orderCount: 0, itemsPrice: 0, discount: 0, revenue: 0, netRevenue: 0 });
+  }, [staffData]);
+
   const handlePrint = () => {
     window.print();
   };
@@ -190,6 +219,13 @@ const AdminEndOfDayReport = () => {
     if (next.has(hour)) next.delete(hour);
     else next.add(hour);
     setExpandedTimeRows(next);
+  };
+
+  const toggleStaffRow = (staffId) => {
+    const next = new Set(expandedStaffRows);
+    if (next.has(staffId)) next.delete(staffId);
+    else next.add(staffId);
+    setExpandedStaffRows(next);
   };
 
   if (loading && data.length === 0) {
@@ -293,7 +329,7 @@ const AdminEndOfDayReport = () => {
       {/* Print Header */}
       <div className="hidden print:block text-center mb-8 border-b pb-4">
         <h1 className="text-2xl font-bold uppercase">
-          {activeTab === "overview" ? "Báo cáo tổng kết doanh thu" : activeTab === "products" ? "Báo cáo doanh thu theo hàng hóa" : "Báo cáo doanh thu theo thời gian"}
+          {activeTab === "overview" ? "Báo cáo tổng kết doanh thu" : activeTab === "products" ? "Báo cáo doanh thu theo hàng hóa" : activeTab === "time" ? "Báo cáo doanh thu theo thời gian" : "Báo cáo bán hàng theo nhân viên"}
         </h1>
         <p className="mt-2 text-sm">
           Từ ngày: {dateRange.from ? format(dateRange.from, "dd/MM/yyyy") : ""} - Đến ngày: {dateRange.to ? format(dateRange.to, "dd/MM/yyyy") : ""}
@@ -313,6 +349,10 @@ const AdminEndOfDayReport = () => {
           <TabsTrigger value="time" className="px-6 h-full rounded-xl data-[state=active]:bg-background data-[state=active]:shadow-sm">
             <CalendarIcon className="mr-2 h-4 w-4" />
             Thời gian
+          </TabsTrigger>
+          <TabsTrigger value="staff" className="px-6 h-full rounded-xl data-[state=active]:bg-background data-[state=active]:shadow-sm">
+            <User className="mr-2 h-4 w-4" />
+            Nhân viên
           </TabsTrigger>
         </TabsList>
 
@@ -559,6 +599,205 @@ const AdminEndOfDayReport = () => {
                   )}
                 </tbody>
               </table>
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="staff" className="space-y-6">
+          <div className="flex flex-col lg:flex-row gap-6">
+            {/* Sidebar Settings - Hidden on print */}
+            <div className="w-full lg:w-64 space-y-6 print:hidden">
+              <div className="rounded-2xl border bg-card p-5 shadow-sm space-y-6 sticky top-6">
+                <div className="space-y-3">
+                  <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                    <LayoutDashboard className="h-4 w-4 text-sky-500" />
+                    Kiểu hiển thị
+                  </h3>
+                  <div className="grid gap-2">
+                    <button
+                      onClick={() => setStaffViewType("chart")}
+                      className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+                        staffViewType === "chart"
+                          ? "bg-sky-50 text-sky-700 border border-sky-100 shadow-sm dark:bg-sky-900/20 dark:text-sky-300 dark:border-sky-800"
+                          : "text-muted-foreground hover:bg-muted"
+                      }`}
+                    >
+                      <BarChartIcon className="h-4 w-4" />
+                      Biểu đồ
+                    </button>
+                    <button
+                      onClick={() => setStaffViewType("report")}
+                      className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+                        staffViewType === "report"
+                          ? "bg-sky-50 text-sky-700 border border-sky-100 shadow-sm dark:bg-sky-900/20 dark:text-sky-300 dark:border-sky-800"
+                          : "text-muted-foreground hover:bg-muted"
+                      }`}
+                    >
+                      <FileText className="h-4 w-4" />
+                      Báo cáo
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Main Content */}
+            <div className="flex-1 min-w-0">
+              {staffViewType === "chart" && !loading ? (
+                <div className="report-card rounded-2xl border bg-card p-6 shadow-sm min-h-[500px]">
+                  <h3 className="text-lg font-bold mb-8 text-foreground">Top 10 người bán nhiều nhất (đã trừ trả hàng)</h3>
+                  <div className="h-[450px] w-full">
+                    {staffData.length > 0 ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart
+                          data={staffData.slice(0, 10)}
+                          layout="vertical"
+                          margin={{ top: 5, right: 30, left: 40, bottom: 5 }}
+                          barCategoryGap="30%"
+                        >
+                          <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
+                          <XAxis type="number" hide />
+                          <YAxis 
+                            dataKey="staffName" 
+                            type="category" 
+                            tick={{ fontSize: 12, fontWeight: 500, fill: "currentColor" }}
+                            width={120}
+                            axisLine={false}
+                            tickLine={false}
+                          />
+                          <Tooltip 
+                            cursor={{ fill: 'rgba(0, 0, 0, 0.04)', radius: 4 }}
+                            content={({ active, payload }) => {
+                              if (active && payload && payload.length) {
+                                return (
+                                  <div className="bg-background border p-3 rounded-xl shadow-xl border-border">
+                                    <p className="font-bold text-sm mb-1">{payload[0].payload.staffName}</p>
+                                    <div className="space-y-1 text-xs">
+                                      <div className="flex justify-between gap-4">
+                                        <span className="text-muted-foreground">Doanh thu:</span>
+                                        <span className="font-bold text-green-600">{formatMoney(payload[0].value)}</span>
+                                      </div>
+                                      <div className="flex justify-between gap-4">
+                                        <span className="text-muted-foreground">Số đơn hàng:</span>
+                                        <span className="font-bold text-sky-600">{payload[0].payload.orderCount}</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              }
+                              return null;
+                            }}
+                          />
+                          <Bar dataKey="revenue" radius={[0, 4, 4, 0]} barSize={28}>
+                            {staffData.slice(0, 10).map((entry, index) => (
+                              <Cell 
+                                key={`cell-${index}`} 
+                                fill={index === 0 ? "#0369a1" : index === 1 ? "#0ea5e9" : "#38bdf8"} 
+                              />
+                            ))}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div className="h-full flex items-center justify-center text-muted-foreground italic">
+                        Không có dữ liệu để hiển thị biểu đồ
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="report-card relative overflow-hidden rounded-2xl border bg-card text-card-foreground shadow-sm transition-all duration-300 print:border-none print:shadow-none">
+                  {isRefreshing && (
+                    <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-center justify-center bg-card/70 dark:bg-slate-900/70 py-3 backdrop-blur-sm">
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin text-primary" />
+                      <span className="text-sm font-medium text-muted-foreground">Đang cập nhật dữ liệu</span>
+                    </div>
+                  )}
+                  <div className={`overflow-x-auto transition-opacity duration-300 ${isRefreshing ? "opacity-70" : "opacity-100"}`}>
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b font-medium text-foreground bg-emerald-50/50 dark:bg-emerald-900/10">
+                          <th className="px-4 py-3 text-left">Nhân viên</th>
+                          <th className="px-4 py-3 text-right">SL đơn bán</th>
+                          <th className="px-4 py-3 text-right">Tổng tiền hàng</th>
+                          <th className="px-4 py-3 text-right">Giảm giá HĐ</th>
+                          <th className="px-4 py-3 text-right">Doanh thu</th>
+                          <th className="px-4 py-3 text-right">Doanh thu thuần</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr className="bg-yellow-50/80 dark:bg-yellow-900/10 font-bold border-b">
+                          <td className="px-4 py-3">TỔNG CỘNG</td>
+                          <td className="px-4 py-3 text-right">{staffTotals.orderCount}</td>
+                          <td className="px-4 py-3 text-right">{formatMoney(staffTotals.itemsPrice)}</td>
+                          <td className="px-4 py-3 text-right text-red-600">-{formatMoney(staffTotals.discount)}</td>
+                          <td className="px-4 py-3 text-right">{formatMoney(staffTotals.revenue)}</td>
+                          <td className="px-4 py-3 text-right text-green-700">{formatMoney(staffTotals.netRevenue)}</td>
+                        </tr>
+
+                        {staffData.map((staff) => (
+                          <Fragment key={staff.staffId || 'unassigned'}>
+                            <tr
+                              className="border-b cursor-pointer hover:bg-muted/30 transition-colors"
+                              onClick={() => toggleStaffRow(staff.staffId)}
+                            >
+                              <td className="px-4 py-3 flex items-center gap-2 font-medium">
+                                {expandedStaffRows.has(staff.staffId) ? <Minus className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                                {staff.staffName || 'N/A'}
+                              </td>
+                              <td className="px-4 py-3 text-right">{staff.orderCount}</td>
+                              <td className="px-4 py-3 text-right">{formatMoney(staff.totalItemsPrice)}</td>
+                              <td className="px-4 py-3 text-right text-red-500">-{formatMoney(staff.discount)}</td>
+                              <td className="px-4 py-3 text-right font-bold">{formatMoney(staff.revenue)}</td>
+                              <td className="px-4 py-3 text-right font-bold text-green-700">{formatMoney(staff.netRevenue)}</td>
+                            </tr>
+                            {expandedStaffRows.has(staff.staffId) && (
+                              <tr>
+                                <td colSpan={6} className="p-0">
+                                  <div className="p-4 bg-muted/20">
+                                    <table className="w-full text-xs rounded-lg overflow-hidden border bg-background">
+                                      <thead>
+                                        <tr className="bg-sky-100/50 dark:bg-sky-900/20 text-sky-800 dark:text-sky-200 font-semibold border-b">
+                                          <th className="px-4 py-2 text-left">Mã giao dịch</th>
+                                          <th className="px-4 py-2 text-left">Thời gian</th>
+                                          <th className="px-4 py-2 text-left">Khách hàng</th>
+                                          <th className="px-4 py-2 text-right">Tổng tiền hàng</th>
+                                          <th className="px-4 py-2 text-right">Giảm giá</th>
+                                          <th className="px-4 py-2 text-right">Doanh thu</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        {staff.orders?.map((ord) => (
+                                          <tr key={ord.orderId} className="border-b hover:bg-muted/10">
+                                            <td className="px-4 py-2 font-medium">#{ord.orderId}</td>
+                                            <td className="px-4 py-2">{ord.time ? format(new Date(ord.time), "dd/MM/yyyy HH:mm") : ""}</td>
+                                            <td className="px-4 py-2">{ord.customerName}</td>
+                                            <td className="px-4 py-2 text-right">{formatMoney(ord.totalItemsPrice)}</td>
+                                            <td className="px-4 py-2 text-right text-red-500">-{formatMoney(ord.discount)}</td>
+                                            <td className="px-4 py-2 text-right font-bold text-green-600">{formatMoney(ord.revenue)}</td>
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                </td>
+                              </tr>
+                            )}
+                          </Fragment>
+                        ))}
+
+                        {staffData.length === 0 && (
+                          <tr>
+                            <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground italic">
+                              Không tìm thấy dữ liệu trong khoảng thời gian này
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </TabsContent>

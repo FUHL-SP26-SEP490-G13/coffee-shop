@@ -81,6 +81,12 @@ const adminDBService = {
     });
     return response.data;
   },
+  getStaffReport: async (startDate, endDate) => {
+    const response = await axiosClient.get(`/dashboard/staff-report`, {
+      params: { startDate, endDate },
+    });
+    return response.data;
+  },
 };
 
 export default adminDBService;
