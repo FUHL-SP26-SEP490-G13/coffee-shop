@@ -131,17 +131,7 @@ const checkoutOrderSchema = Joi.object({
     }),
   }),
 
-  province_id: Joi.number().integer().positive().allow(null).optional().messages({
-    "number.base": "Tỉnh/Thành không hợp lệ",
-    "number.integer": "Tỉnh/Thành không hợp lệ",
-    "number.positive": "Tỉnh/Thành không hợp lệ",
-  }),
 
-  ward_id: Joi.number().integer().positive().allow(null).optional().messages({
-    "number.base": "Xã/Phường không hợp lệ",
-    "number.integer": "Xã/Phường không hợp lệ",
-    "number.positive": "Xã/Phường không hợp lệ",
-  }),
 
   note: Joi.string().trim().allow("").max(500).messages({
     "string.max": "Ghi chú không được vượt quá 500 ký tự",
@@ -158,24 +148,6 @@ const checkoutOrderSchema = Joi.object({
   }),
 
   items: itemsSchema,
-}).custom((value, helpers) => {
-  if (value.order_type === 'delivery') {
-    if (!value.province_id) {
-      return helpers.error('any.custom', {
-        message: 'Vui lòng chọn tỉnh/thành cho đơn giao hàng',
-      });
-    }
-
-    if (!value.ward_id) {
-      return helpers.error('any.custom', {
-        message: 'Vui lòng chọn xã/phường cho đơn giao hàng',
-      });
-    }
-  }
-
-  return value;
-}, 'delivery area validation').messages({
-  'any.custom': '{{#message}}',
 });
 
 const validateDiscountSchema = Joi.object({

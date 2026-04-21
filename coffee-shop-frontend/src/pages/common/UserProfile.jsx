@@ -18,7 +18,7 @@ import {
 import { toast } from 'sonner';
 import authenticationService from '../../services/authenticationService';
 import userService from '../../services/userService';
-import deliveryAreaService from '../../services/deliveryAreaService';
+
 import receiptSettingService from '../../services/receiptSettingService';
 import { APP_ROUTES, STORAGE_KEYS } from '../../constants';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
@@ -49,15 +49,11 @@ export function UserProfile() {
   const [isAddressSaving, setIsAddressSaving] = useState(false);
   const [addresses, setAddresses] = useState([]);
   const [addressDialogOpen, setAddressDialogOpen] = useState(false);
-  const [provinces, setProvinces] = useState([]);
-  const [wards, setWards] = useState([]);
-  const [isAreaLoading, setIsAreaLoading] = useState(false);
+
   const [addressForm, setAddressForm] = useState({
     receiver_name: '',
     receiver_phone: '',
     address: '',
-    province_id: '',
-    ward_id: '',
     address_type: 'home',
   });
   const [editingAddressId, setEditingAddressId] = useState(null);
@@ -277,90 +273,15 @@ export function UserProfile() {
     loadAddresses();
   }, [loadAddresses]);
 
-  useEffect(() => {
-    let mounted = true;
 
-    const loadProvinces = async () => {
-      setIsAreaLoading(true);
-      try {
-        const response = await deliveryAreaService.getProvinces();
-        const list = Array.isArray(response?.data?.data)
-          ? response.data.data
-          : Array.isArray(response?.data)
-          ? response.data
-          : [];
 
-        if (mounted) {
-          setProvinces(list);
-        }
-      } catch (error) {
-        toast.error('Không thể tải danh sách tỉnh/thành');
-      } finally {
-        if (mounted) {
-          setIsAreaLoading(false);
-        }
-      }
-    };
 
-    loadProvinces();
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
-  useEffect(() => {
-    let mounted = true;
-    const provinceId = Number(addressForm.province_id || 0);
-
-    if (!provinceId) {
-      setWards([]);
-      return;
-    }
-
-    const loadWards = async () => {
-      try {
-        const response = await deliveryAreaService.getWardsByProvince(provinceId);
-        const list = Array.isArray(response?.data?.data)
-          ? response.data.data
-          : Array.isArray(response?.data)
-          ? response.data
-          : [];
-
-        if (mounted) {
-          setWards(list);
-          const hasCurrentWard = list.some(
-            (item) => Number(item.id) === Number(addressForm.ward_id || 0)
-          );
-
-          if (addressForm.ward_id && !hasCurrentWard) {
-            setAddressForm((prev) => ({
-              ...prev,
-              ward_id: '',
-            }));
-          }
-        }
-      } catch (error) {
-        if (mounted) {
-          setWards([]);
-        }
-      }
-    };
-
-    loadWards();
-
-    return () => {
-      mounted = false;
-    };
-  }, [addressForm.province_id]);
 
   const resetAddressForm = () => {
     setAddressForm({
       receiver_name: '',
       receiver_phone: '',
       address: '',
-      province_id: '',
-      ward_id: '',
       address_type: 'home',
     });
     setAddressFieldErrors({});
@@ -381,13 +302,7 @@ export function UserProfile() {
       errors.address = 'Vui lòng nhập địa chỉ nhận hàng';
     }
 
-    if (!Number(addressForm.province_id || 0)) {
-      errors.province_id = 'Vui lòng chọn tỉnh/thành';
-    }
 
-    if (!Number(addressForm.ward_id || 0)) {
-      errors.ward_id = 'Vui lòng chọn xã/phường';
-    }
 
     if (receiverPhoneError) {
       errors.receiver_phone = receiverPhoneError;
@@ -396,7 +311,7 @@ export function UserProfile() {
     setAddressFieldErrors(errors);
 
     if (Object.keys(errors).length > 0) {
-      toast.error(errors.address || errors.receiver_phone || errors.province_id || errors.ward_id);
+      toast.error(errors.address || errors.receiver_phone);
       return false;
     }
 
@@ -412,8 +327,6 @@ export function UserProfile() {
       receiver_name: addressForm.receiver_name.trim() || null,
       receiver_phone: normalizedReceiverPhone || null,
       address: normalizedAddress,
-      province_id: Number(addressForm.province_id),
-      ward_id: Number(addressForm.ward_id),
       address_type: addressForm.address_type,
     };
 
@@ -454,8 +367,6 @@ export function UserProfile() {
       receiver_name: item.receiver_name || '',
       receiver_phone: item.receiver_phone || '',
       address: item.address || '',
-      province_id: item.province_id ? String(item.province_id) : '',
-      ward_id: item.ward_id ? String(item.ward_id) : '',
       address_type: item.address_type || 'home',
     });
     setAddressDialogOpen(true);
@@ -748,14 +659,7 @@ export function UserProfile() {
                                       <p className="text-sm font-medium text-gray-700 dark:text-gray-300 line-clamp-2 leading-relaxed">
                                         {item.address}
                                       </p>
-                                      {(item.ward_name || item.province_name) && (
-                                        <p className="text-[11px] font-medium text-amber-600 dark:text-amber-400 flex items-center gap-1 opacity-90">
-                                          <MapPin className="w-3 h-3" />
-                                          {[item.ward_name, item.province_name]
-                                            .filter(Boolean)
-                                            .join(', ')}
-                                        </p>
-                                      )}
+
                                     </div>
 
                                     <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-gray-100 dark:border-gray-800/60 mt-1 opacity-80 group-hover:opacity-100 transition-opacity">
@@ -1019,79 +923,7 @@ export function UserProfile() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-gray-500 ml-1">Tỉnh/Thành</Label>
-                <Select
-                  value={addressForm.province_id ? String(addressForm.province_id) : ''}
-                  onValueChange={(value) => {
-                    setAddressForm((prev) => ({
-                      ...prev,
-                      province_id: value,
-                      ward_id: '',
-                    }));
-                    setAddressFieldErrors((prev) => ({
-                      ...prev,
-                      province_id: value ? '' : 'Vui lòng chọn tỉnh/thành',
-                      ward_id: 'Vui lòng chọn xã/phường',
-                    }));
-                  }}
-                  disabled={isAreaLoading}
-                >
-                  <SelectTrigger className="h-11 rounded-xl bg-gray-50/80 dark:bg-black/20 focus-visible:ring-amber-500/50 focus-visible:border-amber-500">
-                    <SelectValue placeholder={isAreaLoading ? 'Đang tải tỉnh/thành...' : 'Chọn tỉnh/thành'} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {provinces.map((province) => (
-                      <SelectItem key={province.id} value={String(province.id)}>
-                        {province.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {addressFieldErrors.province_id && (
-                  <p className="text-xs text-destructive ml-1">{addressFieldErrors.province_id}</p>
-                )}
-              </div>
 
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-gray-500 ml-1">Xã/Phường</Label>
-                <Select
-                  value={addressForm.ward_id ? String(addressForm.ward_id) : ''}
-                  onValueChange={(value) => {
-                    setAddressForm((prev) => ({
-                      ...prev,
-                      ward_id: value,
-                    }));
-                    setAddressFieldErrors((prev) => ({
-                      ...prev,
-                      ward_id: value ? '' : 'Vui lòng chọn xã/phường',
-                    }));
-                  }}
-                  disabled={!addressForm.province_id}
-                >
-                  <SelectTrigger className="h-11 rounded-xl bg-gray-50/80 dark:bg-black/20 focus-visible:ring-amber-500/50 focus-visible:border-amber-500">
-                    <SelectValue
-                      placeholder={
-                        addressForm.province_id
-                          ? 'Chọn xã/phường'
-                          : 'Chọn tỉnh/thành trước'
-                      }
-                    />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {wards.map((ward) => (
-                      <SelectItem key={ward.id} value={String(ward.id)}>
-                        {ward.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {addressFieldErrors.ward_id && (
-                  <p className="text-xs text-destructive ml-1">{addressFieldErrors.ward_id}</p>
-                )}
-              </div>
-            </div>
 
             <div className="space-y-2">
               <Label htmlFor="address_type" className="text-xs font-semibold text-gray-500 ml-1">Lưu địa chỉ là</Label>

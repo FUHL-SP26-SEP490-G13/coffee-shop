@@ -50,8 +50,6 @@ export default function PlaceOrderButton({
         receiver_phone: form.receiver_phone.trim(),
         receiver_email: form.receiver_email.trim(),
         address: form.address.trim(),
-        province_id: form.province_id || null,
-        ward_id: form.ward_id || null,
         note: form.note.trim(),
         discount_code: (form.discount_code || "").trim(),
         used_points: Math.max(0, Number(form.used_points) || 0),

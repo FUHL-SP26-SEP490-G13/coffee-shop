@@ -21,7 +21,7 @@ import {
 import { useCartStore } from "@/store/useCartStore";
 import authenticationService from "@/services/authenticationService";
 import userService from "@/services/userService";
-import deliveryAreaService from "@/services/deliveryAreaService";
+
 import PlaceOrderButton from "@/components/order/PlaceOrderButton";
 import ReputationScoreDialog from "@/components/order/ReputationScoreDialog";
 import orderService from "@/services/orderOnlineService";
@@ -58,9 +58,7 @@ export default function CheckoutPage() {
   const [addresses, setAddresses] = useState([]);
   const [selectedAddressId, setSelectedAddressId] = useState(null);
   const [isAddressLoading, setIsAddressLoading] = useState(false);
-  const [isAreaLoading, setIsAreaLoading] = useState(false);
-  const [provinces, setProvinces] = useState([]);
-  const [wards, setWards] = useState([]);
+
   const [isAddressDialogOpen, setIsAddressDialogOpen] = useState(false);
   const [isReputationDialogOpen, setIsReputationDialogOpen] = useState(false);
   const [reputationScore, setReputationScore] = useState(50);
@@ -80,8 +78,6 @@ export default function CheckoutPage() {
     receiver_phone: "",
     receiver_email: "",
     address: "",
-    province_id: null,
-    ward_id: null,
     note: "",
     discount_code: "",
     used_points: 0,
@@ -150,8 +146,6 @@ export default function CheckoutPage() {
           receiver_phone: defaultAddress?.receiver_phone || user?.phone || "",
           receiver_email: user?.email || "",
           address: defaultAddress?.address || user?.address || "",
-          province_id: defaultAddress?.province_id || null,
-          ward_id: defaultAddress?.ward_id || null,
         }));
       } catch (error) {
         console.error("Không lấy được thông tin profile:", error);
@@ -164,81 +158,9 @@ export default function CheckoutPage() {
     loadCheckoutData();
   }, [token]);
 
-  useEffect(() => {
-    let mounted = true;
 
-    const loadProvinces = async () => {
-      setIsAreaLoading(true);
-      try {
-        const res = await deliveryAreaService.getProvinces();
-        const list = Array.isArray(res?.data?.data)
-          ? res.data.data
-          : Array.isArray(res?.data)
-          ? res.data
-          : [];
 
-        if (mounted) {
-          setProvinces(list);
-        }
-      } catch (error) {
-        console.error("Không tải được tỉnh/thành:", error);
-      } finally {
-        if (mounted) {
-          setIsAreaLoading(false);
-        }
-      }
-    };
 
-    loadProvinces();
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
-  useEffect(() => {
-    let mounted = true;
-    const provinceId = Number(form.province_id || 0);
-
-    if (!provinceId) {
-      setWards([]);
-      return;
-    }
-
-    const loadWards = async () => {
-      try {
-        const res = await deliveryAreaService.getWardsByProvince(provinceId);
-        const list = Array.isArray(res?.data?.data)
-          ? res.data.data
-          : Array.isArray(res?.data)
-          ? res.data
-          : [];
-
-        if (mounted) {
-          setWards(list);
-
-          const hasCurrentWard = list.some(
-            (item) => Number(item.id) === Number(form.ward_id || 0)
-          );
-
-          if (form.ward_id && !hasCurrentWard) {
-            setForm((prev) => ({ ...prev, ward_id: null }));
-          }
-        }
-      } catch (error) {
-        console.error("Không tải được xã/phường:", error);
-        if (mounted) {
-          setWards([]);
-        }
-      }
-    };
-
-    loadWards();
-
-    return () => {
-      mounted = false;
-    };
-  }, [form.province_id]);
 
   const normalizePhoneNumber = (phone) => {
     const digits = String(phone || "").replace(/\D/g, "");
@@ -357,8 +279,6 @@ export default function CheckoutPage() {
       receiver_name: item.receiver_name || prev.receiver_name,
       receiver_phone: item.receiver_phone || prev.receiver_phone,
       address: item.address || "",
-      province_id: item.province_id || null,
-      ward_id: item.ward_id || null,
     }));
     setErrors((prev) => ({
       ...prev,
@@ -371,8 +291,6 @@ export default function CheckoutPage() {
         item.receiver_phone || form.receiver_phone
       ),
       address: validateOrderField("address", item.address || ""),
-      province_id: item.province_id ? "" : "Vui lòng chọn tỉnh/thành",
-      ward_id: item.ward_id ? "" : "Vui lòng chọn xã/phường",
     }));
     setIsAddressDialogOpen(false);
   };
@@ -679,8 +597,7 @@ export default function CheckoutPage() {
                     <div className="flex items-center gap-2 mb-2">
                       <MapPin className="w-4 h-4 text-amber-600" />
                       <label className="text-sm font-medium block">
-                        Địa chỉ đã lưu (Sử dụng theo đơn vị hành chính 2 cấp Xã
-                        phường, tỉnh thành từ 01/07/2025)
+                        Địa chỉ đã lưu
                       </label>
                     </div>
 
@@ -722,105 +639,10 @@ export default function CheckoutPage() {
                         <p className="text-sm text-gray-800 dark:text-gray-200 mt-1">
                           {selectedAddress.address}
                         </p>
-                        {(selectedAddress.ward_name ||
-                          selectedAddress.province_name) && (
-                          <p className="text-xs text-amber-700 dark:text-amber-400 mt-1">
-                            {[selectedAddress.ward_name, selectedAddress.province_name]
-                              .filter(Boolean)
-                              .join(", ")}
-                          </p>
-                        )}
                       </div>
                     )}
                   </div>
                 )}
-
-                <div>
-                  <label className="text-sm font-medium mb-2 block">
-                    Tỉnh/Thành *
-                  </label>
-                  <Select
-                    value={form.province_id ? String(form.province_id) : ""}
-                    onValueChange={(value) => {
-                      const provinceId = Number(value);
-                      setSelectedAddressId(null);
-                      setForm((prev) => ({
-                        ...prev,
-                        province_id: provinceId,
-                        ward_id: null,
-                      }));
-                      setErrors((prev) => ({
-                        ...prev,
-                        province_id: provinceId
-                          ? ""
-                          : "Vui lòng chọn tỉnh/thành",
-                        ward_id: "Vui lòng chọn xã/phường",
-                      }));
-                    }}
-                    disabled={isAreaLoading}
-                  >
-                    <SelectTrigger>
-                      <SelectValue
-                        placeholder={
-                          isAreaLoading
-                            ? "Đang tải tỉnh/thành..."
-                            : "Chọn tỉnh/thành"
-                        }
-                      />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {provinces.map((province) => (
-                        <SelectItem key={province.id} value={String(province.id)}>
-                          {province.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {errors.province_id && (
-                    <p className="text-sm text-red-500 mt-1">
-                      {errors.province_id}
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="text-sm font-medium mb-2 block">
-                    Xã/Phường *
-                  </label>
-                  <Select
-                    value={form.ward_id ? String(form.ward_id) : ""}
-                    onValueChange={(value) => {
-                      const wardId = Number(value);
-                      setSelectedAddressId(null);
-                      setForm((prev) => ({ ...prev, ward_id: wardId }));
-                      setErrors((prev) => ({
-                        ...prev,
-                        ward_id: wardId ? "" : "Vui lòng chọn xã/phường",
-                      }));
-                    }}
-                    disabled={!form.province_id}
-                  >
-                    <SelectTrigger>
-                      <SelectValue
-                        placeholder={
-                          form.province_id
-                            ? "Chọn xã/phường"
-                            : "Chọn tỉnh/thành trước"
-                        }
-                      />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {wards.map((ward) => (
-                        <SelectItem key={ward.id} value={String(ward.id)}>
-                          {ward.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {errors.ward_id && (
-                    <p className="text-sm text-red-500 mt-1">{errors.ward_id}</p>
-                  )}
-                </div>
 
                 <div>
                   <label className="text-sm font-medium mb-2 block">
