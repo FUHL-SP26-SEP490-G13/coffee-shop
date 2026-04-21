@@ -256,12 +256,13 @@ class OrderOnlineService {
       receiver_phone,
       receiver_email,
       address,
-      province_id,
-      ward_id,
-      note,
+      order_note,
+      delivery_note,
       discount_code,
       used_points,
       items,
+      latitude,
+      longitude,
     } = payload;
 
     if (!Array.isArray(items) || items.length === 0) {
@@ -484,6 +485,7 @@ class OrderOnlineService {
           delivery_fee: shippingFee,
           used_points: normalizedUsedPoints,
           cash_session_id: activeSession ? activeSession.id : null,
+          note: order_note?.trim() || null,
         });
 
         if (order_type === "dine-in") {
@@ -526,8 +528,12 @@ class OrderOnlineService {
         }
       }
 
-      if (order_type !== "dine-in" || (note && note.trim())) {
-        const deliveryAddressWithArea = address?.trim() || "";
+      if (order_type !== "dine-in" || (order_note && order_note.trim())) {
+        const deliveryAddressWithArea = this.buildDeliveryAddressString(
+          address,
+          null,
+          null
+        );
 
         const [existingInfo] = await connection.query(
           "SELECT id FROM order_delivery_info WHERE order_id = ?",
@@ -536,8 +542,8 @@ class OrderOnlineService {
 
         if (existingInfo.length > 0) {
           await connection.query(
-            "UPDATE order_delivery_info SET address = ?, note = ? WHERE order_id = ?",
-            [deliveryAddressWithArea, note?.trim() || null, orderId]
+            "UPDATE order_delivery_info SET address = ?, note = ?, latitude = ?, longitude = ? WHERE order_id = ?",
+            [deliveryAddressWithArea, delivery_note?.trim() || null, latitude ?? null, longitude ?? null, orderId]
           );
         } else {
           await OrderRepository.createOrderDeliveryInfo(connection, {
@@ -548,7 +554,9 @@ class OrderOnlineService {
               : "",
             receiver_email: receiver_email?.trim() || null,
             address: deliveryAddressWithArea,
-            note: note?.trim() || null,
+            note: delivery_note?.trim() || null,
+            latitude: latitude ?? null,
+            longitude: longitude ?? null,
           });
         }
       }

@@ -91,9 +91,11 @@ class OrderRepository {
         delivery_fee,
         used_points,
         session_id,
-        cash_session_id
+        cash_session_id,
+        note,
+        staff_id
       )
-      VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `,
       [
         data.user_id,
@@ -109,6 +111,8 @@ class OrderRepository {
         safeUsedPoints,
         data.session_id || null,
         cashSessionId,
+        data.note || null,
+        data.staff_id || null,
       ]
     );
 
@@ -156,9 +160,11 @@ class OrderRepository {
         receiver_phone,
         receiver_email,
         address,
-        note
+        note,
+        latitude,
+        longitude
       )
-      VALUES (?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `,
       [
         data.order_id,
@@ -167,6 +173,8 @@ class OrderRepository {
         data.receiver_email,
         data.address,
         data.note,
+        data.latitude || null,
+        data.longitude || null,
       ]
     );
   }
