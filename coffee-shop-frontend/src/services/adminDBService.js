@@ -69,6 +69,24 @@ const adminDBService = {
     });
     return res.data;
   },
+  getProductReport: async (startDate, endDate) => {
+    const response = await axiosClient.get(`/dashboard/product-report`, {
+      params: { startDate, endDate },
+    });
+    return response.data;
+  },
+  getTimeReport: async (startDate, endDate) => {
+    const response = await axiosClient.get(`/dashboard/time-report`, {
+      params: { startDate, endDate },
+    });
+    return response.data;
+  },
+  getStaffReport: async (startDate, endDate) => {
+    const response = await axiosClient.get(`/dashboard/staff-report`, {
+      params: { startDate, endDate },
+    });
+    return response.data;
+  },
 };
 
 export default adminDBService;

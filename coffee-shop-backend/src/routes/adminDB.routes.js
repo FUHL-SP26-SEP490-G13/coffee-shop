@@ -77,4 +77,25 @@ router.get(
   AdminDBController.getShiftReport
 );
 
+router.get(
+  "/product-report",
+  authenticate,
+  authorize([ROLES_STRING.MANAGER]),
+  AdminDBController.getProductReport
+);
+
+router.get(
+  "/time-report",
+  authenticate,
+  authorize([ROLES_STRING.MANAGER]),
+  AdminDBController.getTimeReport
+);
+
+router.get(
+  "/staff-report",
+  authenticate,
+  authorize([ROLES_STRING.MANAGER]),
+  AdminDBController.getStaffReport
+);
+
 module.exports = router;
