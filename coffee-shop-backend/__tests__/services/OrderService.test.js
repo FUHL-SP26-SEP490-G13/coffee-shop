@@ -10,16 +10,39 @@ const OrderService = require("../../src/services/OrderService");
 const OrderRepository = require("../../src/repositories/OrderRepository");
 const LoyaltyService = require("../../src/services/LoyaltyService");
 
-const logCase = ({ tcid, crud, scenario, input, expected }) => {
-  console.log("\n" + "=".repeat(70));
-  console.log(`OrderService - ${scenario} - ${tcid} - CRUD: ${crud}`);
-  console.log("=".repeat(70));
-  console.log("\n📝 INPUT:", JSON.stringify(input, null, 2));
-  console.log("✅ OUTPUT EXPECT:", JSON.stringify(expected, null, 2));
+const { logTestCase } = require('../utils/logger');
+
+let pendingLogCase = null;
+
+const logCase = (payload = {}) => {
+  pendingLogCase = payload;
 };
 
-const logReality = (value) => {
-  console.log("🎯 OUTPUT REALITY:", JSON.stringify(value, null, 2));
+const logReality = (actual) => {
+  const payload = pendingLogCase || {};
+  const {
+    title,
+    method,
+    tcid,
+    crud,
+    scenario,
+    input,
+    expected,
+    outputExpect,
+    reality,
+  } = payload;
+
+  const nameParts = [title, method, scenario, tcid].filter(Boolean);
+  if (crud) nameParts.push(`CRUD: ${crud}`);
+
+  logTestCase({
+    name: nameParts.join(' - ') || 'Test case',
+    input,
+    expected: expected !== undefined ? expected : outputExpect,
+    actual: actual !== undefined ? actual : reality,
+  });
+
+  pendingLogCase = null;
 };
 
 describe("OrderService", () => {

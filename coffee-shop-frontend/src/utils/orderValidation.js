@@ -89,6 +89,8 @@ export const validateOrderForm = (form) => {
     if (addressError) errors.address = addressError;
   }
 
+
+
   const noteError = validateOrderField("note", form.note);
   if (noteError) errors.note = noteError;
 

@@ -9,9 +9,7 @@ class AddressRepository extends BaseRepository {
   async findByUserId(userId) {
     const query = `
       SELECT
-        a.*, 
-        NULL AS province_name,
-        NULL AS ward_name
+        a.*
       FROM ${this.tableName} a
       WHERE a.user_id = ? AND a.is_deleted = 0
       ORDER BY a.is_default DESC, a.id DESC
@@ -24,9 +22,7 @@ class AddressRepository extends BaseRepository {
   async findByIdAndUser(addressId, userId) {
     const query = `
       SELECT
-        a.*, 
-        NULL AS province_name,
-        NULL AS ward_name
+        a.*
       FROM ${this.tableName} a
       WHERE a.id = ? AND a.user_id = ? AND a.is_deleted = 0
       LIMIT 1

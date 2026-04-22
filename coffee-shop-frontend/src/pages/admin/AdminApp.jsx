@@ -29,6 +29,7 @@ import {
   FileText,
   UserCheck,
   Settings2,
+  MapPin,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import authenticationService from "../../services/authenticationService";
@@ -104,6 +105,7 @@ export default function AdminApp() {
       "/admin/schedule/templates": "Quản lý ca làm",
       "/admin/schedule/list": "Lịch làm việc",
       "/admin/attendance": "Điểm danh nhân viên",
+
       "/admin/receipt-settings": "Cấu hình hệ thống",
       "/admin/profile": "Thông tin cá nhân",
     };
@@ -775,6 +777,7 @@ export default function AdminApp() {
                     Điểm danh nhân viên
                   </span>
                 </NavLink>
+
                 <NavLink
                   to="/admin/receipt-settings"
                   onClick={() => setMobileMenuOpen(false)}

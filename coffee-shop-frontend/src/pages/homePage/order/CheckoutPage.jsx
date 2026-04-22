@@ -11,9 +11,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useCartStore } from "@/store/useCartStore";
 import authenticationService from "@/services/authenticationService";
 import userService from "@/services/userService";
+
 import PlaceOrderButton from "@/components/order/PlaceOrderButton";
 import ReputationScoreDialog from "@/components/order/ReputationScoreDialog";
 import VietmapAddressAutocomplete from "@/components/order/VietmapAddressAutocomplete";
@@ -52,6 +60,7 @@ export default function CheckoutPage() {
   const [addresses, setAddresses] = useState([]);
   const [selectedAddressId, setSelectedAddressId] = useState(null);
   const [isAddressLoading, setIsAddressLoading] = useState(false);
+
   const [isAddressDialogOpen, setIsAddressDialogOpen] = useState(false);
   const [isReputationDialogOpen, setIsReputationDialogOpen] = useState(false);
   const [reputationScore, setReputationScore] = useState(50);
@@ -153,6 +162,10 @@ export default function CheckoutPage() {
     setIsAddressLoading(true);
     loadCheckoutData();
   }, [token]);
+
+
+
+
 
   const normalizePhoneNumber = (phone) => {
     const digits = String(phone || "").replace(/\D/g, "");
@@ -606,8 +619,7 @@ export default function CheckoutPage() {
                     <div className="flex items-center gap-2 mb-2">
                       <MapPin className="w-4 h-4 text-amber-600" />
                       <label className="text-sm font-medium block">
-                        Địa chỉ đã lưu (Sử dụng theo đơn vị hành chính 2 cấp Xã
-                        phường, tỉnh thành từ 01/07/2025)
+                        Địa chỉ đã lưu
                       </label>
                     </div>
 
@@ -1152,6 +1164,13 @@ export default function CheckoutPage() {
                     <p className="text-sm text-gray-800 dark:text-gray-200 mt-1">
                       {item.address}
                     </p>
+                    {(item.ward_name || item.province_name) && (
+                      <p className="text-xs text-amber-700 dark:text-amber-400 mt-1">
+                        {[item.ward_name, item.province_name]
+                          .filter(Boolean)
+                          .join(", ")}
+                      </p>
+                    )}
                   </button>
                 );
               })

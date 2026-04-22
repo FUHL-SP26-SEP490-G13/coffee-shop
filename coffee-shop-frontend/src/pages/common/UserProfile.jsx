@@ -7,10 +7,18 @@ import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../../components/ui/dialog';
 import { Avatar, AvatarFallback } from '../../components/ui/avatar';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../components/ui/select';
 
 import { toast } from 'sonner';
 import authenticationService from '../../services/authenticationService';
 import userService from '../../services/userService';
+
 import receiptSettingService from '../../services/receiptSettingService';
 import { APP_ROUTES, STORAGE_KEYS } from '../../constants';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
@@ -41,6 +49,7 @@ export function UserProfile() {
   const [isAddressSaving, setIsAddressSaving] = useState(false);
   const [addresses, setAddresses] = useState([]);
   const [addressDialogOpen, setAddressDialogOpen] = useState(false);
+
   const [addressForm, setAddressForm] = useState({
     receiver_name: '',
     receiver_phone: '',
@@ -264,6 +273,10 @@ export function UserProfile() {
     loadAddresses();
   }, [loadAddresses]);
 
+
+
+
+
   const resetAddressForm = () => {
     setAddressForm({
       receiver_name: '',
@@ -288,6 +301,8 @@ export function UserProfile() {
     if (!normalizedAddress) {
       errors.address = 'Vui lòng nhập địa chỉ nhận hàng';
     }
+
+
 
     if (receiverPhoneError) {
       errors.receiver_phone = receiverPhoneError;
@@ -644,14 +659,7 @@ export function UserProfile() {
                                       <p className="text-sm font-medium text-gray-700 dark:text-gray-300 line-clamp-2 leading-relaxed">
                                         {item.address}
                                       </p>
-                                      {(item.ward_name || item.province_name) && (
-                                        <p className="text-[11px] font-medium text-amber-600 dark:text-amber-400 flex items-center gap-1 opacity-90">
-                                          <MapPin className="w-3 h-3" />
-                                          {[item.ward_name, item.province_name]
-                                            .filter(Boolean)
-                                            .join(', ')}
-                                        </p>
-                                      )}
+
                                     </div>
 
                                     <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-gray-100 dark:border-gray-800/60 mt-1 opacity-80 group-hover:opacity-100 transition-opacity">
@@ -914,6 +922,8 @@ export function UserProfile() {
                 )}
               </div>
             </div>
+
+
 
             <div className="space-y-2">
               <Label htmlFor="address_type" className="text-xs font-semibold text-gray-500 ml-1">Lưu địa chỉ là</Label>

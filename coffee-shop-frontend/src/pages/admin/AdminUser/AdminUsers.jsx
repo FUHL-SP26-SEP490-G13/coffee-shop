@@ -185,6 +185,7 @@ export default function AdminUsers() {
         await fetchUsers();
         setIsCreateOpen(false);
         resetCreateForm();
+        toast.success('Tạo nhân viên thành công');
       } else {
         setCreateError(response.message || 'Không thể tạo nhân viên');
       }

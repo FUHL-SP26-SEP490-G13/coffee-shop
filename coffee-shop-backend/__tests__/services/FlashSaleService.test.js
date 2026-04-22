@@ -1,98 +1,91 @@
 const FlashSaleService = require('../../src/services/FlashSaleService');
 const FlashSaleRepository = require('../../src/repositories/FlashSaleRepository');
+const { logTestCase } = require('../utils/logger');
 
 jest.mock('../../src/repositories/FlashSaleRepository');
 
 describe('FlashSaleService', () => {
+  let pendingLog = null;
+
+  const logCase = (name, input, expected) => {
+    pendingLog = { name, input, expected };
+  };
+
+  const logReality = (actual) => {
+    if (!pendingLog) return;
+    logTestCase({ ...pendingLog, actual });
+    pendingLog = null;
+  };
+
   beforeEach(() => {
-    jest.clearAllMocks();
+    jest.resetAllMocks();
+    pendingLog = null;
   });
 
   describe('getCurrentActive', () => {
     it('FlashSaleService - getCurrentActive - TC-01: should call findCurrentActive', async () => {
-      console.log('\n' + '='.repeat(50));
-      console.log('FlashSaleService - getCurrentActive - TC-1: Lấy flash sale đang active');
-      console.log('='.repeat(50));
-
-      const mockResult = { id: 1, name: 'Flash Sale' };
-      FlashSaleRepository.findCurrentActive.mockResolvedValue(mockResult);
-
-      console.log('\n📝 INPUT: Không có');
-      console.log('✅ OUTPUT EXPECT:', JSON.stringify(mockResult, null, 2));
+      const expected = { id: 1, title: 'Flash Sale' };
+      FlashSaleRepository.findCurrentActive.mockResolvedValue(expected);
+      logCase('FlashSaleService - getCurrentActive - TC-01: should call findCurrentActive', {}, expected);
 
       const result = await FlashSaleService.getCurrentActive();
+      logReality(result);
 
-      console.log('🎯 OUTPUT REALITY:', JSON.stringify(result, null, 2));
-
-      expect(FlashSaleRepository.findCurrentActive).toHaveBeenCalled();
-      expect(result).toEqual(mockResult);
+      expect(FlashSaleRepository.findCurrentActive).toHaveBeenCalledTimes(1);
+      expect(result).toEqual(expected);
     });
   });
 
   describe('getAll', () => {
     it('FlashSaleService - getAll - TC-01: should call findAll', async () => {
-      console.log('\n' + '='.repeat(50));
-      console.log('FlashSaleService - getAll - TC-1: Lấy tất cả flash sales');
-      console.log('='.repeat(50));
-
-      const mockResult = [{ id: 1, name: 'Flash Sale' }];
-      FlashSaleRepository.findAll.mockResolvedValue(mockResult);
-
-      console.log('\n📝 INPUT: Không có');
-      console.log('✅ OUTPUT EXPECT:', JSON.stringify(mockResult, null, 2));
+      const expected = [{ id: 1, title: 'Flash Sale 1' }];
+      FlashSaleRepository.findAll.mockResolvedValue(expected);
+      logCase('FlashSaleService - getAll - TC-01: should call findAll', {}, expected);
 
       const result = await FlashSaleService.getAll();
+      logReality(result);
 
-      console.log('🎯 OUTPUT REALITY:', JSON.stringify(result, null, 2));
-
-      expect(FlashSaleRepository.findAll).toHaveBeenCalled();
-      expect(result).toEqual(mockResult);
+      expect(FlashSaleRepository.findAll).toHaveBeenCalledTimes(1);
+      expect(result).toEqual(expected);
     });
   });
 
   describe('getById', () => {
     it('FlashSaleService - getById - TC-01: should call findById', async () => {
-      console.log('\n' + '='.repeat(50));
-      console.log('FlashSaleService - getById - TC-1: Lấy flash sale theo ID');
-      console.log('='.repeat(50));
-
       const input = { id: 1 };
-      console.log('\n📝 INPUT:', JSON.stringify(input, null, 2));
-
-      const mockResult = { id: 1, name: 'Flash Sale' };
-      FlashSaleRepository.findById.mockResolvedValue(mockResult);
-
-      console.log('✅ OUTPUT EXPECT:', JSON.stringify(mockResult, null, 2));
+      const expected = { id: 1, title: 'Flash Sale 1' };
+      FlashSaleRepository.findById.mockResolvedValue(expected);
+      logCase('FlashSaleService - getById - TC-01: should call findById', input, expected);
 
       const result = await FlashSaleService.getById(input.id);
-
-      console.log('🎯 OUTPUT REALITY:', JSON.stringify(result, null, 2));
+      logReality(result);
 
       expect(FlashSaleRepository.findById).toHaveBeenCalledWith(1);
-      expect(result).toEqual(mockResult);
+      expect(result).toEqual(expected);
     });
   });
 
   describe('create', () => {
-    it('FlashSaleService - create - TC-01: should call create', async () => {
-      console.log('\n' + '='.repeat(50));
-      console.log('FlashSaleService - create - TC-1: Tạo mới flash sale');
-      console.log('='.repeat(50));
+    it('FlashSaleService - create - TC-01: should call create when no overlap', async () => {
+      const input = {
+        title: 'Flash sáng',
+        status: 'active',
+        start_time: '2026-04-14T10:00:00.000Z',
+        end_time: '2026-04-14T12:00:00.000Z',
+        discount_percent: 15,
+      };
+      const expected = 5;
 
-      const input = { data: { name: 'New Sale' } };
-      console.log('\n📝 INPUT:', JSON.stringify(input, null, 2));
+      FlashSaleRepository.checkOverlap.mockResolvedValue(null);
+      FlashSaleRepository.create.mockResolvedValue(expected);
+      logCase('FlashSaleService - create - TC-01: should call create when no overlap', input, expected);
 
-      const mockResult = 5;
-      FlashSaleRepository.create.mockResolvedValue(mockResult);
+      const result = await FlashSaleService.create(input);
+      logReality(result);
 
-      console.log('✅ OUTPUT EXPECT:', mockResult);
-
-      const result = await FlashSaleService.create(input.data);
-
-      console.log('🎯 OUTPUT REALITY:', result);
-
-      expect(FlashSaleRepository.create).toHaveBeenCalledWith(input.data);
-      expect(result).toEqual(mockResult);
+      expect(FlashSaleRepository.checkOverlap).toHaveBeenCalledWith(input.start_time, input.end_time);
+      expect(FlashSaleRepository.create).toHaveBeenCalledWith(input);
+      expect(result).toEqual(expected);
     });
 
     it('FlashSaleService - create - TC-02: should throw error when active campaign time overlaps', async () => {
@@ -102,12 +95,13 @@ describe('FlashSaleService', () => {
         start_time: '2026-04-14T10:00:00.000Z',
         end_time: '2026-04-14T12:00:00.000Z',
       };
+      const expected = 'Không thể tạo. Bị trùng khung giờ với chiến dịch đang chạy: "Flash trùng giờ"';
 
       FlashSaleRepository.checkOverlap.mockResolvedValue({ title: 'Flash trùng giờ' });
+      logCase('FlashSaleService - create - TC-02: should throw error when active campaign time overlaps', input, expected);
 
-      await expect(FlashSaleService.create(input)).rejects.toThrow(
-        'Không thể tạo. Bị trùng khung giờ với chiến dịch đang chạy: "Flash trùng giờ"'
-      );
+      await expect(FlashSaleService.create(input)).rejects.toThrow(expected);
+      logReality(expected);
 
       expect(FlashSaleRepository.create).not.toHaveBeenCalled();
     });
@@ -115,42 +109,67 @@ describe('FlashSaleService', () => {
 
   describe('update', () => {
     it('FlashSaleService - update - TC-01: should call update', async () => {
-      console.log('\n' + '='.repeat(50));
-      console.log('FlashSaleService - update - TC-1: Cập nhật flash sale');
-      console.log('='.repeat(50));
+      const input = {
+        id: 1,
+        data: {
+          title: 'Flash đã cập nhật',
+          status: 'active',
+          start_time: '2026-04-14T13:00:00.000Z',
+          end_time: '2026-04-14T15:00:00.000Z',
+          discount_percent: 20,
+        },
+      };
+      const expected = true;
 
-      const input = { id: 1, data: { name: 'Updated Sale' } };
-      console.log('\n📝 INPUT:', JSON.stringify(input, null, 2));
-
-      FlashSaleRepository.update.mockResolvedValue(true);
-
-      console.log('✅ OUTPUT EXPECT: true');
+      FlashSaleRepository.checkOverlap.mockResolvedValue(null);
+      FlashSaleRepository.update.mockResolvedValue(expected);
+      logCase('FlashSaleService - update - TC-01: should call update', input, expected);
 
       const result = await FlashSaleService.update(input.id, input.data);
+      logReality(result);
 
-      console.log('🎯 OUTPUT REALITY:', result);
-
-      expect(FlashSaleRepository.update).toHaveBeenCalledWith(1, input.data);
+      expect(FlashSaleRepository.checkOverlap).toHaveBeenCalledWith(
+        input.data.start_time,
+        input.data.end_time,
+        input.id
+      );
+      expect(FlashSaleRepository.update).toHaveBeenCalledWith(input.id, input.data);
       expect(result).toBe(true);
+    });
+
+    it('FlashSaleService - update - TC-02: should throw error when active campaign time overlaps', async () => {
+      const input = {
+        id: 1,
+        data: {
+          title: 'Flash bị trùng',
+          status: 'active',
+          start_time: '2026-04-14T10:00:00.000Z',
+          end_time: '2026-04-14T12:00:00.000Z',
+          discount_percent: 10,
+        },
+      };
+      const expected = 'Không thể cập nhật. Bị trùng khung giờ với chiến dịch đang chạy: "Flash trùng giờ"';
+
+      FlashSaleRepository.checkOverlap.mockResolvedValue({ title: 'Flash trùng giờ' });
+      logCase('FlashSaleService - update - TC-02: should throw error when active campaign time overlaps', input, expected);
+
+      await expect(FlashSaleService.update(input.id, input.data)).rejects.toThrow(expected);
+      logReality(expected);
+
+      expect(FlashSaleRepository.update).not.toHaveBeenCalled();
     });
   });
 
   describe('delete', () => {
     it('FlashSaleService - delete - TC-01: should call delete', async () => {
-      console.log('\n' + '='.repeat(50));
-      console.log('FlashSaleService - delete - TC-1: Xóa flash sale');
-      console.log('='.repeat(50));
-
       const input = { id: 1 };
-      console.log('\n📝 INPUT:', JSON.stringify(input, null, 2));
+      const expected = true;
 
-      FlashSaleRepository.delete.mockResolvedValue(true);
-
-      console.log('✅ OUTPUT EXPECT: true');
+      FlashSaleRepository.delete.mockResolvedValue(expected);
+      logCase('FlashSaleService - delete - TC-01: should call delete', input, expected);
 
       const result = await FlashSaleService.delete(input.id);
-
-      console.log('🎯 OUTPUT REALITY:', result);
+      logReality(result);
 
       expect(FlashSaleRepository.delete).toHaveBeenCalledWith(1);
       expect(result).toBe(true);

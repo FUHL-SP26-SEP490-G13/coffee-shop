@@ -124,6 +124,13 @@ class UserService {
       throw new ErrorResponse(400, 'Username đã được sử dụng');
     }
 
+    const staffRole = roleId === ROLES.STAFF;
+    const baristaRole = roleId === ROLES.BARISTA;
+
+    if (!staffRole && !baristaRole) {
+      throw new ErrorResponse(400, 'Role không hợp lệ');
+    }
+
     const tempPassword = generateStrongPassword(12);
     const hashedPassword = await hashPassword(tempPassword);
     const pinCode = await this.generateUniquePin();

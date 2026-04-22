@@ -164,7 +164,11 @@ class OrderOnlineController {
     const userId = req.user.id;
     const orderId = Number(req.params.id);
 
-    const result = await OrderOnlineService.cancelOrderByUser(orderId, userId);
+    const result = await OrderOnlineService.cancelOrderByUser(
+      orderId,
+      userId,
+      req.body
+    );
 
     return res.json({
       success: true,
@@ -284,7 +288,14 @@ class OrderOnlineController {
   async cancelDeliveryByStaff(req, res) {
     const orderId = Number(req.params.id);
 
-    const result = await OrderOnlineService.cancelDeliveryOrderByStaff(orderId);
+    const result = await OrderOnlineService.cancelDeliveryOrderByStaff(
+      orderId,
+      {
+        user_id: req.user?.id,
+        role: req.user?.role_name || req.user?.role || 'staff',
+      },
+      req.body
+    );
 
     return res.json({
       success: true,

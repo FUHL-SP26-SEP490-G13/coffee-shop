@@ -20,6 +20,8 @@ const dep1 = require('../../src/services/ProductService');
 const dep2 = require('../../src/config/cloudinary');
 const dep3 = require('../../src/utils/ErrorResponse');
 
+
+const { logTestCase } = require('../utils/logger');
 describe('ProductController', () => {
   const makeReq = () => ({
     params: { id: '1', code: 'CODE' },
@@ -81,13 +83,48 @@ describe('ProductController', () => {
     dependencyModules.forEach((mod) => primeModuleFunctions(mod, mode, errorObj));
   };
 
-  const logCase = ({ title, input, expected, reality }) => {
-    console.log('\n' + '='.repeat(50));
-    console.log(title);
-    console.log('='.repeat(50));
-    console.log('INPUT:', JSON.stringify(input, null, 2));
-    console.log('OUTPUT EXPECT:', JSON.stringify(expected, null, 2));
-    console.log('OUTPUT REALITY:', JSON.stringify(reality, null, 2));
+  const logCase = (payload = {}) => {
+
+    const {
+
+      title,
+
+      method,
+
+      tcid,
+
+      crud,
+
+      scenario,
+
+      input,
+
+      expected,
+
+      outputExpect,
+
+      reality,
+
+    } = payload;
+
+
+    const nameParts = [title, method, scenario, tcid].filter(Boolean);
+
+    if (crud) nameParts.push(`CRUD: ${crud}`);
+
+
+    logTestCase({
+
+      name: nameParts.join(' - ') || 'Test case',
+
+      input,
+
+      expected: expected !== undefined ? expected : outputExpect,
+
+      actual: reality,
+
+    });
+
   };
 
   beforeEach(() => {

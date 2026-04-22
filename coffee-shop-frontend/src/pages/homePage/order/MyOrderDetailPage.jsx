@@ -2,11 +2,20 @@ import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Loader2, ArrowLeft, RotateCcw, CheckCircle2, Package, Truck, ClipboardList, XCircle, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import orderService from "@/services/orderOnlineService";
 import flashSaleService from "@/services/flashSaleService";
 import { handleBuyAgain } from "@/utils/handleBuyAgain";
 import { useStoreHours } from "@/hooks/useStoreHours";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+import { toast } from "sonner";
 
 const defaultProductImage =
   "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085";
@@ -15,6 +24,13 @@ const LOYALTY_MONEY_PER_POINT = 100;
 const LEGACY_DELIVERY_SHIPPING_FEE = 20000;
 const MONEY_ROUNDING_UNIT = 100;
 const DYNAMIC_SHIPPING_ROLLOUT_AT = new Date("2026-04-07T00:00:00.000Z").getTime();
+const CUSTOMER_CANCEL_REASON_OPTIONS = [
+  { value: 'change_mind', label: 'Tôi đổi ý, chưa muốn mua nữa' },
+  { value: 'wrong_info', label: 'Tôi đặt nhầm món/thông tin' },
+  { value: 'long_wait', label: 'Thời gian chờ quá lâu' },
+  { value: 'change_address', label: 'Tôi muốn đổi địa chỉ nhận' },
+  { value: 'other', label: 'Khác' },
+];
 
 export default function MyOrderDetailPage() {
   const { id } = useParams();
@@ -24,6 +40,9 @@ export default function MyOrderDetailPage() {
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [buyAgainLoading, setBuyAgainLoading] = useState(false);
+  const [canceling, setCanceling] = useState(false);
+  const [cancelReasonOption, setCancelReasonOption] = useState('');
+  const [cancelReasonText, setCancelReasonText] = useState('');
   const [activeSale, setActiveSale] = useState(null);
   const { isOpen } = useStoreHours();
 
@@ -87,6 +106,27 @@ export default function MyOrderDetailPage() {
     }
   };
 
+  const formatCancelReason = (value) => {
+    if (!value) return '';
+
+    const text = String(value).trim();
+    const match = text.match(/^\[(.+?)\]\s*(.*)$/);
+    if (!match) return text;
+
+    const reasonCode = match[1];
+    const reasonText = match[2].trim();
+
+    const reasonLabelMap = {
+      change_mind: 'Tôi đổi ý, chưa muốn mua nữa',
+      wrong_info: 'Tôi đặt nhầm món/thông tin',
+      long_wait: 'Thời gian chờ quá lâu',
+      change_address: 'Tôi muốn đổi địa chỉ nhận',
+      other: 'Khác',
+    };
+
+    return `${reasonLabelMap[reasonCode] || reasonCode}${reasonText ? ` - ${reasonText}` : ''}`;
+  };
+
   const getStatusClass = (status) => {
     switch (status) {
       case "pending":
@@ -112,6 +152,47 @@ export default function MyOrderDetailPage() {
       await handleBuyAgain(id, navigate);
     } finally {
       setBuyAgainLoading(false);
+    }
+  };
+
+  const canCancelByCustomer =
+    String(order?.status || '').toLowerCase() === 'pending' &&
+    Number(order?.is_paid || 0) === 0;
+
+  const handleCancelOrder = async () => {
+    if (!canCancelByCustomer) {
+      toast.error('Chỉ có thể hủy đơn khi đơn đang chờ xác nhận và chưa thanh toán');
+      return;
+    }
+
+    if (!cancelReasonOption) {
+      toast.error('Vui lòng chọn lý do hủy đơn');
+      return;
+    }
+
+    const optionLabel =
+      CUSTOMER_CANCEL_REASON_OPTIONS.find((item) => item.value === cancelReasonOption)?.label || '';
+    const reason = cancelReasonOption === 'other'
+      ? cancelReasonText.trim()
+      : (cancelReasonText.trim() || optionLabel);
+
+    if (!reason) {
+      toast.error('Vui lòng nhập lý do hủy đơn');
+      return;
+    }
+
+    setCanceling(true);
+    try {
+      await orderService.cancel(order.id, {
+        reason_option: cancelReasonOption,
+        reason,
+      });
+      toast.success('Hủy đơn hàng thành công');
+      await fetchOrderDetail();
+    } catch (error) {
+      toast.error(error?.response?.data?.message || 'Không thể hủy đơn hàng');
+    } finally {
+      setCanceling(false);
     }
   };
 
@@ -330,6 +411,14 @@ export default function MyOrderDetailPage() {
                       {getStatusLabel(order.status)}
                     </span>
                   </div>
+                  {String(order.status || '').toLowerCase() === 'cancelled' && order.cancel_reason && (
+                    <div className="flex justify-between items-start gap-4 py-2 border-b border-gray-100 dark:border-gray-800 border-dashed">
+                      <span className="text-gray-500 dark:text-gray-400">Lý do hủy</span>
+                      <span className="font-semibold text-red-600 dark:text-red-300 text-right max-w-[70%]">
+                        {formatCancelReason(order.cancel_reason)}
+                      </span>
+                    </div>
+                  )}
                   <div className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-800 border-dashed">
                     <span className="text-gray-500 dark:text-gray-400">Thanh toán</span>
                     <span className={`font-bold px-2 py-0.5 rounded-md ${Number(order.is_paid) === 1 ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'}`}>
@@ -536,6 +625,60 @@ export default function MyOrderDetailPage() {
             </div>
 
             <div className="mt-8 flex gap-3 flex-wrap">
+              {canCancelByCustomer && (
+                <div className="w-full border rounded-xl p-4 bg-red-50/60 dark:bg-red-900/10 border-red-200 dark:border-red-900/40 space-y-3">
+                  <p className="font-semibold text-red-700 dark:text-red-300">Hủy đơn hàng</p>
+                  <div>
+                    <p className="text-sm mb-2">Chọn lý do hủy</p>
+                    <Select
+                      value={cancelReasonOption}
+                      onValueChange={(value) => {
+                        setCancelReasonOption(value);
+                        if (value !== 'other') {
+                          const label =
+                            CUSTOMER_CANCEL_REASON_OPTIONS.find((item) => item.value === value)?.label || '';
+                          setCancelReasonText(label);
+                        } else {
+                          setCancelReasonText('');
+                        }
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Chọn lý do hủy đơn" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {CUSTOMER_CANCEL_REASON_OPTIONS.map((item) => (
+                          <SelectItem key={item.value} value={item.value}>
+                            {item.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <p className="text-sm mb-2">Chi tiết lý do</p>
+                    <Textarea
+                      value={cancelReasonText}
+                      onChange={(event) => setCancelReasonText(event.target.value)}
+                      placeholder={
+                        cancelReasonOption === 'other'
+                          ? 'Nhập lý do hủy khác...'
+                          : 'Bạn có thể bổ sung thêm chi tiết nếu cần'
+                      }
+                    />
+                  </div>
+
+                  <Button
+                    variant="destructive"
+                    disabled={canceling}
+                    onClick={handleCancelOrder}
+                  >
+                    {canceling ? 'Đang hủy đơn...' : 'Xác nhận hủy đơn'}
+                  </Button>
+                </div>
+              )}
+
               <Button
                 onClick={onBuyAgain}
                 disabled={buyAgainLoading || !isOpen}

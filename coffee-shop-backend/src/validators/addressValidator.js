@@ -25,6 +25,7 @@ const createAddressSchema = Joi.object({
     'string.max': 'Địa chỉ không được vượt quá 255 ký tự',
     'any.required': 'Địa chỉ là bắt buộc',
   }),
+
   address_type: Joi.string().valid('home', 'work', 'other').default('home').messages({
     'any.only': 'Loại địa chỉ không hợp lệ',
   }),
@@ -43,6 +44,7 @@ const updateAddressSchema = Joi.object({
     'string.min': 'Địa chỉ phải có ít nhất 5 ký tự',
     'string.max': 'Địa chỉ không được vượt quá 255 ký tự',
   }),
+
   address_type: Joi.string().valid('home', 'work', 'other').optional().messages({
     'any.only': 'Loại địa chỉ không hợp lệ',
   }),

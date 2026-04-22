@@ -357,16 +357,40 @@ class OrderRepository {
     );
   }
 
-  async cancelOrderByUser(orderId, userId) {
+  async cancelOrderByUser(orderId, userId, { reason } = {}) {
     const [result] = await db.query(
       `
       UPDATE orders
-      SET status = 'cancelled'
+      SET status = 'cancelled',
+          cancel_reason = ?,
+          cancel_user_id = ?,
+          cancel_role = 'customer',
+          cancelled_at = NOW()
       WHERE id = ?
         AND user_id = ?
-        AND status IN ('pending', 'preparing')
+        AND status = 'pending'
+        AND is_paid = 0
       `,
-      [orderId, userId]
+      [reason || null, userId, orderId, userId]
+    );
+
+    return result;
+  }
+
+  async cancelOrderByStaff(orderId, staffId, staffRole, { reason } = {}) {
+    const [result] = await db.query(
+      `
+      UPDATE orders
+      SET status = 'cancelled',
+          cancel_reason = ?,
+          cancel_user_id = ?,
+          cancel_role = ?,
+          cancelled_at = NOW()
+      WHERE id = ?
+        AND status = 'pending'
+        AND is_paid = 0
+      `,
+      [reason || null, staffId || null, staffRole || 'staff', orderId]
     );
 
     return result;
@@ -380,6 +404,10 @@ class OrderRepository {
         customer_type,
         order_type,
         status,
+        cancel_reason,
+        cancel_user_id,
+        cancel_role,
+        cancelled_at,
         is_paid,
         total_amount,
         delivery_fee,
@@ -405,6 +433,10 @@ class OrderRepository {
         o.order_type,
         o.status,
         o.print_status,
+        o.cancel_reason,
+        o.cancel_user_id,
+        o.cancel_role,
+        o.cancelled_at,
         o.is_paid,
         o.total_amount,
         o.amount,
@@ -442,6 +474,10 @@ class OrderRepository {
         o.customer_type,
         o.order_type,
         o.status,
+        o.cancel_reason,
+        o.cancel_user_id,
+        o.cancel_role,
+        o.cancelled_at,
         o.is_paid,
         o.total_amount,
         o.amount,
@@ -470,6 +506,10 @@ class OrderRepository {
         o.customer_type,
         o.order_type,
         o.status,
+        o.cancel_reason,
+        o.cancel_user_id,
+        o.cancel_role,
+        o.cancelled_at,
         o.is_paid,
         o.total_amount,
         o.amount,
@@ -702,6 +742,10 @@ class OrderRepository {
         o.customer_type,
         o.order_type,
         o.status,
+        o.cancel_reason,
+        o.cancel_user_id,
+        o.cancel_role,
+        o.cancelled_at,
         o.is_paid,
         o.total_amount,
         o.amount,
