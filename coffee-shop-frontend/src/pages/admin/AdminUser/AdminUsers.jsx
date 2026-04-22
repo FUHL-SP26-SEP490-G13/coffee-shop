@@ -13,6 +13,8 @@ import { Switch } from '../../../components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../components/ui/tabs';
 import PaginationControl from '../../../components/common/PaginationControl';
 import { toast } from 'sonner';
+import FaceRegistrationDialog from '@/components/admin/FaceRegistrationDialog';
+import { Camera } from 'lucide-react';
 
 export default function AdminUsers() {
   const [users, setUsers] = useState([]);
@@ -46,6 +48,8 @@ export default function AdminUsers() {
   const [isGeneratingPin, setIsGeneratingPin] = useState(false);
   const [isConfirmPinOpen, setIsConfirmPinOpen] = useState(false);
   const [confirmPinUser, setConfirmPinUser] = useState(null);
+  const [isFaceRegistrationOpen, setIsFaceRegistrationOpen] = useState(false);
+  const [faceRegistrationUser, setFaceRegistrationUser] = useState(null);
   const USERS_PER_PAGE = 10;
 
   const normalizePhoneNumber = (phone) => {
@@ -252,6 +256,11 @@ export default function AdminUsers() {
   const handleGeneratePinClick = (user) => {
     setConfirmPinUser(user);
     setIsConfirmPinOpen(true);
+  };
+
+  const handleFaceRegistrationClick = (user) => {
+    setFaceRegistrationUser(user);
+    setIsFaceRegistrationOpen(true);
   };
 
   const handleConfirmGeneratePin = async () => {
@@ -483,15 +492,26 @@ export default function AdminUsers() {
                                 onCheckedChange={() => handleStatusToggle(user)}
                               />
                               {user.role_id !== 4 && (
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => handleGeneratePinClick(user)}
-                                  title="Cấp lại mã PIN"
-                                  disabled={isGeneratingPin || user.isActive === 0}
-                                >
-                                  <Key className="h-4 w-4 text-blue-500" />
-                                </Button>
+                                <>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleFaceRegistrationClick(user)}
+                                    title="Đăng ký khuôn mặt"
+                                    disabled={user.isActive === 0}
+                                  >
+                                    <Camera className="h-4 w-4 text-green-600" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleGeneratePinClick(user)}
+                                    title="Cấp lại mã PIN"
+                                    disabled={isGeneratingPin || user.isActive === 0}
+                                  >
+                                    <Key className="h-4 w-4 text-blue-500" />
+                                  </Button>
+                                </>
                               )}
                             </div>
                           </TableCell>
@@ -767,6 +787,16 @@ export default function AdminUsers() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Face Registration Dialog */}
+      <FaceRegistrationDialog 
+        isOpen={isFaceRegistrationOpen}
+        onClose={() => {
+          setIsFaceRegistrationOpen(false);
+          setFaceRegistrationUser(null);
+        }}
+        user={faceRegistrationUser}
+      />
     </div>
   );
 }
