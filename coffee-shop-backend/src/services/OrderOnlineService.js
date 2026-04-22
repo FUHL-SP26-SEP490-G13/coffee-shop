@@ -529,11 +529,7 @@ class OrderOnlineService {
       }
 
       if (order_type !== "dine-in" || (order_note && order_note.trim())) {
-        const deliveryAddressWithArea = this.buildDeliveryAddressString(
-          address,
-          null,
-          null
-        );
+        const deliveryAddressWithArea = address ? address.trim() : "";
 
         const [existingInfo] = await connection.query(
           "SELECT id FROM order_delivery_info WHERE order_id = ?",

@@ -41,6 +41,9 @@ class AddressService {
       receiver_name: this.normalizeNullableText(payload.receiver_name),
       receiver_phone: this.normalizeNullableText(payload.receiver_phone),
       address: payload.address.trim(),
+      address_detail: this.normalizeNullableText(payload.address_detail),
+      latitude: payload.latitude !== undefined ? payload.latitude : null,
+      longitude: payload.longitude !== undefined ? payload.longitude : null,
       address_type: this.normalizeAddressType(payload.address_type),
       is_default: shouldSetDefault ? 1 : 0,
       is_deleted: 0,
@@ -76,6 +79,18 @@ class AddressService {
 
     if (typeof payload.address === 'string') {
       updateData.address = payload.address.trim();
+    }
+
+    if (payload.address_detail !== undefined) {
+      updateData.address_detail = this.normalizeNullableText(payload.address_detail);
+    }
+
+    if (payload.latitude !== undefined) {
+      updateData.latitude = payload.latitude;
+    }
+
+    if (payload.longitude !== undefined) {
+      updateData.longitude = payload.longitude;
     }
 
     const hasProvince = payload.province_id !== undefined;

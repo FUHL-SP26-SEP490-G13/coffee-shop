@@ -35,6 +35,7 @@ export default function PlaceOrderButton({
 
   const handleSubmit = async () => {
     const formErrors = validateOrderForm(form);
+    
     if (Object.keys(formErrors).length > 0) {
       onValidateError?.(formErrors);
       return;

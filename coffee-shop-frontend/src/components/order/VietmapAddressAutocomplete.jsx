@@ -85,6 +85,7 @@ export default function VietmapAddressAutocomplete({
   initialAddress = "",
   onAddressSelect,
   error,
+  hideGPSButton = false,
 }) {
   const [provinces, setProvinces] = useState([]);
   const [wards, setWards] = useState([]);
@@ -301,78 +302,80 @@ export default function VietmapAddressAutocomplete({
               <Loader2 className="w-4 h-4 animate-spin text-amber-500" />
             )}
 
-            <button
-              type="button"
-              className="p-1.5 text-gray-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-gray-800 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              title="Lấy vị trí hiện tại (GPS)"
-              disabled={isLocating}
-              onClick={(e) => {
-                e.stopPropagation();
-                if (navigator.geolocation) {
-                  setIsLocating(true);
-                  navigator.geolocation.getCurrentPosition(async (position) => {
-                    const { latitude, longitude } = position.coords;
-                    setMapCenter({ lat: latitude, lng: longitude });
+            {!hideGPSButton && (
+              <button
+                type="button"
+                className="p-1.5 text-gray-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-gray-800 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Lấy vị trí hiện tại (GPS)"
+                disabled={isLocating}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (navigator.geolocation) {
+                    setIsLocating(true);
+                    navigator.geolocation.getCurrentPosition(async (position) => {
+                      const { latitude, longitude } = position.coords;
+                      setMapCenter({ lat: latitude, lng: longitude });
 
-                    try {
-                      const reverseRes = await vietmapService.reverse(latitude, longitude);
-                      const reverseData = reverseRes?.data || [];
+                      try {
+                        const reverseRes = await vietmapService.reverse(latitude, longitude);
+                        const reverseData = reverseRes?.data || [];
 
-                      let dbAddress = "Vị trí của bạn (từ GPS)";
-                      if (reverseData.length > 0) {
-                        // Lấy dòng hiển thị đầy đủ nhất từ Vietmap Reverse API
-                        dbAddress = reverseData[0].display || reverseData[0].address || reverseData[0].name || dbAddress;
+                        let dbAddress = "Vị trí của bạn (từ GPS)";
+                        if (reverseData.length > 0) {
+                          // Lấy dòng hiển thị đầy đủ nhất từ Vietmap Reverse API
+                          dbAddress = reverseData[0].display || reverseData[0].address || reverseData[0].name || dbAddress;
+                        }
+
+                        setSearchTerm(dbAddress);
+
+                        setPinnedAddress(dbAddress);
+
+                        onAddressSelect({
+                          address: dbAddress,
+                          latitude,
+                          longitude,
+                        });
+                      } catch (err) {
+                        console.error("Lỗi lấy địa chỉ từ toạ độ:", err);
+
+                        // Fallback tĩnh
+                        const pName = provinces.find((p) => p.code == selectedProvince)?.name || "";
+                        const wName = wards.find((w) => w.code == selectedWard)?.name || "";
+                        let fallbackAddress = searchTerm || "Vị trí của bạn (từ GPS)";
+                        if (wName && !fallbackAddress.includes(wName)) fallbackAddress += `, ${wName}`;
+                        if (pName && !fallbackAddress.includes(pName)) fallbackAddress += `, ${pName}`;
+
+                        setSearchTerm(fallbackAddress);
+                        setPinnedAddress(fallbackAddress);
+
+                        onAddressSelect({
+                          address: fallbackAddress,
+                          latitude,
+                          longitude,
+                        });
+                      } finally {
+                        setIsLocating(false);
                       }
-
-                      setSearchTerm(dbAddress);
-
-                      setPinnedAddress(dbAddress);
-
-                      onAddressSelect({
-                        address: dbAddress,
-                        latitude,
-                        longitude,
-                      });
-                    } catch (err) {
-                      console.error("Lỗi lấy địa chỉ từ toạ độ:", err);
-
-                      // Fallback tĩnh
-                      const pName = provinces.find((p) => p.code == selectedProvince)?.name || "";
-                      const wName = wards.find((w) => w.code == selectedWard)?.name || "";
-                      let fallbackAddress = searchTerm || "Vị trí của bạn (từ GPS)";
-                      if (wName && !fallbackAddress.includes(wName)) fallbackAddress += `, ${wName}`;
-                      if (pName && !fallbackAddress.includes(pName)) fallbackAddress += `, ${pName}`;
-
-                      setSearchTerm(fallbackAddress);
-                      setPinnedAddress(fallbackAddress);
-
-                      onAddressSelect({
-                        address: fallbackAddress,
-                        latitude,
-                        longitude,
-                      });
-                    } finally {
+                    }, (error) => {
+                      console.error("Lỗi GPS:", error);
+                      alert("Không thể lấy định vị hoặc bạn đã từ chối quyền truy cập vị trí.");
                       setIsLocating(false);
-                    }
-                  }, (error) => {
-                    console.error("Lỗi GPS:", error);
-                    alert("Không thể lấy định vị hoặc bạn đã từ chối quyền truy cập vị trí.");
-                    setIsLocating(false);
-                  }, { timeout: 10000 });
-                } else {
-                  alert("Trình duyệt không hỗ trợ dịch vụ định vị.");
-                }
-              }}
-            >
-              <Navigation className="w-4 h-4" />
-            </button>
+                    }, { timeout: 10000 });
+                  } else {
+                    alert("Trình duyệt không hỗ trợ dịch vụ định vị.");
+                  }
+                }}
+              >
+                <Navigation className="w-4 h-4" />
+              </button>
+            )}
           </div>
         </div>
 
         {error && <p className="text-sm text-red-500 mt-1">{error}</p>}
 
         {isDropdownOpen && suggestions.length > 0 && (
-          <div className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-900 border rounded-xl shadow-lg max-h-60 overflow-y-auto">
+          <div className="relative z-10 w-full mt-2 bg-white dark:bg-gray-900 border rounded-xl shadow-sm max-h-60 overflow-y-auto">
             {suggestions.map((suggestion, index) => (
               <div
                 key={index}

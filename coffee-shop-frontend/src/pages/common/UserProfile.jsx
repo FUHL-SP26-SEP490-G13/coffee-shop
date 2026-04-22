@@ -21,6 +21,7 @@ import userService from '../../services/userService';
 
 import receiptSettingService from '../../services/receiptSettingService';
 import { APP_ROUTES, STORAGE_KEYS } from '../../constants';
+import VietmapAddressAutocomplete from '../../components/order/VietmapAddressAutocomplete';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 const getStoredValue = (key) =>
@@ -54,9 +55,13 @@ export function UserProfile() {
     receiver_name: '',
     receiver_phone: '',
     address: '',
+    address_detail: '',
     address_type: 'home',
+    latitude: null,
+    longitude: null,
   });
   const [editingAddressId, setEditingAddressId] = useState(null);
+  const [addressToDelete, setAddressToDelete] = useState(null);
   const [profileFieldErrors, setProfileFieldErrors] = useState({});
   const [addressFieldErrors, setAddressFieldErrors] = useState({});
 
@@ -282,7 +287,10 @@ export function UserProfile() {
       receiver_name: '',
       receiver_phone: '',
       address: '',
+      address_detail: '',
       address_type: 'home',
+      latitude: null,
+      longitude: null,
     });
     setAddressFieldErrors({});
     setEditingAddressId(null);
@@ -296,13 +304,16 @@ export function UserProfile() {
   const validateAddressForm = () => {
     const errors = {};
     const normalizedAddress = String(addressForm.address || '').trim();
+    const detailAddress = String(addressForm.address_detail || '').trim();
     const receiverPhoneError = getReceiverPhoneError(addressForm.receiver_phone);
 
     if (!normalizedAddress) {
       errors.address = 'Vui lòng nhập địa chỉ nhận hàng';
     }
 
-
+    if (!detailAddress) {
+      errors.address_detail = 'Vui lòng nhập chi tiết số nhà, ngõ ngách';
+    }
 
     if (receiverPhoneError) {
       errors.receiver_phone = receiverPhoneError;
@@ -311,7 +322,6 @@ export function UserProfile() {
     setAddressFieldErrors(errors);
 
     if (Object.keys(errors).length > 0) {
-      toast.error(errors.address || errors.receiver_phone);
       return false;
     }
 
@@ -321,13 +331,18 @@ export function UserProfile() {
   const handleSubmitAddress = async () => {
     if (!validateAddressForm()) return;
     const normalizedAddress = String(addressForm.address || '').trim();
+    const detailAddress = String(addressForm.address_detail || '').trim();
+
     const normalizedReceiverPhone = normalizePhoneInput(addressForm.receiver_phone);
 
     const payload = {
       receiver_name: addressForm.receiver_name.trim() || null,
       receiver_phone: normalizedReceiverPhone || null,
       address: normalizedAddress,
+      address_detail: detailAddress || null,
       address_type: addressForm.address_type,
+      latitude: addressForm.latitude,
+      longitude: addressForm.longitude,
     };
 
     setIsAddressSaving(true);
@@ -367,21 +382,30 @@ export function UserProfile() {
       receiver_name: item.receiver_name || '',
       receiver_phone: item.receiver_phone || '',
       address: item.address || '',
+      address_detail: item.address_detail || '',
       address_type: item.address_type || 'home',
+      latitude: item.latitude || null,
+      longitude: item.longitude || null,
     });
     setAddressDialogOpen(true);
   };
 
-  const handleDeleteAddress = async (id) => {
+  const handleDeleteAddress = (id) => {
+    setAddressToDelete(id);
+  };
+
+  const confirmDeleteAddress = async () => {
+    if (!addressToDelete) return;
+
     setIsAddressSaving(true);
     try {
-      const response = await userService.deleteAddress(id);
+      const response = await userService.deleteAddress(addressToDelete);
 
       if (!response?.success) {
         throw new Error(response?.message || 'Không thể xóa địa chỉ');
       }
 
-      if (editingAddressId === id) {
+      if (editingAddressId === addressToDelete) {
         resetAddressForm();
       }
 
@@ -391,6 +415,7 @@ export function UserProfile() {
       toast.error(getApiErrorMessage(error, 'Không thể xóa địa chỉ'));
     } finally {
       setIsAddressSaving(false);
+      setAddressToDelete(null);
     }
   };
 
@@ -954,29 +979,44 @@ export function UserProfile() {
               </div>
             </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="shipping_address" className="text-xs font-semibold text-gray-500 ml-1">Địa chỉ chi tiết</Label>
-              <Input
-                id="shipping_address"
-                value={addressForm.address}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  setAddressForm((prev) => ({
-                    ...prev,
-                    address: value,
-                  }));
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <VietmapAddressAutocomplete
+                  initialAddress={addressForm.address}
+                  error={addressFieldErrors.address}
+                  hideGPSButton={true}
+                  onAddressSelect={({ address, latitude, longitude }) => {
+                    setAddressForm((prev) => ({
+                      ...prev,
+                      address,
+                      latitude,
+                      longitude,
+                    }));
 
-                  setAddressFieldErrors((prev) => ({
-                    ...prev,
-                    address: value.trim() ? '' : prev.address,
-                  }));
-                }}
-                placeholder="Số nhà, hẻm, tên đường..."
-                className={`h-11 rounded-xl bg-gray-50/80 dark:bg-black/20 ${addressFieldErrors.address ? 'border-destructive focus-visible:border-destructive focus-visible:ring-destructive/40' : 'focus-visible:ring-amber-500/50 focus-visible:border-amber-500'}`}
-              />
-              {addressFieldErrors.address && (
-                <p className="text-xs text-destructive ml-1">{addressFieldErrors.address}</p>
-              )}
+                    setAddressFieldErrors((prev) => ({
+                      ...prev,
+                      address: address.trim() ? '' : prev.address,
+                    }));
+                  }}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="address_detail" className="text-xs font-semibold text-gray-500 ml-1">Chi tiết số nhà, ngõ ngách <span className="text-destructive">*</span></Label>
+                <Input
+                  id="address_detail"
+                  value={addressForm.address_detail}
+                  onChange={(e) => {
+                     setAddressForm((prev) => ({ ...prev, address_detail: e.target.value }));
+                     setAddressFieldErrors(prev => ({ ...prev, address_detail: e.target.value.trim() ? "" : prev.address_detail }));
+                  }}
+                  placeholder="VD: Số nhà 10, Ngõ 20..."
+                  className={`h-11 rounded-xl bg-gray-50/80 dark:bg-black/20 ${addressFieldErrors.address_detail ? 'border-destructive focus-visible:border-destructive' : 'focus-visible:ring-amber-500/50 focus-visible:border-amber-500'}`}
+                />
+                {addressFieldErrors.address_detail && (
+                  <p className="text-xs text-destructive ml-1">{addressFieldErrors.address_detail}</p>
+                )}
+              </div>
             </div>
 
             <div className="flex justify-end gap-3 pt-2">
@@ -1004,7 +1044,42 @@ export function UserProfile() {
                     ? 'Lưu thay đổi'
                     : 'Hoàn tất thêm mới'}
               </Button>
+              {/* ... dialog actions */}
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Address Confirmation Dialog */}
+      <Dialog open={!!addressToDelete} onOpenChange={(open) => !open && setAddressToDelete(null)}>
+        <DialogContent className="sm:max-w-md bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border border-white/20 dark:border-gray-800 rounded-3xl p-6">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold flex items-center gap-2 text-red-600">
+              <Trash2 className="w-5 h-5 flex-shrink-0" />
+              Xóa địa chỉ
+            </DialogTitle>
+            <DialogDescription className="text-gray-500 font-medium pt-1">
+              Bạn có chắc chắn muốn xóa địa chỉ này? Hành động này không thể hoàn tác.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex justify-end gap-3 pt-4">
+            <Button
+              variant="outline"
+              onClick={() => setAddressToDelete(null)}
+              disabled={isAddressSaving}
+              className="rounded-xl font-semibold hover:bg-gray-100"
+            >
+              Hủy
+            </Button>
+            <Button
+              onClick={confirmDeleteAddress}
+              disabled={isAddressSaving}
+              className="rounded-xl bg-red-600 hover:bg-red-700 text-white font-semibold"
+            >
+              {isAddressSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Trash2 className="w-4 h-4 mr-2" />}
+              Xác nhận xóa
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

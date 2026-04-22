@@ -60,6 +60,7 @@ export default function CheckoutPage() {
   const [addresses, setAddresses] = useState([]);
   const [selectedAddressId, setSelectedAddressId] = useState(null);
   const [isAddressLoading, setIsAddressLoading] = useState(false);
+  const [addressMode, setAddressMode] = useState("saved");
 
   const [isAddressDialogOpen, setIsAddressDialogOpen] = useState(false);
   const [isReputationDialogOpen, setIsReputationDialogOpen] = useState(false);
@@ -97,6 +98,16 @@ export default function CheckoutPage() {
       })
       .catch((err) => console.error("Error fetching active sale:", err));
   }, []);
+
+  useEffect(() => {
+    if (token) {
+      if (addresses.length > 0) {
+        setAddressMode("saved");
+      } else {
+        setAddressMode("new");
+      }
+    }
+  }, [addresses.length, token]);
 
   useEffect(() => {
     if (cart.length === 0) {
@@ -284,6 +295,9 @@ export default function CheckoutPage() {
       receiver_name: item.receiver_name || prev.receiver_name,
       receiver_phone: item.receiver_phone || prev.receiver_phone,
       address: item.address || "",
+      latitude: item.latitude || null,
+      longitude: item.longitude || null,
+      delivery_note: item.address_detail || "",
     }));
     setErrors((prev) => ({
       ...prev,
@@ -615,80 +629,122 @@ export default function CheckoutPage() {
             {form.order_type === "delivery" && (
               <div className="mb-4 space-y-4">
                 {token && (
-                  <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <MapPin className="w-4 h-4 text-amber-600" />
-                      <label className="text-sm font-medium block">
-                        Địa chỉ đã lưu
+                  <div className="mb-5">
+                    <label className="text-sm font-semibold mb-3 block text-amber-900 dark:text-amber-500">
+                      Tùy chọn giao hàng
+                    </label>
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6">
+                      <label className={`flex items-center gap-2 cursor-pointer ${addresses.length === 0 ? "opacity-50" : ""}`}>
+                        <input
+                          type="radio"
+                          name="addressMode"
+                          value="saved"
+                          checked={addressMode === "saved"}
+                          onChange={() => setAddressMode("saved")}
+                          disabled={addresses.length === 0}
+                          className="text-amber-600 focus:ring-amber-500 w-4 h-4 cursor-pointer"
+                        />
+                        <span className={`text-[15px] ${addresses.length === 0 ? "text-gray-400" : "font-medium text-gray-800 dark:text-gray-200"}`}>
+                          Dùng địa chỉ đã lưu {addresses.length === 0 && "(Chưa có)"}
+                        </span>
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="addressMode"
+                          value="new"
+                          checked={addressMode === "new"}
+                          onChange={() => {
+                            setAddressMode("new");
+                            setSelectedAddressId(null);
+                            // Không xoá Tên/SĐT vì Tên/SĐT là của User. Chỉ xoá thông tin toạ độ Vietmap.
+                            setForm(prev => ({ ...prev, address: "", latitude: null, longitude: null }));
+                            setErrors(prev => ({ ...prev, address: "" }));
+                          }}
+                          className="text-amber-600 focus:ring-amber-500 w-4 h-4 cursor-pointer"
+                        />
+                        <span className="text-[15px] font-medium text-gray-800 dark:text-gray-200">Giao đến địa chỉ mới</span>
                       </label>
                     </div>
+                  </div>
+                )}
 
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setIsAddressDialogOpen(true)}
-                      disabled={isAddressLoading || addresses.length === 0}
-                    >
-                      {isAddressLoading
-                        ? "Đang tải địa chỉ..."
-                        : addresses.length === 0
-                          ? "Chưa có địa chỉ đã lưu"
-                          : "Chọn địa chỉ giao hàng"}
-                    </Button>
-
-                    {addresses.length === 0 && !isAddressLoading && (
-                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-                        Bạn chưa lưu địa chỉ nào. Hãy nhập địa chỉ giao hàng bên
-                        dưới.
-                      </p>
-                    )}
-
-                    {selectedAddress && (
-                      <div className="mt-3 border rounded-xl p-3 bg-amber-50 dark:bg-amber-900/20 border-amber-200">
-                        <div className="flex items-center justify-between gap-2">
-                          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                            {selectedAddress.receiver_name ||
-                              "Địa chỉ giao hàng"}
-                          </p>
-                          <span className="text-xs text-gray-600 dark:text-gray-400">
-                            {getAddressTypeLabel(selectedAddress.address_type)}
-                          </span>
-                        </div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                          {selectedAddress.receiver_phone ||
-                            "Chưa có số điện thoại"}
-                        </p>
-                        <p className="text-sm text-gray-800 dark:text-gray-200 mt-1">
-                          {selectedAddress.address}
-                        </p>
+                {(!token || addressMode === "saved") && token && (
+                  <div className="bg-gray-50/50 dark:bg-gray-800/30 border border-gray-200 dark:border-gray-800 rounded-xl p-5 mb-2">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-2">
+                        <MapPin className="w-4 h-4 text-amber-600" />
+                        <label className="text-sm font-medium block">
+                          Chọn từ Sổ địa chỉ
+                        </label>
                       </div>
+
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setIsAddressDialogOpen(true)}
+                        disabled={isAddressLoading || addresses.length === 0}
+                        className="bg-white"
+                      >
+                        {isAddressLoading
+                          ? "Đang tải..."
+                          : selectedAddress
+                            ? "Thay đổi"
+                            : "Chọn địa chỉ"}
+                      </Button>
+                    </div>
+
+                    {selectedAddress ? (
+                      <div className="border rounded-xl p-4 bg-amber-50/50 dark:bg-amber-900/10 border-amber-200 shadow-sm relative overflow-hidden">
+                        <div className="absolute top-0 left-0 w-1 h-full bg-amber-500"></div>
+                        <div className="flex flex-col gap-1 ml-1">
+                          <div className="flex items-center justify-between">
+                            <p className="text-[15px] font-bold text-gray-900 dark:text-gray-100">
+                              {selectedAddress.receiver_name} <span className="font-normal text-gray-400 mx-1">|</span> <span className="font-semibold text-gray-700">{selectedAddress.receiver_phone}</span>
+                            </p>
+                            <span className="text-[11px] font-medium text-amber-700 bg-amber-100 dark:bg-amber-900/50 dark:text-amber-400 px-2 py-0.5 rounded-full border border-amber-200">
+                              {getAddressTypeLabel(selectedAddress.address_type)}
+                            </span>
+                          </div>
+                          <p className="text-[14px] text-gray-800 dark:text-gray-200 mt-1 leading-relaxed">
+                            {selectedAddress.address_detail ? `${selectedAddress.address_detail}, ${selectedAddress.address}` : selectedAddress.address}
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      addresses.length > 0 && addressMode === "saved" && (
+                        <div className="text-sm text-red-500 p-3 bg-red-50 rounded-lg border border-red-100 font-medium text-center">
+                          Vui lòng chọn 1 địa chỉ để giao hàng.
+                        </div>
+                      )
                     )}
                   </div>
                 )}
 
-                <VietmapAddressAutocomplete
-                  initialAddress={form.address}
-                  error={errors.address}
-                  onAddressSelect={({ address, latitude, longitude }) => {
-                    setSelectedAddressId(null);
-                    setForm((prev) => ({
-                      ...prev,
-                      address,
-                      latitude,
-                      longitude,
-                    }));
+                {(!token || addressMode === "new") && (
+                  <div className="bg-white dark:bg-transparent rounded-xl">
 
-                    // console.log(form);
-                    // console.log("Selected address:", address);
-                    // console.log("Selected latitude:", latitude);
-                    // console.log("Selected longitude:", longitude);
+                    <VietmapAddressAutocomplete
+                      initialAddress={form.address}
+                      error={errors.address}
+                      onAddressSelect={({ address, latitude, longitude }) => {
+                        setSelectedAddressId(null);
+                        setForm((prev) => ({
+                          ...prev,
+                          address,
+                          latitude,
+                          longitude,
+                        }));
 
-                    setErrors((prev) => ({
-                      ...prev,
-                      address: validateOrderField("address", address),
-                    }));
-                  }}
-                />
+                        setErrors((prev) => ({
+                          ...prev,
+                          address: validateOrderField("address", address),
+                        }));
+                      }}
+                    />
+                  </div>
+                )}
 
                 {isDeliveryOutOfRange && (
                   <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm flex gap-3 shadow-sm items-start">
@@ -702,27 +758,30 @@ export default function CheckoutPage() {
                   </div>
                 )}
 
-                <div>
-                  <label className="text-sm font-medium mb-2 block">Ghi chú cho Shipper (Tùy chọn)</label>
-                  <Textarea
-                    value={form.delivery_note}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      setForm((prev) => ({
-                        ...prev,
-                        delivery_note: value,
-                      }));
-                      setErrors((prev) => ({
-                        ...prev,
-                        delivery_note: validateOrderField("note", value),
-                      }));
-                    }}
-                    placeholder="VD: Nhờ shipper gọi khi tới nơi, dặn bảo vệ toà nhà..."
-                  />
-                  {errors.delivery_note && (
-                    <p className="text-sm text-red-500 mt-1">{errors.delivery_note}</p>
-                  )}
-                </div>
+                {(!token || addressMode === "new") && (
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Chi tiết số nhà, ngõ ngách (Tùy chọn)</label>
+                    <Input
+                      value={form.delivery_note}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setForm((prev) => ({
+                          ...prev,
+                          delivery_note: value,
+                        }));
+                        setErrors((prev) => ({
+                          ...prev,
+                          delivery_note: validateOrderField("note", value),
+                        }));
+                      }}
+                      placeholder="VD: Số nhà 10, Ngõ 20..."
+                      className={`bg-white dark:bg-transparent ${errors.delivery_note ? "border-red-500 focus-visible:ring-red-500" : ""}`}
+                    />
+                    {errors.delivery_note && (
+                      <p className="text-sm text-red-500 mt-1">{errors.delivery_note}</p>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 
