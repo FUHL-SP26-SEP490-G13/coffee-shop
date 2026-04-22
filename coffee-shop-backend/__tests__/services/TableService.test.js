@@ -3,29 +3,55 @@ const TableRepository = require('../../src/repositories/TableRepository');
 const AreaRepository = require('../../src/repositories/AreaRepository');
 const LoyaltyService = require('../../src/services/LoyaltyService');
 
+const { logTestCase } = require('../utils/logger');
+
 jest.mock('../../src/repositories/TableRepository');
 jest.mock('../../src/repositories/AreaRepository');
 jest.mock('../../src/services/LoyaltyService');
 
 describe('TableService', () => {
-  const printDivider = () => {
-    console.log('\n' + '='.repeat(50));
-  };
+  const logCase = (payload = {}) => {
 
-  const logCase = ({ title, input, expected, reality }) => {
-    printDivider();
-    console.log(title);
-    printDivider();
+    const {
 
-    if (input !== undefined) {
-      console.log('\nINPUT:', JSON.stringify(input, null, 2));
-    }
-    if (expected !== undefined) {
-      console.log('OUTPUT EXPECT:', JSON.stringify(expected, null, 2));
-    }
-    if (reality !== undefined) {
-      console.log('OUTPUT REALITY:', JSON.stringify(reality, null, 2));
-    }
+      title,
+
+      method,
+
+      tcid,
+
+      crud,
+
+      scenario,
+
+      input,
+
+      expected,
+
+      outputExpect,
+
+      reality,
+
+    } = payload;
+
+
+    const nameParts = [title, method, scenario, tcid].filter(Boolean);
+
+    if (crud) nameParts.push(`CRUD: ${crud}`);
+
+
+    logTestCase({
+
+      name: nameParts.join(' - ') || 'Test case',
+
+      input,
+
+      expected: expected !== undefined ? expected : outputExpect,
+
+      actual: reality,
+
+    });
+
   };
 
   beforeEach(() => {
