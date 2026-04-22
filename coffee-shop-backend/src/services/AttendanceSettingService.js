@@ -12,14 +12,14 @@ class AttendanceSettingService {
   }
 
   async updateSetting(data) {
-    const allowedFields = [
+    const allowedNumberFields = [
       { key: "early_checkin_minutes", label: "Check-in sớm tối đa" },
       { key: "late_after_minutes", label: "Tính muộn sau" },
     ];
 
     const payload = {};
 
-    for (const field of allowedFields) {
+    for (const field of allowedNumberFields) {
       if (data[field.key] !== undefined) {
         const value = Number(data[field.key]);
         if (!Number.isInteger(value) || value < 0) {
@@ -30,6 +30,10 @@ class AttendanceSettingService {
         }
         payload[field.key] = value;
       }
+    }
+
+    if (data.kiosk_secret_key !== undefined) {
+      payload.kiosk_secret_key = data.kiosk_secret_key;
     }
 
     if (Object.keys(payload).length === 0) {

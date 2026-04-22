@@ -26,7 +26,10 @@ class AttendanceSettingRepository {
       values.push(data.max_late_minutes);
     }
 
-
+    if (data.kiosk_secret_key !== undefined) {
+      fields.push("kiosk_secret_key = ?");
+      values.push(data.kiosk_secret_key);
+    }
 
     if (fields.length === 0) {
       return this.findSetting();
