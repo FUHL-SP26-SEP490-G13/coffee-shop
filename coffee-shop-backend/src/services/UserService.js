@@ -24,9 +24,7 @@ class UserService {
       throw new ErrorResponse(404, 'User không tồn tại');
     }
 
-    // Remove password and pin_code from response
     delete user.password;
-    delete user.pin_code;
 
     return user;
   }
@@ -41,9 +39,7 @@ class UserService {
       throw new ErrorResponse(404, 'User không tồn tại');
     }
 
-    // Remove password and pin_code from response
     delete user.password;
-    delete user.pin_code;
 
     return user;
   }
@@ -57,7 +53,6 @@ class UserService {
     // Remove passwords and PINs from all users
     users.forEach((user) => {
       delete user.password;
-      delete user.pin_code;
     });
 
     return users;
@@ -73,32 +68,13 @@ class UserService {
 
     const users = await UserRepository.search(keyword.trim(), options);
 
-    // Remove passwords and PIN from all users
     users.forEach((user) => {
       delete user.password;
-      delete user.pin_code;
     });
 
     return users;
   }
 
-  /**
-   * Generate a unique 4-digit PIN code
-   */
-  async generateUniquePin() {
-    let isUnique = false;
-    let pinCode;
-
-    while (!isUnique) {
-      pinCode = Math.floor(1000 + Math.random() * 9000).toString();
-      const existingUser = await UserRepository.findByPinCode(pinCode);
-      if (!existingUser) {
-        isUnique = true;
-      }
-    }
-
-    return pinCode;
-  }
 
   /**
    * Create new staff or barista (admin only)
@@ -133,13 +109,11 @@ class UserService {
 
     const tempPassword = generateStrongPassword(12);
     const hashedPassword = await hashPassword(tempPassword);
-    const pinCode = await this.generateUniquePin();
 
     const user = await UserRepository.create({
       phone: data.phone,
       username: data.username,
       password: hashedPassword,
-      pin_code: pinCode,
       email: data.email,
       first_name: data.first_name,
       last_name: data.last_name,
@@ -212,9 +186,7 @@ class UserService {
     // Update user
     const updatedUser = await UserRepository.update(id, data);
 
-    // Remove password and pin_code from response
     delete updatedUser.password;
-    delete updatedUser.pin_code;
 
     return updatedUser;
   }
@@ -241,9 +213,7 @@ class UserService {
     // Update profile using repository method with allowed fields only
     const updatedUser = await UserRepository.updateProfile(userId, data);
 
-    // Remove password and pin_code from response
     delete updatedUser.password;
-    delete updatedUser.pin_code;
 
     return updatedUser;
   }
@@ -369,7 +339,6 @@ class UserService {
     // Remove passwords and PINs
     allStaff.forEach((user) => {
       delete user.password;
-      delete user.pin_code;
     });
 
     return allStaff;
@@ -381,36 +350,14 @@ class UserService {
   async getAllCustomers(options = {}) {
     const customers = await UserRepository.findByRole(ROLES.CUSTOMER, options);
 
-    // Remove passwords and PINs
     customers.forEach((user) => {
       delete user.password;
-      delete user.pin_code;
     });
 
     return customers;
   }
 
-  /**
-   * Generate a new PIN for a user
-   */
-  async generateNewPinForUser(userId) {
-    const user = await UserRepository.findById(userId);
-    // console.log(user);
-    if (!user) {
-      throw new ErrorResponse(404, 'User không tồn tại');
-    }
 
-    if (![ROLES.STAFF, ROLES.BARISTA].includes(user.role_id)) {
-      throw new ErrorResponse(400, 'Chỉ có thể tạo mã PIN cho nhân viên hoặc pha chế');
-    }
-
-    const pinCode = await this.generateUniquePin();
-
-    const updatedUser = await UserRepository.update(userId, { pin_code: pinCode });
-    delete updatedUser.password;
-
-    return updatedUser;
-  }
 }
 
 module.exports = new UserService();

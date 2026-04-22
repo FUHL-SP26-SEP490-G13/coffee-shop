@@ -377,24 +377,7 @@ class UserController {
       next(error);
     }
   }
-  /**
-   * Generate new PIN for user
-   * POST /api/users/:id/generate-pin
-   */
-  async generatePin(req, res, next) {
-    try {
-      const { id } = req.params;
-      const updatedUser = await UserService.generateNewPinForUser(id);
 
-      return response.success(
-        res,
-        updatedUser,
-        'Tạo mã PIN mới thành công'
-      );
-    } catch (error) {
-      next(error);
-    }
-  }
 }
 
 module.exports = new UserController();

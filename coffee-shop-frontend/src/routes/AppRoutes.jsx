@@ -56,8 +56,6 @@ import AdminFlashSales from "@/pages/admin/AdminFlashSale/AdminFlashSales";
 import AdminReputation from "@/pages/admin/AdminReputation/AdminReputation";
 import AdminLoyalty from "@/pages/admin/AdminLoyalty/AdminLoyalty";
 
-import Attendance from "@/pages/attendance/Attendance";
-
 import AdminEndOfDayReport from "@/pages/admin/AdminEndOfDayReport/AdminEndOfDayReport";
 import AdminShiftReport from "@/pages/admin/AdminShiftReport/AdminShiftReport";
 import TakeawayPOS from '../pages/staff/TakeawayPOS'
@@ -179,15 +177,7 @@ const AppRoutes = () => {
           </RoleGuard>
         }
       />
-      {/* ATTENDANCE */}
-      <Route
-        path="/attendance"
-        element={
-          <RoleGuard allowedRoles={[5]}>
-            <Attendance />
-          </RoleGuard>
-        }
-      />
+
       {/* STAFF NESTED ROUTES */}
       <Route
         path="/staff"
