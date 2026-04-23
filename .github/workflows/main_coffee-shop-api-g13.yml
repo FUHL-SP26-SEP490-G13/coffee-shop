@@ -24,6 +24,7 @@ jobs:
           node-version: '22.x'
 
       - name: npm install, build, and test
+        working-directory: ./coffee-shop-backend
         run: |
           npm install
           npm run build --if-present
@@ -33,7 +34,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: node-app
-          path: .
+          path: ./coffee-shop-backend
 
   deploy:
     runs-on: ubuntu-latest
