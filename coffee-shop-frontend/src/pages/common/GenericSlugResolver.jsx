@@ -46,7 +46,7 @@ export default function GenericSlugResolver() {
     if (slug === 'products' || slugCache[slug]) return;
 
     setLoading(true);
-    fetch(`http://localhost:5000/api/public/slugs/${slug}`)
+    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/public/slugs/${slug}`)
       .then(res => res.json())
       .then(json => {
          if(json.success) {
