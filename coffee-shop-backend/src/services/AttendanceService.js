@@ -5,6 +5,7 @@ const ErrorResponse = require('../utils/ErrorResponse');
 const { ATTENDANCE_STATUS } = require('../config/constants');
 const formatDateStr = require('../helpers/formatDateStr');
 const formatDateTimeStr = require('../helpers/formatDateTimeStr');
+const RekognitionService = require('./RekognitionService');
 
 const CHECKOUT_GRACE_MINUTES = 30;
 
@@ -63,6 +64,47 @@ function registerClockFailure(key) {
 
 
 class AttendanceService {
+  /**
+   * Đăng ký khuôn mặt cho user
+   */
+  async registerFace(userId, imageBuffer) {
+    const user = await UserRepository.findById(userId);
+    if (!user) {
+      throw new ErrorResponse(404, 'Không tìm thấy người dùng');
+    }
+
+    try {
+      const faceId = await RekognitionService.registerFace(imageBuffer);
+      await UserRepository.updateFaceId(userId, faceId);
+      return { message: 'Đăng ký khuôn mặt thành công' };
+    } catch (error) {
+      throw new ErrorResponse(400, 'Lỗi đăng ký khuôn mặt: ' + error.message);
+    }
+  }
+
+  /**
+   * Điểm danh bằng khuôn mặt
+   */
+  async clockByFace(imageBuffer) {
+    let faceId;
+    try {
+      faceId = await RekognitionService.recognizeFace(imageBuffer);
+    } catch (error) {
+      throw new ErrorResponse(400, 'Lỗi nhận diện khuôn mặt: ' + error.message);
+    }
+
+    if (!faceId) {
+      throw new ErrorResponse(400, 'Không tìm thấy khuôn mặt hợp lệ trong ảnh');
+    }
+
+    const user = await UserRepository.findByFaceId(faceId);
+    if (!user || user.isActive === 0) {
+      throw new ErrorResponse(404, 'Khuôn mặt chưa được đăng ký hoặc tài khoản đã bị khóa');
+    }
+
+    return await this._processClockLogic(user);
+  }
+
   async clock(pinCode) {
     if (!pinCode || pinCode.length !== 4) {
       throw new ErrorResponse(400, 'Mã PIN phải gồm 4 chữ số');
@@ -101,6 +143,11 @@ class AttendanceService {
     }
 
     clearClockAttemptState(throttleKey);  // PIN đúng thì reset bộ đếm sai
+
+    return await this._processClockLogic(user);
+  }
+
+  async _processClockLogic(user) {
 
     const settings = await AttendanceSettingRepository.findSetting();
     if (!settings) {

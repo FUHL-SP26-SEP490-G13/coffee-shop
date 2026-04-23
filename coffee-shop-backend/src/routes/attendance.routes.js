@@ -1,5 +1,7 @@
 const express = require('express');
+const multer = require('multer');
 const router = express.Router();
+const upload = multer({ storage: multer.memoryStorage() });
 const controller = require('../controllers/AttendanceController');
 const AsyncMiddleware = require('../middlewares/async.middleware');
 const { authenticate } = require('../middlewares/auth');
@@ -16,6 +18,28 @@ router.post(
   authenticate,
   authorize(ATTENDANCE_ROLE),
   AsyncMiddleware(controller.clock)
+);
+
+// clockin/out by face
+router.post(
+  '/clock-face',
+  upload.single('image'),
+  AsyncMiddleware(controller.clockByFace)
+);
+
+// verify kiosk code
+router.post(
+  '/verify-kiosk',
+  AsyncMiddleware(controller.verifyKiosk)
+);
+
+// register face
+router.post(
+  '/register-face/:userId',
+  authenticate,
+  authorize(MANAGER_ONLY),
+  upload.single('image'),
+  AsyncMiddleware(controller.registerFace)
 );
 
 // Staff view personal list

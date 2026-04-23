@@ -13,6 +13,8 @@ import { Switch } from '../../../components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../components/ui/tabs';
 import PaginationControl from '../../../components/common/PaginationControl';
 import { toast } from 'sonner';
+import FaceRegistrationDialog from '@/components/admin/FaceRegistrationDialog';
+import { Camera } from 'lucide-react';
 
 export default function AdminUsers() {
   const [users, setUsers] = useState([]);
@@ -41,6 +43,14 @@ export default function AdminUsers() {
   const [passwordError, setPasswordError] = useState('');
   const [isTogglingStatus, setIsTogglingStatus] = useState(false);
 
+  const [isPinDialogOpen, setIsPinDialogOpen] = useState(false);
+  const [pinDialogUser, setPinDialogUser] = useState(null);
+  const [generatedPin, setGeneratedPin] = useState('');
+  const [isGeneratingPin, setIsGeneratingPin] = useState(false);
+  const [isConfirmPinOpen, setIsConfirmPinOpen] = useState(false);
+  const [confirmPinUser, setConfirmPinUser] = useState(null);
+  const [isFaceRegistrationOpen, setIsFaceRegistrationOpen] = useState(false);
+  const [faceRegistrationUser, setFaceRegistrationUser] = useState(null);
   const USERS_PER_PAGE = 10;
 
   const normalizePhoneNumber = (phone) => {
@@ -245,6 +255,36 @@ export default function AdminUsers() {
     }
   };
 
+  const handleGeneratePinClick = (user) => {
+    setConfirmPinUser(user);
+    setIsConfirmPinOpen(true);
+  };
+
+  const handleFaceRegistrationClick = (user) => {
+    setFaceRegistrationUser(user);
+    setIsFaceRegistrationOpen(true);
+  };
+
+  const handleConfirmGeneratePin = async () => {
+    if (!confirmPinUser) return;
+    setIsGeneratingPin(true);
+    try {
+      const response = await userService.generatePin(confirmPinUser.id);
+      if (response.success) {
+        setPinDialogUser(confirmPinUser);
+        setGeneratedPin(response.data.pin_code);
+        setIsConfirmPinOpen(false);
+        setIsPinDialogOpen(true);
+        toast.success(`Đã tạo mã PIN mới cho ${confirmPinUser.first_name} ${confirmPinUser.last_name}`);
+      } else {
+        toast.error(response.message || 'Lỗi tạo mã PIN');
+      }
+    } catch (err) {
+      toast.error(err.message || 'Có lỗi xảy ra khi tạo mã PIN');
+    } finally {
+      setIsGeneratingPin(false);
+    }
+  };
 
   const getRoleInfo = (roleId) => {
     switch (Number(roleId)) {
@@ -453,7 +493,28 @@ export default function AdminUsers() {
                                 checked={user.isActive === 1}
                                 onCheckedChange={() => handleStatusToggle(user)}
                               />
-
+                              {user.role_id !== 4 && (
+                                <>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleFaceRegistrationClick(user)}
+                                    title="Đăng ký khuôn mặt"
+                                    disabled={user.isActive === 0}
+                                  >
+                                    <Camera className="h-4 w-4 text-green-600" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleGeneratePinClick(user)}
+                                    title="Cấp lại mã PIN"
+                                    disabled={isGeneratingPin || user.isActive === 0}
+                                  >
+                                    <Key className="h-4 w-4 text-blue-500" />
+                                  </Button>
+                                </>
+                              )}
                             </div>
                           </TableCell>
                         </TableRow>
@@ -657,7 +718,60 @@ export default function AdminUsers() {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={isConfirmPinOpen} onOpenChange={(open) => {
+        setIsConfirmPinOpen(open);
+        if (!open) {
+          setConfirmPinUser(null);
+        }
+      }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Xác nhận tạo mã PIN mới</DialogTitle>
+            <DialogDescription>
+              {confirmPinUser && (
+                <>
+                  Bạn sắp tạo mã PIN mới cho <strong>{confirmPinUser.first_name} {confirmPinUser.last_name}</strong>.
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
 
+          <div className="py-4 space-y-2">
+            <p className="text-sm text-slate-700 dark:text-slate-300">
+              Việc này sẽ vô hiệu hóa mã PIN cũ của nhân viên. Hành động này không thể hoàn tác.
+            </p>
+          </div>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsConfirmPinOpen(false)}
+              disabled={isGeneratingPin}
+            >
+              Hủy
+            </Button>
+            <Button
+              type="button"
+              className="bg-amber-600 hover:bg-amber-700 text-white"
+              onClick={handleConfirmGeneratePin}
+              disabled={isGeneratingPin}
+            >
+              {isGeneratingPin ? 'Đang tạo...' : 'Xác nhận tạo mã'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Face Registration Dialog */}
+      <FaceRegistrationDialog 
+        isOpen={isFaceRegistrationOpen}
+        onClose={() => {
+          setIsFaceRegistrationOpen(false);
+          setFaceRegistrationUser(null);
+        }}
+        user={faceRegistrationUser}
+      />
     </div>
   );
 }

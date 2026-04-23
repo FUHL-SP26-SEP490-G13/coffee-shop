@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Loader2, Save, Clock, AlertTriangle } from "lucide-react";
+import { Loader2, Save, Clock, AlertTriangle, Key, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,9 +10,11 @@ export default function AdminAttendanceSettings() {
   const [form, setForm] = useState({
     early_checkin_minutes: 15,
     late_after_minutes: 10,
+    kiosk_secret_key: "",
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -23,6 +25,7 @@ export default function AdminAttendanceSettings() {
           setForm({
             early_checkin_minutes: res.data.early_checkin_minutes ?? 15,
             late_after_minutes: res.data.late_after_minutes ?? 10,
+            kiosk_secret_key: res.data.kiosk_secret_key || "",
           });
         }
       } catch {
@@ -35,6 +38,13 @@ export default function AdminAttendanceSettings() {
   }, []);
 
   const handleChange = (field, value) => {
+    if (field === "kiosk_secret_key") {
+      setForm((prev) => ({
+        ...prev,
+        [field]: value,
+      }));
+      return;
+    }
     const num = parseInt(value, 10);
     setForm((prev) => ({
       ...prev,
@@ -72,7 +82,7 @@ export default function AdminAttendanceSettings() {
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm text-muted-foreground">
-            Cấu hình khung giờ điểm danh và ngưỡng tính đi trễ cho nhân viên.
+            Cấu hình khung giờ điểm danh, ngưỡng tính đi trễ và bảo mật Kiosk.
           </p>
         </div>
         <Button onClick={handleSave} disabled={isSaving} className="gap-2">
@@ -82,7 +92,7 @@ export default function AdminAttendanceSettings() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left: Two setting cards */}
+        {/* Left: Settings cards */}
         <div className="lg:col-span-2 space-y-4">
           {/* Early Check-in Card */}
           <div className="bg-white dark:bg-slate-900 border rounded-xl overflow-hidden shadow-sm">
@@ -155,6 +165,51 @@ export default function AdminAttendanceSettings() {
               </p>
             </div>
           </div>
+
+          {/* Kiosk Secret Key Card */}
+          <div className="bg-white dark:bg-slate-900 border rounded-xl overflow-hidden shadow-sm">
+            <div className="flex items-center gap-3 px-5 py-4 bg-purple-50 dark:bg-purple-950/40 border-b border-purple-100 dark:border-purple-900">
+              <div className="p-2 bg-purple-100 dark:bg-purple-900 rounded-lg">
+                <Key className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-sm text-purple-800 dark:text-purple-300">Mã bảo mật Kiosk (Máy chấm công)</h3>
+                <p className="text-xs text-purple-600 dark:text-purple-400 mt-0.5">
+                  Mã dùng để kích hoạt ứng dụng điểm danh trên máy tính bảng
+                </p>
+              </div>
+              <Button onClick={handleSave} disabled={isSaving} size="sm" variant="outline" className="gap-2 shrink-0 bg-white dark:bg-slate-800">
+                {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                Lưu
+              </Button>
+            </div>
+            <div className="px-5 py-4 flex flex-col md:flex-row md:items-end gap-4">
+              <div className="space-y-1.5 w-full md:w-80 shrink-0">
+                <Label htmlFor="kiosk_secret_key" className="text-xs text-muted-foreground">Mật khẩu kích hoạt</Label>
+                <div className="flex items-center border rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-purple-500 bg-white dark:bg-slate-950 pr-2">
+                  <Input
+                    id="kiosk_secret_key"
+                    type={showPassword ? "text" : "password"}
+                    value={form.kiosk_secret_key}
+                    onChange={(e) => handleChange("kiosk_secret_key", e.target.value)}
+                    placeholder="VD: CAFE2026..."
+                    className="border-0 text-base focus-visible:ring-0 focus-visible:ring-offset-0 px-3"
+                  />
+                  <button 
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="p-2 text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+              <p className="text-sm text-muted-foreground pb-1">
+                Để trống nếu muốn sử dụng mã Kiosk mặc định của hệ thống.
+              </p>
+            </div>
+          </div>
+
         </div>
 
         {/* Right: Timeline Preview */}

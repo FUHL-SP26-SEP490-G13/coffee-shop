@@ -1,6 +1,9 @@
 const AttendanceService = require('../services/AttendanceService');
 const response = require('../utils/response');
+const ErrorResponse = require('../utils/ErrorResponse');
 const { calculateOffset } = require('../utils/helpers');
+
+const AttendanceSettingRepository = require('../repositories/AttendanceSettingRepository');
 
 class AttendanceController {
   /**
@@ -18,6 +21,78 @@ class AttendanceController {
         attendance: result.attendance,
         lateMinutes: result.lateMinutes
       },
+      result.message
+    );
+  }
+
+  /**
+   * POST /api/attendance/verify-kiosk
+   * Xác thực mã Kiosk
+   */
+  async verifyKiosk(req, res) {
+    const { kioskKey } = req.body;
+    const { KIOSK_SECRET_KEY } = require('../config/env');
+    
+    const settings = await AttendanceSettingRepository.findSetting();
+    const validKey = settings?.kiosk_secret_key || KIOSK_SECRET_KEY;
+    
+    if (!kioskKey || kioskKey !== validKey) {
+      throw new ErrorResponse(403, 'Mã bảo mật Kiosk không chính xác. Vui lòng thử lại.');
+    }
+
+    return response.success(res, null, 'Xác thực Kiosk thành công');
+  }
+
+  /**
+   * POST /api/attendance/clock-face
+   * Điểm danh bằng hình ảnh khuôn mặt
+   */
+  async clockByFace(req, res) {
+    const kioskKey = req.headers['x-kiosk-key'];
+    const { KIOSK_SECRET_KEY } = require('../config/env');
+    
+    const settings = await AttendanceSettingRepository.findSetting();
+    const validKey = settings?.kiosk_secret_key || KIOSK_SECRET_KEY;
+    
+    // Kiểm tra xem request có xuất phát từ thiết bị Kiosk hợp lệ không
+    if (!kioskKey || kioskKey !== validKey) {
+      throw new ErrorResponse(403, 'Thiết bị này không được ủy quyền để điểm danh. Vui lòng cấu hình lại Kiosk.');
+    }
+
+    if (!req.file) {
+      throw new ErrorResponse(400, 'Không tìm thấy file ảnh');
+    }
+
+    const imageBuffer = req.file.buffer;
+    const result = await AttendanceService.clockByFace(imageBuffer);
+
+    return response.success(
+      res,
+      {
+        type: result.type,
+        attendance: result.attendance,
+        lateMinutes: result.lateMinutes
+      },
+      result.message
+    );
+  }
+
+  /**
+   * POST /api/attendance/register-face/:userId
+   * Đăng ký khuôn mặt cho nhân viên
+   */
+  async registerFace(req, res) {
+    const { userId } = req.params;
+    if (!req.file) {
+      throw new ErrorResponse(400, 'Không tìm thấy file ảnh');
+    }
+
+    const imageBuffer = req.file.buffer;
+    const result = await AttendanceService.registerFace(userId, imageBuffer);
+
+    return response.success(
+      res,
+      result,
       result.message
     );
   }

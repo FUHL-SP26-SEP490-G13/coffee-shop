@@ -16,6 +16,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@aws-sdk/client-rekognition": "^3.1033.0",
     "@google/genai": "^1.44.0",
     "@payos/node": "^2.0.5",
     "axios": "^1.15.1",

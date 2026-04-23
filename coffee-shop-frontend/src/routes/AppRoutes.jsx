@@ -55,6 +55,9 @@ import AdminReceiptSettings from "@/pages/admin/AdminReceiptSettings/AdminReceip
 import AdminFlashSales from "@/pages/admin/AdminFlashSale/AdminFlashSales";
 import AdminReputation from "@/pages/admin/AdminReputation/AdminReputation";
 import AdminLoyalty from "@/pages/admin/AdminLoyalty/AdminLoyalty";
+import AdminDeliveryAreas from "@/pages/admin/AdminDeliveryAreas/AdminDeliveryAreas";
+import Attendance from "@/pages/attendance/Attendance";
+import AttendanceKiosk from "@/pages/attendance/AttendanceKiosk";
 
 import AdminEndOfDayReport from "@/pages/admin/AdminEndOfDayReport/AdminEndOfDayReport";
 import AdminShiftReport from "@/pages/admin/AdminShiftReport/AdminShiftReport";
@@ -179,6 +182,17 @@ const AppRoutes = () => {
         }
       />
 
+      {/* KIOSK */}
+      <Route path="/kiosk/attendance" element={<AttendanceKiosk />} />
+      {/* ATTENDANCE */}
+      <Route
+        path="/attendance"
+        element={
+          <RoleGuard allowedRoles={[5]}>
+            <Attendance />
+          </RoleGuard>
+        }
+      />
       {/* STAFF NESTED ROUTES */}
       <Route
         path="/staff"
