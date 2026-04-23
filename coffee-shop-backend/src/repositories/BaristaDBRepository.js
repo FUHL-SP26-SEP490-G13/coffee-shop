@@ -82,12 +82,15 @@ class BaristaDBRepository {
       dateFilterSql = " AND DATE(o.created_at) = CURDATE()";
     }
 
-    const currentSession = await CashSessionRepository.getCurrentSession();
+    const currentSession = await CashSessionRepository.findOpenSession();
     if (currentSession && currentSession.id) {
-       dateFilterSql += " AND (o.status IN ('pending', 'preparing', 'served', 'delivering') OR o.cash_session_id IS NULL OR o.cash_session_id = ?)";
-       queryParams.push(currentSession.id);
+       // Đơn pending: hiển thị đơn chưa được nhận (cash_session_id IS NULL) + đơn pending thuộc ca hiện tại
+       // Đơn khác (preparing, served, completed, cancelled): chỉ hiển thị đơn thuộc ca hiện tại
+       dateFilterSql += " AND ((o.status = 'pending' AND (o.cash_session_id IS NULL OR o.cash_session_id = ?)) OR (o.status != 'pending' AND o.cash_session_id = ?))";
+       queryParams.push(currentSession.id, currentSession.id);
     } else {
-       dateFilterSql += " AND (o.status IN ('pending', 'preparing', 'served', 'delivering') OR o.cash_session_id IS NULL)";
+       // Không có ca mở: chỉ hiển thị đơn pending chưa nhận (để staff thấy khi mở ca)
+       dateFilterSql += " AND o.status = 'pending' AND o.cash_session_id IS NULL";
     }
 
     const [rows] = await pool.query(

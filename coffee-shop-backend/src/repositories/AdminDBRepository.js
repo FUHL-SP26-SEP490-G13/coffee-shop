@@ -224,7 +224,7 @@ class AdminDBRepository {
         CASE WHEN o.is_paid = 0 THEN o.total_amount ELSE 0 END as debt
       FROM orders o
       LEFT JOIN order_payments op ON o.id = op.order_id
-      LEFT JOIN users u ON o.created_by = u.id
+      LEFT JOIN users u ON o.staff_id = u.id
       LEFT JOIN order_delivery_info odi ON o.id = odi.order_id
       WHERE o.created_at >= ? AND o.created_at <= ?
       AND o.is_paid = 1
@@ -286,7 +286,7 @@ class AdminDBRepository {
               o.status
            FROM orders o
            LEFT JOIN order_payments op ON o.id = op.order_id
-           LEFT JOIN users u ON o.created_by = u.id
+           LEFT JOIN users u ON o.staff_id = u.id
            LEFT JOIN order_delivery_info odi ON o.id = odi.order_id
            WHERE DATE(o.created_at) = ?
              AND o.status != 'cancelled'
@@ -430,7 +430,7 @@ class AdminDBRepository {
             COALESCE(o.discount_amount, 0) as discount,
             o.total_amount as revenue
           FROM orders o
-          LEFT JOIN users u ON o.created_by = u.id
+          LEFT JOIN users u ON o.staff_id = u.id
           LEFT JOIN order_delivery_info odi ON o.id = odi.order_id
           WHERE o.is_paid = 1
             AND o.status != 'cancelled'
@@ -460,7 +460,7 @@ class AdminDBRepository {
         0 as returnValue,
         SUM(o.total_amount) as netRevenue
       FROM orders o
-      LEFT JOIN users u ON o.created_by = u.id
+      LEFT JOIN users u ON o.staff_id = u.id
       WHERE o.is_paid = 1
         AND o.status != 'cancelled'
         AND o.created_at >= ? AND o.created_at <= ?
@@ -485,7 +485,7 @@ class AdminDBRepository {
           WHERE o.is_paid = 1
             AND o.status != 'cancelled'
             AND o.created_at >= ? AND o.created_at <= ?
-            AND o.created_by = ?
+            AND o.staff_id = ?
           ORDER BY o.created_at DESC`,
           [startDate, endDate, row.staffId]
         );

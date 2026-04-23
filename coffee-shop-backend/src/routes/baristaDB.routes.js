@@ -9,7 +9,7 @@ const { ROLES_STRING } = require("../config/constants");
 router.get(
   "/dashboard",
   authenticate,
-  authorize([ROLES_STRING.BARISTA]),
+  authorize([ROLES_STRING.BARISTA, ROLES_STRING.STAFF, ROLES_STRING.MANAGER]),
   controller.getOverview
 );
 

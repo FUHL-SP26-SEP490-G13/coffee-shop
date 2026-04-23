@@ -17,6 +17,7 @@ import {
   Sun,
   Moon,
   Coffee,
+  Table2,
 } from 'lucide-react';
 import {
   AlertDialog,
@@ -193,7 +194,7 @@ export function StaffApp() {
       title: 'Bán Hàng & Phục Vụ',
       items: [
         { id: 'dashboard', icon: LayoutDashboard, label: 'Tổng quan', path: '/staff/dashboard' },
-        { id: 'tables', icon: Users, label: 'Phòng bàn', path: '/staff/tables' },
+        { id: 'tables', icon: Table2, label: 'Phòng bàn', path: '/staff/tables' },
         { id: 'takeaway', icon: ShoppingBag, label: 'Đặt mang đi', path: '/staff/takeaway' },
         { id: 'orders-pending', icon: ShoppingBag, label: 'Đơn online chờ xác nhận', path: '/staff/orders/pending' },
         { id: 'orders-management', icon: ShoppingBag, label: 'Quản lý đơn hàng', path: '/staff/orders/management' },
@@ -750,26 +751,40 @@ export function StaffApp() {
 }
 
 const CashSessionButton = ({ isSidebarCompact }) => {
-  const { session, handleTriggerClose } = useCashSession();
-  const [isHandoverModalOpen, setIsHandoverModalOpen] = useState(false);
+  const { session, loading, openShift, closeShift, showHandover } = useCashSession();
 
-  const closeButton = session ? (
+  if (loading) return null;
+
+  const openShiftButton = (
     <button
-      onClick={handleTriggerClose}
-      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all mb-2 text-rose-600 bg-rose-50 hover:bg-rose-100 dark:bg-rose-900/20 dark:text-rose-400 dark:hover:bg-rose-900/40 ${isSidebarCompact ? 'md:justify-center md:px-2' : ''}`}
-      title={isSidebarCompact ? 'Đóng ca' : undefined}
+      onClick={openShift}
+      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all mb-2 text-white bg-emerald-600 hover:bg-emerald-700 shadow-md shadow-emerald-600/20 ${isSidebarCompact ? 'md:justify-center md:px-2' : ''}`}
+      title={isSidebarCompact ? 'Mở ca làm việc' : undefined}
     >
       <Clock className='w-5 h-5 flex-shrink-0' />
-      <span className={`text-sm font-semibold ${isSidebarCompact ? 'md:hidden' : ''}`}>
-        Đóng ca làm
+      <span className={`text-sm font-semibold tracking-wide ${isSidebarCompact ? 'md:hidden' : ''}`}>
+        Mở ca làm việc
       </span>
     </button>
-  ) : null;
+  );
+
+  const closeButton = (
+    <button
+      onClick={closeShift}
+      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all mb-2 text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-100 dark:bg-rose-900/20 dark:text-rose-400 dark:hover:bg-rose-900/40 dark:border-rose-900/30 ${isSidebarCompact ? 'md:justify-center md:px-2' : ''}`}
+      title={isSidebarCompact ? 'Đóng ca' : undefined}
+    >
+      <LogOut className='w-5 h-5 flex-shrink-0 -rotate-90' />
+      <span className={`text-sm font-semibold ${isSidebarCompact ? 'md:hidden' : ''}`}>
+        Đóng ca
+      </span>
+    </button>
+  );
 
   const historyButton = (
     <button
-      onClick={() => setIsHandoverModalOpen(true)}
-      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all mb-2 text-blue-600 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/40 ${isSidebarCompact ? 'md:justify-center md:px-2' : ''}`}
+      onClick={showHandover}
+      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all mb-2 text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/40 dark:border-blue-900/30 ${isSidebarCompact ? 'md:justify-center md:px-2' : ''}`}
       title={isSidebarCompact ? 'Phiếu giao ca' : undefined}
     >
       <ClipboardList className='w-5 h-5 flex-shrink-0' />
@@ -779,16 +794,43 @@ const CashSessionButton = ({ isSidebarCompact }) => {
     </button>
   );
 
+  if (!session) {
+    return (
+      <>
+        {isSidebarCompact ? (
+          <>
+            <Tooltip>
+              <TooltipTrigger asChild>{openShiftButton}</TooltipTrigger>
+              <TooltipContent side='right' sideOffset={10}>Mở ca làm việc</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>{historyButton}</TooltipTrigger>
+              <TooltipContent side='right' sideOffset={10}>Phiếu giao ca</TooltipContent>
+            </Tooltip>
+          </>
+        ) : (
+          <>
+            {openShiftButton}
+            {historyButton}
+          </>
+        )}
+      </>
+    );
+  }
+
   return (
     <>
+      <div className={`px-4 mb-2 ${isSidebarCompact ? 'md:hidden' : ''}`}>
+        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Ca hiện tại</p>
+        <p className="text-sm font-bold text-slate-700 dark:text-slate-200">{session.code}</p>
+      </div>
+      
       {isSidebarCompact ? (
         <>
-          {session && (
-            <Tooltip>
-              <TooltipTrigger asChild>{closeButton}</TooltipTrigger>
-              <TooltipContent side='right' sideOffset={10}>Đóng ca làm</TooltipContent>
-            </Tooltip>
-          )}
+          <Tooltip>
+            <TooltipTrigger asChild>{closeButton}</TooltipTrigger>
+            <TooltipContent side='right' sideOffset={10}>Đóng ca</TooltipContent>
+          </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>{historyButton}</TooltipTrigger>
             <TooltipContent side='right' sideOffset={10}>Phiếu giao ca</TooltipContent>
@@ -800,10 +842,9 @@ const CashSessionButton = ({ isSidebarCompact }) => {
           {historyButton}
         </>
       )}
-      <ShiftHandoverModal isOpen={isHandoverModalOpen} onClose={() => setIsHandoverModalOpen(false)} />
     </>
   );
-}
+};
 
 export function StaffAppWrapped() {
   return (

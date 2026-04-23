@@ -105,6 +105,17 @@ class BaristaDBController {
         }
       }
 
+      // Emit socket event để các tab khác (quản lý đơn hàng, cửa sổ pha chế) tự cập nhật
+      const io = req.app.get("io");
+      if (io) {
+        io.emit("order:status-updated", {
+          order_id: Number(id),
+          status,
+          order_type: order?.order_type,
+          updated_at: new Date().toISOString(),
+        });
+      }
+
       return res.json({
         success: true,
         message: "Cập nhật trạng thái thành công",

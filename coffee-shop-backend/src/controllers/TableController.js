@@ -335,7 +335,7 @@ class TableController {
         });
       }
 
-      const result = await TableService.splitBill(Number(id), payload);
+      const result = await TableService.splitBill(Number(id), payload, req.user);
 
       res.status(200).json({
         success: true,

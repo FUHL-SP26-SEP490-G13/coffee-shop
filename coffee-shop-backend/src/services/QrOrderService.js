@@ -263,7 +263,6 @@ class QrOrderService {
 
       const orderId = await QrOrderRepository.createOrder(connection, {
         user_id: userId,
-        created_by: userId,
         customer_type: user ? "registered" : "guest",
         order_type: "dine-in",
         table_id: tableId,
