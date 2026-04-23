@@ -69,7 +69,6 @@ class QrOrderRepository {
       `
       INSERT INTO orders (
         user_id,
-        created_by,
         customer_type,
         order_type,
         table_id,
@@ -79,13 +78,13 @@ class QrOrderRepository {
         amount,
         discount_amount,
         discount_id,
-        session_id
+        session_id,
+        cash_session_id
       )
-      VALUES (?, ?, ?, ?, ?, 'preparing', 0, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, 'pending', 0, ?, ?, ?, ?, ?, ?)
       `,
       [
         data.user_id,
-        data.created_by,
         data.customer_type,
         data.order_type,
         data.table_id || null,
@@ -93,7 +92,8 @@ class QrOrderRepository {
         Math.max(0, Number(data.amount ?? data.total_amount) || 0),
         Math.max(0, Number(data.discount_amount) || 0),
         data.discount_id || null,
-        data.session_id || null
+        data.session_id || null,
+        data.cash_session_id || null,
       ]
     );
 

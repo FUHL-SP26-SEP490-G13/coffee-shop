@@ -1,6 +1,6 @@
 const OrderRepository = require("../repositories/OrderRepository");
 const CashSessionRepository = require("../repositories/CashSessionRepository");
-const WardRepository = require("../repositories/WardRepository");
+
 const ReputationService = require("./ReputationService");
 const LoyaltyService = require("./LoyaltyService");
 const ErrorResponse = require("../utils/ErrorResponse");
@@ -37,23 +37,7 @@ class OrderOnlineService {
     return onlyDigits;
   }
 
-  buildDeliveryAddressString(address, wardName, provinceName) {
-    const parts = [address, wardName, provinceName]
-      .map((value) => String(value || "").trim())
-      .filter(Boolean);
 
-    const uniqueParts = [];
-    const seen = new Set();
-
-    for (const part of parts) {
-      const key = part.toLowerCase();
-      if (seen.has(key)) continue;
-      seen.add(key);
-      uniqueParts.push(part);
-    }
-
-    return uniqueParts.length > 0 ? uniqueParts.join(", ") : null;
-  }
 
   getHaversineDistanceMeters(lat1, lon1, lat2, lon2) {
     const R = 6371e3;
@@ -129,26 +113,7 @@ class OrderOnlineService {
     }, 0);
   }
 
-  async validateDeliveryWard(provinceId, wardId, connection) {
-    const normalizedProvinceId = Number(provinceId || 0);
-    const normalizedWardId = Number(wardId || 0);
 
-    if (!normalizedProvinceId || !normalizedWardId) {
-      throw new ErrorResponse(400, "Vui lòng chọn tỉnh/thành và xã/phường cho đơn giao hàng");
-    }
-
-    const ward = await WardRepository.findActiveByIdAndProvince(
-      normalizedWardId,
-      normalizedProvinceId,
-      connection
-    );
-
-    if (!ward) {
-      throw new ErrorResponse(400, "Xã/phường không hợp lệ hoặc đang tạm ngưng giao hàng");
-    }
-
-    return ward;
-  }
 
   shouldUseLegacyShippingFallback(order) {
     const createdAtMs = new Date(order?.created_at || 0).getTime();
@@ -291,12 +256,13 @@ class OrderOnlineService {
       receiver_phone,
       receiver_email,
       address,
-      province_id,
-      ward_id,
-      note,
+      order_note,
+      delivery_note,
       discount_code,
       used_points,
       items,
+      latitude,
+      longitude,
     } = payload;
 
     if (!Array.isArray(items) || items.length === 0) {
@@ -408,13 +374,7 @@ class OrderOnlineService {
       }
 
       if (order_type === "delivery") {
-        deliveryWard = await this.validateDeliveryWard(
-          province_id,
-          ward_id,
-          connection
-        );
-
-        // Shipping fee feature by province/ward is disabled.
+        // Shipping fee feature is disabled.
         shippingFee = 0;
         deliveryDistanceKm = 0;
       }
@@ -514,7 +474,6 @@ class OrderOnlineService {
 
         orderId = await OrderRepository.createOrder(connection, {
           user_id: userId,
-          created_by: userId,
           customer_type: user ? "registered" : "guest",
           order_type,
           table_id: order_type === "dine-in" ? payload.table_id : null,
@@ -525,6 +484,7 @@ class OrderOnlineService {
           delivery_fee: shippingFee,
           used_points: normalizedUsedPoints,
           cash_session_id: activeSession ? activeSession.id : null,
+          note: order_note?.trim() || null,
         });
 
         if (order_type === "dine-in") {
@@ -567,12 +527,8 @@ class OrderOnlineService {
         }
       }
 
-      if (order_type !== "dine-in" || (note && note.trim())) {
-        const deliveryAddressWithArea = this.buildDeliveryAddressString(
-          address,
-          deliveryWard?.name || null,
-          deliveryWard?.province_name || null
-        );
+      if (order_type !== "dine-in" || (order_note && order_note.trim())) {
+        const deliveryAddressWithArea = address ? address.trim() : "";
 
         const [existingInfo] = await connection.query(
           "SELECT id FROM order_delivery_info WHERE order_id = ?",
@@ -581,8 +537,8 @@ class OrderOnlineService {
 
         if (existingInfo.length > 0) {
           await connection.query(
-            "UPDATE order_delivery_info SET address = ?, note = ? WHERE order_id = ?",
-            [deliveryAddressWithArea, note?.trim() || null, orderId]
+            "UPDATE order_delivery_info SET address = ?, note = ?, latitude = ?, longitude = ? WHERE order_id = ?",
+            [deliveryAddressWithArea, delivery_note?.trim() || null, latitude ?? null, longitude ?? null, orderId]
           );
         } else {
           await OrderRepository.createOrderDeliveryInfo(connection, {
@@ -593,7 +549,9 @@ class OrderOnlineService {
               : "",
             receiver_email: receiver_email?.trim() || null,
             address: deliveryAddressWithArea,
-            note: note?.trim() || null,
+            note: delivery_note?.trim() || null,
+            latitude: latitude ?? null,
+            longitude: longitude ?? null,
           });
         }
       }
@@ -838,7 +796,7 @@ class OrderOnlineService {
     };
   }
 
-  async transitionOrderStatusByStaff(orderId, targetStatus, { cash_received } = {}) {
+  async transitionOrderStatusByStaff(orderId, targetStatus, { cash_received } = {}, staffUser = null) {
     const order = await OrderRepository.findOrderById(orderId);
 
     if (!order) {
@@ -860,7 +818,7 @@ class OrderOnlineService {
       const isCustomerOrder =
         ["registered", "guest", "customer"].includes(customerType) ||
         customerType === "";
-      const isEligibleType = ["delivery", "takeaway"].includes(order.order_type);
+      const isEligibleType = ["delivery", "takeaway", "dine-in"].includes(order.order_type);
 
       if (currentStatus !== "pending") {
         throw new ErrorResponse(400, "Chỉ được chuyển từ chờ xử lý sang đang chuẩn bị");
@@ -869,7 +827,7 @@ class OrderOnlineService {
       if (!isEligibleType || !isCustomerOrder) {
         throw new ErrorResponse(
           400,
-          "Chỉ áp dụng cho đơn online giao hàng hoặc mang về do khách hàng đặt"
+          "Chỉ áp dụng cho đơn online giao hàng, mang về hoặc QR tại bàn do khách hàng đặt"
         );
       }
 
@@ -877,6 +835,13 @@ class OrderOnlineService {
         throw new ErrorResponse(400, "Trạng thái thanh toán của đơn không hợp lệ");
       }
 
+      // Assign to current active session and staff
+      const CashSessionRepository = require("../repositories/CashSessionRepository");
+      const activeSession = await CashSessionRepository.findOpenSession();
+      const cashSessionId = activeSession ? activeSession.id : null;
+      const staffId = staffUser ? staffUser.id : null;
+
+      await OrderRepository.updateOrderStaffAndSession(orderId, staffId, cashSessionId);
       await OrderRepository.updateOrderStatus(orderId, "preparing");
 
       if (!isAlreadyPaid) {
@@ -975,8 +940,8 @@ class OrderOnlineService {
   }
 
   // Xác nhận đơn hàng đang chờ xử lý bởi nhân viên (chuyển sang trạng thái preparing)
-  async confirmDeliveryPreparing(orderId) {
-    return this.transitionOrderStatusByStaff(orderId, "preparing");
+  async confirmDeliveryPreparing(orderId, user = null) {
+    return this.transitionOrderStatusByStaff(orderId, "preparing", {}, user);
   }
 
   async cancelDeliveryOrderByStaff(orderId, actor = {}, payload = {}) {

@@ -72,14 +72,13 @@ class OrderRepository {
     const safeAmount = Math.max(0, Number(data.amount ?? data.total_amount) || 0);
     const safeDiscountAmount = Math.max(0, Number(data.discount_amount) || 0);
 
-    const currentSession = await CashSessionRepository.getCurrentSession();
+    const currentSession = await CashSessionRepository.findOpenSession();
     const cashSessionId = currentSession ? currentSession.id : null;
 
     const [result] = await connection.query(
       `
       INSERT INTO orders (
         user_id,
-        created_by,
         customer_type,
         order_type,
         table_id,
@@ -91,13 +90,14 @@ class OrderRepository {
         delivery_fee,
         used_points,
         session_id,
-        cash_session_id
+        cash_session_id,
+        note,
+        staff_id
       )
-      VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `,
       [
         data.user_id,
-        data.created_by,
         data.customer_type,
         data.order_type,
         data.table_id || null,
@@ -109,6 +109,8 @@ class OrderRepository {
         safeUsedPoints,
         data.session_id || null,
         cashSessionId,
+        data.note || null,
+        data.staff_id || null,
       ]
     );
 
@@ -156,9 +158,11 @@ class OrderRepository {
         receiver_phone,
         receiver_email,
         address,
-        note
+        note,
+        latitude,
+        longitude
       )
-      VALUES (?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `,
       [
         data.order_id,
@@ -167,6 +171,8 @@ class OrderRepository {
         data.receiver_email,
         data.address,
         data.note,
+        data.latitude || null,
+        data.longitude || null,
       ]
     );
   }
@@ -818,6 +824,19 @@ class OrderRepository {
     );
 
     return Number(result?.affectedRows || 0);
+  }
+
+  async updateOrderStaffAndSession(orderId, staffId, cashSessionId) {
+    const [result] = await db.query(
+      `
+      UPDATE orders 
+      SET staff_id = ?,
+          cash_session_id = ?
+      WHERE id = ?
+      `,
+      [staffId || null, cashSessionId || null, orderId]
+    );
+    return result.affectedRows > 0;
   }
 }
 

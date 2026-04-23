@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Loader2, Search, ChevronLeft, ChevronRight, Plus, Users, Key } from 'lucide-react';
+import { Loader2, Search, ChevronLeft, ChevronRight, Plus, Users } from 'lucide-react';
 import userService from '../../../services/userService';
 import { Badge } from '../../../components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../components/ui/table';
@@ -42,12 +42,7 @@ export default function AdminUsers() {
   const [password, setPassword] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [isTogglingStatus, setIsTogglingStatus] = useState(false);
-  const [isPinDialogOpen, setIsPinDialogOpen] = useState(false);
-  const [pinDialogUser, setPinDialogUser] = useState(null);
-  const [generatedPin, setGeneratedPin] = useState('');
-  const [isGeneratingPin, setIsGeneratingPin] = useState(false);
-  const [isConfirmPinOpen, setIsConfirmPinOpen] = useState(false);
-  const [confirmPinUser, setConfirmPinUser] = useState(null);
+
   const [isFaceRegistrationOpen, setIsFaceRegistrationOpen] = useState(false);
   const [faceRegistrationUser, setFaceRegistrationUser] = useState(null);
   const USERS_PER_PAGE = 10;
@@ -189,6 +184,7 @@ export default function AdminUsers() {
         await fetchUsers();
         setIsCreateOpen(false);
         resetCreateForm();
+        toast.success('Tạo nhân viên thành công');
       } else {
         setCreateError(response.message || 'Không thể tạo nhân viên');
       }
@@ -253,36 +249,11 @@ export default function AdminUsers() {
     }
   };
 
-  const handleGeneratePinClick = (user) => {
-    setConfirmPinUser(user);
-    setIsConfirmPinOpen(true);
-  };
-
   const handleFaceRegistrationClick = (user) => {
     setFaceRegistrationUser(user);
     setIsFaceRegistrationOpen(true);
   };
 
-  const handleConfirmGeneratePin = async () => {
-    if (!confirmPinUser) return;
-    setIsGeneratingPin(true);
-    try {
-      const response = await userService.generatePin(confirmPinUser.id);
-      if (response.success) {
-        setPinDialogUser(confirmPinUser);
-        setGeneratedPin(response.data.pin_code);
-        setIsConfirmPinOpen(false);
-        setIsPinDialogOpen(true);
-        toast.success(`Đã tạo mã PIN mới cho ${confirmPinUser.first_name} ${confirmPinUser.last_name}`);
-      } else {
-        toast.error(response.message || 'Lỗi tạo mã PIN');
-      }
-    } catch (err) {
-      toast.error(err.message || 'Có lỗi xảy ra khi tạo mã PIN');
-    } finally {
-      setIsGeneratingPin(false);
-    }
-  };
 
   const getRoleInfo = (roleId) => {
     switch (Number(roleId)) {
@@ -502,15 +473,6 @@ export default function AdminUsers() {
                                   >
                                     <Camera className="h-4 w-4 text-green-600" />
                                   </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => handleGeneratePinClick(user)}
-                                    title="Cấp lại mã PIN"
-                                    disabled={isGeneratingPin || user.isActive === 0}
-                                  >
-                                    <Key className="h-4 w-4 text-blue-500" />
-                                  </Button>
                                 </>
                               )}
                             </div>
@@ -716,77 +678,6 @@ export default function AdminUsers() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={isPinDialogOpen} onOpenChange={(open) => {
-        setIsPinDialogOpen(open);
-        if (!open) {
-          setGeneratedPin('');
-          setPinDialogUser(null);
-        }
-      }}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Mã PIN Mới</DialogTitle>
-            <DialogDescription>
-              Đã tạo mã PIN hệ thống mới cho nhân viên <strong>{pinDialogUser?.first_name} {pinDialogUser?.last_name}</strong>.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex flex-col items-center justify-center py-6 space-y-4">
-            <div className="bg-slate-100 dark:bg-slate-800 px-8 py-5 rounded-xl border">
-              <span className="text-4xl font-mono font-bold tracking-[0.25em] text-slate-800 dark:text-slate-100 ml-3">
-                {generatedPin}
-              </span>
-            </div>
-            <p className="text-sm text-center text-muted-foreground px-4">
-              Vui lòng chụp lại hoặc sao chép mã PIN này và gửi cho nhân viên. Mã PIN được bảo mật một chiều, <b className="text-red-500">sẽ không hiển thị lại ở bất kỳ đâu</b> sau khi đóng cửa sổ này.
-            </p>
-          </div>
-          <DialogFooter>
-            <Button className="w-full" onClick={() => setIsPinDialogOpen(false)}>Ghi nhận và Đóng</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      <Dialog open={isConfirmPinOpen} onOpenChange={(open) => {
-        if (!isGeneratingPin) {
-          setIsConfirmPinOpen(open);
-          if (!open) {
-            setConfirmPinUser(null);
-          }
-        }
-      }}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Xác nhận cấp lại mã PIN</DialogTitle>
-            <DialogDescription>
-              Bạn có chắc chắn muốn cấp mã PIN mới cho nhân viên <strong>{confirmPinUser?.first_name} {confirmPinUser?.last_name}</strong>?
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="py-4 space-y-2">
-            <p className="text-sm text-slate-700 dark:text-slate-300">
-              Việc này sẽ vô hiệu hóa mã PIN cũ của nhân viên. Hành động này không thể hoàn tác.
-            </p>
-          </div>
-
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setIsConfirmPinOpen(false)}
-              disabled={isGeneratingPin}
-            >
-              Hủy
-            </Button>
-            <Button
-              type="button"
-              className="bg-amber-600 hover:bg-amber-700 text-white"
-              onClick={handleConfirmGeneratePin}
-              disabled={isGeneratingPin}
-            >
-              {isGeneratingPin ? 'Đang tạo...' : 'Xác nhận tạo mã'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Face Registration Dialog */}
       <FaceRegistrationDialog 

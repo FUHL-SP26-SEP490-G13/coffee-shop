@@ -27,20 +27,20 @@ class OrderOnlineController {
       try {
         let notifTitle = "Đơn hàng mới";
         let notifMsg = `Có đơn hàng mới #${result.order_id}`;
-        let notifLink = "/staff/orders";
+        let notifLink = "/staff/orders/pending";
 
         if (orderType === "delivery") {
           notifTitle = "Đơn giao hàng mới";
           notifMsg = `Có đơn giao hàng mới #${result.order_id}`;
-          notifLink = "/staff/delivery";
+          notifLink = "/staff/orders/pending";
         } else if (orderType === "takeaway") {
           notifTitle = "Đơn mang đi mới";
           notifMsg = `Có đơn mang đi mới #${result.order_id}`;
-          notifLink = "/staff/takeaway";
+          notifLink = "/staff/orders/pending";
         } else if (orderType === "dine-in") {
           notifTitle = "Đơn tại bàn mới";
           notifMsg = `Bàn ${req.body.table_id || 'khuyết'} vừa đặt đơn mới #${result.order_id}`;
-          notifLink = "/staff/orders"; // Fallback to general staff order view
+          notifLink = "/staff/orders/pending";
         }
 
         const notificationPayload = {
@@ -184,7 +184,7 @@ class OrderOnlineController {
       return res.status(400).json({ success: false, message: "Mã đơn hàng không hợp lệ" });
     }
 
-    const result = await OrderOnlineService.confirmDeliveryPreparing(orderId);
+    const result = await OrderOnlineService.confirmDeliveryPreparing(orderId, req.user);
 
     const io = req.app.get("io");
 
@@ -264,6 +264,15 @@ class OrderOnlineController {
       } catch (error) {
         console.error("Failed to notify customer:", error);
       }
+    }
+
+    // Broadcast để cửa sổ pha chế và các tab khác tự cập nhật
+    if (io) {
+      io.emit("order:status-updated", {
+        order_id: result.order_id,
+        status: result.status,
+        updated_at: new Date().toISOString(),
+      });
     }
 
     return res.json({

@@ -6,24 +6,6 @@ const { calculateOffset } = require('../utils/helpers');
 const AttendanceSettingRepository = require('../repositories/AttendanceSettingRepository');
 
 class AttendanceController {
-  /**
-   * POST /api/attendance/clock
-   * Nhận mã PIN và xử lý clock in hoặc clock out tự động
-   */
-  async clock(req, res) {
-    const { pin_code } = req.body;
-    const result = await AttendanceService.clock(pin_code);
-
-    return response.success(
-      res,
-      {
-        type: result.type,
-        attendance: result.attendance,
-        lateMinutes: result.lateMinutes
-      },
-      result.message
-    );
-  }
 
   /**
    * POST /api/attendance/verify-kiosk

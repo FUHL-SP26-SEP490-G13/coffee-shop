@@ -12,13 +12,6 @@ const MANAGER_ONLY = [ROLES_STRING.MANAGER];
 const ATTENDANCE_ROLE = [ROLES_STRING.ATTENDANCE];
 const ALL_STAFF = [ROLES_STRING.STAFF, ROLES_STRING.BARISTA];
 
-// checkin/out
-router.post(
-  '/clock',
-  authenticate,
-  authorize(ATTENDANCE_ROLE),
-  AsyncMiddleware(controller.clock)
-);
 
 // clockin/out by face
 router.post(

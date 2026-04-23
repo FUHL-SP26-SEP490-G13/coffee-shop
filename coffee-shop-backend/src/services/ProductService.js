@@ -282,6 +282,7 @@ class ProductService {
       }
     }
 
+    // set thumbnail lại nếu bị xóa
     if (thumbnailDeleted && remainingImages.length > 0) {
       const firstRemainingImage = remainingImages.sort(
         (a, b) => a.id - b.id,

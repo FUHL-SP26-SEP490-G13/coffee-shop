@@ -165,23 +165,7 @@ class ShiftService {
             );
         }
 
-        // 3. Nếu là staff -> mỗi ca chỉ có 1 staff
-        if (user.role_name?.toLowerCase() === 'staff') {
-            const existingStaff = await ShiftRepository.findStaffInShift(shift.id);
 
-            const isReactivatingSameRegistration =
-                existingRegistration &&
-                existingRegistration.status === 'cancelled' &&
-                existingStaff &&
-                existingStaff.id === existingRegistration.id;
-
-            if (existingStaff && !isReactivatingSameRegistration) {
-                throw new ErrorResponse(
-                    400,
-                    `${template.name} ngày ${date} đã có ${existingStaff.first_name} ${existingStaff.last_name} phụ trách. Mỗi ca chỉ được có 1 staff.`,
-                );
-            }
-        }
 
         // 4. Tạo mới hoặc khôi phục registration
         let registration;
@@ -290,8 +274,6 @@ class ShiftService {
 
         // Cache các ca active của từng user trong từng ngày
         const userDayShiftCache = {};
-        // Dùng object thường thay vì Set cho dễ hiểu
-        const staffBatchMap = {};
 
         const getUserShiftsInDay = async (userId, dateStr) => {
             const cacheKey = `${userId}_${dateStr}`;
@@ -383,35 +365,7 @@ class ShiftService {
                     );
                 }
 
-                // 3.3 Nếu là staff -> mỗi ca chỉ có 1 staff
-                if (user.role_name?.toLowerCase() === 'staff') {
-                    if (existingShiftSlot) {
-                        const existingStaff = await ShiftRepository.findStaffInShift(existingShiftSlot.id);
 
-                        const isReactivatingSameRegistration =
-                            existingRegistration &&
-                            existingRegistration.status === 'cancelled' &&
-                            existingStaff &&
-                            existingStaff.id === existingRegistration.id;
-
-                        if (existingStaff && !isReactivatingSameRegistration) {
-                            throw new ErrorResponse(
-                                400,
-                                `${template.name} ngày ${dateStr} đã có ${existingStaff.first_name} ${existingStaff.last_name} phụ trách. Mỗi ca chỉ được có 1 staff.`,
-                            );
-                        }
-                    }
-
-                    const staffBatchKey = `${item.template_id}_${dateStr}`;
-                    if (staffBatchMap[staffBatchKey]) {
-                        throw new ErrorResponse(
-                            400,
-                            `${template.name} ngày ${dateStr} đã được gán cho staff ${staffBatchMap[staffBatchKey]} trong lần gán này. Mỗi ca chỉ được có 1 staff.`,
-                        );
-                    }
-
-                    staffBatchMap[staffBatchKey] = `${user.first_name} ${user.last_name}`;
-                }
 
                 // 3.4 Lưu kế hoạch để pass 2 thực thi
                 plan.push({

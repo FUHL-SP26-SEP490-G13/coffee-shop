@@ -43,7 +43,7 @@ const AttendanceKiosk = () => {
     if (!inputKey.trim()) return;
 
     try {
-      const res = await fetch('http://localhost:5000/api/attendance/verify-kiosk', {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/attendance/verify-kiosk`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ kioskKey: inputKey })
@@ -90,7 +90,7 @@ const AttendanceKiosk = () => {
       const formData = new FormData();
       formData.append('image', blob, 'face.jpg');
 
-      const response = await fetch('http://localhost:5000/api/attendance/clock-face', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/attendance/clock-face`, {
         method: 'POST',
         headers: {
           'x-kiosk-key': kioskKey

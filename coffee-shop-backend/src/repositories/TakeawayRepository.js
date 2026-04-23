@@ -38,29 +38,29 @@ class TakeawayRepository {
     connection,
     {
       user_id,
-      created_by,
       order_type,
       total_amount,
       amount,
       discount_amount,
       discount_id,
       cash_session_id,
+      staff_id,
     },
   ) {
     const [result] = await connection.query(
       `INSERT INTO orders 
-         (user_id, created_by, order_type, total_amount, amount, discount_amount, discount_id,
-          status, is_paid, customer_type, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, 'preparing', 0, 'guest', NOW())`,
+         (user_id, order_type, total_amount, amount, discount_amount, discount_id,
+          cash_session_id, staff_id, status, is_paid, customer_type, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'preparing', 0, 'guest', NOW())`,
       [
         user_id || null,
-        created_by,
         order_type,
         total_amount,
         amount,
         discount_amount,
         discount_id || null,
         cash_session_id || null,
+        staff_id || null,
       ],
     );
     return result.insertId;
@@ -166,16 +166,14 @@ class TakeawayRepository {
       `SELECT o.*,
               u.first_name AS staff_first_name, u.last_name AS staff_last_name,
               d.code AS discount_code, d.percentage AS discount_percentage,
-              b.first_name AS barista_first_name, b.last_name AS barista_last_name,
               odi.receiver_name,
               odi.receiver_phone,
               odi.receiver_email,
               odi.address,
               odi.note AS delivery_note
        FROM orders o
-       LEFT JOIN users u ON o.created_by = u.id
+       LEFT JOIN users u ON o.staff_id = u.id
        LEFT JOIN discount d ON o.discount_id = d.id
-       LEFT JOIN users b ON o.assigned_barista_id = b.id
        LEFT JOIN order_delivery_info odi ON odi.order_id = o.id
        WHERE o.id = ?`,
       [orderId],
@@ -258,8 +256,8 @@ class TakeawayRepository {
   async assignBarista(orderId, baristaId) {
     const [result] = await pool.query(
       `UPDATE orders
-       SET assigned_barista_id = ?, status = 'preparing'
-       WHERE id = ? AND status = 'pending' AND assigned_barista_id IS NULL`,
+       SET staff_id = ?, status = 'preparing'
+       WHERE id = ? AND status = 'pending'`,
       [baristaId, orderId],
     );
     return result.affectedRows > 0;
@@ -268,7 +266,7 @@ class TakeawayRepository {
   async completeByBarista(orderId, baristaId) {
     const [result] = await pool.query(
       `UPDATE orders SET status = 'served'
-       WHERE id = ? AND status = 'preparing' AND assigned_barista_id = ?`,
+       WHERE id = ? AND status = 'preparing' AND staff_id = ?`,
       [orderId, baristaId],
     );
     return result.affectedRows > 0;

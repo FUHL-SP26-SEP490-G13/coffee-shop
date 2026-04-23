@@ -19,7 +19,8 @@ class OrderService {
       receiver_phone,
       receiver_email,
       address,
-      note,
+      order_note,
+      delivery_note,
       discount_code,
       used_points,
       items,
@@ -241,20 +242,20 @@ class OrderService {
           : 0;
 
       const orderId = await OrderRepository.createOrder(connection, {
-        user_id: userId,
-        created_by: userId,
-
+        user_id: null,
         // Đơn tại quán và mang về sẽ bắt đầu ở trạng thái "preparing" để nhân viên bếp 
         // có thể thấy và xử lý ngay, không phải chờ khách thanh toán xong mới hiển thị
         status: (order_type === "dine-in" || order_type === "takeaway") ? "preparing" : "pending",
-        customer_type: user ? "registered" : "guest",
+        customer_type: "guest",
         order_type,
         table_id: order_type === "dine-in" ? payload.table_id : null,
         amount: totalAmount,
         discount_amount: totalDiscountAmount,
         total_amount: finalAmount,
         used_points: normalizedUsedPoints,
-        session_id: sessionId
+        session_id: sessionId,
+        note: order_note?.trim() || null,
+        staff_id: userId,
       });
 
       if (order_type === "dine-in") {
@@ -290,7 +291,8 @@ class OrderService {
       const normalizedReceiverPhone = receiver_phone ? receiver_phone.trim() : "";
       const normalizedReceiverEmail = receiver_email?.trim() || null;
       const normalizedAddress = address?.trim() || null;
-      const normalizedNote = note?.trim() || null;
+      const normalizedOrderNote = order_note?.trim() || null;
+      const normalizedDeliveryNote = delivery_note?.trim() || null;
 
       const hasReceiverInfo = Boolean(
         normalizedReceiverName ||
@@ -299,7 +301,7 @@ class OrderService {
         normalizedAddress
       );
 
-      if (order_type !== "dine-in" || hasReceiverInfo || normalizedNote) {
+      if (order_type !== "dine-in" || hasReceiverInfo || normalizedOrderNote) {
         const [existingInfo] = await connection.query(
           "SELECT id FROM order_delivery_info WHERE order_id = ?",
           [orderId]
@@ -315,7 +317,7 @@ class OrderService {
               normalizedReceiverPhone,
               normalizedReceiverEmail,
               normalizedAddress,
-              normalizedNote,
+              normalizedDeliveryNote,
               orderId,
             ]
           );
@@ -326,7 +328,7 @@ class OrderService {
             receiver_phone: normalizedReceiverPhone,
             receiver_email: normalizedReceiverEmail,
             address: normalizedAddress,
-            note: normalizedNote,
+            note: normalizedDeliveryNote,
           });
         }
       }

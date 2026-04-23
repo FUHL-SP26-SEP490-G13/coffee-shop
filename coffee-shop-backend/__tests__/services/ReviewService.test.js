@@ -1,18 +1,41 @@
 const ReviewService = require("../../src/services/ReviewService");
 const ReviewRepository = require("../../src/repositories/ReviewRepository");
 
+const { logTestCase } = require('../utils/logger');
+
 jest.mock("../../src/repositories/ReviewRepository");
 
-const logCase = ({ tcid, crud, scenario, input, expected }) => {
-  console.log("\n" + "=".repeat(70));
-  console.log(`ReviewService - ${scenario} - ${tcid} - CRUD: ${crud}`);
-  console.log("=".repeat(70));
-  console.log("\n📝 INPUT:", JSON.stringify(input, null, 2));
-  console.log("✅ OUTPUT EXPECT:", JSON.stringify(expected, null, 2));
+let pendingLogCase = null;
+
+const logCase = (payload = {}) => {
+  pendingLogCase = payload;
 };
 
-const logReality = (value) => {
-  console.log("🎯 OUTPUT REALITY:", JSON.stringify(value, null, 2));
+const logReality = (actual) => {
+  const payload = pendingLogCase || {};
+  const {
+    title,
+    method,
+    tcid,
+    crud,
+    scenario,
+    input,
+    expected,
+    outputExpect,
+    reality,
+  } = payload;
+
+  const nameParts = [title, method, scenario, tcid].filter(Boolean);
+  if (crud) nameParts.push(`CRUD: ${crud}`);
+
+  logTestCase({
+    name: nameParts.join(' - ') || 'Test case',
+    input,
+    expected: expected !== undefined ? expected : outputExpect,
+    actual: actual !== undefined ? actual : reality,
+  });
+
+  pendingLogCase = null;
 };
 
 describe("ReviewService", () => {
@@ -60,6 +83,9 @@ describe("ReviewService", () => {
             images: [{ url: "https://cdn/review-1.jpg" }],
             created_at: mockReviews[0].created_at,
             updated_at: mockReviews[0].updated_at,
+            reply_comment: "",
+            reply_images: [],
+            replied_at: undefined,
             full_name: "Nguyen Van A",
             is_edited: false,
           },
@@ -72,6 +98,9 @@ describe("ReviewService", () => {
             images: [],
             created_at: mockReviews[1].created_at,
             updated_at: mockReviews[1].updated_at,
+            reply_comment: "",
+            reply_images: [],
+            replied_at: undefined,
             full_name: "Tran Thi B",
             is_edited: true,
           },
@@ -463,11 +492,15 @@ describe("ReviewService", () => {
             user_id: 2,
             product_id: 3,
             product_name: "Coffee",
+            category_name: undefined,
             rating: 5,
             comment: "Ngon",
             images: [{ url: "https://cdn/admin-review-1.jpg" }],
             created_at: mockRepositoryResult.items[0].created_at,
             updated_at: mockRepositoryResult.items[0].updated_at,
+            reply_comment: "",
+            reply_images: [],
+            replied_at: undefined,
             full_name: "Nguyen Van A",
             is_edited: false,
           },
@@ -476,11 +509,15 @@ describe("ReviewService", () => {
             user_id: 4,
             product_id: 5,
             product_name: "Milk Tea",
+            category_name: undefined,
             rating: 4,
             comment: "",
             images: [],
             created_at: mockRepositoryResult.items[1].created_at,
             updated_at: mockRepositoryResult.items[1].updated_at,
+            reply_comment: "",
+            reply_images: [],
+            replied_at: undefined,
             full_name: "Tran Thi B",
             is_edited: true,
           },

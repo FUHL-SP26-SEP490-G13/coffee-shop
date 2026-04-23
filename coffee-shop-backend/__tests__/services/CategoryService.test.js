@@ -3,20 +3,42 @@ const CategoryRepository = require('../../src/repositories/CategoryRepository');
 const ErrorResponse = require('../../src/utils/ErrorResponse');
 const slugify = require('slugify');
 
+const { logTestCase } = require('../utils/logger');
+
 jest.mock('../../src/repositories/CategoryRepository');
 jest.mock('slugify', () => jest.fn());
 
-const logCase = ({ method, tcid, crud, input, outputExpect }) => {
-  console.log('\n' + '='.repeat(70));
-  console.log(`CategoryService - ${method} - ${tcid}`);
-  console.log('CRUD TYPE:', crud);
-  console.log('INPUT:', JSON.stringify(input, null, 2));
-  console.log('OUTPUT EXPECT:', outputExpect);
-  console.log('='.repeat(70));
+let pendingLogCase = null;
+
+const logCase = (payload = {}) => {
+  pendingLogCase = payload;
 };
 
-const logReality = (output) => {
-  console.log('OUTPUT REALITY:', JSON.stringify(output, null, 2));
+const logReality = (actual) => {
+  const payload = pendingLogCase || {};
+  const {
+    title,
+    method,
+    tcid,
+    crud,
+    scenario,
+    input,
+    expected,
+    outputExpect,
+    reality,
+  } = payload;
+
+  const nameParts = [title, method, scenario, tcid].filter(Boolean);
+  if (crud) nameParts.push(`CRUD: ${crud}`);
+
+  logTestCase({
+    name: nameParts.join(' - ') || 'Test case',
+    input,
+    expected: expected !== undefined ? expected : outputExpect,
+    actual: actual !== undefined ? actual : reality,
+  });
+
+  pendingLogCase = null;
 };
 
 const expectServiceError = async (runner, expected) => {

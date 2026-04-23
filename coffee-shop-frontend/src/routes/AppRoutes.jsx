@@ -26,8 +26,8 @@ import AdminApp from "../pages/admin/AdminApp";
 import AdminAttendance from "../pages/admin/AdminAttendance/AdminAttendance";
 
 import { StaffAttendance } from "@/pages/staff/StaffAttendance";
-import { StaffKitchen } from "@/pages/staff/StaffKitchen";
-import { StaffInventory } from "@/pages/staff/StaffInventory";
+
+
 import { StaffTables } from "@/pages/staff/StaffTables";
 import { StaffSchedule } from "@/pages/staff/StaffSchedule";
 import AdminBanner from "@/pages/admin/AdminBanner/AdminBanner";
@@ -55,8 +55,6 @@ import AdminReceiptSettings from "@/pages/admin/AdminReceiptSettings/AdminReceip
 import AdminFlashSales from "@/pages/admin/AdminFlashSale/AdminFlashSales";
 import AdminReputation from "@/pages/admin/AdminReputation/AdminReputation";
 import AdminLoyalty from "@/pages/admin/AdminLoyalty/AdminLoyalty";
-import AdminDeliveryAreas from "@/pages/admin/AdminDeliveryAreas/AdminDeliveryAreas";
-import Attendance from "@/pages/attendance/Attendance";
 import AttendanceKiosk from "@/pages/attendance/AttendanceKiosk";
 
 import AdminEndOfDayReport from "@/pages/admin/AdminEndOfDayReport/AdminEndOfDayReport";
@@ -69,6 +67,7 @@ import StoreInfoPage from "@/pages/common/StoreInfoPage";
 import GenericSlugResolver from "../pages/common/GenericSlugResolver";
 import AboutUsPage from "@/pages/common/AboutUsPage";
 import ClientLayout from "@/components/layout/ClientLayout";
+import { RequireOpenShift } from "@/components/staff/RequireOpenShift";
 
 const getStoredValue = (key) =>
   localStorage.getItem(key) || sessionStorage.getItem(key);
@@ -180,17 +179,18 @@ const AppRoutes = () => {
           </RoleGuard>
         }
       />
-      {/* KIOSK */}
-      <Route path="/kiosk/attendance" element={<AttendanceKiosk />} />
+
       {/* ATTENDANCE */}
       <Route
         path="/attendance"
         element={
           <RoleGuard allowedRoles={[5]}>
-            <Attendance />
+            <AttendanceKiosk />
           </RoleGuard>
         }
       />
+      {/* KIOSK */}
+      <Route path="/kiosk/attendance" element={<AttendanceKiosk />} />
       {/* STAFF NESTED ROUTES */}
       <Route
         path="/staff"
@@ -203,15 +203,14 @@ const AppRoutes = () => {
         <Route index element={<Navigate to="dashboard" replace />} />
         <Route path="dashboard" element={<StaffDashboard />} />
 
-        <Route path="takeaway" element={<TakeawayPOS />} />
+        <Route path="takeaway" element={<RequireOpenShift><TakeawayPOS /></RequireOpenShift>} />
         <Route path="payment-result" element={<StaffPayOSReturn />} />
         <Route path="orders" element={<Navigate to="pending" replace />} />
-        <Route path="orders/:status" element={<OrderDelivery />} />
-        <Route path="barista-window" element={<OrderDelivery />} />
+        <Route path="orders/:status" element={<RequireOpenShift><OrderDelivery /></RequireOpenShift>} />
+        <Route path="barista-window" element={<RequireOpenShift><OrderDelivery /></RequireOpenShift>} />
         <Route path="attendance" element={<StaffAttendance />} />
-        <Route path="inventory" element={<StaffInventory />} />
-        <Route path="kitchen" element={<StaffKitchen />} />
-        <Route path="tables" element={<StaffTables />} />
+
+        <Route path="tables" element={<RequireOpenShift><StaffTables /></RequireOpenShift>} />
         <Route path="schedule" element={<StaffSchedule />} />
         <Route path="profile" element={<UserProfile />} />
       </Route>
@@ -265,7 +264,7 @@ const AppRoutes = () => {
         <Route path="reviews" element={<AdminReviews />} />
         <Route path="reputation" element={<AdminReputation />} />
         <Route path="loyalty" element={<AdminLoyalty />} />
-        <Route path="delivery-areas" element={<AdminDeliveryAreas />} />
+
         <Route path="receipt-settings" element={<AdminReceiptSettings />} />
         <Route path="flash-sales" element={<AdminFlashSales />} />
 

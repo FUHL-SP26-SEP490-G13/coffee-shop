@@ -18,9 +18,10 @@ import {
 import { toast } from 'sonner';
 import authenticationService from '../../services/authenticationService';
 import userService from '../../services/userService';
-import deliveryAreaService from '../../services/deliveryAreaService';
+
 import receiptSettingService from '../../services/receiptSettingService';
 import { APP_ROUTES, STORAGE_KEYS } from '../../constants';
+import VietmapAddressAutocomplete from '../../components/order/VietmapAddressAutocomplete';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 const getStoredValue = (key) =>
@@ -49,18 +50,18 @@ export function UserProfile() {
   const [isAddressSaving, setIsAddressSaving] = useState(false);
   const [addresses, setAddresses] = useState([]);
   const [addressDialogOpen, setAddressDialogOpen] = useState(false);
-  const [provinces, setProvinces] = useState([]);
-  const [wards, setWards] = useState([]);
-  const [isAreaLoading, setIsAreaLoading] = useState(false);
+
   const [addressForm, setAddressForm] = useState({
     receiver_name: '',
     receiver_phone: '',
     address: '',
-    province_id: '',
-    ward_id: '',
+    address_detail: '',
     address_type: 'home',
+    latitude: null,
+    longitude: null,
   });
   const [editingAddressId, setEditingAddressId] = useState(null);
+  const [addressToDelete, setAddressToDelete] = useState(null);
   const [profileFieldErrors, setProfileFieldErrors] = useState({});
   const [addressFieldErrors, setAddressFieldErrors] = useState({});
 
@@ -277,91 +278,19 @@ export function UserProfile() {
     loadAddresses();
   }, [loadAddresses]);
 
-  useEffect(() => {
-    let mounted = true;
 
-    const loadProvinces = async () => {
-      setIsAreaLoading(true);
-      try {
-        const response = await deliveryAreaService.getProvinces();
-        const list = Array.isArray(response?.data?.data)
-          ? response.data.data
-          : Array.isArray(response?.data)
-          ? response.data
-          : [];
 
-        if (mounted) {
-          setProvinces(list);
-        }
-      } catch (error) {
-        toast.error('Không thể tải danh sách tỉnh/thành');
-      } finally {
-        if (mounted) {
-          setIsAreaLoading(false);
-        }
-      }
-    };
 
-    loadProvinces();
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
-  useEffect(() => {
-    let mounted = true;
-    const provinceId = Number(addressForm.province_id || 0);
-
-    if (!provinceId) {
-      setWards([]);
-      return;
-    }
-
-    const loadWards = async () => {
-      try {
-        const response = await deliveryAreaService.getWardsByProvince(provinceId);
-        const list = Array.isArray(response?.data?.data)
-          ? response.data.data
-          : Array.isArray(response?.data)
-          ? response.data
-          : [];
-
-        if (mounted) {
-          setWards(list);
-          const hasCurrentWard = list.some(
-            (item) => Number(item.id) === Number(addressForm.ward_id || 0)
-          );
-
-          if (addressForm.ward_id && !hasCurrentWard) {
-            setAddressForm((prev) => ({
-              ...prev,
-              ward_id: '',
-            }));
-          }
-        }
-      } catch (error) {
-        if (mounted) {
-          setWards([]);
-        }
-      }
-    };
-
-    loadWards();
-
-    return () => {
-      mounted = false;
-    };
-  }, [addressForm.province_id]);
 
   const resetAddressForm = () => {
     setAddressForm({
       receiver_name: '',
       receiver_phone: '',
       address: '',
-      province_id: '',
-      ward_id: '',
+      address_detail: '',
       address_type: 'home',
+      latitude: null,
+      longitude: null,
     });
     setAddressFieldErrors({});
     setEditingAddressId(null);
@@ -375,18 +304,15 @@ export function UserProfile() {
   const validateAddressForm = () => {
     const errors = {};
     const normalizedAddress = String(addressForm.address || '').trim();
+    const detailAddress = String(addressForm.address_detail || '').trim();
     const receiverPhoneError = getReceiverPhoneError(addressForm.receiver_phone);
 
     if (!normalizedAddress) {
       errors.address = 'Vui lòng nhập địa chỉ nhận hàng';
     }
 
-    if (!Number(addressForm.province_id || 0)) {
-      errors.province_id = 'Vui lòng chọn tỉnh/thành';
-    }
-
-    if (!Number(addressForm.ward_id || 0)) {
-      errors.ward_id = 'Vui lòng chọn xã/phường';
+    if (!detailAddress) {
+      errors.address_detail = 'Vui lòng nhập chi tiết số nhà, ngõ ngách';
     }
 
     if (receiverPhoneError) {
@@ -396,7 +322,6 @@ export function UserProfile() {
     setAddressFieldErrors(errors);
 
     if (Object.keys(errors).length > 0) {
-      toast.error(errors.address || errors.receiver_phone || errors.province_id || errors.ward_id);
       return false;
     }
 
@@ -406,15 +331,18 @@ export function UserProfile() {
   const handleSubmitAddress = async () => {
     if (!validateAddressForm()) return;
     const normalizedAddress = String(addressForm.address || '').trim();
+    const detailAddress = String(addressForm.address_detail || '').trim();
+
     const normalizedReceiverPhone = normalizePhoneInput(addressForm.receiver_phone);
 
     const payload = {
       receiver_name: addressForm.receiver_name.trim() || null,
       receiver_phone: normalizedReceiverPhone || null,
       address: normalizedAddress,
-      province_id: Number(addressForm.province_id),
-      ward_id: Number(addressForm.ward_id),
+      address_detail: detailAddress || null,
       address_type: addressForm.address_type,
+      latitude: addressForm.latitude,
+      longitude: addressForm.longitude,
     };
 
     setIsAddressSaving(true);
@@ -454,23 +382,30 @@ export function UserProfile() {
       receiver_name: item.receiver_name || '',
       receiver_phone: item.receiver_phone || '',
       address: item.address || '',
-      province_id: item.province_id ? String(item.province_id) : '',
-      ward_id: item.ward_id ? String(item.ward_id) : '',
+      address_detail: item.address_detail || '',
       address_type: item.address_type || 'home',
+      latitude: item.latitude || null,
+      longitude: item.longitude || null,
     });
     setAddressDialogOpen(true);
   };
 
-  const handleDeleteAddress = async (id) => {
+  const handleDeleteAddress = (id) => {
+    setAddressToDelete(id);
+  };
+
+  const confirmDeleteAddress = async () => {
+    if (!addressToDelete) return;
+
     setIsAddressSaving(true);
     try {
-      const response = await userService.deleteAddress(id);
+      const response = await userService.deleteAddress(addressToDelete);
 
       if (!response?.success) {
         throw new Error(response?.message || 'Không thể xóa địa chỉ');
       }
 
-      if (editingAddressId === id) {
+      if (editingAddressId === addressToDelete) {
         resetAddressForm();
       }
 
@@ -480,6 +415,7 @@ export function UserProfile() {
       toast.error(getApiErrorMessage(error, 'Không thể xóa địa chỉ'));
     } finally {
       setIsAddressSaving(false);
+      setAddressToDelete(null);
     }
   };
 
@@ -748,14 +684,7 @@ export function UserProfile() {
                                       <p className="text-sm font-medium text-gray-700 dark:text-gray-300 line-clamp-2 leading-relaxed">
                                         {item.address}
                                       </p>
-                                      {(item.ward_name || item.province_name) && (
-                                        <p className="text-[11px] font-medium text-amber-600 dark:text-amber-400 flex items-center gap-1 opacity-90">
-                                          <MapPin className="w-3 h-3" />
-                                          {[item.ward_name, item.province_name]
-                                            .filter(Boolean)
-                                            .join(', ')}
-                                        </p>
-                                      )}
+
                                     </div>
 
                                     <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-gray-100 dark:border-gray-800/60 mt-1 opacity-80 group-hover:opacity-100 transition-opacity">
@@ -1019,79 +948,7 @@ export function UserProfile() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-gray-500 ml-1">Tỉnh/Thành</Label>
-                <Select
-                  value={addressForm.province_id ? String(addressForm.province_id) : ''}
-                  onValueChange={(value) => {
-                    setAddressForm((prev) => ({
-                      ...prev,
-                      province_id: value,
-                      ward_id: '',
-                    }));
-                    setAddressFieldErrors((prev) => ({
-                      ...prev,
-                      province_id: value ? '' : 'Vui lòng chọn tỉnh/thành',
-                      ward_id: 'Vui lòng chọn xã/phường',
-                    }));
-                  }}
-                  disabled={isAreaLoading}
-                >
-                  <SelectTrigger className="h-11 rounded-xl bg-gray-50/80 dark:bg-black/20 focus-visible:ring-amber-500/50 focus-visible:border-amber-500">
-                    <SelectValue placeholder={isAreaLoading ? 'Đang tải tỉnh/thành...' : 'Chọn tỉnh/thành'} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {provinces.map((province) => (
-                      <SelectItem key={province.id} value={String(province.id)}>
-                        {province.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {addressFieldErrors.province_id && (
-                  <p className="text-xs text-destructive ml-1">{addressFieldErrors.province_id}</p>
-                )}
-              </div>
 
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-gray-500 ml-1">Xã/Phường</Label>
-                <Select
-                  value={addressForm.ward_id ? String(addressForm.ward_id) : ''}
-                  onValueChange={(value) => {
-                    setAddressForm((prev) => ({
-                      ...prev,
-                      ward_id: value,
-                    }));
-                    setAddressFieldErrors((prev) => ({
-                      ...prev,
-                      ward_id: value ? '' : 'Vui lòng chọn xã/phường',
-                    }));
-                  }}
-                  disabled={!addressForm.province_id}
-                >
-                  <SelectTrigger className="h-11 rounded-xl bg-gray-50/80 dark:bg-black/20 focus-visible:ring-amber-500/50 focus-visible:border-amber-500">
-                    <SelectValue
-                      placeholder={
-                        addressForm.province_id
-                          ? 'Chọn xã/phường'
-                          : 'Chọn tỉnh/thành trước'
-                      }
-                    />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {wards.map((ward) => (
-                      <SelectItem key={ward.id} value={String(ward.id)}>
-                        {ward.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {addressFieldErrors.ward_id && (
-                  <p className="text-xs text-destructive ml-1">{addressFieldErrors.ward_id}</p>
-                )}
-              </div>
-            </div>
 
             <div className="space-y-2">
               <Label htmlFor="address_type" className="text-xs font-semibold text-gray-500 ml-1">Lưu địa chỉ là</Label>
@@ -1122,29 +979,44 @@ export function UserProfile() {
               </div>
             </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="shipping_address" className="text-xs font-semibold text-gray-500 ml-1">Địa chỉ chi tiết</Label>
-              <Input
-                id="shipping_address"
-                value={addressForm.address}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  setAddressForm((prev) => ({
-                    ...prev,
-                    address: value,
-                  }));
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <VietmapAddressAutocomplete
+                  initialAddress={addressForm.address}
+                  error={addressFieldErrors.address}
+                  hideGPSButton={true}
+                  onAddressSelect={({ address, latitude, longitude }) => {
+                    setAddressForm((prev) => ({
+                      ...prev,
+                      address,
+                      latitude,
+                      longitude,
+                    }));
 
-                  setAddressFieldErrors((prev) => ({
-                    ...prev,
-                    address: value.trim() ? '' : prev.address,
-                  }));
-                }}
-                placeholder="Số nhà, hẻm, tên đường..."
-                className={`h-11 rounded-xl bg-gray-50/80 dark:bg-black/20 ${addressFieldErrors.address ? 'border-destructive focus-visible:border-destructive focus-visible:ring-destructive/40' : 'focus-visible:ring-amber-500/50 focus-visible:border-amber-500'}`}
-              />
-              {addressFieldErrors.address && (
-                <p className="text-xs text-destructive ml-1">{addressFieldErrors.address}</p>
-              )}
+                    setAddressFieldErrors((prev) => ({
+                      ...prev,
+                      address: address.trim() ? '' : prev.address,
+                    }));
+                  }}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="address_detail" className="text-xs font-semibold text-gray-500 ml-1">Chi tiết số nhà, ngõ ngách <span className="text-destructive">*</span></Label>
+                <Input
+                  id="address_detail"
+                  value={addressForm.address_detail}
+                  onChange={(e) => {
+                     setAddressForm((prev) => ({ ...prev, address_detail: e.target.value }));
+                     setAddressFieldErrors(prev => ({ ...prev, address_detail: e.target.value.trim() ? "" : prev.address_detail }));
+                  }}
+                  placeholder="VD: Số nhà 10, Ngõ 20..."
+                  className={`h-11 rounded-xl bg-gray-50/80 dark:bg-black/20 ${addressFieldErrors.address_detail ? 'border-destructive focus-visible:border-destructive' : 'focus-visible:ring-amber-500/50 focus-visible:border-amber-500'}`}
+                />
+                {addressFieldErrors.address_detail && (
+                  <p className="text-xs text-destructive ml-1">{addressFieldErrors.address_detail}</p>
+                )}
+              </div>
             </div>
 
             <div className="flex justify-end gap-3 pt-2">
@@ -1172,7 +1044,42 @@ export function UserProfile() {
                     ? 'Lưu thay đổi'
                     : 'Hoàn tất thêm mới'}
               </Button>
+              {/* ... dialog actions */}
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Address Confirmation Dialog */}
+      <Dialog open={!!addressToDelete} onOpenChange={(open) => !open && setAddressToDelete(null)}>
+        <DialogContent className="sm:max-w-md bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border border-white/20 dark:border-gray-800 rounded-3xl p-6">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold flex items-center gap-2 text-red-600">
+              <Trash2 className="w-5 h-5 flex-shrink-0" />
+              Xóa địa chỉ
+            </DialogTitle>
+            <DialogDescription className="text-gray-500 font-medium pt-1">
+              Bạn có chắc chắn muốn xóa địa chỉ này? Hành động này không thể hoàn tác.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex justify-end gap-3 pt-4">
+            <Button
+              variant="outline"
+              onClick={() => setAddressToDelete(null)}
+              disabled={isAddressSaving}
+              className="rounded-xl font-semibold hover:bg-gray-100"
+            >
+              Hủy
+            </Button>
+            <Button
+              onClick={confirmDeleteAddress}
+              disabled={isAddressSaving}
+              className="rounded-xl bg-red-600 hover:bg-red-700 text-white font-semibold"
+            >
+              {isAddressSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Trash2 className="w-4 h-4 mr-2" />}
+              Xác nhận xóa
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

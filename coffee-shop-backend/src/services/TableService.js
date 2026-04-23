@@ -830,7 +830,7 @@ class TableService {
   /**
    * Tách hóa đơn từ bàn hiện tại (Tạo order mới)
    */
-  async splitBill(tableId, payload) {
+  async splitBill(tableId, payload, user = null) {
     const splitBills = this.normalizeSplitBillPayload(payload);
     if (!splitBills.length) {
       throw new ErrorResponse(400, 'Không có món nào để tách');
@@ -935,12 +935,13 @@ class TableService {
           continue;
         }
 
+        const staffId = user ? user.id : null;
         const [insertOrder] = await connection.query(
           `
-          INSERT INTO orders (user_id, created_by, customer_type, order_type, table_id, status, is_paid, amount, discount_amount, total_amount, session_id)
-          VALUES (1, 1, 'guest', 'dine-in', ?, 'completed', 0, 0, 0, 0, ?)
+          INSERT INTO orders (user_id, staff_id, customer_type, order_type, table_id, status, is_paid, amount, discount_amount, total_amount, session_id)
+          VALUES (NULL, ?, 'guest', 'dine-in', ?, 'completed', 0, 0, 0, 0, ?)
           `,
-          [tableId, table.current_session_id]
+          [staffId, tableId, table.current_session_id]
         );
         const newOrderId = Number(insertOrder.insertId);
         let billTotal = 0;

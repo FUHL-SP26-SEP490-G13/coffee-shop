@@ -1,6 +1,6 @@
 import { STORAGE_KEYS } from '../constants';
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 const userService = {
   getAllUsers: async () => {
@@ -91,24 +91,7 @@ const userService = {
     return await response.json();
   },
 
-  generatePin: async (userId) => {
-    const token = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN) || sessionStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
 
-    const response = await fetch(`${API_URL}/users/${userId}/generate-pin`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      }
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to generate PIN');
-    }
-
-    return await response.json();
-  },
 
   getUsersByRole: async (roleId) => {
     const token = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN) || sessionStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);

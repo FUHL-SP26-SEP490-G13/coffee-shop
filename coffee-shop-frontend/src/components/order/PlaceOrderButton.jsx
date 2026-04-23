@@ -35,6 +35,7 @@ export default function PlaceOrderButton({
 
   const handleSubmit = async () => {
     const formErrors = validateOrderForm(form);
+    
     if (Object.keys(formErrors).length > 0) {
       onValidateError?.(formErrors);
       return;
@@ -48,12 +49,13 @@ export default function PlaceOrderButton({
         payment_method: form.payment_method,
         receiver_name: form.receiver_name.trim(),
         receiver_phone: form.receiver_phone.trim(),
-        receiver_email: form.receiver_email.trim(),
-        address: form.address.trim(),
-        province_id: form.province_id || null,
-        ward_id: form.ward_id || null,
-        note: form.note.trim(),
+        receiver_email: form.receiver_email?.trim() || "",
+        address: form.address?.trim() || "",
+        order_note: (form.order_note || form.note || "").trim(),
+        delivery_note: (form.delivery_note || "").trim(),
         discount_code: (form.discount_code || "").trim(),
+        latitude: form.latitude || null,
+        longitude: form.longitude || null,
         used_points: Math.max(0, Number(form.used_points) || 0),
         items: cart.map((item) => ({
           product_size_id: item.productSizeId || item.product_size_id,

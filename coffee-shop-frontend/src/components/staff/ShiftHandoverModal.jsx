@@ -14,6 +14,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import cashSessionService from "@/services/cashSessionService";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -23,6 +25,8 @@ export function ShiftHandoverModal({ isOpen, onClose }) {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [loading, setLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   useEffect(() => {
     if (isOpen) {
@@ -37,9 +41,10 @@ export function ShiftHandoverModal({ isOpen, onClose }) {
       if (startDate) params.startDate = startDate;
       if (endDate) params.endDate = endDate;
 
-      const res = await cashSessionService.getHistory(params);
+      const res = await cashSessionService.getMyHistory(params);
       if (res?.success) {
         setHistory(res.data);
+        setCurrentPage(1);
       }
     } catch (error) {
       toast.error("Không thể tải danh sách phiếu bàn giao ca");
@@ -58,6 +63,12 @@ export function ShiftHandoverModal({ isOpen, onClose }) {
     return format(new Date(dateString), "dd/MM/yyyy HH:mm");
   };
 
+  const totalPages = Math.ceil(history.length / itemsPerPage);
+  const paginatedHistory = history.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-[1000px] w-[95vw] h-[80vh] flex flex-col p-6">
@@ -65,9 +76,9 @@ export function ShiftHandoverModal({ isOpen, onClose }) {
           <DialogTitle className="text-xl font-bold">Phiếu bàn giao ca</DialogTitle>
         </DialogHeader>
 
-        <div className="flex flex-col gap-4">
+        <div className="flex-1 min-h-0 flex flex-col gap-4">
           {/* Lọc cơ bản cho nhân viên (chỉ gồm ngày) */}
-          <div className="flex gap-4 items-center bg-accent/50 p-4 rounded-lg">
+          <div className="flex-shrink-0 flex gap-4 items-center bg-accent/50 p-4 rounded-lg">
             <div className="flex flex-col gap-1 w-48">
               <label className="text-sm text-muted-foreground font-medium">Từ ngày</label>
               <Input
@@ -87,7 +98,7 @@ export function ShiftHandoverModal({ isOpen, onClose }) {
             {loading && <span className="text-sm text-muted-foreground mt-6 ml-4">Đang tải...</span>}
           </div>
 
-          <div className="flex-1 overflow-auto border rounded-xl bg-card">
+          <div className="flex-1 min-h-0 overflow-auto border rounded-xl bg-card">
             <Table>
               <TableHeader className="sticky top-0 bg-accent z-10">
                 <TableRow>
@@ -108,7 +119,7 @@ export function ShiftHandoverModal({ isOpen, onClose }) {
                     </TableCell>
                   </TableRow>
                 )}
-                {history.map((item) => (
+                {paginatedHistory.map((item) => (
                   <TableRow key={item.id} className="hover:bg-accent/30 transition-colors">
                     <TableCell className="font-medium text-primary border-r border-border/50">
                       {item.code || `CA00000${item.id}`}
@@ -140,6 +151,37 @@ export function ShiftHandoverModal({ isOpen, onClose }) {
               </TableBody>
             </Table>
           </div>
+
+          {/* Phân trang */}
+          {totalPages > 1 && (
+            <div className="flex-shrink-0 flex items-center justify-between border-t pt-4">
+              <span className="text-sm text-muted-foreground">
+                Hiển thị {(currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, history.length)} trong tổng số {history.length} phiếu
+              </span>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <div className="flex items-center gap-1">
+                  <span className="text-sm font-medium w-8 text-center">{currentPage}</span>
+                  <span className="text-sm text-muted-foreground">/ {totalPages}</span>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>

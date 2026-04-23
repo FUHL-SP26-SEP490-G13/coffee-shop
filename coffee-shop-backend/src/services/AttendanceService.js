@@ -10,57 +10,6 @@ const RekognitionService = require('./RekognitionService');
 const CHECKOUT_GRACE_MINUTES = 30;
 
 
-const MAX_FAILED_ATTEMPTS = 5;
-const LOCK_DURATION_MS = 30 * 1000;
-
-// Lưu tạm trong RAM của server
-const failedClockAttempts = new Map();
-
-function getClockAttemptState(key) {
-  const now = Date.now();
-  const state = failedClockAttempts.get(key);
-
-  if (!state) {
-    return { count: 0, lockedUntil: 0 };
-  }
-
-  if (state.lockedUntil && state.lockedUntil <= now) {
-    failedClockAttempts.delete(key);
-    return { count: 0, lockedUntil: 0 };
-  }
-
-  return state;
-}
-
-function clearClockAttemptState(key) {
-  failedClockAttempts.delete(key);
-}
-
-function registerClockFailure(key) {
-  const now = Date.now();
-  const state = getClockAttemptState(key);
-  const nextCount = (state.count || 0) + 1;
-
-  if (nextCount >= MAX_FAILED_ATTEMPTS) {
-    const lockedUntil = now + LOCK_DURATION_MS;
-    failedClockAttempts.set(key, { count: nextCount, lockedUntil });
-
-    return {
-      locked: true,
-      remainingSeconds: Math.ceil((lockedUntil - now) / 1000),
-    };
-  }
-
-  failedClockAttempts.set(key, {
-    count: nextCount,
-    lockedUntil: 0,
-  });
-
-  return {
-    locked: false,
-    remainingAttempts: MAX_FAILED_ATTEMPTS - nextCount,
-  };
-}
 
 
 class AttendanceService {
@@ -101,48 +50,6 @@ class AttendanceService {
     if (!user || user.isActive === 0) {
       throw new ErrorResponse(404, 'Khuôn mặt chưa được đăng ký hoặc tài khoản đã bị khóa');
     }
-
-    return await this._processClockLogic(user);
-  }
-
-  async clock(pinCode) {
-    if (!pinCode || pinCode.length !== 4) {
-      throw new ErrorResponse(400, 'Mã PIN phải gồm 4 chữ số');
-    }
-
-    const throttleKey = `pin:${pinCode}`;
-    const attemptState = getClockAttemptState(throttleKey);
-
-    if (attemptState.lockedUntil && attemptState.lockedUntil > Date.now()) {
-      const remainingSeconds = Math.ceil(
-        (attemptState.lockedUntil - Date.now()) / 1000
-      );
-
-      throw new ErrorResponse(
-        429,
-        `Bạn đã nhập sai quá nhiều lần. Vui lòng thử lại sau ${remainingSeconds} giây.`,
-      );
-    }
-
-    const user = await UserRepository.findByPinCode(pinCode);
-    if (!user || user.isActive === 0) {
-
-      const failure = registerClockFailure(throttleKey);
-
-      if (failure.locked) {
-        throw new ErrorResponse(
-          429,
-          `Bạn đã nhập sai quá 5 lần liên tiếp. Vui lòng thử lại sau ${failure.remainingSeconds} giây.`,
-        );
-      }
-
-      throw new ErrorResponse(
-        404,
-        'Mã PIN không hợp lệ hoặc tài khoản đã bị khóa',
-      );
-    }
-
-    clearClockAttemptState(throttleKey);  // PIN đúng thì reset bộ đếm sai
 
     return await this._processClockLogic(user);
   }

@@ -197,13 +197,13 @@ class TakeawayService {
       // create order
       const orderId = await TakeawayRepository.createOrder(connection, {
         user_id: null,
-        created_by: staffUser.id,
         order_type: 'takeaway',
         total_amount: finalAmount,
         amount: subtotal,
         discount_amount: discountAmount,
         discount_id: discountId,
         cash_session_id: cashSessionId,
+        staff_id: staffUser.id,
       });
 
       for (const item of normalizedItems) {
@@ -515,7 +515,7 @@ class TakeawayService {
 
     return {
       order_id: orderId,
-      assigned_barista_id: baristaUser.id,
+      staff_id: baristaUser.id,
       status: 'preparing',
     };
   }
@@ -524,7 +524,7 @@ class TakeawayService {
   async markServedByBarista(orderId, baristaUser) {
     const order = await TakeawayRepository.findOrderById(orderId);
     if (!order) throw new ErrorResponse(404, 'Đơn hàng không tồn tại');
-    if (Number(order.assigned_barista_id) !== Number(baristaUser.id))
+    if (Number(order.staff_id) !== Number(baristaUser.id))
       throw new ErrorResponse(403, 'Bạn không phải barista được giao đơn này');
 
     const success = await TakeawayRepository.completeByBarista(

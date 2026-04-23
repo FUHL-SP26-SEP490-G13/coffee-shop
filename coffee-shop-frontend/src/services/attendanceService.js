@@ -3,10 +3,6 @@ import { API_ENDPOINTS } from "@/constants";
 
 const attendanceService = {
 
-  clock(pinCode) {
-    return axiosClient.post(API_ENDPOINTS.ATTENDANCE.CLOCK, { pin_code: pinCode });
-  },
-
   // params: page, limit, startDate, endDate, userId, status
   getAll(params) {
     return axiosClient.get(API_ENDPOINTS.ATTENDANCE.BASE, { params });
