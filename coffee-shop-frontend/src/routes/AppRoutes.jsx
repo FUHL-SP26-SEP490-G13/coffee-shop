@@ -193,6 +193,8 @@ const AppRoutes = () => {
           </RoleGuard>
         }
       />
+      {/* KIOSK */}
+      <Route path="/kiosk/attendance" element={<AttendanceKiosk />} />
       {/* STAFF NESTED ROUTES */}
       <Route
         path="/staff"
