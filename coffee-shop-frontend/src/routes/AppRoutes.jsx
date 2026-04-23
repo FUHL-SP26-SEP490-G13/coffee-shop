@@ -55,7 +55,9 @@ import AdminReceiptSettings from "@/pages/admin/AdminReceiptSettings/AdminReceip
 import AdminFlashSales from "@/pages/admin/AdminFlashSale/AdminFlashSales";
 import AdminReputation from "@/pages/admin/AdminReputation/AdminReputation";
 import AdminLoyalty from "@/pages/admin/AdminLoyalty/AdminLoyalty";
+import AdminDeliveryAreas from "@/pages/admin/AdminDeliveryAreas/AdminDeliveryAreas";
 import Attendance from "@/pages/attendance/Attendance";
+import AttendanceKiosk from "@/pages/attendance/AttendanceKiosk";
 
 import AdminEndOfDayReport from "@/pages/admin/AdminEndOfDayReport/AdminEndOfDayReport";
 import AdminShiftReport from "@/pages/admin/AdminShiftReport/AdminShiftReport";
@@ -178,6 +180,8 @@ const AppRoutes = () => {
           </RoleGuard>
         }
       />
+      {/* KIOSK */}
+      <Route path="/kiosk/attendance" element={<AttendanceKiosk />} />
       {/* ATTENDANCE */}
       <Route
         path="/attendance"
@@ -261,6 +265,7 @@ const AppRoutes = () => {
         <Route path="reviews" element={<AdminReviews />} />
         <Route path="reputation" element={<AdminReputation />} />
         <Route path="loyalty" element={<AdminLoyalty />} />
+        <Route path="delivery-areas" element={<AdminDeliveryAreas />} />
         <Route path="receipt-settings" element={<AdminReceiptSettings />} />
         <Route path="flash-sales" element={<AdminFlashSales />} />
 

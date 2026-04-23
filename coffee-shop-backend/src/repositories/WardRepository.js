@@ -10,7 +10,6 @@ class WardRepository {
         w.id,
         w.name,
         w.province_id,
-        w.shipping_fee,
         w.is_active,
         p.name AS province_name
       FROM wards w
@@ -32,7 +31,6 @@ class WardRepository {
         w.id,
         w.name,
         w.province_id,
-        w.shipping_fee,
         w.is_active,
         p.name AS province_name
       FROM wards w
@@ -54,7 +52,6 @@ class WardRepository {
         w.id,
         w.name,
         w.province_id,
-        w.shipping_fee,
         w.is_active,
         p.name AS province_name
       FROM wards w
@@ -76,15 +73,13 @@ class WardRepository {
       INSERT INTO wards (
         name,
         province_id,
-        shipping_fee,
         is_active
       )
-      VALUES (?, ?, ?, ?)
+      VALUES (?, ?, ?)
       `,
       [
         data.name,
         data.province_id,
-        data.shipping_fee,
         data.is_active,
       ]
     );
@@ -104,11 +99,6 @@ class WardRepository {
     if (data.province_id !== undefined) {
       fields.push("province_id = ?");
       values.push(data.province_id);
-    }
-
-    if (data.shipping_fee !== undefined) {
-      fields.push("shipping_fee = ?");
-      values.push(data.shipping_fee);
     }
 
     if (data.is_active !== undefined) {

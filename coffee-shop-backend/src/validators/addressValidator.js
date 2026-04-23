@@ -25,6 +25,18 @@ const createAddressSchema = Joi.object({
     'string.max': 'Địa chỉ không được vượt quá 255 ký tự',
     'any.required': 'Địa chỉ là bắt buộc',
   }),
+  province_id: Joi.number().integer().positive().required().messages({
+    'number.base': 'Tỉnh/Thành không hợp lệ',
+    'number.integer': 'Tỉnh/Thành không hợp lệ',
+    'number.positive': 'Tỉnh/Thành không hợp lệ',
+    'any.required': 'Tỉnh/Thành là bắt buộc',
+  }),
+  ward_id: Joi.number().integer().positive().required().messages({
+    'number.base': 'Xã/Phường không hợp lệ',
+    'number.integer': 'Xã/Phường không hợp lệ',
+    'number.positive': 'Xã/Phường không hợp lệ',
+    'any.required': 'Xã/Phường là bắt buộc',
+  }),
   address_type: Joi.string().valid('home', 'work', 'other').default('home').messages({
     'any.only': 'Loại địa chỉ không hợp lệ',
   }),
@@ -42,6 +54,16 @@ const updateAddressSchema = Joi.object({
   address: Joi.string().trim().min(5).max(255).optional().messages({
     'string.min': 'Địa chỉ phải có ít nhất 5 ký tự',
     'string.max': 'Địa chỉ không được vượt quá 255 ký tự',
+  }),
+  province_id: Joi.number().integer().positive().optional().messages({
+    'number.base': 'Tỉnh/Thành không hợp lệ',
+    'number.integer': 'Tỉnh/Thành không hợp lệ',
+    'number.positive': 'Tỉnh/Thành không hợp lệ',
+  }),
+  ward_id: Joi.number().integer().positive().optional().messages({
+    'number.base': 'Xã/Phường không hợp lệ',
+    'number.integer': 'Xã/Phường không hợp lệ',
+    'number.positive': 'Xã/Phường không hợp lệ',
   }),
   address_type: Joi.string().valid('home', 'work', 'other').optional().messages({
     'any.only': 'Loại địa chỉ không hợp lệ',

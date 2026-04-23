@@ -12,13 +12,13 @@ const success = (res, data = null, message = 'Success', statusCode = 200) => {
 /**
  * Error response helper
  */
-// const error = (res, message = 'Error', statusCode = 500, errors = null) => {
-//   return res.status(statusCode).json({
-//     success: false,
-//     message,
-//     errors,
-//   });
-// };
+const error = (res, message = 'Error', statusCode = 500, errors = null) => {
+  return res.status(statusCode).json({
+    success: false,
+    message,
+    errors,
+  });
+};
 
 /**
  * Pagination response helper
@@ -42,6 +42,6 @@ const paginate = (res, data, page, limit, total, message = 'Success') => {
 
 module.exports = {
   success,
-  // error,
+  error,
   paginate,
 };

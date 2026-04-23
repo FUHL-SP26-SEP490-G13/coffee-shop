@@ -35,6 +35,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import socket from "@/lib/socket";
 import baristaDBService from "@/services/baristaDBService";
@@ -95,6 +103,14 @@ const gridStatusLabelMap = {
 const GRID_STATUS_COLUMNS = [
   { key: "preparing", label: "Đang làm", icon: Clock },
   { key: "completed", label: "Hoàn thành", icon: CheckCircle },
+];
+
+const STAFF_CANCEL_REASON_OPTIONS = [
+  { value: "out_of_stock", label: "Hết nguyên liệu/món" },
+  { value: "cannot_contact", label: "Không liên hệ được khách" },
+  { value: "outside_area", label: "Ngoài khu vực giao hàng" },
+  { value: "store_overload", label: "Quán quá tải, không thể nhận" },
+  { value: "other", label: "Khác" },
 ];
 
 const LOYALTY_MONEY_PER_POINT = 100;
@@ -311,6 +327,8 @@ export function OrderDelivery() {
     orderId: null,
     mode: "pending",
   });
+  const [cancelReasonOption, setCancelReasonOption] = useState("");
+  const [cancelReasonText, setCancelReasonText] = useState("");
   const [completingId, setCompletingId] = useState(null);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
@@ -558,12 +576,12 @@ export function OrderDelivery() {
     return success;
   };
 
-  const handleCancelOrder = async (orderId) => {
+  const handleCancelOrder = async (orderId, payload) => {
     setCancelingId(orderId);
     let success = false;
 
     try {
-      await orderOnlineService.cancelByStaff(orderId);
+      await orderOnlineService.cancelByStaff(orderId, payload);
       toast.success("Đã hủy đơn hàng");
       await loadOrders();
       success = true;
@@ -577,6 +595,8 @@ export function OrderDelivery() {
   };
 
   const openCancelConfirm = (orderId, mode = "pending") => {
+    setCancelReasonOption("");
+    setCancelReasonText("");
     setCancelConfirm({
       open: true,
       orderId,
@@ -588,8 +608,29 @@ export function OrderDelivery() {
     const { orderId } = cancelConfirm;
     if (!orderId) return;
 
+    if (!cancelReasonOption) {
+      toast.error("Vui lòng chọn lý do hủy đơn");
+      return;
+    }
+
+    const selectedOption = STAFF_CANCEL_REASON_OPTIONS.find(
+      (item) => item.value === cancelReasonOption
+    );
+    const reason =
+      cancelReasonOption === "other"
+        ? cancelReasonText.trim()
+        : cancelReasonText.trim() || selectedOption?.label || "";
+
+    if (!reason) {
+      toast.error("Vui lòng nhập lý do hủy đơn");
+      return;
+    }
+
     setCancelConfirm({ open: false, orderId: null, mode: "pending" });
-    const success = await handleCancelOrder(orderId);
+    const success = await handleCancelOrder(orderId, {
+      reason_option: cancelReasonOption,
+      reason,
+    });
     if (success) {
       setIsDetailOpen(false);
     }
@@ -1223,7 +1264,7 @@ export function OrderDelivery() {
                                className="flex-1 rounded-2xl border-2 border-destructive/20 font-bold text-destructive hover:bg-destructive hover:text-white text-xs"
                                onClick={(e) => {
                                  e.stopPropagation();
-                                 setCancelConfirm({ open: true, orderId: order.id, mode: "pending" });
+                                 openCancelConfirm(order.id, "pending");
                                }}
                                disabled={cancelingId === order.id}
                              >
@@ -1582,6 +1623,49 @@ export function OrderDelivery() {
                 : "Thao tác này sẽ hủy đơn hiện tại và không thể hoàn tác."}
             </AlertDialogDescription>
           </AlertDialogHeader>
+          <div className="space-y-3">
+            <div>
+              <p className="text-sm mb-2">Lý do hủy đơn</p>
+              <Select
+                value={cancelReasonOption}
+                onValueChange={(value) => {
+                  setCancelReasonOption(value);
+                  if (value !== "other") {
+                    const matched = STAFF_CANCEL_REASON_OPTIONS.find(
+                      (item) => item.value === value
+                    );
+                    setCancelReasonText(matched?.label || "");
+                  } else {
+                    setCancelReasonText("");
+                  }
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Chọn lý do hủy đơn" />
+                </SelectTrigger>
+                <SelectContent>
+                  {STAFF_CANCEL_REASON_OPTIONS.map((item) => (
+                    <SelectItem key={item.value} value={item.value}>
+                      {item.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <p className="text-sm mb-2">Chi tiết lý do</p>
+              <Textarea
+                value={cancelReasonText}
+                onChange={(event) => setCancelReasonText(event.target.value)}
+                placeholder={
+                  cancelReasonOption === "other"
+                    ? "Nhập lý do khác..."
+                    : "Bạn có thể bổ sung thêm chi tiết"
+                }
+              />
+            </div>
+          </div>
           <AlertDialogFooter>
             <AlertDialogCancel>Không</AlertDialogCancel>
             <AlertDialogAction
