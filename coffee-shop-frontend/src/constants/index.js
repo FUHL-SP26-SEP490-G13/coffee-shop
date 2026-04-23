@@ -118,12 +118,7 @@ export const API_ENDPOINTS = {
   },
   TAKEAWAY: {
     ORDERS: '/takeaway/orders',
-    ORDER_BY_ID: (id) => `/takeaway/orders/${id}`,
-    CANCEL: (id) => `/takeaway/orders/${id}/cancel`,
     RECEIPT: (id) => `/takeaway/orders/${id}/receipt`,
-    ASSIGN: (id) => `/takeaway/orders/${id}/assign`,
-    SERVED: (id) => `/takeaway/orders/${id}/served`,
-    COMPLETE: (id) => `/takeaway/orders/${id}/complete`,
   },
   FLASH_SALES: {
     CURRENT: '/flash-sales/current'
