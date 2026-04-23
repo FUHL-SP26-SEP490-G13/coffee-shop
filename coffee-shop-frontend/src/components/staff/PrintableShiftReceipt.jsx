@@ -31,7 +31,7 @@ export default function PrintableShiftReceipt({ session, summaryData, actualCash
     if (!settings?.logo_url) return null;
     return settings.logo_url.startsWith('http')
       ? settings.logo_url
-      : `http://localhost:5000${settings.logo_url.startsWith('/') ? '' : '/'}${settings.logo_url}`;
+      : `${(import.meta.env.VITE_API_URL || "http://localhost:5000/api").replace(/\/api\/?$/, "")}${settings.logo_url.startsWith('/') ? '' : '/'}${settings.logo_url}`;
   }, [settings?.logo_url]);
 
   useEffect(() => {
