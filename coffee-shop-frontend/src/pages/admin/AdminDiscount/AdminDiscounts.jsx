@@ -2,14 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import {
   Loader2,
   Search,
-  ChevronLeft,
-  ChevronRight,
   Trash2,
   Edit,
   Plus,
-  Ticket,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 import discountService from "@/services/discountService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,6 +20,17 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import PaginationControl from "@/components/common/PaginationControl";
+import AdminDiscountModal from "./AdminDiscountModal";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function AdminDiscounts() {
   const [data, setData] = useState([]);
@@ -36,9 +43,13 @@ export default function AdminDiscounts() {
 
   const [keyword, setKeyword] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedDiscountId, setSelectedDiscountId] = useState(null);
+  
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [deleteId, setDeleteId] = useState(null);
 
   const abortRef = useRef(null);
-  const navigate = useNavigate();
 
   const PAGE_SIZE = 7;
 
@@ -99,18 +110,26 @@ export default function AdminDiscounts() {
     };
   }, []);
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Bạn có chắc muốn xóa mã giảm giá này?")) return;
+  const handleDeleteClick = (id) => {
+    setDeleteId(id);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteId) return;
 
     try {
-      setLoadingId(id);
-      await discountService.delete(id);
+      setLoadingId(deleteId);
+      setIsDeleteDialogOpen(false);
+      await discountService.delete(deleteId);
       toast.success("Xóa mã giảm giá thành công");
       await fetchDiscounts(page, keyword, statusFilter);
     } catch (err) {
       console.error(err);
+      toast.error("Có lỗi xảy ra khi xóa mã giảm giá");
     } finally {
       setLoadingId(null);
+      setDeleteId(null);
     }
   };
 
@@ -163,26 +182,25 @@ export default function AdminDiscounts() {
     );
   }
 
+  const discountToDelete = data.find((item) => item.id === deleteId);
+
   return (
     <div className="p-6">
       {/* HEADER */}
       <div className="mb-6">
         <div className="flex justify-between items-start mb-6 gap-4">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-primary/10 rounded-lg">
-              <Ticket className="h-6 w-6 text-primary" />
-            </div>
             <div>
-              <h2 className="text-2xl font-semibold mb-1">
+              <h2 className="text-xl font-semibold">
                 Quản lý mã giảm giá
               </h2>
-              <p className="text-sm text-muted-foreground">
-                Tạo và quản lý mã giảm giá của bạn
-              </p>
             </div>
           </div>
 
-          <Button onClick={() => navigate("/admin/discounts/create")}>
+          <Button onClick={() => {
+            setSelectedDiscountId(null);
+            setIsModalOpen(true);
+          }}>
             <Plus className="w-4 h-4 mr-2" />
             Thêm Mới
           </Button>
@@ -308,9 +326,10 @@ export default function AdminDiscounts() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() =>
-                              navigate(`/admin/discounts/edit/${item.id}`)
-                            }
+                            onClick={() => {
+                              setSelectedDiscountId(item.id);
+                              setIsModalOpen(true);
+                            }}
                             title="Chỉnh sửa"
                           >
                             <Edit className="h-4 w-4" />
@@ -319,7 +338,7 @@ export default function AdminDiscounts() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleDelete(item.id)}
+                            onClick={() => handleDeleteClick(item.id)}
                             disabled={loadingId === item.id}
                             title="Xóa"
                             className="hover:text-red-600"
@@ -352,6 +371,37 @@ export default function AdminDiscounts() {
           itemName="mã giảm giá"
         />
       )}
+
+      <AdminDiscountModal
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false);
+          setSelectedDiscountId(null);
+        }}
+        discountId={selectedDiscountId}
+        onSuccess={() => fetchDiscounts(page, keyword, statusFilter)}
+      />
+
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Xác nhận xóa</AlertDialogTitle>
+            <AlertDialogDescription>
+              Bạn có chắc chắn muốn xóa mã giảm giá <strong>{discountToDelete?.code}</strong>?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={loadingId && deleteId !== null}>Hủy</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              disabled={loadingId && deleteId !== null}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Xóa
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

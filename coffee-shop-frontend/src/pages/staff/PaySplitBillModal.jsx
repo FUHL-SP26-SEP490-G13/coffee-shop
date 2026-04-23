@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo } from "react";
-
 import {
   Dialog,
   DialogContent,
@@ -22,7 +21,7 @@ const formatVND = (amount) =>
 const BILLS = [10000, 20000, 50000, 100000, 200000, 500000];
 
 
-export function PaySplitBillModal({ isOpen, onClose, table, onSuccess }) {
+export function PaySplitBillModal({ isOpen, onClose, table, onSuccess, onPartialPayment }) {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [payingOrderId, setPayingOrderId] = useState(null);
@@ -62,7 +61,7 @@ export function PaySplitBillModal({ isOpen, onClose, table, onSuccess }) {
     try {
       const res = await tableService.getUnpaidOrders(table.id);
       const unpaidOrders = res.data || [];
-      
+
       // Fetch details for each order to get items
       const detailedOrders = await Promise.all(
         unpaidOrders.map(async (order) => {
@@ -75,7 +74,7 @@ export function PaySplitBillModal({ isOpen, onClose, table, onSuccess }) {
           }
         })
       );
-      
+
       setOrders(detailedOrders);
     } catch (err) {
       toast.error("Không thể tải danh sách đơn hàng");
@@ -112,7 +111,7 @@ export function PaySplitBillModal({ isOpen, onClose, table, onSuccess }) {
 
     setIsSubmitting(true);
     try {
-      const orderIdsToSettle = isPayingAll 
+      const orderIdsToSettle = isPayingAll
         ? orders.map(o => o.id)
         : [activePayingOrder.id];
 
@@ -123,7 +122,7 @@ export function PaySplitBillModal({ isOpen, onClose, table, onSuccess }) {
       });
 
       toast.success(isPayingAll ? "Đã thanh toán tất cả đơn hàng" : `Thanh toán thành công đơn #${activePayingOrder.id}`);
-      
+
       if (isPayingAll) {
         setOrders([]);
         onSuccess?.();
@@ -132,10 +131,13 @@ export function PaySplitBillModal({ isOpen, onClose, table, onSuccess }) {
         const remainingOrders = orders.filter(o => o.id !== activePayingOrder.id);
         setOrders(remainingOrders);
         setPayingOrderId(null);
-        
+
         if (remainingOrders.length === 0) {
           onSuccess?.();
           onClose();
+        } else {
+          // Still more orders to pay — notify parent to refresh debt badge
+          onPartialPayment?.();
         }
       }
     } catch (err) {
@@ -158,11 +160,18 @@ export function PaySplitBillModal({ isOpen, onClose, table, onSuccess }) {
     try {
       const returnUrl = `${window.location.origin}/staff/tables?debtPay=1&tableId=${table.id}&orderId=${orderToPay.id}`;
       const cancelUrl = `${window.location.origin}/staff/tables?debtPay=0&tableId=${table.id}&orderId=${orderToPay.id}`;
-      
+
       const res = await orderService.createPaymentLink({
         orderCode: Number(orderToPay.id),
-        amount: Number(orderToPay.total_amount),
-        description: `Thanh toan don #${orderToPay.id}`,
+        amount: Math.round(Number(orderToPay.total_amount || 0)),
+        description: `DH${orderToPay.id}`.slice(0, 25),
+        items: [
+          {
+            name: `Order #${orderToPay.id}`.slice(0, 100),
+            quantity: 1,
+            price: Math.round(Number(orderToPay.total_amount || 0)),
+          },
+        ],
         returnUrl,
         cancelUrl,
       });
@@ -180,8 +189,8 @@ export function PaySplitBillModal({ isOpen, onClose, table, onSuccess }) {
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-2xl p-0 overflow-hidden border-none shadow-2xl rounded-2xl">
-        <div className="flex flex-col h-[85vh] max-h-[700px] bg-white">
+      <DialogContent className="sm:max-w-2xl p-0 overflow-hidden border-none shadow-2xl dark:shadow-none rounded-2xl">
+        <div className="flex flex-col h-[85vh] max-h-[700px] bg-white dark:bg-gray-900">
           <DialogHeader className="p-6 bg-gradient-to-r from-orange-500 to-orange-600">
             <DialogTitle className="text-white text-xl font-bold flex items-center gap-2">
               <ReceiptText className="w-6 h-6" />
@@ -198,7 +207,7 @@ export function PaySplitBillModal({ isOpen, onClose, table, onSuccess }) {
             ) : orders.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
                 <CheckCircle2 className="w-12 h-12 text-green-500 mb-4" />
-                <p className="text-lg font-medium text-gray-800">Tất cả đơn tách đã được thanh toán</p>
+                <p className="text-lg font-medium text-gray-800 dark:text-gray-200">Tất cả đơn tách đã được thanh toán</p>
                 <Button onClick={onClose} className="mt-4 bg-orange-500 hover:bg-orange-600">Đóng</Button>
               </div>
             ) : (
@@ -207,30 +216,30 @@ export function PaySplitBillModal({ isOpen, onClose, table, onSuccess }) {
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
                     <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Danh sách đơn chờ</h3>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
+                    <Button
+                      variant="outline"
+                      size="sm"
                       onClick={handleStartPayAll}
-                      className={isPayingAll ? "border-orange-500 text-orange-600 bg-orange-50" : ""}
+                      className={isPayingAll ? "border-orange-500 text-orange-600 bg-orange-50 dark:bg-orange-900/30" : ""}
                     >
                       Thanh toán tất cả
                     </Button>
                   </div>
                   {orders.map((order) => (
-                    <div 
-                      key={order.id} 
+                    <div
+                      key={order.id}
                       onClick={() => handleStartPayment(order)}
                       className={`p-4 rounded-xl border-2 transition-all cursor-pointer ${
                         payingOrderId === order.id 
-                        ? 'border-orange-500 bg-orange-50/50 ring-2 ring-orange-200' 
-                        : (isPayingAll ? 'border-gray-100 bg-gray-50/30' : 'border-gray-100 hover:border-orange-200 bg-gray-50/50')
+                        ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/30/50 ring-2 ring-orange-200' 
+                        : (isPayingAll ? 'border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50/30' : 'border-gray-100 dark:border-gray-800 hover:border-orange-200 bg-gray-50 dark:bg-gray-800/50/50')
                       }`}
                     >
                       <div className="flex justify-between items-start mb-2">
-                        <span className="font-bold text-gray-800">Đơn #{order.id}</span>
+                        <span className="font-bold text-gray-800 dark:text-gray-200">Đơn #{order.id}</span>
                         <span className="text-orange-600 font-black">{formatVND(order.total_amount)}</span>
                       </div>
-                      <div className="text-xs text-gray-500 flex flex-col gap-1">
+                      <div className="text-xs text-gray-500 dark:text-gray-400 flex flex-col gap-1">
                         {order.items?.map((item, idx) => (
                           <div key={idx} className="flex justify-between">
                             <span>{item.quantity}x {item.product_name || item.name}</span>
@@ -247,11 +256,11 @@ export function PaySplitBillModal({ isOpen, onClose, table, onSuccess }) {
                   {payingOrderId || isPayingAll ? (
                     <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
                       <div>
-                        <h3 className="text-lg font-bold text-gray-800 mb-1">
+                        <h3 className="text-lg font-bold text-gray-800 dark:text-gray-200 mb-1">
                           {isPayingAll ? "Thanh toán tất cả" : `Thanh toán đơn #${payingOrderId}`}
                         </h3>
                         <p className="text-orange-500 text-2xl font-black">
-                          {formatVND(isPayingAll 
+                          {formatVND(isPayingAll
                             ? orders.reduce((sum, o) => sum + Number(o.total_amount || 0), 0)
                             : activePayingOrder?.total_amount
                           )}
@@ -264,7 +273,7 @@ export function PaySplitBillModal({ isOpen, onClose, table, onSuccess }) {
                           <button
                             onClick={() => setPaymentMethod('cash')}
                             className={`flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all ${
-                              paymentMethod === 'cash' ? 'border-green-500 bg-green-50 text-green-700' : 'border-gray-100 text-gray-500'
+                              paymentMethod === 'cash' ? 'border-green-500 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400' : 'border-gray-100 dark:border-gray-800 text-gray-500 dark:text-gray-400'
                             }`}
                           >
                             <HandCoins className="w-6 h-6" />
@@ -273,7 +282,7 @@ export function PaySplitBillModal({ isOpen, onClose, table, onSuccess }) {
                           <button
                             onClick={() => setPaymentMethod('payos')}
                             className={`flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all ${
-                              paymentMethod === 'payos' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-100 text-gray-500'
+                              paymentMethod === 'payos' ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400' : 'border-gray-100 dark:border-gray-800 text-gray-500 dark:text-gray-400'
                             }`}
                           >
                             <img src={PayOSLogo} alt="PayOS" className="h-6 w-6" />
@@ -290,7 +299,7 @@ export function PaySplitBillModal({ isOpen, onClose, table, onSuccess }) {
                               type="number"
                               value={customerCash}
                               onChange={(e) => setCustomerCash(Number(e.target.value))}
-                              className="text-xl font-bold h-12 bg-gray-50 border-gray-100"
+                              className="text-xl font-bold h-12 bg-gray-50 dark:bg-gray-800/50 border-gray-100 dark:border-gray-800"
                             />
                           </div>
                           <div className="flex gap-2">
@@ -302,8 +311,8 @@ export function PaySplitBillModal({ isOpen, onClose, table, onSuccess }) {
                                   onClick={() => setCustomerCash(val)}
                                   className={`flex-1 p-2 rounded-full border text-xs font-medium transition-all ${
                                     selected
-                                      ? "border-green-500 text-green-600 bg-green-50"
-                                      : "border-gray-200 text-gray-600 hover:bg-gray-50"
+                                      ? "border-green-500 text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30"
+                                      : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 dark:bg-gray-800/50"
                                   }`}
                                 >
                                   {formatVND(val).replace(/\s?₫/, "").trim()}
@@ -313,9 +322,9 @@ export function PaySplitBillModal({ isOpen, onClose, table, onSuccess }) {
                           </div>
 
                           {customerCash > totalAmountToPay && (
-                            <div className="p-3 bg-blue-50 rounded-xl flex justify-between items-center border border-blue-100">
-                              <span className="text-blue-600 text-xs font-bold">Tiền thừa:</span>
-                              <span className="text-blue-700 font-black">
+                            <div className="p-3 bg-blue-50 dark:bg-blue-900/30 rounded-xl flex justify-between items-center border border-blue-100">
+                              <span className="text-blue-600 dark:text-blue-400 text-xs font-bold">Tiền thừa:</span>
+                              <span className="text-blue-700 dark:text-blue-400 font-black">
                                 {formatVND(customerCash - totalAmountToPay)}
                               </span>
                             </div>
@@ -325,21 +334,21 @@ export function PaySplitBillModal({ isOpen, onClose, table, onSuccess }) {
                       )}
 
                       <div className="flex flex-col gap-2 pt-4">
-                        <Button 
-                          onClick={paymentMethod === 'cash' ? handleConfirmPayment : handlePayOS} 
+                        <Button
+                          onClick={paymentMethod === 'cash' ? handleConfirmPayment : handlePayOS}
                           disabled={isSubmitting}
-                          className="w-full h-12 bg-green-500 hover:bg-green-600 text-white font-bold text-lg rounded-xl shadow-lg shadow-green-200"
+                          className="w-full h-12 bg-green-500 hover:bg-green-600 text-white font-bold text-lg rounded-xl shadow-lg dark:shadow-none shadow-green-200"
                         >
                           {isSubmitting ? <Loader2 className="animate-spin" /> : 'Xác nhận thanh toán'}
                         </Button>
-                        <Button 
-                          variant="ghost" 
+                        <Button
+                          variant="ghost"
                           onClick={() => {
                             setPayingOrderId(null);
                             setIsPayingAll(false);
                           }}
                           disabled={isSubmitting}
-                          className="w-full text-gray-400 hover:text-gray-600"
+                          className="w-full text-gray-400 hover:text-gray-600 dark:text-gray-400"
                         >
                           Hủy chọn
                         </Button>
@@ -347,10 +356,10 @@ export function PaySplitBillModal({ isOpen, onClose, table, onSuccess }) {
                     </div>
                   ) : (
                     <div className="flex flex-col items-center justify-center h-full text-center p-6 text-muted-foreground space-y-4">
-                      <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center">
+                      <div className="w-16 h-16 bg-gray-50 dark:bg-gray-800/50 rounded-full flex items-center justify-center">
                         <Wallet className="w-8 h-8 text-gray-300" />
                       </div>
-                      <p className="text-sm">Vui lòng chọn một đơn hàng<br/>ở bên trái để tiến hành thanh toán</p>
+                      <p className="text-sm">Vui lòng chọn một đơn hàng<br />ở bên trái để tiến hành thanh toán</p>
                     </div>
                   )}
                 </div>

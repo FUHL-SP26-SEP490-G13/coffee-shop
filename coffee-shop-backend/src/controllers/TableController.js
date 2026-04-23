@@ -21,6 +21,21 @@ class TableController {
   }
 
   /**
+   * Get single table
+   */
+  async getTable(req, res, next) {
+    try {
+      const table = await TableService.getTableById(req.params.id);
+      res.json({
+        success: true,
+        data: table,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
    * Get tables by area
    */
   async getTablesByArea(req, res, next) {
@@ -289,7 +304,7 @@ class TableController {
         });
       }
 
-      const result = await TableService.mergeOrders(
+      const result = await TableService.mergeOrder(
         Number(from_table_id),
         Number(to_table_id)
       );
@@ -309,16 +324,18 @@ class TableController {
   async splitBill(req, res, next) {
     try {
       const { id } = req.params;
-      const { items } = req.body;
+      const payload = req.body;
+      const bills = Array.isArray(payload?.bills) ? payload.bills : null;
+      const items = Array.isArray(payload?.items) ? payload.items : null;
 
-      if (!items || !Array.isArray(items) || items.length === 0) {
+      if ((!bills || bills.length === 0) && (!items || items.length === 0)) {
         return res.status(400).json({
           success: false,
           message: 'Dữ liệu tách đơn không hợp lệ'
         });
       }
 
-      const result = await TableService.splitBill(Number(id), items);
+      const result = await TableService.splitBill(Number(id), payload, req.user);
 
       res.status(200).json({
         success: true,

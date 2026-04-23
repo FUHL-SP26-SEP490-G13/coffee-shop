@@ -1,9 +1,20 @@
 const OrderRepository = require("../repositories/OrderRepository");
+const CashSessionRepository = require("../repositories/CashSessionRepository");
+
 const ReputationService = require("./ReputationService");
+const LoyaltyService = require("./LoyaltyService");
 const ErrorResponse = require("../utils/ErrorResponse");
 
 class OrderOnlineService {
-  static DELIVERY_SHIPPING_FEE = 20000;
+  static LEGACY_DELIVERY_SHIPPING_FEE = 20000;
+  static DEFAULT_DELIVERY_SHIPPING_FEE = 15000;
+  static DYNAMIC_SHIPPING_ROLLOUT_AT = new Date("2026-04-07T00:00:00.000Z").getTime();
+  static MONEY_ROUNDING_UNIT = 100;
+  static MAX_DELIVERY_DISTANCE_KM = 10;
+  static FIRST_TIER_MAX_KM = 5;
+  static FIRST_TIER_RATE = 2000;
+  static SECOND_TIER_RATE = 1500;
+  static OSRM_BASE_URL = "https://router.project-osrm.org/route/v1/driving";
 
   createBadRequestError(message) {
     const error = new Error(message);
@@ -24,6 +35,123 @@ class OrderOnlineService {
     }
 
     return onlyDigits;
+  }
+
+
+
+  getHaversineDistanceMeters(lat1, lon1, lat2, lon2) {
+    const R = 6371e3;
+    const phi1 = (lat1 * Math.PI) / 180;
+    const phi2 = (lat2 * Math.PI) / 180;
+    const deltaPhi = ((lat2 - lat1) * Math.PI) / 180;
+    const deltaLambda = ((lon2 - lon1) * Math.PI) / 180;
+
+    const a =
+      Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) +
+      Math.cos(phi1) * Math.cos(phi2) *
+      Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2);
+
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }
+
+  async getDrivingDistanceKm(originLat, originLng, destinationLat, destinationLng) {
+    try {
+      const url = `${OrderOnlineService.OSRM_BASE_URL}/${originLng},${originLat};${destinationLng},${destinationLat}?overview=false`;
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        throw new Error("OSRM request failed");
+      }
+
+      const data = await response.json();
+      if (data?.code === "Ok" && Array.isArray(data.routes) && data.routes.length > 0) {
+        return Number(data.routes[0].distance) / 1000;
+      }
+
+      throw new Error("No route returned from OSRM");
+    } catch (error) {
+      const straightMeters = this.getHaversineDistanceMeters(
+        originLat,
+        originLng,
+        destinationLat,
+        destinationLng
+      );
+      return (straightMeters * 1.3) / 1000;
+    }
+  }
+
+  calculateShippingFeeByDistanceKm(distanceKm) {
+    const normalizedDistance = Math.max(0, Number(distanceKm || 0));
+    const maxDistance = OrderOnlineService.MAX_DELIVERY_DISTANCE_KM;
+
+    if (normalizedDistance >= maxDistance) {
+      const exceededByKm = normalizedDistance - maxDistance;
+      throw new ErrorResponse(
+        400,
+        `Khoảng cách ${normalizedDistance.toFixed(1)}km vượt quá giới hạn giao hàng ${maxDistance}km (vượt ${exceededByKm.toFixed(1)}km).`
+      );
+    }
+
+    const tierOneKm = Math.min(normalizedDistance, OrderOnlineService.FIRST_TIER_MAX_KM);
+    const tierTwoKm = Math.max(0, normalizedDistance - OrderOnlineService.FIRST_TIER_MAX_KM);
+
+    const fee =
+      tierOneKm * OrderOnlineService.FIRST_TIER_RATE +
+      tierTwoKm * OrderOnlineService.SECOND_TIER_RATE;
+
+    return Math.round(fee / OrderOnlineService.MONEY_ROUNDING_UNIT) * OrderOnlineService.MONEY_ROUNDING_UNIT;
+  }
+
+  calculateItemsSubtotal(items = []) {
+    if (!Array.isArray(items)) return 0;
+
+    return items.reduce((sum, item) => {
+      const itemQuantity = Math.max(1, Number(item?.quantity) || 1);
+      const unitPrice = Number(item?.price ?? item?.unit_price ?? 0);
+      return sum + Math.max(0, unitPrice * itemQuantity);
+    }, 0);
+  }
+
+
+
+  shouldUseLegacyShippingFallback(order) {
+    const createdAtMs = new Date(order?.created_at || 0).getTime();
+    return Number.isFinite(createdAtMs) && createdAtMs < OrderOnlineService.DYNAMIC_SHIPPING_ROLLOUT_AT;
+  }
+
+  getDerivedShippingFee(order, items = []) {
+    if (String(order?.order_type || "").toLowerCase() !== "delivery") {
+      return 0;
+    }
+
+    const feeFromOrder = Number(order?.delivery_fee ?? order?.shipping_fee);
+    if (Number.isFinite(feeFromOrder) && feeFromOrder > 0) {
+      return (
+        Math.round(feeFromOrder / OrderOnlineService.MONEY_ROUNDING_UNIT) *
+        OrderOnlineService.MONEY_ROUNDING_UNIT
+      );
+    }
+
+    const loyaltyDiscountAmount =
+      Math.max(0, Number(order?.used_points || 0)) * LoyaltyService.MONEY_PER_POINT;
+    const orderTotal = Math.max(0, Number(order?.total_amount || 0));
+    const itemsSubtotal = this.calculateItemsSubtotal(items);
+
+    const derived =
+      Math.round(
+        (orderTotal + loyaltyDiscountAmount - itemsSubtotal) /
+          OrderOnlineService.MONEY_ROUNDING_UNIT
+      ) * OrderOnlineService.MONEY_ROUNDING_UNIT;
+    if (Number.isFinite(derived) && derived > 0) {
+      return derived;
+    }
+
+    if (this.shouldUseLegacyShippingFallback(order)) {
+      return OrderOnlineService.LEGACY_DELIVERY_SHIPPING_FEE;
+    }
+
+    return 0;
   }
 
   async calculateCartAmounts(connection, items) {
@@ -128,9 +256,13 @@ class OrderOnlineService {
       receiver_phone,
       receiver_email,
       address,
-      note,
+      order_note,
+      delivery_note,
       discount_code,
+      used_points,
       items,
+      latitude,
+      longitude,
     } = payload;
 
     if (!Array.isArray(items) || items.length === 0) {
@@ -159,6 +291,15 @@ class OrderOnlineService {
       await connection.beginTransaction();
 
       const userId = user?.id || null;
+      const normalizedUsedPoints = Math.max(0, Number(used_points) || 0);
+
+      if (!Number.isInteger(normalizedUsedPoints) || normalizedUsedPoints < 0) {
+        throw new ErrorResponse(400, "Điểm sử dụng không hợp lệ");
+      }
+
+      if (normalizedUsedPoints > 0 && !userId) {
+        throw new ErrorResponse(401, "Bạn cần đăng nhập để sử dụng điểm loyalty");
+      }
 
       if (order_type !== "dine-in" && payment_method === "cash") {
         const normalizedReceiverPhone = this.normalizePhoneNumber(receiver_phone);
@@ -187,6 +328,7 @@ class OrderOnlineService {
 
       let activeOrderId = null;
       let existingOrderAmount = 0;
+      let activeOrderSnapshot = null;
 
       if (order_type === "dine-in") {
         const activeOrder = await OrderRepository.findActiveOrderByTableId(
@@ -194,23 +336,55 @@ class OrderOnlineService {
           payload.table_id
         );
         if (activeOrder) {
+          activeOrderSnapshot = activeOrder;
           activeOrderId = activeOrder.id;
           existingOrderAmount = Number(activeOrder.total_amount);
+
+          if (normalizedUsedPoints > 0) {
+            throw new ErrorResponse(
+              400,
+              "Không thể dùng điểm khi đang gộp thêm món vào đơn bàn hiện tại"
+            );
+          }
         }
       }
 
       const cartTotals = await this.calculateCartAmounts(connection, items);
       let totalAmount = cartTotals.totalAmount;
+      const itemSubtotalAmount = cartTotals.totalAmount;
       let regularAmount = cartTotals.regularAmount;
       const normalizedItems = cartTotals.normalizedItems;
-      const shippingFee =
-        order_type === "delivery" ? OrderOnlineService.DELIVERY_SHIPPING_FEE : 0;
+      let deliveryDistanceKm = 0;
+      let shippingFee = 0;
+      let deliveryWard = null;
+      let existingAmount = 0;
+      let existingDiscountAmount = 0;
+
+      if (activeOrderId) {
+        existingAmount = Math.max(
+          0,
+          Number(
+            activeOrderSnapshot?.amount ?? activeOrderSnapshot?.total_amount
+          ) || 0
+        );
+        existingDiscountAmount = Math.max(
+          0,
+          Number(activeOrderSnapshot?.discount_amount) || 0
+        );
+      }
+
+      if (order_type === "delivery") {
+        // Shipping fee feature is disabled.
+        shippingFee = 0;
+        deliveryDistanceKm = 0;
+      }
 
       totalAmount += shippingFee;
 
       let discountAmount = 0;
       let discountCodeApplied = null;
       let discountIdApplied = null;
+      let loyaltyDiscountAmount = 0;
 
       const normalizedDiscountCode = String(discount_code || "").trim();
       if (normalizedDiscountCode) {
@@ -274,17 +448,43 @@ class OrderOnlineService {
         discountIdApplied = discount.id;
       }
 
-      const finalAmount = Math.max(0, totalAmount - discountAmount);
+      const amountAfterVoucher = Math.max(0, totalAmount - discountAmount);
+
+      if (normalizedUsedPoints > 0) {
+        loyaltyDiscountAmount = await LoyaltyService.getRedeemDiscountForCheckout(
+          connection,
+          {
+            userId,
+            usedPoints: normalizedUsedPoints,
+            orderAmount: amountAfterVoucher,
+          }
+        );
+      }
+
+      const finalAmount = Math.max(0, amountAfterVoucher - loyaltyDiscountAmount);
+      const totalDiscountAmount = Math.max(
+        0,
+        discountAmount + loyaltyDiscountAmount
+      );
 
       let orderId = activeOrderId;
       if (!orderId) {
+        // Lấy ca đang mở để gán vào đơn hàng
+        const activeSession = await CashSessionRepository.findOpenSession();
+
         orderId = await OrderRepository.createOrder(connection, {
           user_id: userId,
-          created_by: userId,
           customer_type: user ? "registered" : "guest",
           order_type,
           table_id: order_type === "dine-in" ? payload.table_id : null,
+          status: "pending",
           total_amount: finalAmount,
+          amount: itemSubtotalAmount,
+          discount_amount: totalDiscountAmount,
+          delivery_fee: shippingFee,
+          used_points: normalizedUsedPoints,
+          cash_session_id: activeSession ? activeSession.id : null,
+          note: order_note?.trim() || null,
         });
 
         if (order_type === "dine-in") {
@@ -295,7 +495,14 @@ class OrderOnlineService {
         }
       } else {
         const newTotal = existingOrderAmount + finalAmount;
-        await OrderRepository.updateOrderTotalAmount(connection, orderId, newTotal);
+        const newAmount = existingAmount + itemSubtotalAmount;
+        const newDiscountAmount = existingDiscountAmount + totalDiscountAmount;
+
+        await OrderRepository.updateOrderTotalAmount(connection, orderId, {
+          totalAmount: newTotal,
+          amount: newAmount,
+          discountAmount: newDiscountAmount,
+        });
       }
 
       for (const item of normalizedItems) {
@@ -320,19 +527,19 @@ class OrderOnlineService {
         }
       }
 
-      if (order_type !== "dine-in" || (note && note.trim())) {
+      if (order_type !== "dine-in" || (order_note && order_note.trim())) {
+        const deliveryAddressWithArea = address ? address.trim() : "";
+
         const [existingInfo] = await connection.query(
           "SELECT id FROM order_delivery_info WHERE order_id = ?",
           [orderId]
         );
 
         if (existingInfo.length > 0) {
-          if (note && note.trim()) {
-            await connection.query(
-              "UPDATE order_delivery_info SET note = ? WHERE order_id = ?",
-              [note.trim(), orderId]
-            );
-          }
+          await connection.query(
+            "UPDATE order_delivery_info SET address = ?, note = ?, latitude = ?, longitude = ? WHERE order_id = ?",
+            [deliveryAddressWithArea, delivery_note?.trim() || null, latitude ?? null, longitude ?? null, orderId]
+          );
         } else {
           await OrderRepository.createOrderDeliveryInfo(connection, {
             order_id: orderId,
@@ -341,8 +548,10 @@ class OrderOnlineService {
               ? this.normalizePhoneNumber(receiver_phone)
               : "",
             receiver_email: receiver_email?.trim() || null,
-            address: address?.trim() || null,
-            note: note?.trim() || null,
+            address: deliveryAddressWithArea,
+            note: delivery_note?.trim() || null,
+            latitude: latitude ?? null,
+            longitude: longitude ?? null,
           });
         }
       }
@@ -363,14 +572,28 @@ class OrderOnlineService {
         await OrderRepository.incrementDiscountUsedCount(connection, discountIdApplied);
       }
 
+      if (normalizedUsedPoints > 0) {
+        await LoyaltyService.applyRedeemForOrder(connection, {
+          userId,
+          orderId,
+          usedPoints: normalizedUsedPoints,
+        });
+      }
+
       await connection.commit();
 
       return {
         order_id: orderId,
         subtotal_amount: totalAmount,
+        delivery_distance_km:
+          order_type === "delivery"
+            ? Number(deliveryDistanceKm.toFixed(2))
+            : 0,
         shipping_fee: shippingFee,
         discount_amount: discountAmount,
+        loyalty_discount_amount: loyaltyDiscountAmount,
         discount_code: discountCodeApplied,
+        used_points: normalizedUsedPoints,
         total_amount: finalAmount,
       };
     } catch (error) {
@@ -468,7 +691,12 @@ class OrderOnlineService {
   }
 
   async getOrdersByUser(userId) {
-    return await OrderRepository.findOrdersByUser(userId);
+    const orders = await OrderRepository.findOrdersByUser(userId);
+    for (let order of orders) {
+      order.items = await OrderRepository.findOrderItems(order.id);
+      order.shipping_fee = this.getDerivedShippingFee(order, order.items);
+    }
+    return orders;
   }
 
   async getOrderDetailByUser(orderId, userId) {
@@ -479,29 +707,44 @@ class OrderOnlineService {
     }
 
     const items = await OrderRepository.findOrderItems(orderId);
+    const shippingFee = this.getDerivedShippingFee(order, items);
 
     return {
       ...order,
+      shipping_fee: shippingFee,
       items,
     };
   }
 
-  // Hủy đơn hàng bởi khách hàng (khi đang ở trạng thái pending hoặc preparing)
-  async cancelOrderByUser(orderId, userId) {
+  async cancelOrderByUser(orderId, userId, payload = {}) {
     const order = await OrderRepository.findOrderByIdAndUser(orderId, userId);
 
     if (!order) {
       throw new ErrorResponse(404, "Đơn hàng không tồn tại");
     }
 
-    if (!["pending", "preparing"].includes(order.status)) {
+    const status = String(order.status || "").toLowerCase();
+    const isPaid = Number(order.is_paid) === 1;
+
+    if (status !== "pending" || isPaid) {
       throw new ErrorResponse(
         400,
-        "Chỉ có thể hủy đơn ở trạng thái chờ xác nhận hoặc đang chuẩn bị"
+        "Khách hàng chỉ được hủy đơn ở trạng thái chờ xác nhận và chưa thanh toán"
       );
     }
 
-    await OrderRepository.cancelOrderByUser(orderId, userId);
+    const reason = String(payload.reason || "").trim();
+    const reasonOption = String(payload.reason_option || "").trim();
+    if (!reason) {
+      throw new ErrorResponse(400, "Vui lòng nhập lý do hủy đơn");
+    }
+
+    const finalReason = reasonOption ? `[${reasonOption}] ${reason}` : reason;
+
+    await OrderRepository.cancelOrderByUser(orderId, userId, {
+      reason: finalReason,
+    });
+    await LoyaltyService.syncOrderLoyaltyByOrderId(orderId);
 
     return {
       order_id: orderId,
@@ -509,7 +752,51 @@ class OrderOnlineService {
     };
   }
 
-  async transitionOrderStatusByStaff(orderId, targetStatus, { cash_received } = {}) {
+  async syncCompletionRewardsForDelivery(orderId) {
+    const normalizedOrderId = Number(orderId || 0);
+    if (!normalizedOrderId) {
+      throw new ErrorResponse(400, "Mã đơn hàng không hợp lệ");
+    }
+
+    const order = await OrderRepository.findOrderById(normalizedOrderId);
+
+    if (!order) {
+      throw new ErrorResponse(404, "Đơn hàng không tồn tại");
+    }
+
+    const status = String(order.status || "").toLowerCase();
+    const orderType = String(order.order_type || "").toLowerCase();
+    const customerType = String(order.customer_type || "").toLowerCase();
+    const paymentStatus = String(order.payment_status || "").toLowerCase();
+    const isPaid = Number(order.is_paid) === 1 || paymentStatus === "paid";
+
+    if (orderType !== "delivery" || status !== "completed" || !isPaid) {
+      return {
+        synced: false,
+        reason: "order_not_completed_paid_delivery",
+      };
+    }
+
+    if (customerType === "registered") {
+      await LoyaltyService.syncOrderLoyaltyByOrderId(normalizedOrderId);
+    }
+
+    await ReputationService.applyScoreChangeByOrder({
+      orderId: normalizedOrderId,
+      changeAmount: 10,
+      reasonType: "ORDER_SUCCESS",
+      description:
+        "Khách hàng nhận đơn thành công (delivery completed + paid)",
+    });
+
+    return {
+      synced: true,
+      order_id: normalizedOrderId,
+      customer_type: customerType,
+    };
+  }
+
+  async transitionOrderStatusByStaff(orderId, targetStatus, { cash_received } = {}, staffUser = null) {
     const order = await OrderRepository.findOrderById(orderId);
 
     if (!order) {
@@ -531,7 +818,7 @@ class OrderOnlineService {
       const isCustomerOrder =
         ["registered", "guest", "customer"].includes(customerType) ||
         customerType === "";
-      const isEligibleType = ["delivery", "takeaway"].includes(order.order_type);
+      const isEligibleType = ["delivery", "takeaway", "dine-in"].includes(order.order_type);
 
       if (currentStatus !== "pending") {
         throw new ErrorResponse(400, "Chỉ được chuyển từ chờ xử lý sang đang chuẩn bị");
@@ -540,7 +827,7 @@ class OrderOnlineService {
       if (!isEligibleType || !isCustomerOrder) {
         throw new ErrorResponse(
           400,
-          "Chỉ áp dụng cho đơn online giao hàng hoặc mang về do khách hàng đặt"
+          "Chỉ áp dụng cho đơn online giao hàng, mang về hoặc QR tại bàn do khách hàng đặt"
         );
       }
 
@@ -548,10 +835,26 @@ class OrderOnlineService {
         throw new ErrorResponse(400, "Trạng thái thanh toán của đơn không hợp lệ");
       }
 
+      // Assign to current active session and staff
+      const CashSessionRepository = require("../repositories/CashSessionRepository");
+      const activeSession = await CashSessionRepository.findOpenSession();
+      const cashSessionId = activeSession ? activeSession.id : null;
+      const staffId = staffUser ? staffUser.id : null;
+
+      await OrderRepository.updateOrderStaffAndSession(orderId, staffId, cashSessionId);
       await OrderRepository.updateOrderStatus(orderId, "preparing");
 
+      if (!isAlreadyPaid) {
+        await OrderRepository.updateOrderPaidStatus(orderId, true);
+        const totalAmount = Number(order.total_amount || 0);
+        await OrderRepository.updatePaymentStatusByOrderId(orderId, "paid", {
+          cash_received: totalAmount,
+          change_amount: 0,
+        });
+      }
+
       return {
-        order_id: orderId,
+        order_id: Number(orderId),
         user_id: order.user_id,
         status: "preparing",
       };
@@ -571,6 +874,7 @@ class OrderOnlineService {
 
       await OrderRepository.updateOrderStatus(orderId, "cancelled");
       await OrderRepository.updatePaymentStatusByOrderId(orderId, "pending");
+      await LoyaltyService.syncOrderLoyaltyByOrderId(orderId);
 
       // Delivery: preparing -> cancelled (khách không nhận) => -20 điểm uy tín
       if (order.order_type === "delivery" && currentStatus === "preparing") {
@@ -617,21 +921,14 @@ class OrderOnlineService {
       changeAmount = Math.max(0, cashReceivedAmount - totalAmount);
 
       await OrderRepository.updateOrderPaidStatus(orderId, true);
-      await OrderRepository.updatePaymentStatusByOrderId(orderId, "paid");
+      await OrderRepository.updatePaymentStatusByOrderId(orderId, "paid", {
+        cash_received: cashReceivedAmount,
+        change_amount: changeAmount,
+      });
     }
 
     await OrderRepository.updateOrderStatus(orderId, "completed");
-
-    // Delivery: preparing -> completed (khách nhận thành công) => +10 điểm uy tín
-    if (order.order_type === "delivery" && currentStatus === "preparing") {
-      await ReputationService.applyScoreChangeByOrder({
-        orderId,
-        changeAmount: 10,
-        reasonType: "ORDER_SUCCESS",
-        description:
-          "Khách hàng nhận đơn thành công (staff xác nhận completed từ preparing)",
-      });
-    }
+    await this.syncCompletionRewardsForDelivery(orderId);
 
     return {
       order_id: orderId,
@@ -643,13 +940,46 @@ class OrderOnlineService {
   }
 
   // Xác nhận đơn hàng đang chờ xử lý bởi nhân viên (chuyển sang trạng thái preparing)
-  async confirmDeliveryPreparing(orderId) {
-    return this.transitionOrderStatusByStaff(orderId, "preparing");
+  async confirmDeliveryPreparing(orderId, user = null) {
+    return this.transitionOrderStatusByStaff(orderId, "preparing", {}, user);
   }
 
-  // Hủy đơn hàng bởi nhân viên (chỉ từ preparing)
-  async cancelDeliveryOrderByStaff(orderId) {
-    return this.transitionOrderStatusByStaff(orderId, "cancelled");
+  async cancelDeliveryOrderByStaff(orderId, actor = {}, payload = {}) {
+    const order = await OrderRepository.findOrderById(orderId);
+
+    if (!order) {
+      throw new ErrorResponse(404, "Đơn hàng không tồn tại");
+    }
+
+    const status = String(order.status || "").toLowerCase();
+    const isPaid = Number(order.is_paid) === 1;
+    if (status !== "pending" || isPaid) {
+      throw new ErrorResponse(
+        400,
+        "Nhân viên chỉ được hủy đơn online ở bước nhận đơn (pending và chưa thanh toán)"
+      );
+    }
+
+    const reason = String(payload.reason || "").trim();
+    const reasonOption = String(payload.reason_option || "").trim();
+    if (!reason) {
+      throw new ErrorResponse(400, "Vui lòng nhập lý do hủy đơn");
+    }
+
+    const finalReason = reasonOption ? `[${reasonOption}] ${reason}` : reason;
+
+    await OrderRepository.cancelOrderByStaff(
+      orderId,
+      actor.user_id,
+      actor.role,
+      { reason: finalReason }
+    );
+    await LoyaltyService.syncOrderLoyaltyByOrderId(orderId);
+
+    return {
+      order_id: orderId,
+      status: "cancelled",
+    };
   }
 
   async markOrderPrintSuccess(orderId) {
@@ -706,6 +1036,7 @@ class OrderOnlineService {
     }
 
     await OrderRepository.updateOrderStatus(orderId, "cancelled");
+    await LoyaltyService.syncOrderLoyaltyByOrderId(orderId);
 
     return {
       order_id: orderId,
@@ -734,6 +1065,7 @@ class OrderOnlineService {
 
     return {
       ...order,
+      shipping_fee: this.getDerivedShippingFee(order, items),
       items,
     };
   }
@@ -761,8 +1093,10 @@ class OrderOnlineService {
     if (isCancelled) {
       await OrderRepository.updateOrderStatus(orderCode, "cancelled");
       await OrderRepository.updateOrderPaidStatus(orderCode, false);
+      await LoyaltyService.syncOrderLoyaltyByOrderId(orderCode);
     } else if (isPaid) {
       await OrderRepository.updateOrderPaidStatus(orderCode, true);
+      await this.syncCompletionRewardsForDelivery(orderCode);
     }
 
     return { 

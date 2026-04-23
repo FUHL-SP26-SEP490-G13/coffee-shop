@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { Plus, Edit, Trash2, Calendar, Clock, Zap } from "lucide-react";
+import { Plus, Edit, Trash2, Clock, Loader2, Search } from "lucide-react";
 import { toast } from "sonner";
 import { adminFlashSaleService } from "@/services/adminFlashSaleService";
+import PaginationControl from "@/components/common/PaginationControl";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -12,6 +13,16 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import AdminFlashSaleModal from "./AdminFlashSaleModal";
 
 export default function AdminFlashSales() {
@@ -19,9 +30,13 @@ export default function AdminFlashSales() {
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedSale, setSelectedSale] = useState(null);
-  
+
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [saleToDelete, setSaleToDelete] = useState(null);
+
+  const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   const fetchSales = async () => {
     try {
@@ -38,6 +53,20 @@ export default function AdminFlashSales() {
   useEffect(() => {
     fetchSales();
   }, []);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
+  const filteredSales = sales.filter(sale =>
+    sale.title.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const totalPages = Math.ceil(filteredSales.length / itemsPerPage);
+  const paginatedSales = filteredSales.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
   const handleOpenAdd = () => {
     setSelectedSale(null);
@@ -97,7 +126,7 @@ export default function AdminFlashSales() {
     if (sale.status === 'inactive') {
       return <span className="px-2 py-1 text-xs rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300">Đã tắt</span>;
     }
-    
+
     if (now < start) {
       return <span className="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-600">Sắp diễn ra</span>;
     } else if (now > end) {
@@ -108,83 +137,119 @@ export default function AdminFlashSales() {
   };
 
   return (
-    <div className="bg-white dark:bg-gray-900 dark:border-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-      <div className="p-6 border-b border-gray-100 dark:border-gray-700">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <div className="p-4 sm:p-6 space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="flex items-center gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-              <Zap className="w-6 h-6 text-amber-500 fill-amber-500" /> Quản lý Flash Sale
+            <h1 className="text-xl font-semibold">
+              Quản lý flash sale
             </h1>
-            <p className="text-gray-500 text-sm mt-1">Cài đặt các chiến dịch Giờ Vàng Giá Sốc</p>
           </div>
-          <button
-            onClick={handleOpenAdd}
-            className="flex items-center gap-2 bg-amber-600 hover:bg-amber-700 text-white px-4 py-2.5 rounded-lg active:scale-95 transition-all text-sm font-medium"
-          >
-            <Plus className="w-4 h-4" /> Tạo chiến dịch mới
-          </button>
+        </div>
+        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
+            <Input
+              placeholder="Tìm kiếm chiến dịch..."
+              className="pl-9 w-full sm:w-[350px]"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          <Button onClick={handleOpenAdd}>
+            <Plus className="w-4 h-4 mr-2" /> Tạo chiến dịch mới
+          </Button>
         </div>
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full text-left text-sm text-gray-600 dark:text-gray-300">
-          <thead className="bg-gray-50 dark:bg-gray-800/50 text-gray-700 dark:text-gray-200 font-medium">
-            <tr>
-              <th className="py-4 px-6 border-b border-gray-100 dark:border-gray-700">STT</th>
-              <th className="py-4 px-6 border-b border-gray-100 dark:border-gray-700">Chiến dịch</th>
-              <th className="py-4 px-6 border-b border-gray-100 dark:border-gray-700">Thời gian</th>
-              <th className="py-4 px-6 border-b border-gray-100 dark:border-gray-700">Khuyến mãi</th>
-              <th className="py-4 px-6 border-b border-gray-100 dark:border-gray-700">Trạng thái</th>
-              <th className="py-4 px-6 border-b border-gray-100 dark:border-gray-700 text-right">Thao tác</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr>
-                <td colSpan="6" className="py-8 text-center text-gray-400">Đang tải dữ liệu...</td>
-              </tr>
-            ) : sales.length === 0 ? (
-              <tr>
-                <td colSpan="6" className="py-8 text-center text-gray-400">Chưa có chiến dịch Flash Sale nào</td>
-              </tr>
-            ) : (
-              sales.map((sale, index) => (
-                <tr key={sale.id} className="border-b border-gray-50 hover:bg-gray-50 dark:hover:bg-gray-800 dark:bg-gray-800/50 transition-colors">
-                  <td className="py-4 px-6">{index + 1}</td>
-                  <td className="py-4 px-6 font-medium text-gray-900 dark:text-gray-100">{sale.title}</td>
-                  <td className="py-4 px-6 text-xs text-gray-500">
-                    <div className="flex flex-col gap-1">
-                      <span className="flex items-center gap-1"><Clock className="w-3 h-3 text-green-500" /> Bắt đầu: {formatDateTime(sale.start_time)}</span>
-                      <span className="flex items-center gap-1"><Clock className="w-3 h-3 text-red-500" /> Kết thúc: {formatDateTime(sale.end_time)}</span>
-                    </div>
-                  </td>
-                  <td className="py-4 px-6">
-                    <span className="font-bold text-red-600 bg-red-50 px-2 py-1 rounded">Giảm {sale.discount_percent}%</span>
-                  </td>
-                  <td className="py-4 px-6">{getStatusBadge(sale)}</td>
-                  <td className="py-4 px-6 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <button
-                        onClick={() => handleOpenEdit(sale)}
-                        className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-                        title="Sửa chiến dịch"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteConfirm(sale)}
-                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Xóa chiến dịch"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+      <div className="relative bg-card rounded-xl border border-border overflow-hidden">
+        {loading && (
+          <div className="absolute inset-0 bg-white/50 flex items-center justify-center z-10">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          </div>
+        )}
+
+        {!loading && (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="text-center w-[60px]">STT</TableHead>
+                <TableHead className="min-w-[180px]">Chiến dịch</TableHead>
+                <TableHead className="min-w-[200px]">Thời gian</TableHead>
+                <TableHead className="text-center min-w-[120px]">Khuyến mãi</TableHead>
+                <TableHead className="text-center min-w-[120px]">Trạng thái</TableHead>
+                <TableHead className="text-center min-w-[140px]">Hành động</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredSales.length === 0 ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={6}
+                    className="text-center py-8 text-muted-foreground"
+                  >
+                    Không tìm thấy chiến dịch Flash Sale nào
+                  </TableCell>
+                </TableRow>
+              ) : (
+                paginatedSales.map((sale, index) => (
+                  <TableRow key={sale.id}>
+                    <TableCell className="text-center font-medium">
+                      {(currentPage - 1) * itemsPerPage + index + 1}
+                    </TableCell>
+                    <TableCell>
+                      <div className="font-medium">{sale.title}</div>
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      <div className="flex flex-col gap-1">
+                        <span className="flex items-center gap-1"><Clock className="w-3 h-3 text-green-500" /> Bắt đầu: {formatDateTime(sale.start_time)}</span>
+                        <span className="flex items-center gap-1"><Clock className="w-3 h-3 text-red-500" /> Kết thúc: {formatDateTime(sale.end_time)}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <span className="font-bold text-red-600 bg-red-50 px-2 py-1 rounded">Giảm {sale.discount_percent}%</span>
+                    </TableCell>
+                    <TableCell className="text-center">{getStatusBadge(sale)}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center justify-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleOpenEdit(sale)}
+                          title="Sửa chiến dịch"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeleteConfirm(sale)}
+                          title="Xóa chiến dịch"
+                          className="hover:text-red-600"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        )}
+
+        {!loading && filteredSales.length > 0 && (
+          <div className="p-4 border-t border-border">
+            <PaginationControl
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+              totalItems={filteredSales.length}
+              itemsPerPage={itemsPerPage}
+              itemName="chiến dịch"
+            />
+          </div>
+        )}
       </div>
 
       <AdminFlashSaleModal
@@ -199,7 +264,7 @@ export default function AdminFlashSales() {
           <AlertDialogHeader>
             <AlertDialogTitle>Xác nhận xóa Flash Sale</AlertDialogTitle>
             <AlertDialogDescription>
-              Bạn có chắc chắn muốn xóa chiến dịch <strong>{saleToDelete?.title}</strong>? Không thể hoàn tác hành động này.
+              Bạn có chắc chắn muốn xóa chiến dịch <strong>{saleToDelete?.title}</strong>?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -16,11 +16,12 @@ import { ProductModal } from './TakeAwayOrder/ProductModal';
 import { EditOrderModal } from './TakeAwayOrder/EditOrderModal';
 import { OrderCard } from './TakeAwayOrder/OrderCard';
 import { CancelModal } from './TakeAwayOrder/CancelModal';
-import { ReceiptModal } from './TakeAwayOrder/ReceiptModal';
+import { PrintableReceipt } from './PrintableReceipt';
 import { CheckoutModal } from './TakeAwayOrder/CheckoutModal';
 import takeawayService from '@/services/takeAwayService';
 import categoryService from '@/services/categoryService';
 import toppingService from '@/services/toppingService';
+import productService from '@/services/productService';
 import { toast } from 'sonner';
 import QRDisplay from '../common/QRDisplay';
 import socket from '@/lib/socket';
@@ -41,12 +42,11 @@ function TakeawayPOS() {
   const [showCheckout, setShowCheckout] = useState(false);
 
   // ─── Orders state ─────────────────────────────────────────────────────────
-  const [orders, setOrders] = useState([]);
-  const [ordersLoading, setOrdersLoading] = useState(false);
-  const [orderFilter, setOrderFilter] = useState('active');
+  const [_orders, setOrders] = useState([]);
+  const [_ordersLoading, setOrdersLoading] = useState(false);
   const [editingOrder, setEditingOrder] = useState(null);
   const [cancelingOrder, setCancelingOrder] = useState(null);
-  const [cancelLoading, setCancelLoading] = useState(false);
+  const [_cancelLoading, setCancelLoading] = useState(false);
   const [viewingReceipt, setViewingReceipt] = useState(null);
 
   // ─── Checkout state ───────────────────────────────────────────────────────
@@ -59,18 +59,28 @@ function TakeawayPOS() {
     const loadMeta = async () => {
       setMetaLoading(true);
       try {
-        const [categoriesRes, toppingsRes] = await Promise.all([
+        const [categoriesRes, toppingsRes, productsRes] = await Promise.all([
           categoryService.getAll({ is_deleted: 0 }),
           toppingService.getAll({ is_deleted: 0 }),
+          productService.getAll({ status: 'available', is_deleted: 0, limit: 500 }),
         ]);
         const rawCategories =
           categoriesRes.data?.data || categoriesRes.data || [];
         const rawToppings = toppingsRes.data?.data || toppingsRes.data || [];
-        setCategories(rawCategories.filter((c) => !c.is_deleted));
+
+        // Lấy tập category_id có ít nhất 1 sản phẩm available
+        const rawProducts = productsRes?.data || [];
+        const nonEmptyCategoryIds = new Set(
+          rawProducts
+            .filter((p) => p.status === 'available' && (p.sizes || []).filter((s) => !s.is_deleted).length > 0)
+            .map((p) => p.category_id)
+        );
+
+        setCategories(rawCategories.filter((c) => !c.is_deleted && nonEmptyCategoryIds.has(c.id)));
         setToppings(
           rawToppings
-            .filter((t) => !t.is_deleted)
-            .map((t) => ({ id: t.id, name: t.name, price: Number(t.price) })),
+            .filter((t) => !t.is_deleted || t.is_deleted === 0 || t.is_deleted === '0')
+            .map((t) => ({ id: t.id, name: t.name, price: Number(t.price), category_ids: t.category_ids })),
         );
       } catch (e) {
         toast.error('Không tải được danh mục');
@@ -97,30 +107,6 @@ function TakeawayPOS() {
     loadProfile();
   }, []);
 
-  // ─── Socket listener PayOS ────────────────────────────────────────────────
-  useEffect(() => {
-    if (!socket.connected) socket.connect();
-
-    const handlePaymentCompleted = (data) => {
-      const orderId = data.order_id;
-      // Socket event handler is no longer primarily used to render the receipt for PayOS 
-      // because we redirect the page, but we keep it here just in case another client completes it.
-      if (orderId && checkoutResult && (checkoutResult.order_id === orderId || checkoutResult.id === orderId)) {
-        toast.success(`Thanh toán PayOS thành công cho đơn #${orderId}!`);
-        setViewingReceipt({
-          ...checkoutResult,
-          order_id: checkoutResult.order_id || checkoutResult.id,
-          order_code: `DH-${String(checkoutResult.order_id || checkoutResult.id).padStart(6, '0')}`,
-          printed_by: printerName,
-        });
-        setCheckoutResult(null);
-      }
-    };
-
-    socket.on('order:payment-completed', handlePaymentCompleted);
-    return () => socket.off('order:payment-completed', handlePaymentCompleted);
-  }, [printerName, checkoutResult]);
-
   // ─── Load orders ──────────────────────────────────────────────────────────
   const loadOrders = useCallback(async () => {
     setOrdersLoading(true);
@@ -138,6 +124,73 @@ function TakeawayPOS() {
   useEffect(() => {
     loadOrders();
   }, [loadOrders]);
+
+  const openReceiptFromOrder = useCallback(
+    async (orderSeed) => {
+      const orderId = Number(orderSeed?.order_id || orderSeed?.id || 0);
+      if (!orderId) {
+        toast.error('Không xác định được đơn để in hóa đơn');
+        return;
+      }
+
+      try {
+        toast.info('Đang lấy dữ liệu hóa đơn...');
+        const res = await takeawayService.getReceipt(orderId);
+        const receipt = res?.data?.receipt;
+
+        if (!receipt) {
+          throw new Error('Receipt data is empty');
+        }
+
+        setViewingReceipt({
+          ...orderSeed,
+          ...receipt,
+          amount: Math.max(
+            0,
+            Number(
+              receipt?.amount ??
+              receipt?.subtotal_amount ??
+              orderSeed?.amount ??
+              orderSeed?.subtotal_amount ??
+              0,
+            ),
+          ),
+          printed_by: printerName,
+          autoPrint: true,
+        });
+      } catch (error) {
+        console.error('Lỗi lấy dữ liệu hóa đơn:', error);
+        toast.error('Không thể lấy dữ liệu in hóa đơn');
+      }
+    },
+    [printerName],
+  );
+
+  // ─── Socket listener PayOS ────────────────────────────────────────────────
+  useEffect(() => {
+    if (!socket.connected) socket.connect();
+
+    const handlePaymentCompleted = async (data) => {
+      const orderId = data.order_id;
+      // Socket event handler is no longer primarily used to render the receipt for PayOS
+      // because we redirect the page, but we keep it here just in case another client completes it.
+      if (
+        orderId &&
+        checkoutResult &&
+        (checkoutResult.order_id === orderId || checkoutResult.id === orderId)
+      ) {
+        toast.success(`Thanh toán PayOS thành công cho đơn #${orderId}!`);
+        await openReceiptFromOrder({
+          ...checkoutResult,
+          order_id: checkoutResult.order_id || checkoutResult.id,
+        });
+        setCheckoutResult(null);
+      }
+    };
+
+    socket.on('order:payment-completed', handlePaymentCompleted);
+    return () => socket.off('order:payment-completed', handlePaymentCompleted);
+  }, [checkoutResult, openReceiptFromOrder]);
 
   // ─── Computed ─────────────────────────────────────────────────────────────
   const subtotal = cart.reduce((s, item) => {
@@ -186,7 +239,7 @@ function TakeawayPOS() {
         discount_code: discountCode || '',
         returnUrl,
         cancelUrl: returnUrl,
-        cash_received: paymentMethod === 'cash' ? receivedAmount || 0 : 0, 
+        cash_received: paymentMethod === 'cash' ? receivedAmount || 0 : 0,
         items: cart.map((item) => ({
           product_size_id: item.product_size_id,
           quantity: item.quantity,
@@ -202,6 +255,10 @@ function TakeawayPOS() {
 
       const newOrder = {
         ...data,
+        amount: Math.max(
+          0,
+          Number(data?.amount ?? data?.subtotal_amount ?? subtotal),
+        ),
         items: cart.map((i) => ({
           product_name: i.productName,
           size: i.size,
@@ -212,10 +269,11 @@ function TakeawayPOS() {
         })),
         discount_code: discountCode || null,
         discount_amount: discountAmount || data.discount_amount || 0,
-        is_paid: paymentMethod === 'cash' ? 1 : (data.is_paid ? 1 : 0),
+        is_paid: paymentMethod === 'cash' ? 1 : data.is_paid ? 1 : 0,
         payment: {
           method: paymentMethod,
-          status: paymentMethod === 'cash' ? 'paid' : (data.is_paid ? 'paid' : 'pending'),
+          status:
+            paymentMethod === 'cash' ? 'paid' : data.is_paid ? 'paid' : 'pending',
         },
       };
 
@@ -229,7 +287,7 @@ function TakeawayPOS() {
         toast.success(
           `Tạo đơn #${data.order_id} thành công · ${fmt(data.total_amount)}`,
         );
-        setViewingReceipt({ ...newOrder, autoPrint: true });
+        await openReceiptFromOrder(newOrder);
       }
     } catch (e) {
       toast.error(e?.response?.data?.message || 'Lỗi tạo đơn');
@@ -239,7 +297,7 @@ function TakeawayPOS() {
   };
 
   // ─── Cancel ───────────────────────────────────────────────────────────────
-  const handleCancelConfirm = async () => {
+  const _handleCancelConfirm = async () => {
     if (!cancelingOrder) return;
     setCancelLoading(true);
     try {
@@ -250,7 +308,7 @@ function TakeawayPOS() {
       setOrders((prev) =>
         prev.map((o) =>
           (o.order_id || o.id) ===
-          (cancelingOrder.order_id || cancelingOrder.id)
+            (cancelingOrder.order_id || cancelingOrder.id)
             ? { ...o, status: 'cancelled' }
             : o,
         ),
@@ -265,23 +323,7 @@ function TakeawayPOS() {
     }
   };
 
-  // const handleComplete = async (order) => {
-  //   try {
-  //     await takeawayService.markCompleted(order.order_id || order.id);
-  //     setOrders((prev) =>
-  //       prev.map((o) =>
-  //         (o.order_id || o.id) === (order.order_id || order.id)
-  //           ? { ...o, status: 'completed' }
-  //           : o,
-  //       ),
-  //     );
-  //     toast.success(`Đơn #${order.order_id || order.id} đã giao cho khách`);
-  //   } catch (e) {
-  //     toast.error(e?.response?.data?.message || 'Lỗi cập nhật trạng thái');
-  //   }
-  // };
-
-  const handleEditSave = (updatedData) => {
+  const _handleEditSave = (updatedData) => {
     setOrders((prev) =>
       prev.map((o) =>
         (o.order_id || o.id) === (editingOrder.order_id || editingOrder.id)
@@ -303,49 +345,53 @@ function TakeawayPOS() {
   }, [showCheckout, cart.length]);
 
   return (
-    <div className='flex h-screen gap-0 -m-4 md:-m-8 -mt-2'>
+    <div className='flex h-full gap-0 bg-white dark:bg-gray-900'>
       {/*  CỘT TRÁI — Menu */}
-      <div className='flex flex-col w-0 flex-[5] min-w-0 border-r border-gray-100'>
+      <div className='flex flex-col w-0 flex-[5] min-w-0 border-r border-gray-100 dark:border-gray-800'>
         {/* Header */}
-        <div className='px-5 pt-5 pb-3 border-b border-gray-100 shrink-0'>
+        <div className='px-5 pt-5 pb-3 border-b border-gray-100 dark:border-gray-800 shrink-0'>
           <div className='flex items-center gap-2'>
-            <ShoppingBag size={20} className='text-amber-500' />
-            <h2 className='font-bold text-gray-800 text-lg'>Đặt đồ mang đi</h2>
+            <h2 className='font-bold text-gray-800 dark:text-gray-200 text-lg'>Đặt đồ mang đi</h2>
           </div>
         </div>
 
         {/* Category tabs */}
-        <div className='flex gap-2 px-5 py-3 overflow-x-auto shrink-0 scrollbar-none border-b border-gray-100'>
+        <div className='flex gap-2 px-5 py-3 overflow-x-auto shrink-0 scrollbar-none border-b border-gray-100 dark:border-gray-800'>
           <button
             onClick={() => setActiveCategory('all')}
-            className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
-              activeCategory === 'all'
-                ? 'bg-amber-500 text-white shadow-sm'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
+            className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${activeCategory === 'all'
+                ? 'bg-amber-500 text-white shadow-sm dark:shadow-none'
+                : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:bg-gray-700'
+              }`}
           >
             Tất cả
           </button>
           {metaLoading
             ? [1, 2, 3].map((i) => (
-                <div
-                  key={i}
-                  className='h-7 w-16 rounded-full bg-gray-100 animate-pulse shrink-0'
-                />
-              ))
+              <div
+                key={i}
+                className='h-7 w-16 rounded-full bg-gray-100 dark:bg-gray-800 animate-pulse shrink-0'
+              />
+            ))
             : categories.map((cat) => (
-                <button
-                  key={cat.id}
-                  onClick={() => setActiveCategory(cat.id)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
-                    activeCategory === cat.id
-                      ? 'bg-amber-500 text-white shadow-sm'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              <button
+                key={cat.id}
+                onClick={() => setActiveCategory(cat.id)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${activeCategory === cat.id
+                    ? 'bg-amber-500 text-white shadow-sm dark:shadow-none'
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:bg-gray-700'
                   }`}
-                >
-                  {cat.name}
-                </button>
-              ))}
+              >
+                {cat.image_url && (
+                  <img
+                    src={cat.image_url}
+                    alt={cat.name}
+                    className="w-4 h-4 rounded-full object-cover bg-white shrink-0"
+                  />
+                )}
+                <span>{cat.name}</span>
+              </button>
+            ))}
         </div>
 
         {/* ProductGrid — tự quản lý fetch + phân trang */}
@@ -358,9 +404,9 @@ function TakeawayPOS() {
       </div>
 
       {/*  CỘT GIỮA — Giỏ hàng */}
-      <div className='flex flex-col w-0 flex-[3] min-w-0 min-h-0 border-r border-gray-100 bg-gray-50'>
-        <div className='px-4 pt-5 pb-3 border-b border-gray-100 bg-white shrink-0'>
-          <h3 className='font-bold text-gray-800 flex items-center gap-2'>
+      <div className='flex flex-col w-0 flex-[3] min-w-0 min-h-0 border-r border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50'>
+        <div className='px-4 pt-5 pb-3 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 shrink-0'>
+          <h3 className='font-bold text-gray-800 dark:text-gray-200 flex items-center gap-2'>
             <ShoppingBag size={16} className='text-amber-500' />
             Giỏ hàng
             {cart.length > 0 && (
@@ -384,18 +430,18 @@ function TakeawayPOS() {
             cart.map((item) => (
               <div
                 key={item._uid}
-                className='bg-white rounded-xl p-3 border border-gray-100 shadow-sm'
+                className='bg-white dark:bg-gray-900 rounded-xl p-3 border border-gray-100 dark:border-gray-800 shadow-sm dark:shadow-none'
               >
                 <div className='flex justify-between items-start gap-2'>
                   <div className='flex-1 min-w-0'>
-                    <p className='text-sm font-semibold text-gray-800 truncate'>
+                    <p className='text-sm font-semibold text-gray-800 dark:text-gray-200 truncate'>
                       {item.productName}
                     </p>
                     <p className='text-xs text-gray-400'>
                       Size {item.size} · {fmt(item.price)}
                     </p>
                     {item.toppings.length > 0 && (
-                      <p className='text-xs text-amber-600 truncate'>
+                      <p className='text-xs text-amber-600 dark:text-amber-400 truncate'>
                         +
                         {item.toppings
                           .map((t) => `${t.name}×${t.quantity}`)
@@ -410,7 +456,7 @@ function TakeawayPOS() {
                   </div>
                   <button
                     onClick={() => removeFromCart(item._uid)}
-                    className='w-6 h-6 rounded-full bg-red-50 text-red-400 flex items-center justify-center hover:bg-red-100 shrink-0'
+                    className='w-6 h-6 rounded-full bg-red-50 dark:bg-red-900/30 text-red-400 flex items-center justify-center hover:bg-red-100 dark:bg-red-900/40 shrink-0'
                   >
                     <X size={11} />
                   </button>
@@ -419,7 +465,7 @@ function TakeawayPOS() {
                   <div className='flex items-center gap-2'>
                     <button
                       onClick={() => updateQty(item._uid, -1)}
-                      className='w-7 h-7 rounded-full border-2 border-gray-200 flex items-center justify-center hover:border-gray-300 text-gray-600'
+                      className='w-7 h-7 rounded-full border-2 border-gray-200 dark:border-gray-700 flex items-center justify-center hover:border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400'
                     >
                       <Minus size={12} />
                     </button>
@@ -433,14 +479,14 @@ function TakeawayPOS() {
                       <Plus size={12} />
                     </button>
                   </div>
-                  <span className='text-sm font-bold text-amber-600'>
+                  <span className='text-sm font-bold text-amber-600 dark:text-amber-400'>
                     {fmt(
                       (item.price +
                         item.toppings.reduce(
                           (s, t) => s + t.price * t.quantity,
                           0,
                         )) *
-                        item.quantity,
+                      item.quantity,
                     )}
                   </span>
                 </div>
@@ -449,17 +495,17 @@ function TakeawayPOS() {
           )}
         </div>
 
-        <div className='p-4 border-t border-gray-200 bg-white shrink-0 space-y-3'>
+        <div className='p-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shrink-0 space-y-3'>
           <div className='flex justify-between items-center'>
-            <span className='text-sm text-gray-500'>Tạm tính</span>
-            <span className='font-bold text-gray-800 text-base'>
+            <span className='text-sm text-gray-500 dark:text-gray-400'>Tạm tính</span>
+            <span className='font-bold text-gray-800 dark:text-gray-200 text-base'>
               {fmt(subtotal)}
             </span>
           </div>
           <button
             onClick={() => setShowCheckout(true)}
             disabled={cart.length === 0}
-            className='w-full py-3.5 rounded-xl bg-amber-500 text-white font-bold text-sm hover:bg-amber-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 shadow-lg shadow-amber-200'
+            className='w-full py-3.5 rounded-xl bg-amber-500 text-white font-bold text-sm hover:bg-amber-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 shadow-lg dark:shadow-none shadow-amber-200'
           >
             <Banknote size={16} /> Thanh toán · {fmt(subtotal)}
           </button>
@@ -504,23 +550,23 @@ function TakeawayPOS() {
       )} */}
 
       {viewingReceipt && (
-        <ReceiptModal
+        <PrintableReceipt
           order={viewingReceipt}
-          onClose={() => setViewingReceipt(null)}
+          onDone={() => setViewingReceipt(null)}
         />
       )}
 
       {/* PayOS QR */}
       {/* {checkoutResult && (
         <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4'>
-          <div className='bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center animate-in fade-in zoom-in-95'>
-            <div className='w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center mx-auto mb-4'>
-              <CreditCard size={28} className='text-blue-600' />
+          <div className='bg-white dark:bg-gray-900 rounded-2xl shadow-2xl dark:shadow-none w-full max-w-sm p-6 text-center animate-in fade-in zoom-in-95'>
+            <div className='w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center mx-auto mb-4'>
+              <CreditCard size={28} className='text-blue-600 dark:text-blue-400' />
             </div>
-            <h3 className='font-bold text-lg text-gray-800'>
+            <h3 className='font-bold text-lg text-gray-800 dark:text-gray-200'>
               Quét QR để thanh toán
             </h3>
-            <p className='text-sm text-gray-500 mt-1'>
+            <p className='text-sm text-gray-500 dark:text-gray-400 mt-1'>
               Đơn #{checkoutResult.order_id} ·{' '}
               {fmt(checkoutResult.total_amount)}
             </p>
@@ -537,7 +583,7 @@ function TakeawayPOS() {
               href={checkoutResult.checkout_url}
               target='_blank'
               rel='noreferrer'
-              className='mt-2 text-xs text-blue-500 hover:underline block'
+              className='mt-2 text-xs text-blue-500 dark:text-blue-400 hover:underline block'
             >
               Hoặc mở link thanh toán →
             </a>

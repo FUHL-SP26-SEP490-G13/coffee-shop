@@ -13,6 +13,7 @@ export const APP_ROUTES = {
   PRODUCT_DETAIL: '/product/:id',
   AREAS: '/admin/area',
   PAYMENT_RESULT: '/payment-result',
+  ATTENDANCE: '/attendance'
 };
 
 // Quản lý API Endpoints
@@ -30,6 +31,7 @@ export const API_ENDPOINTS = {
   USERS: {
     GET_ALL: '/users',
     GET_BY_ID: '/users/{id}',
+    PROFILE: '/users/profile',
   },
   BANNERS: {
     ACTIVE: '/banners/active',
@@ -93,6 +95,14 @@ export const API_ENDPOINTS = {
     CHECK: (productId) => `/favorites/check/${productId}`,
     REMOVE: (productId) => `/favorites/${productId}`,
   },
+  LOYALTY: {
+    ME: '/loyalty/me',
+    MY_TRANSACTIONS: '/loyalty/me/transactions',
+    ADMIN_CUSTOMERS: '/loyalty/admin/customers',
+    ADMIN_USER_DETAIL: (userId) => `/loyalty/admin/users/${userId}`,
+    ADMIN_USER_TRANSACTIONS: (userId) => `/loyalty/admin/users/${userId}/transactions`,
+    ADMIN_USER_ADJUST: (userId) => `/loyalty/admin/users/${userId}/adjust`,
+  },
   ORDER_ONLINES: '/order-online',
   TOPPINGS: '/toppings',
   TOPPINGS_ADMIN: '/admin/toppings',
@@ -136,6 +146,15 @@ export const API_ENDPOINTS = {
     SCHEDULE: '/shifts/schedule',
     MY_SCHEDULE: '/shifts/schedule/me',
   },
+  ATTENDANCE_SETTINGS: {
+    BASE: '/attendance-settings',
+  },
+  ATTENDANCE: {
+    BASE: '/attendance',
+    ME: '/attendance/me',
+    CLOCK: '/attendance/clock',
+    BY_ID: (id) => `/attendance/${id}`,
+  },
   APP_SETTINGS: {
     BASE: '/settings',
     ADMIN: '/settings/admin'
@@ -146,6 +165,7 @@ export const API_ENDPOINTS = {
 export const STORAGE_KEYS = {
   ACCESS_TOKEN: 'access_token',
   REFRESH_TOKEN: 'refresh_token',
+  AUTH_PROVIDER: 'auth_provider',
 };
 
 export const DEFAULT_PAGINATION = {

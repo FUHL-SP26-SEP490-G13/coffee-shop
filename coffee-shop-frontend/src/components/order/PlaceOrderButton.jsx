@@ -1,11 +1,9 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { cartService } from "@/services/cartService";
+import { useCartStore } from "@/store/useCartStore";
 import orderService from "@/services/orderOnlineService";
 import { validateOrderForm } from "@/utils/orderValidation";
-
-
 
 /**
  * Nút đặt hàng tái sử dụng cho cả trang Checkout (khách) lẫn Staff.
@@ -29,14 +27,15 @@ export default function PlaceOrderButton({
   backPath = "/cart",
   backLabel = "← Quay lại giỏ hàng",
   label = "Đặt hàng",
-  shippingFee = 0,
   disabled = false,
 }) {
   const navigate = useNavigate();
+  const { clearCart } = useCartStore();
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async () => {
     const formErrors = validateOrderForm(form);
+    
     if (Object.keys(formErrors).length > 0) {
       onValidateError?.(formErrors);
       return;
@@ -50,10 +49,14 @@ export default function PlaceOrderButton({
         payment_method: form.payment_method,
         receiver_name: form.receiver_name.trim(),
         receiver_phone: form.receiver_phone.trim(),
-        receiver_email: form.receiver_email.trim(),
-        address: form.address.trim(),
-        note: form.note.trim(),
+        receiver_email: form.receiver_email?.trim() || "",
+        address: form.address?.trim() || "",
+        order_note: (form.order_note || form.note || "").trim(),
+        delivery_note: (form.delivery_note || "").trim(),
         discount_code: (form.discount_code || "").trim(),
+        latitude: form.latitude || null,
+        longitude: form.longitude || null,
+        used_points: Math.max(0, Number(form.used_points) || 0),
         items: cart.map((item) => ({
           product_size_id: item.productSizeId || item.product_size_id,
           quantity: Number(item.quantity),
@@ -107,14 +110,6 @@ export default function PlaceOrderButton({
           );
         });
 
-        if (form.order_type === "delivery" && shippingFee > 0) {
-          payosItems.push({
-            name: "Phí vận chuyển",
-            quantity: 1,
-            price: shippingFee,
-          });
-        }
-
         const amountFromCheckout = Number(orderData?.total_amount || 0);
 
         const payosRes = await orderService.createPaymentLink({
@@ -127,7 +122,7 @@ export default function PlaceOrderButton({
           items: payosItems,
         });
 
-        cartService.clearCart();
+        clearCart();
         const checkoutUrl = payosRes?.data?.checkoutUrl;
         if (checkoutUrl) {
           window.location.href = checkoutUrl;
@@ -135,7 +130,7 @@ export default function PlaceOrderButton({
           alert("Không lấy được link thanh toán PayOS");
         }
       } else {
-        cartService.clearCart();
+        clearCart();
         alert("Đặt hàng thành công");
         if (onSuccess) {
           onSuccess();

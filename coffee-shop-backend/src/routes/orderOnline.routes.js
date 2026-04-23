@@ -7,6 +7,8 @@ const validate = require("../middlewares/validate");
 const {
   checkoutOrderSchema,
   validateDiscountSchema,
+  cancelOrderByUserSchema,
+  cancelOrderByStaffSchema,
 } = require("../validators/orderValidator");
 const { optionalAuth, authenticate } = require("../middlewares/auth");
 const { authorize } = require("../middlewares/authorize");
@@ -43,6 +45,7 @@ router.get(
 router.put(
   "/:id/cancel",
   authenticate,
+  validate(cancelOrderByUserSchema),
   AsyncMiddleware(OrderOnlineController.cancel)
 );
 
@@ -64,6 +67,7 @@ router.put(
   "/:id/staff-cancel",
   authenticate,
   authorize(STAFF_CONFIRM_ROLES),
+  validate(cancelOrderByStaffSchema),
   AsyncMiddleware(OrderOnlineController.cancelDeliveryByStaff)
 );
 

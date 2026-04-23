@@ -78,6 +78,14 @@ const checkoutOrderSchema = Joi.object({
       "string.empty": "Phương thức thanh toán không được để trống",
     }),
 
+  cash_received: Joi.alternatives()
+    .try(Joi.number(), Joi.string())
+    .allow(null, "")
+    .optional()
+    .messages({
+      "alternatives.match": "Số tiền khách đưa không hợp lệ",
+    }),
+
   receiver_name: Joi.string().trim().min(2).max(100).required().messages({
     "string.empty": "Tên người nhận không được để trống",
     "any.required": "Tên người nhận là bắt buộc",
@@ -110,16 +118,54 @@ const checkoutOrderSchema = Joi.object({
       "string.email": "Email không đúng định dạng",
     }),
 
-  address: Joi.string().trim().allow("").max(255).messages({
-    "string.max": "Địa chỉ không được vượt quá 255 ký tự",
+  address: Joi.alternatives().conditional("order_type", {
+    is: "delivery",
+    then: Joi.string().trim().min(1).max(255).required().messages({
+      "string.empty": "Địa chỉ không được để trống",
+      "string.min": "Địa chỉ không được để trống",
+      "any.required": "Địa chỉ là bắt buộc",
+      "string.max": "Địa chỉ không được vượt quá 255 ký tự",
+    }),
+    otherwise: Joi.string().trim().allow("").max(255).messages({
+      "string.max": "Địa chỉ không được vượt quá 255 ký tự",
+    }),
   }),
 
-  note: Joi.string().trim().allow("").max(500).messages({
-    "string.max": "Ghi chú không được vượt quá 500 ký tự",
+  latitude: Joi.number().allow(null, "").optional().messages({
+    "number.base": "Vĩ độ không hợp lệ",
+  }),
+
+  longitude: Joi.number().allow(null, "").optional().messages({
+    "number.base": "Kinh độ không hợp lệ",
+  }),
+
+  province_id: Joi.number().integer().positive().allow(null).optional().messages({
+    "number.base": "Tỉnh/Thành không hợp lệ",
+    "number.integer": "Tỉnh/Thành không hợp lệ",
+    "number.positive": "Tỉnh/Thành không hợp lệ",
+  }),
+
+
+  order_note: Joi.string().trim().allow("").max(500).messages({
+    "string.max": "Ghi chú đơn hàng không được vượt quá 500 ký tự",
+  }),
+
+  order_note: Joi.string().trim().allow("").max(500).messages({
+    "string.max": "Ghi chú đơn hàng không được vượt quá 500 ký tự",
+  }),
+
+  delivery_note: Joi.string().trim().allow("").max(500).messages({
+    "string.max": "Ghi chú giao hàng không được vượt quá 500 ký tự",
   }),
 
   discount_code: Joi.string().trim().allow("").max(50).messages({
     "string.max": "Mã giảm giá không được vượt quá 50 ký tự",
+  }),
+
+  used_points: Joi.number().integer().min(0).optional().messages({
+    "number.base": "Điểm sử dụng không hợp lệ",
+    "number.integer": "Điểm sử dụng phải là số nguyên",
+    "number.min": "Điểm sử dụng không được âm",
   }),
 
   items: itemsSchema,
@@ -133,7 +179,39 @@ const validateDiscountSchema = Joi.object({
   items: itemsSchema,
 });
 
+const cancelOrderByUserSchema = Joi.object({
+  reason: Joi.string().trim().max(500).required().messages({
+    'string.empty': 'Lý do hủy đơn là bắt buộc',
+    'string.max': 'Lý do hủy đơn không được vượt quá 500 ký tự',
+    'any.required': 'Lý do hủy đơn là bắt buộc',
+  }),
+  reason_option: Joi.string()
+    .valid('change_mind', 'wrong_info', 'long_wait', 'change_address', 'other')
+    .required()
+    .messages({
+      'any.only': 'Lý do hủy đơn không hợp lệ',
+      'any.required': 'Vui lòng chọn lý do hủy đơn',
+    }),
+});
+
+const cancelOrderByStaffSchema = Joi.object({
+  reason: Joi.string().trim().max(500).required().messages({
+    'string.empty': 'Lý do hủy đơn là bắt buộc',
+    'string.max': 'Lý do hủy đơn không được vượt quá 500 ký tự',
+    'any.required': 'Lý do hủy đơn là bắt buộc',
+  }),
+  reason_option: Joi.string()
+    .valid('out_of_stock', 'cannot_contact', 'outside_area', 'store_overload', 'other')
+    .required()
+    .messages({
+      'any.only': 'Lý do hủy đơn không hợp lệ',
+      'any.required': 'Vui lòng chọn lý do hủy đơn',
+    }),
+});
+
 module.exports = {
   checkoutOrderSchema,
   validateDiscountSchema,
+  cancelOrderByUserSchema,
+  cancelOrderByStaffSchema,
 };

@@ -1,5 +1,5 @@
-import Header from "@/components/layout/Header";
-import Footer from "@/components/layout/Footer";
+
+
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -10,26 +10,26 @@ import {
   CreditCard,
   UserCheck,
   Phone,
-  MapPin,
   Mail,
   CheckCircle2,
 } from "lucide-react";
+import { Link } from "react-router-dom";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 function OrderPolicy() {
+  useDocumentTitle("Chính sách đặt hàng");
   return (
     <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900">
-      <Header />
+      
 
-      <div className="flex-1 w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-10 mb-10">
-        <div className="text-center space-y-3 mt-4 mb-10">
-          <h1 className="text-2xl md:text-3xl text-primary font-bold">
-            Chính sách đặt hàng
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400 text-sm">
-            Thông tin chi tiết về quy trình đặt hàng, thanh toán và hỗ trợ khách
-            hàng.
-          </p>
+      <div className="flex-1 w-full px-4 sm:px-6 lg:px-6 xl:px-8 pt-2 md:pt-4 pb-10 md:pb-16 mb-5">
+        <div className="flex items-center gap-2 text-base md:text-lg text-gray-500 dark:text-gray-400 font-medium mb-6">
+          <Link to="/" className="hover:text-amber-600 transition">Trang chủ</Link>
+          <span className="text-gray-400">/</span>
+          <span className="text-amber-600 font-bold">Chính sách đặt hàng</span>
         </div>
+
+
 
         {/* ===== CONTENT ===== */}
         <div className="w-full space-y-10">
@@ -45,7 +45,7 @@ function OrderPolicy() {
           {/* 2 */}
           <PolicyCard icon={<Clock />} title="2. Thời gian xử lý">
             <ul className="space-y-2">
-              <li>• Xác nhận đơn trong 5–15 phút.</li>
+              <li>• Xác nhận đơn trong 5–15 phút kể từ khi đặt.</li>
               <li>• Giao hàng phụ thuộc khu vực.</li>
               <li>• Giờ cao điểm có thể chậm hơn.</li>
             </ul>
@@ -53,23 +53,20 @@ function OrderPolicy() {
 
           {/* 3 */}
           <PolicyCard icon={<XCircle />} title="3. Chính sách hủy đơn">
-            <span>
-              Quý khách có thể yêu cầu hủy đơn hàng khi đơn ở trạng thái Chờ xử
-              lý hoặc Đang chuẩn bị. Chính sách hoàn tiền đối với các đơn đã
-              thanh toán trước được áp dụng như sau:{" "}
-            </span>
-            <ul className="space-y-2 my-4">
+            <ul className="space-y-2">
               <li>
-                • Hoàn <strong>100% </strong> giá trị đơn hàng: Nếu đơn hàng chưa được xác nhận hoặc
-                chưa bắt đầu chế biến.{" "}
+                • Khách hàng được hủy đơn khi đơn đang ở trạng thái <strong>Chờ xác nhận</strong> và có sử dụng phương thức thanh toán <strong>tiền mặt</strong>.
               </li>
               <li>
-                • Hoàn <strong>50% </strong> giá trị đơn hàng: Nếu đơn hàng đã chuyển sang trạng
-                thái Đang chuẩn bị (nhằm bù đắp chi phí nguyên liệu và công vận
-                hành đã phát sinh).
+                • Khi đơn đã chuyển sang các trạng thái Đang chuẩn bị hoặc đơn đã thanh toán bằng phương thức PayOS thành công, hệ thống sẽ không cho hủy từ phía khách hàng.
+              </li>
+              <li>
+                • Với đơn hàng có sử dụng phương thức thanh toán PayOS, đơn ở trạng thái chờ thanh toán có thể được hệ thống tự động hủy sau khoảng <strong>5 phút</strong> nếu chưa thanh toán thành công.
+              </li>
+              <li>
+                • Khi đơn bị hủy, hệ thống sẽ đồng bộ lại điểm loyalty (nếu đơn có sử dụng điểm) và có thể bị mất 20 điểm uy tín cho mỗi đơn nếu lý do hủy là do khách hàng.
               </li>
             </ul>
-            <span>Trường hợp hoàn tiền hãy liên hệ với chúng tôi qua số điện thoại hoặc Zalo trong vòng 24 giờ kể từ khi nhận được đơn hàng.</span>
           </PolicyCard>
 
           {/* 4 */}
@@ -84,11 +81,12 @@ function OrderPolicy() {
           {/* 5 */}
           <PolicyCard icon={<CreditCard />} title="5. Thanh toán">
             <ul className="space-y-2">
-              <li>• Tiền mặt tại quầy.</li>
+              <li>• Tiền mặt tại quầy hoặc ngay khi nhận hàng.</li>
               <li>
-                • QR / chuyển khoản trực tuyến thông qua hệ thống thanh toán
+                • Chuyển khoản trực tuyến thông qua hệ thống thanh toán
                 PayOS
               </li>
+              <li><strong>• Lưu ý: Chúng tôi không chịu trách nhiệm cho các giao dịch thanh toán không thành công do lỗi của ngân hàng hoặc nhà cung cấp dịch vụ thanh toán.</strong></li>
             </ul>
           </PolicyCard>
 
@@ -99,13 +97,38 @@ function OrderPolicy() {
               <li>• Kiểm tra sản phẩm khi nhận.</li>
             </ul>
           </PolicyCard>
+
+          {/* 7 */}
+          <PolicyCard icon={<RefreshCcw />} title="7. Chính sách tích và đổi điểm loyalty">
+            <ul className="space-y-2">
+              <li>
+                • <strong>Tích điểm:</strong> Khi đơn hàng hoàn tất, hệ thống cộng điểm theo công thức <strong>1 điểm cho mỗi 10.000đ</strong> giá trị đơn.
+              </li>
+              <li>
+                • <strong>Đổi điểm:</strong> Tại bước thanh toán, khách hàng có thể dùng điểm để giảm giá với tỷ lệ <strong>1 điểm = 100đ</strong>.
+              </li>
+              <li>
+                • Chỉ tài khoản đã đăng nhập mới được sử dụng điểm loyalty.
+              </li>
+              <li>
+                • Số điểm sử dụng phải là số nguyên không âm, không vượt quá số điểm hiện có và không vượt quá giá trị đơn hàng cần thanh toán.
+              </li>
+              <li>
+                • <strong>Hoàn điểm khi hủy đơn:</strong> Nếu đơn đã dùng điểm và bị hủy, hệ thống sẽ hoàn lại số điểm đã trừ vào ví loyalty của khách hàng.
+              </li>
+              <li>
+                • Lịch sử điểm được ghi nhận minh bạch theo các loại giao dịch: cộng điểm, trừ điểm, hoàn điểm, điều chỉnh.
+              </li>
+            </ul>
+          </PolicyCard>
+
         </div>
       </div>
 
       {/* Divider giống Home */}
       <div className="w-full h-px bg-gradient-to-r from-transparent via-amber-300 to-transparent" />
 
-      <Footer />
+      
     </div>
   );
 }
@@ -114,14 +137,18 @@ function OrderPolicy() {
 function PolicyCard({ icon, title, children }) {
   return (
     <Card className="rounded-3xl shadow-xl border border-gray-200 dark:border-gray-800 hover:border-amber-300 dark:hover:border-amber-500 transition-all duration-300 p-8 bg-white dark:bg-gray-950">
-      <div className="flex items-center gap-4 mb-6">
-        <div className="p-3 bg-amber-100 dark:bg-amber-900/40 rounded-xl text-amber-600 dark:text-amber-500">{icon}</div>
-        <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100">
-          {title}
-        </h2>
-      </div>
-      <div className="text-sm sm:text-base text-gray-600 dark:text-gray-400 leading-relaxed">
-        {children}
+      <div className="flex items-start gap-4 mb-2">
+        <div className="mt-0.5 p-2 bg-amber-100 dark:bg-amber-900/40 rounded-xl text-amber-600 dark:text-amber-500 shrink-0 [&>svg]:w-6 [&>svg]:h-6">
+          {icon}
+        </div>
+        <div>
+          <h2 className="font-semibold text-base md:text-lg mb-1.5 text-gray-900 dark:text-gray-100">
+            {title}
+          </h2>
+          <div className="text-sm md:text-base text-gray-600 dark:text-gray-400 leading-relaxed">
+            {children}
+          </div>
+        </div>
       </div>
     </Card>
   );

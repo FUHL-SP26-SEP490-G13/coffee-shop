@@ -2,17 +2,17 @@ import { useState, useEffect } from 'react';
 import { Coffee, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import productService from '@/services/productService';
 
-const fmt       = (n) => Number(n).toLocaleString('vi-VN') + ' đ';
+const fmt = (n) => Number(n).toLocaleString('vi-VN') + ' đ';
 const PAGE_SIZE = 12;
 
 const mapProducts = (rawProducts) =>
   rawProducts
     .map((p) => ({
-      id:          p.id,
-      name:        p.name,
-      status:      p.status,
-      image_url:   (p.images || []).find((img) => img.isThumbnail === 1)?.image_url || null,
-      category:    p.category_name || '',
+      id: p.id,
+      name: p.name,
+      status: p.status,
+      image_url: (p.images || []).find((img) => img.isThumbnail === 1)?.image_url || null,
+      category: p.category_name || '',
       category_id: p.category_id,
       sizes: (p.sizes || [])
         .filter((s) => !s.is_deleted)
@@ -27,10 +27,10 @@ const mapProducts = (rawProducts) =>
  * }} props
  */
 export function ProductGrid({ activeCategory, onSelectProduct }) {
-  const [products,    setProducts]    = useState([]);
-  const [loading,     setLoading]     = useState(true);
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages,  setTotalPages]  = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   // Reset về trang 1 mỗi khi đổi category
   useEffect(() => {
@@ -43,15 +43,15 @@ export function ProductGrid({ activeCategory, onSelectProduct }) {
       setLoading(true);
       try {
         const params = {
-          status:     'available',
+          status: 'available',
           is_deleted: 0,
-          limit:      PAGE_SIZE,
-          page:       currentPage,
+          limit: PAGE_SIZE,
+          page: currentPage,
         };
         if (activeCategory !== 'all') params.category_id = activeCategory;
 
-        const res        = await productService.getAll(params);
-        const rawData    = res?.data       || [];
+        const res = await productService.getAll(params);
+        const rawData = res?.data || [];
         const pagination = res?.pagination;
 
         setProducts(mapProducts(rawData));
@@ -101,9 +101,9 @@ export function ProductGrid({ activeCategory, onSelectProduct }) {
               <button
                 key={p.id}
                 onClick={() => onSelectProduct(p)}
-                className='group bg-white rounded-2xl border-2 border-gray-100 p-3.5 text-left hover:border-amber-300 hover:shadow-md transition-all active:scale-95'
+                className='group bg-white dark:bg-gray-900 rounded-2xl border-2 border-gray-100 dark:border-gray-800 p-3.5 text-left hover:border-amber-300 hover:shadow-md dark:shadow-none transition-all active:scale-95'
               >
-                <div className='w-full aspect-square rounded-xl overflow-hidden bg-gray-100 mb-3'>
+                <div className='w-full aspect-square rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-800 mb-3'>
                   {p.image_url ? (
                     <img
                       src={p.image_url}
@@ -116,8 +116,8 @@ export function ProductGrid({ activeCategory, onSelectProduct }) {
                     </div>
                   )}
                 </div>
-                <p className='text-sm font-semibold text-gray-800 line-clamp-2 leading-tight'>{p.name}</p>
-                <p className='text-xs text-amber-600 font-medium mt-1'>{fmt(p.sizes[0].price)}</p>
+                <p className='text-sm font-semibold text-gray-800 dark:text-gray-200 line-clamp-2 leading-tight'>{p.name}</p>
+                <p className='text-xs text-amber-600 dark:text-amber-400 font-medium mt-1'>{fmt(p.sizes[0].price)}</p>
                 <div className='mt-2 w-full py-1.5 rounded-lg bg-amber-500 text-white text-xs font-semibold text-center opacity-0 group-hover:opacity-100 transition-all'>
                   Chọn
                 </div>
@@ -129,12 +129,12 @@ export function ProductGrid({ activeCategory, onSelectProduct }) {
 
       {/* Phân trang — chỉ hiện khi có > 1 trang */}
       {!loading && totalPages > 1 && (
-        <div className='shrink-0 flex items-center justify-center gap-1.5 px-5 py-3 border-t border-gray-100 bg-white'>
+        <div className='shrink-0 flex items-center justify-center gap-1.5 px-5 py-3 border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900'>
 
           <button
             onClick={() => goToPage(currentPage - 1)}
             disabled={currentPage === 1}
-            className='w-8 h-8 rounded-lg flex items-center justify-center border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all'
+            className='w-8 h-8 rounded-lg flex items-center justify-center border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 dark:bg-gray-800/50 disabled:opacity-30 disabled:cursor-not-allowed transition-all'
           >
             <ChevronLeft size={15} />
           </button>
@@ -142,7 +142,7 @@ export function ProductGrid({ activeCategory, onSelectProduct }) {
           {pageNumbers[0] > 1 && (
             <>
               <button onClick={() => goToPage(1)}
-                className='w-8 h-8 rounded-lg text-xs font-semibold border border-gray-200 text-gray-600 hover:bg-gray-50 transition-all'>
+                className='w-8 h-8 rounded-lg text-xs font-semibold border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 dark:bg-gray-800/50 transition-all'>
                 1
               </button>
               {pageNumbers[0] > 2 && <span className='text-gray-400 text-xs px-1'>…</span>}
@@ -153,11 +153,10 @@ export function ProductGrid({ activeCategory, onSelectProduct }) {
             <button
               key={n}
               onClick={() => goToPage(n)}
-              className={`w-8 h-8 rounded-lg text-xs font-semibold transition-all ${
-                n === currentPage
-                  ? 'bg-amber-500 text-white border border-amber-500 shadow-sm'
-                  : 'border border-gray-200 text-gray-600 hover:bg-gray-50'
-              }`}
+              className={`w-8 h-8 rounded-lg text-xs font-semibold transition-all ${n === currentPage
+                  ? 'bg-amber-500 text-white border border-amber-500 shadow-sm dark:shadow-none'
+                  : 'border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 dark:bg-gray-800/50'
+                }`}
             >
               {n}
             </button>
@@ -169,7 +168,7 @@ export function ProductGrid({ activeCategory, onSelectProduct }) {
                 <span className='text-gray-400 text-xs px-1'>…</span>
               )}
               <button onClick={() => goToPage(totalPages)}
-                className='w-8 h-8 rounded-lg text-xs font-semibold border border-gray-200 text-gray-600 hover:bg-gray-50 transition-all'>
+                className='w-8 h-8 rounded-lg text-xs font-semibold border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 dark:bg-gray-800/50 transition-all'>
                 {totalPages}
               </button>
             </>
@@ -178,7 +177,7 @@ export function ProductGrid({ activeCategory, onSelectProduct }) {
           <button
             onClick={() => goToPage(currentPage + 1)}
             disabled={currentPage === totalPages}
-            className='w-8 h-8 rounded-lg flex items-center justify-center border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all'
+            className='w-8 h-8 rounded-lg flex items-center justify-center border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 dark:bg-gray-800/50 disabled:opacity-30 disabled:cursor-not-allowed transition-all'
           >
             <ChevronRight size={15} />
           </button>

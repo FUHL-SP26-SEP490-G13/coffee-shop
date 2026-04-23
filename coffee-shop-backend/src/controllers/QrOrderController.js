@@ -39,28 +39,43 @@ class QrOrderController {
         // thông báo cho barista
         const baristaNotification = await NotificationService.createForBaristas(notificationPayload);
 
-        const notification = staffNotification?.notification || baristaNotification?.notification;
-        const recipients = [
-          ...(Array.isArray(staffNotification?.recipients) ? staffNotification.recipients : []),
-          ...(Array.isArray(baristaNotification?.recipients) ? baristaNotification.recipients : []),
-        ];
+        if (io) {
+          if (staffNotification?.notification && Array.isArray(staffNotification.recipients)) {
+            for (const recipient of staffNotification.recipients) {
+              io.to(`user-${recipient.user_id}`).emit("staff:notification", {
+                recipient_id: recipient.id,
+                user_id: recipient.user_id,
+                is_read: recipient.is_read,
+                read_at: recipient.read_at,
+                id: staffNotification.notification.id,
+                type: staffNotification.notification.type,
+                title: staffNotification.notification.title,
+                message: staffNotification.notification.message,
+                link: staffNotification.notification.link,
+                entity_type: staffNotification.notification.entity_type,
+                entity_id: staffNotification.notification.entity_id,
+                created_at: staffNotification.notification.created_at,
+              });
+            }
+          }
 
-        if (io && notification && recipients.length > 0) {
-          for (const recipient of recipients) {
-            io.to(`user-${recipient.user_id}`).emit("staff:notification", {
-              recipient_id: recipient.id,
-              user_id: recipient.user_id,
-              is_read: recipient.is_read,
-              read_at: recipient.read_at,
-              id: notification.id,
-              type: notification.type,
-              title: notification.title,
-              message: notification.message,
-              link: notification.link,
-              entity_type: notification.entity_type,
-              entity_id: notification.entity_id,
-              created_at: notification.created_at,
-            });
+          if (baristaNotification?.notification && Array.isArray(baristaNotification.recipients)) {
+            for (const recipient of baristaNotification.recipients) {
+              io.to(`user-${recipient.user_id}`).emit("barista:notification", {
+                recipient_id: recipient.id,
+                user_id: recipient.user_id,
+                is_read: recipient.is_read,
+                read_at: recipient.read_at,
+                id: baristaNotification.notification.id,
+                type: baristaNotification.notification.type,
+                title: baristaNotification.notification.title,
+                message: baristaNotification.notification.message,
+                link: baristaNotification.notification.link,
+                entity_type: baristaNotification.notification.entity_type,
+                entity_id: baristaNotification.notification.entity_id,
+                created_at: baristaNotification.notification.created_at,
+              });
+            }
           }
         }
       } catch (error) {

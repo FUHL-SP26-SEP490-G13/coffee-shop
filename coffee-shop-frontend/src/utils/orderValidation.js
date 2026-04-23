@@ -81,8 +81,15 @@ export const validateOrderForm = (form) => {
   const emailError = validateOrderField("receiver_email", form.receiver_email);
   if (emailError) errors.receiver_email = emailError;
 
-  const addressError = validateOrderField("address", form.address);
-  if (addressError) errors.address = addressError;
+  const normalizedAddress = form.address?.trim() || "";
+  if (form.order_type === "delivery" && !normalizedAddress) {
+    errors.address = "Địa chỉ không được để trống";
+  } else {
+    const addressError = validateOrderField("address", form.address);
+    if (addressError) errors.address = addressError;
+  }
+
+
 
   const noteError = validateOrderField("note", form.note);
   if (noteError) errors.note = noteError;

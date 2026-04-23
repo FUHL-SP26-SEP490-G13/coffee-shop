@@ -14,28 +14,28 @@ const ALL_STAFF = [ROLES_STRING.MANAGER, ROLES_STRING.STAFF, ROLES_STRING.BARIST
 router.get(
     '/templates',
     authenticate,
-    authorize(ALL_STAFF),
+    authorize(MANAGER_ONLY),
     AsyncMiddleware(shiftTemplateController.getAll),
 );
 
 router.post(
     '/templates',
-    // authenticate,
-    // authorize(MANAGER_ONLY),
+    authenticate,
+    authorize(MANAGER_ONLY),
     AsyncMiddleware(shiftTemplateController.create),
 );
 
 router.put(
     '/templates/:id',
-    // authenticate,
-    // authorize(MANAGER_ONLY),
+    authenticate,
+    authorize(MANAGER_ONLY),
     AsyncMiddleware(shiftTemplateController.update),
 );
 
 router.delete(
     '/templates/:id',
-    // authenticate,
-    // authorize(MANAGER_ONLY),
+    authenticate,
+    authorize(MANAGER_ONLY),
     AsyncMiddleware(shiftTemplateController.remove),
 );
 
@@ -80,5 +80,6 @@ router.get(
     authorize(ALL_STAFF),
     AsyncMiddleware(shiftController.getMySchedule),
 );
+
 
 module.exports = router;

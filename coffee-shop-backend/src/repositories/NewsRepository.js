@@ -38,7 +38,7 @@ class NewsRepository extends BaseRepository {
     return rows;
   }
 
-  async findAllAdminPaginated(limit, offset, keyword = "") {
+  async findAllAdminPaginated(limit, offset, keyword = "", sort = "") {
     let sql = `SELECT * FROM news WHERE 1=1`;
     const values = [];
 
@@ -47,7 +47,15 @@ class NewsRepository extends BaseRepository {
       values.push(`%${keyword.trim()}%`, `%${keyword.trim()}%`);
     }
 
-    sql += " ORDER BY created_at DESC LIMIT ?, ?";
+    if (sort === "views_desc") {
+      sql += " ORDER BY views DESC, created_at DESC";
+    } else if (sort === "views_asc") {
+      sql += " ORDER BY views ASC, created_at DESC";
+    } else {
+      sql += " ORDER BY created_at DESC";
+    }
+
+    sql += " LIMIT ?, ?";
     values.push(offset, limit);
 
     const [rows] = await pool.query(sql, values);

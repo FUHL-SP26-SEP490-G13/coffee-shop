@@ -1,6 +1,7 @@
 import orderService from "@/services/orderOnlineService";
-import { cartService } from "@/services/cartService";
+import { useCartStore } from "@/store/useCartStore";
 import productService from "@/services/productService";
+import { toast } from "sonner";
 
 const defaultImage =
   "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085";
@@ -39,7 +40,7 @@ export async function handleBuyAgain(orderId, navigate) {
     const items = Array.isArray(payload?.items) ? payload.items : [];
 
     if (items.length === 0) {
-      alert("Đơn hàng này không có sản phẩm để mua lại");
+      toast.warning("Đơn hàng này không có sản phẩm để mua lại");
       return;
     }
 
@@ -78,7 +79,7 @@ export async function handleBuyAgain(orderId, navigate) {
         item.image_url || defaultImage
       );
 
-      cartService.addItem({
+      useCartStore.getState().addItem({
         id: productId,
         product_id: productId,
         productId: productId,
@@ -94,10 +95,10 @@ export async function handleBuyAgain(orderId, navigate) {
       });
     }
 
-    alert("Đã thêm lại sản phẩm của đơn cũ vào giỏ hàng");
+    toast.success("Đã thêm lại sản phẩm của đơn cũ vào giỏ hàng");
     navigate("/cart");
   } catch (error) {
     console.error("Buy again error:", error);
-    alert(error?.response?.data?.message || "Không thể mua lại đơn hàng");
+    toast.error(error?.response?.data?.message || "Không thể mua lại đơn hàng");
   }
 }

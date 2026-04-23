@@ -3,7 +3,10 @@ import { createPortal } from 'react-dom';
 import receiptSettingService from '@/services/receiptSettingService';
 
 const fmt = (n) => Number(n).toLocaleString('vi-VN') + ' đ';
-const DELIVERY_FEE = 20000;
+const LOYALTY_MONEY_PER_POINT = 100;
+const MONEY_ROUNDING_UNIT = 100;
+const LEGACY_DELIVERY_SHIPPING_FEE = 20000;
+const DYNAMIC_SHIPPING_ROLLOUT_AT = new Date("2026-04-07T00:00:00.000Z").getTime();
 
 const isOrderPaid = (order) => {
   const paymentStatus = String(
@@ -53,6 +56,54 @@ const getBaseUnitPrice = (item) => {
 
 const calcSubtotal = (order) =>
   (order.items || []).reduce((sum, item) => sum + getItemLineTotal(item), 0);
+
+const getDiscountAmount = (order, fallbackSubtotal, deliveryFee) => {
+  const discountFromApi = Number(order?.discount_amount);
+  if (Number.isFinite(discountFromApi) && discountFromApi >= 0) {
+    return discountFromApi;
+  }
+
+  const amountForDiscountCalc =
+    Number(order?.amount) > 0
+      ? Number(order.amount)
+      : Math.max(0, Number(fallbackSubtotal || 0));
+  const total = Math.max(0, Number(order?.total_amount || 0));
+  return Math.max(0, amountForDiscountCalc + deliveryFee - total);
+};
+
+const getShippingFee = (order, subtotal) => {
+  if (String(order?.order_type || '').toLowerCase() !== 'delivery') return 0;
+
+  const feeByDeliveryColumn = Number(order?.delivery_fee);
+  if (Number.isFinite(feeByDeliveryColumn) && feeByDeliveryColumn >= 0) {
+    return Math.round(feeByDeliveryColumn / MONEY_ROUNDING_UNIT) * MONEY_ROUNDING_UNIT;
+  }
+
+  const feeFromApi = Number(order?.shipping_fee);
+  if (Number.isFinite(feeFromApi) && feeFromApi > 0) {
+    return Math.round(feeFromApi / MONEY_ROUNDING_UNIT) * MONEY_ROUNDING_UNIT;
+  }
+
+  const loyaltyDiscountAmount =
+    Math.max(0, Number(order?.used_points || 0)) * LOYALTY_MONEY_PER_POINT;
+  const derivedFee = Number(order?.total_amount || 0) + loyaltyDiscountAmount - Number(subtotal || 0);
+
+  const normalizedDerivedFee =
+    Math.round(derivedFee / MONEY_ROUNDING_UNIT) * MONEY_ROUNDING_UNIT;
+  if (Number.isFinite(normalizedDerivedFee) && normalizedDerivedFee > 0) {
+    return normalizedDerivedFee;
+  }
+
+  const createdAtMs = new Date(order?.created_at || 0).getTime();
+  const useLegacyFallback =
+    Number.isFinite(createdAtMs) && createdAtMs < DYNAMIC_SHIPPING_ROLLOUT_AT;
+
+  if (useLegacyFallback) {
+    return LEGACY_DELIVERY_SHIPPING_FEE;
+  }
+
+  return 0;
+};
 
 const getOrderTypeLabel = (orderType) => {
   switch (String(orderType || '').toLowerCase()) {
@@ -114,11 +165,16 @@ export function PrintableReceipt({ order, onDone, onPrintSuccess }) {
   const orderCode = `#${String(
     Number.isFinite(orderId) && orderId > 0 ? orderId : 0
   ).padStart(5, '0')}`;
-  const subtotal = calcSubtotal(order);
+  const fallbackSubtotal = calcSubtotal(order);
+  const subtotal = Math.max(
+    0,
+    Number(order?.amount ?? order?.subtotal_amount ?? 0),
+  );
   const totalAmount = Number(order.total_amount || 0);
-  const computedDiscount = Math.max(0, subtotal - totalAmount);
   const normalizedOrderType = String(order?.order_type || '').toLowerCase();
   const isDeliveryOrder = normalizedOrderType === 'delivery';
+  const shippingFee = getShippingFee(order, fallbackSubtotal);
+  const discountAmount = getDiscountAmount(order, fallbackSubtotal, shippingFee);
   const hasReceiverInfo = Boolean(
     order?.receiver_name || order?.receiver_phone || order?.address || order?.receiver_email
   );
@@ -465,16 +521,6 @@ export function PrintableReceipt({ order, onDone, onPrintSuccess }) {
           ))}
         </div>
 
-        {/* Discount */}
-        {computedDiscount > 0 && (
-          <div className="receipt-section">
-            <div className="receipt-item">
-              <span>Giảm giá{order.discount_code ? ` (${order.discount_code})` : ''}</span>
-              <span>-{fmt(computedDiscount)}</span>
-            </div>
-          </div>
-        )}
-
         {/* Ghi chú */}
         {order.note && (
           <div className="receipt-section">
@@ -485,19 +531,25 @@ export function PrintableReceipt({ order, onDone, onPrintSuccess }) {
           </div>
         )}
 
-        {isDeliveryOrder && (
-          <div className="receipt-section">
-            <div className="receipt-item">
-              <span>Phí vận chuyển</span>
-              <span>{fmt(DELIVERY_FEE)}</span>
-            </div>
+        <div className="receipt-section">
+          <div className="receipt-item">
+            <span>Tạm tính</span>
+            <span>{fmt(subtotal)}</span>
           </div>
-        )}
+          <div className="receipt-item">
+            <span>Giảm giá{order.discount_code ? ` (${order.discount_code})` : ''}</span>
+            <span>-{fmt(discountAmount)}</span>
+          </div>
+          <div className="receipt-item">
+            <span>Phí vận chuyển</span>
+            <span>+{fmt(isDeliveryOrder ? shippingFee : 0)}</span>
+          </div>
+        </div>
 
         {/* Total */}
         <div className="receipt-total">
           <span>Tổng cộng</span>
-          <span>{fmt(order.total_amount)}</span>
+          <span>{fmt(totalAmount)}</span>
         </div>
 
         {/* Payment Status */}

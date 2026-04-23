@@ -9,7 +9,7 @@ const { ROLES_STRING } = require("../config/constants");
 router.get(
   "/dashboard",
   authenticate,
-  authorize([ROLES_STRING.BARISTA]),
+  authorize([ROLES_STRING.BARISTA, ROLES_STRING.STAFF, ROLES_STRING.MANAGER]),
   controller.getOverview
 );
 
@@ -39,6 +39,13 @@ router.get(
   authenticate,
   authorize([ROLES_STRING.BARISTA]),
   controller.getTopProductsToday
+);
+
+router.put(
+  "/orders/:id/status",
+  authenticate,
+  authorize([ROLES_STRING.BARISTA, ROLES_STRING.MANAGER, ROLES_STRING.STAFF]),
+  controller.updateStatus
 );
 
 module.exports = router;

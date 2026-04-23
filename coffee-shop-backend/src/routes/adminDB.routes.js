@@ -46,4 +46,56 @@ router.get(
   AdminDBController.getComparison
 );
 
+// /api/dashboard/payment-method
+router.get(
+  "/payment-method",
+  authenticate,
+  authorize([ROLES_STRING.MANAGER]),
+  AdminDBController.getPaymentMethodRevenue
+);
+
+// /api/dashboard/orders-summary
+router.get(
+  "/orders-summary",
+  authenticate,
+  authorize([ROLES_STRING.MANAGER]),
+  AdminDBController.getOrdersSummary
+);
+
+router.get(
+  "/detailed-report",
+  authenticate,
+  authorize([ROLES_STRING.MANAGER]),
+  AdminDBController.getDetailedOrdersReport
+);
+
+// /api/dashboard/shift-report?date=YYYY-MM-DD
+router.get(
+  "/shift-report",
+  authenticate,
+  authorize([ROLES_STRING.MANAGER]),
+  AdminDBController.getShiftReport
+);
+
+router.get(
+  "/product-report",
+  authenticate,
+  authorize([ROLES_STRING.MANAGER]),
+  AdminDBController.getProductReport
+);
+
+router.get(
+  "/time-report",
+  authenticate,
+  authorize([ROLES_STRING.MANAGER]),
+  AdminDBController.getTimeReport
+);
+
+router.get(
+  "/staff-report",
+  authenticate,
+  authorize([ROLES_STRING.MANAGER]),
+  AdminDBController.getStaffReport
+);
+
 module.exports = router;

@@ -8,10 +8,11 @@ class AddressRepository extends BaseRepository {
 
   async findByUserId(userId) {
     const query = `
-      SELECT *
-      FROM ${this.tableName}
-      WHERE user_id = ? AND is_deleted = 0
-      ORDER BY is_default DESC, id DESC
+      SELECT
+        a.*
+      FROM ${this.tableName} a
+      WHERE a.user_id = ? AND a.is_deleted = 0
+      ORDER BY a.is_default DESC, a.id DESC
     `;
 
     const [rows] = await db.query(query, [userId]);
@@ -20,9 +21,10 @@ class AddressRepository extends BaseRepository {
 
   async findByIdAndUser(addressId, userId) {
     const query = `
-      SELECT *
-      FROM ${this.tableName}
-      WHERE id = ? AND user_id = ? AND is_deleted = 0
+      SELECT
+        a.*
+      FROM ${this.tableName} a
+      WHERE a.id = ? AND a.user_id = ? AND a.is_deleted = 0
       LIMIT 1
     `;
 

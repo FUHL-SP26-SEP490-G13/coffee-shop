@@ -42,7 +42,7 @@ describe('AuthService - Reset Password Flow', () => {
       last_name: 'User',
     };
 
-    it('AuthService - RESET_PASSWORD - TC-1: should send OTP successfully', async () => {
+    it('AuthService - resetPassword - TC-01: should send OTP successfully', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AuthService - RESET_PASSWORD - TC-1: Gửi OTP thành công');
       console.log('='.repeat(50));
@@ -90,9 +90,9 @@ describe('AuthService - Reset Password Flow', () => {
       expect(result.otp).toMatch(/^\d{8}$/);  // OTP should be 8 digits
     });
 
-    it('AuthService - RESET_PASSWORD - TC-2: should return generic message when email not found (security)', async () => {
+    it('AuthService - resetPassword - TC-02: should throw error when email not found', async () => {
       console.log('\n' + '='.repeat(50));
-      console.log('AuthService - RESET_PASSWORD - TC-2: Trả về tin nhắn chung để ngăn xác định email');
+      console.log('AuthService - RESET_PASSWORD - TC-2: Lỗi khi email không tồn tại');
       console.log('='.repeat(50));
 
       // INPUT
@@ -105,21 +105,28 @@ describe('AuthService - Reset Password Flow', () => {
       UserRepository.findByEmail.mockResolvedValue(null);
 
       // OUTPUT EXPECT
-      const expectedMessage = 'Nếu email tồn tại, mã OTP đã được gửi đến email của bạn';
-      console.log('✅ OUTPUT EXPECT:', JSON.stringify({ message: expectedMessage }, null, 2));
+      const expectedError = 'Email không tồn tại';
+      console.log('✅ OUTPUT EXPECT: Error -', expectedError);
 
-      // Act
-      const result = await AuthService.resetPassword(input.email);
+      // Act & Assert
+      await expect(AuthService.resetPassword(input.email)).rejects.toThrow(expectedError);
 
       // OUTPUT REALITY
-      console.log('🎯 OUTPUT REALITY:', JSON.stringify(result, null, 2));
+      console.log('🎯 OUTPUT REALITY: throw error -', expectedError);
 
-      // Assert - Should NOT throw, should return generic message for security
-      expect(result.message).toBe(expectedMessage);
-      expect(result.otp).toBeUndefined(); // No OTP in response when email not found
+      // Assert
       expect(UserRepository.findByEmail).toHaveBeenCalledWith(input.email);
       expect(EmailVerificationRepository.create).not.toHaveBeenCalled();
       expect(EmailService.sendPasswordResetOtpEmail).not.toHaveBeenCalled();
+    });
+
+    it('AuthService - resetPassword - TC-03: should throw error when email is full-space string', async () => {
+      UserRepository.findByEmail.mockResolvedValue(null);
+
+      await expect(AuthService.resetPassword('        ')).rejects.toThrow('Email không tồn tại');
+
+      expect(UserRepository.findByEmail).toHaveBeenCalledWith('        ');
+      expect(EmailVerificationRepository.create).not.toHaveBeenCalled();
     });
   });
 
@@ -138,7 +145,7 @@ describe('AuthService - Reset Password Flow', () => {
       failed_attempts: 0,
     };
 
-    it('AuthService - VERIFY_FORGOT_PASSWORD_OTP - TC-1: should verify OTP successfully', async () => {
+    it('AuthService - verifyForgotPasswordOtp - TC-01: should verify OTP successfully', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AuthService - VERIFY_FORGOT_PASSWORD_OTP - TC-1: Xác thực OTP thành công');
       console.log('='.repeat(50));
@@ -174,7 +181,7 @@ describe('AuthService - Reset Password Flow', () => {
       expect(result).toEqual(expectedOutput);
     });
 
-    it('AuthService - VERIFY_FORGOT_PASSWORD_OTP - TC-2: should throw error when email not found', async () => {
+    it('AuthService - verifyForgotPasswordOtp - TC-02: should throw error when email not found', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AuthService - VERIFY_FORGOT_PASSWORD_OTP - TC-2: Lỗi khi email không tồn tại');
       console.log('='.repeat(50));
@@ -202,7 +209,7 @@ describe('AuthService - Reset Password Flow', () => {
       expect(UserRepository.findByEmail).toHaveBeenCalledWith(input.email);
     });
 
-    it('AuthService - VERIFY_FORGOT_PASSWORD_OTP - TC-3: should throw error when OTP is incorrect', async () => {
+    it('AuthService - verifyForgotPasswordOtp - TC-03: should throw error when OTP is incorrect', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AuthService - VERIFY_FORGOT_PASSWORD_OTP - TC-3: Lỗi khi OTP không đúng');
       console.log('='.repeat(50));
@@ -234,7 +241,7 @@ describe('AuthService - Reset Password Flow', () => {
       expect(EmailVerificationRepository.incrementFailed).toHaveBeenCalledWith(mockOtpRecord.id);
     });
 
-    it('AuthService - VERIFY_FORGOT_PASSWORD_OTP - TC-4: should throw error when OTP is expired', async () => {
+    it('AuthService - verifyForgotPasswordOtp - TC-04: should throw error when OTP is expired', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AuthService - VERIFY_FORGOT_PASSWORD_OTP - TC-4: Lỗi khi OTP đã hết hạn');
       console.log('='.repeat(50));
@@ -267,7 +274,7 @@ describe('AuthService - Reset Password Flow', () => {
       expect(EmailVerificationRepository.findLatestValidByUser).toHaveBeenCalledWith(mockUser.id);
     });
 
-    it('AuthService - VERIFY_FORGOT_PASSWORD_OTP - TC-5: should throw error when too many failed attempts', async () => {
+    it('AuthService - verifyForgotPasswordOtp - TC-05: should throw error when too many failed attempts', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AuthService - VERIFY_FORGOT_PASSWORD_OTP - TC-5: Lỗi khi nhập sai OTP quá nhiều lần');
       console.log('='.repeat(50));
@@ -316,7 +323,7 @@ describe('AuthService - Reset Password Flow', () => {
       failed_attempts: 0,
     };
 
-    it('AuthService - RESET_PASSWORD_WITH_OTP - TC-1: should reset password successfully', async () => {
+    it('AuthService - resetPasswordWithOtp - TC-01: should reset password successfully', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AuthService - RESET_PASSWORD_WITH_OTP - TC-1: Reset password thành công');
       console.log('='.repeat(50));
@@ -359,7 +366,7 @@ describe('AuthService - Reset Password Flow', () => {
       expect(result).toEqual(expectedOutput);
     });
 
-    it('AuthService - RESET_PASSWORD_WITH_OTP - TC-2: should throw error when passwords do not match', async () => {
+    it('AuthService - resetPasswordWithOtp - TC-02: should throw error when passwords do not match', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AuthService - RESET_PASSWORD_WITH_OTP - TC-2: Lỗi khi mật khẩu mới và confirm password không khớp');
       console.log('='.repeat(50));
@@ -386,7 +393,7 @@ describe('AuthService - Reset Password Flow', () => {
       expect(UserRepository.findByEmail).not.toHaveBeenCalled();
     });
 
-    it('AuthService - RESET_PASSWORD_WITH_OTP - TC-3: should throw error when OTP is incorrect', async () => {
+    it('AuthService - resetPasswordWithOtp - TC-03: should throw error when OTP is incorrect', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AuthService - RESET_PASSWORD_WITH_OTP - TC-3: Lỗi khi OTP không đúng');
       console.log('='.repeat(50));
@@ -419,7 +426,7 @@ describe('AuthService - Reset Password Flow', () => {
       expect(UserRepository.updatePassword).not.toHaveBeenCalled();
     });
 
-    it('AuthService - RESET_PASSWORD_WITH_OTP - TC-4: should throw error when new password is less than 8 characters', async () => {
+    it('AuthService - resetPasswordWithOtp - TC-04: should throw error when new password is less than 8 characters', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AuthService - RESET_PASSWORD_WITH_OTP - TC-4: Lỗi khi mật khẩu mới ngắn hơn 8 ký tự');
       console.log('='.repeat(50));
@@ -446,7 +453,7 @@ describe('AuthService - Reset Password Flow', () => {
       expect(UserRepository.findByEmail).not.toHaveBeenCalled();
     });
 
-    it('AuthService - RESET_PASSWORD_WITH_OTP - TC-5: should throw error when new password is greater than 20 characters', async () => {
+    it('AuthService - resetPasswordWithOtp - TC-05: should throw error when new password is greater than 20 characters', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AuthService - RESET_PASSWORD_WITH_OTP - TC-5: Lỗi khi mật khẩu mới dài hơn 20 ký tự');
       console.log('='.repeat(50));
@@ -473,7 +480,7 @@ describe('AuthService - Reset Password Flow', () => {
       expect(UserRepository.findByEmail).not.toHaveBeenCalled();
     });
 
-    it('AuthService - RESET_PASSWORD_WITH_OTP - TC-6: should throw error when new password has no uppercase letter', async () => {
+    it('AuthService - resetPasswordWithOtp - TC-06: should throw error when new password has no uppercase letter', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AuthService - RESET_PASSWORD_WITH_OTP - TC-6: Lỗi khi mật khẩu mới không có chữ hoa');
       console.log('='.repeat(50));
@@ -500,7 +507,7 @@ describe('AuthService - Reset Password Flow', () => {
       expect(UserRepository.findByEmail).not.toHaveBeenCalled();
     });
 
-    it('AuthService - RESET_PASSWORD_WITH_OTP - TC-7: should throw error when new password has no lowercase letter', async () => {
+    it('AuthService - resetPasswordWithOtp - TC-07: should throw error when new password has no lowercase letter', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AuthService - RESET_PASSWORD_WITH_OTP - TC-7: Lỗi khi mật khẩu mới không có chữ thường');
       console.log('='.repeat(50));
@@ -527,7 +534,7 @@ describe('AuthService - Reset Password Flow', () => {
       expect(UserRepository.findByEmail).not.toHaveBeenCalled();
     });
 
-    it('AuthService - RESET_PASSWORD_WITH_OTP - TC-8: should throw error when new password has no number', async () => {
+    it('AuthService - resetPasswordWithOtp - TC-08: should throw error when new password has no number', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AuthService - RESET_PASSWORD_WITH_OTP - TC-8: Lỗi khi mật khẩu mới không có số');
       console.log('='.repeat(50));
@@ -554,7 +561,7 @@ describe('AuthService - Reset Password Flow', () => {
       expect(UserRepository.findByEmail).not.toHaveBeenCalled();
     });
 
-    it('AuthService - RESET_PASSWORD_WITH_OTP - TC-9: should throw error when new password has no special character', async () => {
+    it('AuthService - resetPasswordWithOtp - TC-09: should throw error when new password has no special character', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AuthService - RESET_PASSWORD_WITH_OTP - TC-9: Lỗi khi mật khẩu mới không có ký tự đặc biệt');
       console.log('='.repeat(50));
@@ -581,7 +588,7 @@ describe('AuthService - Reset Password Flow', () => {
       expect(UserRepository.findByEmail).not.toHaveBeenCalled();
     });
 
-    it('AuthService - RESET_PASSWORD_WITH_OTP - TC-10: should reset password successfully with minimum length (8)', async () => {
+    it('AuthService - resetPasswordWithOtp - TC-10: should reset password successfully with minimum length (8)', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AuthService - RESET_PASSWORD_WITH_OTP - TC-10: Reset password thành công với mật khẩu dài 8 ký tự');
       console.log('='.repeat(50));
@@ -621,7 +628,7 @@ describe('AuthService - Reset Password Flow', () => {
       expect(result).toEqual(expectedOutput);
     });
 
-    it('AuthService - RESET_PASSWORD_WITH_OTP - TC-11: should reset password successfully with maximum length (20)', async () => {
+    it('AuthService - resetPasswordWithOtp - TC-11: should reset password successfully with maximum length (20)', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AuthService - RESET_PASSWORD_WITH_OTP - TC-11: Reset password thành công với mật khẩu dài 20 ký tự');
       console.log('='.repeat(50));

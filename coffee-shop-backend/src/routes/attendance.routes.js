@@ -1,0 +1,62 @@
+const express = require('express');
+const multer = require('multer');
+const router = express.Router();
+const upload = multer({ storage: multer.memoryStorage() });
+const controller = require('../controllers/AttendanceController');
+const AsyncMiddleware = require('../middlewares/async.middleware');
+const { authenticate } = require('../middlewares/auth');
+const { authorize } = require('../middlewares/authorize');
+const { ROLES_STRING } = require('../config/constants');
+
+const MANAGER_ONLY = [ROLES_STRING.MANAGER];
+const ATTENDANCE_ROLE = [ROLES_STRING.ATTENDANCE];
+const ALL_STAFF = [ROLES_STRING.STAFF, ROLES_STRING.BARISTA];
+
+
+// clockin/out by face
+router.post(
+  '/clock-face',
+  upload.single('image'),
+  AsyncMiddleware(controller.clockByFace)
+);
+
+// verify kiosk code
+router.post(
+  '/verify-kiosk',
+  AsyncMiddleware(controller.verifyKiosk)
+);
+
+// register face
+router.post(
+  '/register-face/:userId',
+  authenticate,
+  authorize(MANAGER_ONLY),
+  upload.single('image'),
+  AsyncMiddleware(controller.registerFace)
+);
+
+// Staff view personal list
+router.get(
+  '/me',
+  authenticate,
+  authorize(ALL_STAFF),
+  AsyncMiddleware(controller.getMyAttendance)
+);
+
+// Manager view lists
+router.get(
+  '/',
+  authenticate,
+  authorize(MANAGER_ONLY),
+  AsyncMiddleware(controller.getAll)
+);
+
+// Manager manually updates attendance record
+router.put(
+  '/:id',
+  authenticate,
+  authorize(MANAGER_ONLY),
+  AsyncMiddleware(controller.update)
+);
+
+module.exports = router;

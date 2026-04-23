@@ -1,4 +1,5 @@
 const db = require("../config/database");
+const CashSessionRepository = require("./CashSessionRepository");
 
 class OrderRepository {
   async getConnection() {
@@ -65,29 +66,51 @@ class OrderRepository {
   }
 
   async createOrder(connection, data) {
+    const safeStatus = data.status || "pending";
+    const safeUsedPoints = Math.max(0, Number(data.used_points) || 0);
+    // amount = subtotal trước giảm giá, discount_amount = số tiền đã giảm
+    const safeAmount = Math.max(0, Number(data.amount ?? data.total_amount) || 0);
+    const safeDiscountAmount = Math.max(0, Number(data.discount_amount) || 0);
+
+    const currentSession = await CashSessionRepository.findOpenSession();
+    const cashSessionId = currentSession ? currentSession.id : null;
+
     const [result] = await connection.query(
       `
       INSERT INTO orders (
         user_id,
-        created_by,
         customer_type,
         order_type,
         table_id,
         status,
         is_paid,
+        amount,
+        discount_amount,
         total_amount,
-        session_id
+        delivery_fee,
+        used_points,
+        session_id,
+        cash_session_id,
+        note,
+        staff_id
       )
-      VALUES (?, ?, ?, ?, ?, 'pending', 0, ?, ?)
+      VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `,
       [
         data.user_id,
-        data.created_by,
         data.customer_type,
         data.order_type,
         data.table_id || null,
+        safeStatus,
+        safeAmount,
+        safeDiscountAmount,
         data.total_amount,
+        Math.max(0, Number(data.delivery_fee) || 0),
+        safeUsedPoints,
         data.session_id || null,
+        cashSessionId,
+        data.note || null,
+        data.staff_id || null,
       ]
     );
 
@@ -135,9 +158,11 @@ class OrderRepository {
         receiver_phone,
         receiver_email,
         address,
-        note
+        note,
+        latitude,
+        longitude
       )
-      VALUES (?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `,
       [
         data.order_id,
@@ -146,11 +171,36 @@ class OrderRepository {
         data.receiver_email,
         data.address,
         data.note,
+        data.latitude || null,
+        data.longitude || null,
       ]
     );
   }
 
   async createOrderPayment(connection, data) {
+    const isCash = data.payment_method === "cash";
+    const amount = Number(data.amount) || 0;
+    const paymentStatus = data.payment_status || "pending";
+    const isPaid = paymentStatus === "paid";
+
+    const normalizedPaidAmount = Number.isFinite(Number(data.paid_amount))
+      ? Number(data.paid_amount)
+      : isPaid
+      ? amount
+      : 0;
+
+    const normalizedCashReceived = Number.isFinite(Number(data.cash_received))
+      ? Number(data.cash_received)
+      : isPaid
+      ? normalizedPaidAmount
+      : 0;
+
+    const normalizedChangeAmount = Number.isFinite(Number(data.change_amount))
+      ? Math.max(0, Number(data.change_amount))
+      : isPaid
+      ? Math.max(0, normalizedCashReceived - normalizedPaidAmount)
+      : 0;
+
     await connection.query(
       `
       INSERT INTO order_payments (
@@ -158,18 +208,24 @@ class OrderRepository {
         payment_method,
         payment_status,
         amount,
+        paid_amount,
+        cash_received,
+        change_amount,
         transaction_id,
         paid_at
       )
-      VALUES (?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `,
       [
         data.order_id,
         data.payment_method,
-        data.payment_status || "pending",
-        data.amount,
+        paymentStatus,
+        amount,
+        normalizedPaidAmount,
+        normalizedCashReceived,
+        normalizedChangeAmount,
         data.transaction_id || null,
-        data.payment_status === "paid" ? new Date() : null,
+        isPaid ? new Date() : null,
       ]
     );
   }
@@ -199,6 +255,9 @@ class OrderRepository {
       params.push(payment_status);
       if (payment_status === "paid") {
         setParts.push("paid_at = NOW()");
+        setParts.push("paid_amount = amount");
+        setParts.push("cash_received = amount");
+        setParts.push("change_amount = 0");
       }
     }
 
@@ -240,27 +299,96 @@ class OrderRepository {
     );
   }
 
-  async updatePaymentStatusByOrderId(orderId, paymentStatus) {
+  async updatePaymentStatusByOrderId(orderId, paymentStatus, paymentMeta = {}) {
+    const setParts = ["payment_status = ?"];
+    const params = [paymentStatus];
+
+    if (paymentStatus === "paid") {
+      const paidAmount = Number(paymentMeta.paid_amount);
+      const hasPaidAmount = Number.isFinite(paidAmount);
+
+      const cashReceived = Number(paymentMeta.cash_received);
+      const hasCashReceived = Number.isFinite(cashReceived);
+
+      const changeAmount = Number(paymentMeta.change_amount);
+      const hasChangeAmount = Number.isFinite(changeAmount);
+
+      setParts.push("paid_at = NOW()");
+
+      if (hasPaidAmount) {
+        setParts.push("paid_amount = ?");
+        params.push(paidAmount);
+      } else {
+        setParts.push("paid_amount = amount");
+      }
+
+      if (hasCashReceived) {
+        setParts.push("cash_received = ?");
+        params.push(cashReceived);
+      } else {
+        setParts.push("cash_received = amount");
+      }
+
+      if (hasChangeAmount) {
+        setParts.push("change_amount = ?");
+        params.push(Math.max(0, changeAmount));
+      } else if (hasCashReceived) {
+        if (hasPaidAmount) {
+          setParts.push("change_amount = ?");
+          params.push(Math.max(0, cashReceived - paidAmount));
+        } else {
+          setParts.push("change_amount = GREATEST(? - amount, 0)");
+          params.push(cashReceived);
+        }
+      } else {
+        setParts.push("change_amount = 0");
+      }
+    }
+
     await db.query(
       `
       UPDATE order_payments
-      SET payment_status = ?
+      SET ${setParts.join(", ")}
       WHERE order_id = ?
       `,
-      [paymentStatus, orderId]
+      [...params, orderId]
     );
   }
 
-  async cancelOrderByUser(orderId, userId) {
+  async cancelOrderByUser(orderId, userId, { reason } = {}) {
     const [result] = await db.query(
       `
       UPDATE orders
-      SET status = 'cancelled'
+      SET status = 'cancelled',
+          cancel_reason = ?,
+          cancel_user_id = ?,
+          cancel_role = 'customer',
+          cancelled_at = NOW()
       WHERE id = ?
         AND user_id = ?
-        AND status IN ('pending', 'preparing')
+        AND status = 'pending'
+        AND is_paid = 0
       `,
-      [orderId, userId]
+      [reason || null, userId, orderId, userId]
+    );
+
+    return result;
+  }
+
+  async cancelOrderByStaff(orderId, staffId, staffRole, { reason } = {}) {
+    const [result] = await db.query(
+      `
+      UPDATE orders
+      SET status = 'cancelled',
+          cancel_reason = ?,
+          cancel_user_id = ?,
+          cancel_role = ?,
+          cancelled_at = NOW()
+      WHERE id = ?
+        AND status = 'pending'
+        AND is_paid = 0
+      `,
+      [reason || null, staffId || null, staffRole || 'staff', orderId]
     );
 
     return result;
@@ -274,8 +402,14 @@ class OrderRepository {
         customer_type,
         order_type,
         status,
+        cancel_reason,
+        cancel_user_id,
+        cancel_role,
+        cancelled_at,
         is_paid,
         total_amount,
+        delivery_fee,
+        used_points,
         created_at,
         paid_at
       FROM orders
@@ -297,8 +431,16 @@ class OrderRepository {
         o.order_type,
         o.status,
         o.print_status,
+        o.cancel_reason,
+        o.cancel_user_id,
+        o.cancel_role,
+        o.cancelled_at,
         o.is_paid,
         o.total_amount,
+        o.amount,
+        o.discount_amount,
+        o.delivery_fee,
+        o.used_points,
         o.created_at,
         o.paid_at,
         odi.receiver_name,
@@ -308,7 +450,7 @@ class OrderRepository {
         odi.note,
         op.payment_method,
         op.payment_status,
-        op.amount
+        op.amount AS payment_amount
       FROM orders o
       LEFT JOIN order_delivery_info odi ON odi.order_id = o.id
       LEFT JOIN order_payments op ON op.order_id = o.id
@@ -330,8 +472,16 @@ class OrderRepository {
         o.customer_type,
         o.order_type,
         o.status,
+        o.cancel_reason,
+        o.cancel_user_id,
+        o.cancel_role,
+        o.cancelled_at,
         o.is_paid,
         o.total_amount,
+        o.amount,
+        o.discount_amount,
+        o.delivery_fee,
+        o.used_points,
         o.created_at,
         op.payment_method,
         op.payment_status
@@ -354,8 +504,16 @@ class OrderRepository {
         o.customer_type,
         o.order_type,
         o.status,
+        o.cancel_reason,
+        o.cancel_user_id,
+        o.cancel_role,
+        o.cancelled_at,
         o.is_paid,
         o.total_amount,
+        o.amount,
+        o.discount_amount,
+        o.delivery_fee,
+        o.used_points,
         o.created_at,
         o.paid_at,
         odi.receiver_name,
@@ -365,7 +523,7 @@ class OrderRepository {
         odi.note,
         op.payment_method,
         op.payment_status,
-        op.amount
+        op.amount AS payment_amount
       FROM orders o
       LEFT JOIN order_delivery_info odi ON odi.order_id = o.id
       LEFT JOIN order_payments op ON op.order_id = o.id
@@ -436,7 +594,7 @@ class OrderRepository {
   async findActiveOrderByTableId(connection, tableId) {
     const [rows] = await connection.query(
       `
-      SELECT id, total_amount
+      SELECT id, total_amount, amount, discount_amount
       FROM orders
       WHERE table_id = ? AND status IN ('pending', 'processing')
       ORDER BY created_at DESC
@@ -448,14 +606,20 @@ class OrderRepository {
     return rows[0] || null;
   }
 
-  async updateOrderTotalAmount(connection, orderId, finalAmount) {
+  async updateOrderTotalAmount(
+    connection,
+    orderId,
+    { totalAmount, amount, discountAmount }
+  ) {
     await connection.query(
       `
       UPDATE orders
-      SET total_amount = ?
+      SET total_amount = ?,
+          amount = ?,
+          discount_amount = ?
       WHERE id = ?
       `,
-      [finalAmount, orderId]
+      [totalAmount, amount, discountAmount, orderId]
     );
   }
 
@@ -512,15 +676,80 @@ class OrderRepository {
     return Number(rows[0]?.total || 0);
   }
 
-  async findAllOrders({ limit = 20, offset = 0, status = "all" } = {}) {
+  buildAdminOrderFilters({
+    status = "all",
+    order_type = "all",
+    order_code = "",
+    start_date = "",
+    end_date = "",
+  } = {}) {
+    const whereClauses = [];
+    const params = [];
+
+    if (status && status !== "all") {
+      whereClauses.push("o.status = ?");
+      params.push(String(status).trim().toLowerCase());
+    }
+
+    if (order_type && order_type !== "all") {
+      whereClauses.push("o.order_type = ?");
+      params.push(String(order_type).trim().toLowerCase());
+    }
+
+    const normalizedOrderCode = String(order_code || "")
+      .replace(/^#/, "")
+      .replace(/[^0-9]/g, "")
+      .trim();
+
+    if (normalizedOrderCode) {
+      whereClauses.push("CAST(o.id AS CHAR) LIKE ?");
+      params.push(`%${normalizedOrderCode}%`);
+    }
+
+    const normalizedStartDate = String(start_date || "").trim();
+    const normalizedEndDate = String(end_date || "").trim();
+
+    if (normalizedStartDate) {
+      whereClauses.push("DATE(o.created_at) >= ?");
+      params.push(normalizedStartDate);
+    }
+
+    if (normalizedEndDate) {
+      whereClauses.push("DATE(o.created_at) <= ?");
+      params.push(normalizedEndDate);
+    }
+
+    return {
+      whereSql: whereClauses.length > 0 ? ` WHERE ${whereClauses.join(" AND ")}` : "",
+      params,
+    };
+  }
+// Hàm lấy danh sách đơn hàng với phân trang và bộ lọc cho admin
+  async findAllOrders({
+    limit = 20,
+    offset = 0,
+    status = "all",
+    order_type = "all",
+    order_code = "",
+    start_date = "",
+    end_date = "",
+  } = {}) {
     let query = `
       SELECT 
         o.id,
         o.customer_type,
         o.order_type,
         o.status,
+        o.cancel_reason,
+        o.cancel_user_id,
+        o.cancel_role,
+        o.cancelled_at,
         o.is_paid,
         o.total_amount,
+        o.amount,
+        o.discount_amount,
+        o.delivery_fee,
+        o.used_points,
         o.created_at,
         o.paid_at,
         t.code as table_code,
@@ -536,12 +765,15 @@ class OrderRepository {
       LEFT JOIN order_delivery_info odi ON odi.order_id = o.id
       LEFT JOIN order_payments op ON op.order_id = o.id
     `;
-    const params = [];
+    const { whereSql, params } = this.buildAdminOrderFilters({
+      status,
+      order_type,
+      order_code,
+      start_date,
+      end_date,
+    });
 
-    if (status && status !== "all") {
-      query += " WHERE o.status = ?";
-      params.push(status);
-    }
+    query += whereSql;
 
     query += " ORDER BY o.created_at DESC LIMIT ? OFFSET ?";
     params.push(parseInt(limit), parseInt(offset));
@@ -549,15 +781,24 @@ class OrderRepository {
     const [rows] = await db.query(query, params);
     return rows;
   }
-
-  async countAllOrders({ status = "all" } = {}) {
+// Hàm đếm tổng số đơn hàng (không phân trang) theo các bộ lọc để phục vụ phân trang ở frontend( admin)
+  async countAllOrders({
+    status = "all",
+    order_type = "all",
+    order_code = "",
+    start_date = "",
+    end_date = "",
+  } = {}) {
     let query = "SELECT COUNT(*) as count FROM orders o";
-    const params = [];
+    const { whereSql, params } = this.buildAdminOrderFilters({
+      status,
+      order_type,
+      order_code,
+      start_date,
+      end_date,
+    });
 
-    if (status && status !== "all") {
-      query += " WHERE o.status = ?";
-      params.push(status);
-    }
+    query += whereSql;
 
     const [rows] = await db.query(query, params);
     return rows[0].count;
@@ -583,6 +824,19 @@ class OrderRepository {
     );
 
     return Number(result?.affectedRows || 0);
+  }
+
+  async updateOrderStaffAndSession(orderId, staffId, cashSessionId) {
+    const [result] = await db.query(
+      `
+      UPDATE orders 
+      SET staff_id = ?,
+          cash_session_id = ?
+      WHERE id = ?
+      `,
+      [staffId || null, cashSessionId || null, orderId]
+    );
+    return result.affectedRows > 0;
   }
 }
 

@@ -13,6 +13,7 @@ const { publicToppingRoutes, adminToppingRoutes } = require("./topping.routes");
 const recipeRoutes = require("./recipe.routes");
 const adminDBRoutes = require("./adminDB.routes");
 const baristaDBRoutes = require("./baristaDB.routes");
+const staffDBRoutes = require("./staffDBRoutes");
 const areaRoutes = require("./area.routes");
 const tableRoutes = require("./table.routes");
 const notificationRoutes = require("./notification.routes");
@@ -21,13 +22,21 @@ const productSizeRoutes = require("./productSize.routes");
 const orderOnlineRoutes = require("./orderOnline.routes");
 const reputationRoutes = require("./reputation.routes");
 const orderRoutes = require("./order.routes");
-const favoriteRoutes = require("./favorite.routes");
 const reviewRoutes = require("./review.routes");
 const receiptSettingRoutes = require("./receiptSetting.routes");
 const takeawayRoutes = require("./takeaway.routes");
 const flashSaleRoutes = require('./flashSale.routes');
 const qrOrderRoutes = require('./qrOrder.routes');
 const shiftRoutes = require('./shift.routes');
+const loyaltyRoutes = require('./loyalty.routes');
+const cashSessionRoutes = require('./cashSession.routes');
+const aiRoutes = require('./ai.routes');
+const attendanceSettingRoutes = require('./attendanceSetting.routes');
+const attendanceRoutes = require('./attendance.routes');
+
+
+const cartRoutes = require('./cart.routes');
+const vietmapRoutes = require('./vietmap.routes');
 
 const CategoryRepository = require('../repositories/CategoryRepository');
 const ProductRepository = require('../repositories/ProductRepository');
@@ -67,12 +76,12 @@ router.use("/ingredients", ingredientRoutes);
 router.use("/product-sizes", productSizeRoutes);
 router.use("/dashboard", adminDBRoutes);
 router.use("/barista", baristaDBRoutes);
+router.use("/staff-db", staffDBRoutes);
 router.use("/banners", bannerRoutes);
 router.use("/notifications", notificationRoutes);
 router.use("/discounts", discountRoutes);
 router.use("/order-online", orderOnlineRoutes);
 router.use("/reputation", reputationRoutes);
-router.use("/favorites", favoriteRoutes);
 router.use("/reviews", reviewRoutes);
 router.use("/receipt-settings", receiptSettingRoutes);
 router.use("/takeaway", takeawayRoutes);
@@ -80,6 +89,15 @@ router.use("/orders", orderRoutes);
 router.use('/flash-sales', flashSaleRoutes);
 router.use('/qr-order', qrOrderRoutes);
 router.use('/shifts', shiftRoutes);
+router.use('/loyalty', loyaltyRoutes);
+router.use('/ai', aiRoutes);
+router.use('/attendance-settings', attendanceSettingRoutes);
+router.use('/attendance', attendanceRoutes);
+router.use('/cash-sessions', cashSessionRoutes);
+
+
+router.use('/cart', cartRoutes);
+router.use('/vietmap', vietmapRoutes);
 
 // Health check endpoint
 router.get("/health", (req, res) => {
@@ -101,16 +119,10 @@ router.get("/", (req, res) => {
         register: 'POST /api/auth/register',
         login: 'POST /api/auth/login',
         profile: 'GET /api/auth/profile',
-        updateProfile: 'PUT /api/auth/profile',
         changePassword: 'POST /api/auth/change-password',
         refreshToken: 'POST /api/auth/refresh-token',
         resetPassword: 'POST /api/auth/reset-password',
         logout: 'POST /api/auth/logout',
-        getAddresses: 'GET /api/auth/address',
-        createAddress: 'POST /api/auth/address',
-        updateAddress: 'PUT /api/auth/address/:id',
-        deleteAddress: 'DELETE /api/auth/address/:id',
-        setDefaultAddress: 'PATCH /api/auth/address/:id/default',
       },
       categories: {
         getAll: "GET /api/categories",
@@ -129,6 +141,12 @@ router.get("/", (req, res) => {
         getStaff: "GET /api/users/staff (Admin)",
         getCustomers: "GET /api/users/customers (Admin)",
         getStats: "GET /api/users/stats (Admin)",
+        profile: "PUT /api/users/profile",
+        getAddresses: "GET /api/users/address",
+        createAddress: "POST /api/users/address",
+        updateAddress: "PUT /api/users/address/:id",
+        deleteAddress: "DELETE /api/users/address/:id",
+        setDefaultAddress: "PATCH /api/users/address/:id/default",
         create: "POST /api/users (Admin)",
         update: "PUT /api/users/:id (Admin)",
         deactivate: "POST /api/users/:id/deactivate (Admin)",

@@ -44,19 +44,20 @@ class NotificationService {
 
     if (!managers.length) return null;
 
-    const manager = managers[0];
+    const userIds = managers.map((user) => user.id);
+
     const notification = await NotificationRepository.createNotification(
       notificationData
     );
     const recipients = await NotificationRepository.addRecipients(
       notification.id,
-      [manager.id]
+      userIds
     );
 
     return {
       notification,
-      user: manager,
-      recipient: recipients[0],
+      users: managers,
+      recipients,
     };
   }
 

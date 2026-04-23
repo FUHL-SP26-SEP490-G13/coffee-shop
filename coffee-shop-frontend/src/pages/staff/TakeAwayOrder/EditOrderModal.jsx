@@ -70,7 +70,7 @@ export function EditOrderModal({ order, products = [], toppings = [], onClose, o
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl dark:shadow-none w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
 
         {/* Header */}
         <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-5 text-white flex justify-between items-center shrink-0">
@@ -82,7 +82,7 @@ export function EditOrderModal({ order, products = [], toppings = [], onClose, o
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center hover:bg-white/30"
+            className="w-8 h-8 rounded-full bg-white dark:bg-gray-900/20 flex items-center justify-center hover:bg-white dark:bg-gray-900/30"
           >
             <X size={16} />
           </button>
@@ -91,8 +91,8 @@ export function EditOrderModal({ order, products = [], toppings = [], onClose, o
         <div className="flex flex-1 overflow-hidden">
 
           {/* Cột trái — tìm & chọn thêm sản phẩm */}
-          <div className="w-1/2 border-r border-gray-100 p-4 overflow-y-auto">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+          <div className="w-1/2 border-r border-gray-100 dark:border-gray-800 p-4 overflow-y-auto">
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
               Thêm sản phẩm
             </p>
             <div className="relative mb-3">
@@ -100,7 +100,7 @@ export function EditOrderModal({ order, products = [], toppings = [], onClose, o
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-8 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400"
+                className="w-full pl-8 pr-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:border-blue-400"
                 placeholder="Tìm sản phẩm..."
               />
             </div>
@@ -118,10 +118,10 @@ export function EditOrderModal({ order, products = [], toppings = [], onClose, o
                     <button
                       key={p.id}
                       onClick={() => setAddingProduct(p)}
-                      className="w-full text-left px-3 py-2.5 rounded-xl border border-gray-100 hover:border-blue-300 hover:bg-blue-50 transition-all"
+                      className="w-full text-left px-3 py-2.5 rounded-xl border border-gray-100 dark:border-gray-800 hover:border-blue-300 hover:bg-blue-50 dark:bg-blue-900/30 transition-all"
                     >
-                      <p className="text-sm font-medium text-gray-800">{p.name}</p>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-sm font-medium text-gray-800 dark:text-gray-200">{p.name}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
                         {p.sizes?.length > 0
                           ? minPrice === maxPrice
                             ? fmt(minPrice)
@@ -137,7 +137,7 @@ export function EditOrderModal({ order, products = [], toppings = [], onClose, o
 
           {/* Cột phải — items hiện tại */}
           <div className="w-1/2 p-4 flex flex-col overflow-hidden">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 shrink-0">
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2 shrink-0">
               Đơn hiện tại
             </p>
 
@@ -150,20 +150,20 @@ export function EditOrderModal({ order, products = [], toppings = [], onClose, o
               {items.map((item) => (
                 <div
                   key={item._uid}
-                  className="border border-gray-100 rounded-xl p-3 bg-gray-50"
+                  className="border border-gray-100 dark:border-gray-800 rounded-xl p-3 bg-gray-50 dark:bg-gray-800/50"
                 >
                   <div className="flex justify-between items-start">
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-gray-800 truncate">
+                      <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 truncate">
                         {item.product_name} ({item.size})
                       </p>
                       {item.toppings?.length > 0 && (
-                        <p className="text-xs text-gray-500 truncate">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
                           {item.toppings.map((t) => t.name).join(', ')}
                         </p>
                       )}
                       {item.note && (
-                        <p className="text-xs text-amber-600 italic truncate">
+                        <p className="text-xs text-amber-600 dark:text-amber-400 italic truncate">
                           "{item.note}"
                         </p>
                       )}
@@ -174,7 +174,7 @@ export function EditOrderModal({ order, products = [], toppings = [], onClose, o
                           prev.filter((i) => i._uid !== item._uid),
                         )
                       }
-                      className="ml-2 w-6 h-6 rounded-full bg-red-100 text-red-500 flex items-center justify-center hover:bg-red-200 shrink-0"
+                      className="ml-2 w-6 h-6 rounded-full bg-red-100 dark:bg-red-900/40 text-red-500 flex items-center justify-center hover:bg-red-200 shrink-0"
                     >
                       <X size={10} />
                     </button>
@@ -191,7 +191,7 @@ export function EditOrderModal({ order, products = [], toppings = [], onClose, o
                             ),
                           )
                         }
-                        className="w-6 h-6 rounded-full bg-white border border-gray-200 flex items-center justify-center hover:bg-gray-50"
+                        className="w-6 h-6 rounded-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-800/50 dark:bg-gray-800/50"
                       >
                         <Minus size={10} />
                       </button>
@@ -213,7 +213,7 @@ export function EditOrderModal({ order, products = [], toppings = [], onClose, o
                         <Plus size={10} />
                       </button>
                     </div>
-                    <span className="text-sm font-semibold text-amber-600">
+                    <span className="text-sm font-semibold text-amber-600 dark:text-amber-400">
                       {fmt(Number(item.unit_price) * item.quantity)}
                     </span>
                   </div>
@@ -228,13 +228,13 @@ export function EditOrderModal({ order, products = [], toppings = [], onClose, o
                 <input
                   value={discountCode}
                   onChange={(e) => setDiscountCode(e.target.value)}
-                  className="w-full pl-8 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-amber-400"
+                  className="w-full pl-8 pr-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:border-amber-400"
                   placeholder="Mã giảm giá (nếu có)"
                 />
               </div>
               <div className="flex justify-between items-center mt-2">
-                <span className="text-sm text-gray-500">Tạm tính</span>
-                <span className="font-bold text-gray-800">{fmt(subtotal)}</span>
+                <span className="text-sm text-gray-500 dark:text-gray-400">Tạm tính</span>
+                <span className="font-bold text-gray-800 dark:text-gray-200">{fmt(subtotal)}</span>
               </div>
             </div>
 
@@ -242,7 +242,7 @@ export function EditOrderModal({ order, products = [], toppings = [], onClose, o
             <div className="flex gap-2 mt-3 shrink-0">
               <button
                 onClick={onClose}
-                className="flex-1 py-2.5 rounded-xl border-2 border-gray-200 text-gray-600 text-sm font-semibold hover:bg-gray-50"
+                className="flex-1 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-800/50 dark:bg-gray-800/50"
               >
                 Huỷ
               </button>

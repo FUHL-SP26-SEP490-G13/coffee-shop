@@ -3,17 +3,18 @@ import { Link } from "react-router-dom";
 import {
   MapPin,
   Phone,
-  Mail,
   Facebook,
-  Youtube,
-  Instagram,
   ShieldCheck,
   CheckCircle2,
+  Loader2,
 } from "lucide-react";
 import Logo from "/logo/Logo.png";
+import receiptSettingService from "@/services/receiptSettingService";
 import { useStoreHours } from "@/hooks/useStoreHours";
 import { STORAGE_KEYS } from "@/constants";
 import PayOSLogo from "/logo/payOS.svg";
+import axiosClient from "@/services/axiosClient";
+import { toast } from "sonner";
 
 function Footer() {
   const { isOpen, storeSchedule } = useStoreHours();
@@ -22,78 +23,87 @@ function Footer() {
     sessionStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
   const isLoggedIn = !!token;
 
+  const [storeLogo, setStoreLogo] = useState(() => {
+    return localStorage.getItem("cached_store_logo") || Logo;
+  });
+  const [storeAddress, setStoreAddress] = useState("");
+  const [storePhone, setStorePhone] = useState("");
+  const [storeName, setStoreName] = useState("Coffee Shop");
+
+
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const res = await receiptSettingService.getActive();
+        const data = res?.data || null;
+        if (data) {
+          if (data.logo_url) {
+            setStoreLogo(data.logo_url);
+            localStorage.setItem("cached_store_logo", data.logo_url);
+          } else {
+            setStoreLogo(Logo);
+            localStorage.removeItem("cached_store_logo");
+          }
+          if (data.address) setStoreAddress(data.address);
+          if (data.phone) setStorePhone(data.phone);
+          if (data.store_name) setStoreName(data.store_name);
+          else setStoreName("Coffee Shop");
+        } else {
+          setStoreLogo(Logo);
+          localStorage.removeItem("cached_store_logo");
+        }
+      } catch (error) {
+        setStoreLogo(Logo);
+        localStorage.removeItem("cached_store_logo");
+      }
+    };
+    fetchSettings();
+
+    const handleReceiptUpdate = () => {
+      fetchSettings();
+    };
+
+    window.addEventListener("receiptSettingsUpdated", handleReceiptUpdate);
+    return () => {
+      window.removeEventListener("receiptSettingsUpdated", handleReceiptUpdate);
+    };
+  }, []);
+
   return (
-    <footer className="mt-20 border-t border-border bg-card">
-      <div className="max-w-[1440px] mx-auto w-full px-6 py-12 lg:px-8 lg:py-16 xl:px-12">
+    <footer className="mt-5 border-t border-border bg-card">
+      <div className="w-full px-4 lg:px-6 xl:px-8 py-12 lg:py-16">
         <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-4">
           {/* Cột 1: Thông tin liên hệ & Mạng xã hội */}
           <div className="space-y-8 lg:pr-4">
             <div>
-              <Link to="/" className="inline-block mb-4">
+              <Link to="/" className="inline-flex items-center gap-3 mb-4 group">
                 <img
-                  src={Logo}
-                  alt="Coffee Shop Logo"
-                  className="h-16 w-auto hover:opacity-80 transition-opacity"
+                  src={storeLogo}
+                  onError={(e) => { e.currentTarget.src = Logo; }}
+                  alt={`${storeName} Logo`}
+                  className="h-16 w-auto group-hover:opacity-80 transition-opacity object-contain rounded-xl shadow-sm"
                 />
+                <h3 className="text-xl font-semibold tracking-tight text-amber-900 dark:text-amber-500 transition-colors line-clamp-2" style={{ fontFamily: 'serif' }}>
+                  {storeName}
+                </h3>
               </Link>
               <p className="mt-4 text-sm leading-relaxed text-muted-foreground dark:text-gray-400">
-                Hương vị cà phê chuẩn vị, phục vụ mỗi ngày.
+                Hương vị cà phê chuẩn vị, phục vụ mỗi ngày
               </p>
               <div className="mt-5 space-y-3 text-sm text-muted-foreground dark:text-gray-400">
                 <p className="flex items-center gap-2">
                   <MapPin size={16} className="shrink-0 text-primary" />
-                  TP. Hà Nội
+                  {storeAddress || "TP. Hà Nội"}
                 </p>
                 <p className="flex items-center gap-2">
                   <Phone size={16} className="shrink-0 text-primary" />
-                  0123 456 789
-                </p>
-                <p className="flex items-center gap-2 break-all">
-                  <Mail size={16} className="shrink-0 text-primary" />
-                  contact@coffeeshop.vn
+                  {storePhone || "0123 456 789"}
                 </p>
               </div>
             </div>
 
-            <div>
-              <h4 className="text-sm font-semibold uppercase tracking-wider text-foreground">
-                Kết nối với chúng tôi
-              </h4>
-              <div className="mt-4 flex flex-wrap gap-3">
-                <a
-                  href="#"
-                  className="w-9 h-9 rounded-full bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center transition-all hover:-translate-y-1 shadow-md"
-                  aria-label="Facebook"
-                >
-                  <Facebook
-                    size={18}
-                    fill="currentColor"
-                    className="text-white"
-                  />
-                </a>
-                <a
-                  href="#"
-                  className="w-9 h-9 rounded-full bg-blue-500 hover:bg-blue-600 text-white flex items-center justify-center transition-all hover:-translate-y-1 shadow-md font-bold text-[11px]"
-                  aria-label="Zalo"
-                >
-                  Zalo
-                </a>
-                <a
-                  href="#"
-                  className="w-9 h-9 rounded-full bg-red-600 hover:bg-red-700 text-white flex items-center justify-center transition-all hover:-translate-y-1 shadow-md"
-                  aria-label="Youtube"
-                >
-                  <Youtube size={18} />
-                </a>
-                <a
-                  href="#"
-                  className="w-9 h-9 rounded-full bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-600 hover:opacity-90 text-white flex items-center justify-center transition-all hover:-translate-y-1 shadow-md"
-                  aria-label="Instagram"
-                >
-                  <Instagram size={18} />
-                </a>
-              </div>
-            </div>
+
           </div>
 
           {/* Cột 2: Chính sách & Hỗ trợ */}
@@ -103,6 +113,7 @@ function Footer() {
                 Chính sách
               </h4>
               <ul className="mt-4 space-y-3">
+
                 <li>
                   <Link
                     to="/order-policy"
@@ -253,12 +264,42 @@ function Footer() {
                 </a>
               </div>
             </div>
+
+            <div className="mt-8">
+              <h4 className="text-sm font-semibold uppercase tracking-wider text-foreground">
+                Kết nối với chúng tôi
+              </h4>
+              <div className="mt-4 flex flex-wrap gap-3">
+                <a
+                  href="https://facebook.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-9 h-9 rounded-full bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center transition-all hover:-translate-y-1 shadow-md"
+                  aria-label="Facebook"
+                >
+                  <Facebook
+                    size={18}
+                    fill="currentColor"
+                    className="text-white"
+                  />
+                </a>
+                <a
+                  href="https://zalo.me"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-9 h-9 rounded-full bg-blue-500 hover:bg-blue-600 text-white flex items-center justify-center transition-all hover:-translate-y-1 shadow-md font-bold text-[11px]"
+                  aria-label="Zalo"
+                >
+                  Zalo
+                </a>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
       <div className="border-t border-border/60">
-        <div className="max-w-[1440px] mx-auto w-full px-6 py-5 lg:px-8 xl:px-12">
+        <div className="w-full px-4 lg:px-6 xl:px-8 py-5">
           <p className="text-center text-xs text-muted-foreground dark:text-gray-400">
             © {new Date().getFullYear()} Coffee Shop. Tất cả quyền được bảo lưu.
           </p>

@@ -69,25 +69,31 @@ class QrOrderRepository {
       `
       INSERT INTO orders (
         user_id,
-        created_by,
         customer_type,
         order_type,
         table_id,
         status,
         is_paid,
         total_amount,
-        discount_id
+        amount,
+        discount_amount,
+        discount_id,
+        session_id,
+        cash_session_id
       )
-      VALUES (?, ?, ?, ?, ?, 'pending', 0, ?, ?)
+      VALUES (?, ?, ?, ?, 'pending', 0, ?, ?, ?, ?, ?, ?)
       `,
       [
         data.user_id,
-        data.created_by,
         data.customer_type,
         data.order_type,
         data.table_id || null,
         data.total_amount,
-        data.discount_id || null
+        Math.max(0, Number(data.amount ?? data.total_amount) || 0),
+        Math.max(0, Number(data.discount_amount) || 0),
+        data.discount_id || null,
+        data.session_id || null,
+        data.cash_session_id || null,
       ]
     );
 
@@ -130,6 +136,28 @@ class QrOrderRepository {
 
 
   async createOrderPayment(connection, data) {
+    const amount = Number(data.amount) || 0;
+    const paymentStatus = data.payment_status || "pending";
+    const isPaid = paymentStatus === "paid";
+
+    const normalizedPaidAmount = Number.isFinite(Number(data.paid_amount))
+      ? Number(data.paid_amount)
+      : isPaid
+      ? amount
+      : 0;
+
+    const normalizedCashReceived = Number.isFinite(Number(data.cash_received))
+      ? Number(data.cash_received)
+      : isPaid
+      ? normalizedPaidAmount
+      : 0;
+
+    const normalizedChangeAmount = Number.isFinite(Number(data.change_amount))
+      ? Math.max(0, Number(data.change_amount))
+      : isPaid
+      ? Math.max(0, normalizedCashReceived - normalizedPaidAmount)
+      : 0;
+
     await connection.query(
       `
       INSERT INTO order_payments (
@@ -137,18 +165,24 @@ class QrOrderRepository {
         payment_method,
         payment_status,
         amount,
+        paid_amount,
+        cash_received,
+        change_amount,
         transaction_id,
         paid_at
       )
-      VALUES (?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `,
       [
         data.order_id,
         data.payment_method,
-        data.payment_status || "pending",
-        data.amount,
+        paymentStatus,
+        amount,
+        normalizedPaidAmount,
+        normalizedCashReceived,
+        normalizedChangeAmount,
         data.transaction_id || null,
-        data.payment_status === "paid" ? new Date() : null,
+        isPaid ? new Date() : null,
       ]
     );
   }

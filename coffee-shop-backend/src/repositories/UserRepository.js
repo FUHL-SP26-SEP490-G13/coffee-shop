@@ -33,6 +33,25 @@ class UserRepository extends BaseRepository {
     return rows[0] || null;
   }
 
+
+  /**
+   * Find user by AWS Face ID
+   */
+  async findByFaceId(faceId) {
+    const query = `SELECT * FROM ${this.tableName} WHERE aws_face_id = ? AND isActive = 1`;
+    const [rows] = await db.query(query, [faceId]);
+    return rows[0] || null;
+  }
+
+  /**
+   * Update AWS Face ID for user
+   */
+  async updateFaceId(userId, faceId) {
+    const query = `UPDATE ${this.tableName} SET aws_face_id = ? WHERE id = ?`;
+    await db.query(query, [faceId, userId]);
+    return true;
+  }
+
   /**
    * Get user with role information
    */

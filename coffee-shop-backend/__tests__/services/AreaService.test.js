@@ -11,7 +11,7 @@ describe('AreaService', () => {
 
   // ========== GET ALL AREAS TESTS ==========
   describe('getAllAreas', () => {
-    it('AreaService - GET_ALL - TC-1: should get all areas ordered by name', async () => {
+    it('AreaService - getAllAreas - TC-01: should get all areas ordered by name', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AreaService - GET_ALL - TC-1: Lấy tất cả khu vực');
       console.log('='.repeat(50));
@@ -41,7 +41,7 @@ describe('AreaService', () => {
 
   // ========== GET AREA BY ID TESTS ==========
   describe('getAreaById', () => {
-    it('AreaService - GET_BY_ID - TC-1: should get area by ID successfully', async () => {
+    it('AreaService - getAreaById - TC-01: should get area by ID successfully', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AreaService - GET_BY_ID - TC-1: Lấy khu vực theo ID thành công');
       console.log('='.repeat(50));
@@ -69,7 +69,7 @@ describe('AreaService', () => {
       expect(result.name).toBe('Khu A');
     });
 
-    it('AreaService - GET_BY_ID - TC-2: should throw error when area not found', async () => {
+    it('AreaService - getAreaById - TC-02: should throw error when area not found', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AreaService - GET_BY_ID - TC-2: Lỗi khi khu vực không tồn tại');
       console.log('='.repeat(50));
@@ -97,7 +97,7 @@ describe('AreaService', () => {
 
   // ========== CREATE AREA TESTS ==========
   describe('createArea', () => {
-    it('AreaService - CREATE - TC-1: should create area successfully', async () => {
+    it('AreaService - createArea - TC-01: should create area successfully', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AreaService - CREATE - TC-1: Tạo khu vực thành công');
       console.log('='.repeat(50));
@@ -133,7 +133,7 @@ describe('AreaService', () => {
       expect(result.name).toBe('Khu C');
     });
 
-    it('AreaService - CREATE - TC-2: should create area without image', async () => {
+    it('AreaService - createArea - TC-02: should create area without image', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AreaService - CREATE - TC-2: Tạo khu vực không có ảnh');
       console.log('='.repeat(50));
@@ -163,7 +163,7 @@ describe('AreaService', () => {
       expect(result.name).toBe('Khu D');
     });
 
-    it('AreaService - CREATE - TC-3: should throw error when area name exists', async () => {
+    it('AreaService - createArea - TC-03: should throw error when area name exists', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AreaService - CREATE - TC-3: Lỗi khi tên khu vực đã tồn tại');
       console.log('='.repeat(50));
@@ -196,7 +196,7 @@ describe('AreaService', () => {
 
   // ========== UPDATE AREA TESTS ==========
   describe('updateArea', () => {
-    it('AreaService - UPDATE - TC-1: should update area successfully', async () => {
+    it('AreaService - updateArea - TC-01: should update area successfully', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AreaService - UPDATE - TC-1: Cập nhật khu vực thành công');
       console.log('='.repeat(50));
@@ -234,7 +234,7 @@ describe('AreaService', () => {
       expect(result.name).toBe('Khu A Updated');
     });
 
-    it('AreaService - UPDATE - TC-2: should throw error when new name exists', async () => {
+    it('AreaService - updateArea - TC-02: should throw error when new name exists', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AreaService - UPDATE - TC-2: Lỗi khi tên mới đã tồn tại');
       console.log('='.repeat(50));
@@ -268,7 +268,7 @@ describe('AreaService', () => {
 
   // ========== DELETE AREA TESTS ==========
   describe('deleteArea', () => {
-    it('AreaService - DELETE - TC-1: should delete area successfully', async () => {
+    it('AreaService - deleteArea - TC-01: should delete area successfully', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AreaService - DELETE - TC-1: Xóa khu vực thành công');
       console.log('='.repeat(50));
@@ -297,7 +297,7 @@ describe('AreaService', () => {
       expect(result).toBe(true);
     });
 
-    it('AreaService - DELETE - TC-2: should throw error when area not found', async () => {
+    it('AreaService - deleteArea - TC-02: should throw error when area not found', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AreaService - DELETE - TC-2: Lỗi khi khu vực không tồn tại');
       console.log('='.repeat(50));
@@ -325,7 +325,7 @@ describe('AreaService', () => {
 
   // ========== SEARCH AREAS TESTS ==========
   describe('searchAreas', () => {
-    it('AreaService - SEARCH - TC-1: should search areas by keyword', async () => {
+    it('AreaService - searchAreas - TC-01: should search areas by keyword', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AreaService - SEARCH - TC-1: Tìm kiếm khu vực theo từ khóa');
       console.log('='.repeat(50));
@@ -354,6 +354,21 @@ describe('AreaService', () => {
       // Assert
       expect(AreaRepository.db.query).toHaveBeenCalled();
       expect(result).toHaveLength(1);
+    });
+
+    it('AreaService - searchAreas - TC-02: should keep full-space keyword as raw LIKE input', async () => {
+      const input = { keyword: '        ', limit: 5, offset: 2 };
+      AreaRepository.db = {
+        query: jest.fn().mockResolvedValue([[]]),
+      };
+
+      const result = await AreaService.searchAreas(input.keyword, { limit: input.limit, offset: input.offset });
+
+      expect(AreaRepository.db.query).toHaveBeenCalledWith(
+        expect.any(String),
+        ['%        %', 5, 2]
+      );
+      expect(result).toEqual([]);
     });
   });
 });

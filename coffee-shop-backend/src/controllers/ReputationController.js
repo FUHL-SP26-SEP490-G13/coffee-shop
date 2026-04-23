@@ -18,11 +18,12 @@ class ReputationController {
 
   async getAdminReputationProfiles(req, res, next) {
     try {
-      const { page, limit, keyword } = req.query;
+      const { page, limit, keyword, sort } = req.query;
       const result = await ReputationService.getAdminReputationProfiles({
         page,
         limit,
         keyword,
+        sort,
       });
 
       return res.json({

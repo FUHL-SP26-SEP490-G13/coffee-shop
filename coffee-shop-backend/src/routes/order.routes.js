@@ -58,4 +58,12 @@ router.post(
   AsyncMiddleware(OrderController.payosReturn)
 );
 
+// Cập nhật món trong đơn thanh toán sau (pay-later)
+router.put(
+  "/:id/items",
+  authenticate,
+  authorize([ROLES_STRING.STAFF, ROLES_STRING.MANAGER]),
+  AsyncMiddleware(OrderController.updateOrderItems)
+);
+
 module.exports = router;

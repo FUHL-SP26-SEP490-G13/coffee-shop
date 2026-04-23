@@ -7,44 +7,65 @@ class AdminDBService {
     const totalUsers = await AdminDBRepository.getTotalUsers();
     const activeDiscounts = await AdminDBRepository.getActiveDiscounts();
 
-    // Bạn có thể thêm vài số “hữu dụng” cho dashboard
-    const revenueSeries7Days = await AdminDBRepository.getRevenueSeries({
-      days: 7,
-    });
-    const topProducts7Days = await AdminDBRepository.getTopProducts({
-      days: 7,
-      limit: 5,
-    });
-
     return {
       revenueToday,
       ordersToday,
       totalUsers,
       activeDiscounts,
-      revenueSeries7Days, // để FE vẽ chart khỏi gọi thêm endpoint cũng được
-      topProducts7Days, // để FE render top 5
     };
   }
 
-  async getRevenueSeries({ days }) {
-    return AdminDBRepository.getRevenueSeries({ days });
+  async getRevenueSeries({ startDate, endDate }) {
+    return AdminDBRepository.getRevenueSeries({ startDate, endDate });
   }
 
-  async getTopProducts({ days, limit }) {
-    return AdminDBRepository.getTopProducts({ days, limit });
+  async getTopProducts({ startDate, endDate, limit }) {
+    return AdminDBRepository.getTopProducts({ startDate, endDate, limit });
   }
 
   // Optional: doanh thu theo loại đơn hàng (tại quán, mang về, giao hàng)
-  async getOrderTypeRevenue({ days }) {
-    return AdminDBRepository.getOrderTypeRevenue({ days });
+  async getOrderTypeRevenue({ startDate, endDate }) {
+    return AdminDBRepository.getOrderTypeRevenue({ startDate, endDate });
   }
 
-  // Optional: so sánh doanh thu, số đơn hàng, khách hàng mới,... giữa 2 khoảng thời gian (ví dụ: tuần này vs tuần trước, tháng này vs tháng trước) để xem xu hướng tăng giảm
-  async getComparison({ days }) {
-    return AdminDBRepository.getComparison({ days });
+  // Optional: so sánh doanh thu, số đơn hàng, khách hàng mới,... giữa 2 khoảng thời gian
+  async getComparison({ startDate, endDate, prevStartDate, prevEndDate }) {
+    return AdminDBRepository.getComparison({
+      startDate,
+      endDate,
+      prevStartDate,
+      prevEndDate,
+    });
   }
 
 
+  async getPaymentMethodRevenue({ startDate, endDate }) {
+    return AdminDBRepository.getPaymentMethodRevenue({ startDate, endDate });
+  }
+
+  async getOrdersSummary({ startDate, endDate }) {
+    return AdminDBRepository.getOrdersSummary({ startDate, endDate });
+  }
+
+  async getDetailedOrdersReport({ startDate, endDate }) {
+    return AdminDBRepository.getDetailedOrdersReport({ startDate, endDate });
+  }
+
+  async getShiftReport({ date }) {
+    return AdminDBRepository.getShiftReport({ date });
+  }
+
+  async getProductReport({ startDate, endDate }) {
+    return AdminDBRepository.getProductReport({ startDate, endDate });
+  }
+
+  async getTimeReport({ startDate, endDate }) {
+    return AdminDBRepository.getTimeReport({ startDate, endDate });
+  }
+
+  async getStaffReport({ startDate, endDate }) {
+    return AdminDBRepository.getStaffReport({ startDate, endDate });
+  }
 }
 
 module.exports = new AdminDBService();

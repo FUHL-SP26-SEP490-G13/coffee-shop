@@ -6,14 +6,16 @@ class ShiftRepository {
     // =============================================
     async findAllTemplates() {
         const [rows] = await pool.query(
-            `SELECT id, name, start_time, end_time, color FROM shift_templates ORDER BY start_time`,
+            `SELECT id, name, start_time, end_time, color FROM shift_templates WHERE is_deleted = 0 ORDER BY start_time`,
         );
         return rows;
     }
 
     async findTemplateById(id) {
         const [[row]] = await pool.query(
-            `SELECT id, name, start_time, end_time, color FROM shift_templates WHERE id = ?`,
+            `SELECT id, name, start_time, end_time, color
+         FROM shift_templates
+         WHERE id = ? AND is_deleted = 0`,
             [id],
         );
         return row || null;
@@ -21,7 +23,7 @@ class ShiftRepository {
 
     async findTemplateByName(name) {
         const [[row]] = await pool.query(
-            `SELECT id FROM shift_templates WHERE name = ?`,
+            `SELECT id FROM shift_templates WHERE name = ? AND is_deleted = 0`,
             [name],
         );
         return row || null;
@@ -29,11 +31,38 @@ class ShiftRepository {
 
     async findTemplateByColor(color) {
         const [[row]] = await pool.query(
-            `SELECT id FROM shift_templates WHERE color = ?`,
+            `SELECT id FROM shift_templates WHERE color = ? AND is_deleted = 0`,
             [color],
         );
         return row || null;
     }
+
+    async findOverlappingTemplate(startTime, endTime, excludeId = null) {
+        const excludeClause = excludeId ? `AND id != ?` : '';
+        // [ne, ns, ns, ne, ne, ns, ne, ns]
+        const baseParams = [endTime, startTime, startTime, endTime, endTime, startTime, endTime, startTime];
+        const params = excludeId ? [...baseParams, excludeId] : baseParams;
+
+        const [[row]] = await pool.query(
+            `SELECT id, name, start_time, end_time FROM shift_templates
+             WHERE is_deleted = 0
+               AND IF(
+                 ? <= ?,
+                 IF(end_time <= start_time,
+                   1,
+                   end_time > ? OR start_time < ?
+                 ),
+                 IF(end_time <= start_time,
+                   start_time < ? OR end_time > ?,
+                   start_time < ? AND end_time > ?
+                 )
+               ) ${excludeClause}
+             LIMIT 1`,
+            params,
+        );
+        return row || null;
+    }
+
 
     async createTemplate({ name, start_time, end_time, color }) {
         const [result] = await pool.query(
@@ -52,12 +81,18 @@ class ShiftRepository {
     }
 
     async deleteTemplate(id) {
-        await pool.query(`DELETE FROM shift_templates WHERE id = ?`, [id]);
+        // Soft delete: ẩn template khỏi danh sách nhưng giữ lịch sử
+        await pool.query(`UPDATE shift_templates SET is_deleted = 1 WHERE id = ?`, [id]);
     }
 
     async countShiftsByTemplate(templateId) {
+        // Chỉ đếm các shifts còn registration đang active (không phải cancelled)
         const [[row]] = await pool.query(
-            `SELECT COUNT(*) AS cnt FROM shifts WHERE template_id = ?`,
+            `SELECT COUNT(DISTINCT s.id) AS cnt
+             FROM shifts s
+             JOIN shift_registrations sr ON sr.shift_id = s.id
+             WHERE s.template_id = ?
+               AND sr.status != 'cancelled'`,
             [templateId],
         );
         return Number(row.cnt);
@@ -82,6 +117,16 @@ class ShiftRepository {
         return { id: result.insertId, template_id: templateId, shift_date: date };
     }
 
+    // Chỉ tìm shift slot đã có, KHÔNG tạo mới (dùng để validate trước khi insert)
+    async findShiftSlot(templateId, date) {
+        const [[row]] = await pool.query(
+            `SELECT id, template_id, shift_date FROM shifts
+             WHERE template_id = ? AND shift_date = ?`,
+            [templateId, date],
+        );
+        return row || null;
+    }
+
     // Kiểm tra nhân viên có ca nào trùng giờ trong cùng ngày không
     async findOverlappingRegistration(userId, date, startTime, endTime) {
         const [[row]] = await pool.query(
@@ -90,17 +135,42 @@ class ShiftRepository {
              JOIN shift_templates st ON s.template_id = st.id
              WHERE sr.user_id = ?
                AND s.shift_date = ?
-               AND sr.status NOT IN ('cancelled')
-               AND st.start_time < ? AND st.end_time > ?`,
-            [userId, date, endTime, startTime],
+               AND sr.status != 'cancelled'
+               AND (
+                 -- Ca bình thường
+                 (st.end_time > st.start_time AND st.start_time < ? AND st.end_time > ?)
+                 OR
+                 -- Ca qua đêm
+                 (st.end_time <= st.start_time AND (
+                   st.start_time < ? OR st.end_time > ?
+                 ))
+               )`,
+            [userId, date, endTime, startTime, endTime, startTime],
         );
         return row || null;
     }
 
     // SHIFT REGISTRATIONS
+
+    // Kiểm tra ca đã có nhân viên role=staff chưa (mỗi ca chỉ 1 staff)
+    async findStaffInShift(shiftId) {
+        const [[row]] = await pool.query(
+            `SELECT sr.id, sr.user_id, u.first_name, u.last_name
+         FROM shift_registrations sr
+         JOIN users u ON sr.user_id = u.id
+         JOIN role r ON u.role_id = r.id
+         WHERE sr.shift_id = ?
+           AND sr.status != 'cancelled'
+           AND r.role_name = 'staff'
+         LIMIT 1`,
+            [shiftId],
+        );
+        return row || null;
+    }
+
     async findRegistration(userId, shiftId) {
         const [[row]] = await pool.query(
-            `SELECT id, user_id, shift_id, status, leave_request_id
+            `SELECT id, user_id, shift_id, status
        FROM shift_registrations
        WHERE user_id = ? AND shift_id = ?`,
             [userId, shiftId],
@@ -111,7 +181,7 @@ class ShiftRepository {
     async findRegistrationById(id) {
         const [[row]] = await pool.query(
             `SELECT sr.*, s.shift_date, s.template_id,
-              st.name AS template_name,
+              st.name AS template_name, st.start_time, st.end_time,
               u.first_name, u.last_name
        FROM shift_registrations sr
        JOIN shifts s ON sr.shift_id = s.id
@@ -126,13 +196,13 @@ class ShiftRepository {
     // Lấy tất cả ca active của user trong 1 ngày cụ thể (để check overlap)
     async findUserShiftsOnDate(userId, date) {
         const [rows] = await pool.query(
-            `SELECT st.start_time, st.end_time, st.name AS template_name
+            `SELECT st.id AS template_id, st.start_time, st.end_time, st.name AS template_name
              FROM shift_registrations sr
              JOIN shifts s ON sr.shift_id = s.id
              JOIN shift_templates st ON s.template_id = st.id
              WHERE sr.user_id = ?
                AND s.shift_date = ?
-               AND sr.status NOT IN ('cancelled', 'swapped_out')`,
+               AND sr.status != 'cancelled'`,
             [userId, date],
         );
         return rows;
@@ -154,7 +224,7 @@ class ShiftRepository {
     async reactivateRegistration(registrationId) {
         await pool.query(
             `UPDATE shift_registrations
-       SET status = 'registered', leave_request_id = NULL
+       SET status = 'registered'
        WHERE id = ?`,
             [registrationId],
         );
@@ -172,6 +242,20 @@ class ShiftRepository {
         );
     }
 
+    // Hủy tất cả ca từ ngày fromDate trở đi cho 1 user
+    async cancelFutureRegistrations(userId, fromDate) {
+        const [result] = await pool.query(
+            `UPDATE shift_registrations sr
+             JOIN shifts s ON sr.shift_id = s.id
+             SET sr.status = 'cancelled'
+             WHERE sr.user_id = ?
+               AND s.shift_date >= ?
+               AND sr.status != 'cancelled'`,
+            [userId, fromDate],
+        );
+        return result.affectedRows;
+    }
+
     // =============================================
     // SCHEDULE (lịch tổng quan)
     // Query join đầy đủ để render calendar
@@ -186,7 +270,6 @@ class ShiftRepository {
          sr.id AS registration_id,
          sr.user_id,
          sr.shift_id,
-         sr.status AS registration_status,
          u.first_name, u.last_name,
          r.role_name,
          s.shift_date,
@@ -194,30 +277,14 @@ class ShiftRepository {
          st.name AS template_name,
          st.start_time,
          st.end_time,
-         st.color,
-         -- Tính display_status cho calendar
-         CASE
-           WHEN sr.status = 'cancelled' AND sr.leave_request_id IS NOT NULL
-             THEN 'on_leave'
-           WHEN sr.status = 'swapped_out'
-             THEN 'swapped_out'
-           WHEN sr.status = 'swapped_in'
-             THEN 'swapped_in'
-           WHEN sr.status = 'registered' AND EXISTS (
-             SELECT 1 FROM leave_requests lr
-             WHERE lr.shift_id = sr.shift_id
-               AND lr.user_id = sr.user_id
-               AND lr.status = 'pending'
-           ) THEN 'pending_leave'
-           ELSE 'working'
-         END AS display_status
+         st.color
        FROM shift_registrations sr
        JOIN users u ON sr.user_id = u.id
        JOIN role r ON u.role_id = r.id
        JOIN shifts s ON sr.shift_id = s.id
        JOIN shift_templates st ON s.template_id = st.id
        WHERE s.shift_date BETWEEN ? AND ?
-         AND sr.status != 'cancelled'
+         AND sr.status = 'registered'
          ${userFilter}
        ORDER BY u.last_name, s.shift_date, st.start_time`,
             params,
@@ -238,6 +305,7 @@ class ShiftRepository {
         );
         return row || null;
     }
+
 }
 
 module.exports = new ShiftRepository();

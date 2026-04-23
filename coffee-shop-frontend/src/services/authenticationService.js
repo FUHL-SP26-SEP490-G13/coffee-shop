@@ -1,5 +1,6 @@
 import axiosClient from './axiosClient';
-import { API_ENDPOINTS } from '../constants';
+import { API_ENDPOINTS, STORAGE_KEYS } from '../constants';
+import { useCartStore } from '@/store/useCartStore';
 
 const authenticationService = {
 
@@ -35,46 +36,19 @@ const authenticationService = {
 // Đăng xuất người dùng
   logout() {
     // Xoá token, refresh token và role_id khỏi local storage hoặc session storage
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-    sessionStorage.removeItem('access_token');
-    sessionStorage.removeItem('refresh_token');
+    localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
+    localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
+    localStorage.removeItem(STORAGE_KEYS.AUTH_PROVIDER);
+    sessionStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
+    sessionStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
+    sessionStorage.removeItem(STORAGE_KEYS.AUTH_PROVIDER);
+    useCartStore.getState().clearCartMemory();
     return Promise.resolve();
   },
 
 // Lấy thông tin profile hiện tại
   getProfile() {
     return axiosClient.get(API_ENDPOINTS.AUTH.PROFILE);
-  },
-
-  // Cập nhật thông tin profile
-  updateProfile(data) {
-    return axiosClient.put(API_ENDPOINTS.AUTH.PROFILE, data);
-  },
-
-  // Lấy danh sách địa chỉ của user hiện tại
-  getMyAddresses() {
-    return axiosClient.get('/auth/address');
-  },
-
-  // Thêm địa chỉ mới
-  createAddress(payload) {
-    return axiosClient.post('/auth/address', payload);
-  },
-
-  // Cập nhật địa chỉ
-  updateAddress(addressId, payload) {
-    return axiosClient.put(`/auth/address/${addressId}`, payload);
-  },
-
-  // Xóa địa chỉ
-  deleteAddress(addressId) {
-    return axiosClient.delete(`/auth/address/${addressId}`);
-  },
-
-  // Đặt địa chỉ mặc định
-  setDefaultAddress(addressId) {
-    return axiosClient.patch(`/auth/address/${addressId}/default`);
   },
 
   // Đổi mật khẩu

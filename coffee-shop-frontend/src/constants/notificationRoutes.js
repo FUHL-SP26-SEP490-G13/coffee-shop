@@ -1,5 +1,5 @@
 export const NOTIFICATION_ROUTES = {
-  newsletter: "/admin/subscriber",
+  new_order: "/staff/orders/pending",
 //   order: "/admin/orders",
 //   user: "/admin/users",
 //   banner: "/admin/banners",

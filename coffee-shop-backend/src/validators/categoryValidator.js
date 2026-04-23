@@ -20,6 +20,7 @@ const createCategorySchema = Joi.object({
         'Code phải có định dạng: CHỮ HOA - SỐ (VD: CF-001)',
       'any.required': 'Code danh mục là bắt buộc',
     }),
+
 });
 
 /**
@@ -44,6 +45,7 @@ const updateCategorySchema = Joi.object({
   remove_image: Joi.alternatives()
     .try(Joi.boolean(), Joi.string().valid('true', 'false'))
     .optional(),
+
 });
 
 /**

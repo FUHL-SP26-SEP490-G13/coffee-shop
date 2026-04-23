@@ -4,6 +4,7 @@ module.exports = {
   // Server
   NODE_ENV: process.env.NODE_ENV || 'development',
   PORT: process.env.PORT || 5000,
+  API_URL: process.env.API_URL || `http://localhost:${process.env.PORT || 5000}`,
 
   // Database
   DB_HOST: process.env.DB_HOST || 'localhost',
@@ -19,7 +20,7 @@ module.exports = {
   JWT_REFRESH_EXPIRES_IN: process.env.JWT_REFRESH_EXPIRES_IN || '30d',
 
   // CORS
-  CLIENT_URL: process.env.CLIENT_URL || 'http://localhost:3000',
+  CLIENT_URL: process.env.CLIENT_URL || 'http://localhost:5173',
 
   // PayOS
   PAYOS_CLIENT_ID: process.env.PAYOS_CLIENT_ID || '',
@@ -40,4 +41,13 @@ module.exports = {
   // Upload
   UPLOAD_PATH: process.env.UPLOAD_PATH || './uploads',
   MAX_FILE_SIZE: parseInt(process.env.MAX_FILE_SIZE) || 5242880, // 5MB
+
+  // AWS Rekognition
+  AWS_REGION: process.env.AWS_REGION || 'ap-southeast-1',
+  AWS_ACCESS_KEY_ID: process.env.AWS_ACCESS_KEY_ID || '',
+  AWS_SECRET_ACCESS_KEY: process.env.AWS_SECRET_ACCESS_KEY || '',
+  AWS_REKOGNITION_COLLECTION: process.env.AWS_REKOGNITION_COLLECTION || 'coffeeshop-staff',
+
+  // Kiosk
+  KIOSK_SECRET_KEY: process.env.KIOSK_SECRET_KEY || 'coffee2024',
 };

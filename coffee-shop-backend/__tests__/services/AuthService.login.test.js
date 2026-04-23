@@ -39,7 +39,7 @@ describe('AuthService - Login', () => {
       isActive: true,
     };
 
-    it('AuthService - LOGIN - TC-1: should login successfully with email', async () => {
+    it('AuthService - login - TC-01: should login successfully with email', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AuthService - LOGIN - TC-1: Đăng nhập thành công với email');
       console.log('='.repeat(50));
@@ -80,7 +80,7 @@ describe('AuthService - Login', () => {
       expect(result.user.password).toBeUndefined();
     });
 
-    it('AuthService - LOGIN - TC-2: should login successfully with username', async () => {
+    it('AuthService - login - TC-02: should login successfully with username', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AuthService - LOGIN - TC-2: Đăng nhập thành công với username');
       console.log('='.repeat(50));
@@ -121,7 +121,7 @@ describe('AuthService - Login', () => {
       expect(result).toEqual(expectedOutput);
     });
 
-    it('AuthService - LOGIN - TC-3: should throw error when user not found', async () => {
+    it('AuthService - login - TC-03: should throw error when user not found', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AuthService - LOGIN - TC-3: Lỗi khi không tìm thấy user');
       console.log('='.repeat(50));
@@ -155,7 +155,7 @@ describe('AuthService - Login', () => {
       expect(comparePassword).not.toHaveBeenCalled();
     });
 
-    it('AuthService - LOGIN - TC-4: should throw error when user is not active', async () => {
+    it('AuthService - login - TC-04: should throw error when user is not active', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AuthService - LOGIN - TC-4: Lỗi khi tài khoản không active');
       console.log('='.repeat(50));
@@ -188,7 +188,7 @@ describe('AuthService - Login', () => {
       expect(comparePassword).not.toHaveBeenCalled();
     });
 
-    it('AuthService - LOGIN - TC-5: should throw error when password is incorrect', async () => {
+    it('AuthService - login - TC-05: should throw error when password is incorrect', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AuthService - LOGIN - TC-5: Lỗi khi mật khẩu không đúng');
       console.log('='.repeat(50));
@@ -222,7 +222,7 @@ describe('AuthService - Login', () => {
       expect(UserRepository.findByIdWithRole).not.toHaveBeenCalled();
     });
 
-    it('AuthService - LOGIN - TC-6: should generate correct tokens with user data', async () => {
+    it('AuthService - login - TC-06: should generate correct tokens with user data', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AuthService - LOGIN - TC-6: Tạo token đúng format với user data');
       console.log('='.repeat(50));
@@ -270,7 +270,7 @@ describe('AuthService - Login', () => {
       });
     });
 
-    it('AuthService - LOGIN - TC-7: should not return password in response', async () => {
+    it('AuthService - login - TC-07: should not return password in response', async () => {
       console.log('\n' + '='.repeat(50));
       console.log('AuthService - LOGIN - TC-7: Không trả về password trong response');
       console.log('='.repeat(50));
@@ -301,6 +301,19 @@ describe('AuthService - Login', () => {
 
       // Assert
       expect(result.user.password).toBeUndefined();
+    });
+
+    it('AuthService - login - TC-08: should throw error when identifier is full-space string', async () => {
+      UserRepository.findByEmail.mockResolvedValue(null);
+      UserRepository.findByUsername.mockResolvedValue(null);
+
+      await expect(AuthService.login('        ', 'Password123!')).rejects.toThrow(
+        'Email/Username hoặc mật khẩu không đúng'
+      );
+
+      expect(UserRepository.findByEmail).toHaveBeenCalledWith('        ');
+      expect(UserRepository.findByUsername).toHaveBeenCalledWith('        ');
+      expect(comparePassword).not.toHaveBeenCalled();
     });
   });
 });

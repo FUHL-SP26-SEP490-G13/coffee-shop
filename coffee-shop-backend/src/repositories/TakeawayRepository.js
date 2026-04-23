@@ -36,19 +36,31 @@ class TakeawayRepository {
 
   async createOrder(
     connection,
-    { user_id, created_by, order_type, total_amount, discount_id },
+    {
+      user_id,
+      order_type,
+      total_amount,
+      amount,
+      discount_amount,
+      discount_id,
+      cash_session_id,
+      staff_id,
+    },
   ) {
     const [result] = await connection.query(
       `INSERT INTO orders 
-         (user_id, created_by, order_type, total_amount, discount_id,
-          status, is_paid, customer_type, created_at)
-       VALUES (?, ?, ?, ?, ?, 'pending', 0, 'guest', NOW())`,
+         (user_id, order_type, total_amount, amount, discount_amount, discount_id,
+          cash_session_id, staff_id, status, is_paid, customer_type, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'preparing', 0, 'guest', NOW())`,
       [
         user_id || null,
-        created_by,
         order_type,
         total_amount,
+        amount,
+        discount_amount,
         discount_id || null,
+        cash_session_id || null,
+        staff_id || null,
       ],
     );
     return result.insertId;
@@ -91,6 +103,26 @@ class TakeawayRepository {
     },
   ) {
     const isPaid = payment_status === 'paid';
+    const normalizedAmount = Number(amount) || 0;
+
+    const normalizedPaidAmount = Number.isFinite(Number(paid_amount))
+      ? Number(paid_amount)
+      : isPaid
+      ? normalizedAmount
+      : 0;
+
+    const normalizedCashReceived = Number.isFinite(Number(cash_received))
+      ? Number(cash_received)
+      : isPaid
+      ? normalizedPaidAmount
+      : 0;
+
+    const normalizedChangeAmount = Number.isFinite(Number(change_amount))
+      ? Math.max(0, Number(change_amount))
+      : isPaid
+      ? Math.max(0, normalizedCashReceived - normalizedPaidAmount)
+      : 0;
+
     await connection.query(
       `INSERT INTO order_payments 
      (order_id, payment_method, payment_status, amount, paid_amount, cash_received, change_amount, paid_at,created_at)
@@ -99,26 +131,26 @@ class TakeawayRepository {
         order_id,
         payment_method,
         payment_status,
-        amount,
-        paid_amount || 0,
-        cash_received || 0,
-        change_amount || 0,
+        normalizedAmount,
+        normalizedPaidAmount,
+        normalizedCashReceived,
+        normalizedChangeAmount,
         isPaid ? new Date() : null,
       ],
     );
   }
 
   // Cash: ghi nhận paid_amount = amount tại thời điểm tạo
-  async markOrderPaidCash(connection, orderId, amount) {
+  async markOrderPaidCash(connection, orderId, amount, cashReceived = amount) {
     await connection.query(
       `UPDATE orders SET is_paid = 1, paid_at = NOW() WHERE id = ?`,
       [orderId],
     );
     await connection.query(
       `UPDATE order_payments 
-       SET payment_status = 'paid', paid_at = NOW(), paid_amount = ?
+       SET payment_status = 'paid', paid_at = NOW(), paid_amount = ?, cash_received = ?, change_amount = GREATEST(? - ?, 0)
        WHERE order_id = ?`,
-      [amount, orderId],
+      [amount, cashReceived, cashReceived, amount, orderId],
     );
   }
 
@@ -134,16 +166,14 @@ class TakeawayRepository {
       `SELECT o.*,
               u.first_name AS staff_first_name, u.last_name AS staff_last_name,
               d.code AS discount_code, d.percentage AS discount_percentage,
-              b.first_name AS barista_first_name, b.last_name AS barista_last_name,
               odi.receiver_name,
               odi.receiver_phone,
               odi.receiver_email,
               odi.address,
               odi.note AS delivery_note
        FROM orders o
-       LEFT JOIN users u ON o.created_by = u.id
+       LEFT JOIN users u ON o.staff_id = u.id
        LEFT JOIN discount d ON o.discount_id = d.id
-       LEFT JOIN users b ON o.assigned_barista_id = b.id
        LEFT JOIN order_delivery_info odi ON odi.order_id = o.id
        WHERE o.id = ?`,
       [orderId],
@@ -203,10 +233,13 @@ class TakeawayRepository {
     ]);
   }
 
-  async updateOrderAmounts(connection, { orderId, total_amount, discount_id }) {
+  async updateOrderAmounts(
+    connection,
+    { orderId, total_amount, amount, discount_amount, discount_id },
+  ) {
     await connection.query(
-      `UPDATE orders SET total_amount = ?, discount_id = ? WHERE id = ?`,
-      [total_amount, discount_id || null, orderId],
+      `UPDATE orders SET total_amount = ?, amount = ?, discount_amount = ?, discount_id = ? WHERE id = ?`,
+      [total_amount, amount, discount_amount, discount_id || null, orderId],
     );
   }
 
@@ -223,8 +256,8 @@ class TakeawayRepository {
   async assignBarista(orderId, baristaId) {
     const [result] = await pool.query(
       `UPDATE orders
-       SET assigned_barista_id = ?, status = 'preparing'
-       WHERE id = ? AND status = 'pending' AND assigned_barista_id IS NULL`,
+       SET staff_id = ?, status = 'preparing'
+       WHERE id = ? AND status = 'pending'`,
       [baristaId, orderId],
     );
     return result.affectedRows > 0;
@@ -233,7 +266,7 @@ class TakeawayRepository {
   async completeByBarista(orderId, baristaId) {
     const [result] = await pool.query(
       `UPDATE orders SET status = 'served'
-       WHERE id = ? AND status = 'preparing' AND assigned_barista_id = ?`,
+       WHERE id = ? AND status = 'preparing' AND staff_id = ?`,
       [orderId, baristaId],
     );
     return result.affectedRows > 0;

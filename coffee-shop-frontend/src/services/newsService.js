@@ -12,9 +12,9 @@ const newsService = {
 
   delete: (id) => axiosClient.delete(`${API_ENDPOINTS.NEWS.BASE}/${id}`),
 
-  getAllAdmin(page = 1, keyword = "") {
+  getAllAdmin(page = 1, keyword = "", sort = "") {
     return axiosClient.get(API_ENDPOINTS.NEWS.ADMIN, {
-      params: { page, limit: 7, keyword },
+      params: { page, limit: 7, keyword, sort },
     });
   },
 

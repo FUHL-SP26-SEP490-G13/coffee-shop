@@ -13,13 +13,19 @@ const pool = mysql.createPool({
   queueLimit: 0,
   enableKeepAlive: true,
   keepAliveInitialDelay: 0,
+  timezone: '+07:00',
+});
+
+// Set timezone to +07:00 for every connection session
+pool.on('connection', (connection) => {
+  connection.query("SET time_zone = '+07:00'");
 });
 
 // Test connection
 const testConnection = async () => {
   try {
     const connection = await pool.getConnection();
-    console.log('Database connected successfully');
+    console.log('Database connected successfully (timezone set to +07:00)');
     connection.release();
   } catch (error) {
     console.error('Database connection failed:', error.message);

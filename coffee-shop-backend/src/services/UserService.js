@@ -1,8 +1,10 @@
 const UserRepository = require('../repositories/UserRepository');
+const ShiftRepository = require('../repositories/ShiftRepository');
 const { hashPassword, generateStrongPassword, comparePassword } = require('../utils/helpers');
 const EmailService = require('./EmailService');
 const { ROLES } = require('../config/constants');
 const ErrorResponse = require('../utils/ErrorResponse');
+const formatDateStr = require('../helpers/formatDateStr');
 
 class UserService {
   /**
@@ -22,7 +24,6 @@ class UserService {
       throw new ErrorResponse(404, 'User không tồn tại');
     }
 
-    // Remove password from response
     delete user.password;
 
     return user;
@@ -38,7 +39,6 @@ class UserService {
       throw new ErrorResponse(404, 'User không tồn tại');
     }
 
-    // Remove password from response
     delete user.password;
 
     return user;
@@ -50,8 +50,10 @@ class UserService {
   async getUsersByRole(roleId, options = {}) {
     const users = await UserRepository.findByRole(roleId, options);
 
-    // Remove passwords from all users
-    users.forEach((user) => delete user.password);
+    // Remove passwords and PINs from all users
+    users.forEach((user) => {
+      delete user.password;
+    });
 
     return users;
   }
@@ -66,11 +68,13 @@ class UserService {
 
     const users = await UserRepository.search(keyword.trim(), options);
 
-    // Remove passwords from all users
-    users.forEach((user) => delete user.password);
+    users.forEach((user) => {
+      delete user.password;
+    });
 
     return users;
   }
+
 
   /**
    * Create new staff or barista (admin only)
@@ -94,6 +98,13 @@ class UserService {
     const existingUsername = await UserRepository.findByUsername(data.username);
     if (existingUsername) {
       throw new ErrorResponse(400, 'Username đã được sử dụng');
+    }
+
+    const staffRole = roleId === ROLES.STAFF;
+    const baristaRole = roleId === ROLES.BARISTA;
+
+    if (!staffRole && !baristaRole) {
+      throw new ErrorResponse(400, 'Role không hợp lệ');
     }
 
     const tempPassword = generateStrongPassword(12);
@@ -175,7 +186,6 @@ class UserService {
     // Update user
     const updatedUser = await UserRepository.update(id, data);
 
-    // Remove password from response
     delete updatedUser.password;
 
     return updatedUser;
@@ -203,7 +213,6 @@ class UserService {
     // Update profile using repository method with allowed fields only
     const updatedUser = await UserRepository.updateProfile(userId, data);
 
-    // Remove password from response
     delete updatedUser.password;
 
     return updatedUser;
@@ -242,7 +251,11 @@ class UserService {
       throw new ErrorResponse(500, 'Vô hiệu hóa user thất bại');
     }
 
-    return true;
+    // Tự động hủy tất cả ca làm việc từ hôm nay trở đi
+    const today = formatDateStr(new Date());
+    const cancelledShifts = await ShiftRepository.cancelFutureRegistrations(id, today);
+
+    return { cancelledShifts };
   }
 
   /**
@@ -323,8 +336,10 @@ class UserService {
 
     const allStaff = [...staff, ...baristas];
 
-    // Remove passwords
-    allStaff.forEach((user) => delete user.password);
+    // Remove passwords and PINs
+    allStaff.forEach((user) => {
+      delete user.password;
+    });
 
     return allStaff;
   }
@@ -335,11 +350,14 @@ class UserService {
   async getAllCustomers(options = {}) {
     const customers = await UserRepository.findByRole(ROLES.CUSTOMER, options);
 
-    // Remove passwords
-    customers.forEach((user) => delete user.password);
+    customers.forEach((user) => {
+      delete user.password;
+    });
 
     return customers;
   }
+
+
 }
 
 module.exports = new UserService();

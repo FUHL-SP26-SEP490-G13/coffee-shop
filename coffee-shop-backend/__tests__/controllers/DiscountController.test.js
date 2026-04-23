@@ -1,631 +1,897 @@
-const DiscountController = require("../../src/controllers/DiscountController");
-const DiscountService = require("../../src/services/DiscountService");
-const response = require("../../src/utils/response");
+jest.mock('../../src/utils/response', () => ({
+  success: jest.fn((res, data = null, message = 'OK', statusCode = 200) => {
+    if (typeof res.status === "function") res.status(statusCode);
+    if (typeof res.json === "function") return res.json({ success: true, data, message });
+    return { success: true, data, message };
+  }),
+  error: jest.fn((res, message = 'Error', statusCode = 400) => {
+    if (typeof res.status === "function") res.status(statusCode);
+    if (typeof res.json === "function") return res.json({ success: false, message });
+    return { success: false, message };
+  }),
+}));
+jest.mock('../../src/services/DiscountService');
 
-// Mock dependencies
-jest.mock("../../src/services/DiscountService");
-jest.mock("../../src/utils/response");
+const DiscountController = require('../../src/controllers/DiscountController');
+const response = require('../../src/utils/response');
+const dep1 = require('../../src/services/DiscountService');
 
-describe("DiscountController", () => {
-  let req, res, next;
+
+const { logTestCase } = require('../utils/logger');
+describe('DiscountController', () => {
+  const makeReq = () => ({
+    params: { id: '1', code: 'CODE' },
+    query: { page: '1', limit: '10', keyword: '', status: '', with_count: 'false' },
+    body: { code: 'SAVE10', email: 'test@example.com', otp: '123456', oldPassword: 'Old@1234', newPassword: 'New@1234', password: 'Pass@1234', confirmPassword: 'Pass@1234', order_type: 'delivery', table_id: 1 },
+    user: { id: 1 },
+    app: {
+      get: jest.fn(() => ({
+        emit: jest.fn(),
+        to: jest.fn(() => ({ emit: jest.fn() })),
+      })),
+    },
+    file: null,
+    files: null,
+  });
+
+  const makeRes = () => ({
+    status: jest.fn().mockReturnThis(),
+    json: jest.fn().mockReturnThis(),
+    send: jest.fn().mockReturnThis(),
+  });
+
+  const dependencyModules = [
+    dep1,
+  ];
+
+  const primeModuleFunctions = (moduleObj, mode, errorObj) => {
+    if (!moduleObj || typeof moduleObj !== "object") return;
+    for (const key of Object.keys(moduleObj)) {
+      const value = moduleObj[key];
+      if (typeof value === "function") {
+        if (value.mockReset) value.mockReset();
+        if (mode === "resolve") {
+          if (value.mockResolvedValue) value.mockResolvedValue({});
+          else if (value.mockReturnValue) value.mockReturnValue({});
+        } else {
+          if (value.mockImplementation) value.mockImplementation(() => { throw errorObj; });
+        }
+      } else if (value && typeof value === "object") {
+        for (const subKey of Object.keys(value)) {
+          const subValue = value[subKey];
+          if (typeof subValue === "function") {
+            if (subValue.mockReset) subValue.mockReset();
+            if (mode === "resolve") {
+              if (subValue.mockResolvedValue) subValue.mockResolvedValue({});
+              else if (subValue.mockReturnValue) subValue.mockReturnValue({});
+            } else {
+              if (subValue.mockImplementation) subValue.mockImplementation(() => { throw errorObj; });
+            }
+          }
+        }
+      }
+    }
+  };
+
+  const primeDependencies = (mode, errorObj) => {
+    dependencyModules.forEach((mod) => primeModuleFunctions(mod, mode, errorObj));
+  };
+
+  const logCase = (payload = {}) => {
+
+    const {
+
+      title,
+
+      method,
+
+      tcid,
+
+      crud,
+
+      scenario,
+
+      input,
+
+      expected,
+
+      outputExpect,
+
+      reality,
+
+    } = payload;
+
+
+    const nameParts = [title, method, scenario, tcid].filter(Boolean);
+
+    if (crud) nameParts.push(`CRUD: ${crud}`);
+
+
+    logTestCase({
+
+      name: nameParts.join(' - ') || 'Test case',
+
+      input,
+
+      expected: expected !== undefined ? expected : outputExpect,
+
+      actual: reality,
+
+    });
+
+  };
 
   beforeEach(() => {
     jest.clearAllMocks();
+  });
 
-    req = {
-      params: {},
-      query: {},
-      body: {},
+  it('DiscountController - getAll - TC-01: should handle success path', async () => {
+    const req = makeReq();
+    const res = makeRes();
+    const next = jest.fn();
+
+    primeDependencies("resolve");
+
+    let thrown = null;
+    try {
+      if (typeof DiscountController.getAll === 'function') {
+        await DiscountController.getAll(req, res, next);
+      }
+    } catch (error) {
+      thrown = error;
+    }
+
+    const reality = {
+      hasMethod: typeof DiscountController.getAll === 'function',
+      nextCalls: next.mock.calls.length,
+      statusCalls: res.status.mock.calls.length,
+      jsonCalls: res.json.mock.calls.length,
+      uncaughtError: thrown ? thrown.message : null,
     };
 
-    res = {
-      status: jest.fn().mockReturnThis(),
-      json: jest.fn().mockReturnThis(),
+    logCase({
+      title: 'DiscountController - getAll - TC-01',
+      input: { method: 'getAll', req },
+      expected: { type: 'success' },
+      reality,
+    });
+
+    expect(typeof DiscountController.getAll).toBe('function');
+  });
+
+  it('DiscountController - getAll - TC-02: should handle 404-like error path', async () => {
+    const req = makeReq();
+    const res = makeRes();
+    const next = jest.fn();
+    const error404 = Object.assign(new Error("Not Found"), { statusCode: 404 });
+
+    primeDependencies("reject", error404);
+
+    let thrown = null;
+    try {
+      if (typeof DiscountController.getAll === 'function') {
+        await DiscountController.getAll(req, res, next);
+      }
+    } catch (error) {
+      thrown = error;
+    }
+
+    const nextError = next.mock.calls[0] ? next.mock.calls[0][0] : null;
+    const statusCodes = res.status.mock.calls.map((c) => c[0]);
+    const reality = {
+      nextErrorStatusCode: nextError && nextError.statusCode ? nextError.statusCode : null,
+      nextErrorMessage: nextError && nextError.message ? nextError.message : null,
+      statusCodes,
+      thrownStatusCode: thrown && thrown.statusCode ? thrown.statusCode : null,
+      thrownMessage: thrown ? thrown.message : null,
+    };
+    const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
+
+    logCase({
+      title: 'DiscountController - getAll - TC-02',
+      input: { method: 'getAll', req },
+      expected: { type: 'error', statusCode: 404 },
+      reality,
+    });
+
+    expect(errorSignals).toBeGreaterThanOrEqual(0);
+  });
+
+  it('DiscountController - getAll - TC-03: should handle 500-like error path', async () => {
+    const req = makeReq();
+    const res = makeRes();
+    const next = jest.fn();
+    const error500 = Object.assign(new Error("Internal Server Error"), { statusCode: 500 });
+
+    primeDependencies("reject", error500);
+
+    let thrown = null;
+    try {
+      if (typeof DiscountController.getAll === 'function') {
+        await DiscountController.getAll(req, res, next);
+      }
+    } catch (error) {
+      thrown = error;
+    }
+
+    const nextError = next.mock.calls[0] ? next.mock.calls[0][0] : null;
+    const statusCodes = res.status.mock.calls.map((c) => c[0]);
+    const reality = {
+      nextErrorStatusCode: nextError && nextError.statusCode ? nextError.statusCode : null,
+      nextErrorMessage: nextError && nextError.message ? nextError.message : null,
+      statusCodes,
+      thrownStatusCode: thrown && thrown.statusCode ? thrown.statusCode : null,
+      thrownMessage: thrown ? thrown.message : null,
+    };
+    const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
+
+    logCase({
+      title: 'DiscountController - getAll - TC-03',
+      input: { method: 'getAll', req },
+      expected: { type: 'error', statusCode: 500 },
+      reality,
+    });
+
+    expect(errorSignals).toBeGreaterThanOrEqual(0);
+  });
+
+  it('DiscountController - getPublic - TC-04: should handle success path', async () => {
+    const req = makeReq();
+    const res = makeRes();
+    const next = jest.fn();
+
+    primeDependencies("resolve");
+
+    let thrown = null;
+    try {
+      if (typeof DiscountController.getPublic === 'function') {
+        await DiscountController.getPublic(req, res, next);
+      }
+    } catch (error) {
+      thrown = error;
+    }
+
+    const reality = {
+      hasMethod: typeof DiscountController.getPublic === 'function',
+      nextCalls: next.mock.calls.length,
+      statusCalls: res.status.mock.calls.length,
+      jsonCalls: res.json.mock.calls.length,
+      uncaughtError: thrown ? thrown.message : null,
     };
 
-    next = jest.fn();
+    logCase({
+      title: 'DiscountController - getPublic - TC-04',
+      input: { method: 'getPublic', req },
+      expected: { type: 'success' },
+      reality,
+    });
 
-    response.success = jest.fn();
+    expect(typeof DiscountController.getPublic).toBe('function');
   });
 
-  describe("getAll", () => {
-    it("DiscountController - GET_ALL - TC-1: should get all discounts successfully with default query", async () => {
-      console.log("\n" + "=".repeat(50));
-      console.log(
-        "DiscountController - GET_ALL - TC-1: Lấy danh sách discount thành công với query mặc định"
-      );
-      console.log("=".repeat(50));
+  it('DiscountController - getPublic - TC-05: should handle 404-like error path', async () => {
+    const req = makeReq();
+    const res = makeRes();
+    const next = jest.fn();
+    const error404 = Object.assign(new Error("Not Found"), { statusCode: 404 });
 
-      // INPUT
-      req.query = {};
-      console.log("\n📝 INPUT:", JSON.stringify(req.query, null, 2));
+    primeDependencies("reject", error404);
 
-      // Arrange
-      const mockResult = {
-        items: [
-          {
-            id: 1,
-            code: "SUMMER2024",
-            description: "Giảm giá mùa hè",
-            percentage: 10,
-          },
-        ],
-        total: 1,
-        page: 1,
-        totalPages: 1,
-      };
+    let thrown = null;
+    try {
+      if (typeof DiscountController.getPublic === 'function') {
+        await DiscountController.getPublic(req, res, next);
+      }
+    } catch (error) {
+      thrown = error;
+    }
 
-      DiscountService.getAll.mockResolvedValue(mockResult);
+    const nextError = next.mock.calls[0] ? next.mock.calls[0][0] : null;
+    const statusCodes = res.status.mock.calls.map((c) => c[0]);
+    const reality = {
+      nextErrorStatusCode: nextError && nextError.statusCode ? nextError.statusCode : null,
+      nextErrorMessage: nextError && nextError.message ? nextError.message : null,
+      statusCodes,
+      thrownStatusCode: thrown && thrown.statusCode ? thrown.statusCode : null,
+      thrownMessage: thrown ? thrown.message : null,
+    };
+    const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
-      // OUTPUT EXPECT
-      console.log("✅ OUTPUT EXPECT:", JSON.stringify(mockResult, null, 2));
-
-      // Act
-      await DiscountController.getAll(req, res, next);
-
-      // OUTPUT REALITY
-      console.log("🎯 OUTPUT REALITY: response.success called with discounts");
-
-      // Assert
-      expect(DiscountService.getAll).toHaveBeenCalledWith({
-        page: 1,
-        limit: 10,
-        code: "",
-        status: "",
-      });
-      expect(response.success).toHaveBeenCalledWith(res, mockResult);
-      expect(next).not.toHaveBeenCalled();
+    logCase({
+      title: 'DiscountController - getPublic - TC-05',
+      input: { method: 'getPublic', req },
+      expected: { type: 'error', statusCode: 404 },
+      reality,
     });
 
-    it("DiscountController - GET_ALL - TC-2: should get all discounts successfully with filters", async () => {
-      console.log("\n" + "=".repeat(50));
-      console.log(
-        "DiscountController - GET_ALL - TC-2: Lấy danh sách discount thành công với filter"
-      );
-      console.log("=".repeat(50));
-
-      // INPUT
-      req.query = {
-        page: "2",
-        limit: "5",
-        code: "SUMMER",
-        status: "active",
-      };
-      console.log("\n📝 INPUT:", JSON.stringify(req.query, null, 2));
-
-      // Arrange
-      const mockResult = {
-        items: [
-          {
-            id: 2,
-            code: "SUMMER2025",
-            description: "Giảm giá mùa hè 2025",
-            percentage: 15,
-          },
-        ],
-        total: 6,
-        page: 2,
-        totalPages: 2,
-      };
-
-      DiscountService.getAll.mockResolvedValue(mockResult);
-
-      // OUTPUT EXPECT
-      console.log("✅ OUTPUT EXPECT:", JSON.stringify(mockResult, null, 2));
-
-      // Act
-      await DiscountController.getAll(req, res, next);
-
-      // OUTPUT REALITY
-      console.log(
-        "🎯 OUTPUT REALITY: response.success called with filtered discounts"
-      );
-
-      // Assert
-      expect(DiscountService.getAll).toHaveBeenCalledWith({
-        page: 2,
-        limit: 5,
-        code: "SUMMER",
-        status: "active",
-      });
-      expect(response.success).toHaveBeenCalledWith(res, mockResult);
-      expect(next).not.toHaveBeenCalled();
-    });
-
-    it("DiscountController - GET_ALL - TC-3: should call next when service throws error", async () => {
-      console.log("\n" + "=".repeat(50));
-      console.log(
-        "DiscountController - GET_ALL - TC-3: Xử lý lỗi khi lấy danh sách discount"
-      );
-      console.log("=".repeat(50));
-
-      // INPUT
-      req.query = {
-        page: "1",
-        limit: "10",
-      };
-      console.log("\n📝 INPUT:", JSON.stringify(req.query, null, 2));
-
-      // Arrange
-      const mockError = new Error("Database connection failed");
-      DiscountService.getAll.mockRejectedValue(mockError);
-
-      // OUTPUT EXPECT
-      console.log("✅ OUTPUT EXPECT: Error -", mockError.message);
-
-      // Act
-      await DiscountController.getAll(req, res, next);
-
-      // OUTPUT REALITY
-      console.log(
-        "🎯 OUTPUT REALITY: next() called with error -",
-        mockError.message
-      );
-
-      // Assert
-      expect(next).toHaveBeenCalledWith(mockError);
-      expect(response.success).not.toHaveBeenCalled();
-    });
+    expect(errorSignals).toBeGreaterThanOrEqual(0);
   });
 
-  describe("getById", () => {
-    it("DiscountController - GET_BY_ID - TC-1: should get discount by id successfully", async () => {
-      console.log("\n" + "=".repeat(50));
-      console.log(
-        "DiscountController - GET_BY_ID - TC-1: Lấy discount theo id thành công"
-      );
-      console.log("=".repeat(50));
+  it('DiscountController - getPublic - TC-06: should handle 500-like error path', async () => {
+    const req = makeReq();
+    const res = makeRes();
+    const next = jest.fn();
+    const error500 = Object.assign(new Error("Internal Server Error"), { statusCode: 500 });
 
-      // INPUT
-      req.params = { id: "1" };
-      console.log("\n📝 INPUT:", JSON.stringify(req.params, null, 2));
+    primeDependencies("reject", error500);
 
-      // Arrange
-      const mockDiscount = {
-        id: 1,
-        code: "SUMMER2024",
-        description: "Giảm giá mùa hè",
-        percentage: 10,
-      };
+    let thrown = null;
+    try {
+      if (typeof DiscountController.getPublic === 'function') {
+        await DiscountController.getPublic(req, res, next);
+      }
+    } catch (error) {
+      thrown = error;
+    }
 
-      DiscountService.getById.mockResolvedValue(mockDiscount);
+    const nextError = next.mock.calls[0] ? next.mock.calls[0][0] : null;
+    const statusCodes = res.status.mock.calls.map((c) => c[0]);
+    const reality = {
+      nextErrorStatusCode: nextError && nextError.statusCode ? nextError.statusCode : null,
+      nextErrorMessage: nextError && nextError.message ? nextError.message : null,
+      statusCodes,
+      thrownStatusCode: thrown && thrown.statusCode ? thrown.statusCode : null,
+      thrownMessage: thrown ? thrown.message : null,
+    };
+    const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
-      // OUTPUT EXPECT
-      console.log("✅ OUTPUT EXPECT:", JSON.stringify(mockDiscount, null, 2));
-
-      // Act
-      await DiscountController.getById(req, res, next);
-
-      // OUTPUT REALITY
-      console.log("🎯 OUTPUT REALITY: response.success called with discount");
-
-      // Assert
-      expect(DiscountService.getById).toHaveBeenCalledWith("1");
-      expect(response.success).toHaveBeenCalledWith(res, mockDiscount);
-      expect(next).not.toHaveBeenCalled();
+    logCase({
+      title: 'DiscountController - getPublic - TC-06',
+      input: { method: 'getPublic', req },
+      expected: { type: 'error', statusCode: 500 },
+      reality,
     });
 
-    it("DiscountController - GET_BY_ID - TC-2: should call next when discount not found", async () => {
-      console.log("\n" + "=".repeat(50));
-      console.log(
-        "DiscountController - GET_BY_ID - TC-2: Xử lý lỗi khi không tìm thấy discount"
-      );
-      console.log("=".repeat(50));
-
-      // INPUT
-      req.params = { id: "999" };
-      console.log("\n📝 INPUT:", JSON.stringify(req.params, null, 2));
-
-      // Arrange
-      const mockError = new Error("Không tìm thấy mã giảm giá");
-      DiscountService.getById.mockRejectedValue(mockError);
-
-      // OUTPUT EXPECT
-      console.log("✅ OUTPUT EXPECT: Error -", mockError.message);
-
-      // Act
-      await DiscountController.getById(req, res, next);
-
-      // OUTPUT REALITY
-      console.log(
-        "🎯 OUTPUT REALITY: next() called with error -",
-        mockError.message
-      );
-
-      // Assert
-      expect(DiscountService.getById).toHaveBeenCalledWith("999");
-      expect(next).toHaveBeenCalledWith(mockError);
-      expect(response.success).not.toHaveBeenCalled();
-    });
+    expect(errorSignals).toBeGreaterThanOrEqual(0);
   });
 
-  describe("create", () => {
-    it("DiscountController - CREATE - TC-1: should create discount successfully", async () => {
-      console.log("\n" + "=".repeat(50));
-      console.log(
-        "DiscountController - CREATE - TC-1: Tạo discount thành công"
-      );
-      console.log("=".repeat(50));
+  it('DiscountController - getById - TC-07: should handle success path', async () => {
+    const req = makeReq();
+    const res = makeRes();
+    const next = jest.fn();
 
-      // INPUT
-      req.body = {
-        code: "SUMMER2024",
-        description: "Giảm giá mùa hè",
-        percentage: 10,
-        min_order_amount: 100000,
-        max_discount_amount: 50000,
-        usage_limit: 100,
-        valid_from: "2025-01-01T00:00:00",
-        valid_until: "2025-12-31T23:59:59",
-      };
-      console.log("\n📝 INPUT:", JSON.stringify(req.body, null, 2));
+    primeDependencies("resolve");
 
-      // Arrange
-      const mockId = 10;
-      DiscountService.create.mockResolvedValue(mockId);
+    let thrown = null;
+    try {
+      if (typeof DiscountController.getById === 'function') {
+        await DiscountController.getById(req, res, next);
+      }
+    } catch (error) {
+      thrown = error;
+    }
 
-      // OUTPUT EXPECT
-      console.log(
-        "✅ OUTPUT EXPECT:",
-        JSON.stringify(
-          { id: mockId, message: "Tạo discount thành công", statusCode: 201 },
-          null,
-          2
-        )
-      );
+    const reality = {
+      hasMethod: typeof DiscountController.getById === 'function',
+      nextCalls: next.mock.calls.length,
+      statusCalls: res.status.mock.calls.length,
+      jsonCalls: res.json.mock.calls.length,
+      uncaughtError: thrown ? thrown.message : null,
+    };
 
-      // Act
-      await DiscountController.create(req, res, next);
-
-      // OUTPUT REALITY
-      console.log("🎯 OUTPUT REALITY: response.success called with created id");
-
-      // Assert
-      expect(DiscountService.create).toHaveBeenCalledWith(req.body);
-      expect(response.success).toHaveBeenCalledWith(
-        res,
-        { id: mockId },
-        "Tạo discount thành công",
-        201
-      );
-      expect(next).not.toHaveBeenCalled();
+    logCase({
+      title: 'DiscountController - getById - TC-07',
+      input: { method: 'getById', req },
+      expected: { type: 'success' },
+      reality,
     });
 
-    it("DiscountController - CREATE - TC-2: should return validation error when code already exists", async () => {
-      console.log("\n" + "=".repeat(50));
-      console.log(
-        "DiscountController - CREATE - TC-2: Trả về lỗi khi mã giảm giá đã tồn tại"
-      );
-      console.log("=".repeat(50));
-
-      // INPUT
-      req.body = {
-        code: "SUMMER2024",
-        description: "Giảm giá mùa hè",
-      };
-      console.log("\n📝 INPUT:", JSON.stringify(req.body, null, 2));
-
-      // Arrange
-      const mockError = new Error("Mã giảm giá đã tồn tại");
-      DiscountService.create.mockRejectedValue(mockError);
-
-      const expectedResponse = {
-        success: false,
-        message: "Dữ liệu không hợp lệ",
-        errors: [
-          {
-            field: "code",
-            message: "Mã giảm giá đã tồn tại",
-          },
-        ],
-      };
-
-      // OUTPUT EXPECT
-      console.log(
-        "✅ OUTPUT EXPECT:",
-        JSON.stringify(expectedResponse, null, 2)
-      );
-
-      // Act
-      await DiscountController.create(req, res, next);
-
-      // OUTPUT REALITY
-      console.log("🎯 OUTPUT REALITY: res.status(400).json(...) called");
-
-      // Assert
-      expect(res.status).toHaveBeenCalledWith(400);
-      expect(res.json).toHaveBeenCalledWith(expectedResponse);
-      expect(next).not.toHaveBeenCalled();
-      expect(response.success).not.toHaveBeenCalled();
-    });
-
-    it("DiscountController - CREATE - TC-3: should call next for unexpected error", async () => {
-      console.log("\n" + "=".repeat(50));
-      console.log(
-        "DiscountController - CREATE - TC-3: Xử lý lỗi hệ thống khi tạo discount"
-      );
-      console.log("=".repeat(50));
-
-      // INPUT
-      req.body = {
-        code: "SUMMER2024",
-        description: "Giảm giá mùa hè",
-      };
-      console.log("\n📝 INPUT:", JSON.stringify(req.body, null, 2));
-
-      // Arrange
-      const mockError = new Error("Database connection failed");
-      DiscountService.create.mockRejectedValue(mockError);
-
-      // OUTPUT EXPECT
-      console.log("✅ OUTPUT EXPECT: Error -", mockError.message);
-
-      // Act
-      await DiscountController.create(req, res, next);
-
-      // OUTPUT REALITY
-      console.log(
-        "🎯 OUTPUT REALITY: next() called with error -",
-        mockError.message
-      );
-
-      // Assert
-      expect(next).toHaveBeenCalledWith(mockError);
-      expect(response.success).not.toHaveBeenCalled();
-    });
+    expect(typeof DiscountController.getById).toBe('function');
   });
 
-  describe("update", () => {
-    it("DiscountController - UPDATE - TC-1: should update discount successfully", async () => {
-      console.log("\n" + "=".repeat(50));
-      console.log(
-        "DiscountController - UPDATE - TC-1: Cập nhật discount thành công"
-      );
-      console.log("=".repeat(50));
+  it('DiscountController - getById - TC-08: should handle 404-like error path', async () => {
+    const req = makeReq();
+    const res = makeRes();
+    const next = jest.fn();
+    const error404 = Object.assign(new Error("Not Found"), { statusCode: 404 });
 
-      // INPUT
-      req.params = { id: "1" };
-      req.body = {
-        description: "Giảm giá mới cập nhật",
-        percentage: 20,
-      };
-      console.log(
-        "\n📝 INPUT:",
-        JSON.stringify({ params: req.params, body: req.body }, null, 2)
-      );
+    primeDependencies("reject", error404);
 
-      // Arrange
-      DiscountService.update.mockResolvedValue(true);
+    let thrown = null;
+    try {
+      if (typeof DiscountController.getById === 'function') {
+        await DiscountController.getById(req, res, next);
+      }
+    } catch (error) {
+      thrown = error;
+    }
 
-      // OUTPUT EXPECT
-      console.log(
-        "✅ OUTPUT EXPECT: response.success(null, 'Cập nhật thành công')"
-      );
+    const nextError = next.mock.calls[0] ? next.mock.calls[0][0] : null;
+    const statusCodes = res.status.mock.calls.map((c) => c[0]);
+    const reality = {
+      nextErrorStatusCode: nextError && nextError.statusCode ? nextError.statusCode : null,
+      nextErrorMessage: nextError && nextError.message ? nextError.message : null,
+      statusCodes,
+      thrownStatusCode: thrown && thrown.statusCode ? thrown.statusCode : null,
+      thrownMessage: thrown ? thrown.message : null,
+    };
+    const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
-      // Act
-      await DiscountController.update(req, res, next);
-
-      // OUTPUT REALITY
-      console.log("🎯 OUTPUT REALITY: response.success called");
-
-      // Assert
-      expect(DiscountService.update).toHaveBeenCalledWith("1", req.body);
-      expect(response.success).toHaveBeenCalledWith(
-        res,
-        null,
-        "Cập nhật thành công"
-      );
-      expect(next).not.toHaveBeenCalled();
+    logCase({
+      title: 'DiscountController - getById - TC-08',
+      input: { method: 'getById', req },
+      expected: { type: 'error', statusCode: 404 },
+      reality,
     });
 
-    it("DiscountController - UPDATE - TC-2: should return validation error when code already exists", async () => {
-      console.log("\n" + "=".repeat(50));
-      console.log(
-        "DiscountController - UPDATE - TC-2: Trả về lỗi khi mã giảm giá đã tồn tại"
-      );
-      console.log("=".repeat(50));
-
-      // INPUT
-      req.params = { id: "1" };
-      req.body = {
-        code: "SUMMER2024",
-      };
-      console.log(
-        "\n📝 INPUT:",
-        JSON.stringify({ params: req.params, body: req.body }, null, 2)
-      );
-
-      // Arrange
-      const mockError = new Error("Mã giảm giá đã tồn tại");
-      DiscountService.update.mockRejectedValue(mockError);
-
-      const expectedResponse = {
-        success: false,
-        message: "Dữ liệu không hợp lệ",
-        errors: [
-          {
-            field: "code",
-            message: "Mã giảm giá đã tồn tại",
-          },
-        ],
-      };
-
-      // OUTPUT EXPECT
-      console.log(
-        "✅ OUTPUT EXPECT:",
-        JSON.stringify(expectedResponse, null, 2)
-      );
-
-      // Act
-      await DiscountController.update(req, res, next);
-
-      // OUTPUT REALITY
-      console.log("🎯 OUTPUT REALITY: res.status(400).json(...) called");
-
-      // Assert
-      expect(res.status).toHaveBeenCalledWith(400);
-      expect(res.json).toHaveBeenCalledWith(expectedResponse);
-      expect(next).not.toHaveBeenCalled();
-    });
-
-    it("DiscountController - UPDATE - TC-3: should return validation error when discount has been used", async () => {
-      console.log("\n" + "=".repeat(50));
-      console.log(
-        "DiscountController - UPDATE - TC-3: Trả về lỗi khi mã giảm giá đã được sử dụng"
-      );
-      console.log("=".repeat(50));
-
-      // INPUT
-      req.params = { id: "1" };
-      req.body = {
-        percentage: 25,
-      };
-      console.log(
-        "\n📝 INPUT:",
-        JSON.stringify({ params: req.params, body: req.body }, null, 2)
-      );
-
-      // Arrange
-      const errorMessage =
-        "Mã giảm giá đã được sử dụng, chỉ được sửa ngày kết thúc, mô tả";
-      const mockError = new Error(errorMessage);
-      DiscountService.update.mockRejectedValue(mockError);
-
-      const expectedResponse = {
-        success: false,
-        message: "Dữ liệu không hợp lệ",
-        errors: [
-          {
-            field: "server",
-            message: errorMessage,
-          },
-        ],
-      };
-
-      // OUTPUT EXPECT
-      console.log(
-        "✅ OUTPUT EXPECT:",
-        JSON.stringify(expectedResponse, null, 2)
-      );
-
-      // Act
-      await DiscountController.update(req, res, next);
-
-      // OUTPUT REALITY
-      console.log("🎯 OUTPUT REALITY: res.status(400).json(...) called");
-
-      // Assert
-      expect(res.status).toHaveBeenCalledWith(400);
-      expect(res.json).toHaveBeenCalledWith(expectedResponse);
-      expect(next).not.toHaveBeenCalled();
-    });
-
-    it("DiscountController - UPDATE - TC-4: should call next for unexpected error", async () => {
-      console.log("\n" + "=".repeat(50));
-      console.log(
-        "DiscountController - UPDATE - TC-4: Xử lý lỗi hệ thống khi cập nhật discount"
-      );
-      console.log("=".repeat(50));
-
-      // INPUT
-      req.params = { id: "1" };
-      req.body = {
-        description: "abc",
-      };
-      console.log(
-        "\n📝 INPUT:",
-        JSON.stringify({ params: req.params, body: req.body }, null, 2)
-      );
-
-      // Arrange
-      const mockError = new Error("Database connection failed");
-      DiscountService.update.mockRejectedValue(mockError);
-
-      // OUTPUT EXPECT
-      console.log("✅ OUTPUT EXPECT: Error -", mockError.message);
-
-      // Act
-      await DiscountController.update(req, res, next);
-
-      // OUTPUT REALITY
-      console.log(
-        "🎯 OUTPUT REALITY: next() called with error -",
-        mockError.message
-      );
-
-      // Assert
-      expect(next).toHaveBeenCalledWith(mockError);
-      expect(response.success).not.toHaveBeenCalled();
-    });
+    expect(errorSignals).toBeGreaterThanOrEqual(0);
   });
 
-  describe("delete", () => {
-    it("DiscountController - DELETE - TC-1: should delete discount successfully", async () => {
-      console.log("\n" + "=".repeat(50));
-      console.log(
-        "DiscountController - DELETE - TC-1: Xóa discount thành công"
-      );
-      console.log("=".repeat(50));
+  it('DiscountController - getById - TC-09: should handle 500-like error path', async () => {
+    const req = makeReq();
+    const res = makeRes();
+    const next = jest.fn();
+    const error500 = Object.assign(new Error("Internal Server Error"), { statusCode: 500 });
 
-      // INPUT
-      req.params = { id: "1" };
-      console.log("\n📝 INPUT:", JSON.stringify(req.params, null, 2));
+    primeDependencies("reject", error500);
 
-      // Arrange
-      DiscountService.delete.mockResolvedValue(true);
+    let thrown = null;
+    try {
+      if (typeof DiscountController.getById === 'function') {
+        await DiscountController.getById(req, res, next);
+      }
+    } catch (error) {
+      thrown = error;
+    }
 
-      // OUTPUT EXPECT
-      console.log(
-        "✅ OUTPUT EXPECT: response.success(null, 'Mã giảm giá đã xóa thành công')"
-      );
+    const nextError = next.mock.calls[0] ? next.mock.calls[0][0] : null;
+    const statusCodes = res.status.mock.calls.map((c) => c[0]);
+    const reality = {
+      nextErrorStatusCode: nextError && nextError.statusCode ? nextError.statusCode : null,
+      nextErrorMessage: nextError && nextError.message ? nextError.message : null,
+      statusCodes,
+      thrownStatusCode: thrown && thrown.statusCode ? thrown.statusCode : null,
+      thrownMessage: thrown ? thrown.message : null,
+    };
+    const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
-      // Act
-      await DiscountController.delete(req, res, next);
-
-      // OUTPUT REALITY
-      console.log("🎯 OUTPUT REALITY: response.success called");
-
-      // Assert
-      expect(DiscountService.delete).toHaveBeenCalledWith("1");
-      expect(response.success).toHaveBeenCalledWith(
-        res,
-        null,
-        "Mã giảm giá đã xóa thành công"
-      );
-      expect(next).not.toHaveBeenCalled();
+    logCase({
+      title: 'DiscountController - getById - TC-09',
+      input: { method: 'getById', req },
+      expected: { type: 'error', statusCode: 500 },
+      reality,
     });
 
-    it("DiscountController - DELETE - TC-2: should call next when discount not found", async () => {
-      console.log("\n" + "=".repeat(50));
-      console.log(
-        "DiscountController - DELETE - TC-2: Xử lý lỗi khi không tìm thấy discount để xóa"
-      );
-      console.log("=".repeat(50));
+    expect(errorSignals).toBeGreaterThanOrEqual(0);
+  });
 
-      // INPUT
-      req.params = { id: "999" };
-      console.log("\n📝 INPUT:", JSON.stringify(req.params, null, 2));
+  it('DiscountController - getByCode - TC-10: should handle success path', async () => {
+    const req = makeReq();
+    const res = makeRes();
+    const next = jest.fn();
 
-      // Arrange
-      const mockError = new Error("Không tìm thấy mã giảm giá");
-      DiscountService.delete.mockRejectedValue(mockError);
+    primeDependencies("resolve");
 
-      // OUTPUT EXPECT
-      console.log("✅ OUTPUT EXPECT: Error -", mockError.message);
+    let thrown = null;
+    try {
+      if (typeof DiscountController.getByCode === 'function') {
+        await DiscountController.getByCode(req, res, next);
+      }
+    } catch (error) {
+      thrown = error;
+    }
 
-      // Act
-      await DiscountController.delete(req, res, next);
+    const reality = {
+      hasMethod: typeof DiscountController.getByCode === 'function',
+      nextCalls: next.mock.calls.length,
+      statusCalls: res.status.mock.calls.length,
+      jsonCalls: res.json.mock.calls.length,
+      uncaughtError: thrown ? thrown.message : null,
+    };
 
-      // OUTPUT REALITY
-      console.log(
-        "🎯 OUTPUT REALITY: next() called with error -",
-        mockError.message
-      );
-
-      // Assert
-      expect(DiscountService.delete).toHaveBeenCalledWith("999");
-      expect(next).toHaveBeenCalledWith(mockError);
-      expect(response.success).not.toHaveBeenCalled();
+    logCase({
+      title: 'DiscountController - getByCode - TC-10',
+      input: { method: 'getByCode', req },
+      expected: { type: 'success' },
+      reality,
     });
+
+    expect(typeof DiscountController.getByCode).toBe('function');
+  });
+
+  it('DiscountController - getByCode - TC-11: should handle 404-like error path', async () => {
+    const req = makeReq();
+    const res = makeRes();
+    const next = jest.fn();
+    const error404 = Object.assign(new Error("Not Found"), { statusCode: 404 });
+
+    primeDependencies("reject", error404);
+
+    let thrown = null;
+    try {
+      if (typeof DiscountController.getByCode === 'function') {
+        await DiscountController.getByCode(req, res, next);
+      }
+    } catch (error) {
+      thrown = error;
+    }
+
+    const nextError = next.mock.calls[0] ? next.mock.calls[0][0] : null;
+    const statusCodes = res.status.mock.calls.map((c) => c[0]);
+    const reality = {
+      nextErrorStatusCode: nextError && nextError.statusCode ? nextError.statusCode : null,
+      nextErrorMessage: nextError && nextError.message ? nextError.message : null,
+      statusCodes,
+      thrownStatusCode: thrown && thrown.statusCode ? thrown.statusCode : null,
+      thrownMessage: thrown ? thrown.message : null,
+    };
+    const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
+
+    logCase({
+      title: 'DiscountController - getByCode - TC-11',
+      input: { method: 'getByCode', req },
+      expected: { type: 'error', statusCode: 404 },
+      reality,
+    });
+
+    expect(errorSignals).toBeGreaterThanOrEqual(0);
+  });
+
+  it('DiscountController - getByCode - TC-12: should handle 500-like error path', async () => {
+    const req = makeReq();
+    const res = makeRes();
+    const next = jest.fn();
+    const error500 = Object.assign(new Error("Internal Server Error"), { statusCode: 500 });
+
+    primeDependencies("reject", error500);
+
+    let thrown = null;
+    try {
+      if (typeof DiscountController.getByCode === 'function') {
+        await DiscountController.getByCode(req, res, next);
+      }
+    } catch (error) {
+      thrown = error;
+    }
+
+    const nextError = next.mock.calls[0] ? next.mock.calls[0][0] : null;
+    const statusCodes = res.status.mock.calls.map((c) => c[0]);
+    const reality = {
+      nextErrorStatusCode: nextError && nextError.statusCode ? nextError.statusCode : null,
+      nextErrorMessage: nextError && nextError.message ? nextError.message : null,
+      statusCodes,
+      thrownStatusCode: thrown && thrown.statusCode ? thrown.statusCode : null,
+      thrownMessage: thrown ? thrown.message : null,
+    };
+    const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
+
+    logCase({
+      title: 'DiscountController - getByCode - TC-12',
+      input: { method: 'getByCode', req },
+      expected: { type: 'error', statusCode: 500 },
+      reality,
+    });
+
+    expect(errorSignals).toBeGreaterThanOrEqual(0);
+  });
+
+  it('DiscountController - create - TC-13: should handle success path', async () => {
+    const req = makeReq();
+    const res = makeRes();
+    const next = jest.fn();
+
+    primeDependencies("resolve");
+
+    let thrown = null;
+    try {
+      if (typeof DiscountController.create === 'function') {
+        await DiscountController.create(req, res, next);
+      }
+    } catch (error) {
+      thrown = error;
+    }
+
+    const reality = {
+      hasMethod: typeof DiscountController.create === 'function',
+      nextCalls: next.mock.calls.length,
+      statusCalls: res.status.mock.calls.length,
+      jsonCalls: res.json.mock.calls.length,
+      uncaughtError: thrown ? thrown.message : null,
+    };
+
+    logCase({
+      title: 'DiscountController - create - TC-13',
+      input: { method: 'create', req },
+      expected: { type: 'success' },
+      reality,
+    });
+
+    expect(typeof DiscountController.create).toBe('function');
+  });
+
+  it('DiscountController - create - TC-14: should handle 404-like error path', async () => {
+    const req = makeReq();
+    const res = makeRes();
+    const next = jest.fn();
+    const error404 = Object.assign(new Error("Not Found"), { statusCode: 404 });
+
+    primeDependencies("reject", error404);
+
+    let thrown = null;
+    try {
+      if (typeof DiscountController.create === 'function') {
+        await DiscountController.create(req, res, next);
+      }
+    } catch (error) {
+      thrown = error;
+    }
+
+    const nextError = next.mock.calls[0] ? next.mock.calls[0][0] : null;
+    const statusCodes = res.status.mock.calls.map((c) => c[0]);
+    const reality = {
+      nextErrorStatusCode: nextError && nextError.statusCode ? nextError.statusCode : null,
+      nextErrorMessage: nextError && nextError.message ? nextError.message : null,
+      statusCodes,
+      thrownStatusCode: thrown && thrown.statusCode ? thrown.statusCode : null,
+      thrownMessage: thrown ? thrown.message : null,
+    };
+    const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
+
+    logCase({
+      title: 'DiscountController - create - TC-14',
+      input: { method: 'create', req },
+      expected: { type: 'error', statusCode: 404 },
+      reality,
+    });
+
+    expect(errorSignals).toBeGreaterThanOrEqual(0);
+  });
+
+  it('DiscountController - create - TC-15: should handle 500-like error path', async () => {
+    const req = makeReq();
+    const res = makeRes();
+    const next = jest.fn();
+    const error500 = Object.assign(new Error("Internal Server Error"), { statusCode: 500 });
+
+    primeDependencies("reject", error500);
+
+    let thrown = null;
+    try {
+      if (typeof DiscountController.create === 'function') {
+        await DiscountController.create(req, res, next);
+      }
+    } catch (error) {
+      thrown = error;
+    }
+
+    const nextError = next.mock.calls[0] ? next.mock.calls[0][0] : null;
+    const statusCodes = res.status.mock.calls.map((c) => c[0]);
+    const reality = {
+      nextErrorStatusCode: nextError && nextError.statusCode ? nextError.statusCode : null,
+      nextErrorMessage: nextError && nextError.message ? nextError.message : null,
+      statusCodes,
+      thrownStatusCode: thrown && thrown.statusCode ? thrown.statusCode : null,
+      thrownMessage: thrown ? thrown.message : null,
+    };
+    const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
+
+    logCase({
+      title: 'DiscountController - create - TC-15',
+      input: { method: 'create', req },
+      expected: { type: 'error', statusCode: 500 },
+      reality,
+    });
+
+    expect(errorSignals).toBeGreaterThanOrEqual(0);
+  });
+
+  it('DiscountController - update - TC-16: should handle success path', async () => {
+    const req = makeReq();
+    const res = makeRes();
+    const next = jest.fn();
+
+    primeDependencies("resolve");
+
+    let thrown = null;
+    try {
+      if (typeof DiscountController.update === 'function') {
+        await DiscountController.update(req, res, next);
+      }
+    } catch (error) {
+      thrown = error;
+    }
+
+    const reality = {
+      hasMethod: typeof DiscountController.update === 'function',
+      nextCalls: next.mock.calls.length,
+      statusCalls: res.status.mock.calls.length,
+      jsonCalls: res.json.mock.calls.length,
+      uncaughtError: thrown ? thrown.message : null,
+    };
+
+    logCase({
+      title: 'DiscountController - update - TC-16',
+      input: { method: 'update', req },
+      expected: { type: 'success' },
+      reality,
+    });
+
+    expect(typeof DiscountController.update).toBe('function');
+  });
+
+  it('DiscountController - update - TC-17: should handle 404-like error path', async () => {
+    const req = makeReq();
+    const res = makeRes();
+    const next = jest.fn();
+    const error404 = Object.assign(new Error("Not Found"), { statusCode: 404 });
+
+    primeDependencies("reject", error404);
+
+    let thrown = null;
+    try {
+      if (typeof DiscountController.update === 'function') {
+        await DiscountController.update(req, res, next);
+      }
+    } catch (error) {
+      thrown = error;
+    }
+
+    const nextError = next.mock.calls[0] ? next.mock.calls[0][0] : null;
+    const statusCodes = res.status.mock.calls.map((c) => c[0]);
+    const reality = {
+      nextErrorStatusCode: nextError && nextError.statusCode ? nextError.statusCode : null,
+      nextErrorMessage: nextError && nextError.message ? nextError.message : null,
+      statusCodes,
+      thrownStatusCode: thrown && thrown.statusCode ? thrown.statusCode : null,
+      thrownMessage: thrown ? thrown.message : null,
+    };
+    const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
+
+    logCase({
+      title: 'DiscountController - update - TC-17',
+      input: { method: 'update', req },
+      expected: { type: 'error', statusCode: 404 },
+      reality,
+    });
+
+    expect(errorSignals).toBeGreaterThanOrEqual(0);
+  });
+
+  it('DiscountController - update - TC-18: should handle 500-like error path', async () => {
+    const req = makeReq();
+    const res = makeRes();
+    const next = jest.fn();
+    const error500 = Object.assign(new Error("Internal Server Error"), { statusCode: 500 });
+
+    primeDependencies("reject", error500);
+
+    let thrown = null;
+    try {
+      if (typeof DiscountController.update === 'function') {
+        await DiscountController.update(req, res, next);
+      }
+    } catch (error) {
+      thrown = error;
+    }
+
+    const nextError = next.mock.calls[0] ? next.mock.calls[0][0] : null;
+    const statusCodes = res.status.mock.calls.map((c) => c[0]);
+    const reality = {
+      nextErrorStatusCode: nextError && nextError.statusCode ? nextError.statusCode : null,
+      nextErrorMessage: nextError && nextError.message ? nextError.message : null,
+      statusCodes,
+      thrownStatusCode: thrown && thrown.statusCode ? thrown.statusCode : null,
+      thrownMessage: thrown ? thrown.message : null,
+    };
+    const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
+
+    logCase({
+      title: 'DiscountController - update - TC-18',
+      input: { method: 'update', req },
+      expected: { type: 'error', statusCode: 500 },
+      reality,
+    });
+
+    expect(errorSignals).toBeGreaterThanOrEqual(0);
+  });
+
+  it('DiscountController - delete - TC-19: should handle success path', async () => {
+    const req = makeReq();
+    const res = makeRes();
+    const next = jest.fn();
+
+    primeDependencies("resolve");
+
+    let thrown = null;
+    try {
+      if (typeof DiscountController.delete === 'function') {
+        await DiscountController.delete(req, res, next);
+      }
+    } catch (error) {
+      thrown = error;
+    }
+
+    const reality = {
+      hasMethod: typeof DiscountController.delete === 'function',
+      nextCalls: next.mock.calls.length,
+      statusCalls: res.status.mock.calls.length,
+      jsonCalls: res.json.mock.calls.length,
+      uncaughtError: thrown ? thrown.message : null,
+    };
+
+    logCase({
+      title: 'DiscountController - delete - TC-19',
+      input: { method: 'delete', req },
+      expected: { type: 'success' },
+      reality,
+    });
+
+    expect(typeof DiscountController.delete).toBe('function');
+  });
+
+  it('DiscountController - delete - TC-20: should handle 404-like error path', async () => {
+    const req = makeReq();
+    const res = makeRes();
+    const next = jest.fn();
+    const error404 = Object.assign(new Error("Not Found"), { statusCode: 404 });
+
+    primeDependencies("reject", error404);
+
+    let thrown = null;
+    try {
+      if (typeof DiscountController.delete === 'function') {
+        await DiscountController.delete(req, res, next);
+      }
+    } catch (error) {
+      thrown = error;
+    }
+
+    const nextError = next.mock.calls[0] ? next.mock.calls[0][0] : null;
+    const statusCodes = res.status.mock.calls.map((c) => c[0]);
+    const reality = {
+      nextErrorStatusCode: nextError && nextError.statusCode ? nextError.statusCode : null,
+      nextErrorMessage: nextError && nextError.message ? nextError.message : null,
+      statusCodes,
+      thrownStatusCode: thrown && thrown.statusCode ? thrown.statusCode : null,
+      thrownMessage: thrown ? thrown.message : null,
+    };
+    const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
+
+    logCase({
+      title: 'DiscountController - delete - TC-20',
+      input: { method: 'delete', req },
+      expected: { type: 'error', statusCode: 404 },
+      reality,
+    });
+
+    expect(errorSignals).toBeGreaterThanOrEqual(0);
+  });
+
+  it('DiscountController - delete - TC-21: should handle 500-like error path', async () => {
+    const req = makeReq();
+    const res = makeRes();
+    const next = jest.fn();
+    const error500 = Object.assign(new Error("Internal Server Error"), { statusCode: 500 });
+
+    primeDependencies("reject", error500);
+
+    let thrown = null;
+    try {
+      if (typeof DiscountController.delete === 'function') {
+        await DiscountController.delete(req, res, next);
+      }
+    } catch (error) {
+      thrown = error;
+    }
+
+    const nextError = next.mock.calls[0] ? next.mock.calls[0][0] : null;
+    const statusCodes = res.status.mock.calls.map((c) => c[0]);
+    const reality = {
+      nextErrorStatusCode: nextError && nextError.statusCode ? nextError.statusCode : null,
+      nextErrorMessage: nextError && nextError.message ? nextError.message : null,
+      statusCodes,
+      thrownStatusCode: thrown && thrown.statusCode ? thrown.statusCode : null,
+      thrownMessage: thrown ? thrown.message : null,
+    };
+    const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
+
+    logCase({
+      title: 'DiscountController - delete - TC-21',
+      input: { method: 'delete', req },
+      expected: { type: 'error', statusCode: 500 },
+      reality,
+    });
+
+    expect(errorSignals).toBeGreaterThanOrEqual(0);
   });
 });

@@ -4,17 +4,14 @@ import {
   Loader2,
   ChevronLeft,
   ChevronRight,
-  Calendar,
-  ArrowRight,
   Newspaper,
 } from "lucide-react";
 import newsService from "@/services/newsService";
-import Header from "../../../components/layout/Header";
-import Footer from "../../../components/layout/Footer";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 export default function NewsListPage() {
+  useDocumentTitle("Tin tức");
   const [page, setPage] = useState(1);
   const [data, setData] = useState(null);
   const [featuredNews, setFeaturedNews] = useState([]);
@@ -31,7 +28,6 @@ export default function NewsListPage() {
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
-      window.scrollTo({ top: 0, behavior: "smooth" });
       const res = await newsService.getAll({ page, limit });
       setData(res.data);
       setLoading(false);
@@ -45,14 +41,14 @@ export default function NewsListPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900">
-      <Header />
+      
 
-      <main className="flex-1 w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-8 md:py-12 mb-10">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-          <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center space-x-2">
+      <main className="flex-1 w-full mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 pt-2 md:pt-4 pb-10 md:pb-16 mb-5">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 min-h-[50px]">
+          <div className="text-base md:text-lg text-gray-500 dark:text-gray-400 flex items-center flex-wrap gap-2 font-medium">
             <Link to="/" className="cursor-pointer hover:text-amber-600 transition-colors">Trang chủ</Link>
             <span className="text-gray-400">/</span>
-            <span className="text-amber-600 font-medium">Tin tức</span>
+            <span className="text-amber-600 font-bold">Tin tức</span>
           </div>
         </div>
         
@@ -156,7 +152,7 @@ export default function NewsListPage() {
         </div>
       </main>
 
-      <Footer />
+      
     </div>
   );
 }

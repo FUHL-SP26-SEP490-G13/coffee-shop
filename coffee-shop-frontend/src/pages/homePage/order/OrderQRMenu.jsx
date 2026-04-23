@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import categoryService from "@/services/categoryService";
 import toppingService from "@/services/toppingService";
 import productService from "@/services/productService";
+import tableService from "@/services/tableService";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -35,6 +36,15 @@ export default function OrderQRMenu() {
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [warningMessage, setWarningMessage] = useState("");
+  const [tableInfo, setTableInfo] = useState(null);
+
+  useEffect(() => {
+    if (tableId) {
+      tableService.getById(tableId)
+        .then(res => setTableInfo(res?.data))
+        .catch(() => {});
+    }
+  }, [tableId]);
 
   // Lấy danh sách category
   useEffect(() => {
@@ -88,7 +98,7 @@ export default function OrderQRMenu() {
     <div className="max-w-lg mx-auto min-h-screen bg-white dark:bg-gray-900 flex flex-col pb-24">
       {/* HEADER + CATEGORY */}
       <header className="sticky top-0 z-10 bg-white dark:bg-gray-900 border-b py-4 px-4 shadow-sm">
-        <h1 className="text-xl font-bold text-center mb-2">Menu bàn {tableId}</h1>
+        <h1 className="text-xl font-bold text-center mb-2">Menu bàn {tableInfo?.code || tableId}</h1>
         {/* CATEGORY SCROLL */}
         <div className="overflow-x-auto hide-scrollbar -mx-4 px-4 pb-1">
           <div className="flex gap-2 w-max">
@@ -179,14 +189,21 @@ export default function OrderQRMenu() {
       {/* CART MODAL */}
       {showCart && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="bg-white dark:bg-gray-900 w-full max-w-lg mx-auto rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 p-6 animate-in slide-in-from-bottom-10 fade-in relative">
+          <div className="bg-white dark:bg-gray-900 w-full max-w-lg mx-auto rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 p-6 relative">
             <button onClick={() => setShowCart(false)} className="absolute top-3 right-3 text-2xl text-gray-400 hover:text-red-500 transition">&times;</button>
             <h2 className="font-bold text-xl mb-4 text-center tracking-tight">🛒 Giỏ hàng</h2>
             <div className="divide-y divide-gray-200 max-h-[60vh] overflow-y-auto mb-4">
               {selected.map((item, idx) => {
                 const menuItem = menu.find(m => m.id === item.id || m._id === item.id);
                 const sizes = menuItem?.sizes || [];
-                const toppings = Array.isArray(menuItem?.toppings) && menuItem.toppings.length > 0 ? menuItem.toppings : toppingsList;
+                const availableToppings = toppingsList.filter(t => {
+                  let ids = t.category_ids || [];
+                  if (typeof ids === 'string') {
+                    try { ids = JSON.parse(ids); } catch(e) { ids = []; }
+                  }
+                  return Array.isArray(ids) && ids.includes(menuItem?.category_id);
+                });
+                const toppings = Array.isArray(menuItem?.toppings) && menuItem.toppings.length > 0 ? menuItem.toppings : availableToppings;
                 return (
                   <div key={item.cartKey || idx} className="py-4">
                     <div className="flex items-center justify-between mb-2">
@@ -249,18 +266,6 @@ export default function OrderQRMenu() {
                         })}
                       </div>
                     )}
-                    {/* Ghi chú */}
-                    <input
-                      type="text"
-                      placeholder="Ghi chú cho món này"
-                      value={item.note || ""}
-                      onChange={e => {
-                        setSelected(sel =>
-                          sel.map((s, i) => i === idx ? { ...s, note: e.target.value } : s)
-                        );
-                      }}
-                      className="block w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 my-2 focus:outline-none focus:ring-2 focus:ring-primary"
-                    />
                   </div>
                 );
               })}
@@ -314,7 +319,7 @@ export default function OrderQRMenu() {
       {/* WARNING MODAL */}
       {warningMessage && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
-          <div className="bg-white dark:bg-gray-900 w-full max-w-sm rounded-2xl shadow-2xl p-6 text-center animate-in zoom-in-95">
+          <div className="bg-white dark:bg-gray-900 w-full max-w-sm rounded-2xl shadow-2xl p-6 text-center">
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-100 mb-4">
               <svg className="h-10 w-10 text-red-500" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />

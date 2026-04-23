@@ -20,6 +20,9 @@ class ReviewService {
         images: item.images ? (typeof item.images === 'string' ? JSON.parse(item.images) : item.images) : [],
         created_at: item.created_at,
         updated_at: item.updated_at,
+        reply_comment: item.reply_comment || "",
+        reply_images: item.reply_images ? (typeof item.reply_images === 'string' ? JSON.parse(item.reply_images) : item.reply_images) : [],
+        replied_at: item.replied_at,
         full_name: `${item.first_name || ""} ${item.last_name || ""}`.trim(),
         is_edited:
           item.updated_at &&
@@ -64,8 +67,8 @@ class ReviewService {
       currentImages = currentImages.filter(img => !deleteImageIds.includes(img.public_id));
       const finalImages = [...currentImages, ...newImages];
 
-      if (finalImages.length > 3) {
-        throw new Error("Tối đa 3 ảnh cho mỗi bài đánh giá");
+      if (finalImages.length > 4) {
+        throw new Error("Tối đa 3 ảnh và 1 video cho mỗi bài đánh giá");
       }
 
       await ReviewRepository.updateReview(userId, productId, rating, comment, finalImages);
@@ -74,14 +77,40 @@ class ReviewService {
       };
     }
 
-    if (newImages.length > 3) {
-      throw new Error("Tối đa 3 ảnh cho mỗi bài đánh giá");
+    if (newImages.length > 4) {
+      throw new Error("Tối đa 3 ảnh và 1 video cho mỗi bài đánh giá");
     }
 
     await ReviewRepository.createReview(userId, productId, rating, comment, newImages);
 
     return {
       message: "Đánh giá sản phẩm thành công",
+    };
+  }
+
+  async replyReview(id, replyComment, newImages = [], deleteImageIds = []) {
+    const existed = await ReviewRepository.findById(id);
+    if (!existed) {
+      throw new Error("Không tìm thấy đánh giá này");
+    }
+
+    let currentImages = [];
+    if (existed.reply_images) {
+      try {
+        currentImages = typeof existed.reply_images === 'string' ? JSON.parse(existed.reply_images) : existed.reply_images;
+      } catch(e) {}
+    }
+
+    currentImages = currentImages.filter(img => !deleteImageIds.includes(img.public_id));
+    const finalImages = [...currentImages, ...newImages];
+
+    if (finalImages.length > 4) {
+      throw new Error("Tối đa 4 tệp đính kèm cho mỗi phản hồi");
+    }
+
+    await ReviewRepository.replyReview(id, replyComment, finalImages);
+    return {
+      message: "Phản hồi đánh giá thành công",
     };
   }
 
@@ -118,11 +147,15 @@ class ReviewService {
         user_id: item.user_id,
         product_id: item.product_id,
         product_name: item.product_name,
+        category_name: item.category_name,
         rating: Number(item.rating),
         comment: item.comment || "",
         images: item.images ? (typeof item.images === 'string' ? JSON.parse(item.images) : item.images) : [],
         created_at: item.created_at,
         updated_at: item.updated_at,
+        reply_comment: item.reply_comment || "",
+        reply_images: item.reply_images ? (typeof item.reply_images === 'string' ? JSON.parse(item.reply_images) : item.reply_images) : [],
+        replied_at: item.replied_at,
         full_name: `${item.first_name || ""} ${item.last_name || ""}`.trim(),
         is_edited:
           item.updated_at &&

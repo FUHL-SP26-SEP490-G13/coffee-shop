@@ -8,17 +8,17 @@ import { Button } from "@/components/ui/button";
 
 export default function FeaturedNews() {
   const fetchNews = useCallback(() => {
-    return newsService.getFeatured();
+    return newsService.getAll({ limit: 6 });
   }, []);
 
   const { data: newsData, loading } = useFetch(fetchNews);
 
-  const featuredNews = newsData?.data || [];
+  const featuredNews = newsData?.data?.items || [];
 
   if (loading) {
     return (
-      <div className="bg-gradient-to-b from-background to-muted/30 py-16 md:py-20">
-        <div className="max-w-[1440px] w-full mx-auto px-4 sm:px-6 lg:px-8 xl:px-12">
+      <div className="bg-gradient-to-b from-background to-muted/30 py-8 md:py-12 lg:py-16">
+        <div className="w-full w-full mx-auto px-4 sm:px-6 lg:px-8 xl:px-12">
           <div className="flex items-center justify-center py-12">
             <div className="text-center space-y-4">
               <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto" />
@@ -33,17 +33,17 @@ export default function FeaturedNews() {
   if (!featuredNews.length) return null;
 
   return (
-    <div className="relative bg-gradient-to-b from-background via-muted/20 to-background py-16 md:py-24 overflow-hidden">
-      {/* Decorative Background Elements */}
-      <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-primary/5 pointer-events-none" />
-
-      <div className="relative max-w-[1440px] w-full mx-auto px-4 sm:px-6 lg:px-8 xl:px-12">
+    <div className="py-8 md:py-12 lg:py-16 bg-white dark:bg-gray-950 overflow-hidden">
+      <div className="w-full px-4 lg:px-6 xl:px-8">
+        <div className="relative bg-gradient-to-b from-background via-muted/20 to-background rounded-none sm:rounded-3xl py-12 md:py-16 px-4 sm:px-8 lg:px-12 w-full">
+          {/* Decorative Background Elements */}
+          <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-primary/5 pointer-events-none sm:rounded-3xl" />
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-6 mb-12">
           <div className="space-y-3">
             <div className="inline-block">
-              <h3 className="text-xl md:text-3xl font-semibold text-center text-gray-900 dark:text-gray-100 mb-12" style={{ fontFamily: 'serif' }}>
+              <h2 className="text-2xl md:text-3xl font-semibold text-amber-900 dark:text-amber-500" style={{ fontFamily: 'serif' }}>
                 Tin tức cà phê
-              </h3>
+              </h2>
               <div className="h-1 w-20 bg-gradient-to-r from-primary to-primary/50 rounded-full mt-2" />
             </div>
             <p className="text-muted-foreground text-lg">
@@ -123,6 +123,7 @@ export default function FeaturedNews() {
               </Card>
             </Link>
           ))}
+        </div>
         </div>
       </div>
     </div>

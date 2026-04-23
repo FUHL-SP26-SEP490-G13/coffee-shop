@@ -1,18 +1,37 @@
 const ReceiptSettingRepository = require("../repositories/ReceiptSettingRepository");
+const ErrorResponse = require("../utils/ErrorResponse");
 
 class ReceiptSettingService {
+  normalizeNullableText(value) {
+    if (value === null || value === undefined) return null;
+    const trimmed = String(value).trim();
+    return trimmed.length > 0 ? trimmed : null;
+  }
+
   normalizePayload(data = {}) {
+    const hasOwn = (key) => Object.prototype.hasOwnProperty.call(data, key);
+
     return {
-      store_name: data.store_name,
-      address: data.address,
-      phone: data.phone,
-      header_lines: Array.isArray(data.header_lines) ? data.header_lines : [],
-      footer_lines: Array.isArray(data.footer_lines) ? data.footer_lines : [],
-      logo_url: data.logo_url,
-      is_active: data.is_active,
-      open_time: data.open_time,
-      close_time: data.close_time,
-      reputation_rules: data.reputation_rules,
+      store_name: hasOwn("store_name") ? data.store_name : undefined,
+      address: hasOwn("address")
+        ? this.normalizeNullableText(data.address)
+        : undefined,
+      phone: hasOwn("phone") ? data.phone : undefined,
+      header_lines: hasOwn("header_lines")
+        ? Array.isArray(data.header_lines)
+          ? data.header_lines
+          : []
+        : undefined,
+      footer_lines: hasOwn("footer_lines")
+        ? Array.isArray(data.footer_lines)
+          ? data.footer_lines
+          : []
+        : undefined,
+      logo_url: hasOwn("logo_url") ? data.logo_url : undefined,
+      is_active: hasOwn("is_active") ? data.is_active : undefined,
+      open_time: hasOwn("open_time") ? data.open_time : undefined,
+      close_time: hasOwn("close_time") ? data.close_time : undefined,
+      reputation_rules: hasOwn("reputation_rules") ? data.reputation_rules : undefined,
     };
   }
 

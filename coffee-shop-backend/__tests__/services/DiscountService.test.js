@@ -10,7 +10,7 @@ describe("DiscountService", () => {
   });
 
   describe("getAll", () => {
-    it("DiscountService - GET_ALL - TC-1: should return all discounts successfully", async () => {
+    it("DiscountService - getAll - TC-01: should return all discounts successfully", async () => {
       console.log("\n" + "=".repeat(50));
       console.log(
         "DiscountService - GET_ALL - TC-1: Lấy danh sách discount thành công"
@@ -59,7 +59,7 @@ describe("DiscountService", () => {
   });
 
   describe("getById", () => {
-    it("DiscountService - GET_BY_ID - TC-1: should return discount when found", async () => {
+    it("DiscountService - getById - TC-01: should return discount when found", async () => {
       console.log("\n" + "=".repeat(50));
       console.log(
         "DiscountService - GET_BY_ID - TC-1: Lấy discount theo id thành công"
@@ -93,7 +93,7 @@ describe("DiscountService", () => {
       expect(result).toEqual(mockDiscount);
     });
 
-    it("DiscountService - GET_BY_ID - TC-2: should throw error when discount not found", async () => {
+    it("DiscountService - getById - TC-02: should throw error when discount not found", async () => {
       console.log("\n" + "=".repeat(50));
       console.log(
         "DiscountService - GET_BY_ID - TC-2: Lỗi khi không tìm thấy discount"
@@ -122,7 +122,7 @@ describe("DiscountService", () => {
   });
 
   describe("create", () => {
-    it("DiscountService - CREATE - TC-1: should create discount successfully with trimmed fields", async () => {
+    it("DiscountService - create - TC-01: should create discount successfully with trimmed fields", async () => {
       console.log("\n" + "=".repeat(50));
       console.log(
         "DiscountService - CREATE - TC-1: Tạo discount thành công với dữ liệu hợp lệ"
@@ -165,7 +165,7 @@ describe("DiscountService", () => {
       expect(result).toBe(10);
     });
 
-    it("DiscountService - CREATE - TC-2: should create discount with description null when description is empty", async () => {
+    it("DiscountService - create - TC-02: should create discount with description null when description is empty", async () => {
       console.log("\n" + "=".repeat(50));
       console.log(
         "DiscountService - CREATE - TC-2: Tạo discount với description = null khi description rỗng"
@@ -207,7 +207,7 @@ describe("DiscountService", () => {
       expect(result).toBe(11);
     });
 
-    it("DiscountService - CREATE - TC-3: should throw error when code already exists", async () => {
+    it("DiscountService - create - TC-03: should throw error when code already exists", async () => {
       console.log("\n" + "=".repeat(50));
       console.log(
         "DiscountService - CREATE - TC-3: Lỗi khi mã giảm giá đã tồn tại"
@@ -239,6 +239,27 @@ describe("DiscountService", () => {
       expect(DiscountRepository.findByCode).toHaveBeenCalledWith("SUMMER2024");
       expect(DiscountRepository.create).not.toHaveBeenCalled();
     });
+
+    it("DiscountService - create - TC-04: should trim full-space code to empty string before repository create", async () => {
+      const input = {
+        code: "        ",
+        description: "        ",
+        percentage: 5,
+      };
+
+      DiscountRepository.findByCode.mockResolvedValue(null);
+      DiscountRepository.create.mockResolvedValue(12);
+
+      const result = await DiscountService.create(input);
+
+      expect(DiscountRepository.findByCode).toHaveBeenCalledWith("");
+      expect(DiscountRepository.create).toHaveBeenCalledWith({
+        ...input,
+        code: "",
+        description: null,
+      });
+      expect(result).toBe(12);
+    });
   });
 
   describe("update", () => {
@@ -255,7 +276,7 @@ describe("DiscountService", () => {
       used_count: 0,
     };
 
-    it("DiscountService - UPDATE - TC-1: should update discount successfully when unused", async () => {
+    it("DiscountService - update - TC-01: should update discount successfully when unused", async () => {
       console.log("\n" + "=".repeat(50));
       console.log(
         "DiscountService - UPDATE - TC-1: Cập nhật discount thành công khi chưa được sử dụng"
@@ -298,7 +319,7 @@ describe("DiscountService", () => {
       expect(result).toBe(true);
     });
 
-    it("DiscountService - UPDATE - TC-2: should update discount successfully without checking duplicate when code unchanged", async () => {
+    it("DiscountService - update - TC-02: should update discount successfully without checking duplicate when code unchanged", async () => {
       console.log("\n" + "=".repeat(50));
       console.log(
         "DiscountService - UPDATE - TC-2: Cập nhật discount khi code không đổi"
@@ -338,7 +359,7 @@ describe("DiscountService", () => {
       expect(result).toBe(true);
     });
 
-    it("DiscountService - UPDATE - TC-3: should throw error when discount not found", async () => {
+    it("DiscountService - update - TC-03: should throw error when discount not found", async () => {
       console.log("\n" + "=".repeat(50));
       console.log(
         "DiscountService - UPDATE - TC-3: Lỗi khi discount không tồn tại"
@@ -372,7 +393,7 @@ describe("DiscountService", () => {
       expect(DiscountRepository.update).not.toHaveBeenCalled();
     });
 
-    it("DiscountService - UPDATE - TC-4: should throw error when new code already exists", async () => {
+    it("DiscountService - update - TC-04: should throw error when new code already exists", async () => {
       console.log("\n" + "=".repeat(50));
       console.log(
         "DiscountService - UPDATE - TC-4: Lỗi khi mã giảm giá mới đã tồn tại"
@@ -408,7 +429,7 @@ describe("DiscountService", () => {
       expect(DiscountRepository.update).not.toHaveBeenCalled();
     });
 
-    it("DiscountService - UPDATE - TC-5: should only allow description and valid_until when discount has been used", async () => {
+    it("DiscountService - update - TC-05: should only allow description and valid_until when discount has been used", async () => {
       console.log("\n" + "=".repeat(50));
       console.log(
         "DiscountService - UPDATE - TC-5: Chỉ cho sửa description và valid_until khi discount đã được sử dụng"
@@ -453,7 +474,7 @@ describe("DiscountService", () => {
       expect(DiscountRepository.findByCode).not.toHaveBeenCalled();
     });
 
-    it("DiscountService - UPDATE - TC-6: should allow update used discount with description only", async () => {
+    it("DiscountService - update - TC-06: should allow update used discount with description only", async () => {
       console.log("\n" + "=".repeat(50));
       console.log(
         "DiscountService - UPDATE - TC-6: Cho phép sửa description khi discount đã được sử dụng"
@@ -493,7 +514,7 @@ describe("DiscountService", () => {
       expect(result).toBe(true);
     });
 
-    it("DiscountService - UPDATE - TC-7: should allow update used discount with valid_until only", async () => {
+    it("DiscountService - update - TC-07: should allow update used discount with valid_until only", async () => {
       console.log("\n" + "=".repeat(50));
       console.log(
         "DiscountService - UPDATE - TC-7: Cho phép sửa valid_until khi discount đã được sử dụng"
@@ -533,7 +554,7 @@ describe("DiscountService", () => {
       expect(result).toBe(true);
     });
 
-    it("DiscountService - UPDATE - TC-8: should throw error when used discount updates invalid fields only", async () => {
+    it("DiscountService - update - TC-08: should throw error when used discount updates invalid fields only", async () => {
       console.log("\n" + "=".repeat(50));
       console.log(
         "DiscountService - UPDATE - TC-8: Lỗi khi discount đã được sử dụng nhưng sửa field không được phép"
@@ -573,7 +594,7 @@ describe("DiscountService", () => {
       expect(DiscountRepository.update).not.toHaveBeenCalled();
     });
 
-    it("DiscountService - UPDATE - TC-9: should convert empty trimmed description to null", async () => {
+    it("DiscountService - update - TC-09: should convert empty trimmed description to null", async () => {
       console.log("\n" + "=".repeat(50));
       console.log(
         "DiscountService - UPDATE - TC-9: Chuyển description rỗng thành null"
@@ -612,10 +633,10 @@ describe("DiscountService", () => {
   });
 
   describe("delete", () => {
-    it("DiscountService - DELETE - TC-1: should soft delete discount successfully", async () => {
+    it("DiscountService - delete - TC-01: should hard delete discount when never used", async () => {
       console.log("\n" + "=".repeat(50));
       console.log(
-        "DiscountService - DELETE - TC-1: Xóa mềm discount thành công"
+        "DiscountService - DELETE - TC-1: Xóa cứng discount khi chưa từng được sử dụng"
       );
       console.log("=".repeat(50));
 
@@ -627,9 +648,10 @@ describe("DiscountService", () => {
       const mockDiscount = {
         id: 1,
         code: "SUMMER2024",
+        used_count: 0,
       };
       DiscountRepository.findById.mockResolvedValue(mockDiscount);
-      DiscountRepository.softDelete.mockResolvedValue(true);
+      DiscountRepository.hardDelete.mockResolvedValue(true);
 
       // OUTPUT EXPECT
       console.log("✅ OUTPUT EXPECT: true");
@@ -642,19 +664,60 @@ describe("DiscountService", () => {
 
       // Assert
       expect(DiscountRepository.findById).toHaveBeenCalledWith(1);
-      expect(DiscountRepository.softDelete).toHaveBeenCalledTimes(1);
-
-      const [deletedId, newCode] = DiscountRepository.softDelete.mock.calls[0];
-      expect(deletedId).toBe(1);
-      expect(newCode).toContain("SUMMER2024__deleted__1__");
+      expect(DiscountRepository.hardDelete).toHaveBeenCalledWith(1);
+      expect(DiscountRepository.softDelete).not.toHaveBeenCalled();
 
       expect(result).toBe(true);
     });
 
-    it("DiscountService - DELETE - TC-2: should throw error when discount not found", async () => {
+    it("DiscountService - delete - TC-02: should soft delete discount when already used", async () => {
       console.log("\n" + "=".repeat(50));
       console.log(
-        "DiscountService - DELETE - TC-2: Lỗi khi không tìm thấy discount để xóa"
+        "DiscountService - DELETE - TC-2: Xóa mềm discount khi đã từng được sử dụng"
+      );
+      console.log("=".repeat(50));
+
+      // INPUT
+      const input = { id: 1 };
+      console.log("\n📝 INPUT:", JSON.stringify(input, null, 2));
+
+      // Arrange
+      const mockDiscount = {
+        id: 1,
+        code: "SUMMER2024",
+        used_count: 3,
+      };
+      DiscountRepository.findById.mockResolvedValue(mockDiscount);
+      DiscountRepository.softDelete.mockResolvedValue(true);
+
+      const nowSpy = jest.spyOn(Date, "now").mockReturnValue(1713072000000);
+
+      // OUTPUT EXPECT
+      console.log("✅ OUTPUT EXPECT: true");
+
+      // Act
+      const result = await DiscountService.delete(1);
+
+      // OUTPUT REALITY
+      console.log("🎯 OUTPUT REALITY:", result);
+
+      // Assert
+      expect(DiscountRepository.findById).toHaveBeenCalledWith(1);
+      expect(DiscountRepository.hardDelete).not.toHaveBeenCalled();
+      expect(DiscountRepository.softDelete).toHaveBeenCalledTimes(1);
+
+      const [deletedId, newCode] = DiscountRepository.softDelete.mock.calls[0];
+      expect(deletedId).toBe(1);
+      expect(newCode).toBe("SUMMER2024__deleted__1__1713072000000");
+      expect(result).toBe(true);
+
+      nowSpy.mockRestore();
+    });
+
+    it("DiscountService - delete - TC-03: should throw error when discount not found", async () => {
+      console.log("\n" + "=".repeat(50));
+      console.log(
+        "DiscountService - DELETE - TC-3: Lỗi khi không tìm thấy discount để xóa"
       );
       console.log("=".repeat(50));
 
@@ -675,6 +738,7 @@ describe("DiscountService", () => {
       // OUTPUT REALITY
       console.log("🎯 OUTPUT REALITY: throw error -", expectedError);
 
+      expect(DiscountRepository.hardDelete).not.toHaveBeenCalled();
       expect(DiscountRepository.softDelete).not.toHaveBeenCalled();
     });
   });

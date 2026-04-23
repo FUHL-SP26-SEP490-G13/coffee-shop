@@ -12,6 +12,9 @@ import { Label } from '../../../components/ui/label';
 import { Switch } from '../../../components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../components/ui/tabs';
 import PaginationControl from '../../../components/common/PaginationControl';
+import { toast } from 'sonner';
+import FaceRegistrationDialog from '@/components/admin/FaceRegistrationDialog';
+import { Camera } from 'lucide-react';
 
 export default function AdminUsers() {
   const [users, setUsers] = useState([]);
@@ -39,17 +42,19 @@ export default function AdminUsers() {
   const [password, setPassword] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [isTogglingStatus, setIsTogglingStatus] = useState(false);
+
+  const [isFaceRegistrationOpen, setIsFaceRegistrationOpen] = useState(false);
+  const [faceRegistrationUser, setFaceRegistrationUser] = useState(null);
   const USERS_PER_PAGE = 10;
 
   const normalizePhoneNumber = (phone) => {
-    const digitsOnly = (phone || '').replace(/\D/g, '');
-
-    // Convert +84xxxxxxxxx / 84xxxxxxxxx to local 0xxxxxxxxx format
-    if (digitsOnly.startsWith('84') && digitsOnly.length >= 11 && digitsOnly.length <= 12) {
-      return `0${digitsOnly.slice(2)}`;
+    const digits = String(phone || '').replace(/\D/g, '');
+    if (!digits) return '';
+    if (digits.startsWith('84') && digits.length >= 11) {
+      return `0${digits.slice(2)}`;
     }
-
-    return digitsOnly;
+    if (digits.length === 9) return `0${digits}`;
+    return digits;
   };
 
   const fetchUsers = async () => {
@@ -73,37 +78,70 @@ export default function AdminUsers() {
   }, []);
 
   const handleCreateChange = (field, value) => {
-    setCreateForm((prev) => ({ ...prev, [field]: value }));
+    setCreateError('');
+    setCreateForm((prev) => {
+      const nextForm = { ...prev, [field]: value };
+      const fieldError = validateCreateField(field, value);
+
+      setCreateFieldErrors((prevErrors) => {
+        const nextErrors = { ...prevErrors };
+        if (fieldError) {
+          nextErrors[field] = fieldError;
+        } else {
+          delete nextErrors[field];
+        }
+        return nextErrors;
+      });
+
+      return nextForm;
+    });
+  };
+
+  const validateCreateField = (field, value) => {
+    const normalizedValue = String(value || '').trim();
+
+    switch (field) {
+      case 'first_name':
+        if (!normalizedValue) return 'Họ không được để trống';
+        return '';
+      case 'last_name':
+        if (!normalizedValue) return 'Tên không được để trống';
+        return '';
+      case 'email':
+        if (!normalizedValue) return 'Email không được để trống';
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedValue)) {
+          return 'Email không hợp lệ';
+        }
+        return '';
+      case 'phone': {
+        if (!normalizedValue) return 'Số điện thoại không được để trống';
+        const normalizedPhone = normalizePhoneNumber(normalizedValue);
+        if (!/^[0-9]{10,11}$/.test(normalizedPhone)) {
+          return 'Số điện thoại phải có 10-11 chữ số';
+        }
+        return '';
+      }
+      case 'username':
+        if (!normalizedValue) return 'Username không được để trống';
+        return '';
+      case 'role_id':
+        if (!['2', '3'].includes(String(value))) return 'Vai trò không hợp lệ';
+        return '';
+      default:
+        return '';
+    }
   };
 
   const validateCreateForm = () => {
     const errors = {};
+    const fields = ['first_name', 'last_name', 'email', 'phone', 'username', 'role_id'];
 
-    if (!createForm.first_name.trim()) {
-      errors.first_name = 'Họ không được để trống';
-    }
-    if (!createForm.last_name.trim()) {
-      errors.last_name = 'Tên không được để trống';
-    }
-    if (!createForm.email.trim()) {
-      errors.email = 'Email không được để trống';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(createForm.email)) {
-      errors.email = 'Email không hợp lệ';
-    }
-    if (!createForm.phone.trim()) {
-      errors.phone = 'Số điện thoại không được để trống';
-    } else {
-      const normalizedPhone = normalizePhoneNumber(createForm.phone);
-      if (!/^[0-9]{10,11}$/.test(normalizedPhone)) {
-        errors.phone = 'Số điện thoại phải có 10-11 chữ số';
+    fields.forEach((field) => {
+      const fieldError = validateCreateField(field, createForm[field]);
+      if (fieldError) {
+        errors[field] = fieldError;
       }
-    }
-    if (!createForm.username.trim()) {
-      errors.username = 'Username không được để trống';
-    }
-    if (!['2', '3'].includes(createForm.role_id)) {
-      errors.role_id = 'Vai trò không hợp lệ';
-    }
+    });
 
     setCreateFieldErrors(errors);
     return Object.keys(errors).length === 0;
@@ -146,6 +184,7 @@ export default function AdminUsers() {
         await fetchUsers();
         setIsCreateOpen(false);
         resetCreateForm();
+        toast.success('Tạo nhân viên thành công');
       } else {
         setCreateError(response.message || 'Không thể tạo nhân viên');
       }
@@ -181,6 +220,8 @@ export default function AdminUsers() {
       );
 
       if (response.success) {
+        const isDeactivating = selectedUser?.isActive === 1;
+
         // Update local state
         setUsers(prevUsers =>
           prevUsers.map(u =>
@@ -189,6 +230,10 @@ export default function AdminUsers() {
               : u
           )
         );
+
+        if (isDeactivating) {
+          toast.success('Đã tạm khóa người dùng thành công');
+        }
 
         setIsPasswordOpen(false);
         setSelectedUser(null);
@@ -204,8 +249,14 @@ export default function AdminUsers() {
     }
   };
 
+  const handleFaceRegistrationClick = (user) => {
+    setFaceRegistrationUser(user);
+    setIsFaceRegistrationOpen(true);
+  };
+
+
   const getRoleInfo = (roleId) => {
-    switch (roleId) {
+    switch (Number(roleId)) {
       case 1:
         return { label: 'Quản lý', className: 'bg-red-500/10 text-red-700 border-red-500/20' };
       case 2:
@@ -224,10 +275,10 @@ export default function AdminUsers() {
     let result = [...users];
 
     // Loại bỏ admin (role_id = 1)
-    result = result.filter(user => user.role_id !== 1);
+    result = result.filter(user => Number(user.role_id) !== 1);
 
     // Lọc theo tab (role)
-    result = result.filter(user => user.role_id === parseInt(activeTab));
+    result = result.filter(user => Number(user.role_id) === Number(activeTab));
 
     // Tìm kiếm
     if (searchQuery) {
@@ -299,8 +350,7 @@ export default function AdminUsers() {
     <div className="p-4 sm:p-6">
       <div className="mb-4 sm:mb-6 flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <Users className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
-          <h1 className="text-xl sm:text-2xl font-semibold">Quản lý người dùng</h1>
+          <h1 className="text-xl font-semibold">Quản lý người dùng</h1>
         </div>
         <Button onClick={() => setIsCreateOpen(true)} className="w-full sm:w-auto hover:bg-amber-600 text-white">
           <Plus className="h-4 w-4 mr-2" />
@@ -358,28 +408,31 @@ export default function AdminUsers() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className='w-16'>STT</TableHead>
                     <TableHead>Người dùng</TableHead>
                     <TableHead>Tên đăng nhập</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Điện thoại</TableHead>
                     <TableHead>Vai trò</TableHead>
-                    <TableHead>Trạng thái</TableHead>
+                    <TableHead className='w-24 text-center'>Thao tác</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {paginatedUsers.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                         Không tìm thấy người dùng nào
                       </TableCell>
                     </TableRow>
                   ) : (
-                    paginatedUsers.map((user) => {
+                    paginatedUsers.map((user, index) => {
                       const roleInfo = getRoleInfo(user.role_id);
                       const fullName = `${user.first_name} ${user.last_name}`;
+                      const stt = (currentPage - 1) * USERS_PER_PAGE + index + 1;
 
                       return (
                         <TableRow key={user.id}>
+                          <TableCell>{stt}</TableCell>
                           <TableCell>
                             <div className="flex items-center gap-3">
                               <Avatar>
@@ -389,7 +442,6 @@ export default function AdminUsers() {
                               </Avatar>
                               <div className="flex flex-col">
                                 <span className="font-medium">{fullName}</span>
-                                <span className="text-xs text-muted-foreground">ID người dùng: {user.id}</span>
                               </div>
                             </div>
                           </TableCell>
@@ -405,10 +457,25 @@ export default function AdminUsers() {
                             </Badge>
                           </TableCell>
                           <TableCell>
-                            <Switch
-                              checked={user.isActive === 1}
-                              onCheckedChange={() => handleStatusToggle(user)}
-                            />
+                            <div className="flex items-center justify-center gap-2">
+                              <Switch
+                                checked={user.isActive === 1}
+                                onCheckedChange={() => handleStatusToggle(user)}
+                              />
+                              {user.role_id !== 4 && (
+                                <>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleFaceRegistrationClick(user)}
+                                    title="Đăng ký khuôn mặt"
+                                    disabled={user.isActive === 0}
+                                  >
+                                    <Camera className="h-4 w-4 text-green-600" />
+                                  </Button>
+                                </>
+                              )}
+                            </div>
                           </TableCell>
                         </TableRow>
                       );
@@ -610,6 +677,17 @@ export default function AdminUsers() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+
+      {/* Face Registration Dialog */}
+      <FaceRegistrationDialog 
+        isOpen={isFaceRegistrationOpen}
+        onClose={() => {
+          setIsFaceRegistrationOpen(false);
+          setFaceRegistrationUser(null);
+        }}
+        user={faceRegistrationUser}
+      />
     </div>
   );
 }

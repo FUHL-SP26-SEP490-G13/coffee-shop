@@ -18,11 +18,11 @@ import {
 } from '../../components/ui/dialog';
 import authenticationService from '../../services/authenticationService';
 import socket from '../../lib/socket';
-import { ReceiptModal } from './TakeAwayOrder/ReceiptModal';
+import { PrintableReceipt } from './PrintableReceipt';
 import { useNavigate } from 'react-router-dom';
 import PayOSLogo from "/logo/payOS.svg";
 
-const getProductPrice = (product, size = 'M') => {
+const getProductPrice = (product, size = 'S') => {
   const sizeItem = product.sizes?.find((s) => s.size === size);
   return sizeItem ? Number(sizeItem.price) : 0;
 };
@@ -39,13 +39,32 @@ const isProductAvailable = (product) => {
 };
 
 const CASH_SUGGESTIONS = [10000, 20000, 50000, 100000, 200000, 500000];
+const SIZE_DISPLAY_ORDER = ['S', 'M', 'L', 'XL', 'XXL'];
 
 const formatVND = (amount) =>
   new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
 
+const formatVNDCompact = (amount) => `${new Intl.NumberFormat('vi-VN').format(Number(amount || 0))}đ`;
+
+const getSortedSizes = (product) => {
+  const sizes = Array.isArray(product?.sizes) ? product.sizes : [];
+  return sizes
+    .filter((s) => s?.size && s?.price != null)
+    .sort((a, b) => {
+      const aSize = String(a.size).toUpperCase();
+      const bSize = String(b.size).toUpperCase();
+      const aIndex = SIZE_DISPLAY_ORDER.indexOf(aSize);
+      const bIndex = SIZE_DISPLAY_ORDER.indexOf(bSize);
+      if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
+      if (aIndex !== -1) return -1;
+      if (bIndex !== -1) return 1;
+      return aSize.localeCompare(bSize);
+    });
+};
+
 const TABLE_MANAGEMENT_PATH = '/staff/tables';
 
-export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
+export function POSModal({ isOpen, onClose, table, onTableStatusChange, editingOrder }) {
   const navigate = useNavigate();
   const [editingCartItem, setEditingCartItem] = useState(null);
   const [cart, setCart] = useState([]);
@@ -78,14 +97,26 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
           categoryService.getAll({ is_deleted: 0 }),
           toppingService.getAll({ is_deleted: 0 }),
         ]);
-        setProducts(productsRes.data || []);
+        const rawProducts = productsRes.data || [];
+        setProducts(rawProducts);
+
+        // Lọc danh mục rỗng — chỉ giữ category có ít nhất 1 sản phẩm available với size hợp lệ
+        const nonEmptyCategoryIds = new Set(
+          rawProducts
+            .filter(
+              (p) =>
+                String(p?.status || '').trim().toLowerCase() !== 'unavailable' &&
+                (p.sizes || []).filter((s) => !s.is_deleted).length > 0
+            )
+            .map((p) => p.category_id)
+        );
         const cats = categoriesRes.data?.data || categoriesRes.data || [];
-        setCategories(cats.filter((c) => !c.is_deleted));
+        setCategories(cats.filter((c) => !c.is_deleted && nonEmptyCategoryIds.has(c.id)));
         const rawToppings = toppingsRes.data?.data || toppingsRes.data || [];
         setToppings(
           rawToppings
-            .filter((t) => !t.is_deleted)
-            .map((t) => ({ id: t.id, name: t.name, price: Number(t.price) }))
+            .filter((t) => !t.is_deleted || t.is_deleted === 0 || t.is_deleted === '0')
+            .map((t) => ({ id: t.id, name: t.name, price: Number(t.price), category_ids: t.category_ids }))
         );
       } catch {
         toast.error('Không tải được dữ liệu sản phẩm');
@@ -112,7 +143,6 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
     loadProfile();
   }, []);
 
-  // Socket listener for PayOS Success
   useEffect(() => {
     if (!socket.connected) socket.connect();
 
@@ -133,15 +163,38 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
     return () => socket.off('order:payment-completed', handlePaymentCompleted);
   }, [navigate, pendingPayosOrderId]);
 
-  // Reset cart khi đổi bàn
+  // Reset cart when table changes or modal opens; pre-load from editingOrder if provided
   useEffect(() => {
     if (isOpen) {
-      setCart([]);
       setNote('');
       setSearchQuery('');
       setActiveCategory('all');
+      if (editingOrder?.items?.length > 0) {
+        // Map existing order items -> cart format
+        const preloaded = editingOrder.items.map((item) => ({
+          id: `existing-${item.id}-${Date.now()}`,
+          productId: item.product_size_id,
+          originalProductId: item.product_id,
+          product: { name: item.name || item.product_name, sizes: [] },
+          size: item.size || 'M',
+          price: Number(item.price),
+          quantity: Number(item.quantity),
+          toppings: (item.toppings || []).map((t) => ({
+            id: t.topping_id || t.id,
+            topping_id: t.topping_id || t.id,
+            name: t.name,
+            price: Number(t.price),
+            quantity: t.quantity || 1,
+          })),
+          note: item.note || '',
+        }));
+        setCart(preloaded);
+        if (editingOrder.note) setNote(editingOrder.note);
+      } else {
+        setCart([]);
+      }
     }
-  }, [isOpen, table?.id]);
+  }, [isOpen, table?.id, editingOrder]);
 
   const handleAddFromModal = (modalItem, isEditing = false) => {
     setCart((prev) => {
@@ -249,9 +302,7 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
     return orderService.checkout(payload);
   };
 
-
-
-  const handleSaveForLaterPayment = async () => {
+  const _handleSaveForLaterPayment = async () => {
     if (!table) {
       toast.error('Không tìm thấy thông tin bàn');
       return;
@@ -348,6 +399,7 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
         order_type: 'dine-in',
         table_id: Number(table.id),
         payment_method: resolvedPaymentMethod,
+        cash_received: resolvedPaymentMethod === 'cash' ? Number(customerCash) : undefined,
         receiver_name: `Khách Bàn ${table.code || ''}`,
         receiver_phone: '0000000000',
         items,
@@ -466,6 +518,27 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
     await handleSubmitOrder({ deferredPayment: true, notifyBarista: true });
   };
 
+  const handleUpdateOrder = async () => {
+    if (!editingOrder?.id) return;
+    if (cart.length === 0) {
+      toast.error('Giỏ hàng trống');
+      return;
+    }
+    setIsSubmittingOrder(true);
+    try {
+      const items = buildOrderItemsPayload();
+      await orderService.updateOrderItems(editingOrder.id, items);
+      toast.success('Cập nhật đơn hàng thành công');
+      setCart([]);
+      setNote('');
+      onClose();
+    } catch (error) {
+      toast.error(error?.response?.data?.message || 'Không cập nhật được đơn hàng');
+    } finally {
+      setIsSubmittingOrder(false);
+    }
+  };
+
   const filteredProducts = useMemo(() => {
     return products.filter((p) => {
       const isAvailable = isProductAvailable(p);
@@ -498,11 +571,11 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
       <div className="fixed inset-0 z-50 flex flex-col bg-background animate-in fade-in duration-200">
         {/* Top Bar */}
         <div
-          className={`bg-gradient-to-r ${statusColor} text-white px-6 py-3 flex items-center justify-between shadow-lg flex-shrink-0`}
+          className={`bg-gradient-to-r ${statusColor} text-white px-6 py-3 flex items-center justify-between shadow-lg dark:shadow-none flex-shrink-0`}
         >
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
-              <Coffee className="w-5 h-5" />
+            <div className="w-9 h-9 rounded-xl bg-white/95 dark:bg-gray-900/20 flex items-center justify-center">
+              <Coffee className="w-5 h-5 text-amber-700 dark:text-white" />
             </div>
             <div>
               <h2 className="font-bold text-lg leading-tight">
@@ -512,12 +585,12 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-sm bg-white/20 px-3 py-1 rounded-full font-medium">
+            <span className="text-sm bg-white/95 text-slate-800 dark:bg-gray-900/30 dark:text-white px-3 py-1 rounded-full font-medium">
               {cart.length > 0 ? `${cart.reduce((a, i) => a + i.quantity, 0)} món` : 'Chưa chọn món'}
             </span>
             <button
               onClick={onClose}
-              className="w-9 h-9 rounded-xl bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
+              className="w-9 h-9 rounded-xl bg-white/95 text-slate-800 hover:bg-white dark:bg-gray-900/30 dark:text-white dark:hover:bg-gray-900/50 flex items-center justify-center transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
@@ -543,8 +616,8 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
                 <button
                   onClick={() => setActiveCategory('all')}
                   className={`px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all flex-shrink-0 ${activeCategory === 'all'
-                    ? 'bg-amber-500 text-white shadow-sm'
-                    : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                    ? 'bg-amber-500 text-white shadow-sm dark:shadow-none'
+                    : 'bg-muted text-slate-700 dark:text-slate-200 hover:bg-muted/80'
                     }`}
                 >
                   Tất cả
@@ -553,12 +626,19 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
                   <button
                     key={cat.id}
                     onClick={() => setActiveCategory(cat.id)}
-                    className={`px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all flex-shrink-0 ${activeCategory === cat.id
-                      ? 'bg-amber-500 text-white shadow-sm'
-                      : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                    className={`px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1.5 flex-shrink-0 ${activeCategory === cat.id
+                      ? 'bg-amber-500 text-white shadow-sm dark:shadow-none'
+                      : 'bg-muted text-slate-700 dark:text-slate-200 hover:bg-muted/80'
                       }`}
                   >
-                    {cat.name}
+                    {cat.image_url && (
+                      <img
+                        src={cat.image_url}
+                        alt={cat.name}
+                        className="w-4 h-4 rounded-full object-cover bg-white shrink-0"
+                      />
+                    )}
+                    <span>{cat.name}</span>
                   </button>
                 ))}
               </div>
@@ -568,45 +648,61 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
             <div className="flex-1 overflow-y-auto p-4 pt-0">
               {loading ? (
                 <div className="flex items-center justify-center h-full">
-                  <div className="text-center text-muted-foreground">
+                  <div className="text-center text-slate-600 dark:text-slate-300">
                     <div className="w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
                     <p className="text-sm">Đang tải sản phẩm...</p>
                   </div>
                 </div>
               ) : filteredProducts.length === 0 ? (
-                <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
+                <div className="flex items-center justify-center h-full text-slate-600 dark:text-slate-300 text-sm">
                   Không tìm thấy sản phẩm
                 </div>
               ) : (
                 <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
                   {filteredProducts.map((product) => (
-                    <button
-                      key={product.id}
-                      onClick={() => setSelectedProduct(product)}
-                      className="group bg-card rounded-xl p-2 border border-border hover:border-amber-400/60 hover:shadow-md transition-all text-left relative overflow-hidden"
-                    >
-                      <div className="aspect-square bg-muted rounded-lg mb-2 overflow-hidden">
-                        {getProductImage(product) ? (
-                          <img
-                            src={getProductImage(product)}
-                            alt={product.name}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <Coffee className="w-8 h-8 text-muted-foreground/30" />
+                    (() => {
+                      const sortedSizes = getSortedSizes(product);
+                      return (
+                        <button
+                          key={product.id}
+                          onClick={() => setSelectedProduct(product)}
+                          className="group bg-card rounded-xl p-2 border border-border hover:border-amber-400/60 hover:shadow-md dark:shadow-none transition-all text-left relative overflow-hidden"
+                        >
+                          <div className="aspect-square bg-muted rounded-lg mb-2 overflow-hidden">
+                            {getProductImage(product) ? (
+                              <img
+                                src={getProductImage(product)}
+                                alt={product.name}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <Coffee className="w-8 h-8 text-muted-foreground/30" />
+                              </div>
+                            )}
                           </div>
-                        )}
-                      </div>
-                      <h3 className="text-xs font-semibold line-clamp-2 leading-tight mb-1 text-foreground">
-                        {product.name}
-                      </h3>
-                      <p className="text-[11px] font-bold text-amber-600">
-                        {formatVND(getProductPrice(product, 'M'))}
-                      </p>
-                      {/* Hover overlay */}
-                      <div className="absolute inset-0 bg-amber-500/0 group-hover:bg-amber-500/5 transition-colors rounded-xl" />
-                    </button>
+                          <h3 className="text-xs font-semibold line-clamp-2 leading-tight mb-1 text-foreground">
+                            {product.name}
+                          </h3>
+                          {sortedSizes.length > 0 ? (
+                            <div className="flex flex-wrap gap-1">
+                              {sortedSizes.map((sizeItem) => (
+                                <span
+                                  key={`${product.id}-${sizeItem.size}`}
+                                  className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300"
+                                >
+                                  {String(sizeItem.size).toUpperCase()}: {formatVNDCompact(sizeItem.price)}
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-300">Chưa có giá</p>
+                          )}
+                          {/* Hover overlay */}
+                          <div className="absolute inset-0 bg-amber-500/0 group-hover:bg-amber-500/5 transition-colors rounded-xl" />
+                        </button>
+                      );
+                    })()
                   ))}
                 </div>
               )}
@@ -617,10 +713,10 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
           <div className="w-80 xl:w-96 flex flex-col bg-card flex-shrink-0">
             {/* Cart Header */}
             <div className="px-4 py-3 border-b border-border flex items-center gap-2 flex-shrink-0">
-              <ShoppingCart className="w-4 h-4 text-muted-foreground" />
+              <ShoppingCart className="w-4 h-4 text-slate-600 dark:text-slate-300" />
               <span className="font-semibold text-sm">Giỏ hàng</span>
               {cart.length > 0 && (
-                <span className="ml-auto text-xs bg-amber-100 text-amber-700 rounded-full px-2 py-0.5 font-semibold">
+                <span className="ml-auto text-xs bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 rounded-full px-2 py-0.5 font-semibold">
                   {cart.reduce((a, i) => a + i.quantity, 0)} món
                 </span>
               )}
@@ -629,7 +725,7 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
             {/* Cart Items */}
             <div className="flex-1 overflow-y-auto p-3">
               {cart.length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-center text-muted-foreground gap-3">
+                <div className="h-full flex flex-col items-center justify-center text-slate-600 dark:text-slate-300 gap-3">
                   <ShoppingCart className="w-12 h-12 opacity-20" />
                   <p className="text-sm text-center">
                     Chọn sản phẩm để thêm vào giỏ
@@ -652,23 +748,23 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
                             e.stopPropagation();
                             setCart((prev) => prev.filter((i) => i.id !== item.id));
                           }}
-                          className="text-muted-foreground hover:text-red-500 p-1 rounded transition-colors flex-shrink-0"
+                          className="text-slate-500 dark:text-slate-300 hover:text-red-500 p-1 rounded transition-colors flex-shrink-0"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
-                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1.5">
+                      <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300 mb-1.5">
                         <span className="bg-muted px-1.5 py-0.5 rounded font-medium">
                           {item.size}
                         </span>
                         {item.toppings?.length > 0 && (
-                          <span className="text-amber-600 truncate">
+                          <span className="text-amber-600 dark:text-amber-400 truncate">
                             +{item.toppings.map((t) => t.name).join(', ')}
                           </span>
                         )}
                       </div>
                       {item.note && (
-                        <p className="text-xs text-muted-foreground italic line-clamp-1 mb-1.5">
+                        <p className="text-xs text-slate-500 dark:text-slate-300 italic line-clamp-1 mb-1.5">
                           "{item.note}"
                         </p>
                       )}
@@ -696,7 +792,7 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
                             <Plus className="w-3 h-3" />
                           </button>
                         </div>
-                        <span className="text-sm font-bold text-amber-600">
+                        <span className="text-sm font-bold text-amber-600 dark:text-amber-400">
                           {formatVND(
                             (Number(item.price || getProductPrice(item.product, item.size) || 0) +
                               (item.toppings || []).reduce(
@@ -715,7 +811,7 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
 
             {/* Note */}
             <div className="px-3 pb-2 flex-shrink-0">
-              <label className="text-xs text-muted-foreground font-medium block mb-1">
+              <label className="text-xs text-slate-600 dark:text-slate-300 font-medium block mb-1">
                 Ghi chú đơn hàng
               </label>
               <Textarea
@@ -729,27 +825,38 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
 
             <div className="p-3 border-t border-border flex-shrink-0 space-y-3">
               <div className="flex justify-between items-center px-1">
-                <span className="text-sm text-muted-foreground">Tổng cộng</span>
-                <span className="text-xl font-black text-amber-600">{formatVND(total)}</span>
+                <span className="text-sm text-slate-600 dark:text-slate-300">Tổng cộng</span>
+                <span className="text-xl font-black text-amber-600 dark:text-amber-400">{formatVND(total)}</span>
               </div>
-              <div className="grid grid-cols-2 gap-2">
+              {editingOrder ? (
+                // Edit mode: only show Update button
                 <Button
-                  onClick={handleSendToBarista}
+                  onClick={handleUpdateOrder}
                   disabled={cart.length === 0 || isSubmittingOrder}
-                  variant="outline"
-                  className="h-11 border-sky-200 text-sky-700 hover:bg-sky-50 rounded-xl text-sm"
+                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl h-11 text-sm"
                 >
-                  <Send className="w-4 h-4 mr-1.5" />
-                  Gửi barista
+                  {isSubmittingOrder ? 'Đang cập nhật...' : `Cập nhật đơn #${editingOrder.id} · ${formatVND(total)}`}
                 </Button>
-                <Button
-                  onClick={handleOpenPaymentModal}
-                  disabled={cart.length === 0 || isSubmittingOrder}
-                  className="bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl h-11 text-sm"
-                >
-                  Thanh toán · {formatVND(total)}
-                </Button>
-              </div>
+              ) : (
+                <div className="flex justify-center">
+                  {/* <Button
+                    onClick={handleSendToBarista}
+                    disabled={cart.length === 0 || isSubmittingOrder}
+                    variant="outline"
+                    className="h-11 border-sky-200 text-sky-700 hover:bg-sky-50 rounded-xl text-sm"
+                  >
+                    <Send className="w-4 h-4 mr-1.5" />
+                    Gửi barista
+                  </Button> */}
+                  <Button
+                    onClick={handleOpenPaymentModal}
+                    disabled={cart.length === 0 || isSubmittingOrder}
+                    className="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl h-11 text-sm"
+                  >
+                    Thanh toán · {formatVND(total)}
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -784,14 +891,14 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
       <Dialog open={isPaymentModalOpen} onOpenChange={setIsPaymentModalOpen}>
         <DialogContent className="sm:max-w-md p-6 z-[60]">
           <DialogHeader>
-            <DialogTitle className="text-gray-800 text-lg font-bold">
+            <DialogTitle className="text-gray-800 dark:text-gray-200 text-lg font-bold">
               Thanh toán — Bàn {table?.code}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-5">
             {/* Order Summary */}
-            <div className="bg-gray-50 rounded-xl p-4 space-y-2">
-              <div className="flex justify-between text-gray-500 text-sm">
+            <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 space-y-2">
+              <div className="flex justify-between text-gray-700 dark:text-gray-200 text-sm">
                 <span>Tổng tiền hàng</span>
                 <span>{formatVND(total)}</span>
               </div>
@@ -811,17 +918,17 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
 
             {/* Discount Code */}
             <div>
-              <label className="text-xs font-semibold text-gray-400 block mb-1">MÃ GIẢM GIÁ</label>
+              <label className="text-xs font-semibold text-gray-700 dark:text-gray-200 block mb-1">MÃ GIẢM GIÁ</label>
               <div className="flex gap-2">
                 <Input
                   placeholder="Nhập mã giảm giá"
                   value={discountCode}
                   onChange={(e) => setDiscountCode(e.target.value)}
-                  className="bg-gray-50 border-gray-200"
+                  className="bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700"
                 />
                 <Button
                   onClick={handleApplyDiscount}
-                  className="bg-orange-100 text-orange-500 hover:bg-orange-200 border-none px-4"
+                  className="bg-orange-100 text-orange-700 hover:bg-orange-200 dark:bg-orange-900/40 dark:text-orange-300 dark:hover:bg-orange-900/60 border-none px-4"
                 >
                   Áp dụng
                 </Button>
@@ -831,15 +938,15 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
 
             {/* Payment Method */}
             <div>
-              <label className="text-xs font-semibold text-gray-400 block mb-2">
+              <label className="text-xs font-semibold text-gray-700 dark:text-gray-200 block mb-2">
                 PHƯƠNG THỨC THANH TOÁN
               </label>
               <div className="grid grid-cols-2 gap-3">
                 <button
                   onClick={() => setPaymentMethod('cash')}
                   className={`flex items-center justify-center gap-2 p-3 rounded-xl border-2 font-medium transition-all ${paymentMethod === 'cash'
-                    ? 'border-green-500 text-green-600 bg-green-50/50'
-                    : 'border-gray-200 text-gray-600'
+                    ? 'border-green-500 text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30/50'
+                    : 'border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200'
                     }`}
                 >
                   <span className="text-lg">💵</span> Tiền mặt
@@ -847,8 +954,8 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
                 <button
                   onClick={() => setPaymentMethod('payos')}
                   className={`flex items-center justify-center gap-2 p-3 rounded-xl border-2 font-medium transition-all ${paymentMethod === 'payos'
-                    ? 'border-green-500 text-green-600 bg-green-50/50'
-                    : 'border-gray-200 text-gray-600'
+                    ? 'border-green-500 text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30/50'
+                    : 'border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200'
                     }`}
                 >
                   <img src={PayOSLogo} alt="PayOS" className="h-10 w-10" />
@@ -861,14 +968,14 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
             {paymentMethod === 'cash' && (
               <div className="space-y-4">
                 <div>
-                  <label className="text-xs font-semibold text-gray-400 block mb-1">
+                  <label className="text-xs font-semibold text-gray-700 dark:text-gray-200 block mb-1">
                     TIỀN KHÁCH ĐƯA
                   </label>
                   <Input
                     type="number"
                     value={customerCash || ''}
                     onChange={(e) => setCustomerCash(Number(e.target.value))}
-                    className="bg-gray-50 border-gray-200 text-lg font-bold"
+                    className="bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 text-lg font-bold"
                   />
                 </div>
                 <div className="flex gap-2">
@@ -877,17 +984,17 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
                       key={val}
                       onClick={() => setCustomerCash(val)}
                       className={`flex-1 p-2 rounded-full border text-sm font-medium transition-all ${customerCash === val
-                        ? 'border-green-500 text-green-600 bg-green-50'
-                        : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                        ? 'border-green-500 text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30'
+                        : 'border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800/50 dark:bg-gray-800/50'
                         }`}
                     >
                       {formatVND(val).replace(' ₫', '').trim()}
                     </button>
                   ))}
                 </div>
-                <div className="bg-blue-50/50 rounded-xl p-3 flex justify-between items-center">
-                  <span className="text-gray-500 text-sm">Tiền thừa trả khách</span>
-                  <span className="text-blue-600 font-bold text-lg">
+                <div className="bg-blue-50 dark:bg-blue-900/30/50 rounded-xl p-3 flex justify-between items-center">
+                  <span className="text-gray-700 dark:text-gray-200 text-sm">Tiền thừa trả khách</span>
+                  <span className="text-blue-600 dark:text-blue-400 font-bold text-lg">
                     {formatVND(
                       Math.max(0, customerCash - Math.max(0, total - discountAmount))
                     )}
@@ -902,7 +1009,7 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
                 variant="outline"
                 onClick={() => setIsPaymentModalOpen(false)}
                 disabled={isSubmittingOrder}
-                className="rounded-xl border-gray-200"
+                className="rounded-xl border-gray-200 dark:border-gray-700"
               >
                 Huỷ
               </Button>
@@ -910,7 +1017,7 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
                 onClick={handlePayLater}
                 disabled={isSubmittingOrder}
                 variant="outline"
-                className="rounded-xl border-amber-200 text-amber-700 hover:bg-amber-50"
+                className="rounded-xl border-amber-200 dark:border-amber-800/50 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:bg-amber-900/30"
               >
                 <Clock3 className="w-4 h-4 mr-1.5" />
                 Thanh toán sau
@@ -928,14 +1035,11 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange }) {
       </Dialog>
 
       {viewingReceipt && (
-        <ReceiptModal
+        <PrintableReceipt
           order={viewingReceipt}
-          onClose={() => {
+          onDone={() => {
             setViewingReceipt(null);
             onClose();
-          }}
-          onPrint={() => {
-            // Optional: call markPrintSuccess if needed
           }}
         />
       )}

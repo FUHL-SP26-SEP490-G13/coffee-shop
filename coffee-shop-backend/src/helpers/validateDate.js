@@ -20,7 +20,12 @@ function validateDate(date, checkFuture = true) {
     if (checkFuture) {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        if (parsed < today)
+        // Cho phép ngược 1 ngày để hỗ trợ ca qua đêm bắt đầu "hôm qua"
+        // nhưng chưa kết thúc (ví dụ: 23:00–03:00 check lúc 00:30 hôm sau)
+        // ShiftService sẽ dùng _buildShiftEndDatetime quyết định cuối cùng
+        const yesterday = new Date(today);
+        yesterday.setDate(today.getDate() - 1);
+        if (parsed < yesterday)
             throw new ErrorResponse(400, 'Không thể gán ca cho ngày trong quá khứ');
     }
 }
