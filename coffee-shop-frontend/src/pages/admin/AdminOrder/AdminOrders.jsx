@@ -27,6 +27,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "../../../components/ui/dialog";
+import PaginationControl from "../../../components/common/PaginationControl";
 
 export default function AdminOrders() {
   const [orders, setOrders] = useState([]);
@@ -37,6 +38,9 @@ export default function AdminOrders() {
   const [startDateFilter, setStartDateFilter] = useState("");
   const [endDateFilter, setEndDateFilter] = useState("");
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
 
   const hasAdvancedFilters =
     statusFilter !== "all" ||
@@ -61,8 +65,8 @@ export default function AdminOrders() {
 
         setLoading(true);
         const params = {
-          page: 1,
-          limit: 10000,
+          page: currentPage,
+          limit: 10,
           status: statusFilter,
         };
 
@@ -84,6 +88,8 @@ export default function AdminOrders() {
 
         const res = await orderService.getAllOrders(params);
         setOrders(res.data || []);
+        setTotalPages(res.pagination?.totalPages || 1);
+        setTotalItems(res.pagination?.totalCount || 0);
       } catch (error) {
         console.error("Lỗi tải đơn hàng:", error);
         toast.error("Không thể lấy danh sách đơn hàng");
@@ -93,6 +99,7 @@ export default function AdminOrders() {
     };
     fetchOrders();
   }, [
+    currentPage,
     statusFilter,
     orderTypeFilter,
     orderCodeFilter,
@@ -100,6 +107,10 @@ export default function AdminOrders() {
     endDateFilter,
     isInvalidDateRange,
   ]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [statusFilter, orderTypeFilter, orderCodeFilter, startDateFilter, endDateFilter]);
 
   const handleStatusChange = (val) => {
     setStatusFilter(val);
@@ -541,6 +552,17 @@ export default function AdminOrders() {
           </div>
         )}
       </div>
+
+      {!loading && orders.length > 0 && (
+        <PaginationControl
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+          totalItems={totalItems}
+          itemsPerPage={10}
+          itemName="đơn hàng"
+        />
+      )}
 
       {/* Order Details Modal */}
       <Dialog
