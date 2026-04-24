@@ -53,15 +53,6 @@ class OrderService {
       await connection.beginTransaction();
 
       const userId = user?.id || null;
-      const normalizedUsedPoints = Math.max(0, Number(used_points) || 0);
-
-      if (!Number.isInteger(normalizedUsedPoints) || normalizedUsedPoints < 0) {
-        throw new ErrorResponse(400, "Điểm sử dụng không hợp lệ");
-      }
-
-      if (normalizedUsedPoints > 0 && !userId) {
-        throw new ErrorResponse(401, "Bạn cần đăng nhập để sử dụng điểm loyalty");
-      }
 
       let sessionId = null;
       let tableCode = null;
@@ -214,17 +205,6 @@ class OrderService {
 
       const amountAfterVoucher = Math.max(0, totalAmount - discountAmount);
 
-      if (normalizedUsedPoints > 0) {
-        loyaltyDiscountAmount = await LoyaltyService.getRedeemDiscountForCheckout(
-          connection,
-          {
-            userId,
-            usedPoints: normalizedUsedPoints,
-            orderAmount: amountAfterVoucher,
-          }
-        );
-      }
-
       const finalAmount = Math.max(0, amountAfterVoucher - loyaltyDiscountAmount);
       const totalDiscountAmount = Math.max(
         0,
@@ -263,7 +243,7 @@ class OrderService {
         amount: totalAmount,
         discount_amount: totalDiscountAmount,
         total_amount: finalAmount,
-        used_points: normalizedUsedPoints,
+        used_points: 0,
         session_id: sessionId,
         note: order_note?.trim() || null,
         staff_id: userId,
@@ -368,13 +348,6 @@ class OrderService {
         await OrderRepository.incrementDiscountUsedCount(connection, discountIdApplied);
       }
 
-      if (normalizedUsedPoints > 0) {
-        await LoyaltyService.applyRedeemForOrder(connection, {
-          userId,
-          orderId,
-          usedPoints: normalizedUsedPoints,
-        });
-      }
 
       await connection.commit();
 
@@ -384,7 +357,7 @@ class OrderService {
         discount_amount: discountAmount,
         loyalty_discount_amount: loyaltyDiscountAmount,
         discount_code: discountCodeApplied,
-        used_points: normalizedUsedPoints,
+        used_points: 0,
         total_amount: finalAmount,
       };
     } catch (error) {
