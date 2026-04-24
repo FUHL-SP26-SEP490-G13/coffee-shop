@@ -632,7 +632,7 @@ class OrderService {
       throw new ErrorResponse(400, "Khoảng ngày không hợp lệ");
     }
 // Nếu start_date hoặc end_date không hợp lệ, ta có thể chọn cách xử lý là bỏ qua filter ngày thay vì trả lỗi
-    const [orders, totalCount] = await Promise.all([
+    const [orders, totalCount, statusCounts] = await Promise.all([
       OrderRepository.findAllOrders({
         limit,
         offset,
@@ -648,8 +648,15 @@ class OrderService {
         order_code,
         start_date: normalizedStartDate,
         end_date: normalizedEndDate,
+      }),
+      OrderRepository.getStatusCounts({
+        order_type,
+        order_code,
+        start_date: normalizedStartDate,
+        end_date: normalizedEndDate,
       })
     ]);
+
 
     for (const order of orders) {
       const items = await OrderRepository.findOrderItems(order.id);
@@ -662,14 +669,15 @@ class OrderService {
     const totalPages = Math.ceil(totalCount / parseInt(limit));
 
     return {
-      orders,
-      pagination: {
-        totalCount,
-        totalPages,
-        currentPage: parseInt(page),
-        limit: parseInt(limit)
-      }
-    };
+       orders,
+       statusCounts,
+       pagination: {
+         totalCount,
+         totalPages,
+         currentPage: parseInt(page),
+         limit: parseInt(limit)
+       }
+     };
   }
 
   async getActiveOrderForTable(tableId) {
