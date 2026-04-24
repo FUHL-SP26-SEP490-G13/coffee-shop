@@ -38,6 +38,11 @@ class OrderService {
       throw new ErrorResponse(400, "Vui lòng chọn bàn cho đơn hàng tại quán");
     }
 
+    const normalizedTableId = order_type === "dine-in" ? Number(payload.table_id) : null;
+    if (order_type === "dine-in" && isNaN(normalizedTableId)) {
+      throw new ErrorResponse(400, "Mã bàn không hợp lệ");
+    }
+
     if (!["cash", "payos"].includes(payment_method)) {
       throw new ErrorResponse(400, "Phương thức thanh toán không hợp lệ");
     }
@@ -59,16 +64,20 @@ class OrderService {
       }
 
       let sessionId = null;
+      let tableCode = null;
       if (order_type === "dine-in") {
         const [tableRows] = await connection.query(
-          "SELECT current_session_id FROM tables WHERE id = ?",
-          [payload.table_id]
+          "SELECT current_session_id, code FROM tables WHERE id = ?",
+          [normalizedTableId]
         );
         if (tableRows.length > 0) {
           sessionId = tableRows[0].current_session_id;
+          tableCode = tableRows[0].code;
           if (!sessionId) {
             sessionId = `sess_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
           }
+        } else {
+          throw new ErrorResponse(400, "Bàn không tồn tại");
         }
       }
 
@@ -242,13 +251,15 @@ class OrderService {
           : 0;
 
       const orderId = await OrderRepository.createOrder(connection, {
-        user_id: null,
+        user_id: userId,
+        created_by: userId,
+
         // Đơn tại quán và mang về sẽ bắt đầu ở trạng thái "preparing" để nhân viên bếp 
         // có thể thấy và xử lý ngay, không phải chờ khách thanh toán xong mới hiển thị
         status: (order_type === "dine-in" || order_type === "takeaway") ? "preparing" : "pending",
-        customer_type: "guest",
+        customer_type: user ? "registered" : "guest",
         order_type,
-        table_id: order_type === "dine-in" ? payload.table_id : null,
+        table_id: normalizedTableId,
         amount: totalAmount,
         discount_amount: totalDiscountAmount,
         total_amount: finalAmount,
@@ -261,7 +272,7 @@ class OrderService {
       if (order_type === "dine-in") {
         await connection.query(
           "UPDATE tables SET status = 'occupied', current_session_id = ? WHERE id = ?",
-          [sessionId, payload.table_id]
+          [sessionId, normalizedTableId]
         );
       }
 
@@ -287,7 +298,10 @@ class OrderService {
         }
       }
 
-      const normalizedReceiverName = receiver_name ? receiver_name.trim() : "";
+      let normalizedReceiverName = receiver_name?.trim() || "";
+      if (!normalizedReceiverName && order_type === "dine-in" && tableCode) {
+        normalizedReceiverName = `Khách Bàn ${tableCode}`;
+      }
       const normalizedReceiverPhone = receiver_phone ? receiver_phone.trim() : "";
       const normalizedReceiverEmail = receiver_email?.trim() || null;
       const normalizedAddress = address?.trim() || null;
