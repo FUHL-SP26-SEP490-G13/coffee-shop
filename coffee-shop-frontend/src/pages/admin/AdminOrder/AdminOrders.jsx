@@ -41,6 +41,7 @@ export default function AdminOrders() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
+  const [statusCounts, setStatusCounts] = useState([]);
 
   const hasAdvancedFilters =
     statusFilter !== "all" ||
@@ -88,6 +89,7 @@ export default function AdminOrders() {
 
         const res = await orderService.getAllOrders(params);
         setOrders(res.data || []);
+        setStatusCounts(res.statusCounts || []);
         setTotalPages(res.pagination?.totalPages || 1);
         setTotalItems(res.pagination?.totalCount || 0);
       } catch (error) {
@@ -103,9 +105,9 @@ export default function AdminOrders() {
     statusFilter,
     orderTypeFilter,
     orderCodeFilter,
-    startDateFilter,
     endDateFilter,
     isInvalidDateRange,
+    currentPage,
   ]);
 
   useEffect(() => {
@@ -114,10 +116,12 @@ export default function AdminOrders() {
 
   const handleStatusChange = (val) => {
     setStatusFilter(val);
+    setCurrentPage(1);
   };
 
   const handleOrderTypeChange = (val) => {
     setOrderTypeFilter(val);
+    setCurrentPage(1);
   };
 
   const handleResetFilters = () => {
@@ -126,6 +130,7 @@ export default function AdminOrders() {
     setOrderCodeFilter("");
     setStartDateFilter("");
     setEndDateFilter("");
+    setCurrentPage(1);
   };
 
   const getStatusInfo = (status) => {
@@ -215,7 +220,7 @@ export default function AdminOrders() {
     const mappedLabel = reasonLabelMap[reasonKey] || reasonKey;
     return reasonText ? `${mappedLabel}: ${reasonText}` : mappedLabel;
   };
-// Tính tổng tiền của đơn hàng dựa trên các món và topping, dùng để đối chiếu với total_amount từ API để suy ra phí giao hàng nếu có
+  // Tính tổng tiền của đơn hàng dựa trên các món và topping, dùng để đối chiếu với total_amount từ API để suy ra phí giao hàng nếu có
   const calculateSubtotal = (order) => {
     if (!order.items) return 0;
     return order.items.reduce((sum, item) => {
@@ -257,16 +262,19 @@ export default function AdminOrders() {
       cancelled: 0,
     };
 
-    orders.forEach((order) => {
-      const statusKey = getStatusInfo(order.status).key;
-      if (statusKey in base) {
-        base[statusKey] += 1;
-      }
-      base.all += 1;
-    });
+    if (Array.isArray(statusCounts)) {
+      statusCounts.forEach((item) => {
+        const statusInfo = getStatusInfo(item.status);
+        const statusKey = statusInfo.key;
+        if (statusKey in base) {
+          base[statusKey] = Number(item.total || 0);
+          base.all += Number(item.total || 0);
+        }
+      });
+    }
 
     return base;
-  }, [orders]);
+  }, [statusCounts]);
 
   const quickFilters = [
     { value: "all", label: "Tất cả" },
@@ -298,6 +306,7 @@ export default function AdminOrders() {
                 value={orderCodeFilter}
                 onChange={(e) => {
                   setOrderCodeFilter(e.target.value);
+                  setCurrentPage(1);
                 }}
                 placeholder="Ví dụ: 1025 hoặc #01025"
               />
@@ -310,6 +319,7 @@ export default function AdminOrders() {
                 value={startDateFilter}
                 onChange={(e) => {
                   setStartDateFilter(e.target.value);
+                  setCurrentPage(1);
                 }}
                 max={endDateFilter || undefined}
               />
@@ -322,6 +332,7 @@ export default function AdminOrders() {
                 value={endDateFilter}
                 onChange={(e) => {
                   setEndDateFilter(e.target.value);
+                  setCurrentPage(1);
                 }}
                 min={startDateFilter || undefined}
               />

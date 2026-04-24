@@ -141,7 +141,7 @@ class OrderOnlineService {
     const derived =
       Math.round(
         (orderTotal + loyaltyDiscountAmount - itemsSubtotal) /
-          OrderOnlineService.MONEY_ROUNDING_UNIT
+        OrderOnlineService.MONEY_ROUNDING_UNIT
       ) * OrderOnlineService.MONEY_ROUNDING_UNIT;
     if (Number.isFinite(derived) && derived > 0) {
       return derived;
@@ -186,12 +186,12 @@ class OrderOnlineService {
 
       let basePrice = Number(productSize.price);
       let isFlashSaleApplied = false;
-      
+
       // APPLY FLASH SALE FOR SPECIFIC ITEMS
       if (activeFlashSale && activeFlashSale.product_ids && activeFlashSale.product_ids.includes(productSize.product_id)) {
-         const discountRate = Number(activeFlashSale.discount_percent) / 100;
-         basePrice = Math.round(basePrice * (1 - discountRate));
-         isFlashSaleApplied = true;
+        const discountRate = Number(activeFlashSale.discount_percent) / 100;
+        basePrice = Math.round(basePrice * (1 - discountRate));
+        isFlashSaleApplied = true;
       }
       let toppingsTotal = 0;
       const normalizedToppings = [];
@@ -227,11 +227,11 @@ class OrderOnlineService {
       const unitPrice = basePrice + toppingsTotal;
       const itemTotal = unitPrice * quantity;
       totalAmount += itemTotal;
-      
+
       if (isFlashSaleApplied) {
-         flashSaleAmount += itemTotal;
+        flashSaleAmount += itemTotal;
       } else {
-         regularAmount += itemTotal;
+        regularAmount += itemTotal;
       }
 
       normalizedItems.push({
@@ -310,13 +310,13 @@ class OrderOnlineService {
 
         const pendingUnpaidCount = userId
           ? await OrderRepository.countPendingUnpaidOnlineOrdersByUser(
-              connection,
-              userId
-            )
+            connection,
+            userId
+          )
           : await OrderRepository.countPendingUnpaidOnlineOrdersByPhone(
-              connection,
-              normalizedReceiverPhone
-            );
+            connection,
+            normalizedReceiverPhone
+          );
 
         if (pendingUnpaidCount >= 2) {
           throw new ErrorResponse(
@@ -420,14 +420,14 @@ class OrderOnlineService {
         }
 
         const minOrderAmount = Number(discount.min_order_amount || 0);
-        
+
         if (regularAmount === 0) {
-           throw this.createBadRequestError("Không thể áp dụng mã giảm giá vì giỏ hàng của bạn chỉ toàn sản phẩm Flash Sale!");
+          throw this.createBadRequestError("Không thể áp dụng mã giảm giá vì giỏ hàng của bạn chỉ toàn sản phẩm Flash Sale!");
         }
 
         if (regularAmount < minOrderAmount) {
           throw this.createBadRequestError(
-             `Voucher chỉ áp dụng cho sản phẩm Thường. Mua thêm ${((minOrderAmount - regularAmount)).toLocaleString("vi-VN")}đ sản phẩm nguyên giá để áp dụng!`
+            `Voucher chỉ áp dụng cho sản phẩm Thường. Mua thêm ${((minOrderAmount - regularAmount)).toLocaleString("vi-VN")}đ sản phẩm nguyên giá để áp dụng!`
           );
         }
 
@@ -435,7 +435,7 @@ class OrderOnlineService {
         let calculatedDiscount = Math.round((regularAmount * percentage) / 100);
         const maxDiscount =
           discount.max_discount_amount === null ||
-          discount.max_discount_amount === undefined
+            discount.max_discount_amount === undefined
             ? null
             : Number(discount.max_discount_amount);
 
@@ -652,9 +652,9 @@ class OrderOnlineService {
       }
 
       const minOrderAmount = Number(discount.min_order_amount || 0);
-      
+
       if (regularAmount === 0) {
-         throw this.createBadRequestError("Không thể áp dụng mã giảm giá vì giỏ hàng của bạn chỉ toàn sản phẩm Flash Sale!");
+        throw this.createBadRequestError("Không thể áp dụng mã giảm giá vì giỏ hàng của bạn chỉ toàn sản phẩm Flash Sale!");
       }
 
       if (regularAmount < minOrderAmount) {
@@ -667,7 +667,7 @@ class OrderOnlineService {
       let calculatedDiscount = Math.round((regularAmount * percentage) / 100);
       const maxDiscount =
         discount.max_discount_amount === null ||
-        discount.max_discount_amount === undefined
+          discount.max_discount_amount === undefined
           ? null
           : Number(discount.max_discount_amount);
 
@@ -1099,7 +1099,7 @@ class OrderOnlineService {
       await this.syncCompletionRewardsForDelivery(orderCode);
     }
 
-    return { 
+    return {
       saved: true,
       order_id: orderCode,
       user_id: order?.user_id,

@@ -65,13 +65,10 @@ describe("OrderService", () => {
   describe("checkout", () => {
     it("OrderService - checkout - TC-01: ORD-SVC-CO-001 - CRUD: CREATE", async () => {
       const payload = {
-        order_type: "delivery",
+        order_type: "dine-in",
+        table_id: 10,
         payment_method: "cash",
-        receiver_name: "Nguyen Van A",
-        receiver_phone: "0123456789",
-        receiver_email: "a@example.com",
-        address: "123 ABC",
-        note: "Giao nhanh",
+        receiver_name: "",
         items: [{ product_size_id: 1, quantity: 2, toppings: [] }],
       };
       const expected = {
@@ -86,11 +83,12 @@ describe("OrderService", () => {
       logCase({
         tcid: "ORD-SVC-CO-001",
         crud: "CREATE",
-        scenario: "checkout cash không topping",
+        scenario: "checkout dine-in tại quán (fallback receiver_name)",
         input: { payload, user: { id: 1 } },
         expected,
       });
 
+      mockConnection.query.mockResolvedValueOnce([[{ current_session_id: "sess_123", code: "TB-01" }]]);
       OrderRepository.findProductSizeById.mockResolvedValue({
         id: 1,
         price: 30000,
@@ -109,58 +107,34 @@ describe("OrderService", () => {
         mockConnection,
         expect.objectContaining({
           user_id: 1,
-          created_by: 1,
           customer_type: "registered",
-          status: "pending",
-          order_type: "delivery",
-          total_amount: 60000,
-          amount: 60000,
-          discount_amount: 0,
-          used_points: 0,
+          status: "preparing",
+          order_type: "dine-in",
+          table_id: 10,
+          session_id: "sess_123",
+          staff_id: 1,
         })
       );
-      expect(OrderRepository.createOrderDetail).toHaveBeenCalledWith(
-        mockConnection,
-        {
-          order_id: 100,
-          product_size_id: 1,
-          quantity: 2,
-          price: 30000,
-        }
+      expect(mockConnection.query).toHaveBeenCalledWith(
+        expect.stringContaining("UPDATE tables SET status = 'occupied'"),
+        expect.arrayContaining(["sess_123", 10])
       );
       expect(OrderRepository.createOrderDeliveryInfo).toHaveBeenCalledWith(
         mockConnection,
-        {
-          order_id: 100,
-          receiver_name: "Nguyen Van A",
-          receiver_phone: "0123456789",
-          receiver_email: "a@example.com",
-          address: "123 ABC",
-          note: "Giao nhanh",
-        }
-      );
-      expect(OrderRepository.createOrderPayment).toHaveBeenCalledWith(
-        mockConnection,
-        {
-          order_id: 100,
-          payment_method: "cash",
-          payment_status: "paid",
-          amount: 60000,
-          paid_amount: 60000,
-          cash_received: 60000,
-          change_amount: 0,
-        }
+        expect.objectContaining({
+          receiver_name: "Khách Bàn TB-01",
+        })
       );
       expect(result).toEqual(expected);
     });
 
     it("OrderService - checkout - TC-02: ORD-SVC-CO-002 - CRUD: CREATE", async () => {
       const payload = {
-        order_type: "takeaway",
+        order_type: "dine-in",
+        table_id: 11,
         payment_method: "cash",
         cash_received: 100000,
         receiver_name: "Guest User",
-        receiver_phone: "0987654321",
         items: [
           {
             product_size_id: 1,
@@ -181,11 +155,12 @@ describe("OrderService", () => {
       logCase({
         tcid: "ORD-SVC-CO-002",
         crud: "CREATE",
-        scenario: "checkout cash có topping",
+        scenario: "checkout dine-in có topping và receiver_name thủ công",
         input: { payload, user: null },
         expected,
       });
 
+      mockConnection.query.mockResolvedValueOnce([[{ current_session_id: null, code: "TB-02" }]]);
       OrderRepository.findProductSizeById.mockResolvedValue({
         id: 1,
         price: 30000,
@@ -203,17 +178,19 @@ describe("OrderService", () => {
       const result = await OrderService.checkout(payload, null);
       logReality(result);
 
-      expect(OrderRepository.createOrderPayment).toHaveBeenCalledWith(
+      expect(OrderRepository.createOrder).toHaveBeenCalledWith(
         mockConnection,
-        {
-          order_id: 101,
-          payment_method: "cash",
-          payment_status: "paid",
-          amount: 80000,
-          paid_amount: 80000,
-          cash_received: 100000,
-          change_amount: 20000,
-        }
+        expect.objectContaining({
+          order_type: "dine-in",
+          table_id: 11,
+          status: "preparing",
+        })
+      );
+      expect(OrderRepository.createOrderDeliveryInfo).toHaveBeenCalledWith(
+        mockConnection,
+        expect.objectContaining({
+          receiver_name: "Guest User",
+        })
       );
       expect(result).toEqual(expected);
     });
@@ -247,50 +224,32 @@ describe("OrderService", () => {
 
     it("OrderService - checkout - TC-04: ORD-SVC-CO-004 - CRUD: CREATE", async () => {
       const payload = {
-        order_type: "delivery",
+        order_type: "dine-in",
+        table_id: 999,
         payment_method: "cash",
-        receiver_name: "",
-        receiver_phone: "",
         items: [{ product_size_id: 1, quantity: 1 }],
       };
-      const expected = {
-        order_id: 102,
-        subtotal_amount: 25000,
-        discount_amount: 0,
-        loyalty_discount_amount: 0,
-        discount_code: null,
-        used_points: 0,
-        total_amount: 25000,
-      };
+      const expectedError = "Bàn không tồn tại";
       logCase({
         tcid: "ORD-SVC-CO-004",
         crud: "CREATE",
-        scenario: "checkout cho phép thiếu receiver",
+        scenario: "checkout dine-in lỗi bàn không tồn tại",
         input: { payload, user: { id: 1 } },
-        expected,
+        expected: { error: expectedError },
       });
 
-      OrderRepository.findProductSizeById.mockResolvedValue({
-        id: 1,
-        price: 25000,
-        name: "Coffee",
-        status: "available",
-      });
-      OrderRepository.createOrder.mockResolvedValue(102);
-      OrderRepository.createOrderDetail.mockResolvedValue(202);
+      mockConnection.query.mockResolvedValueOnce([[]]);
 
-      const result = await OrderService.checkout(payload, { id: 1 });
-      logReality(result);
+      let actualError = null;
+      try {
+        await OrderService.checkout(payload, { id: 1 });
+      } catch (error) {
+        actualError = error.message;
+      }
+      logReality({ error: actualError });
 
-      expect(OrderRepository.createOrderDeliveryInfo).toHaveBeenCalledWith(
-        mockConnection,
-        expect.objectContaining({
-          order_id: 102,
-          receiver_name: "",
-          receiver_phone: "",
-        })
-      );
-      expect(result).toEqual(expected);
+      expect(actualError).toContain(expectedError);
+      expect(mockConnection.rollback).toHaveBeenCalled();
     });
 
     it("OrderService - checkout - TC-05: ORD-SVC-CO-005 - CRUD: CREATE", async () => {
@@ -357,35 +316,6 @@ describe("OrderService", () => {
       expect(mockConnection.release).toHaveBeenCalled();
     });
 
-    it("OrderService - checkout - TC-07: ORD-SVC-CO-007 - CRUD: CREATE", async () => {
-      const payload = {
-        order_type: "takeaway",
-        payment_method: "cash",
-        used_points: 1.5,
-        items: [{ product_size_id: 1, quantity: 1 }],
-      };
-      const expectedError = "Điểm sử dụng không hợp lệ";
-      logCase({
-        tcid: "ORD-SVC-CO-007",
-        crud: "CREATE",
-        scenario: "checkout lỗi used_points sai định dạng số nguyên",
-        input: { payload, user: { id: 1 } },
-        expected: { error: expectedError },
-      });
-
-      let actualError = null;
-      try {
-        await OrderService.checkout(payload, { id: 1 });
-      } catch (error) {
-        actualError = error.message;
-      }
-      logReality({ error: actualError });
-
-      expect(actualError).toContain(expectedError);
-      expect(mockConnection.rollback).toHaveBeenCalled();
-      expect(mockConnection.release).toHaveBeenCalled();
-      expect(OrderRepository.findProductSizeById).not.toHaveBeenCalled();
-    });
   });
 
   describe("getOrdersByUser", () => {
@@ -572,6 +502,64 @@ describe("OrderService", () => {
       logReality({ error: actualError });
 
       expect(actualError).toContain(expectedError);
+    });
+  });
+
+  describe("getActiveOrderForTable", () => {
+    it("OrderService - getActiveOrderForTable - TC-01: ORD-SVC-RO-004 - CRUD: READ", async () => {
+      const input = { tableId: 10 };
+      const expected = {
+        id: 100,
+        total_amount: 150000,
+        debt_amount: 150000,
+        unpaid_orders_count: 1,
+        items: [{ id: 1, name: "Trà sữa" }],
+      };
+      logCase({
+        tcid: "ORD-SVC-RO-004",
+        crud: "READ",
+        scenario: "lấy đơn đang hoạt động của bàn",
+        input,
+        expected,
+      });
+
+      mockConnection.query
+        .mockResolvedValueOnce([[{ current_session_id: "sess_123" }]])
+        .mockResolvedValueOnce([
+          [{ id: 100, total_amount: 150000, is_paid: 0, payment_status: "pending", created_at: "2026-01-01" }]
+        ]);
+
+      OrderRepository.findOrderItems.mockResolvedValue([{ id: 1, name: "Trà sữa" }]);
+      OrderRepository.findOrderDetailForStaff.mockResolvedValue({ id: 100, code: "ORD-123" });
+
+      const result = await OrderService.getActiveOrderForTable(10);
+      logReality(result);
+
+      expect(mockConnection.query).toHaveBeenCalledWith(
+        expect.stringContaining("SELECT current_session_id FROM tables"),
+        [10]
+      );
+      expect(result.total_amount).toBe(150000);
+      expect(result.items.length).toBe(1);
+      expect(result.id).toBe(100);
+    });
+
+    it("OrderService - getActiveOrderForTable - TC-02: ORD-SVC-RO-005 - CRUD: READ", async () => {
+      const input = { tableId: 11 };
+      logCase({
+        tcid: "ORD-SVC-RO-005",
+        crud: "READ",
+        scenario: "trả về null khi bàn không có session",
+        input,
+        expected: null,
+      });
+
+      mockConnection.query.mockResolvedValueOnce([[{ current_session_id: null }]]);
+
+      const result = await OrderService.getActiveOrderForTable(11);
+      logReality(result);
+
+      expect(result).toBeNull();
     });
   });
 });

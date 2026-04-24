@@ -804,6 +804,27 @@ class OrderRepository {
     return rows[0].count;
   }
 
+  async getStatusCounts({
+    order_type = "all",
+    order_code = "",
+    start_date = "",
+    end_date = "",
+  } = {}) {
+    let query = "SELECT o.status, COUNT(*) as total FROM orders o";
+    const { whereSql, params } = this.buildAdminOrderFilters({
+      status: "all",
+      order_type,
+      order_code,
+      start_date,
+      end_date,
+    });
+    query += whereSql;
+    query += " GROUP BY status";
+
+    const [rows] = await db.query(query, params);
+    return rows;
+  }
+
   async cancelExpiredPendingPayosOrders({ timeoutMinutes = 5 } = {}) {
     const safeTimeoutMinutes = Math.max(1, Number(timeoutMinutes) || 5);
 
