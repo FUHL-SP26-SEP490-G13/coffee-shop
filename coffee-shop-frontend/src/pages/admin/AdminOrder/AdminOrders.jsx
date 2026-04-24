@@ -27,6 +27,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "../../../components/ui/dialog";
+import PaginationControl from "../../../components/common/PaginationControl";
 
 export default function AdminOrders() {
   const [orders, setOrders] = useState([]);
@@ -37,6 +38,10 @@ export default function AdminOrders() {
   const [startDateFilter, setStartDateFilter] = useState("");
   const [endDateFilter, setEndDateFilter] = useState("");
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const ORDERS_PER_PAGE = 10;
 
   const hasAdvancedFilters =
     statusFilter !== "all" ||
@@ -61,8 +66,8 @@ export default function AdminOrders() {
 
         setLoading(true);
         const params = {
-          page: 1,
-          limit: 10000,
+          page: currentPage,
+          limit: ORDERS_PER_PAGE,
           status: statusFilter,
         };
 
@@ -84,6 +89,14 @@ export default function AdminOrders() {
 
         const res = await orderService.getAllOrders(params);
         setOrders(res.data || []);
+        if (res.pagination) {
+          setTotalPages(res.pagination.totalPages || 1);
+          setTotalItems(res.pagination.totalItems || 0);
+        } else {
+          // Fallback if pagination metadata is missing
+          setTotalPages(1);
+          setTotalItems(res.data?.length || 0);
+        }
       } catch (error) {
         console.error("Lỗi tải đơn hàng:", error);
         toast.error("Không thể lấy danh sách đơn hàng");
@@ -96,17 +109,19 @@ export default function AdminOrders() {
     statusFilter,
     orderTypeFilter,
     orderCodeFilter,
-    startDateFilter,
     endDateFilter,
     isInvalidDateRange,
+    currentPage,
   ]);
 
   const handleStatusChange = (val) => {
     setStatusFilter(val);
+    setCurrentPage(1);
   };
 
   const handleOrderTypeChange = (val) => {
     setOrderTypeFilter(val);
+    setCurrentPage(1);
   };
 
   const handleResetFilters = () => {
@@ -115,6 +130,7 @@ export default function AdminOrders() {
     setOrderCodeFilter("");
     setStartDateFilter("");
     setEndDateFilter("");
+    setCurrentPage(1);
   };
 
   const getStatusInfo = (status) => {
@@ -287,6 +303,7 @@ export default function AdminOrders() {
                 value={orderCodeFilter}
                 onChange={(e) => {
                   setOrderCodeFilter(e.target.value);
+                  setCurrentPage(1);
                 }}
                 placeholder="Ví dụ: 1025 hoặc #01025"
               />
@@ -299,6 +316,7 @@ export default function AdminOrders() {
                 value={startDateFilter}
                 onChange={(e) => {
                   setStartDateFilter(e.target.value);
+                  setCurrentPage(1);
                 }}
                 max={endDateFilter || undefined}
               />
@@ -311,6 +329,7 @@ export default function AdminOrders() {
                 value={endDateFilter}
                 onChange={(e) => {
                   setEndDateFilter(e.target.value);
+                  setCurrentPage(1);
                 }}
                 min={startDateFilter || undefined}
               />
@@ -539,6 +558,17 @@ export default function AdminOrders() {
               </table>
             </div>
           </div>
+        )}
+
+        {!loading && orders.length > 0 && (
+          <PaginationControl
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            totalItems={totalItems}
+            itemsPerPage={ORDERS_PER_PAGE}
+            itemName="đơn hàng"
+          />
         )}
       </div>
 
