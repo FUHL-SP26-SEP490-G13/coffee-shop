@@ -646,7 +646,7 @@ const AdminEndOfDayReport = () => {
                                       <td className="px-4 py-2">{ord.customerName}</td>
                                       <td className="px-4 py-2 text-right">{formatMoney(ord.totalItemsPrice)}</td>
                                       <td className="px-4 py-2 text-right text-red-500">-{formatMoney(ord.discount)}</td>
-                                      <td className="px-4 py-2 text-right font-bold text-green-600">{formatMoney(ord.netRevenue)}</td>
+                                      <td className="px-4 py-2 text-right font-bold text-green-600">{formatMoney(toNumber(ord.totalItemsPrice) - toNumber(ord.discount))}</td>
                                     </tr>
                                   ))}
                                 </tbody>
