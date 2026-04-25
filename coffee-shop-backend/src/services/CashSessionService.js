@@ -173,43 +173,6 @@ class CashSessionService {
   }
 
   // ================================================
-  // MANAGER ĐÓNG CA HỘ
-  // ================================================
-  async forceCloseSession(sessionId, { closing_cash_actual, closing_note }, manager) {
-    const session = await CashSessionRepository.findById(sessionId);
-    if (!session) throw new ErrorResponse(404, 'Ca làm việc không tồn tại');
-    if (session.status !== 'open') {
-      throw new ErrorResponse(400, 'Ca này đã được kết trước đó');
-    }
-
-    const actualCash = Number(closing_cash_actual) || 0;
-    const summary = await CashSessionRepository.getOrderSummary(sessionId);
-    const cashRevenue = Number(summary.cash_revenue || 0);
-    const systemCash = Number(session.opening_cash) + cashRevenue;
-    const difference = actualCash - systemCash;
-
-    const closedSession = await CashSessionRepository.closeSession(sessionId, {
-      closed_by: manager.id,
-      closed_at: new Date(),
-      closing_cash_actual: actualCash,
-      closing_cash_system: systemCash,
-      cash_difference: difference,
-      closing_note: `[Manager đóng hộ] ${closing_note?.trim() || ''}`,
-    });
-
-    return {
-      session: this._formatSession(closedSession),
-      closing_summary: {
-        opening_cash: session.opening_cash,
-        cash_revenue: cashRevenue,
-        closing_cash_system: systemCash,
-        closing_cash_actual: actualCash,
-        cash_difference: difference,
-      },
-    };
-  }
-
-  // ================================================
   // PHIẾU BÀN GIAO
   // ================================================
   async getReceipt(sessionId) {
@@ -261,16 +224,22 @@ class CashSessionService {
   }
 
   // ================================================
-  // LỊCH SỬ CÁC CA
+  // LỊCH SỬ CÁC CA (có phân trang)
   // ================================================
-  async getSessionHistory({ date, startDate, endDate, status }) {
-    const sessions = await CashSessionRepository.findAll({ date, startDate, endDate, status });
-    return sessions.map((s) => this._formatSession(s));
+  async getSessionHistory({ date, startDate, endDate, status, page = 1, limit = 10 }) {
+    const result = await CashSessionRepository.findAll({ date, startDate, endDate, status, page, limit });
+    return {
+      items: result.rows,
+      pagination: result.pagination,
+    };
   }
 
-  async getMySessionHistory({ date, startDate, endDate, status }, userId) {
-    const sessions = await CashSessionRepository.findAll({ date, startDate, endDate, status, userId });
-    return sessions.map((s) => this._formatSession(s));
+  async getMySessionHistory({ date, startDate, endDate, status, page = 1, limit = 10 }, userId) {
+    const result = await CashSessionRepository.findAll({ date, startDate, endDate, status, userId, page, limit });
+    return {
+      items: result.rows,
+      pagination: result.pagination,
+    };
   }
 
   // ================================================
