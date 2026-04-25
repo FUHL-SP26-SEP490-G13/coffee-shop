@@ -91,6 +91,10 @@ class RecipeService {
    * Create recipe
    */
   async createRecipe(productSizeId, ingredientId, quantity) {
+    if (Number(quantity) <= 0) {
+      throw new ErrorResponse(400, 'Số lượng nguyên liệu phải lớn hơn 0');
+    }
+
     // Check if ingredient exists
     const ingredient = await RecipeRepository.getIngredientById(ingredientId);
     if (!ingredient) {
@@ -128,6 +132,10 @@ class RecipeService {
    * Update recipe
    */
   async updateRecipe(recipeId, ingredientId, quantity) {
+    if (Number(quantity) <= 0) {
+      throw new ErrorResponse(400, 'Số lượng nguyên liệu phải lớn hơn 0');
+    }
+
     // Check if recipe exists
     const recipe = await RecipeRepository.getRecipeById(recipeId);
     if (!recipe) {
@@ -185,6 +193,16 @@ class RecipeService {
    * Create ingredient
    */
   async createIngredient(name, unitType, unit) {
+    if (!name || name.trim() === '') {
+      throw new ErrorResponse(400, 'Tên nguyên liệu không được để trống');
+    }
+    
+    // Check for duplicate name (optional, assuming search returns exact match or DB throws error, we'll throw 400)
+    const existing = await RecipeRepository.searchIngredients(name);
+    if (existing && existing.data && existing.data.some(i => i.name.toLowerCase() === name.toLowerCase())) {
+        throw new ErrorResponse(400, 'Tên nguyên liệu đã tồn tại');
+    }
+
     return RecipeRepository.createIngredient(name, unitType, unit);
   }
 
@@ -192,10 +210,19 @@ class RecipeService {
    * Update ingredient
    */
   async updateIngredient(ingredientId, name, unitType, unit) {
+    if (!name || name.trim() === '') {
+      throw new ErrorResponse(400, 'Tên nguyên liệu không được để trống');
+    }
+
     const ingredient = await RecipeRepository.getIngredientById(ingredientId);
 
     if (!ingredient) {
       throw new ErrorResponse(404, 'Nguyên liệu không tồn tại');
+    }
+
+    const existing = await RecipeRepository.searchIngredients(name);
+    if (existing && existing.data && existing.data.some(i => i.name.toLowerCase() === name.toLowerCase() && i.id !== ingredientId)) {
+        throw new ErrorResponse(400, 'Tên nguyên liệu đã tồn tại');
     }
 
     return RecipeRepository.updateIngredient(

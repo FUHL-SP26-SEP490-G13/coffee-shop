@@ -139,6 +139,11 @@ class CashSessionService {
 
     // 4. Hệ thống tự tính tiền lý thuyết
     const summary = await CashSessionRepository.getOrderSummary(sessionId);
+
+    if (Number(summary.pending_orders) > 0) {
+      throw new ErrorResponse(400, `Không thể kết ca. Còn ${summary.pending_orders} đơn hàng chưa hoàn tất/thanh toán.`);
+    }
+
     const cashRevenue = Number(summary.cash_revenue || 0);
     const systemCash = Number(session.opening_cash) + cashRevenue;
     const difference = actualCash - systemCash;
@@ -182,8 +187,19 @@ class CashSessionService {
       throw new ErrorResponse(400, 'Ca này đã được kết trước đó');
     }
 
-    const actualCash = Number(closing_cash_actual) || 0;
+    if (closing_cash_actual === undefined || closing_cash_actual === null) {
+      throw new ErrorResponse(400, 'Vui lòng nhập số tiền thực tế trong két');
+    }
+    const actualCash = Number(closing_cash_actual);
+    if (isNaN(actualCash) || actualCash < 0) {
+      throw new ErrorResponse(400, 'Số tiền thực tế không hợp lệ');
+    }
+
     const summary = await CashSessionRepository.getOrderSummary(sessionId);
+    if (Number(summary.pending_orders) > 0) {
+      throw new ErrorResponse(400, `Không thể đóng hộ ca. Còn ${summary.pending_orders} đơn hàng chưa hoàn tất/thanh toán.`);
+    }
+
     const cashRevenue = Number(summary.cash_revenue || 0);
     const systemCash = Number(session.opening_cash) + cashRevenue;
     const difference = actualCash - systemCash;
