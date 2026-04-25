@@ -25,6 +25,7 @@ import {
   Cell
 } from "recharts";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "../../../components/ui/tabs";
+import PaginationControl from "../../../components/common/PaginationControl";
 import { Badge } from "../../../components/ui/badge";
 import { Button } from "../../../components/ui/button";
 import { Calendar } from "../../../components/ui/calendar";
@@ -78,6 +79,9 @@ const AdminEndOfDayReport = () => {
   const [expandedTimeRows, setExpandedTimeRows] = useState(new Set()); // For Time report
   const [expandedStaffRows, setExpandedStaffRows] = useState(new Set()); // For Staff report
   const [staffViewType, setStaffViewType] = useState("chart"); // 'chart' or 'report'
+  const [overviewPage, setOverviewPage] = useState(1);
+  const [productPage, setProductPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
   const isRefreshing = loading && (data.length > 0 || productData.length > 0 || timeData.length > 0 || staffData.length > 0);
 
   const fetchReportData = useCallback(async () => {
@@ -101,6 +105,10 @@ const AdminEndOfDayReport = () => {
       setProductData(parseReportRows(productRes));
       setTimeData(parseReportRows(timeRes));
       setStaffData(parseReportRows(staffRes));
+      
+      // Reset page numbers when data is refreshed
+      setOverviewPage(1);
+      setProductPage(1);
     } catch (error) {
       console.error("Error fetching report data:", error);
       setData([]);
@@ -199,6 +207,17 @@ const AdminEndOfDayReport = () => {
       netRevenue: acc.netRevenue + toNumber(curr.netRevenue),
     }), { orderCount: 0, itemsPrice: 0, discount: 0, revenue: 0, netRevenue: 0 });
   }, [timeData]);
+
+  // Pagination calculations
+  const paginatedOverviewData = useMemo(() => {
+    const startIndex = (overviewPage - 1) * ITEMS_PER_PAGE;
+    return data.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [data, overviewPage]);
+
+  const paginatedProductData = useMemo(() => {
+    const startIndex = (productPage - 1) * ITEMS_PER_PAGE;
+    return productData.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [productData, productPage]);
 
   const staffTotals = useMemo(() => {
     return staffData.reduce((acc, curr) => ({
@@ -411,7 +430,7 @@ const AdminEndOfDayReport = () => {
                     <td className="px-4 py-3 text-right font-bold text-green-700">{formatMoney(totals.revenue)}</td>
                   </tr>
 
-                  {expandedRows.has(0) && data.map((order) => (
+                  {expandedRows.has(0) && paginatedOverviewData.map((order) => (
                     <tr key={order.orderId} className="report-row border-b transition-colors hover:bg-muted/50">
                       <td className="px-4 py-3 font-medium text-foreground">#{order.orderId}</td>
                       <td className="px-4 py-3">{order.customerName}</td>
@@ -446,6 +465,18 @@ const AdminEndOfDayReport = () => {
                 )}
               </table>
             </div>
+            {!loading && data.length > ITEMS_PER_PAGE && (
+              <div className="p-4 border-t bg-card">
+                <PaginationControl
+                  currentPage={overviewPage}
+                  totalPages={Math.ceil(data.length / ITEMS_PER_PAGE)}
+                  onPageChange={setOverviewPage}
+                  totalItems={data.length}
+                  itemsPerPage={ITEMS_PER_PAGE}
+                  itemName="hóa đơn"
+                />
+              </div>
+            )}
           </div>
         </TabsContent>
 
@@ -480,7 +511,7 @@ const AdminEndOfDayReport = () => {
                     <td className="px-4 py-3 text-right font-bold text-green-700">{formatMoney(productTotals.netRevenue)}</td>
                   </tr>
 
-                  {productData.map((prod) => (
+                  {paginatedProductData.map((prod) => (
                     <tr key={`${prod.productCode}-${prod.size}`} className="report-row border-b transition-colors hover:bg-muted/50">
                       <td className="px-4 py-3 font-mono text-xs text-sky-700 dark:text-sky-400 capitalize">{prod.productCode}</td>
                       <td className="px-4 py-3">
@@ -504,6 +535,18 @@ const AdminEndOfDayReport = () => {
                 </tbody>
               </table>
             </div>
+            {!loading && productData.length > ITEMS_PER_PAGE && (
+              <div className="p-4 border-t bg-card">
+                <PaginationControl
+                  currentPage={productPage}
+                  totalPages={Math.ceil(productData.length / ITEMS_PER_PAGE)}
+                  onPageChange={setProductPage}
+                  totalItems={productData.length}
+                  itemsPerPage={ITEMS_PER_PAGE}
+                  itemName="sản phẩm"
+                />
+              </div>
+            )}
           </div>
         </TabsContent>
 

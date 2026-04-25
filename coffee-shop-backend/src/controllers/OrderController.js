@@ -99,6 +99,7 @@ class OrderController {
       return res.json({
         success: true,
         data: result.orders,
+        statusCounts: result.statusCounts,
         pagination: result.pagination,
         message: "Lấy danh sách đơn hàng toàn hệ thống thành công",
       });

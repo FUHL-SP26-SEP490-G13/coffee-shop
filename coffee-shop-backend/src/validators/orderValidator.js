@@ -86,11 +86,18 @@ const checkoutOrderSchema = Joi.object({
       "alternatives.match": "Số tiền khách đưa không hợp lệ",
     }),
 
-  receiver_name: Joi.string().trim().min(2).max(100).required().messages({
-    "string.empty": "Tên người nhận không được để trống",
-    "any.required": "Tên người nhận là bắt buộc",
-    "string.min": "Tên người nhận phải có ít nhất 2 ký tự",
-    "string.max": "Tên người nhận không được vượt quá 100 ký tự",
+  receiver_name: Joi.alternatives().conditional("order_type", {
+    is: "dine-in",
+    then: Joi.string().trim().min(2).max(100).allow("", null).optional().messages({
+      "string.min": "Tên người nhận phải có ít nhất 2 ký tự",
+      "string.max": "Tên người nhận không được vượt quá 100 ký tự",
+    }),
+    otherwise: Joi.string().trim().min(2).max(100).required().messages({
+      "string.empty": "Tên người nhận không được để trống",
+      "any.required": "Tên người nhận là bắt buộc",
+      "string.min": "Tên người nhận phải có ít nhất 2 ký tự",
+      "string.max": "Tên người nhận không được vượt quá 100 ký tự",
+    }),
   }),
 
   receiver_phone: Joi.alternatives().conditional('order_type', {

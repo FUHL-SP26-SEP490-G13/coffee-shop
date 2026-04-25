@@ -27,6 +27,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "../../../components/ui/dialog";
+import PaginationControl from "../../../components/common/PaginationControl";
 
 export default function AdminOrders() {
   const [orders, setOrders] = useState([]);
@@ -37,6 +38,10 @@ export default function AdminOrders() {
   const [startDateFilter, setStartDateFilter] = useState("");
   const [endDateFilter, setEndDateFilter] = useState("");
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [statusCounts, setStatusCounts] = useState([]);
 
   const hasAdvancedFilters =
     statusFilter !== "all" ||
@@ -61,8 +66,8 @@ export default function AdminOrders() {
 
         setLoading(true);
         const params = {
-          page: 1,
-          limit: 10000,
+          page: currentPage,
+          limit: 10,
           status: statusFilter,
         };
 
@@ -84,6 +89,9 @@ export default function AdminOrders() {
 
         const res = await orderService.getAllOrders(params);
         setOrders(res.data || []);
+        setStatusCounts(res.statusCounts || []);
+        setTotalPages(res.pagination?.totalPages || 1);
+        setTotalItems(res.pagination?.totalCount || 0);
       } catch (error) {
         console.error("Lỗi tải đơn hàng:", error);
         toast.error("Không thể lấy danh sách đơn hàng");
@@ -93,20 +101,27 @@ export default function AdminOrders() {
     };
     fetchOrders();
   }, [
+    currentPage,
     statusFilter,
     orderTypeFilter,
     orderCodeFilter,
-    startDateFilter,
     endDateFilter,
     isInvalidDateRange,
+    currentPage,
   ]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [statusFilter, orderTypeFilter, orderCodeFilter, startDateFilter, endDateFilter]);
 
   const handleStatusChange = (val) => {
     setStatusFilter(val);
+    setCurrentPage(1);
   };
 
   const handleOrderTypeChange = (val) => {
     setOrderTypeFilter(val);
+    setCurrentPage(1);
   };
 
   const handleResetFilters = () => {
@@ -115,6 +130,7 @@ export default function AdminOrders() {
     setOrderCodeFilter("");
     setStartDateFilter("");
     setEndDateFilter("");
+    setCurrentPage(1);
   };
 
   const getStatusInfo = (status) => {
@@ -204,7 +220,7 @@ export default function AdminOrders() {
     const mappedLabel = reasonLabelMap[reasonKey] || reasonKey;
     return reasonText ? `${mappedLabel}: ${reasonText}` : mappedLabel;
   };
-// Tính tổng tiền của đơn hàng dựa trên các món và topping, dùng để đối chiếu với total_amount từ API để suy ra phí giao hàng nếu có
+  // Tính tổng tiền của đơn hàng dựa trên các món và topping, dùng để đối chiếu với total_amount từ API để suy ra phí giao hàng nếu có
   const calculateSubtotal = (order) => {
     if (!order.items) return 0;
     return order.items.reduce((sum, item) => {
@@ -246,16 +262,19 @@ export default function AdminOrders() {
       cancelled: 0,
     };
 
-    orders.forEach((order) => {
-      const statusKey = getStatusInfo(order.status).key;
-      if (statusKey in base) {
-        base[statusKey] += 1;
-      }
-      base.all += 1;
-    });
+    if (Array.isArray(statusCounts)) {
+      statusCounts.forEach((item) => {
+        const statusInfo = getStatusInfo(item.status);
+        const statusKey = statusInfo.key;
+        if (statusKey in base) {
+          base[statusKey] = Number(item.total || 0);
+          base.all += Number(item.total || 0);
+        }
+      });
+    }
 
     return base;
-  }, [orders]);
+  }, [statusCounts]);
 
   const quickFilters = [
     { value: "all", label: "Tất cả" },
@@ -287,6 +306,7 @@ export default function AdminOrders() {
                 value={orderCodeFilter}
                 onChange={(e) => {
                   setOrderCodeFilter(e.target.value);
+                  setCurrentPage(1);
                 }}
                 placeholder="Ví dụ: 1025 hoặc #01025"
               />
@@ -299,6 +319,7 @@ export default function AdminOrders() {
                 value={startDateFilter}
                 onChange={(e) => {
                   setStartDateFilter(e.target.value);
+                  setCurrentPage(1);
                 }}
                 max={endDateFilter || undefined}
               />
@@ -311,6 +332,7 @@ export default function AdminOrders() {
                 value={endDateFilter}
                 onChange={(e) => {
                   setEndDateFilter(e.target.value);
+                  setCurrentPage(1);
                 }}
                 min={startDateFilter || undefined}
               />
@@ -541,6 +563,17 @@ export default function AdminOrders() {
           </div>
         )}
       </div>
+
+      {!loading && orders.length > 0 && (
+        <PaginationControl
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+          totalItems={totalItems}
+          itemsPerPage={10}
+          itemName="đơn hàng"
+        />
+      )}
 
       {/* Order Details Modal */}
       <Dialog
