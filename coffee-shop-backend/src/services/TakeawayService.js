@@ -540,7 +540,7 @@ class TakeawayService {
   async markCompleted(orderId, staffUser) {
     const order = await TakeawayRepository.findOrderById(orderId);
     if (!order) throw new ErrorResponse(404, 'Đơn hàng không tồn tại');
-    if (order.status !== 'served')
+    if (order.status !== 'preparing')
       throw new ErrorResponse(400, 'Đơn chưa sẵn sàng để giao cho khách');
 
     const success = await TakeawayRepository.markCompleted(orderId);
@@ -561,7 +561,7 @@ class TakeawayService {
       (sum, item) => sum + Number(item.price) * Number(item.quantity),
       0,
     );
-      const subtotal = Math.max(0, Number(order.amount || 0));
+    const subtotal = Math.max(0, Number(order.amount || 0));
     const amountForDiscountCalc = Math.max(
       0,
       Number(order.amount || 0) || fallbackSubtotal,
@@ -569,7 +569,7 @@ class TakeawayService {
     const discountAmount = Math.max(
       0,
       Number(order.discount_amount || 0) ||
-        Math.max(0, amountForDiscountCalc + Number(order.delivery_fee || 0) - Number(order.total_amount || 0)),
+      Math.max(0, amountForDiscountCalc + Number(order.delivery_fee || 0) - Number(order.total_amount || 0)),
     );
     const deliveryFee = Math.max(0, Number(order.delivery_fee || 0));
 
