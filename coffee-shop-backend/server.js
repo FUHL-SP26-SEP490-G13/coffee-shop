@@ -1,3 +1,7 @@
+// ⚠️ PHẢI đặt TRƯỚC tất cả require khác để đảm bảo toàn bộ app chạy ở UTC+7
+// Fix lỗi lệch ngày khi deploy lên server Linux (Azure/Docker chạy UTC mặc định)
+process.env.TZ = 'Asia/Ho_Chi_Minh';
+
 const http = require("http");
 const { Server } = require("socket.io");
 
