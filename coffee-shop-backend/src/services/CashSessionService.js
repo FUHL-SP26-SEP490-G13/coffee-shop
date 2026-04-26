@@ -139,6 +139,11 @@ class CashSessionService {
 
     // 4. Hệ thống tự tính tiền lý thuyết
     const summary = await CashSessionRepository.getOrderSummary(sessionId);
+
+    if (Number(summary.pending_orders) > 0) {
+      throw new ErrorResponse(400, `Không thể kết ca. Còn ${summary.pending_orders} đơn hàng chưa hoàn tất/thanh toán.`);
+    }
+
     const cashRevenue = Number(summary.cash_revenue || 0);
     const systemCash = Number(session.opening_cash) + cashRevenue;
     const difference = actualCash - systemCash;
@@ -168,6 +173,54 @@ class CashSessionService {
             : 'Két khớp, không chênh lệch',
         // Cảnh báo đơn chưa thanh toán
         unpaid_orders: Number(summary.pending_orders || 0),
+      },
+    };
+  }
+
+  // ================================================
+  // MANAGER ĐÓNG CA HỘ
+  // ================================================
+  async forceCloseSession(sessionId, { closing_cash_actual, closing_note }, manager) {
+    const session = await CashSessionRepository.findById(sessionId);
+    if (!session) throw new ErrorResponse(404, 'Ca làm việc không tồn tại');
+    if (session.status !== 'open') {
+      throw new ErrorResponse(400, 'Ca này đã được kết trước đó');
+    }
+
+    if (closing_cash_actual === undefined || closing_cash_actual === null) {
+      throw new ErrorResponse(400, 'Vui lòng nhập số tiền thực tế trong két');
+    }
+    const actualCash = Number(closing_cash_actual);
+    if (isNaN(actualCash) || actualCash < 0) {
+      throw new ErrorResponse(400, 'Số tiền thực tế không hợp lệ');
+    }
+
+    const summary = await CashSessionRepository.getOrderSummary(sessionId);
+    if (Number(summary.pending_orders) > 0) {
+      throw new ErrorResponse(400, `Không thể đóng hộ ca. Còn ${summary.pending_orders} đơn hàng chưa hoàn tất/thanh toán.`);
+    }
+
+    const cashRevenue = Number(summary.cash_revenue || 0);
+    const systemCash = Number(session.opening_cash) + cashRevenue;
+    const difference = actualCash - systemCash;
+
+    const closedSession = await CashSessionRepository.closeSession(sessionId, {
+      closed_by: manager.id,
+      closed_at: new Date(),
+      closing_cash_actual: actualCash,
+      closing_cash_system: systemCash,
+      cash_difference: difference,
+      closing_note: `[Manager đóng hộ] ${closing_note?.trim() || ''}`,
+    });
+
+    return {
+      session: this._formatSession(closedSession),
+      closing_summary: {
+        opening_cash: session.opening_cash,
+        cash_revenue: cashRevenue,
+        closing_cash_system: systemCash,
+        closing_cash_actual: actualCash,
+        cash_difference: difference,
       },
     };
   }

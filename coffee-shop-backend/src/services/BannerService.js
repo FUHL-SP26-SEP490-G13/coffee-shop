@@ -24,7 +24,15 @@ class BannerService {
   }
 
   async create(data) {
-    const existedTitle = await bannerRepository.findByTitle(data.title);
+    if (!data.title || data.title.trim() === "") {
+      throw new ErrorResponse(400, "Tiêu đề không được để trống");
+    }
+
+    if (!data.image || data.image.trim() === "") {
+      throw new ErrorResponse(400, "Hình ảnh banner không được để trống");
+    }
+
+    const existedTitle = await bannerRepository.findByTitle(data.title.trim());
 
     if (existedTitle) {
       throw new ErrorResponse(400, "Tiêu đề quảng cáo đã tồn tại");
@@ -36,8 +44,21 @@ class BannerService {
   }
 
   async update(id, data) {
+    const banner = await bannerRepository.findById(id);
+    if (!banner) {
+      throw new ErrorResponse(404, "Không tìm thấy banner");
+    }
+
+    if (!data.title || data.title.trim() === "") {
+      throw new ErrorResponse(400, "Tiêu đề không được để trống");
+    }
+
+    if (!data.image || data.image.trim() === "") {
+      throw new ErrorResponse(400, "Hình ảnh banner không được để trống");
+    }
+
     const existedTitle = await bannerRepository.findByTitleExcludeId(
-      data.title,
+      data.title.trim(),
       id
     );
 
@@ -51,6 +72,10 @@ class BannerService {
   }
 
   async delete(id) {
+    const banner = await bannerRepository.findById(id);
+    if (!banner) {
+      throw new ErrorResponse(404, "Không tìm thấy banner để xóa");
+    }
     return bannerRepository.delete(id);
   }
 
