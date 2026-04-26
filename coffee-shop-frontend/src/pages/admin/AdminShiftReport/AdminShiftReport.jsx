@@ -119,11 +119,19 @@ const AdminShiftReport = () => {
         limit: pagination.limit,
       });
 
+      // Response: { success, data: { items: [...], pagination: {...} } }
       const responseData = res?.data || res;
-      setData(parseReportRows(responseData));
+      const items = Array.isArray(responseData?.items) ? responseData.items : parseReportRows(responseData);
+      setData(items);
 
       if (responseData?.pagination) {
-        setPagination(responseData.pagination);
+        setPagination((prev) => ({
+          ...prev,
+          currentPage: responseData.pagination.currentPage ?? prev.currentPage,
+          totalPages: responseData.pagination.totalPages ?? prev.totalPages,
+          total: responseData.pagination.total ?? prev.total,
+          limit: responseData.pagination.limit ?? prev.limit,
+        }));
       }
     } catch (error) {
       console.error("Error fetching shift report data:", error);

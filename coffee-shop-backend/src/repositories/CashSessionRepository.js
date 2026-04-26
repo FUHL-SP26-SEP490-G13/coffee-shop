@@ -90,8 +90,8 @@ class CashSessionRepository {
     return row?.code || null;
   }
 
-  // Lấy lịch sử các ca — filter theo date hoặc status hoặc userId
-  async findAll({ date, startDate, endDate, status, userId }) {
+  // Lấy lịch sử các ca — filter theo date, status, userId — có phân trang
+  async findAll({ date, startDate, endDate, status, userId, page = 1, limit = 10 }) {
     const conditions = [];
     const params = [];
 
@@ -120,21 +120,53 @@ class CashSessionRepository {
       ? `WHERE ${conditions.join(' AND ')}`
       : '';
 
+    // Count total
+    const [[{ total }]] = await pool.query(
+      `SELECT COUNT(*) AS total FROM cash_sessions cs ${where}`,
+      params,
+    );
+
+    const totalPages = Math.max(1, Math.ceil(total / limit));
+    const safePage = Math.min(Math.max(1, page), totalPages);
+    const offset = (safePage - 1) * limit;
+
+    // Main query — flat fields cho report + paid_orders_count
     const [rows] = await pool.query(
       `SELECT
                 cs.*,
+                u_open.first_name  AS first_name,
+                u_open.last_name   AS last_name,
                 u_open.first_name  AS opener_first_name,
                 u_open.last_name   AS opener_last_name,
                 u_close.first_name AS closer_first_name,
-                u_close.last_name  AS closer_last_name
+                u_close.last_name  AS closer_last_name,
+                COALESCE(os.paid_orders_count, 0) AS paid_orders_count
              FROM cash_sessions cs
              JOIN  users u_open  ON cs.opened_by  = u_open.id
              LEFT JOIN users u_close ON cs.closed_by = u_close.id
+             LEFT JOIN (
+               SELECT o.cash_session_id,
+                      COUNT(*) AS paid_orders_count
+               FROM orders o
+               JOIN order_payments op ON o.id = op.order_id
+               WHERE op.payment_status = 'paid'
+               GROUP BY o.cash_session_id
+             ) os ON os.cash_session_id = cs.id
              ${where}
-             ORDER BY cs.opened_at DESC`,
-      params,
+             ORDER BY cs.opened_at DESC
+             LIMIT ? OFFSET ?`,
+      [...params, limit, offset],
     );
-    return rows;
+
+    return {
+      rows,
+      pagination: {
+        currentPage: safePage,
+        totalPages,
+        total,
+        limit,
+      },
+    };
   }
 
   // ================================================
