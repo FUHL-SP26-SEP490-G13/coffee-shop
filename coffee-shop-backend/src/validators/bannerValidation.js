@@ -41,14 +41,6 @@ const bannerBaseSchema = {
     "date.base": "Ngày kết thúc không hợp lệ",
     "any.required": "Ngày kết thúc là bắt buộc",
   }),
-
-  type: Joi.string().valid("banner").required().messages({
-    "any.only": "Loại banner không hợp lệ",
-    "any.required": "Loại banner là bắt buộc",
-  }),
-
-  //type: Joi.string().allow("", null),
-  //image_url: Joi.string().uri().allow("", null),
 };
 
 const createBannerSchema = Joi.object(bannerBaseSchema).custom(
