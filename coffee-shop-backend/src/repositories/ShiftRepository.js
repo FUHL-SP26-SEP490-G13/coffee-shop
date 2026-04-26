@@ -272,7 +272,7 @@ class ShiftRepository {
          sr.shift_id,
          u.first_name, u.last_name,
          r.role_name,
-         s.shift_date,
+         DATE_FORMAT(s.shift_date, '%Y-%m-%d') AS shift_date,
          s.template_id,
          st.name AS template_name,
          st.start_time,

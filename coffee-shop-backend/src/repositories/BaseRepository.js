@@ -80,14 +80,16 @@ class BaseRepository {
    * Update record
    */
   async update(id, data) {
-    const keys = Object.keys(data);
+    // Lọc bỏ các entry có giá trị undefined
+    const filteredEntries = Object.entries(data).filter(([, v]) => v !== undefined);
 
-    if (keys.length === 0) {
+    if (filteredEntries.length === 0) {
       throw new Error('Không có dữ liệu để update');
     }
 
-    const values = Object.values(data);
-    const setClause = keys.map((key) => `${key} = ?`).join(',');
+    const keys = filteredEntries.map(([k]) => k);
+    const values = filteredEntries.map(([, v]) => v);
+    const setClause = keys.map((key) => `${key} = ?`).join(', ');
 
     const query = `UPDATE ${this.tableName} SET ${setClause} WHERE id = ?`;
 
