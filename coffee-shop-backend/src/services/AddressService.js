@@ -36,6 +36,15 @@ class AddressService {
       await AddressRepository.clearDefaultByUserId(userId);
     }
 
+    if (!payload.address || payload.address.trim() === '') {
+      throw new ErrorResponse(400, 'Địa chỉ cụ thể không được để trống');
+    }
+
+    const phoneRegex = /(84|0[3|5|7|8|9])+([0-9]{8})\b/;
+    if (payload.receiver_phone && !phoneRegex.test(payload.receiver_phone)) {
+      throw new ErrorResponse(400, 'Số điện thoại người nhận không hợp lệ');
+    }
+
     const created = await AddressRepository.create({
       user_id: userId,
       receiver_name: this.normalizeNullableText(payload.receiver_name),

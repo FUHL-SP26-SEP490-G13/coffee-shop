@@ -1,4 +1,4 @@
-const { RekognitionClient, IndexFacesCommand, SearchFacesByImageCommand, CreateCollectionCommand } = require('@aws-sdk/client-rekognition');
+const { RekognitionClient, IndexFacesCommand, SearchFacesByImageCommand, CreateCollectionCommand, DeleteFacesCommand } = require('@aws-sdk/client-rekognition');
 const env = require('../config/env');
 
 const rekognitionClient = new RekognitionClient({
@@ -75,6 +75,23 @@ class RekognitionService {
          return null; // Không có mặt trong ảnh
       }
       throw error;
+    }
+  }
+
+  /**
+   * Xóa khuôn mặt cũ khỏi Collection
+   * @param {string} faceId
+   */
+  async deleteFace(faceId) {
+    if (!faceId) return;
+    try {
+      const command = new DeleteFacesCommand({
+        CollectionId: COLLECTION_ID,
+        FaceIds: [faceId]
+      });
+      await rekognitionClient.send(command);
+    } catch (error) {
+      console.error('Lỗi khi xóa khuôn mặt cũ khỏi AWS Rekognition:', error);
     }
   }
 }

@@ -65,31 +65,7 @@ export function UserProfile() {
   const [profileFieldErrors, setProfileFieldErrors] = useState({});
   const [addressFieldErrors, setAddressFieldErrors] = useState({});
 
-  const [attendanceUser, setAttendanceUser] = useState(null);
-  const [isFetchingAttendance, setIsFetchingAttendance] = useState(false);
-  const [attendanceDialogOpen, setAttendanceDialogOpen] = useState(false);
-  const [attendancePassword, setAttendancePassword] = useState('');
-  const [isUpdatingAttendance, setIsUpdatingAttendance] = useState(false);
 
-  useEffect(() => {
-    if (profile?.role_id === 1) {
-      const fetchAttendanceUser = async () => {
-        setIsFetchingAttendance(true);
-        try {
-          const response = await userService.getUsersByRole(5); // 5 = ATTENDANCE role
-          if (response?.data && response.data.length > 0) {
-            setAttendanceUser(response.data[0]);
-          }
-        } catch (error) {
-          console.error("Failed to fetch attendance user", error);
-        } finally {
-          setIsFetchingAttendance(false);
-        }
-      };
-      
-      fetchAttendanceUser();
-    }
-  }, [profile?.role_id]);
 
   useEffect(() => {
     let isMounted = true;
@@ -218,8 +194,8 @@ export function UserProfile() {
         phone: normalizedPhone,
       };
 
-          const response = await userService.updateProfile(updateData);
-      
+      const response = await userService.updateProfile(updateData);
+
       if (!response?.success) {
         throw new Error(response?.message || 'Không thể cập nhật profile');
       }
@@ -462,7 +438,7 @@ export function UserProfile() {
         <div className="flex-1 flex items-start justify-center p-4 sm:p-6 lg:p-8 relative z-10 w-full animate-in fade-in duration-500">
           <div className="w-full max-w-5xl">
             <div className="grid gap-6 lg:grid-cols-12 px-2 sm:px-4 pt-4 pb-12">
-              
+
               {/* Cột 1: Thông tin cá nhân */}
               <div className="lg:col-span-8 flex flex-col gap-6">
                 <Card className="rounded-[24px] border-white/50 dark:border-gray-800/80 bg-white/70 dark:bg-gray-900/70 backdrop-blur-xl shadow-lg border relative overflow-hidden animate-in slide-in-from-bottom-4 duration-700">
@@ -490,17 +466,17 @@ export function UserProfile() {
                       </div>
                     )}
                   </div>
-                  
+
                   <CardHeader className="pt-6 sm:pt-6 pb-2 relative z-0">
                     <div className="flex flex-col sm:flex-row items-center sm:items-end gap-5">
                       <div className="relative">
                         <Avatar className="w-24 h-24 sm:w-28 sm:h-28 border-4 border-white dark:border-gray-900 shadow-xl rounded-full">
                           <AvatarFallback className="text-3xl bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300 font-bold">
-                              {displayName
-                                .split(' ')
-                                .filter(Boolean)
-                                .map((n) => n[0])
-                                .join('') || 'U'}
+                            {displayName
+                              .split(' ')
+                              .filter(Boolean)
+                              .map((n) => n[0])
+                              .join('') || 'U'}
                           </AvatarFallback>
                         </Avatar>
                         {isCustomer && (
@@ -642,93 +618,93 @@ export function UserProfile() {
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-4">
-                          {isAddressLoading ? (
-                            <div className="flex flex-col items-center justify-center p-8 border border-dashed rounded-2xl bg-white/50">
-                               <Loader2 className="w-6 h-6 animate-spin text-amber-500 mb-2" />
-                              <p className="text-sm text-muted-foreground">Đang tải danh sách địa chỉ...</p>
-                            </div>
-                          ) : addresses.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center p-10 border border-dashed rounded-2xl bg-white/30 text-center">
-                              <MapPin className="w-10 h-10 text-gray-300 mb-3" />
-                              <p className="text-sm text-muted-foreground font-medium">Bạn chưa có địa chỉ nào.</p>
-                              <p className="text-xs text-gray-400 mt-1">Hãy thêm địa chỉ để tiện lợi khi đặt hàng!</p>
-                            </div>
-                          ) : (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              {addresses.map((item) => {
-                                const typeInfo = getAddressTypeIconLabel(item.address_type);
-                                return (
-                                  <div key={item.id} className="group relative border border-gray-200/60 dark:border-gray-800 bg-white/80 dark:bg-black/20 rounded-2xl p-5 hover:border-amber-300 dark:hover:border-amber-700 shadow-sm hover:shadow-md transition-all">
-                                    {Number(item.is_default) === 1 && (
-                                      <div className="absolute top-0 right-5 -mt-3">
-                                        <span className="text-[11px] font-bold bg-amber-500 text-white px-3 py-1 rounded-full shadow-sm">
-                                          Mặc định
-                                        </span>
+                        {isAddressLoading ? (
+                          <div className="flex flex-col items-center justify-center p-8 border border-dashed rounded-2xl bg-white/50">
+                            <Loader2 className="w-6 h-6 animate-spin text-amber-500 mb-2" />
+                            <p className="text-sm text-muted-foreground">Đang tải danh sách địa chỉ...</p>
+                          </div>
+                        ) : addresses.length === 0 ? (
+                          <div className="flex flex-col items-center justify-center p-10 border border-dashed rounded-2xl bg-white/30 text-center">
+                            <MapPin className="w-10 h-10 text-gray-300 mb-3" />
+                            <p className="text-sm text-muted-foreground font-medium">Bạn chưa có địa chỉ nào.</p>
+                            <p className="text-xs text-gray-400 mt-1">Hãy thêm địa chỉ để tiện lợi khi đặt hàng!</p>
+                          </div>
+                        ) : (
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {addresses.map((item) => {
+                              const typeInfo = getAddressTypeIconLabel(item.address_type);
+                              return (
+                                <div key={item.id} className="group relative border border-gray-200/60 dark:border-gray-800 bg-white/80 dark:bg-black/20 rounded-2xl p-5 hover:border-amber-300 dark:hover:border-amber-700 shadow-sm hover:shadow-md transition-all">
+                                  {Number(item.is_default) === 1 && (
+                                    <div className="absolute top-0 right-5 -mt-3">
+                                      <span className="text-[11px] font-bold bg-amber-500 text-white px-3 py-1 rounded-full shadow-sm">
+                                        Mặc định
+                                      </span>
+                                    </div>
+                                  )}
+
+                                  <div className="flex items-start justify-between gap-3 mb-3">
+                                    <div className="flex items-center gap-2">
+                                      <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-500 dark:text-gray-400 shrink-0">
+                                        {typeInfo.icon}
                                       </div>
-                                    )}
-
-                                    <div className="flex items-start justify-between gap-3 mb-3">
-                                      <div className="flex items-center gap-2">
-                                        <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-500 dark:text-gray-400 shrink-0">
-                                           {typeInfo.icon}
-                                        </div>
-                                        <div>
-                                          <p className="font-bold text-sm text-gray-900 dark:text-gray-100 line-clamp-1">{item.receiver_name || 'Không tên'}</p>
-                                          <p className="text-xs text-muted-foreground">{item.receiver_phone || 'Thiếu SĐT'}</p>
-                                        </div>
+                                      <div>
+                                        <p className="font-bold text-sm text-gray-900 dark:text-gray-100 line-clamp-1">{item.receiver_name || 'Không tên'}</p>
+                                        <p className="text-xs text-muted-foreground">{item.receiver_phone || 'Thiếu SĐT'}</p>
                                       </div>
-                                      
                                     </div>
 
-                                    <div className="mb-3 space-y-1">
-                                      <p className="text-sm font-medium text-gray-700 dark:text-gray-300 line-clamp-2 leading-relaxed">
-                                        {item.address}
-                                      </p>
-
-                                    </div>
-
-                                    <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-gray-100 dark:border-gray-800/60 mt-1 opacity-80 group-hover:opacity-100 transition-opacity">
-                                      <Button
-                                        type="button"
-                                        size="sm"
-                                        variant="ghost"
-                                        className="h-8 rounded-lg text-xs font-semibold px-2 hover:bg-gray-100 dark:hover:bg-gray-800"
-                                        onClick={() => handleEditAddress(item)}
-                                      >
-                                        <Edit2 className="w-3 h-3 mr-1" /> Sửa
-                                      </Button>
-                                      
-                                      <Button
-                                        type="button"
-                                        size="sm"
-                                        variant="ghost"
-                                        className="h-8 rounded-lg text-xs font-semibold px-2 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
-                                        disabled={isAddressSaving}
-                                        onClick={() => handleDeleteAddress(item.id)}
-                                      >
-                                        <Trash2 className="w-3 h-3 mr-1" /> Xóa
-                                      </Button>
-
-                                      <div className="flex-1" />
-
-                                      {Number(item.is_default) !== 1 && (
-                                        <Button
-                                          type="button"
-                                          size="sm"
-                                          variant="secondary"
-                                          className="h-8 rounded-lg text-[11px] font-semibold"
-                                          disabled={isAddressSaving}
-                                          onClick={() => handleSetDefaultAddress(item.id)}
-                                        >
-                                          Đặt mặc định
-                                        </Button>
-                                      )}
-                                    </div>
                                   </div>
-                                )
-                              })}
-                            </div>
-                          )}
+
+                                  <div className="mb-3 space-y-1">
+                                    <p className="text-sm font-medium text-gray-700 dark:text-gray-300 line-clamp-2 leading-relaxed">
+                                      {item.address}
+                                    </p>
+
+                                  </div>
+
+                                  <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-gray-100 dark:border-gray-800/60 mt-1 opacity-80 group-hover:opacity-100 transition-opacity">
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-8 rounded-lg text-xs font-semibold px-2 hover:bg-gray-100 dark:hover:bg-gray-800"
+                                      onClick={() => handleEditAddress(item)}
+                                    >
+                                      <Edit2 className="w-3 h-3 mr-1" /> Sửa
+                                    </Button>
+
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-8 rounded-lg text-xs font-semibold px-2 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                      disabled={isAddressSaving}
+                                      onClick={() => handleDeleteAddress(item.id)}
+                                    >
+                                      <Trash2 className="w-3 h-3 mr-1" /> Xóa
+                                    </Button>
+
+                                    <div className="flex-1" />
+
+                                    {Number(item.is_default) !== 1 && (
+                                      <Button
+                                        type="button"
+                                        size="sm"
+                                        variant="secondary"
+                                        className="h-8 rounded-lg text-[11px] font-semibold"
+                                        disabled={isAddressSaving}
+                                        onClick={() => handleSetDefaultAddress(item.id)}
+                                      >
+                                        Đặt mặc định
+                                      </Button>
+                                    )}
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        )}
                       </div>
                     </CardContent>
                   </Card>
@@ -770,40 +746,7 @@ export function UserProfile() {
                   </CardContent>
                 </Card>
 
-                {profile?.role_id === 1 && attendanceUser && (
-                  <Card className="rounded-[24px] border-amber-200/50 dark:border-amber-900/40 bg-amber-50/30 dark:bg-amber-900/10 backdrop-blur-xl shadow-md border overflow-hidden mt-6 animate-in slide-in-from-bottom-6 duration-700">
-                    <CardHeader className="pb-3 border-b border-amber-100 dark:border-amber-900/30 bg-amber-100/50 dark:bg-amber-900/20">
-                       <CardTitle className="text-lg text-amber-800 dark:text-amber-400 flex items-center gap-2">
-                         <BriefcaseBusiness className="w-5 h-5" />
-                         Tài khoản Điểm danh
-                       </CardTitle>
-                    </CardHeader>
-                    <CardContent className="pt-4">
-                      <div className="space-y-4">
-                        <div className="space-y-1.5">
-                          <Label className="text-xs font-semibold text-amber-700/70 dark:text-amber-500/70 ml-1">Tên đăng nhập</Label>
-                          <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-white/60 dark:bg-black/20 border border-amber-100 dark:border-amber-900/30">
-                            <User className="w-4 h-4 text-amber-600/70" />
-                            <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{attendanceUser.username}</span>
-                          </div>
-                        </div>
 
-                         <div className="space-y-1.5">
-                          <Label className="text-xs font-semibold text-amber-700/70 dark:text-amber-500/70 ml-1">Mật khẩu</Label>
-                          <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-white/60 dark:bg-black/20 border border-amber-100 dark:border-amber-900/30">
-                            <div className="flex items-center gap-2 text-sm font-medium text-gray-500 dark:text-gray-400">
-                               <Lock className="w-4 h-4 text-amber-600/70" />
-                               **********
-                            </div>
-                            <Button size="sm" variant="outline" className="h-8 rounded-lg border-amber-200 text-amber-700 bg-amber-50 hover:bg-amber-100 hover:text-amber-800 shadow-sm transition-colors" onClick={() => setAttendanceDialogOpen(true)}>
-                               <Edit2 className="w-3 h-3 mr-1.5"/> Đổi
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
 
                 {/* Widget Information */}
                 <div className="p-5 rounded-[24px] border border-amber-200/50 bg-amber-50/50 dark:bg-amber-900/10 dark:border-amber-900/30 text-center">
@@ -818,71 +761,7 @@ export function UserProfile() {
         </div>
       )}
 
-      {/* Attendance Account Password Dialog */}
-      <Dialog
-        open={attendanceDialogOpen}
-        onOpenChange={(open) => {
-          setAttendanceDialogOpen(open);
-          if (!open) setAttendancePassword('');
-        }}
-      >
-        <DialogContent className="sm:max-w-md bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border border-white/20 dark:border-gray-800 rounded-3xl p-6 sm:p-8 shadow-2xl">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold flex items-center gap-2 text-amber-600 dark:text-amber-500">
-              <Lock className="w-5 h-5 flex-shrink-0" />
-              Đổi mật khẩu Điểm danh
-            </DialogTitle>
-            <DialogDescription className="text-gray-500 dark:text-gray-400 font-medium pt-1">
-              Nhập mật khẩu mới cho tài khoản: <span className="text-amber-700 dark:text-amber-400 font-bold">{attendanceUser?.username}</span>
-            </DialogDescription>
-          </DialogHeader>
 
-          <div className="space-y-4 mt-2 p-4 bg-amber-50/50 dark:bg-black/20 rounded-2xl border border-amber-100 dark:border-amber-900/30">
-             <div className="space-y-2">
-                 <Label htmlFor="attendance_password" className="text-amber-800 dark:text-amber-300 font-semibold ml-1">Mật khẩu mới</Label>
-                 <Input 
-                   id="attendance_password"
-                   type="password"
-                   placeholder="Tối thiểu 6 ký tự"
-                   value={attendancePassword}
-                   onChange={(e) => setAttendancePassword(e.target.value)}
-                   className="rounded-xl border-amber-200/60 bg-white/80 dark:bg-gray-900/80 focus-visible:ring-amber-500/50 focus-visible:border-amber-500"
-                 />
-             </div>
-          </div>
-          
-          <div className="flex justify-end gap-3 pt-2">
-            <Button variant="ghost" onClick={() => setAttendanceDialogOpen(false)} disabled={isUpdatingAttendance} className="rounded-xl font-semibold hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300">
-              Hủy
-            </Button>
-            <Button onClick={async () => {
-              if (!attendancePassword.trim()) {
-                toast.error("Vui lòng nhập mật khẩu mới");
-                return;
-              }
-              if (attendancePassword.length < 6) {
-                toast.error("Mật khẩu phải có ít nhất 6 ký tự");
-                return;
-              }
-
-              setIsUpdatingAttendance(true);
-              try {
-                await userService.updateUser(attendanceUser.id, { password: attendancePassword });
-                toast.success("Thay đổi mật khẩu tài khoản điểm danh thành công!");
-                setAttendanceDialogOpen(false);
-                setAttendancePassword('');
-              } catch (error) {
-                toast.error(error.message || "Không thể đổi mật khẩu");
-              } finally {
-                setIsUpdatingAttendance(false);
-              }
-            }} disabled={isUpdatingAttendance} className="rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-semibold shadow-md">
-                {isUpdatingAttendance ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
-                Lưu thay đổi
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* Địa chỉ Modal */}
       <Dialog
@@ -965,11 +844,10 @@ export function UserProfile() {
                       key={type.value}
                       type="button"
                       onClick={() => setAddressForm((prev) => ({ ...prev, address_type: type.value }))}
-                      className={`flex-1 flex items-center justify-center gap-2 h-10 rounded-xl text-sm font-medium transition-all ${
-                        isActive 
-                          ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400 ring-2 ring-amber-500/50 outline-none' 
+                      className={`flex-1 flex items-center justify-center gap-2 h-10 rounded-xl text-sm font-medium transition-all ${isActive
+                          ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400 ring-2 ring-amber-500/50 outline-none'
                           : 'bg-gray-50 text-gray-600 hover:bg-gray-100 dark:bg-gray-800/50 dark:text-gray-400 hover:dark:bg-gray-800 border border-gray-200 dark:border-gray-700'
-                      }`}
+                        }`}
                     >
                       <Icon className="w-4 h-4" />
                       {type.label}
@@ -1007,8 +885,8 @@ export function UserProfile() {
                   id="address_detail"
                   value={addressForm.address_detail}
                   onChange={(e) => {
-                     setAddressForm((prev) => ({ ...prev, address_detail: e.target.value }));
-                     setAddressFieldErrors(prev => ({ ...prev, address_detail: e.target.value.trim() ? "" : prev.address_detail }));
+                    setAddressForm((prev) => ({ ...prev, address_detail: e.target.value }));
+                    setAddressFieldErrors(prev => ({ ...prev, address_detail: e.target.value.trim() ? "" : prev.address_detail }));
                   }}
                   placeholder="VD: Số nhà 10, Ngõ 20..."
                   className={`h-11 rounded-xl bg-gray-50/80 dark:bg-black/20 ${addressFieldErrors.address_detail ? 'border-destructive focus-visible:border-destructive' : 'focus-visible:ring-amber-500/50 focus-visible:border-amber-500'}`}
@@ -1032,9 +910,9 @@ export function UserProfile() {
               >
                 Hủy bỏ
               </Button>
-              <Button 
-                type="button" 
-                onClick={handleSubmitAddress} 
+              <Button
+                type="button"
+                onClick={handleSubmitAddress}
                 disabled={isAddressSaving}
                 className="rounded-xl px-6 font-bold shadow-md bg-gray-900 hover:bg-gray-800 dark:bg-white dark:text-gray-900"
               >

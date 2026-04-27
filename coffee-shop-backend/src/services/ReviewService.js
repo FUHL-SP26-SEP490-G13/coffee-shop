@@ -1,4 +1,5 @@
 const ReviewRepository = require("../repositories/ReviewRepository");
+const ErrorResponse = require("../utils/ErrorResponse");
 
 class ReviewService {
   async getByProductId(productId) {
@@ -39,7 +40,7 @@ class ReviewService {
     // Only throw if rating is provided but invalid. If they don't provide rating, let controller block or set default.
     // Wait, requirement: star is mandatory, comment and image optional.
     if (!rating || rating < 1 || rating > 5) {
-      throw new Error("Số sao phải từ 1 đến 5");
+      throw new ErrorResponse(400, "Số sao phải từ 1 đến 5");
     }
 
     const hasPurchased = await ReviewRepository.hasPurchasedProduct(
@@ -48,7 +49,7 @@ class ReviewService {
     );
 
     if (!hasPurchased) {
-      throw new Error("Bạn chỉ có thể đánh giá sản phẩm đã mua");
+      throw new ErrorResponse(400, "Bạn chỉ có thể đánh giá sản phẩm đã mua");
     }
 
     const existed = await ReviewRepository.findByUserAndProduct(
@@ -68,7 +69,7 @@ class ReviewService {
       const finalImages = [...currentImages, ...newImages];
 
       if (finalImages.length > 4) {
-        throw new Error("Tối đa 3 ảnh và 1 video cho mỗi bài đánh giá");
+        throw new ErrorResponse(400, "Tối đa 3 ảnh và 1 video cho mỗi bài đánh giá");
       }
 
       await ReviewRepository.updateReview(userId, productId, rating, comment, finalImages);
@@ -78,7 +79,7 @@ class ReviewService {
     }
 
     if (newImages.length > 4) {
-      throw new Error("Tối đa 3 ảnh và 1 video cho mỗi bài đánh giá");
+      throw new ErrorResponse(400, "Tối đa 3 ảnh và 1 video cho mỗi bài đánh giá");
     }
 
     await ReviewRepository.createReview(userId, productId, rating, comment, newImages);
@@ -89,9 +90,13 @@ class ReviewService {
   }
 
   async replyReview(id, replyComment, newImages = [], deleteImageIds = []) {
+    if (!replyComment || replyComment.trim() === "") {
+      throw new ErrorResponse(400, "Nội dung phản hồi không được để trống");
+    }
+
     const existed = await ReviewRepository.findById(id);
     if (!existed) {
-      throw new Error("Không tìm thấy đánh giá này");
+      throw new ErrorResponse(404, "Không tìm thấy đánh giá này");
     }
 
     let currentImages = [];
@@ -105,7 +110,7 @@ class ReviewService {
     const finalImages = [...currentImages, ...newImages];
 
     if (finalImages.length > 4) {
-      throw new Error("Tối đa 4 tệp đính kèm cho mỗi phản hồi");
+      throw new ErrorResponse(400, "Tối đa 4 tệp đính kèm cho mỗi phản hồi");
     }
 
     await ReviewRepository.replyReview(id, replyComment, finalImages);

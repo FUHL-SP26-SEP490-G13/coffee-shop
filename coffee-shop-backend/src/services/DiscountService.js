@@ -31,6 +31,14 @@ class DiscountService {
   }
 
   async create(data) {
+    if (!data.code || data.code.trim() === '') {
+      throw new ErrorResponse(400, 'Mã giảm giá không được để trống');
+    }
+
+    if (data.percentage !== undefined && (data.percentage <= 0 || data.percentage > 100)) {
+      throw new ErrorResponse(400, 'Phần trăm giảm giá phải từ 1 đến 100');
+    }
+
     const existing = await DiscountRepository.findByCode(data.code.trim());
 
     if (existing) {
@@ -84,6 +92,10 @@ class DiscountService {
       if (existing) {
         throw new ErrorResponse(400, 'Mã giảm giá đã tồn tại');
       }
+    }
+
+    if (data.percentage !== undefined && (data.percentage <= 0 || data.percentage > 100)) {
+      throw new ErrorResponse(400, 'Phần trăm giảm giá phải từ 1 đến 100');
     }
 
     await DiscountRepository.update(id, {

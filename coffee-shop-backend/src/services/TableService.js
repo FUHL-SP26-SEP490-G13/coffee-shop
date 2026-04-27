@@ -267,6 +267,12 @@ class TableService {
    */
   async deleteTable(id) {
     const table = await this.getTableById(id);
+    
+    // Prevent deleting occupied tables
+    if (table.status === 'occupied' || table.current_session_id) {
+      throw new ErrorResponse(400, 'Không thể xóa bàn đang có khách hoặc đang trong phiên phục vụ');
+    }
+
     if (table.code) {
       await TableRepository.update(id, { code: `${table.code}-del-${id}` });
     }

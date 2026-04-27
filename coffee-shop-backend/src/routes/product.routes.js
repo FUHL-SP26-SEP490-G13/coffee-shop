@@ -6,11 +6,9 @@ const { authorize } = require('../middlewares/authorize');
 const validate = require('../middlewares/validate');
 const upload = require('../middlewares/upload');
 const parseJsonFields = require('../middlewares/parseJsonFields');
-const asyncMiddleware = require('../middlewares/async.middleware')
 const { ROLES_STRING } = require('../config/constants');
 
 const MANAGER_ONLY = [ROLES_STRING.MANAGER];
-const ALL_STAFF = [ROLES_STRING.MANAGER, ROLES_STRING.STAFF, ROLES_STRING.BARISTA];
 
 const {
   createProductSchema,
@@ -31,9 +29,6 @@ router.get('/search', validate(searchProductSchema, 'query'), ProductController.
 
 // Get products by category
 router.get('/category/:categoryId', ProductController.getByCategory);
-
-// Get sizes by product ID
-// router.get('/:id/sizes', validate(productIdSchema, 'params'), ProductController.getSizesByProductId);
 
 router.get("/best-sellers", ProductController.getBestSellers);
 
@@ -71,15 +66,5 @@ router.delete(
   validate(productIdSchema, 'params'),
   ProductController.delete
 );
-
-// Restore deleted product
-
-// router.post(
-//   '/:id/restore',
-//   authenticate,
-//   authorize(['admin']),
-//   validate(productIdSchema, 'params'),
-//   ProductController.restore
-// );
 
 module.exports = router;

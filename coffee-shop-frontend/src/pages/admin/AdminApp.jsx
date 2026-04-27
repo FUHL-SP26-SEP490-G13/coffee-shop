@@ -106,7 +106,7 @@ export default function AdminApp() {
       "/admin/schedule/list": "Lịch làm việc",
       "/admin/attendance": "Điểm danh nhân viên",
 
-      "/admin/receipt-settings": "Cấu hình hệ thống",
+      "/admin/receipt-settings": "Tùy chỉnh",
       "/admin/profile": "Thông tin cá nhân",
     };
 
@@ -791,7 +791,7 @@ export default function AdminApp() {
                 >
                   <Settings2 className="w-4 h-4" />
                   <span className="text-sm tracking-wide">
-                    Cấu hình hệ thống
+                    Tùy chỉnh
                   </span>
                 </NavLink>
                 <NavLink

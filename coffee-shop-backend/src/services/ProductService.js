@@ -343,26 +343,6 @@ class ProductService {
     return ProductRepository.countSearch(keyword.trim(), options);
   }
 
-  async restoreProduct(id) {
-    const product = await ProductRepository.findById(id);
-
-    if (!product) {
-      throw new ErrorResponse(404, 'Product không tồn tại');
-    }
-
-    if (product.status === 'available') {
-      throw new ErrorResponse(400, 'Product chưa bị xóa');
-    }
-
-    if (Number(product.is_deleted) === 0) {
-      throw new ErrorResponse(400, 'Product chưa bị xóa');
-    }
-
-    await ProductRepository.update(id, { is_deleted: 0 });
-
-    return this.getProductById(id);
-  }
-
   async getBestSellerProducts(limit = 8) {
     return ProductRepository.findBestSellers(limit);
   }
