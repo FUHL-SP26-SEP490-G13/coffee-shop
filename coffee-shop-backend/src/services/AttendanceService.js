@@ -23,6 +23,9 @@ class AttendanceService {
     }
 
     try {
+      if (user.aws_face_id) {
+        await RekognitionService.deleteFace(user.aws_face_id);
+      }
       const faceId = await RekognitionService.registerFace(imageBuffer);
       await UserRepository.updateFaceId(userId, faceId);
       return { message: 'Đăng ký khuôn mặt thành công' };

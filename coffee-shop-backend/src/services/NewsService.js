@@ -45,7 +45,15 @@ class NewsService {
   }
 
   async createNews(data, userId) {
-    const existedTitle = await NewsRepository.findByTitle(data.title);
+    if (!data.title || data.title.trim() === "") {
+      throw new ErrorResponse(400, "Tiêu đề không được để trống");
+    }
+
+    if (!data.content || data.content.trim() === "") {
+      throw new ErrorResponse(400, "Nội dung bài viết không được để trống");
+    }
+
+    const existedTitle = await NewsRepository.findByTitle(data.title.trim());
     if (existedTitle) {
       throw new ErrorResponse(400, "Tiêu đề bài viết đã tồn tại");
     }
@@ -82,11 +90,28 @@ class NewsService {
   }
 
   async deleteNews(id) {
+    const news = await NewsRepository.findOne({ id });
+    if (!news) {
+      throw new ErrorResponse(404, "Không tìm thấy bài viết để xóa");
+    }
     return NewsRepository.deleteById(id);
   }
 
   async updateNews(id, { title, summary, content, tag, thumbnail }) {
-    const existedTitle = await NewsRepository.findByTitleExcludeId(title, id);
+    const news = await NewsRepository.findOne({ id });
+    if (!news) {
+      throw new ErrorResponse(404, "Không tìm thấy bài viết");
+    }
+
+    if (!title || title.trim() === "") {
+      throw new ErrorResponse(400, "Tiêu đề không được để trống");
+    }
+
+    if (!content || content.trim() === "") {
+      throw new ErrorResponse(400, "Nội dung bài viết không được để trống");
+    }
+
+    const existedTitle = await NewsRepository.findByTitleExcludeId(title.trim(), id);
     if (existedTitle) {
       throw new ErrorResponse(400, "Tiêu đề bài viết đã tồn tại");
     }

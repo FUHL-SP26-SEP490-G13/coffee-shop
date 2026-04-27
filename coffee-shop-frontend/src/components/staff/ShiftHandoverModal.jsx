@@ -26,25 +26,31 @@ export function ShiftHandoverModal({ isOpen, onClose }) {
   const [endDate, setEndDate] = useState("");
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
   const itemsPerPage = 10;
 
   useEffect(() => {
     if (isOpen) {
       fetchHistory();
     }
-  }, [isOpen, startDate, endDate]);
+  }, [isOpen, startDate, endDate, currentPage]);
 
   const fetchHistory = async () => {
     try {
       setLoading(true);
-      const params = {};
+      const params = { page: currentPage, limit: itemsPerPage };
       if (startDate) params.startDate = startDate;
       if (endDate) params.endDate = endDate;
 
       const res = await cashSessionService.getMyHistory(params);
       if (res?.success) {
-        setHistory(res.data);
-        setCurrentPage(1);
+        const data = res.data;
+        setHistory(Array.isArray(data?.items) ? data.items : Array.isArray(data) ? data : []);
+        if (data?.pagination) {
+          setTotalPages(data.pagination.totalPages || 1);
+          setTotalItems(data.pagination.total || 0);
+        }
       }
     } catch (error) {
       toast.error("Không thể tải danh sách phiếu bàn giao ca");
@@ -63,12 +69,6 @@ export function ShiftHandoverModal({ isOpen, onClose }) {
     return format(new Date(dateString), "dd/MM/yyyy HH:mm");
   };
 
-  const totalPages = Math.ceil(history.length / itemsPerPage);
-  const paginatedHistory = history.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
-
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-[1000px] w-[95vw] h-[80vh] flex flex-col p-6">
@@ -84,7 +84,7 @@ export function ShiftHandoverModal({ isOpen, onClose }) {
               <Input
                 type="date"
                 value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
+                onChange={(e) => { setStartDate(e.target.value); setCurrentPage(1); }}
               />
             </div>
             <div className="flex flex-col gap-1 w-48">
@@ -92,7 +92,7 @@ export function ShiftHandoverModal({ isOpen, onClose }) {
               <Input
                 type="date"
                 value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
+                onChange={(e) => { setEndDate(e.target.value); setCurrentPage(1); }}
               />
             </div>
             {loading && <span className="text-sm text-muted-foreground mt-6 ml-4">Đang tải...</span>}
@@ -119,7 +119,7 @@ export function ShiftHandoverModal({ isOpen, onClose }) {
                     </TableCell>
                   </TableRow>
                 )}
-                {paginatedHistory.map((item) => (
+                {history.map((item) => (
                   <TableRow key={item.id} className="hover:bg-accent/30 transition-colors">
                     <TableCell className="font-medium text-primary border-r border-border/50">
                       {item.code || `CA00000${item.id}`}
@@ -156,7 +156,7 @@ export function ShiftHandoverModal({ isOpen, onClose }) {
           {totalPages > 1 && (
             <div className="flex-shrink-0 flex items-center justify-between border-t pt-4">
               <span className="text-sm text-muted-foreground">
-                Hiển thị {(currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, history.length)} trong tổng số {history.length} phiếu
+                Hiển thị {(currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, totalItems)} trong tổng số {totalItems} phiếu
               </span>
               <div className="flex gap-2">
                 <Button

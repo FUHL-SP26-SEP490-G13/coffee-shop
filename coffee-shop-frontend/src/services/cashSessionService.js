@@ -13,9 +13,6 @@ const cashSessionService = {
   closeSession: async (id, data) => {
     return await axiosClient.post(`/cash-sessions/${id}/close`, data);
   },
-  forceCloseSession: async (id, data) => {
-    return await axiosClient.post(`/cash-sessions/${id}/force-close`, data);
-  },
   getSummary: async (id) => {
     return await axiosClient.get(`/cash-sessions/${id}/summary`);
   },

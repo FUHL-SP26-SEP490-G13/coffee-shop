@@ -50,14 +50,6 @@ router.post(
     AsyncMiddleware(cashSessionController.closeSession),
 );
 
-// Manager đóng ca hộ ( bỏ do admin có thể vào tài khoản nhân viên ca đó để đóng)
-router.post(
-    '/:id/force-close',
-    authenticate,
-    authorize(MANAGER_ONLY),
-    AsyncMiddleware(cashSessionController.forceCloseSession),
-);
-
 // Phiếu bàn giao sau khi kết ca
 router.get(
     '/:id/receipt',
