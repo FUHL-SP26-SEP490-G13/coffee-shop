@@ -99,8 +99,7 @@ class BaristaDBController {
 
       if (status === 'completed') {
         if (order && order.order_type === 'delivery') {
-          await OrderRepository.updateOrderPaidStatus(id, true);
-          await OrderRepository.updatePaymentByOrderCode(id, { payment_status: 'paid' });
+          // Chỉ đồng bộ phần thưởng, KHÔNG tự động mark paid ở đây
           await OrderOnlineService.syncCompletionRewardsForDelivery(id);
         }
       }

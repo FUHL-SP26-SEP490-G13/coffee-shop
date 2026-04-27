@@ -186,20 +186,20 @@ class OrderRepository {
     const normalizedPaidAmount = Number.isFinite(Number(data.paid_amount))
       ? Number(data.paid_amount)
       : isPaid
-      ? amount
-      : 0;
+        ? amount
+        : 0;
 
     const normalizedCashReceived = Number.isFinite(Number(data.cash_received))
       ? Number(data.cash_received)
       : isPaid
-      ? normalizedPaidAmount
-      : 0;
+        ? normalizedPaidAmount
+        : 0;
 
     const normalizedChangeAmount = Number.isFinite(Number(data.change_amount))
       ? Math.max(0, Number(data.change_amount))
       : isPaid
-      ? Math.max(0, normalizedCashReceived - normalizedPaidAmount)
-      : 0;
+        ? Math.max(0, normalizedCashReceived - normalizedPaidAmount)
+        : 0;
 
     await connection.query(
       `
@@ -385,7 +385,7 @@ class OrderRepository {
           cancel_role = ?,
           cancelled_at = NOW()
       WHERE id = ?
-        AND status = 'pending'
+        AND status IN ('pending', 'preparing', 'served', 'delivering', 'completed')
         AND is_paid = 0
       `,
       [reason || null, staffId || null, staffRole || 'staff', orderId]
@@ -724,7 +724,7 @@ class OrderRepository {
       params,
     };
   }
-// Hàm lấy danh sách đơn hàng với phân trang và bộ lọc cho admin
+  // Hàm lấy danh sách đơn hàng với phân trang và bộ lọc cho admin
   async findAllOrders({
     limit = 20,
     offset = 0,
@@ -781,7 +781,7 @@ class OrderRepository {
     const [rows] = await db.query(query, params);
     return rows;
   }
-// Hàm đếm tổng số đơn hàng (không phân trang) theo các bộ lọc để phục vụ phân trang ở frontend( admin)
+  // Hàm đếm tổng số đơn hàng (không phân trang) theo các bộ lọc để phục vụ phân trang ở frontend( admin)
   async countAllOrders({
     status = "all",
     order_type = "all",
@@ -858,6 +858,14 @@ class OrderRepository {
       [staffId || null, cashSessionId || null, orderId]
     );
     return result.affectedRows > 0;
+  }
+
+  async getPaymentByOrderId(orderId) {
+    const [rows] = await db.query(
+      `SELECT payment_status, amount, is_paid FROM order_payments WHERE order_id = ? LIMIT 1`,
+      [orderId]
+    );
+    return rows[0];
   }
 }
 

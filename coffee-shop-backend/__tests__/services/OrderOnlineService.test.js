@@ -12,12 +12,16 @@ jest.mock("../../src/services/LoyaltyService", () => ({
 jest.mock("../../src/services/ReceiptSettingService", () => ({
   getActiveSetting: jest.fn(),
 }));
+jest.mock("../../src/services/FlashSaleService", () => ({
+  getCurrentActive: jest.fn(),
+}));
 
 const OrderOnlineService = require("../../src/services/OrderOnlineService");
 const OrderRepository = require("../../src/repositories/OrderRepository");
 const ReputationService = require("../../src/services/ReputationService");
 const LoyaltyService = require("../../src/services/LoyaltyService");
 const ReceiptSettingService = require("../../src/services/ReceiptSettingService");
+const FlashSaleService = require("../../src/services/FlashSaleService");
 
 const { logTestCase } = require('../utils/logger');
 
@@ -60,6 +64,7 @@ describe("OrderOnlineService", () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
+    jest.restoreAllMocks();
     mockConnection = {
       beginTransaction: jest.fn().mockResolvedValue(),
       commit: jest.fn().mockResolvedValue(),
@@ -497,6 +502,143 @@ describe("OrderOnlineService", () => {
         })
       );
       expect(result).toEqual(expected);
+    });
+  });
+
+  describe("calculateCartAmounts with Flash Sale", () => {
+    it("OON-SVC-RD-004: Áp dụng Flash Sale chính xác cho sản phẩm được chỉ định", async () => {
+      logCase({
+        tcid: "OON-SVC-RD-004",
+        scenario: "Sản phẩm A có Flash Sale 20%, B không có",
+        expected: "A: 8k, B: 10k",
+      });
+
+      FlashSaleService.getCurrentActive.mockResolvedValue({
+        product_ids: [1], // Chỉ sản phẩm ID 1 có Flash Sale
+        discount_percent: 20,
+      });
+      OrderRepository.findProductSizeById
+        .mockResolvedValueOnce({
+          product_id: 1,
+          price: 10000,
+          status: "available",
+          name: "Coffee A",
+          id: 1,
+        })
+        .mockResolvedValueOnce({
+          product_id: 2,
+          price: 10000,
+          status: "available",
+          name: "Coffee B",
+          id: 2,
+        });
+
+      const items = [
+        { product_size_id: 1, quantity: 1 },
+        { product_size_id: 2, quantity: 1 },
+      ];
+      const result = await OrderOnlineService.calculateCartAmounts(
+        mockConnection,
+        items
+      );
+
+      logReality(
+        `Total: ${result.totalAmount}, FlashSale: ${result.flashSaleAmount}`
+      );
+      expect(result.totalAmount).toBe(18000); // 8k + 10k
+      expect(result.flashSaleAmount).toBe(8000);
+      expect(result.regularAmount).toBe(10000);
+    });
+  });
+
+  describe("validateDiscount logic", () => {
+    it("OON-SVC-RD-005: Lỗi khi Voucher không đủ điều kiện đơn hàng tối thiểu (chỉ tính SP thường)", async () => {
+      logCase({
+        tcid: "OON-SVC-RD-005",
+        scenario: "Đơn 50k (25k thường + 25k flash), Voucher yêu cầu 40k thường",
+        expected: "400 - Voucher chỉ áp dụng cho sản phẩm Thường...",
+      });
+
+      // Mock giỏ hàng có 25k thường và 25k flash sale
+      jest.spyOn(OrderOnlineService, "calculateCartAmounts").mockResolvedValue({
+        totalAmount: 50000,
+        regularAmount: 25000,
+        flashSaleAmount: 25000,
+        normalizedItems: [],
+      });
+
+      OrderRepository.findDiscountByCodeForCheckout.mockResolvedValue({
+        code: "KM40K",
+        min_order_amount: 40000,
+        percentage: 10,
+        valid_from: "2020-01-01",
+        valid_until: "2099-01-01",
+      });
+
+      try {
+        await OrderOnlineService.validateDiscount("KM40K", [
+          { product_size_id: 1, quantity: 1 },
+        ]);
+      } catch (error) {
+        logReality(`${error.statusCode} - ${error.message}`);
+        expect(error.statusCode).toBe(400);
+        expect(error.message).toContain("Mua thêm 15.000đ sản phẩm nguyên giá");
+      }
+    });
+
+    it("OON-SVC-RD-006: Tính toán số tiền giảm giá chính xác với Max Discount", async () => {
+      logCase({
+        tcid: "OON-SVC-RD-006",
+        scenario: "Giảm 10% tối đa 10k cho đơn 200k",
+        expected: "Discount: 10000",
+      });
+
+      jest.spyOn(OrderOnlineService, "calculateCartAmounts").mockResolvedValue({
+        totalAmount: 200000,
+        regularAmount: 200000,
+        flashSaleAmount: 0,
+        normalizedItems: [],
+      });
+
+      OrderRepository.findDiscountByCodeForCheckout.mockResolvedValue({
+        code: "MAX10K",
+        min_order_amount: 50000,
+        percentage: 10,
+        max_discount_amount: 10000,
+        valid_from: "2020-01-01",
+        valid_until: "2099-01-01",
+      });
+
+      const result = await OrderOnlineService.validateDiscount("MAX10K", [
+        { product_size_id: 1, quantity: 1 },
+      ]);
+      logReality(result.discount_amount);
+      expect(result.discount_amount).toBe(10000);
+    });
+  });
+
+  describe("driving distance fallback", () => {
+    it("OON-SVC-RD-007: Fallback sang Haversine * 1.3 khi OSRM lỗi", async () => {
+      logCase({
+        tcid: "OON-SVC-RD-007",
+        scenario: "OSRM request failed",
+        expected: "Distance: 1.3km (1km straight * 1.3)",
+      });
+
+      // Mock fetch lỗi
+      global.fetch = jest.fn().mockRejectedValue(new Error("Network Error"));
+      jest.spyOn(OrderOnlineService, "getDrivingDistanceKm").mockRestore();
+
+      // 10.0, 106.0 -> 10.009, 106.0 ~ xấp xỉ 1km
+      const distance = await OrderOnlineService.getDrivingDistanceKm(
+        10.0,
+        106.0,
+        10.009,
+        106.0
+      );
+      logReality(`Distance: ${distance.toFixed(1)}km`);
+      expect(distance).toBeGreaterThan(1);
+      expect(distance).toBeLessThan(1.5);
     });
   });
 });

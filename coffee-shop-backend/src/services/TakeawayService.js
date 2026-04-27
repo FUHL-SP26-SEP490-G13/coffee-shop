@@ -234,19 +234,13 @@ class TakeawayService {
       await TakeawayRepository.createOrderPayment(connection, {
         order_id: orderId,
         payment_method,
-        payment_status: isCash ? 'paid' : 'pending',
+        payment_status: 'pending',
         amount: finalAmount,
-        paid_amount: isCash ? finalAmount : 0,
-        cash_received: cashReceivedAmt, //  tiền khách đưa
-        change_amount: changeAmt, // tiền thừa trả khách
+        paid_amount: 0,
+        cash_received: cashReceivedAmt, 
+        change_amount: changeAmt, 
       });
 
-      if (isCash) {
-        await connection.query(
-          `UPDATE orders SET is_paid = 1, paid_at = NOW() WHERE id = ?`,
-          [orderId],
-        );
-      }
 
       if (discountId) {
         await TakeawayRepository.incrementDiscountUsedCount(
@@ -265,7 +259,7 @@ class TakeawayService {
         discount_code: discountCode,
         total_amount: finalAmount,
         payment_method,
-        is_paid: isCash,
+        is_paid: false,
         status: 'preparing',
         cash_received: cashReceivedAmt,
         change_amount: changeAmt,
