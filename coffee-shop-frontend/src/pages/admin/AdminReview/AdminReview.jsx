@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   Loader2,
   Search,
@@ -38,6 +39,7 @@ export default function AdminReviews() {
   const [keyword, setKeyword] = useState("");
   const [selectedReplyReview, setSelectedReplyReview] = useState(null);
   const [expandedImage, setExpandedImage] = useState(null);
+  const [peekImage, setPeekImage] = useState(null);
 
   const abortRef = useRef(null);
   const outletContext = useOutletContext() || {};
@@ -236,8 +238,14 @@ export default function AdminReviews() {
                                 return (
                                   <button 
                                     key={idx} 
-                                    onClick={() => setExpandedImage({ images: item.images, index: idx })} 
-                                    className="shrink-0 hover:opacity-80 transition-opacity block w-10 h-10 relative cursor-zoom-in"
+                                    onMouseEnter={() => !expandedImage && setPeekImage({ images: item.images, index: idx })}
+                                    onMouseLeave={() => setPeekImage(null)}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setPeekImage(null);
+                                      setExpandedImage({ images: item.images, index: idx });
+                                    }}
+                                    className="shrink-0 hover:opacity-100 opacity-80 transition-opacity block w-10 h-10 relative cursor-zoom-in"
                                   >
                                     {isVideo ? (
                                       <>
@@ -338,7 +346,20 @@ export default function AdminReviews() {
         />
       )}
 
-      {expandedImage && (
+      {peekImage && !expandedImage && createPortal(
+        <div className="fixed inset-0 z-[9999] pointer-events-none flex items-center justify-center animate-in fade-in zoom-in-95 duration-200">
+          <div className="relative max-w-[90vw] max-h-[90vh] flex items-center justify-center">
+            {isVideoUrl(peekImage.images[peekImage.index].url) ? (
+              <video src={peekImage.images[peekImage.index].url} autoPlay loop muted className="max-w-[80vw] max-h-[80vh] object-contain rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.3)] border border-white/20 bg-black/10 backdrop-blur-md" />
+            ) : (
+              <img src={peekImage.images[peekImage.index].url} className="max-w-[80vw] max-h-[80vh] object-contain rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.3)] border border-white/20 bg-black/10 backdrop-blur-md" />
+            )}
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {expandedImage && createPortal(
         <div className="fixed inset-0 z-[9999] bg-black/90 flex items-center justify-center animate-in fade-in duration-200" onClick={() => setExpandedImage(null)}>
           <button onClick={() => setExpandedImage(null)} className="absolute top-6 right-6 text-white/50 hover:text-white transition-colors">
             <X className="w-10 h-10" />
@@ -380,7 +401,8 @@ export default function AdminReviews() {
               </>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
