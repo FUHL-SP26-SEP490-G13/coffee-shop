@@ -385,7 +385,7 @@ class OrderRepository {
           cancel_role = ?,
           cancelled_at = NOW()
       WHERE id = ?
-        AND status IN ('pending', 'preparing', 'served', 'delivering', 'completed')
+        AND status IN ('pending', 'preparing', 'completed')
         AND is_paid = 0
       `,
       [reason || null, staffId || null, staffRole || 'staff', orderId]
@@ -845,6 +845,51 @@ class OrderRepository {
     );
 
     return Number(result?.affectedRows || 0);
+  }
+
+  async autoPaidCashDeliveryOrders({ timeoutMinutes = 45 } = {}) {
+    const safeTimeoutMinutes = Math.max(1, Number(timeoutMinutes) || 45);
+
+    // B1: Lấy danh sách các đơn hàng thỏa mãn điều kiện
+    const [orders] = await db.query(
+      `
+      SELECT o.id 
+      FROM orders o
+      JOIN order_payments op ON op.order_id = o.id
+      WHERE o.order_type = 'delivery'
+        AND o.status = 'completed'
+        AND o.is_paid = 0
+        AND op.payment_method = 'cash'
+        AND op.payment_status = 'pending'
+        AND o.created_at <= DATE_SUB(NOW(), INTERVAL ? MINUTE)
+      `,
+      [safeTimeoutMinutes]
+    );
+
+    if (!orders || orders.length === 0) {
+      return [];
+    }
+
+    const orderIds = orders.map(o => o.id);
+
+    // B2: Cập nhật đồng loạt các đơn hàng này
+    await db.query(
+      `
+      UPDATE orders o
+      JOIN order_payments op ON op.order_id = o.id
+      SET o.is_paid = 1,
+          o.paid_at = NOW(),
+          op.payment_status = 'paid',
+          op.paid_at = NOW(),
+          op.paid_amount = op.amount,
+          op.cash_received = op.amount,
+          op.change_amount = 0
+      WHERE o.id IN (?)
+      `,
+      [orderIds]
+    );
+
+    return orderIds;
   }
 
   async updateOrderStaffAndSession(orderId, staffId, cashSessionId) {

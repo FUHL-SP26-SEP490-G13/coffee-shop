@@ -10,6 +10,7 @@ const env = require("./src/config/env");
 const { payOS } = require("./src/config/payos");
 const { startPayosPendingTimeoutJob } = require("./src/jobs/payosPendingTimeoutJob");
 const { startAttendanceJob } = require("./src/jobs/attendanceJob");
+const { startCashDeliveryAutoPaidJob } = require("./src/jobs/cashDeliveryAutoPaidJob");
 
 const PORT = env.PORT || 5000;
 
@@ -27,6 +28,7 @@ app.set("io", io);
 
 let stopPayosPendingTimeoutJob = null;
 let stopAttendanceJob = null;
+let stopCashDeliveryAutoPaidJob = null;
 
 if (env.NODE_ENV !== "test") {
   stopPayosPendingTimeoutJob = startPayosPendingTimeoutJob({
@@ -36,6 +38,12 @@ if (env.NODE_ENV !== "test") {
 
   stopAttendanceJob = startAttendanceJob({
     intervalMs: 30 * 60 * 1000, // Every 30 minutes
+  });
+
+  // Auto paid for cash delivery orders after 45 minutes of being completed
+  stopCashDeliveryAutoPaidJob = startCashDeliveryAutoPaidJob({
+    timeoutMinutes: 3,
+    intervalMs: 10 * 1000,
   });
 }
 
@@ -75,6 +83,9 @@ const gracefulShutdown = (signal) => {
   }
   if (typeof stopAttendanceJob === "function") {
     stopAttendanceJob();
+  }
+  if (typeof stopCashDeliveryAutoPaidJob === "function") {
+    stopCashDeliveryAutoPaidJob();
   }
 
   server.close(() => {

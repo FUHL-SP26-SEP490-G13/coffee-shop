@@ -15,6 +15,7 @@ const { authorize } = require("../middlewares/authorize");
 const { ROLES_STRING } = require("../config/constants");
 
 const STAFF_CONFIRM_ROLES = [ROLES_STRING.STAFF, ROLES_STRING.MANAGER];
+const STAFF_DELIVERY_ROLES = [ROLES_STRING.STAFF];
 
 router.post(
   "/validate-discount",
@@ -81,21 +82,21 @@ router.put(
 router.put(
   "/:id/mark-delivering",
   authenticate,
-  authorize(STAFF_CONFIRM_ROLES),
+  authorize(STAFF_DELIVERY_ROLES),
   AsyncMiddleware(OrderOnlineController.markDeliveringByStaff)
 );
 
 router.put(
   "/:id/staff-cancel-delivering",
   authenticate,
-  authorize(STAFF_CONFIRM_ROLES),
+  authorize(STAFF_DELIVERY_ROLES),
   AsyncMiddleware(OrderOnlineController.cancelDeliveringByStaff)
 );
 
 router.put(
   "/:id/staff-complete-delivery",
   authenticate,
-  authorize(STAFF_CONFIRM_ROLES),
+  authorize(STAFF_DELIVERY_ROLES),
   AsyncMiddleware(OrderOnlineController.completeDeliveryByStaff)
 );
 

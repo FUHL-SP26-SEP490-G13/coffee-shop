@@ -60,7 +60,7 @@ class BaristaDBRepository {
       ? statuses
           .map((status) => String(status || "").trim().toLowerCase())
           .filter((status) =>
-            ["pending", "preparing", "served", "delivering", "completed", "cancelled"].includes(
+            ["pending", "preparing", "completed", "cancelled"].includes(
               status
             )
           )
@@ -137,7 +137,7 @@ class BaristaDBRepository {
         odi.note,
         t.code
       ORDER BY
-        FIELD(o.status, 'pending', 'preparing', 'served', 'delivering', 'completed', 'cancelled'),
+        FIELD(o.status, 'pending', 'preparing', 'completed', 'cancelled'),
         o.created_at ASC
     `,
       queryParams
