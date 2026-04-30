@@ -885,11 +885,31 @@ class OrderRepository {
           op.cash_received = op.amount,
           op.change_amount = 0
       WHERE o.id IN (?)
+        AND o.order_type = 'delivery'
+        AND o.status = 'completed'
+        AND o.is_paid = 0
+        AND op.payment_method = 'cash'
+        AND op.payment_status = 'pending'
       `,
       [orderIds]
     );
 
-    return orderIds;
+    const [paidOrders] = await db.query(
+      `
+      SELECT o.id
+      FROM orders o
+      JOIN order_payments op ON op.order_id = o.id
+      WHERE o.id IN (?)
+        AND o.order_type = 'delivery'
+        AND o.status = 'completed'
+        AND o.is_paid = 1
+        AND op.payment_method = 'cash'
+        AND op.payment_status = 'paid'
+      `,
+      [orderIds]
+    );
+
+    return paidOrders.map((order) => Number(order.id));
   }
 
   async updateOrderStaffAndSession(orderId, staffId, cashSessionId) {

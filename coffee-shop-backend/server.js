@@ -40,7 +40,7 @@ if (env.NODE_ENV !== "test") {
     intervalMs: 30 * 60 * 1000, // Every 30 minutes
   });
 
-  // Auto paid for cash delivery orders after 45 minutes of being completed
+  // Demo timeout: production rule is 30-45 minutes.
   stopCashDeliveryAutoPaidJob = startCashDeliveryAutoPaidJob({
     timeoutMinutes: 3,
     intervalMs: 10 * 1000,
