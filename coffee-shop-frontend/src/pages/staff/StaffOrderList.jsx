@@ -837,14 +837,16 @@ export function OrderDelivery() {
     if (["preparing", "served", "delivering", "completed"].includes(statusStr)) {
       return (
         <div className="flex gap-2 w-full">
-          <Button
-            variant="outline"
-            className="flex-1 border-destructive text-destructive hover:bg-destructive hover:text-white"
-            onClick={() => openCancelConfirm(selectedOrder.id, statusStr)}
-            disabled={cancelingId === selectedOrder.id}
-          >
-            Hủy đơn
-          </Button>
+          {!isPaid && (
+            <Button
+              variant="outline"
+              className="flex-1 border-destructive text-destructive hover:bg-destructive hover:text-white"
+              onClick={() => openCancelConfirm(selectedOrder.id, statusStr)}
+              disabled={cancelingId === selectedOrder.id}
+            >
+              Hủy đơn
+            </Button>
+          )}
 
           <Button
             variant="outline"
@@ -971,30 +973,32 @@ export function OrderDelivery() {
                 </>
               ) : (
                 <>
-                  {!paid && (
-                    <Button
-                      size="sm"
-                      className="h-8 bg-emerald-600 hover:bg-emerald-700 text-[11px]"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openCashPaymentDialog(order);
-                      }}
-                    >
-                      Thanh toán
-                    </Button>
+                  {!paid && String(order.status || "").toLowerCase() !== "cancelled" && (
+                    <>
+                      <Button
+                        size="sm"
+                        className="h-8 bg-emerald-600 hover:bg-emerald-700 text-[11px]"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openCashPaymentDialog(order);
+                        }}
+                      >
+                        Thanh toán
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8 border-destructive/20 text-destructive hover:bg-destructive hover:text-white text-[11px]"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openCancelConfirm(order.id, order.status);
+                        }}
+                        disabled={cancelingId === order.id}
+                      >
+                        Hủy
+                      </Button>
+                    </>
                   )}
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-8 border-destructive/20 text-destructive hover:bg-destructive hover:text-white text-[11px]"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      openCancelConfirm(order.id, order.status);
-                    }}
-                    disabled={cancelingId === order.id}
-                  >
-                    Hủy
-                  </Button>
                   <Button
                     size="sm"
                     variant="outline"

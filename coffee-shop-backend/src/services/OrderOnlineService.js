@@ -1074,37 +1074,43 @@ class OrderOnlineService {
   }
 
   async markDeliveryCompletedByStaff(orderId, { cash_received } = {}) {
-  const order = await OrderRepository.findOrderById(orderId);
+    const order = await OrderRepository.findOrderById(orderId);
 
-  if (!order) throw new ErrorResponse(404, "Đơn hàng không tồn tại");
+    if (!order) throw new ErrorResponse(404, "Đơn hàng không tồn tại");
 
-  if (!this.isDeliveryInProgress(order)) {
-    throw new ErrorResponse(400, "Chỉ hoàn tất đơn đang giao và chưa thanh toán");
+    if (order.order_type === 'delivery') {
+      if (!this.isDeliveryInProgress(order)) {
+        throw new ErrorResponse(400, "Chỉ hoàn tất đơn đang giao và chưa thanh toán");
+      }
+    } else {
+      if (Number(order.is_paid) === 1 || String(order.payment_status).toLowerCase() === 'paid') {
+        throw new ErrorResponse(400, "Đơn hàng này đã được thanh toán");
+      }
+    }
+
+    const cashReceivedAmount = Number(cash_received);
+    const totalAmount = Number(order.total_amount || 0);
+
+    if (!Number.isFinite(cashReceivedAmount) || cashReceivedAmount < totalAmount) {
+      throw new ErrorResponse(400, "Số tiền khách thanh toán không đủ");
+    }
+
+    await OrderRepository.updateOrderPaidStatus(orderId, true);
+    await OrderRepository.updatePaymentStatusByOrderId(orderId, "paid", {
+      cash_received: cashReceivedAmount,
+      change_amount: Math.max(0, cashReceivedAmount - totalAmount),
+    });
+
+    await this.syncCompletionRewardsForDelivery(orderId);
+
+    return {
+      order_id: orderId,
+      status: order.status,
+      is_paid: 1,
+      cash_received: cashReceivedAmount,
+      change_amount: Math.max(0, cashReceivedAmount - totalAmount),
+    };
   }
-
-  const cashReceivedAmount = Number(cash_received);
-  const totalAmount = Number(order.total_amount || 0);
-
-  if (!Number.isFinite(cashReceivedAmount) || cashReceivedAmount < totalAmount) {
-    throw new ErrorResponse(400, "Số tiền khách thanh toán không đủ");
-  }
-
-  await OrderRepository.updateOrderPaidStatus(orderId, true);
-  await OrderRepository.updatePaymentStatusByOrderId(orderId, "paid", {
-    cash_received: cashReceivedAmount,
-    change_amount: Math.max(0, cashReceivedAmount - totalAmount),
-  });
-
-  await this.syncCompletionRewardsForDelivery(orderId);
-
-  return {
-    order_id: orderId,
-    status: "completed",
-    is_paid: 1,
-    cash_received: cashReceivedAmount,
-    change_amount: Math.max(0, cashReceivedAmount - totalAmount),
-  };
-}
 
 
   async getDeliveryOrderDetailForStaff(orderId) {
