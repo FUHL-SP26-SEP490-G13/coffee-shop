@@ -1,6 +1,7 @@
 const OrderRepository = require("../repositories/OrderRepository");
 const LoyaltyService = require("./LoyaltyService");
 const ErrorResponse = require("../utils/ErrorResponse");
+const TableService = require("./TableService");
 
 class OrderService {
   createBadRequestError(message) {
@@ -520,6 +521,24 @@ class OrderService {
       await LoyaltyService.syncOrderLoyaltyByOrderId(orderCode);
     } else if (isPaid) {
       await OrderRepository.updateOrderPaidStatus(orderCode, true);
+    }
+
+    if (
+      order &&
+      order.order_type === "dine-in" &&
+      order.table_id &&
+      order.session_id
+    ) {
+      const connection = await OrderRepository.getConnection();
+      try {
+        await TableService.checkAndResetTableStatus(
+          connection,
+          order.table_id,
+          order.session_id
+        );
+      } finally {
+        connection.release();
+      }
     }
 
     return { saved: true };

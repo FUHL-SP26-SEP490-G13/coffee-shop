@@ -288,6 +288,7 @@ export function StaffTables() {
   const [orderModalMode, setOrderModalMode] = useState("view-order");
   const [isSplitBillModalOpen, setIsSplitBillModalOpen] = useState(false);
   const [isPaySplitBillModalOpen, setIsPaySplitBillModalOpen] = useState(false);
+  const [splitSourceOrders, setSplitSourceOrders] = useState([]);
   const [_nowTick, setNowTick] = useState(Date.now());
 
   // Transfer Modal States
@@ -514,16 +515,23 @@ export function StaffTables() {
 
       // We want to ALWAYS show SplitBillModal to allow splitting items
       let combinedItems = [];
+      const detailedOrders = [];
       for (const order of unpaidOrders) {
         try {
           const detailRes = await orderService.getOrderDetailForStaff(order.id);
           if (detailRes.data && detailRes.data.items) {
             combinedItems = combinedItems.concat(detailRes.data.items);
+            detailedOrders.push(detailRes.data);
           }
         } catch {
-          if (order.items) combinedItems = combinedItems.concat(order.items);
+          if (order.items) {
+            combinedItems = combinedItems.concat(order.items);
+            detailedOrders.push(order);
+          }
         }
       }
+
+      setSplitSourceOrders(detailedOrders);
 
       setActiveOrder({
         ...unpaidOrders[0],
@@ -1619,6 +1627,7 @@ export function StaffTables() {
         onClose={() => setIsSplitBillModalOpen(false)}
         table={selectedTableForOrder}
         activeOrder={activeOrder}
+        sourceOrders={splitSourceOrders}
         onSplitSuccess={() => {
           setIsPaySplitBillModalOpen(true);
           fetchData();

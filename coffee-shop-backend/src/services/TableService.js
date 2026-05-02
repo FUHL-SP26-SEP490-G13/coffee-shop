@@ -156,7 +156,7 @@ class TableService {
     }
     return table;
   }
-  // timc cac order chua thanh toan cua ban theo session_id hien tai
+  // tim cac order chua thanh toan cua ban theo session_id hien tai
   async getUnpaidOrders(tableId) {
     const table = await TableRepository.findById(tableId);
     if (!table || !table.current_session_id) {
@@ -573,6 +573,32 @@ class TableService {
         throw new ErrorResponse(400, `Bàn ${fromTable.code} không có order active`);
       }
 
+      const hasPaidOrders = async (tableId, sessionId) => {
+        if (!sessionId) return false;
+        const [rows] = await connection.query(
+          `
+          SELECT COUNT(*) AS cnt
+          FROM orders o
+          LEFT JOIN order_payments op ON op.order_id = o.id
+          WHERE o.table_id = ?
+            AND o.session_id = ?
+            AND o.status NOT IN ('cancelled')
+            AND (o.is_paid = 1 OR COALESCE(op.payment_status, 'pending') = 'paid')
+          `,
+          [tableId, sessionId]
+        );
+
+        return Number(rows[0]?.cnt || 0) > 0;
+      };
+
+      if (await hasPaidOrders(fromTableId, fromTable.current_session_id)) {
+        throw new ErrorResponse(400, `Bàn ${fromTable.code} đã có đơn thanh toán, không thể ghép`);
+      }
+
+      if (await hasPaidOrders(toTableId, toTable.current_session_id)) {
+        throw new ErrorResponse(400, `Bàn ${toTable.code} đã có đơn thanh toán, không thể ghép`);
+      }
+
       const [sourceOrders] = await connection.query(
         `
         SELECT
@@ -677,6 +703,10 @@ class TableService {
       const destinationParams = destinationSession ? [toTableId, destinationSession] : [toTableId];
       const [destinationOrders] = await connection.query(destinationOrdersQuery, destinationParams);
 
+      if (destinationOrders.length === 0) {
+        throw new ErrorResponse(400, `Bàn ${toTable.code} chưa có đơn chưa thanh toán để ghép`);
+      }
+
       const invalidDestination = destinationOrders.find(
         (o) => Number(o.is_paid || 0) === 1 || String(o.payment_status || '').toLowerCase() === 'paid'
       );
@@ -684,40 +714,6 @@ class TableService {
         throw new ErrorResponse(400, 'Không thể merge khi order đích đã thanh toán');
       }
 
-      if (destinationOrders.length === 0) {
-        destinationSession = destinationSession || `sess_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
-        const sourceOrderIds = sourceOrders.map((o) => Number(o.id));
-        const placeholders = sourceOrderIds.map(() => '?').join(',');
-
-        await connection.query(
-          `
-          UPDATE orders
-          SET table_id = ?, session_id = ?
-          WHERE id IN (${placeholders})
-          `,
-          [toTableId, destinationSession, ...sourceOrderIds]
-        );
-
-        await connection.query(
-          "UPDATE tables SET status = 'available', current_session_id = NULL WHERE id = ?",
-          [fromTableId]
-        );
-        await connection.query(
-          "UPDATE tables SET status = 'occupied', current_session_id = ? WHERE id = ?",
-          [destinationSession, toTableId]
-        );
-
-        await connection.commit();
-        return {
-          merged: true,
-          merged_into_order_id: null,
-          source_closed_orders: sourceOrderIds.length,
-          moved_orders: sourceOrderIds.length,
-          from: { id: fromTable.id, code: fromTable.code },
-          to: { id: toTable.id, code: toTable.code },
-          mode: 'move-all',
-        };
-      }
 
       const keeperOrder = destinationOrders[0];
       const keeperOrderId = Number(keeperOrder.id);
@@ -954,6 +950,9 @@ class TableService {
       const modifiedOrderIds = new Set();
       let totalSplitAmount = 0;
 
+      const currentSession = await CashSessionRepository.findOpenSession();
+      const cashSessionId = currentSession ? currentSession.id : null;
+
       for (const bill of splitBills) {
         const billItems = bill.items
           .map((item) => ({
@@ -969,10 +968,10 @@ class TableService {
         const staffId = user ? user.id : null;
         const [insertOrder] = await connection.query(
           `
-          INSERT INTO orders (user_id, staff_id, customer_type, order_type, table_id, status, is_paid, amount, discount_amount, total_amount, session_id)
-          VALUES (NULL, ?, 'guest', 'dine-in', ?, 'completed', 0, 0, 0, 0, ?)
+          INSERT INTO orders (user_id, staff_id, customer_type, order_type, table_id, status, is_paid, amount, discount_amount, total_amount, session_id, cash_session_id)
+          VALUES (NULL, ?, 'guest', 'dine-in', ?, 'completed', 0, 0, 0, 0, ?, ?)
           `,
-          [staffId, tableId, table.current_session_id]
+          [staffId, tableId, table.current_session_id, cashSessionId]
         );
         const newOrderId = Number(insertOrder.insertId);
         let billTotal = 0;

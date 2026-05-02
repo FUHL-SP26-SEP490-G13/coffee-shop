@@ -471,6 +471,8 @@ class OrderRepository {
         o.user_id,
         o.customer_type,
         o.order_type,
+        o.table_id,
+        o.session_id,
         o.status,
         o.cancel_reason,
         o.cancel_user_id,
