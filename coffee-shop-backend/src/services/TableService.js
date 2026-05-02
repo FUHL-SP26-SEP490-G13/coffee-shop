@@ -594,7 +594,14 @@ class TableService {
         LEFT JOIN order_payments op ON op.order_id = o.id
         WHERE o.table_id = ?
           AND o.session_id = ?
-          AND o.status IN ('pending', 'preparing', 'processing')
+          AND (
+            o.status IN ('pending', 'preparing', 'processing')
+            OR (
+              o.status = 'completed'
+              AND o.is_paid = 0
+              AND COALESCE(op.payment_status, 'pending') != 'paid'
+            )
+          )
         ORDER BY o.created_at ASC
         FOR UPDATE
         `,
@@ -602,7 +609,17 @@ class TableService {
       );
 
       if (sourceOrders.length === 0) {
-        throw new ErrorResponse(400, `Bàn ${fromTable.code} không có order active`);
+        // Stale session: table has a session_id but no active orders.
+        // Auto-reset the table so staff can work with it again.
+        await connection.query(
+          "UPDATE tables SET status = 'available', current_session_id = NULL WHERE id = ?",
+          [fromTableId]
+        );
+        await connection.commit();
+        throw new ErrorResponse(
+          400,
+          `Bàn ${fromTable.code} không có order đang xử lý (phiên bàn đã được tự động đặt lại về trống)`
+        );
       }
 
       const invalidSource = sourceOrders.find(
@@ -628,7 +645,14 @@ class TableService {
           LEFT JOIN order_payments op ON op.order_id = o.id
           WHERE o.table_id = ?
             AND o.session_id = ?
-            AND o.status IN ('pending', 'preparing', 'processing')
+            AND (
+              o.status IN ('pending', 'preparing', 'processing')
+              OR (
+                o.status = 'completed'
+                AND o.is_paid = 0
+                AND COALESCE(op.payment_status, 'pending') != 'paid'
+              )
+            )
           ORDER BY o.created_at ASC
           FOR UPDATE
         `
@@ -645,7 +669,14 @@ class TableService {
           FROM orders o
           LEFT JOIN order_payments op ON op.order_id = o.id
           WHERE o.table_id = ?
-            AND o.status IN ('pending', 'preparing', 'processing')
+            AND (
+              o.status IN ('pending', 'preparing', 'processing')
+              OR (
+                o.status = 'completed'
+                AND o.is_paid = 0
+                AND COALESCE(op.payment_status, 'pending') != 'paid'
+              )
+            )
           ORDER BY o.created_at ASC
           FOR UPDATE
         `;
