@@ -272,6 +272,7 @@ class CashSessionRepository {
                 SUM(o.status = 'completed')                          AS completed_orders,
                 SUM(o.status = 'cancelled')                          AS cancelled_orders,
                 SUM(o.status NOT IN ('completed', 'cancelled'))      AS pending_orders,
+                SUM(o.status != 'cancelled' AND COALESCE(op.payment_status, 'pending') != 'paid') AS unpaid_orders,
 
                 -- Doanh thu tiền mặt (chỉ đơn đã paid)
                 COALESCE(SUM(
