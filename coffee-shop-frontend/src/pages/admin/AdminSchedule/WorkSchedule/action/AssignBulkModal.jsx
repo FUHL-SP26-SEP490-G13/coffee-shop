@@ -70,6 +70,25 @@ export default function AssignBulkModal({ open, onClose, onSuccess }) {
     }));
   };
 
+  // Helper: check 2 khoảng thời gian có overlap không (xử lý ca qua đêm)
+  const timeToMin = (t) => {
+    const [h, m] = String(t).slice(0, 5).split(':').map(Number);
+    return h * 60 + m;
+  };
+
+  const isTimeOverlap = (startA, endA, startB, endB) => {
+    const splitRanges = (s, e) => {
+      const sm = timeToMin(s), em = timeToMin(e);
+      return em > sm ? [[sm, em]] : [[sm, 1440], [0, em]];
+    };
+    const rA = splitRanges(startA, endA);
+    const rB = splitRanges(startB, endB);
+    for (const [aS, aE] of rA)
+      for (const [bS, bE] of rB)
+        if (aS < bE && aE > bS) return true;
+    return false;
+  };
+
   const validate = () => {
     const e = {};
     if (!startDate) e.startDate = 'Chọn ngày bắt đầu';
@@ -79,6 +98,45 @@ export default function AssignBulkModal({ open, onClose, onSuccess }) {
       if (!a.template_id) e[`tpl_${i}`] = 'Chọn ca';
       if (!a.days_of_week.length) e[`days_${i}`] = 'Chọn ít nhất 1 ngày';
     });
+
+    // Check trùng / overlap giữa các dòng trong cùng batch
+    if (!Object.keys(e).length && templates.length > 0) {
+      for (let i = 0; i < assignments.length; i++) {
+        const a = assignments[i];
+        if (!a.user_id || !a.template_id || !a.days_of_week.length) continue;
+        const tplA = templates.find((t) => String(t.id) === String(a.template_id));
+        if (!tplA) continue;
+
+        for (let j = i + 1; j < assignments.length; j++) {
+          const b = assignments[j];
+          if (!b.user_id || !b.template_id || !b.days_of_week.length) continue;
+          // Chỉ check khi cùng user
+          if (String(a.user_id) !== String(b.user_id)) continue;
+
+          // Tìm các ngày trong tuần chung giữa 2 dòng
+          const commonDays = a.days_of_week.filter((d) => b.days_of_week.includes(d));
+          if (commonDays.length === 0) continue;
+
+          const tplB = templates.find((t) => String(t.id) === String(b.template_id));
+          if (!tplB) continue;
+
+          const dayLabels = { 0: 'CN', 1: 'T2', 2: 'T3', 3: 'T4', 4: 'T5', 5: 'T6', 6: 'T7' };
+          const commonDayStr = commonDays.map((d) => dayLabels[d]).join(', ');
+
+          // Cùng template = duplicate
+          if (String(a.template_id) === String(b.template_id)) {
+            e[`dup_${i}_${j}`] = `Dòng ${i + 1} và ${j + 1}: cùng nhân viên, cùng "${tplA.name}" vào ${commonDayStr}`;
+            continue;
+          }
+
+          // Khác template → check overlap giờ
+          if (isTimeOverlap(tplA.start_time, tplA.end_time, tplB.start_time, tplB.end_time)) {
+            e[`overlap_${i}_${j}`] = `Dòng ${i + 1} và ${j + 1}: cùng nhân viên,"${tplA.name}" trùng giờ với "${tplB.name}" vào ${commonDayStr}`;
+          }
+        }
+      }
+    }
+
     setErrors(e);
     return !Object.keys(e).length;
   };
@@ -233,6 +291,19 @@ export default function AssignBulkModal({ open, onClose, onSuccess }) {
               </div>
             ))}
           </div>
+
+          {/* Hiển thị lỗi trùng/overlap giữa các dòng */}
+          {Object.entries(errors)
+            .filter(([k]) => k.startsWith('dup_') || k.startsWith('overlap_'))
+            .length > 0 && (
+              <div className="rounded-lg border border-red-200 bg-red-50 p-3 space-y-1">
+                {Object.entries(errors)
+                  .filter(([k]) => k.startsWith('dup_') || k.startsWith('overlap_'))
+                  .map(([k, v]) => (
+                    <p key={k} className="text-xs text-red-600 font-medium">⚠ {v}</p>
+                  ))}
+              </div>
+            )}
 
           <div className="flex justify-end gap-2 pt-1 border-t">
             <Button variant="outline" onClick={onClose} disabled={saving}>Hủy</Button>
