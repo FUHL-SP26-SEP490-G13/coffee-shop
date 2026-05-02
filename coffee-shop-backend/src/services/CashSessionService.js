@@ -250,6 +250,7 @@ class CashSessionService {
         : null,
       closed_at: session.closed_at,
       status: session.status,
+      shift_name: session.shift_name,
 
       // Doanh thu trong ca
       revenue: {
@@ -315,6 +316,7 @@ class CashSessionService {
       id: session.id,
       code: session.code,
       status: session.status,
+      shift_name: session.shift_name,
       opening_cash: session.opening_cash,
       opened_by: {
         id: session.opened_by,
