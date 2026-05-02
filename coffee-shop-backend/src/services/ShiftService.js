@@ -365,9 +365,7 @@ class ShiftService {
                     );
                 }
 
-
-
-                // 3.4 Lưu kế hoạch để pass 2 thực thi
+                // 3.3 Lưu kế hoạch để pass 2 thực thi
                 plan.push({
                     user,
                     template,
