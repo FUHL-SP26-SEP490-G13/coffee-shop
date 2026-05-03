@@ -281,7 +281,22 @@ const AdminEndOfDayReport = () => {
   }, [staffData]);
 
   const handlePrint = () => {
-    window.print();
+    // If the staff tab is in chart view, temporarily switch to table so it prints correctly.
+    // SVG charts rendered by recharts/ResponsiveContainer do not print reliably.
+    const wasChart = activeTab === "staff" && staffViewType === "chart";
+    if (wasChart) {
+      setStaffViewType("report");
+      // Allow one render cycle before opening the print dialog
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          window.print();
+          // Restore chart view after the print dialog closes
+          setStaffViewType("chart");
+        });
+      });
+    } else {
+      window.print();
+    }
   };
 
   const toggleTimeRow = (hour) => {
@@ -1081,10 +1096,14 @@ const AdminEndOfDayReport = () => {
             visibility: visible;
           }
           .print\\:block {
+            display: block !important;
             position: absolute;
             left: 0;
             top: 0;
             width: 100%;
+          }
+          .print\\:hidden {
+            display: none !important;
           }
           table {
             border-collapse: collapse !important;
