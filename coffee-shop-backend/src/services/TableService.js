@@ -421,14 +421,23 @@ class TableService {
   }
 
   /**
-   * Chuyển một đơn cụ thể sang bàn trống
+   * Chuyển một hoặc nhiều đơn sang bàn trống
    * @param {number} fromTableId - ID bàn nguồn
    * @param {number} toTableId - ID bàn đích (phải trống)
-   * @param {number} orderId - ID đơn cần chuyển
+   * @param {number|Array} orderIds - ID đơn hoặc mảng ID đơn cần chuyển
    */
-  async transferOrder(fromTableId, toTableId, orderId) {
+  async transferOrder(fromTableId, toTableId, orderIds) {
     if (Number(fromTableId) === Number(toTableId)) {
       throw new ErrorResponse(400, 'Bàn nguồn và bàn đích không được trùng nhau');
+    }
+
+    // Ensure orderIds is an array
+    const idsToTransfer = Array.isArray(orderIds) 
+      ? orderIds.map(id => Number(id))
+      : [Number(orderIds)];
+
+    if (idsToTransfer.length === 0) {
+      throw new ErrorResponse(400, 'Vui lòng cung cấp ít nhất một mã đơn');
     }
 
     const connection = await TableRepository.db.getConnection();
@@ -459,6 +468,8 @@ class TableService {
         throw new ErrorResponse(400, `Bàn ${toTable.code} hiện không trống`);
       }
 
+      // Fetch all orders to validate
+      const placeholders = idsToTransfer.map(() => '?').join(',');
       const [orderRows] = await connection.query(
         `
         SELECT
@@ -470,53 +481,61 @@ class TableService {
           COALESCE(op.payment_status, 'pending') AS payment_status
         FROM orders o
         LEFT JOIN order_payments op ON op.order_id = o.id
-        WHERE o.id = ?
+        WHERE o.id IN (${placeholders})
         FOR UPDATE
         `,
-        [orderId]
+        idsToTransfer
       );
 
-      if (orderRows.length === 0) {
-        throw new ErrorResponse(404, 'Đơn hàng không tồn tại');
+      if (orderRows.length !== idsToTransfer.length) {
+        throw new ErrorResponse(404, 'Một hoặc nhiều đơn hàng không tồn tại');
       }
 
-      const order = orderRows[0];
-      if (Number(order.table_id) !== Number(fromTableId)) {
-        throw new ErrorResponse(400, 'Đơn hàng không thuộc bàn nguồn');
+      // Validate all orders
+      for (const order of orderRows) {
+        if (Number(order.table_id) !== Number(fromTableId)) {
+          throw new ErrorResponse(400, `Đơn #${order.id} không thuộc bàn nguồn`);
+        }
+
+        if (String(order.status || '').toLowerCase() === 'cancelled') {
+          throw new ErrorResponse(400, `Không thể chuyển đơn #${order.id} đã hủy`);
+        }
+
+        const paidByFlag = Number(order.is_paid || 0) === 1;
+        const paidByStatus = String(order.payment_status || '').toLowerCase() === 'paid';
+        if (paidByFlag || paidByStatus) {
+          throw new ErrorResponse(400, `Không thể chuyển đơn #${order.id} đã thanh toán`);
+        }
+
+        if (String(order.session_id || '') !== String(fromTable.current_session_id || '')) {
+          throw new ErrorResponse(400, `Đơn #${order.id} không thuộc phiên phục vụ hiện tại`);
+        }
       }
 
-      if (String(order.status || '').toLowerCase() === 'cancelled') {
-        throw new ErrorResponse(400, 'Không thể chuyển đơn đã hủy');
-      }
-
-      const paidByFlag = Number(order.is_paid || 0) === 1;
-      const paidByStatus = String(order.payment_status || '').toLowerCase() === 'paid';
-      if (paidByFlag || paidByStatus) {
-        throw new ErrorResponse(400, 'Không thể chuyển đơn đã thanh toán');
-      }
-
-      if (String(order.session_id || '') !== String(fromTable.current_session_id || '')) {
-        throw new ErrorResponse(400, 'Đơn không thuộc phiên phục vụ hiện tại');
-      }
-
+      // Create new session for destination table
       const newSessionId = `sess_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
 
+      // Transfer all orders to the destination table with new session
+      const updatePlaceholders = idsToTransfer.map(() => '?').join(',');
       await connection.query(
-        'UPDATE orders SET table_id = ?, session_id = ? WHERE id = ?',
-        [toTableId, newSessionId, orderId]
+        `UPDATE orders SET table_id = ?, session_id = ? WHERE id IN (${updatePlaceholders})`,
+        [toTableId, newSessionId, ...idsToTransfer]
       );
 
+      // Mark destination table as occupied
       await connection.query(
         "UPDATE tables SET status = 'occupied', current_session_id = ? WHERE id = ?",
         [newSessionId, toTableId]
       );
 
+      // Check and reset source table if it has no more active orders
       await this.checkAndResetTableStatus(connection, fromTableId, fromTable.current_session_id);
 
       await connection.commit();
 
       return {
-        order_id: Number(orderId),
+        transferred_count: idsToTransfer.length,
+        order_ids: idsToTransfer,
         from: { id: fromTable.id, code: fromTable.code },
         to: { id: toTable.id, code: toTable.code },
         new_session_id: newSessionId,
@@ -1061,6 +1080,13 @@ class TableService {
         }
       }
 
+      const totalQtyByOrderId = new Map();
+      for (const detail of detailStateById.values()) {
+        const orderId = Number(detail.order_id);
+        const nextQty = Number(totalQtyByOrderId.get(orderId) || 0) + Number(detail.quantity || 0);
+        totalQtyByOrderId.set(orderId, nextQty);
+      }
+
       const createdOrderIds = [];
       const modifiedOrderIds = new Set();
       let totalSplitAmount = 0;
@@ -1095,6 +1121,11 @@ class TableService {
           const detailState = detailStateById.get(reqItem.order_detail_id);
           if (!detailState) {
             throw new ErrorResponse(400, `Item ${reqItem.order_detail_id} không tồn tại trong hóa đơn hiện tại`);
+          }
+
+          const sourceOrderRemainingQty = Number(totalQtyByOrderId.get(Number(detailState.order_id)) || 0);
+          if (sourceOrderRemainingQty <= 1) {
+            throw new ErrorResponse(400, 'Không thể tách khi đơn gốc chỉ còn 1 sản phẩm');
           }
 
           if (reqItem.quantity > detailState.quantity) {
@@ -1134,6 +1165,10 @@ class TableService {
 
           billTotal += (reqItem.quantity * detailState.price) + toppingTotalForSplit;
           detailState.quantity = originalQty - reqItem.quantity;
+          totalQtyByOrderId.set(
+            Number(detailState.order_id),
+            Math.max(0, sourceOrderRemainingQty - Number(reqItem.quantity || 0))
+          );
           modifiedOrderIds.add(detailState.order_id);
 
           if (detailState.quantity > 0) {

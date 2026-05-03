@@ -56,12 +56,20 @@ const tableService = {
     return response.data;
   },
 
-  transferOrder: async (fromTableId, toTableId, orderId) => {
-    const response = await axios.post(`${API_URL}/tables/transfer-order`, {
+  transferOrder: async (fromTableId, toTableId, orderIds) => {
+    const payload = {
       from_table_id: fromTableId,
       to_table_id: toTableId,
-      order_id: orderId,
-    });
+    };
+    
+    // Support both single ID (legacy) and array of IDs
+    if (Array.isArray(orderIds)) {
+      payload.order_ids = orderIds;
+    } else {
+      payload.order_id = orderIds;
+    }
+    
+    const response = await axios.post(`${API_URL}/tables/transfer-order`, payload);
     return response.data;
   },
 

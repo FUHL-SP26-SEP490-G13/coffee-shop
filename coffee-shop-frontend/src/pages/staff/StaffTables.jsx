@@ -290,7 +290,7 @@ export function StaffTables() {
   const [isPaySplitBillModalOpen, setIsPaySplitBillModalOpen] = useState(false);
   const [splitSourceOrders, setSplitSourceOrders] = useState([]);
   const [transferSourceOrders, setTransferSourceOrders] = useState([]);
-  const [transferOrderId, setTransferOrderId] = useState(null);
+  const [transferOrderIds, setTransferOrderIds] = useState([]);
   const [_nowTick, setNowTick] = useState(Date.now());
 
   // Transfer Modal States
@@ -432,7 +432,7 @@ export function StaffTables() {
     setTransferTargetId(null);
     setTransferAreaFilter("all");
     setTransferSourceOrders([]);
-    setTransferOrderId(null);
+    setTransferOrderIds([]);
     setIsTransferModalOpen(true);
 
     if (mode !== "transfer") return;
@@ -449,8 +449,9 @@ export function StaffTables() {
       }
 
       setTransferSourceOrders(unpaidOrders);
+      // Auto-select the first order if only one is available
       if (unpaidOrders.length === 1) {
-        setTransferOrderId(unpaidOrders[0].id);
+        setTransferOrderIds([unpaidOrders[0].id]);
       }
     } catch {
       toast.error("Không thể tải đơn để chuyển");
@@ -461,8 +462,8 @@ export function StaffTables() {
 
   const handleConfirmTransfer = async () => {
     if (!tableToTransfer || !transferTargetId) return;
-    if (tableActionMode === "transfer" && !transferOrderId) {
-      toast.error("Vui lòng chọn đơn cần chuyển");
+    if (tableActionMode === "transfer" && transferOrderIds.length === 0) {
+      toast.error("Vui lòng chọn ít nhất một đơn cần chuyển");
       return;
     }
     setTransferring(true);
@@ -473,7 +474,7 @@ export function StaffTables() {
           : await tableService.transferOrder(
               tableToTransfer.id,
               transferTargetId,
-              transferOrderId
+              transferOrderIds
             );
       toast.success(
         res.message ||
@@ -485,7 +486,7 @@ export function StaffTables() {
       setTableToTransfer(null);
       setTransferTargetId(null);
       setTransferSourceOrders([]);
-      setTransferOrderId(null);
+      setTransferOrderIds([]);
       fetchData();
     } catch (err) {
       toast.error(
@@ -1248,7 +1249,7 @@ export function StaffTables() {
       />
 
       {/* Transfer Table Modal */}
-      <Dialog open={isTransferModalOpen} onOpenChange={(open) => { if (!open) { setIsTransferModalOpen(false); setTableToTransfer(null); setTransferTargetId(null); setTableActionMode("transfer"); setTransferSourceOrders([]); setTransferOrderId(null); } }}>
+      <Dialog open={isTransferModalOpen} onOpenChange={(open) => { if (!open) { setIsTransferModalOpen(false); setTableToTransfer(null); setTransferTargetId(null); setTableActionMode("transfer"); setTransferSourceOrders([]); setTransferOrderIds([]); } }}>
         <DialogContent className="sm:max-w-[560px]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -1286,21 +1287,26 @@ export function StaffTables() {
               </div>
             </div>
 
-            {tableActionMode === "transfer" && transferSourceOrders.length > 1 && (
+            {tableActionMode === "transfer" && transferSourceOrders.length > 0 && (
               <div className="space-y-2">
-                <p className="text-sm font-medium">Chọn đơn cần chuyển:</p>
+                <p className="text-sm font-medium">Chọn {transferSourceOrders.length > 1 ? 'một hoặc nhiều' : 'đơn'} cần chuyển:</p>
                 <div className="flex flex-wrap gap-2">
                   {transferSourceOrders.map((order) => (
                     <button
                       key={order.id}
                       type="button"
-                      onClick={() => setTransferOrderId(order.id)}
+                      onClick={() => setTransferOrderIds((prev) =>
+                        prev.includes(order.id)
+                          ? prev.filter((id) => id !== order.id)
+                          : [...prev, order.id]
+                      )}
                       className={`px-2.5 py-1.5 text-xs rounded border transition-colors ${
-                        Number(transferOrderId) === Number(order.id)
-                          ? "bg-amber-100 border-amber-400 text-amber-800"
+                        transferOrderIds.includes(order.id)
+                          ? "bg-amber-100 border-amber-400 text-amber-800 font-semibold"
                           : "bg-background border-border text-muted-foreground hover:border-amber-300"
                       }`}
                     >
+                      {transferOrderIds.includes(order.id) && <span className="mr-1">✓</span>}
                       Đơn #{order.id} · {formatVND(order.total_amount || 0)}
                     </button>
                   ))}
@@ -1385,7 +1391,7 @@ export function StaffTables() {
               Hủy
             </Button>
             <Button
-              disabled={!transferTargetId || transferring || (tableActionMode === "transfer" && !transferOrderId)}
+              disabled={!transferTargetId || transferring || (tableActionMode === "transfer" && transferOrderIds.length === 0)}
               onClick={handleConfirmTransfer}
               className="bg-indigo-600 hover:bg-indigo-700"
             >

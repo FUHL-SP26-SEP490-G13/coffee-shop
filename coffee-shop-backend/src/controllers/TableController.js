@@ -257,16 +257,28 @@ class TableController {
   }
 
   /**
-   * Transfer a specific order to an empty table
+   * Transfer one or multiple orders to an empty table
    */
   async transferOrder(req, res, next) {
     try {
-      const { from_table_id, to_table_id, order_id } = req.body;
+      const { from_table_id, to_table_id, order_id, order_ids } = req.body;
 
-      if (!from_table_id || !to_table_id || !order_id) {
+      if (!from_table_id || !to_table_id) {
         return res.status(400).json({
           success: false,
-          message: 'Vui lòng cung cấp bàn nguồn, bàn đích và mã đơn',
+          message: 'Vui lòng cung cấp bàn nguồn và bàn đích',
+        });
+      }
+
+      // Support both single order_id (legacy) and multiple order_ids
+      const ordersToTransfer = order_ids && Array.isArray(order_ids) 
+        ? order_ids 
+        : (order_id ? [order_id] : []);
+
+      if (ordersToTransfer.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Vui lòng cung cấp ít nhất một mã đơn',
         });
       }
 
@@ -280,12 +292,12 @@ class TableController {
       const result = await TableService.transferOrder(
         Number(from_table_id),
         Number(to_table_id),
-        Number(order_id)
+        ordersToTransfer.map(id => Number(id))
       );
 
       res.json({
         success: true,
-        message: `Đã chuyển đơn #${result.order_id} từ ${result.from.code} → ${result.to.code}`,
+        message: `Đã chuyển ${result.transferred_count} đơn từ ${result.from.code} → ${result.to.code}`,
         data: result,
       });
     } catch (error) {

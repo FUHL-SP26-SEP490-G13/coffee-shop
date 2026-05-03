@@ -41,6 +41,13 @@ export function SplitBillModal({ isOpen, onClose, table, activeOrder, sourceOrde
     return match?.items || [];
   }, [sourceOrderId, sourceOrders, activeOrder]);
 
+  const sourceTotalQty = useMemo(
+    () => sourceItems.reduce((sum, item) => sum + Number(item?.quantity || 0), 0),
+    [sourceItems]
+  );
+
+  const isSourceTooSmallToSplit = sourceTotalQty <= 1;
+
   const getRemainingQty = (itemId, totalQty) => {
     let used = 0;
     for (const bill of splitBills) {
@@ -50,6 +57,11 @@ export function SplitBillModal({ isOpen, onClose, table, activeOrder, sourceOrde
   };
 
   const handleMoveToNewBill = (item) => {
+    if (isSourceTooSmallToSplit) {
+      toast.error('Không thể tách khi đơn gốc chỉ còn 1 sản phẩm');
+      return;
+    }
+
     if (!activeBillId) {
       toast.error('Vui lòng chọn một đơn mới để chuyển món vào');
       return;
@@ -107,6 +119,11 @@ export function SplitBillModal({ isOpen, onClose, table, activeOrder, sourceOrde
   };
 
   const handleConfirmSplit = async () => {
+    if (isSourceTooSmallToSplit) {
+      toast.error('Không thể tách khi đơn gốc chỉ còn 1 sản phẩm');
+      return;
+    }
+
     const validBills = splitBills.filter(b => Object.keys(b.items).length > 0);
     if (validBills.length === 0) {
       toast.error('Không có đơn nào chứa món để tách');
@@ -125,7 +142,7 @@ export function SplitBillModal({ isOpen, onClose, table, activeOrder, sourceOrde
 
       await tableService.splitBill(table.id, { bills: billsPayload });
 
-      toast.success(`Đã tách thành công ${validBills.length} đơn. Vui lòng thanh toán trong cửa sổ tiếp theo.`);
+      toast.success(`Đã tách thành công . Vui lòng thanh toán trong cửa sổ tiếp theo.`);
       onSplitSuccess(); // No need for orderIds, the next modal will fetch all unpaid
       onClose();
     } catch (err) {
@@ -172,6 +189,12 @@ export function SplitBillModal({ isOpen, onClose, table, activeOrder, sourceOrde
               )}
             </div>
             <div className="flex-1 overflow-y-auto p-2 space-y-2">
+              {isSourceTooSmallToSplit && (
+                <div className="p-2 rounded-md bg-rose-50 border border-rose-200 text-rose-700 text-xs">
+                  Đơn gốc chỉ còn 1 sản phẩm, không thể tách tiếp.
+                </div>
+              )}
+
               {sourceItems.map(item => {
                 const remaining = getRemainingQty(item.id, item.quantity);
                 if (remaining === 0) return null;
@@ -180,7 +203,11 @@ export function SplitBillModal({ isOpen, onClose, table, activeOrder, sourceOrde
                   <div
                     key={item.id}
                     onClick={() => handleMoveToNewBill(item)}
-                    className="p-2 border rounded-lg bg-background hover:border-amber-400 cursor-pointer transition-colors flex items-center justify-between group"
+                    className={`p-2 border rounded-lg transition-colors flex items-center justify-between group ${
+                      isSourceTooSmallToSplit
+                        ? 'bg-muted/40 border-border cursor-not-allowed opacity-70'
+                        : 'bg-background hover:border-amber-400 cursor-pointer'
+                    }`}
                   >
                     <div className="flex-1 min-w-0 pr-2">
                       <p className="font-semibold text-sm truncate">{item.name}</p>
@@ -258,7 +285,7 @@ export function SplitBillModal({ isOpen, onClose, table, activeOrder, sourceOrde
           <Button
             className="bg-indigo-600 hover:bg-indigo-700 font-bold"
             onClick={handleConfirmSplit}
-            disabled={splitting || splitBills.every(b => Object.keys(b.items).length === 0)}
+            disabled={splitting || isSourceTooSmallToSplit || splitBills.every(b => Object.keys(b.items).length === 0)}
           >
             {splitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
             Xác nhận tách đơn
