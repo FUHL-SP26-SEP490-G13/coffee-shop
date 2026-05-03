@@ -1117,11 +1117,11 @@ class TableService {
         }
       }
 
-      const totalQtyByOrderId = new Map();
+      const initialTotalQtyByOrderId = new Map();
       for (const detail of detailStateById.values()) {
         const orderId = Number(detail.order_id);
-        const nextQty = Number(totalQtyByOrderId.get(orderId) || 0) + Number(detail.quantity || 0);
-        totalQtyByOrderId.set(orderId, nextQty);
+        const nextQty = Number(initialTotalQtyByOrderId.get(orderId) || 0) + Number(detail.quantity || 0);
+        initialTotalQtyByOrderId.set(orderId, nextQty);
       }
 
       const createdOrderIds = [];
@@ -1160,8 +1160,8 @@ class TableService {
             throw new ErrorResponse(400, `Item ${reqItem.order_detail_id} không tồn tại trong hóa đơn hiện tại`);
           }
 
-          const sourceOrderRemainingQty = Number(totalQtyByOrderId.get(Number(detailState.order_id)) || 0);
-          if (sourceOrderRemainingQty <= 1) {
+          const sourceOrderInitialQty = Number(initialTotalQtyByOrderId.get(Number(detailState.order_id)) || 0);
+          if (sourceOrderInitialQty <= 1) {
             throw new ErrorResponse(400, 'Không thể tách khi đơn gốc chỉ còn 1 sản phẩm');
           }
 
@@ -1202,10 +1202,6 @@ class TableService {
 
           billTotal += (reqItem.quantity * detailState.price) + toppingTotalForSplit;
           detailState.quantity = originalQty - reqItem.quantity;
-          totalQtyByOrderId.set(
-            Number(detailState.order_id),
-            Math.max(0, sourceOrderRemainingQty - Number(reqItem.quantity || 0))
-          );
           modifiedOrderIds.add(detailState.order_id);
 
           if (detailState.quantity > 0) {
