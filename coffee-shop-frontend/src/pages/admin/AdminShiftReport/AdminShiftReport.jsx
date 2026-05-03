@@ -16,7 +16,20 @@ import {
   ChevronLeft,
   ChevronRight,
   Printer,
+  ShieldAlert,
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -72,6 +85,17 @@ const AdminShiftReport = () => {
     total: 0,
     limit: 10,
   });
+
+  // Force close state
+  const [isForceCloseOpen, setIsForceCloseOpen] = useState(false);
+  const [selectedSession, setSelectedSession] = useState(null);
+  const [forceCloseForm, setForceCloseForm] = useState({
+    closing_cash_actual: "",
+    closing_note: "",
+  });
+  const [sessionSummary, setSessionSummary] = useState(null);
+  const [loadingSummary, setLoadingSummary] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isRefreshing = loading && data.length > 0;
 
@@ -176,8 +200,59 @@ const AdminShiftReport = () => {
   };
 
   const handleStaffChange = (val) => {
-    setSelectedStaff(val);
     setPagination((p) => ({ ...p, currentPage: 1 }));
+  };
+
+  const handleOpenForceClose = async (session) => {
+    setSelectedSession(session);
+    setForceCloseForm({
+      closing_cash_actual: "",
+      closing_note: "",
+    });
+    setSessionSummary(null);
+    setIsForceCloseOpen(true);
+
+    try {
+      setLoadingSummary(true);
+      const res = await cashSessionService.getSummary(session.id);
+      setSessionSummary(res?.data?.summary || res?.summary);
+    } catch (error) {
+      console.error("Error fetching session summary:", error);
+      toast.error("Không thể lấy dữ liệu tổng hợp của ca này");
+    } finally {
+      setLoadingSummary(false);
+    }
+  };
+
+  const handleForceCloseSubmit = async () => {
+    if (!selectedSession) return;
+
+    if (!forceCloseForm.closing_cash_actual) {
+      toast.error("Vui lòng nhập số tiền thực tế trong két");
+      return;
+    }
+
+    if (!forceCloseForm.closing_note.trim()) {
+      toast.error("Vui lòng nhập ghi chú (bắt buộc khi đóng ca hộ)");
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      await cashSessionService.forceCloseSession(selectedSession.id, {
+        closing_cash_actual: Number(forceCloseForm.closing_cash_actual),
+        closing_note: forceCloseForm.closing_note,
+      });
+
+      toast.success(`Đã đóng hộ ca ${selectedSession.code} thành công`);
+      setIsForceCloseOpen(false);
+      fetchReportData();
+    } catch (error) {
+      console.error("Error force closing session:", error);
+      toast.error(error.response?.data?.message || "Có lỗi xảy ra khi đóng ca hộ");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const rangeLabel = useMemo(() => formatRangeLabel(dateRange), [dateRange]);
@@ -407,6 +482,7 @@ const AdminShiftReport = () => {
                 <th className="px-4 py-3 text-right">Thu</th>
                 <th className="px-4 py-3 text-right">Tiền cuối ca (TT)</th>
                 <th className="px-4 py-3 text-right">Chênh lệch</th>
+                <th className="px-4 py-3 text-center print:hidden">Thao tác</th>
               </tr>
             </thead>
             <tbody>
@@ -477,6 +553,19 @@ const AdminShiftReport = () => {
                         ? formatMoney(session.cash_difference)
                         : "—"}
                     </td>
+                    <td className="px-4 py-3 text-center print:hidden">
+                      {!session.closed_at && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 px-2 text-amber-600 hover:text-amber-700 hover:bg-amber-50"
+                          onClick={() => handleOpenForceClose(session)}
+                        >
+                          <ShieldAlert className="mr-1 h-3.5 w-3.5" />
+                          Đóng hộ
+                        </Button>
+                      )}
+                    </td>
                   </tr>
                 );
               })}
@@ -515,6 +604,7 @@ const AdminShiftReport = () => {
                   <td className="px-4 py-4 text-right text-lg">
                     {formatMoney(totals.cashDifference)}
                   </td>
+                  <td className="px-4 py-4 print:hidden"></td>
                 </tr>
               </tfoot>
             )}
@@ -572,6 +662,106 @@ const AdminShiftReport = () => {
           </div>
         )}
       </div>
+
+      <Dialog open={isForceCloseOpen} onOpenChange={setIsForceCloseOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-amber-600">
+              <ShieldAlert className="h-5 w-5" />
+              Đóng ca hộ Manager
+            </DialogTitle>
+            <DialogDescription>
+              Bạn đang thực hiện đóng ca hộ cho nhân viên. Hành động này sẽ được ghi nhận lại trong hệ thống.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label>Mã ca</Label>
+              <Input value={selectedSession?.code || ""} disabled className="bg-muted" />
+            </div>
+            {loadingSummary ? (
+              <div className="flex items-center justify-center py-4">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                <span className="ml-2 text-sm text-muted-foreground">Đang tính toán tiền két...</span>
+              </div>
+            ) : sessionSummary ? (
+              <div className="rounded-lg bg-muted/50 p-3 space-y-2 border border-border">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Tiền mặt đầu ca:</span>
+                  <span className="font-medium">{formatMoney(sessionSummary.opening_cash)}đ</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Doanh thu tiền mặt:</span>
+                  <span className="font-medium text-emerald-600">+{formatMoney(sessionSummary.cash_revenue)}đ</span>
+                </div>
+                <div className="flex justify-between border-t pt-2 font-bold">
+                  <span>Tiền mặt lý thuyết:</span>
+                  <span className="text-blue-600">{formatMoney(sessionSummary.current_cash_system)}đ</span>
+                </div>
+              </div>
+            ) : null}
+            <div className="space-y-2">
+              <Label htmlFor="closing_cash">Số tiền mặt thực tế trong két (VNĐ)</Label>
+              <Input
+                id="closing_cash"
+                type="number"
+                placeholder="Nhập số tiền thực tế..."
+                value={forceCloseForm.closing_cash_actual}
+                onChange={(e) => setForceCloseForm(prev => ({ ...prev, closing_cash_actual: e.target.value }))}
+              />
+              {forceCloseForm.closing_cash_actual && sessionSummary && (
+                <div className={`text-sm font-medium flex justify-between items-center px-1`}>
+                  <span>Chênh lệch:</span>
+                  <span className={
+                    Number(forceCloseForm.closing_cash_actual) - sessionSummary.current_cash_system > 0 
+                      ? "text-blue-600" 
+                      : Number(forceCloseForm.closing_cash_actual) - sessionSummary.current_cash_system < 0 
+                        ? "text-red-600" 
+                        : "text-emerald-600"
+                  }>
+                    {Number(forceCloseForm.closing_cash_actual) - sessionSummary.current_cash_system > 0 ? "+" : ""}
+                    {formatMoney(Number(forceCloseForm.closing_cash_actual) - sessionSummary.current_cash_system)}đ
+                    {Number(forceCloseForm.closing_cash_actual) - sessionSummary.current_cash_system !== 0 && (
+                      <span className="text-xs ml-1 font-normal opacity-80">
+                        ({Number(forceCloseForm.closing_cash_actual) - sessionSummary.current_cash_system > 0 ? "Thừa" : "Thiếu"})
+                      </span>
+                    )}
+                  </span>
+                </div>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="closing_note">Ghi chú lý do đóng hộ <span className="text-red-500">*</span></Label>
+              <Textarea
+                id="closing_note"
+                placeholder="Lý do manager đóng ca hộ (ví dụ: nhân viên quên kết ca...)"
+                value={forceCloseForm.closing_note}
+                onChange={(e) => setForceCloseForm(prev => ({ ...prev, closing_note: e.target.value }))}
+                className="min-h-[100px]"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsForceCloseOpen(false)} disabled={isSubmitting}>
+              Hủy
+            </Button>
+            <Button
+              className="bg-amber-600 hover:bg-amber-700 text-white"
+              onClick={handleForceCloseSubmit}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Đang xử lý...
+                </>
+              ) : (
+                "Xác nhận đóng ca"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <style
         dangerouslySetInnerHTML={{
