@@ -10,10 +10,13 @@ import receiptSettingService from "@/services/receiptSettingService";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import AdminAttendanceSettings from "./AdminAttendanceSettings";
+import VietmapAddressAutocomplete from "@/components/order/VietmapAddressAutocomplete";
 
 const DEFAULT_FORM = {
   store_name: "Coffee Shop",
   address: "",
+  latitude: "",
+  longitude: "",
   phone: "",
   logo_url: "",
   header_text: "",
@@ -48,10 +51,18 @@ export default function AdminReceiptSettings() {
         const res = await receiptSettingService.getActive();
         const data = res?.data || null;
 
+        const hasOwn = (key) => data && Object.prototype.hasOwnProperty.call(data, key);
+
         if (data) {
           setForm({
             store_name: data.store_name || "",
             address: data.address || "",
+            latitude: hasOwn("latitude") 
+              ? (data.latitude !== null && data.latitude !== "" ? String(data.latitude).replace(",", ".") : "") 
+              : "",
+            longitude: hasOwn("longitude") 
+              ? (data.longitude !== null && data.longitude !== "" ? String(data.longitude).replace(",", ".") : "") 
+              : "",
             phone: data.phone || "",
             logo_url: data.logo_url || "",
             header_text: fromLines(data.header_lines),
@@ -97,6 +108,11 @@ export default function AdminReceiptSettings() {
       const formData = new FormData();
       formData.append("store_name", form.store_name?.trim() || "");
       formData.append("address", normalizedAddress);
+      const normalizedLat = String(form.latitude || "").replace(",", ".");
+      const normalizedLng = String(form.longitude || "").replace(",", ".");
+      
+      formData.append("latitude", normalizedLat);
+      formData.append("longitude", normalizedLng);
 
       formData.append("phone", form.phone?.trim() || "");
       formData.append("header_lines", JSON.stringify(toLines(form.header_text)));
@@ -256,13 +272,43 @@ export default function AdminReceiptSettings() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="address">Địa chỉ</Label>
-                <Input
-                  id="address"
-                  value={form.address}
-                  onChange={(e) => handleChange("address", e.target.value)}
-                  placeholder="Ví dụ: 123 Nguyễn Huệ, Q1, TP.HCM"
+                <Label htmlFor="address">Địa chỉ của quán</Label>
+                <VietmapAddressAutocomplete
+                  initialAddress={form.address}
+                  onAddressSelect={(data) => {
+                    setForm((prev) => ({
+                      ...prev,
+                      address: data.address,
+                      latitude: data.latitude,
+                      longitude: data.longitude,
+                    }));
+                  }}
                 />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="latitude">Vĩ độ (Latitude)</Label>
+                  <Input
+                    id="latitude"
+                    type="number"
+                    step="any"
+                    value={form.latitude}
+                    onChange={(e) => handleChange("latitude", e.target.value)}
+                    placeholder="Ví dụ: 21.026065"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="longitude">Kinh độ (Longitude)</Label>
+                  <Input
+                    id="longitude"
+                    type="number"
+                    step="any"
+                    value={form.longitude}
+                    onChange={(e) => handleChange("longitude", e.target.value)}
+                    placeholder="Ví dụ: 105.5455133"
+                  />
+                </div>
               </div>
 
               <div className="space-y-2">

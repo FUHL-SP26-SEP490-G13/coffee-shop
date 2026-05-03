@@ -32,9 +32,7 @@ import { validateOrderField } from "@/utils/orderValidation";
 import { calculateHaversineDistance } from "@/utils/distance";
 import PayOSLogo from "/logo/payOS.svg";
 import reputationService from "@/services/reputationService";
-import {
-  validateOrderPermissions,
-} from "@/utils/reputationValidation";
+import { validateOrderPermissions } from "@/utils/reputationValidation";
 import { toast } from "sonner";
 import flashSaleService from "@/services/flashSaleService";
 import receiptSettingService from "@/services/receiptSettingService";
@@ -174,10 +172,6 @@ export default function CheckoutPage() {
     loadCheckoutData();
   }, [token]);
 
-
-
-
-
   const normalizePhoneNumber = (phone) => {
     const digits = String(phone || "").replace(/\D/g, "");
     if (!digits) return "";
@@ -257,16 +251,15 @@ export default function CheckoutPage() {
     const timeoutId = setTimeout(async () => {
       setIsReputationLoading(true);
       try {
-        const res = await reputationService.getReputationProfile(
-          normalizedPhone
-        );
+        const res =
+          await reputationService.getReputationProfile(normalizedPhone);
         const reputation = res?.data?.data || res?.data || {};
 
         setReputationScore(Number(reputation?.current_score ?? 50));
         setReputationTier(String(reputation?.reputation_tier || "SILVER"));
         setReputationFrozen(
           Number(reputation?.is_frozen || 0) === 1 ||
-          reputation?.is_frozen === true
+            reputation?.is_frozen === true,
         );
       } catch (error) {
         console.error("Lỗi lấy điểm uy tín theo số điện thoại:", error);
@@ -303,11 +296,11 @@ export default function CheckoutPage() {
       ...prev,
       receiver_name: validateOrderField(
         "receiver_name",
-        item.receiver_name || form.receiver_name
+        item.receiver_name || form.receiver_name,
       ),
       receiver_phone: validateOrderField(
         "receiver_phone",
-        item.receiver_phone || form.receiver_phone
+        item.receiver_phone || form.receiver_phone,
       ),
       address: validateOrderField("address", item.address || ""),
     }));
@@ -324,7 +317,7 @@ export default function CheckoutPage() {
   const regularAmount = useMemo(() => {
     return cart.reduce((sum, item) => {
       const isFlashSale = activeSale?.product_ids?.some(
-        (id) => Number(id) === Number(item.product_id || item.id)
+        (id) => Number(id) === Number(item.product_id || item.id),
       );
       if (isFlashSale) {
         return sum; // Do not include in regular amount
@@ -337,39 +330,63 @@ export default function CheckoutPage() {
   const discountAmount = Number(appliedDiscount?.discount_amount || 0);
   const amountAfterDiscount = Math.max(
     0,
-    subtotalAmount - discountAmount + shippingFee
+    subtotalAmount - discountAmount + shippingFee,
   );
 
   const parsedUsedPoints = Math.max(
     0,
-    Math.floor(Number(usedPointsInput) || 0)
+    Math.floor(Number(usedPointsInput) || 0),
   );
   const maxRedeemablePointsByWallet = Math.max(
     0,
-    Number(loyaltyWalletPoints || 0)
+    Number(loyaltyWalletPoints || 0),
   );
   const maxRedeemablePointsByAmount = Math.floor(
-    amountAfterDiscount / LOYALTY_MONEY_PER_POINT
+    amountAfterDiscount / LOYALTY_MONEY_PER_POINT,
   );
   const maxRedeemablePointsByPolicy = Math.floor(
-    (amountAfterDiscount * LOYALTY_MAX_REDEEM_RATIO) / LOYALTY_MONEY_PER_POINT
+    (amountAfterDiscount * LOYALTY_MAX_REDEEM_RATIO) / LOYALTY_MONEY_PER_POINT,
   );
   const maxRedeemablePoints = Math.max(
     0,
     Math.min(
       maxRedeemablePointsByWallet,
       maxRedeemablePointsByAmount,
-      maxRedeemablePointsByPolicy
-    )
+      maxRedeemablePointsByPolicy,
+    ),
   );
   const usedPoints = Math.min(parsedUsedPoints, maxRedeemablePoints);
   const loyaltyDiscountAmount = usedPoints * LOYALTY_MONEY_PER_POINT;
   const totalAmount = Math.max(0, amountAfterDiscount - loyaltyDiscountAmount);
   const isPointsInputExceeded = parsedUsedPoints > maxRedeemablePoints;
 
-  const shopLat = parseFloat(import.meta.env.VITE_SHOP_LATITUDE || "0");
-  const shopLng = parseFloat(import.meta.env.VITE_SHOP_LONGITUDE || "0");
-  const maxDeliveryDistance = parseFloat(import.meta.env.VITE_MAX_DELIVERY_DISTANCE || "8");
+  const [shopCoords, setShopCoords] = useState({
+    lat: parseFloat(import.meta.env.VITE_SHOP_LATITUDE || "0"),
+    lng: parseFloat(import.meta.env.VITE_SHOP_LONGITUDE || "0"),
+  });
+
+  useEffect(() => {
+    const fetchShopCoords = async () => {
+      try {
+        const res = await receiptSettingService.getActive();
+        if (res?.data?.latitude && res?.data?.longitude) {
+          setShopCoords({
+            lat: parseFloat(res.data.latitude),
+            lng: parseFloat(res.data.longitude),
+          });
+        }
+      } catch (error) {
+        console.error("Failed to fetch shop coordinates:", error);
+      }
+    };
+    fetchShopCoords();
+  }, []);
+
+  const shopLat = shopCoords.lat;
+  const shopLng = shopCoords.lng;
+  const maxDeliveryDistance = parseFloat(
+    import.meta.env.VITE_MAX_DELIVERY_DISTANCE || "8",
+  );
 
   const deliveryDistance = useMemo(() => {
     if (form.latitude && form.longitude && shopLat && shopLng) {
@@ -377,13 +394,14 @@ export default function CheckoutPage() {
         shopLat,
         shopLng,
         parseFloat(form.latitude),
-        parseFloat(form.longitude)
+        parseFloat(form.longitude),
       );
     }
     return null;
   }, [form.latitude, form.longitude, shopLat, shopLng]);
 
-  const isDeliveryOutOfRange = deliveryDistance !== null && deliveryDistance > maxDeliveryDistance;
+  const isDeliveryOutOfRange =
+    deliveryDistance !== null && deliveryDistance > maxDeliveryDistance;
   const isCheckoutBlocked = isDeliveryOutOfRange;
 
   const placeOrderLabel = !isOpen
@@ -415,7 +433,7 @@ export default function CheckoutPage() {
         reputationScore,
         totalAmount,
         reputationFrozen,
-        reputationRules
+        reputationRules,
       );
       setPaymentValidation(validation);
 
@@ -455,7 +473,7 @@ export default function CheckoutPage() {
 
     if (regularAmount === 0) {
       alert(
-        "Mã giảm giá không áp dụng cho đơn hàng chỉ có sản phẩm Flash Sale!"
+        "Mã giảm giá không áp dụng cho đơn hàng chỉ có sản phẩm Flash Sale!",
       );
       return;
     }
@@ -566,7 +584,7 @@ export default function CheckoutPage() {
                       ...prev,
                       receiver_phone: validateOrderField(
                         "receiver_phone",
-                        value
+                        value,
                       ),
                     }));
                   }}
@@ -578,8 +596,9 @@ export default function CheckoutPage() {
                 )}
                 {!errors.receiver_phone && form.receiver_phone ? (
                   <p
-                    className={`mt-1 text-xs ${reputationFrozen ? "text-red-600" : "text-emerald-600"
-                      }`}
+                    className={`mt-1 text-xs ${
+                      reputationFrozen ? "text-red-600" : "text-emerald-600"
+                    }`}
                   >
                     {reputationFrozen
                       ? "Số điện thoại này đã bị khóa"
@@ -602,7 +621,7 @@ export default function CheckoutPage() {
                       ...prev,
                       receiver_email: validateOrderField(
                         "receiver_email",
-                        value
+                        value,
                       ),
                     }));
                   }}
@@ -634,7 +653,9 @@ export default function CheckoutPage() {
                       Tùy chọn giao hàng
                     </label>
                     <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6">
-                      <label className={`flex items-center gap-2 cursor-pointer ${addresses.length === 0 ? "opacity-50" : ""}`}>
+                      <label
+                        className={`flex items-center gap-2 cursor-pointer ${addresses.length === 0 ? "opacity-50" : ""}`}
+                      >
                         <input
                           type="radio"
                           name="addressMode"
@@ -644,8 +665,11 @@ export default function CheckoutPage() {
                           disabled={addresses.length === 0}
                           className="text-amber-600 focus:ring-amber-500 w-4 h-4 cursor-pointer"
                         />
-                        <span className={`text-[15px] ${addresses.length === 0 ? "text-gray-400" : "font-medium text-gray-800 dark:text-gray-200"}`}>
-                          Dùng địa chỉ đã lưu {addresses.length === 0 && "(Chưa có)"}
+                        <span
+                          className={`text-[15px] ${addresses.length === 0 ? "text-gray-400" : "font-medium text-gray-800 dark:text-gray-200"}`}
+                        >
+                          Dùng địa chỉ đã lưu{" "}
+                          {addresses.length === 0 && "(Chưa có)"}
                         </span>
                       </label>
                       <label className="flex items-center gap-2 cursor-pointer">
@@ -658,12 +682,19 @@ export default function CheckoutPage() {
                             setAddressMode("new");
                             setSelectedAddressId(null);
                             // Không xoá Tên/SĐT vì Tên/SĐT là của User. Chỉ xoá thông tin toạ độ Vietmap.
-                            setForm(prev => ({ ...prev, address: "", latitude: null, longitude: null }));
-                            setErrors(prev => ({ ...prev, address: "" }));
+                            setForm((prev) => ({
+                              ...prev,
+                              address: "",
+                              latitude: null,
+                              longitude: null,
+                            }));
+                            setErrors((prev) => ({ ...prev, address: "" }));
                           }}
                           className="text-amber-600 focus:ring-amber-500 w-4 h-4 cursor-pointer"
                         />
-                        <span className="text-[15px] font-medium text-gray-800 dark:text-gray-200">Giao đến địa chỉ mới</span>
+                        <span className="text-[15px] font-medium text-gray-800 dark:text-gray-200">
+                          Giao đến địa chỉ mới
+                        </span>
                       </label>
                     </div>
                   </div>
@@ -701,19 +732,30 @@ export default function CheckoutPage() {
                         <div className="flex flex-col gap-1 ml-1">
                           <div className="flex items-center justify-between">
                             <p className="text-[15px] font-bold text-gray-900 dark:text-gray-100">
-                              {selectedAddress.receiver_name} <span className="font-normal text-gray-400 mx-1">|</span> <span className="font-semibold text-gray-700">{selectedAddress.receiver_phone}</span>
+                              {selectedAddress.receiver_name}{" "}
+                              <span className="font-normal text-gray-400 mx-1">
+                                |
+                              </span>{" "}
+                              <span className="font-semibold text-gray-700">
+                                {selectedAddress.receiver_phone}
+                              </span>
                             </p>
                             <span className="text-[11px] font-medium text-amber-700 bg-amber-100 dark:bg-amber-900/50 dark:text-amber-400 px-2 py-0.5 rounded-full border border-amber-200">
-                              {getAddressTypeLabel(selectedAddress.address_type)}
+                              {getAddressTypeLabel(
+                                selectedAddress.address_type,
+                              )}
                             </span>
                           </div>
                           <p className="text-[14px] text-gray-800 dark:text-gray-200 mt-1 leading-relaxed">
-                            {selectedAddress.address_detail ? `${selectedAddress.address_detail}, ${selectedAddress.address}` : selectedAddress.address}
+                            {selectedAddress.address_detail
+                              ? `${selectedAddress.address_detail}, ${selectedAddress.address}`
+                              : selectedAddress.address}
                           </p>
                         </div>
                       </div>
                     ) : (
-                      addresses.length > 0 && addressMode === "saved" && (
+                      addresses.length > 0 &&
+                      addressMode === "saved" && (
                         <div className="text-sm text-red-500 p-3 bg-red-50 rounded-lg border border-red-100 font-medium text-center">
                           Vui lòng chọn 1 địa chỉ để giao hàng.
                         </div>
@@ -724,7 +766,9 @@ export default function CheckoutPage() {
 
                 {(!token || addressMode === "new") && (
                   <div className="bg-white dark:bg-transparent rounded-xl">
-
+                    <span className="text-sm font-medium mb-2 block text-amber-900 dark:text-amber-500">
+                      Nhập địa chỉ giao hàng
+                    </span>
                     <VietmapAddressAutocomplete
                       initialAddress={form.address}
                       error={errors.address}
@@ -749,18 +793,28 @@ export default function CheckoutPage() {
                 {isDeliveryOutOfRange && (
                   <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm flex gap-3 shadow-sm items-start">
                     <div>
-                      <p className="font-semibold mb-1">Ngoài phạm vi giao hàng</p>
-                      <p>
-                        Khoảng cách từ Quán đến địa chỉ của bạn là <strong>{deliveryDistance.toFixed(1)} km</strong> (Vượt quá giới hạn phục vụ <strong>{maxDeliveryDistance} km</strong>).
+                      <p className="font-semibold mb-1">
+                        Ngoài phạm vi giao hàng
                       </p>
-                      <p className="mt-1">Xin lỗi vì sự bất tiện này, bạn vui lòng chọn một địa chỉ khác gần hơn hoặc ghé quán mua trực tiếp nhé!</p>
+                      <p>
+                        Khoảng cách từ Quán đến địa chỉ của bạn là{" "}
+                        <strong>{deliveryDistance.toFixed(1)} km</strong> (Vượt
+                        quá giới hạn phục vụ{" "}
+                        <strong>{maxDeliveryDistance} km</strong>).
+                      </p>
+                      <p className="mt-1">
+                        Xin lỗi vì sự bất tiện này, bạn vui lòng chọn một địa
+                        chỉ khác gần hơn hoặc ghé quán mua trực tiếp nhé!
+                      </p>
                     </div>
                   </div>
                 )}
 
                 {(!token || addressMode === "new") && (
                   <div>
-                    <label className="text-sm font-medium mb-2 block">Chi tiết số nhà, ngõ ngách (Tùy chọn)</label>
+                    <label className="text-sm font-medium mb-2 block">
+                      Chi tiết số nhà, ngõ ngách (Tùy chọn)
+                    </label>
                     <Input
                       value={form.delivery_note}
                       onChange={(e) => {
@@ -778,7 +832,9 @@ export default function CheckoutPage() {
                       className={`bg-white dark:bg-transparent ${errors.delivery_note ? "border-red-500 focus-visible:ring-red-500" : ""}`}
                     />
                     {errors.delivery_note && (
-                      <p className="text-sm text-red-500 mt-1">{errors.delivery_note}</p>
+                      <p className="text-sm text-red-500 mt-1">
+                        {errors.delivery_note}
+                      </p>
                     )}
                   </div>
                 )}
@@ -791,10 +847,11 @@ export default function CheckoutPage() {
               </label>
               {paymentValidation && (
                 <div
-                  className={`mb-3 p-3 rounded-lg text-sm ${paymentValidation.forcePayOS
-                    ? "bg-yellow-50 text-yellow-800 border border-yellow-200"
-                    : "bg-blue-50 text-blue-800 border border-blue-200"
-                    }`}
+                  className={`mb-3 p-3 rounded-lg text-sm ${
+                    paymentValidation.forcePayOS
+                      ? "bg-yellow-50 text-yellow-800 border border-yellow-200"
+                      : "bg-blue-50 text-blue-800 border border-blue-200"
+                  }`}
                 >
                   <p className="font-medium">{paymentValidation.message}</p>
                   {paymentValidation.reason && (
@@ -854,20 +911,22 @@ export default function CheckoutPage() {
                           payment_method: opt.value,
                         }));
                       }}
-                      className={`flex items-center gap-3 rounded-xl border-2 px-4 py-3 text-left transition-all ${isDisabled
-                        ? "border-gray-200  bg-gray-100 dark:bg-gray-800 opacity-50 cursor-not-allowed"
-                        : selected
-                          ? "border-amber-500 bg-amber-50 dark:bg-amber-900/20"
-                          : "border-gray-200  bg-white dark:bg-gray-900 hover:border-gray-300"
-                        }`}
+                      className={`flex items-center gap-3 rounded-xl border-2 px-4 py-3 text-left transition-all ${
+                        isDisabled
+                          ? "border-gray-200  bg-gray-100 dark:bg-gray-800 opacity-50 cursor-not-allowed"
+                          : selected
+                            ? "border-amber-500 bg-amber-50 dark:bg-amber-900/20"
+                            : "border-gray-200  bg-white dark:bg-gray-900 hover:border-gray-300"
+                      }`}
                     >
                       <span
-                        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${isDisabled
-                          ? "bg-gray-200"
-                          : selected
-                            ? "bg-amber-100 dark:bg-amber-900/30"
-                            : "bg-gray-100 dark:bg-gray-800"
-                          }`}
+                        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
+                          isDisabled
+                            ? "bg-gray-200"
+                            : selected
+                              ? "bg-amber-100 dark:bg-amber-900/30"
+                              : "bg-gray-100 dark:bg-gray-800"
+                        }`}
                       >
                         {isDisabled ? (
                           <span className="text-xs text-gray-500 dark:text-gray-400">
@@ -879,30 +938,33 @@ export default function CheckoutPage() {
                       </span>
                       <span>
                         <span
-                          className={`block text-sm font-medium ${isDisabled
-                            ? "text-gray-500 dark:text-gray-400"
-                            : "text-gray-900 dark:text-gray-100"
-                            }`}
+                          className={`block text-sm font-medium ${
+                            isDisabled
+                              ? "text-gray-500 dark:text-gray-400"
+                              : "text-gray-900 dark:text-gray-100"
+                          }`}
                         >
                           {opt.label}
                           {isDisabled && " (Không khả dụng)"}
                         </span>
                         <span
-                          className={`block text-xs ${isDisabled
-                            ? "text-gray-400"
-                            : "text-gray-500 dark:text-gray-400"
-                            }`}
+                          className={`block text-xs ${
+                            isDisabled
+                              ? "text-gray-400"
+                              : "text-gray-500 dark:text-gray-400"
+                          }`}
                         >
                           {opt.sub}
                         </span>
                       </span>
                       <span
-                        className={`ml-auto h-4 w-4 shrink-0 rounded-full border-2 ${isDisabled
-                          ? "border-gray-300 bg-gray-300"
-                          : selected
-                            ? "border-amber-500 bg-amber-50 dark:bg-amber-900/200"
-                            : "border-gray-300"
-                          }`}
+                        className={`ml-auto h-4 w-4 shrink-0 rounded-full border-2 ${
+                          isDisabled
+                            ? "border-gray-300 bg-gray-300"
+                            : selected
+                              ? "border-amber-500 bg-amber-50 dark:bg-amber-900/200"
+                              : "border-gray-300"
+                        }`}
                       />
                     </button>
                   );
@@ -911,7 +973,9 @@ export default function CheckoutPage() {
             </div>
 
             <div>
-              <label className="text-sm font-medium mb-2 block">Ghi chú đơn hàng</label>
+              <label className="text-sm font-medium mb-2 block">
+                Ghi chú đơn hàng
+              </label>
               <Textarea
                 value={form.order_note}
                 onChange={(e) => {
@@ -952,9 +1016,10 @@ export default function CheckoutPage() {
                         className="w-12 h-12 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-100 dark:border-gray-800 flex items-center justify-center p-1.5 overflow-hidden mix-blend-multiply dark:mix-blend-normal cursor-pointer transition-opacity hover:opacity-80"
                         onClick={() =>
                           navigate(
-                            `/${item.slug ||
-                            "products/" + (item.product_id || item.id)
-                            }`
+                            `/${
+                              item.slug ||
+                              "products/" + (item.product_id || item.id)
+                            }`,
                           )
                         }
                       >
@@ -973,7 +1038,7 @@ export default function CheckoutPage() {
                       </div>
                       {activeSale &&
                         activeSale.product_ids?.includes(
-                          Number(item.product_id || item.id)
+                          Number(item.product_id || item.id),
                         ) && (
                           <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[8px] font-bold px-1 py-0.5 rounded-sm shadow-sm whitespace-nowrap z-10">
                             -{activeSale.discount_percent}%
@@ -985,9 +1050,10 @@ export default function CheckoutPage() {
                         className="font-medium text-sm leading-snug cursor-pointer hover:text-amber-600 transition-colors"
                         onClick={() =>
                           navigate(
-                            `/${item.slug ||
-                            "products/" + (item.product_id || item.id)
-                            }`
+                            `/${
+                              item.slug ||
+                              "products/" + (item.product_id || item.id)
+                            }`,
                           )
                         }
                       >
@@ -995,7 +1061,7 @@ export default function CheckoutPage() {
                       </p>
                       {activeSale &&
                         activeSale.product_ids?.includes(
-                          Number(item.product_id || item.id)
+                          Number(item.product_id || item.id),
                         ) && (
                           <div className="mt-0.5 text-[11px] text-red-600 font-bold">
                             🔥 Flash sale
@@ -1196,10 +1262,11 @@ export default function CheckoutPage() {
                     key={item.id}
                     type="button"
                     onClick={() => handleSelectAddress(item)}
-                    className={`w-full text-left border rounded-xl p-4 transition ${isSelected
-                      ? "border-amber-500 bg-amber-50 dark:bg-amber-900/20"
-                      : "border-gray-200  hover:border-gray-300 bg-white dark:bg-gray-900"
-                      }`}
+                    className={`w-full text-left border rounded-xl p-4 transition ${
+                      isSelected
+                        ? "border-amber-500 bg-amber-50 dark:bg-amber-900/20"
+                        : "border-gray-200  hover:border-gray-300 bg-white dark:bg-gray-900"
+                    }`}
                   >
                     <div className="flex items-center justify-between gap-3 mb-2">
                       <div className="flex items-center gap-2">
