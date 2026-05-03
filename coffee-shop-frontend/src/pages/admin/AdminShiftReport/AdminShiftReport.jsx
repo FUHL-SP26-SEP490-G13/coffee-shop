@@ -709,6 +709,26 @@ const AdminShiftReport = () => {
                 value={forceCloseForm.closing_cash_actual}
                 onChange={(e) => setForceCloseForm(prev => ({ ...prev, closing_cash_actual: e.target.value }))}
               />
+              {forceCloseForm.closing_cash_actual && sessionSummary && (
+                <div className={`text-sm font-medium flex justify-between items-center px-1`}>
+                  <span>Chênh lệch:</span>
+                  <span className={
+                    Number(forceCloseForm.closing_cash_actual) - sessionSummary.current_cash_system > 0 
+                      ? "text-blue-600" 
+                      : Number(forceCloseForm.closing_cash_actual) - sessionSummary.current_cash_system < 0 
+                        ? "text-red-600" 
+                        : "text-emerald-600"
+                  }>
+                    {Number(forceCloseForm.closing_cash_actual) - sessionSummary.current_cash_system > 0 ? "+" : ""}
+                    {formatMoney(Number(forceCloseForm.closing_cash_actual) - sessionSummary.current_cash_system)}đ
+                    {Number(forceCloseForm.closing_cash_actual) - sessionSummary.current_cash_system !== 0 && (
+                      <span className="text-xs ml-1 font-normal opacity-80">
+                        ({Number(forceCloseForm.closing_cash_actual) - sessionSummary.current_cash_system > 0 ? "Thừa" : "Thiếu"})
+                      </span>
+                    )}
+                  </span>
+                </div>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="closing_note">Ghi chú lý do đóng hộ <span className="text-red-500">*</span></Label>
