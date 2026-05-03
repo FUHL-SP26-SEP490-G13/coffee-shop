@@ -1,22 +1,45 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../components/ui/dialog';
 import { Button } from '../../components/ui/button';
 import { Plus, ChevronRight, ChevronLeft, Loader2, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import tableService from '../../services/tableService';
 
-export function SplitBillModal({ isOpen, onClose, table, activeOrder, onSplitSuccess }) {
+export function SplitBillModal({ isOpen, onClose, table, activeOrder, sourceOrders = [], onSplitSuccess }) {
   const [splitBills, setSplitBills] = useState([{ id: 'bill_1', name: 'Đơn mới 1', items: {} }]);
   const [activeBillId, setActiveBillId] = useState('bill_1');
   const [splitting, setSplitting] = useState(false);
+  const [sourceOrderId, setSourceOrderId] = useState('all');
 
   useEffect(() => {
     if (isOpen) {
       setSplitBills([{ id: 'bill_1', name: 'Đơn mới 1', items: {} }]);
       setActiveBillId('bill_1');
       setSplitting(false);
+      if (Array.isArray(sourceOrders) && sourceOrders.length > 0) {
+        setSourceOrderId(sourceOrders[0]?.id ?? 'all');
+      } else {
+        setSourceOrderId('all');
+      }
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setSplitBills([{ id: 'bill_1', name: 'Đơn mới 1', items: {} }]);
+    setActiveBillId('bill_1');
+  }, [sourceOrderId, isOpen]);
+
+  const sourceItems = useMemo(() => {
+    if (sourceOrderId === 'all') {
+      return activeOrder?.items || [];
+    }
+
+    const match = sourceOrders.find(
+      (order) => Number(order?.id) === Number(sourceOrderId)
+    );
+    return match?.items || [];
+  }, [sourceOrderId, sourceOrders, activeOrder]);
 
   const getRemainingQty = (itemId, totalQty) => {
     let used = 0;
@@ -129,9 +152,27 @@ export function SplitBillModal({ isOpen, onClose, table, activeOrder, onSplitSuc
             <div className="bg-muted p-3 border-b border-border">
               <h3 className="font-bold text-base text-foreground">Đơn gốc</h3>
               <p className="text-xs text-muted-foreground">Nhấn vào món để chuyển sang đơn mới</p>
+              {Array.isArray(sourceOrders) && sourceOrders.length > 1 && (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {sourceOrders.map((order) => (
+                    <button
+                      key={order.id}
+                      type="button"
+                      onClick={() => setSourceOrderId(order.id)}
+                      className={`px-2 py-1 text-xs rounded border transition-colors ${
+                        Number(sourceOrderId) === Number(order.id)
+                          ? 'bg-amber-100 border-amber-400 text-amber-800'
+                          : 'bg-background border-border text-muted-foreground hover:border-amber-300'
+                      }`}
+                    >
+                      Đơn #{order.id}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
             <div className="flex-1 overflow-y-auto p-2 space-y-2">
-              {activeOrder.items?.map(item => {
+              {sourceItems.map(item => {
                 const remaining = getRemainingQty(item.id, item.quantity);
                 if (remaining === 0) return null;
 
@@ -152,7 +193,7 @@ export function SplitBillModal({ isOpen, onClose, table, activeOrder, onSplitSuc
                   </div>
                 );
               })}
-              {activeOrder.items?.every(i => getRemainingQty(i.id, i.quantity) === 0) && (
+              {sourceItems?.every(i => getRemainingQty(i.id, i.quantity) === 0) && (
                 <div className="text-center p-4 text-muted-foreground text-sm italic">
                   Tất cả món đã được chọn để tách
                 </div>
@@ -183,7 +224,7 @@ export function SplitBillModal({ isOpen, onClose, table, activeOrder, onSplitSuc
                       Trống
                     </div>
                   ) : (
-                    activeOrder.items?.filter(i => bill.items[i.id]).map(item => (
+                    sourceItems?.filter(i => bill.items[i.id]).map(item => (
                       <div
                         key={item.id}
                         onClick={(e) => { e.stopPropagation(); handleMoveToOriginal(bill.id, item); }}

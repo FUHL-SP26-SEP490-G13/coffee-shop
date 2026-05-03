@@ -22,7 +22,8 @@ const validateRequest = (schema, property = 'body') => {
 
 router.get('/', TableController.getAllTables);
 router.get('/area/:areaId', TableController.getTablesByArea);
-router.post('/', authenticate, isManager, validateRequest(createTableSchema), TableController.createTable);
+router.post('/', validateRequest(createTableSchema), TableController.createTable);
+router.post('/transfer-order', TableController.transferOrder);
 router.post('/transfer', TableController.transferTable);
 router.post('/merge-order', TableController.mergeOrders);
 router.post('/:id/settle-debt', TableController.settleTableDebt);
