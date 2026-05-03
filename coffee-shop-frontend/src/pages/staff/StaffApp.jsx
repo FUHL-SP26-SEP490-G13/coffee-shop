@@ -427,8 +427,8 @@ export function StaffApp() {
 
   if (isBaristaWindow) {
     return (
-      <div className="min-h-screen w-full bg-background overflow-x-hidden relative">
-        <main className="min-h-screen w-full overflow-x-hidden overflow-y-auto relative">
+      <div style={{ height: "100vh", overflow: "hidden", display: "flex", flexDirection: "column" }} className="w-full bg-background">
+        <main style={{ flex: 1, minHeight: 0, overflow: "hidden", display: "flex", flexDirection: "column" }} className="w-full relative">
           <style>{`
             @keyframes staffPageFadeUp {
               from { opacity: 0; }
@@ -438,7 +438,7 @@ export function StaffApp() {
               animation: staffPageFadeUp 320ms ease-out;
             }
           `}</style>
-          <div key={location.pathname} className="staff-page-transition w-full min-h-full">
+          <div key={location.pathname} style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }} className="staff-page-transition w-full">
             <Outlet />
           </div>
         </main>

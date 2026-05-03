@@ -398,6 +398,7 @@ const AdminShiftReport = () => {
             <thead className="sticky top-0 z-[1] bg-muted/50 backdrop-blur">
               <tr className="border-b font-medium text-foreground">
                 <th className="px-4 py-3 text-left">Mã Ca</th>
+                <th className="px-4 py-3 text-left">Tên Ca</th>
                 <th className="px-4 py-3 text-left">Nhân viên</th>
                 <th className="px-4 py-3 text-left">Mở ca lúc</th>
                 <th className="px-4 py-3 text-left">Đóng ca lúc</th>
@@ -428,6 +429,9 @@ const AdminShiftReport = () => {
                   >
                     <td className="px-4 py-3 font-medium text-foreground">
                       {session.code}
+                    </td>
+                    <td className="px-4 py-3">
+                      {session.shift_name || "---"}
                     </td>
                     <td className="px-4 py-3">
                       {session.first_name} {session.last_name}
@@ -480,7 +484,7 @@ const AdminShiftReport = () => {
               {data.length === 0 && (
                 <tr>
                   <td
-                    colSpan={9}
+                    colSpan={10}
                     className="px-4 py-8 text-center text-muted-foreground italic"
                   >
                     Không tìm thấy dữ liệu ca làm việc trong khoảng thời gian
@@ -493,7 +497,7 @@ const AdminShiftReport = () => {
               <tfoot className="bg-muted dark:bg-muted/50 font-bold border-t-2">
                 <tr>
                   <td
-                    colSpan={4}
+                    colSpan={5}
                     className="px-4 py-4 text-center text-foreground border-r"
                   >
                     TỔNG CỘNG TRANG

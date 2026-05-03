@@ -103,6 +103,7 @@ export function ShiftHandoverModal({ isOpen, onClose }) {
               <TableHeader className="sticky top-0 bg-accent z-10">
                 <TableRow>
                   <TableHead className="w-24 border-r border-border">Mã ca</TableHead>
+                  <TableHead className="w-32 border-r border-border">Tên ca</TableHead>
                   <TableHead className="border-r border-border min-w-[150px]">Thời gian mở ca</TableHead>
                   <TableHead className="border-r border-border min-w-[150px]">Thời gian đóng ca</TableHead>
                   <TableHead className="text-right border-r border-border">Tiền mặt đầu ca</TableHead>
@@ -114,7 +115,7 @@ export function ShiftHandoverModal({ isOpen, onClose }) {
               <TableBody>
                 {history.length === 0 && !loading && (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center h-32 text-muted-foreground">
+                    <TableCell colSpan={8} className="text-center h-32 text-muted-foreground">
                       Không có phiếu bàn giao nào
                     </TableCell>
                   </TableRow>
@@ -123,6 +124,9 @@ export function ShiftHandoverModal({ isOpen, onClose }) {
                   <TableRow key={item.id} className="hover:bg-accent/30 transition-colors">
                     <TableCell className="font-medium text-primary border-r border-border/50">
                       {item.code || `CA00000${item.id}`}
+                    </TableCell>
+                    <TableCell className="border-r border-border/50 font-medium">
+                      {item.shift_name || "---"}
                     </TableCell>
                     <TableCell className="border-r border-border/50">{formatDateTime(item.opened_at)}</TableCell>
                     <TableCell className="border-r border-border/50">{formatDateTime(item.closed_at)}</TableCell>
