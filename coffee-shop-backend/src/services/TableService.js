@@ -394,7 +394,7 @@ class TableService {
 
       // 1. Kiểm tra bàn nguồn
       const [fromRows] = await connection.query(
-        'SELECT id, code, status, current_session_id FROM tables WHERE id = ? AND is_deleted = 0',
+        'SELECT id, code, status, current_session_id, main_table_id FROM tables WHERE id = ? AND is_deleted = 0',
         [fromTableId]
       );
       if (fromRows.length === 0) throw new ErrorResponse(404, 'Bàn nguồn không tồn tại');
@@ -418,24 +418,39 @@ class TableService {
       const oldSessionId = fromTable.current_session_id;
       const newSessionId = `sess_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
 
-      // 4. Chuyển tất cả orders thuộc session cũ sang bàn đích
+      // 4. Find all tables in source group
+      const sourceGroupTableIds = [Number(fromTableId)];
+      const [subTables] = await connection.query(
+        "SELECT id FROM tables WHERE main_table_id = ? AND is_deleted = 0",
+        [fromTableId]
+      );
+      subTables.forEach(st => sourceGroupTableIds.push(Number(st.id)));
+      const sourceTablePlaceholders = sourceGroupTableIds.map(() => '?').join(',');
+
+      // 5. Chuyển tất cả orders thuộc session cũ của CẢ NHÓM sang bàn đích
       if (oldSessionId) {
         await connection.query(
-          'UPDATE orders SET table_id = ?, session_id = ? WHERE table_id = ? AND session_id = ?',
-          [toTableId, newSessionId, fromTableId, oldSessionId]
+          `UPDATE orders SET table_id = ?, session_id = ? WHERE table_id IN (${sourceTablePlaceholders}) AND session_id = ?`,
+          [toTableId, newSessionId, ...sourceGroupTableIds, oldSessionId]
         );
       }
 
-      // 5. Bàn nguồn → trống
+      // 6. Move sub-tables to the new destination table (if fromTable was main)
       await connection.query(
-        "UPDATE tables SET status = 'available', current_session_id = NULL WHERE id = ?",
+        "UPDATE tables SET main_table_id = ?, current_session_id = ? WHERE main_table_id = ?",
+        [toTableId, newSessionId, fromTableId]
+      );
+      
+      // 7. Bàn nguồn → trống
+      await connection.query(
+        "UPDATE tables SET status = 'available', current_session_id = NULL, main_table_id = NULL WHERE id = ?",
         [fromTableId]
       );
 
-      // 6. Bàn đích → có khách với session mới
+      // 8. Bàn đích → có khách với session mới (preserve main_table_id if fromTable was a sub-table)
       await connection.query(
-        "UPDATE tables SET status = 'occupied', current_session_id = ? WHERE id = ?",
-        [newSessionId, toTableId]
+        "UPDATE tables SET status = 'occupied', current_session_id = ?, main_table_id = ? WHERE id = ?",
+        [newSessionId, fromTable.main_table_id || null, toTableId]
       );
 
       await connection.commit();
@@ -444,6 +459,7 @@ class TableService {
         from: { id: fromTableId, code: fromTable.code },
         to: { id: toTableId, code: toTable.code },
         new_session_id: newSessionId,
+        main_table_id: fromTable.main_table_id || null
       };
     } catch (error) {
       await connection.rollback();
@@ -726,7 +742,7 @@ class TableService {
 
       const [tableRows] = await connection.query(
         `
-        SELECT id, code, status, current_session_id
+        SELECT id, code, status, current_session_id, main_table_id
         FROM tables
         WHERE id IN (?, ?) AND is_deleted = 0
         FOR UPDATE
@@ -744,32 +760,15 @@ class TableService {
         throw new ErrorResponse(400, `Bàn ${fromTable.code} không có order active`);
       }
 
-      const hasPaidOrders = async (tableId, sessionId) => {
-        if (!sessionId) return false;
-        const [rows] = await connection.query(
-          `
-          SELECT COUNT(*) AS cnt
-          FROM orders o
-          LEFT JOIN order_payments op ON op.order_id = o.id
-          WHERE o.table_id = ?
-            AND o.session_id = ?
-            AND o.status NOT IN ('cancelled')
-            AND (o.is_paid = 1 OR COALESCE(op.payment_status, 'pending') = 'paid')
-          `,
-          [tableId, sessionId]
-        );
 
-        return Number(rows[0]?.cnt || 0) > 0;
-      };
+      const sourceGroupTableIds = [Number(fromTable.id)];
+      const [subTables] = await connection.query(
+        "SELECT id FROM tables WHERE main_table_id = ? AND is_deleted = 0",
+        [fromTableId]
+      );
+      subTables.forEach(st => sourceGroupTableIds.push(Number(st.id)));
 
-      if (await hasPaidOrders(fromTableId, fromTable.current_session_id)) {
-        throw new ErrorResponse(400, `Bàn ${fromTable.code} đã có đơn thanh toán, không thể ghép`);
-      }
-
-      if (await hasPaidOrders(toTableId, toTable.current_session_id)) {
-        throw new ErrorResponse(400, `Bàn ${toTable.code} đã có đơn thanh toán, không thể ghép`);
-      }
-
+      const sourceTablePlaceholders = sourceGroupTableIds.map(() => '?').join(',');
       const [sourceOrders] = await connection.query(
         `
         SELECT
@@ -783,7 +782,7 @@ class TableService {
           COALESCE(op.payment_status, 'pending') AS payment_status
         FROM orders o
         LEFT JOIN order_payments op ON op.order_id = o.id
-        WHERE o.table_id = ?
+        WHERE o.table_id IN (${sourceTablePlaceholders})
           AND o.session_id = ?
           AND (
             o.status IN ('pending', 'preparing', 'processing')
@@ -796,7 +795,7 @@ class TableService {
         ORDER BY o.created_at ASC
         FOR UPDATE
         `,
-        [fromTableId, fromTable.current_session_id]
+        [...sourceGroupTableIds, fromTable.current_session_id]
       );
 
       if (sourceOrders.length === 0) {
@@ -973,13 +972,25 @@ class TableService {
         [keeperTotal, keeperOrderId]
       );
 
+      const targetSessionId = keeperOrder.session_id || destinationSession || toTable.current_session_id;
+      const targetMainTableId = toTable.main_table_id || toTable.id;
+
+      // 1. Reset source table
       await connection.query(
-        "UPDATE tables SET status = 'available', current_session_id = NULL WHERE id = ?",
+        "UPDATE tables SET status = 'available', current_session_id = NULL, main_table_id = NULL WHERE id = ?",
         [fromTableId]
       );
+
+      // 2. Move sub-tables of source table to destination root table
+      await connection.query(
+        "UPDATE tables SET main_table_id = ?, current_session_id = ? WHERE main_table_id = ?",
+        [targetMainTableId, targetSessionId, fromTableId]
+      );
+
+      // 3. Ensure destination table is occupied
       await connection.query(
         "UPDATE tables SET status = 'occupied', current_session_id = ? WHERE id = ?",
-        [keeperOrder.session_id || destinationSession || toTable.current_session_id, toTableId]
+        [targetSessionId, toTableId]
       );
 
       await connection.commit();
