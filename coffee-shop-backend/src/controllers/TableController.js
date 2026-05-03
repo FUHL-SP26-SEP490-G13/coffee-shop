@@ -257,6 +257,43 @@ class TableController {
   }
 
   /**
+   * Transfer a specific order to an empty table
+   */
+  async transferOrder(req, res, next) {
+    try {
+      const { from_table_id, to_table_id, order_id } = req.body;
+
+      if (!from_table_id || !to_table_id || !order_id) {
+        return res.status(400).json({
+          success: false,
+          message: 'Vui lòng cung cấp bàn nguồn, bàn đích và mã đơn',
+        });
+      }
+
+      if (Number(from_table_id) === Number(to_table_id)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Bàn nguồn và bàn đích không được trùng nhau',
+        });
+      }
+
+      const result = await TableService.transferOrder(
+        Number(from_table_id),
+        Number(to_table_id),
+        Number(order_id)
+      );
+
+      res.json({
+        success: true,
+        message: `Đã chuyển đơn #${result.order_id} từ ${result.from.code} → ${result.to.code}`,
+        data: result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
    * Settle debt for all unpaid orders of current table session.
    */
   async settleTableDebt(req, res, next) {

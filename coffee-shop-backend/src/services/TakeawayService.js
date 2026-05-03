@@ -234,19 +234,13 @@ class TakeawayService {
       await TakeawayRepository.createOrderPayment(connection, {
         order_id: orderId,
         payment_method,
-        payment_status: isCash ? 'paid' : 'pending',
+        payment_status: 'pending',
         amount: finalAmount,
-        paid_amount: isCash ? finalAmount : 0,
-        cash_received: cashReceivedAmt, //  tiền khách đưa
-        change_amount: changeAmt, // tiền thừa trả khách
+        paid_amount: 0,
+        cash_received: cashReceivedAmt, 
+        change_amount: changeAmt, 
       });
 
-      if (isCash) {
-        await connection.query(
-          `UPDATE orders SET is_paid = 1, paid_at = NOW() WHERE id = ?`,
-          [orderId],
-        );
-      }
 
       if (discountId) {
         await TakeawayRepository.incrementDiscountUsedCount(
@@ -265,7 +259,7 @@ class TakeawayService {
         discount_code: discountCode,
         total_amount: finalAmount,
         payment_method,
-        is_paid: isCash,
+        is_paid: false,
         status: 'preparing',
         cash_received: cashReceivedAmt,
         change_amount: changeAmt,
@@ -305,7 +299,7 @@ class TakeawayService {
       (sum, item) => sum + Number(item.price) * Number(item.quantity),
       0,
     );
-      const subtotal = Math.max(0, Number(order.amount || 0));
+    const subtotal = Math.max(0, Number(order.amount || 0));
     const amountForDiscountCalc = Math.max(
       0,
       Number(order.amount || 0) || fallbackSubtotal,
@@ -313,7 +307,7 @@ class TakeawayService {
     const discountAmount = Math.max(
       0,
       Number(order.discount_amount || 0) ||
-        Math.max(0, amountForDiscountCalc + Number(order.delivery_fee || 0) - Number(order.total_amount || 0)),
+      Math.max(0, amountForDiscountCalc + Number(order.delivery_fee || 0) - Number(order.total_amount || 0)),
     );
     const deliveryFee = Math.max(0, Number(order.delivery_fee || 0));
 

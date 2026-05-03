@@ -258,15 +258,15 @@ class CashSessionService {
         total_orders: summary.total_orders || 0,
         completed_orders: summary.completed_orders || 0,
         cancelled_orders: summary.cancelled_orders || 0,
-        cash_revenue,
+        cash_revenue: cashRevenue,
         payos_revenue: payosRevenue,
-        total_revenue,
+        total_revenue: totalRevenue,
       },
 
       // Đối soát tiền mặt
       cash_reconciliation: {
         opening_cash: session.opening_cash,
-        cash_revenue,
+        cash_revenue: cashRevenue,
         closing_cash_system: session.status === 'closed'
           ? session.closing_cash_system
           : systemCash,

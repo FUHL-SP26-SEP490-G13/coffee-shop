@@ -208,7 +208,7 @@ const cancelOrderByStaffSchema = Joi.object({
     'any.required': 'Lý do hủy đơn là bắt buộc',
   }),
   reason_option: Joi.string()
-    .valid('out_of_stock', 'cannot_contact', 'outside_area', 'store_overload', 'other')
+    .valid('out_of_stock', 'cannot_contact', 'outside_area', 'store_overload', 'customer_cancelled', 'other')
     .required()
     .messages({
       'any.only': 'Lý do hủy đơn không hợp lệ',

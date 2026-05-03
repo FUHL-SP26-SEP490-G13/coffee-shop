@@ -56,6 +56,28 @@ const tableService = {
     return response.data;
   },
 
+  transferOrder: async (fromTableId, toTableId, orderId) => {
+    const response = await axios.post(`${API_URL}/tables/transfer-order`, {
+      from_table_id: fromTableId,
+      to_table_id: toTableId,
+      order_id: orderId,
+    });
+    return response.data;
+  },
+
+  mergeTables: async (mainTableId, tableIds = []) => {
+    const response = await axios.post(`${API_URL}/tables/merge-group`, {
+      main_table_id: mainTableId,
+      table_ids: tableIds,
+    });
+    return response.data;
+  },
+
+  getTableGroup: async (tableId) => {
+    const response = await axios.get(`${API_URL}/tables/${tableId}/merge-group`);
+    return response.data;
+  },
+
   mergeOrder: async (fromTableId, toTableId) => {
     const response = await axios.post(`${API_URL}/tables/merge-order`, {
       from_table_id: fromTableId,

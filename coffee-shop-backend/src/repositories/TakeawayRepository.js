@@ -108,20 +108,20 @@ class TakeawayRepository {
     const normalizedPaidAmount = Number.isFinite(Number(paid_amount))
       ? Number(paid_amount)
       : isPaid
-      ? normalizedAmount
-      : 0;
+        ? normalizedAmount
+        : 0;
 
     const normalizedCashReceived = Number.isFinite(Number(cash_received))
       ? Number(cash_received)
       : isPaid
-      ? normalizedPaidAmount
-      : 0;
+        ? normalizedPaidAmount
+        : 0;
 
     const normalizedChangeAmount = Number.isFinite(Number(change_amount))
       ? Math.max(0, Number(change_amount))
       : isPaid
-      ? Math.max(0, normalizedCashReceived - normalizedPaidAmount)
-      : 0;
+        ? Math.max(0, normalizedCashReceived - normalizedPaidAmount)
+        : 0;
 
     await connection.query(
       `INSERT INTO order_payments 
@@ -275,7 +275,7 @@ class TakeawayRepository {
   async markCompleted(orderId) {
     const [result] = await pool.query(
       `UPDATE orders SET status = 'completed' 
-       WHERE id = ? AND status = 'served'`,
+       WHERE id = ? AND status = 'preparing'`,
       [orderId],
     );
     return result.affectedRows > 0;

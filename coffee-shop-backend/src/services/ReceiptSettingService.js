@@ -16,6 +16,12 @@ class ReceiptSettingService {
       address: hasOwn("address")
         ? this.normalizeNullableText(data.address)
         : undefined,
+      latitude: hasOwn("latitude") 
+        ? (data.latitude !== null && data.latitude !== "" ? Number(String(data.latitude).replace(",", ".")) : null) 
+        : undefined,
+      longitude: hasOwn("longitude") 
+        ? (data.longitude !== null && data.longitude !== "" ? Number(String(data.longitude).replace(",", ".")) : null) 
+        : undefined,
       phone: hasOwn("phone") ? data.phone : undefined,
       header_lines: hasOwn("header_lines")
         ? Array.isArray(data.header_lines)

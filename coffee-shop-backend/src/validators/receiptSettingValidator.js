@@ -24,6 +24,8 @@ const upsertReceiptSettingSchema = Joi.object({
   logo_url: Joi.string().trim().max(255).allow("", null).messages({
     "string.max": "Logo URL không được vượt quá 255 ký tự",
   }),
+  latitude: Joi.number().allow(null, ""),
+  longitude: Joi.number().allow(null, ""),
   is_active: Joi.boolean().default(true),
   open_time: Joi.string().trim().max(10).allow("", null),
   close_time: Joi.string().trim().max(10).allow("", null),

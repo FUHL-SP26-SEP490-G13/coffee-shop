@@ -198,13 +198,26 @@ class DiscountRepository {
   }
 
   async softDelete(id, newCode) {
-    const sql = `
-      UPDATE discount
-      SET code = ?, deleted_at = NOW()
-      WHERE id = ? AND deleted_at IS NULL
-    `;
+    let sql;
+    let params;
 
-    const [result] = await pool.query(sql, [newCode, id]);
+    if (newCode) {
+      sql = `
+        UPDATE discount
+        SET code = ?, deleted_at = NOW()
+        WHERE id = ? AND deleted_at IS NULL
+      `;
+      params = [newCode, id];
+    } else {
+      sql = `
+        UPDATE discount
+        SET deleted_at = NOW()
+        WHERE id = ? AND deleted_at IS NULL
+      `;
+      params = [id];
+    }
+
+    const [result] = await pool.query(sql, params);
     return result.affectedRows > 0;
   }
 

@@ -123,8 +123,7 @@ class DiscountService {
       return true;
     }
 
-    const newCode = `${discount.code}__deleted__${discount.id}__${Date.now()}`;
-    await DiscountRepository.softDelete(id, newCode);
+    await DiscountRepository.softDelete(id);
     return true;
   }
 }

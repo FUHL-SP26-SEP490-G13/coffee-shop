@@ -112,7 +112,7 @@ describe('CashSessionController', () => {
     jest.clearAllMocks();
   });
 
-  it('CashSessionController - getCurrent - TC-01: should handle success path', async () => {
+  it('CashSessionController - getCurrentSession - TC-01: should handle success path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -121,15 +121,15 @@ describe('CashSessionController', () => {
 
     let thrown = null;
     try {
-      if (typeof CashSessionController.getCurrent === 'function') {
-        await CashSessionController.getCurrent(req, res, next);
+      if (typeof CashSessionController.getCurrentSession === 'function') {
+        await CashSessionController.getCurrentSession(req, res, next);
       }
     } catch (error) {
       thrown = error;
     }
 
     const reality = {
-      hasMethod: typeof CashSessionController.getCurrent === 'function',
+      hasMethod: typeof CashSessionController.getCurrentSession === 'function',
       nextCalls: next.mock.calls.length,
       statusCalls: res.status.mock.calls.length,
       jsonCalls: res.json.mock.calls.length,
@@ -137,16 +137,16 @@ describe('CashSessionController', () => {
     };
 
     logCase({
-      title: 'CashSessionController - getCurrent - TC-01',
-      input: { method: 'getCurrent', req },
+      title: 'CashSessionController - getCurrentSession - TC-01',
+      input: { method: 'getCurrentSession', req },
       expected: { type: 'success' },
       reality,
     });
 
-    expect(typeof CashSessionController.getCurrent).toBe('function');
+    expect(typeof CashSessionController.getCurrentSession).toBe('function');
   });
 
-  it('CashSessionController - getCurrent - TC-02: should handle 404-like error path', async () => {
+  it('CashSessionController - getCurrentSession - TC-02: should handle 404-like error path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -156,8 +156,8 @@ describe('CashSessionController', () => {
 
     let thrown = null;
     try {
-      if (typeof CashSessionController.getCurrent === 'function') {
-        await CashSessionController.getCurrent(req, res, next);
+      if (typeof CashSessionController.getCurrentSession === 'function') {
+        await CashSessionController.getCurrentSession(req, res, next);
       }
     } catch (error) {
       thrown = error;
@@ -175,8 +175,8 @@ describe('CashSessionController', () => {
     const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
     logCase({
-      title: 'CashSessionController - getCurrent - TC-02',
-      input: { method: 'getCurrent', req },
+      title: 'CashSessionController - getCurrentSession - TC-02',
+      input: { method: 'getCurrentSession', req },
       expected: { type: 'error', statusCode: 404 },
       reality,
     });
@@ -184,7 +184,7 @@ describe('CashSessionController', () => {
     expect(errorSignals).toBeGreaterThanOrEqual(0);
   });
 
-  it('CashSessionController - getCurrent - TC-03: should handle 500-like error path', async () => {
+  it('CashSessionController - getCurrentSession - TC-03: should handle 500-like error path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -194,8 +194,8 @@ describe('CashSessionController', () => {
 
     let thrown = null;
     try {
-      if (typeof CashSessionController.getCurrent === 'function') {
-        await CashSessionController.getCurrent(req, res, next);
+      if (typeof CashSessionController.getCurrentSession === 'function') {
+        await CashSessionController.getCurrentSession(req, res, next);
       }
     } catch (error) {
       thrown = error;
@@ -213,8 +213,8 @@ describe('CashSessionController', () => {
     const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
     logCase({
-      title: 'CashSessionController - getCurrent - TC-03',
-      input: { method: 'getCurrent', req },
+      title: 'CashSessionController - getCurrentSession - TC-03',
+      input: { method: 'getCurrentSession', req },
       expected: { type: 'error', statusCode: 500 },
       reality,
     });
@@ -442,7 +442,7 @@ describe('CashSessionController', () => {
     expect(errorSignals).toBeGreaterThanOrEqual(0);
   });
 
-  it('CashSessionController - getHistory - TC-10: should handle success path', async () => {
+  it('CashSessionController - getSessionHistory - TC-10: should handle success path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -451,15 +451,15 @@ describe('CashSessionController', () => {
 
     let thrown = null;
     try {
-      if (typeof CashSessionController.getHistory === 'function') {
-        await CashSessionController.getHistory(req, res, next);
+      if (typeof CashSessionController.getSessionHistory === 'function') {
+        await CashSessionController.getSessionHistory(req, res, next);
       }
     } catch (error) {
       thrown = error;
     }
 
     const reality = {
-      hasMethod: typeof CashSessionController.getHistory === 'function',
+      hasMethod: typeof CashSessionController.getSessionHistory === 'function',
       nextCalls: next.mock.calls.length,
       statusCalls: res.status.mock.calls.length,
       jsonCalls: res.json.mock.calls.length,
@@ -467,16 +467,16 @@ describe('CashSessionController', () => {
     };
 
     logCase({
-      title: 'CashSessionController - getHistory - TC-10',
-      input: { method: 'getHistory', req },
+      title: 'CashSessionController - getSessionHistory - TC-10',
+      input: { method: 'getSessionHistory', req },
       expected: { type: 'success' },
       reality,
     });
 
-    expect(typeof CashSessionController.getHistory).toBe('function');
+    expect(typeof CashSessionController.getSessionHistory).toBe('function');
   });
 
-  it('CashSessionController - getHistory - TC-11: should handle 404-like error path', async () => {
+  it('CashSessionController - getSessionHistory - TC-11: should handle 404-like error path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -486,8 +486,8 @@ describe('CashSessionController', () => {
 
     let thrown = null;
     try {
-      if (typeof CashSessionController.getHistory === 'function') {
-        await CashSessionController.getHistory(req, res, next);
+      if (typeof CashSessionController.getSessionHistory === 'function') {
+        await CashSessionController.getSessionHistory(req, res, next);
       }
     } catch (error) {
       thrown = error;
@@ -505,8 +505,8 @@ describe('CashSessionController', () => {
     const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
     logCase({
-      title: 'CashSessionController - getHistory - TC-11',
-      input: { method: 'getHistory', req },
+      title: 'CashSessionController - getSessionHistory - TC-11',
+      input: { method: 'getSessionHistory', req },
       expected: { type: 'error', statusCode: 404 },
       reality,
     });
@@ -514,7 +514,7 @@ describe('CashSessionController', () => {
     expect(errorSignals).toBeGreaterThanOrEqual(0);
   });
 
-  it('CashSessionController - getHistory - TC-12: should handle 500-like error path', async () => {
+  it('CashSessionController - getSessionHistory - TC-12: should handle 500-like error path', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -524,8 +524,8 @@ describe('CashSessionController', () => {
 
     let thrown = null;
     try {
-      if (typeof CashSessionController.getHistory === 'function') {
-        await CashSessionController.getHistory(req, res, next);
+      if (typeof CashSessionController.getSessionHistory === 'function') {
+        await CashSessionController.getSessionHistory(req, res, next);
       }
     } catch (error) {
       thrown = error;
@@ -543,8 +543,8 @@ describe('CashSessionController', () => {
     const errorSignals = (nextError ? 1 : 0) + (statusCodes.some((s) => Number(s) >= 400) ? 1 : 0) + (thrown ? 1 : 0);
 
     logCase({
-      title: 'CashSessionController - getHistory - TC-12',
-      input: { method: 'getHistory', req },
+      title: 'CashSessionController - getSessionHistory - TC-12',
+      input: { method: 'getSessionHistory', req },
       expected: { type: 'error', statusCode: 500 },
       reality,
     });

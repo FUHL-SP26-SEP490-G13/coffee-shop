@@ -37,7 +37,16 @@ class OrderOnlineService {
     return onlyDigits;
   }
 
+  isDeliveryInProgress(order) {
+    const paymentStatus = String(order?.payment_status || "").toLowerCase();
 
+    return (
+      String(order?.order_type || "").toLowerCase() === "delivery" &&
+      String(order?.status || "").toLowerCase() === "completed" &&
+      Number(order?.is_paid) === 0 &&
+      paymentStatus === "pending"
+    );
+  }
 
   getHaversineDistanceMeters(lat1, lon1, lat2, lon2) {
     const R = 6371e3;
@@ -374,9 +383,28 @@ class OrderOnlineService {
       }
 
       if (order_type === "delivery") {
-        // Shipping fee feature is disabled.
-        shippingFee = 0;
-        deliveryDistanceKm = 0;
+        const ReceiptSettingService = require("./ReceiptSettingService");
+        const shopSetting = await ReceiptSettingService.getActiveSetting();
+
+        if (shopSetting?.latitude && shopSetting?.longitude && latitude && longitude) {
+          try {
+            deliveryDistanceKm = await this.getDrivingDistanceKm(
+              Number(shopSetting.latitude),
+              Number(shopSetting.longitude),
+              Number(latitude),
+              Number(longitude)
+            );
+            shippingFee = this.calculateShippingFeeByDistanceKm(deliveryDistanceKm);
+          } catch (error) {
+            if (error.statusCode) throw error;
+            console.error("Lỗi tính khoảng cách, fallback về 0:", error);
+            shippingFee = 0;
+            deliveryDistanceKm = 0;
+          }
+        } else {
+          shippingFee = 0;
+          deliveryDistanceKm = 0;
+        }
       }
 
       totalAmount += shippingFee;
@@ -744,6 +772,7 @@ class OrderOnlineService {
     await OrderRepository.cancelOrderByUser(orderId, userId, {
       reason: finalReason,
     });
+    await OrderRepository.updatePaymentStatusByOrderId(orderId, "cancelled");
     await LoyaltyService.syncOrderLoyaltyByOrderId(orderId);
 
     return {
@@ -768,6 +797,9 @@ class OrderOnlineService {
     const orderType = String(order.order_type || "").toLowerCase();
     const customerType = String(order.customer_type || "").toLowerCase();
     const paymentStatus = String(order.payment_status || "").toLowerCase();
+
+
+
     const isPaid = Number(order.is_paid) === 1 || paymentStatus === "paid";
 
     if (orderType !== "delivery" || status !== "completed" || !isPaid) {
@@ -796,7 +828,7 @@ class OrderOnlineService {
     };
   }
 
-  async transitionOrderStatusByStaff(orderId, targetStatus, { cash_received } = {}, staffUser = null) {
+  async transitionOrderStatusByStaff(orderId, targetStatus, { cash_received, reason, reason_option } = {}, staffUser = null) {
     const order = await OrderRepository.findOrderById(orderId);
 
     if (!order) {
@@ -844,15 +876,6 @@ class OrderOnlineService {
       await OrderRepository.updateOrderStaffAndSession(orderId, staffId, cashSessionId);
       await OrderRepository.updateOrderStatus(orderId, "preparing");
 
-      if (!isAlreadyPaid) {
-        await OrderRepository.updateOrderPaidStatus(orderId, true);
-        const totalAmount = Number(order.total_amount || 0);
-        await OrderRepository.updatePaymentStatusByOrderId(orderId, "paid", {
-          cash_received: totalAmount,
-          change_amount: 0,
-        });
-      }
-
       return {
         order_id: Number(orderId),
         user_id: order.user_id,
@@ -861,10 +884,11 @@ class OrderOnlineService {
     }
 
     if (nextStatus === "cancelled") {
-      if (!["pending", "preparing"].includes(currentStatus)) {
+      const allowedCancelStatuses = ["pending", "completed"];
+      if (!allowedCancelStatuses.includes(currentStatus)) {
         throw new ErrorResponse(
           400,
-          "Chỉ được hủy đơn ở trạng thái chờ xử lý hoặc đang chuẩn bị"
+          "Trạng thái đơn hàng hiện tại không cho phép hủy"
         );
       }
 
@@ -872,11 +896,23 @@ class OrderOnlineService {
         throw new ErrorResponse(400, "Đơn đã thanh toán không thể hủy");
       }
 
-      await OrderRepository.updateOrderStatus(orderId, "cancelled");
-      await OrderRepository.updatePaymentStatusByOrderId(orderId, "pending");
+      const cancelReason = reason || reason_option || "Nhân viên hủy đơn";
+      const finalReason = reason && reason_option ? `[${reason_option}] ${reason}` : cancelReason;
+
+      await OrderRepository.cancelOrderByStaff(
+        orderId,
+        staffUser?.id,
+        staffUser?.role || 'staff',
+        { reason: finalReason }
+      );
+
+      // Update payment status to Cancelled if status change to cancelled
+      await OrderRepository.updatePaymentStatusByOrderId(orderId, "cancelled");
+
+      // Sync order loyalty (refund points)
       await LoyaltyService.syncOrderLoyaltyByOrderId(orderId);
 
-      // Delivery: preparing -> cancelled (khách không nhận) => -20 điểm uy tín
+      // Delivery: preparing -> cancelled (staff xác nhận hủy do khách không nhận hàng) => -20 điểm uy tín
       if (order.order_type === "delivery" && currentStatus === "preparing") {
         await ReputationService.applyScoreChangeByOrder({
           orderId,
@@ -953,10 +989,13 @@ class OrderOnlineService {
 
     const status = String(order.status || "").toLowerCase();
     const isPaid = Number(order.is_paid) === 1;
-    if (status !== "pending" || isPaid) {
+
+    // Cho phép hủy nếu đơn chưa thanh toán và ở các trạng thái trước khi kết thúc hoàn toàn
+    const allowedStatuses = ["pending", "preparing", "completed"];
+    if (!allowedStatuses.includes(status) || isPaid) {
       throw new ErrorResponse(
         400,
-        "Nhân viên chỉ được hủy đơn online ở bước nhận đơn (pending và chưa thanh toán)"
+        "Chỉ có thể hủy đơn hàng chưa thanh toán"
       );
     }
 
@@ -974,6 +1013,9 @@ class OrderOnlineService {
       actor.role,
       { reason: finalReason }
     );
+
+    await OrderRepository.updatePaymentStatusByOrderId(orderId, "cancelled");
+
     await LoyaltyService.syncOrderLoyaltyByOrderId(orderId);
 
     return {
@@ -1008,15 +1050,15 @@ class OrderOnlineService {
       throw new ErrorResponse(400, "Chỉ áp dụng cho đơn giao hàng");
     }
 
-    if (order.status !== "served") {
-      throw new ErrorResponse(400, "Chỉ chuyển giao khi đơn ở trạng thái sẵn sàng giao");
+    if (order.status !== "preparing") {
+      throw new ErrorResponse(400, "Chỉ chuyển giao khi đơn ở trạng thái chuẩn bị");
     }
 
-    await OrderRepository.updateOrderStatus(orderId, "delivering");
+    await OrderRepository.updateOrderStatus(orderId, "completed");
 
     return {
       order_id: orderId,
-      status: "delivering",
+      status: "completed",
     };
   }
 
@@ -1031,11 +1073,17 @@ class OrderOnlineService {
       throw new ErrorResponse(400, "Chỉ áp dụng cho đơn giao hàng");
     }
 
-    if (order.status !== "delivering") {
-      throw new ErrorResponse(400, "Chỉ hủy đơn ở trạng thái đang giao");
+    if (!this.isDeliveryInProgress(order)) {
+      throw new ErrorResponse(400, "Chỉ hủy đơn ở trạng thái đang giao và chưa thanh toán");
     }
 
-    await OrderRepository.updateOrderStatus(orderId, "cancelled");
+    // Update status to cancelled if it's a delivery order and not yet paid
+    await OrderRepository.cancelOrderByStaff(orderId, null, "staff", {
+      reason: "Hủy đơn đang giao",
+    });
+    // Update payment status to cancelled if it's a delivery order and not yet paid
+    await OrderRepository.updatePaymentStatusByOrderId(orderId, "cancelled");
+    // Sync order loyalty (refund points)
     await LoyaltyService.syncOrderLoyaltyByOrderId(orderId);
 
     return {
@@ -1045,10 +1093,44 @@ class OrderOnlineService {
   }
 
   async markDeliveryCompletedByStaff(orderId, { cash_received } = {}) {
-    return this.transitionOrderStatusByStaff(orderId, "completed", {
-      cash_received,
+    const order = await OrderRepository.findOrderById(orderId);
+
+    if (!order) throw new ErrorResponse(404, "Đơn hàng không tồn tại");
+
+    if (order.order_type === 'delivery') {
+      if (!this.isDeliveryInProgress(order)) {
+        throw new ErrorResponse(400, "Chỉ hoàn tất đơn đang giao và chưa thanh toán");
+      }
+    } else {
+      if (Number(order.is_paid) === 1 || String(order.payment_status).toLowerCase() === 'paid') {
+        throw new ErrorResponse(400, "Đơn hàng này đã được thanh toán");
+      }
+    }
+
+    const cashReceivedAmount = Number(cash_received);
+    const totalAmount = Number(order.total_amount || 0);
+
+    if (!Number.isFinite(cashReceivedAmount) || cashReceivedAmount < totalAmount) {
+      throw new ErrorResponse(400, "Số tiền khách thanh toán không đủ");
+    }
+
+    await OrderRepository.updateOrderPaidStatus(orderId, true);
+    await OrderRepository.updatePaymentStatusByOrderId(orderId, "paid", {
+      cash_received: cashReceivedAmount,
+      change_amount: Math.max(0, cashReceivedAmount - totalAmount),
     });
+
+    await this.syncCompletionRewardsForDelivery(orderId);
+
+    return {
+      order_id: orderId,
+      status: order.status,
+      is_paid: 1,
+      cash_received: cashReceivedAmount,
+      change_amount: Math.max(0, cashReceivedAmount - totalAmount),
+    };
   }
+
 
   async getDeliveryOrderDetailForStaff(orderId) {
     const order = await OrderRepository.findOrderDetailForStaff(orderId);
@@ -1074,11 +1156,43 @@ class OrderOnlineService {
     if (!orderCode) throw new ErrorResponse(400, "Thiếu orderCode");
 
     const order = await OrderRepository.findOrderById(orderCode);
-    const currentOrderStatus = String(order?.status || "").toLowerCase();
+    if (!order) throw new ErrorResponse(404, "Đơn hàng không tồn tại");
 
+    const currentOrderStatus = String(order?.status || "").toLowerCase();
+    const currentPaymentStatus = String(order?.payment_status || "").toLowerCase();
+    const currentIsPaid = Number(order?.is_paid) === 1;
+
+    // ── IDEMPOTENCY: đã paid → không thể bị cancelled ──────────────────
+    if (currentPaymentStatus === "paid" && currentIsPaid) {
+      return {
+        saved: false,
+        skipped: true,
+        reason: "already_paid",
+        order_id: orderCode,
+        user_id: order?.user_id,
+        order_status: order?.status,
+        payment_status: "paid",
+        is_paid: 1,
+      };
+    }
+
+    // ── IDEMPOTENCY: đã cancelled → không thể paid ──────────────────────
+    if (currentPaymentStatus === "cancelled" || currentOrderStatus === "cancelled") {
+      return {
+        saved: false,
+        skipped: true,
+        reason: "already_cancelled",
+        order_id: orderCode,
+        user_id: order?.user_id,
+        order_status: "cancelled",
+        payment_status: "cancelled",
+        is_paid: 0,
+      };
+    }
+
+    // ── Xử lý bình thường ────────────────────────────────────────────────
     const normalizedStatus = String(status || "").toUpperCase();
     const isCancelled =
-      currentOrderStatus === "cancelled" ||
       normalizedStatus === "CANCELLED" ||
       String(cancel || "").toLowerCase() === "true" ||
       String(cancel || "") === "1";

@@ -110,6 +110,7 @@ const STAFF_CANCEL_REASON_OPTIONS = [
   { value: "cannot_contact", label: "Không liên hệ được khách" },
   { value: "outside_area", label: "Ngoài khu vực giao hàng" },
   { value: "store_overload", label: "Quán quá tải, không thể nhận" },
+  { value: "customer_cancelled", label: "Khách hủy" },
   { value: "other", label: "Khác" },
 ];
 
@@ -222,23 +223,10 @@ const isOrderPaid = (order) => {
     order?.payment_status || order?.payment?.status || "",
   ).toLowerCase();
 
-  let paid = false;
-  if (paymentStatus === "paid") {
-    paid = true;
-  } else {
-    paid = order?.is_paid === true || order?.is_paid === 1 || order?.is_paid === "1";
-  }
+  if (paymentStatus === "paid") return true;
 
-  // Đơn online (delivery hoặc order đang ở trạng thái pending) nếu chưa in hóa đơn thì xem như chưa thanh toán
-  const isOnline =
-    String(order?.order_type || "").toLowerCase() === "delivery" ||
-    String(order?.status || "").toLowerCase() === "pending";
-
-  if (isOnline && String(order?.print_status || "").toUpperCase() !== "SUCCESS") {
-    return false;
-  }
-
-  return paid;
+  const isPaidValue = order?.is_paid === true || order?.is_paid === 1 || order?.is_paid === "1";
+  return !!isPaidValue;
 };
 
 const getElapsedMinutes = (value) => {
@@ -817,58 +805,68 @@ export function OrderDelivery() {
   const renderDetailActionButtons = () => {
     if (detailLoading || !selectedOrder) return null;
 
-    if (selectedOrderIsPendingUnpaidDelivery) {
-      if (detailPendingAction === "confirm") {
-        return (
-          <Button
-            onClick={handleConfirmFromDetail}
-            disabled={confirmingId === selectedOrder.id}
-          >
-            {confirmingId === selectedOrder.id
-              ? "Đang xác nhận..."
-              : "Xác nhận đơn"}
-          </Button>
-        );
-      }
+    const statusStr = String(selectedOrder?.status || "").toLowerCase();
+    const isPaid = isOrderPaid(selectedOrder);
 
-      if (detailPendingAction === "cancel") {
-        return (
+    // ĐƠN CHỜ XÁC NHẬN
+    if (statusStr === "pending") {
+      return (
+        <div className="flex gap-2 w-full">
           <Button
             variant="destructive"
+            className="flex-1"
             onClick={() => openCancelConfirm(selectedOrder.id, "pending")}
             disabled={cancelingId === selectedOrder.id}
           >
             {cancelingId === selectedOrder.id ? "Đang hủy..." : "Hủy đơn"}
           </Button>
-        );
-      }
-
-      return null;
-    }
-
-    if (selectedOrderIsPending) {
-      return (
-        <Button
-          onClick={handleConfirmFromDetail}
-          disabled={confirmingId === selectedOrder.id}
-        >
-          {confirmingId === selectedOrder.id ? "Đang xác nhận..." : "Xác nhận đơn"}
-        </Button>
+          <Button
+            className="flex-[2]"
+            onClick={handleConfirmFromDetail}
+            disabled={confirmingId === selectedOrder.id}
+          >
+            {confirmingId === selectedOrder.id
+              ? "Đang xác nhận..."
+              : "Xác nhận & In nhãn"}
+          </Button>
+        </div>
       );
     }
 
-    if (selectedOrderIsPreparing || selectedOrderIsServed) {
-      if (!selectedOrderHasPrintedReceipt) {
-        return (
-          <Button onClick={() => handlePrintReceipt(selectedOrder.id)}>
-            <Printer size={16} />
-            In hóa đơn
-          </Button>
-        );
-      }
+    // ĐƠN ĐANG LÀM / ĐÃ XONG / ĐANG GIAO / HOÀN THÀNH (NHƯNG CHƯA THANH TOÁN)
+    if (["preparing", "served", "delivering", "completed"].includes(statusStr)) {
+      return (
+        <div className="flex gap-2 w-full">
+          {!isPaid && (
+            <Button
+              variant="outline"
+              className="flex-1 border-destructive text-destructive hover:bg-destructive hover:text-white"
+              onClick={() => openCancelConfirm(selectedOrder.id, statusStr)}
+              disabled={cancelingId === selectedOrder.id}
+            >
+              Hủy đơn
+            </Button>
+          )}
 
-      // Chỉ hiển thị trạng thái đang pha chế, không có thao tác hoàn thành/hủy
-      return null;
+          <Button
+            variant="outline"
+            className="flex-1"
+            onClick={() => handlePrintReceipt(selectedOrder.id)}
+          >
+            <Printer className="mr-1 h-4 w-4" />
+            In lại nhãn
+          </Button>
+
+          {!isPaid && (
+            <Button
+              className="flex-[2] bg-emerald-600 hover:bg-emerald-700"
+              onClick={() => openCashPaymentDialog(selectedOrder)}
+            >
+              Xác nhận thanh toán
+            </Button>
+          )}
+        </div>
+      );
     }
 
     return null;
@@ -933,8 +931,8 @@ export function OrderDelivery() {
               <Badge
                 variant={paid ? "default" : "outline"}
                 className={`h-5 px-1.5 text-[10px] font-medium leading-none tracking-wide ${paid
-                    ? "bg-emerald-500 text-white hover:bg-emerald-500"
-                    : "border-slate-300 text-slate-600 dark:border-slate-600 dark:text-slate-200"
+                  ? "bg-emerald-500 text-white hover:bg-emerald-500"
+                  : "border-slate-300 text-slate-600 dark:border-slate-600 dark:text-slate-200"
                   }`}
               >
                 {paid ? "Đã thanh toán" : "Chưa thanh toán"}
@@ -947,15 +945,73 @@ export function OrderDelivery() {
               {money(order.total_amount)}
             </p>
             <div className="flex w-full items-center gap-2 sm:w-auto">
-              <Button
-                size="sm"
-                className={`h-9 flex-1 text-sm sm:h-7 sm:px-2.5 sm:text-xs ${activeStatus === "management" ? "" : "w-full sm:w-auto"}`}
-                variant={activeStatus === "pending" ? "default" : "outline"}
-                onClick={() => openDetailModal(order)}
-              >
-                {activeStatus === "pending" ? "Xác nhận" : "Chi tiết"}
-              </Button>
-
+              {String(order.status || "").toLowerCase() === "pending" ? (
+                <>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 border-destructive/20 text-destructive hover:bg-destructive hover:text-white"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openCancelConfirm(order.id, "pending");
+                    }}
+                    disabled={cancelingId === order.id}
+                  >
+                    Hủy
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="h-8 font-bold"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleConfirmOrder(order);
+                    }}
+                    disabled={confirmingId === order.id}
+                  >
+                    Xác nhận
+                  </Button>
+                </>
+              ) : (
+                <>
+                  {!paid && String(order.status || "").toLowerCase() !== "cancelled" && (
+                    <>
+                      <Button
+                        size="sm"
+                        className="h-8 bg-emerald-600 hover:bg-emerald-700 text-[11px]"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openCashPaymentDialog(order);
+                        }}
+                      >
+                        Thanh toán
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8 border-destructive/20 text-destructive hover:bg-destructive hover:text-white text-[11px]"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openCancelConfirm(order.id, order.status);
+                        }}
+                        disabled={cancelingId === order.id}
+                      >
+                        Hủy
+                      </Button>
+                    </>
+                  )}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 text-[11px]"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openDetailModal(order);
+                    }}
+                  >
+                    Chi tiết
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         </CardContent>
@@ -1264,32 +1320,61 @@ export function OrderDelivery() {
                         {/* Footer Buttons (Hidden for cancelled or barista-window) */}
                         {!isCancelled && activeStatus !== "barista-window" && (
                           <div className="flex gap-2 pt-2 h-12">
-                            <Button
-                              variant="outline"
-                              className="flex-1 rounded-2xl border-2 border-destructive/20 font-bold text-destructive hover:bg-destructive hover:text-white text-xs"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                openCancelConfirm(order.id, "pending");
-                              }}
-                              disabled={cancelingId === order.id}
-                            >
-                              Hủy
-                            </Button>
+                            {String(order.status || "").toLowerCase() === "pending" ? (
+                              <>
+                                <Button
+                                  variant="outline"
+                                  className="flex-1 rounded-2xl border-2 border-destructive/20 font-bold text-destructive hover:bg-destructive hover:text-white text-xs"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    openCancelConfirm(order.id, "pending");
+                                  }}
+                                  disabled={cancelingId === order.id}
+                                >
+                                  Hủy đơn
+                                </Button>
 
-                            <Button
-                              className="flex-[2] rounded-2xl font-black text-xs shadow-lg shadow-primary/20"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleConfirmOrder(order);
-                              }}
-                              disabled={confirmingId === order.id}
-                            >
-                              {confirmingId === order.id ? (
-                                <RefreshCw className="h-4 w-4 animate-spin" />
-                              ) : (
-                                "Xác nhận & In nhãn"
-                              )}
-                            </Button>
+                                <Button
+                                  className="flex-[2] rounded-2xl font-black text-xs shadow-lg shadow-primary/20"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleConfirmOrder(order);
+                                  }}
+                                  disabled={confirmingId === order.id}
+                                >
+                                  {confirmingId === order.id ? (
+                                    <RefreshCw className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    "Xác nhận & In nhãn"
+                                  )}
+                                </Button>
+                              </>
+                            ) : (
+                              <>
+                                <Button
+                                  variant="outline"
+                                  className="flex-1 rounded-2xl border-2 border-destructive/20 font-bold text-destructive hover:bg-destructive hover:text-white text-xs"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    openCancelConfirm(order.id, order.status);
+                                  }}
+                                  disabled={cancelingId === order.id}
+                                >
+                                  Hủy đơn
+                                </Button>
+                                {!paid && (
+                                  <Button
+                                    className="flex-[2] rounded-2xl font-black text-xs bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-200"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      openCashPaymentDialog(order);
+                                    }}
+                                  >
+                                    Xác nhận thanh toán
+                                  </Button>
+                                )}
+                              </>
+                            )}
                           </div>
                         )}
                       </CardContent>

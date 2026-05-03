@@ -561,5 +561,96 @@ describe("OrderService", () => {
 
       expect(result).toBeNull();
     });
+
+    it("OrderService - getActiveOrderForTable - TC-03: ORD-SVC-RO-006 - CRUD: READ", async () => {
+      logCase({
+        tcid: "ORD-SVC-RO-006",
+        scenario: "Bàn có đơn 50k (paid) + 30k (unpaid)",
+        expected: "Total 80k, Debt 30k",
+      });
+
+      mockConnection.query
+        .mockResolvedValueOnce([[{ current_session_id: "sess_split" }]])
+        .mockResolvedValueOnce([
+          [
+            {
+              id: 201,
+              total_amount: 50000,
+              is_paid: 1,
+              payment_status: "paid",
+              created_at: "2026-01-01",
+            },
+            {
+              id: 202,
+              total_amount: 30000,
+              is_paid: 0,
+              payment_status: "pending",
+              created_at: "2026-01-02",
+            },
+          ],
+        ]);
+
+      OrderRepository.findOrderItems.mockResolvedValue([]);
+      OrderRepository.findOrderDetailForStaff.mockResolvedValue({ id: 202 });
+
+      const result = await OrderService.getActiveOrderForTable(10);
+      logReality(`Total: ${result.total_amount}, Debt: ${result.debt_amount}`);
+
+      expect(result.total_amount).toBe(80000);
+      expect(result.debt_amount).toBe(30000);
+      expect(result.unpaid_orders_count).toBe(1);
+    });
+  });
+
+  describe("updateOrderItems", () => {
+    it("OrderService - updateOrderItems - TC-01: ORD-SVC-UP-005 - CRUD: UPDATE", async () => {
+      logCase({
+        tcid: "ORD-SVC-UP-005",
+        scenario: "Sửa món đơn ID 100 chưa thanh toán",
+        expected: "Amount updated to 40k",
+      });
+
+      mockConnection.query
+        .mockResolvedValueOnce([[{ id: 100, is_paid: 0, order_type: "dine-in" }]]) // Check order
+        .mockResolvedValueOnce([[{ id: 1 }]]); // Existing details
+
+      OrderRepository.findProductSizeById.mockResolvedValue({
+        id: 1,
+        price: 40000,
+        status: "available",
+      });
+
+      const newItems = [{ product_size_id: 1, quantity: 1, toppings: [] }];
+      const result = await OrderService.updateOrderItems(100, newItems);
+
+      logReality(`Total: ${result.total_amount}`);
+      expect(mockConnection.query).toHaveBeenCalledWith(
+        expect.stringContaining("DELETE FROM order_details"),
+        [100]
+      );
+      expect(result.total_amount).toBe(40000);
+    });
+
+    it("OrderService - updateOrderItems - TC-02: ORD-SVC-UP-006 - CRUD: UPDATE", async () => {
+      const expectedError = "Không thể sửa đơn hàng đã thanh toán";
+      logCase({
+        tcid: "ORD-SVC-UP-006",
+        scenario: "Sửa món đơn đã thanh toán",
+        expected: { error: expectedError },
+      });
+
+      mockConnection.query.mockResolvedValueOnce([
+        [{ id: 100, is_paid: 1, order_type: "dine-in" }],
+      ]);
+
+      let actualError = null;
+      try {
+        await OrderService.updateOrderItems(100, []);
+      } catch (error) {
+        actualError = error.message;
+      }
+      logReality({ error: actualError });
+      expect(actualError).toContain(expectedError);
+    });
   });
 });
