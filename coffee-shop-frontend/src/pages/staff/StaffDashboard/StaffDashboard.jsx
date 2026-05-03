@@ -83,12 +83,7 @@ export function StaffDashboard() {
   ];
 
   const quickActions = [
-    {
-      label: "Bán hàng POS",
-      icon: TrendingUp,
-      path: "/staff/pos",
-      color: "bg-primary text-primary-foreground hover:bg-primary/90",
-    },
+  
     {
       label: "Lịch làm việc",
       icon: Calendar,
