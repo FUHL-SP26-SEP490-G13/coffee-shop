@@ -414,43 +414,41 @@ class TableService {
         throw new ErrorResponse(400, `Bàn ${toTable.code} hiện không trống, không thể chuyển`);
       }
 
-      // 3. Tạo session mới cho bàn đích
-      const oldSessionId = fromTable.current_session_id;
-      const newSessionId = `sess_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+      if (fromTable.main_table_id) {
+        throw new ErrorResponse(400, 'Bàn phụ không thể chuyển bàn độc lập. Vui lòng bỏ gộp trước.');
+      }
 
-      // 4. Find all tables in source group
-      const sourceGroupTableIds = [Number(fromTableId)];
+      // 3. Kiểm tra xem bàn này có đang gộp bàn khác không
       const [subTables] = await connection.query(
         "SELECT id FROM tables WHERE main_table_id = ? AND is_deleted = 0",
         [fromTableId]
       );
-      subTables.forEach(st => sourceGroupTableIds.push(Number(st.id)));
-      const sourceTablePlaceholders = sourceGroupTableIds.map(() => '?').join(',');
-
-      // 5. Chuyển tất cả orders thuộc session cũ của CẢ NHÓM sang bàn đích
-      if (oldSessionId) {
-        await connection.query(
-          `UPDATE orders SET table_id = ?, session_id = ? WHERE table_id IN (${sourceTablePlaceholders}) AND session_id = ?`,
-          [toTableId, newSessionId, ...sourceGroupTableIds, oldSessionId]
-        );
+      if (subTables.length > 0) {
+        throw new ErrorResponse(400, 'Bàn này đang có bàn gộp phụ, không thể chuyển bàn. Vui lòng bỏ gộp trước.');
       }
 
-      // 6. Move sub-tables to the new destination table (if fromTable was main)
-      await connection.query(
-        "UPDATE tables SET main_table_id = ?, current_session_id = ? WHERE main_table_id = ?",
-        [toTableId, newSessionId, fromTableId]
-      );
+      // 4. Tạo session mới cho bàn đích
+      const oldSessionId = fromTable.current_session_id;
+      const newSessionId = `sess_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+
+      // 5. Chuyển tất cả orders thuộc session cũ sang bàn đích
+      if (oldSessionId) {
+        await connection.query(
+          `UPDATE orders SET table_id = ?, session_id = ? WHERE table_id = ? AND session_id = ?`,
+          [toTableId, newSessionId, fromTableId, oldSessionId]
+        );
+      }
       
-      // 7. Bàn nguồn → trống
+      // 6. Bàn nguồn → trống
       await connection.query(
         "UPDATE tables SET status = 'available', current_session_id = NULL, main_table_id = NULL WHERE id = ?",
         [fromTableId]
       );
 
-      // 8. Bàn đích → có khách với session mới (preserve main_table_id if fromTable was a sub-table)
+      // 7. Bàn đích → có khách với session mới
       await connection.query(
-        "UPDATE tables SET status = 'occupied', current_session_id = ?, main_table_id = ? WHERE id = ?",
-        [newSessionId, fromTable.main_table_id || null, toTableId]
+        "UPDATE tables SET status = 'occupied', current_session_id = ? WHERE id = ?",
+        [newSessionId, toTableId]
       );
 
       await connection.commit();
@@ -495,7 +493,7 @@ class TableService {
 
       const [tableRows] = await connection.query(
         `
-        SELECT id, code, status, current_session_id
+        SELECT id, code, status, current_session_id, main_table_id
         FROM tables
         WHERE id IN (?, ?) AND is_deleted = 0
         FOR UPDATE
@@ -511,6 +509,19 @@ class TableService {
 
       if (!fromTable.current_session_id) {
         throw new ErrorResponse(400, `Bàn ${fromTable.code} chưa có phiên phục vụ`);
+      }
+
+      // Block transfer if part of a group
+      if (fromTable.main_table_id) {
+        throw new ErrorResponse(400, 'Bàn phụ không thể chuyển bàn độc lập. Vui lòng bỏ gộp trước.');
+      }
+
+      const [groupRows] = await connection.query(
+        "SELECT COUNT(*) as cnt FROM tables WHERE main_table_id = ? AND is_deleted = 0",
+        [fromTableId]
+      );
+      if (groupRows[0].cnt > 0) {
+        throw new ErrorResponse(400, 'Bàn này đang có bàn gộp phụ, không thể chuyển bàn. Vui lòng bỏ gộp trước.');
       }
 
       if (toTable.status !== 'available' || toTable.current_session_id) {

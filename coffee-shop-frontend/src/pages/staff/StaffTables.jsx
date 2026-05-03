@@ -164,10 +164,10 @@ function TableCard({
                       Ghép đơn
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onTransfer(table);
-                      }}
+                      disabled={hasSubTables}
+                      className={hasSubTables ? "!pointer-events-auto cursor-not-allowed" : ""}
+                      onSelect={() => onTransfer(table)}
+                      onClick={(e) => e.stopPropagation()}
                     >
                       <ArrowLeftRight className="w-4 h-4" />
                       Chuyển bàn
