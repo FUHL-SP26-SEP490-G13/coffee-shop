@@ -10,8 +10,9 @@ class OrderService {
     return error;
   }
 
-  async checkout(payload, user) {
+  async checkout(payload, user, options = {}) {
     console.log("CHECKOUT BODY:", JSON.stringify(payload, null, 2));
+    const { skipTableReset = false } = options;
     const {
       order_type,
       payment_method,
@@ -348,7 +349,7 @@ class OrderService {
       if (discountIdApplied) {
         await OrderRepository.incrementDiscountUsedCount(connection, discountIdApplied);
       }
-      if (payment_method === "cash" && order_type === "dine-in" && normalizedTableId && sessionId) {
+      if (payment_method === "cash" && order_type === "dine-in" && normalizedTableId && sessionId && !skipTableReset) {
         await TableService.checkAndResetTableStatus(connection, normalizedTableId, sessionId);
       }
 

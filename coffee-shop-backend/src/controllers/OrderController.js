@@ -16,6 +16,22 @@ class OrderController {
     }
   }
 
+  async posCheckout(req, res, next) {
+    try {
+      // POS checkout skips automatic table status reset
+      const result = await OrderService.checkout(req.body, req.user || null, { skipTableReset: true });
+
+      return res.status(201).json({
+        success: true,
+        data: result,
+        message: "Đặt hàng (POS) thành công",
+      });
+    } catch (error) {
+      console.error("POS CHECKOUT ERROR:", error);
+      next(error);
+    }
+  }
+
   async validateDiscount(req, res, next) {
     try {
       const { code, order_amount } = req.body;
