@@ -1,6 +1,7 @@
 /**
- * Format Date object thành string YYYY-MM-DD (local time, không dùng UTC)
- * Tránh lỗi lệch ngày khi server chạy ở UTC+7
+ * Format Date object thành string YYYY-MM-DD
+ * mysql2 với timezone: '+07:00' trả DATE column dưới dạng local midnight +07:00,
+ * nên phải dùng getFullYear/getMonth/getDate (local time) để lấy đúng ngày.
  * @param {Date} date
  * @returns {string}
  */

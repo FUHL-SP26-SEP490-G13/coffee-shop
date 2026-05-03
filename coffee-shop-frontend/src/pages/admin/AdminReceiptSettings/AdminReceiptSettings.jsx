@@ -224,7 +224,7 @@ export default function AdminReceiptSettings() {
     <div className="p-6 space-y-6">
       <Tabs defaultValue="receipt" className="w-full relative">
         <div className="flex items-center justify-between flex-wrap gap-3 mb-6 pb-2 border-b">
-          <h1 className="text-xl font-semibold">Cấu hình hệ thống</h1>
+          <h1 className="text-xl font-semibold">Tùy chỉnh</h1>
           <TabsList className="grid w-full max-w-[400px] grid-cols-2">
             <TabsTrigger value="receipt">Mẫu in Hóa đơn</TabsTrigger>
             <TabsTrigger value="attendance">Kỷ luật Điểm danh</TabsTrigger>

@@ -31,6 +31,14 @@ class DiscountService {
   }
 
   async create(data) {
+    if (!data.code || data.code.trim() === '') {
+      throw new ErrorResponse(400, 'Mã giảm giá không được để trống');
+    }
+
+    if (data.percentage !== undefined && (data.percentage <= 0 || data.percentage > 100)) {
+      throw new ErrorResponse(400, 'Phần trăm giảm giá phải từ 1 đến 100');
+    }
+
     const existing = await DiscountRepository.findByCode(data.code.trim());
 
     if (existing) {
@@ -86,6 +94,10 @@ class DiscountService {
       }
     }
 
+    if (data.percentage !== undefined && (data.percentage <= 0 || data.percentage > 100)) {
+      throw new ErrorResponse(400, 'Phần trăm giảm giá phải từ 1 đến 100');
+    }
+
     await DiscountRepository.update(id, {
       ...data,
       code: data.code?.trim(),
@@ -111,8 +123,7 @@ class DiscountService {
       return true;
     }
 
-    const newCode = `${discount.code}__deleted__${discount.id}__${Date.now()}`;
-    await DiscountRepository.softDelete(id, newCode);
+    await DiscountRepository.softDelete(id);
     return true;
   }
 }

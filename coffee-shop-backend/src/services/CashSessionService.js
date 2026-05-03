@@ -139,6 +139,11 @@ class CashSessionService {
 
     // 4. Hệ thống tự tính tiền lý thuyết
     const summary = await CashSessionRepository.getOrderSummary(sessionId);
+
+    if (Number(summary.pending_orders) > 0) {
+      throw new ErrorResponse(400, `Không thể kết ca. Còn ${summary.pending_orders} đơn hàng chưa hoàn tất/thanh toán.`);
+    }
+
     const cashRevenue = Number(summary.cash_revenue || 0);
     const systemCash = Number(session.opening_cash) + cashRevenue;
     const difference = actualCash - systemCash;
@@ -182,8 +187,19 @@ class CashSessionService {
       throw new ErrorResponse(400, 'Ca này đã được kết trước đó');
     }
 
-    const actualCash = Number(closing_cash_actual) || 0;
+    if (closing_cash_actual === undefined || closing_cash_actual === null) {
+      throw new ErrorResponse(400, 'Vui lòng nhập số tiền thực tế trong két');
+    }
+    const actualCash = Number(closing_cash_actual);
+    if (isNaN(actualCash) || actualCash < 0) {
+      throw new ErrorResponse(400, 'Số tiền thực tế không hợp lệ');
+    }
+
     const summary = await CashSessionRepository.getOrderSummary(sessionId);
+    if (Number(summary.pending_orders) > 0) {
+      throw new ErrorResponse(400, `Không thể đóng hộ ca. Còn ${summary.pending_orders} đơn hàng chưa hoàn tất/thanh toán.`);
+    }
+
     const cashRevenue = Number(summary.cash_revenue || 0);
     const systemCash = Number(session.opening_cash) + cashRevenue;
     const difference = actualCash - systemCash;
@@ -240,15 +256,15 @@ class CashSessionService {
         total_orders: summary.total_orders || 0,
         completed_orders: summary.completed_orders || 0,
         cancelled_orders: summary.cancelled_orders || 0,
-        cash_revenue,
+        cash_revenue: cashRevenue,
         payos_revenue: payosRevenue,
-        total_revenue,
+        total_revenue: totalRevenue,
       },
 
       // Đối soát tiền mặt
       cash_reconciliation: {
         opening_cash: session.opening_cash,
-        cash_revenue,
+        cash_revenue: cashRevenue,
         closing_cash_system: session.status === 'closed'
           ? session.closing_cash_system
           : systemCash,
@@ -261,16 +277,22 @@ class CashSessionService {
   }
 
   // ================================================
-  // LỊCH SỬ CÁC CA
+  // LỊCH SỬ CÁC CA (có phân trang)
   // ================================================
-  async getSessionHistory({ date, startDate, endDate, status }) {
-    const sessions = await CashSessionRepository.findAll({ date, startDate, endDate, status });
-    return sessions.map((s) => this._formatSession(s));
+  async getSessionHistory({ date, startDate, endDate, status, page = 1, limit = 10 }) {
+    const result = await CashSessionRepository.findAll({ date, startDate, endDate, status, page, limit });
+    return {
+      items: result.rows,
+      pagination: result.pagination,
+    };
   }
 
-  async getMySessionHistory({ date, startDate, endDate, status }, userId) {
-    const sessions = await CashSessionRepository.findAll({ date, startDate, endDate, status, userId });
-    return sessions.map((s) => this._formatSession(s));
+  async getMySessionHistory({ date, startDate, endDate, status, page = 1, limit = 10 }, userId) {
+    const result = await CashSessionRepository.findAll({ date, startDate, endDate, status, userId, page, limit });
+    return {
+      items: result.rows,
+      pagination: result.pagination,
+    };
   }
 
   // ================================================

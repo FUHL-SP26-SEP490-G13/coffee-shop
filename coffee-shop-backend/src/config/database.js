@@ -14,6 +14,7 @@ const pool = mysql.createPool({
   enableKeepAlive: true,
   keepAliveInitialDelay: 0,
   timezone: '+07:00',
+  dateStrings: ['DATE'], // DATE columns luôn trả về string 'YYYY-MM-DD', không convert sang Date object
 });
 
 // Set timezone to +07:00 for every connection session

@@ -23,6 +23,9 @@ class AttendanceService {
     }
 
     try {
+      if (user.aws_face_id) {
+        await RekognitionService.deleteFace(user.aws_face_id);
+      }
       const faceId = await RekognitionService.registerFace(imageBuffer);
       await UserRepository.updateFaceId(userId, faceId);
       return { message: 'Đăng ký khuôn mặt thành công' };
@@ -68,7 +71,7 @@ class AttendanceService {
     if (candidateShifts.length === 0) {
       throw new ErrorResponse(
         400,
-        `Xin chào ${user.first_name}, bạn không có ca làm việc nào được duyệt trong thời điểm hiện tại.`,
+        `Xin chào ${user.first_name} ${user.last_name}, bạn không có ca làm việc nào được duyệt trong thời điểm hiện tại.`,
       );
     }
 
@@ -166,10 +169,10 @@ class AttendanceService {
 
           if (nowMs < minCheckinMs) {
             specificErrorMsg =
-              `Xin chào ${user.first_name}, ${shift.shift_name} (${shiftDateStr}) chưa mở điểm danh. ` +
+              `Xin chào ${user.first_name} ${user.last_name}, ${shift.shift_name} (${shiftDateStr}) chưa mở điểm danh. ` +
               `(Chỉ cho phép check-in sớm ${settings.early_checkin_minutes} phút trước ${shift.start_time})`;
           } else if (nowMs >= shiftEndMs) {
-            specificErrorMsg = `Xin chào ${user.first_name}, ca ${shift.shift_name} (${shiftDateStr}) đã kết thúc, không thể check-in.`;
+            specificErrorMsg = `Xin chào ${user.first_name} ${user.last_name}, ca ${shift.shift_name} (${shiftDateStr}) đã kết thúc, không thể check-in.`;
           }
         }
       }
@@ -198,29 +201,36 @@ class AttendanceService {
     if (allTodayShiftsCompleted) {
       throw new ErrorResponse(
         400,
-        `Xin chào ${user.first_name}, bạn đã hoàn thành check-in/check-out cho các ca làm hôm nay.`,
+        `Xin chào ${user.first_name} ${user.last_name}, bạn đã hoàn thành check-in/check-out cho các ca làm hôm nay.`,
       );
     }
 
     throw new ErrorResponse(
       400,
-      `Xin chào ${user.first_name}, hiện tại không nằm trong khung giờ điểm danh cho ca làm của bạn.`,
+      `Xin chào ${user.first_name} ${user.last_name}, hiện tại không nằm trong khung giờ điểm danh cho ca làm của bạn.`,
     );
   }
 
   _buildShiftStart(shiftDate, startTime) {
-    const shiftDateStr = formatDateStr(new Date(shiftDate));
+    // shiftDate có thể là string 'YYYY-MM-DD' hoặc Date object
+    const dateStr = typeof shiftDate === 'string'
+      ? shiftDate.slice(0, 10)
+      : formatDateStr(shiftDate);
     const normalizedStart = String(startTime).slice(0, 5);
-    return new Date(`${shiftDateStr}T${normalizedStart}:00`);
+    // Không có timezone suffix → JS parse theo local time (UTC+7 với process.env.TZ)
+    return new Date(`${dateStr}T${normalizedStart}:00`);
   }
 
   _buildShiftEnd(shiftDate, startTime, endTime) {
-    const shiftDateStr = formatDateStr(new Date(shiftDate));
+    const dateStr = typeof shiftDate === 'string'
+      ? shiftDate.slice(0, 10)
+      : formatDateStr(shiftDate);
     const normalizedStart = String(startTime).slice(0, 5);
     const normalizedEnd = String(endTime).slice(0, 5);
 
-    let end = new Date(`${shiftDateStr}T${normalizedEnd}:00`);
+    let end = new Date(`${dateStr}T${normalizedEnd}:00`);
 
+    // Ca qua đêm: end_time <= start_time → kết thúc ngày hôm sau
     if (normalizedEnd <= normalizedStart) {
       end.setDate(end.getDate() + 1);
     }
@@ -255,7 +265,7 @@ class AttendanceService {
     });
 
     return {
-      message: `Xin chào ${user.first_name}, CHECK-IN thành công cho ca ${targetShift.shift_name}!`,
+      message: `Xin chào ${user.first_name} ${user.last_name}, CHECK-IN thành công cho ca ${targetShift.shift_name}!`,
       type: 'check_in',
       attendance: newRecord,
       lateMinutes: lateMinutes > 0 ? lateMinutes : 0,

@@ -180,7 +180,7 @@ class ShiftRepository {
 
     async findRegistrationById(id) {
         const [[row]] = await pool.query(
-            `SELECT sr.*, s.shift_date, s.template_id,
+            `SELECT sr.*, DATE_FORMAT(s.shift_date, '%Y-%m-%d') AS shift_date, s.template_id,
               st.name AS template_name, st.start_time, st.end_time,
               u.first_name, u.last_name
        FROM shift_registrations sr
@@ -272,7 +272,7 @@ class ShiftRepository {
          sr.shift_id,
          u.first_name, u.last_name,
          r.role_name,
-         s.shift_date,
+         DATE_FORMAT(s.shift_date, '%Y-%m-%d') AS shift_date,
          s.template_id,
          st.name AS template_name,
          st.start_time,

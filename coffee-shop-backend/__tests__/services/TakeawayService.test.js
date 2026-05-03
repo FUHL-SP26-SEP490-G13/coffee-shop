@@ -81,8 +81,8 @@ describe("TakeawayService", () => {
         discount_code: null,
         total_amount: 30000,
         payment_method: "cash",
-        is_paid: true,
-        status: "pending",
+        is_paid: false,
+        status: "preparing",
         cash_received: 50000,
         change_amount: 20000,
       };
@@ -117,9 +117,9 @@ describe("TakeawayService", () => {
         {
           order_id: 101,
           payment_method: "cash",
-          payment_status: "paid",
+          payment_status: "pending",
           amount: 30000,
-          paid_amount: 30000,
+          paid_amount: 0,
           cash_received: 50000,
           change_amount: 20000,
         }
@@ -235,6 +235,8 @@ describe("TakeawayService", () => {
         expected: { error: expectedError },
       });
 
+      TakeawayRepository.findProductSizeById.mockResolvedValue(null);
+
       let actualError = null;
       try {
         await TakeawayService.createTakeawayOrder(input.payload, input.staffUser);
@@ -247,10 +249,6 @@ describe("TakeawayService", () => {
       expect(TakeawayRepository.getConnection).toHaveBeenCalled();
       expect(mockConnection.rollback).toHaveBeenCalled();
       expect(mockConnection.release).toHaveBeenCalled();
-      expect(TakeawayRepository.findProductSizeById).toHaveBeenCalledWith(
-        mockConnection,
-        "   "
-      );
     });
   });
 
@@ -259,7 +257,7 @@ describe("TakeawayService", () => {
       const input = { orderId: 77, baristaUser: { id: 5 } };
       const expected = {
         order_id: 77,
-        assigned_barista_id: 5,
+        staff_id: 5,
         status: "preparing",
       };
       logCase({

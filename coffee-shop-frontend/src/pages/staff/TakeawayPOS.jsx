@@ -13,9 +13,7 @@ import {
 } from 'lucide-react';
 import { ProductGrid } from './TakeAwayOrder/ProductGrid';
 import { ProductModal } from './TakeAwayOrder/ProductModal';
-import { EditOrderModal } from './TakeAwayOrder/EditOrderModal';
 import { OrderCard } from './TakeAwayOrder/OrderCard';
-import { CancelModal } from './TakeAwayOrder/CancelModal';
 import { PrintableReceipt } from './PrintableReceipt';
 import { CheckoutModal } from './TakeAwayOrder/CheckoutModal';
 import takeawayService from '@/services/takeAwayService';
@@ -44,9 +42,6 @@ function TakeawayPOS() {
   // ─── Orders state ─────────────────────────────────────────────────────────
   const [_orders, setOrders] = useState([]);
   const [_ordersLoading, setOrdersLoading] = useState(false);
-  const [editingOrder, setEditingOrder] = useState(null);
-  const [cancelingOrder, setCancelingOrder] = useState(null);
-  const [_cancelLoading, setCancelLoading] = useState(false);
   const [viewingReceipt, setViewingReceipt] = useState(null);
 
   // ─── Checkout state ───────────────────────────────────────────────────────
@@ -296,43 +291,7 @@ function TakeawayPOS() {
     }
   };
 
-  // ─── Cancel ───────────────────────────────────────────────────────────────
-  const _handleCancelConfirm = async () => {
-    if (!cancelingOrder) return;
-    setCancelLoading(true);
-    try {
-      const res = await takeawayService.cancelOrder(
-        cancelingOrder.order_id || cancelingOrder.id,
-      );
-      const data = res.data?.data || res.data;
-      setOrders((prev) =>
-        prev.map((o) =>
-          (o.order_id || o.id) ===
-            (cancelingOrder.order_id || cancelingOrder.id)
-            ? { ...o, status: 'cancelled' }
-            : o,
-        ),
-      );
-      if (data?.refund) toast.success(data.refund.message);
-      else toast.success('Hủy đơn thành công');
-      setCancelingOrder(null);
-    } catch (e) {
-      toast.error(e?.response?.data?.message || 'Lỗi hủy đơn');
-    } finally {
-      setCancelLoading(false);
-    }
-  };
 
-  const _handleEditSave = (updatedData) => {
-    setOrders((prev) =>
-      prev.map((o) =>
-        (o.order_id || o.id) === (editingOrder.order_id || editingOrder.id)
-          ? { ...o, ...updatedData }
-          : o,
-      ),
-    );
-    setEditingOrder(null);
-  };
 
   // ─── Enter mở modal thanh toán ────────────────────────────────────────────
   useEffect(() => {
@@ -531,23 +490,7 @@ function TakeawayPOS() {
         />
       )}
 
-      {/* {editingOrder && (
-        <EditOrderModal
-          order={editingOrder}
-          toppings={toppings}
-          onClose={() => setEditingOrder(null)}
-          onSave={handleEditSave}
-        />
-      )} */}
 
-      {/* {cancelingOrder && (
-        <CancelModal
-          order={cancelingOrder}
-          onClose={() => setCancelingOrder(null)}
-          onConfirm={handleCancelConfirm}
-          loading={cancelLoading}
-        />
-      )} */}
 
       {viewingReceipt && (
         <PrintableReceipt

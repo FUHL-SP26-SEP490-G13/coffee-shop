@@ -11,10 +11,29 @@ class FlashSaleService {
   }
 
   async getById(id) {
-    return await FlashSaleRepository.findById(id);
+    const flashSale = await FlashSaleRepository.findById(id);
+    if (!flashSale) {
+      throw new ErrorResponse(404, "Không tìm thấy chương trình Flash Sale");
+    }
+    return flashSale;
   }
 
   async create(data) {
+    if (!data.title || data.title.trim() === '') {
+      throw new ErrorResponse(400, "Tiêu đề không được để trống");
+    }
+
+    const start = new Date(data.start_time);
+    const end = new Date(data.end_time);
+
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+      throw new ErrorResponse(400, "Thời gian bắt đầu hoặc kết thúc không hợp lệ");
+    }
+
+    if (end <= start) {
+      throw new ErrorResponse(400, "Thời gian kết thúc phải sau thời gian bắt đầu");
+    }
+
     // Check overlap for active campaigns
     if (!data.status || data.status === 'active') {
       const overlap = await FlashSaleRepository.checkOverlap(data.start_time, data.end_time);
@@ -26,8 +45,28 @@ class FlashSaleService {
   }
 
   async update(id, data) {
+    const existing = await FlashSaleRepository.findById(id);
+    if (!existing) {
+      throw new ErrorResponse(404, "Không tìm thấy chương trình Flash Sale");
+    }
+
+    if (data.title !== undefined && data.title.trim() === '') {
+      throw new ErrorResponse(400, "Tiêu đề không được để trống");
+    }
+
+    if (data.start_time && data.end_time) {
+      const start = new Date(data.start_time);
+      const end = new Date(data.end_time);
+      if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+        throw new ErrorResponse(400, "Thời gian bắt đầu hoặc kết thúc không hợp lệ");
+      }
+      if (end <= start) {
+        throw new ErrorResponse(400, "Thời gian kết thúc phải sau thời gian bắt đầu");
+      }
+    }
+
     if (!data.status || data.status === 'active') {
-      const overlap = await FlashSaleRepository.checkOverlap(data.start_time, data.end_time, id);
+      const overlap = await FlashSaleRepository.checkOverlap(data.start_time || existing.start_time, data.end_time || existing.end_time, id);
       if (overlap) {
         throw new ErrorResponse(400, `Không thể cập nhật. Bị trùng khung giờ với chiến dịch đang chạy: "${overlap.title}"`);
       }
@@ -36,6 +75,10 @@ class FlashSaleService {
   }
 
   async delete(id) {
+    const existing = await FlashSaleRepository.findById(id);
+    if (!existing) {
+      throw new ErrorResponse(404, "Không tìm thấy chương trình Flash Sale để xóa");
+    }
     return await FlashSaleRepository.delete(id);
   }
 }

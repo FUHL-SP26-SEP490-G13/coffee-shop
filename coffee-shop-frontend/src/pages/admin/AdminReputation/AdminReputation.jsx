@@ -381,7 +381,7 @@ export default function AdminReputation() {
         currentPage={pagination.current_page}
         totalPages={pagination.total_pages}
         totalItems={pagination.total}
-        pageSize={PAGE_SIZE}
+        itemsPerPage={PAGE_SIZE}
         onPageChange={setPage}
       />
 

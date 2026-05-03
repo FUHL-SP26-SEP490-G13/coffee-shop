@@ -5,19 +5,6 @@ const ErrorResponse = require("../utils/ErrorResponse");
 
 class ProductController {
   
-  async getSizesByProductId(req, res, next) {
-    try {
-      const { id } = req.params;
-      if (!id || isNaN(id)) {
-        throw new ErrorResponse(400, "ID không hợp lệ");
-      }
-      const sizes = await ProductService.getSizesByProductId(id);
-      return response.success(res, sizes, "Lấy danh sách size thành công");
-    } catch (error) {
-      next(error);
-    }
-  }
-
   async getAll(req, res, next) {
     try {
       const page = parseInt(req.query.page) || 1;
@@ -316,17 +303,6 @@ class ProductController {
       });
 
       return response.success(res, products, "Tìm kiếm products thành công");
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  async restore(req, res, next) {
-    try {
-      const { id } = req.params;
-      const product = await ProductService.restoreProduct(id);
-
-      return response.success(res, product, "Khôi phục product thành công");
     } catch (error) {
       next(error);
     }

@@ -52,7 +52,7 @@ class AttendanceRepository extends BaseRepository {
       SELECT
         sr.*,
         sr.id AS registration_id,
-        s.shift_date AS shift_date,
+        DATE_FORMAT(s.shift_date, '%Y-%m-%d') AS shift_date,
         st.name AS shift_name,
         st.start_time,
         st.end_time,
