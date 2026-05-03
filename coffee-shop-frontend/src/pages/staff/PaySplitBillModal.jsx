@@ -198,7 +198,7 @@ export function PaySplitBillModal({ isOpen, onClose, table, onSuccess, onPartial
             </DialogTitle>
           </DialogHeader>
 
-          <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          <div className="flex-1 overflow-y-auto overflow-x-hidden p-6 space-y-6">
             {loading ? (
               <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
                 <Loader2 className="w-8 h-8 animate-spin mb-2" />
@@ -302,7 +302,7 @@ export function PaySplitBillModal({ isOpen, onClose, table, onSuccess, onPartial
                               className="text-xl font-bold h-12 bg-gray-50 dark:bg-gray-800/50 border-gray-100 dark:border-gray-800"
                             />
                           </div>
-                          <div className="flex gap-2">
+                          <div className="flex flex-wrap gap-2">
                             {suggestions.map((val) => {
                               const selected = Number(customerCash || 0) === val;
                               return (

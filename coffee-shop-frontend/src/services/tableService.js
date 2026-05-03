@@ -1,104 +1,114 @@
-import axios from "axios";
-
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+import axiosClient from "./axiosClient";
 
 const tableService = {
   getAll: async (params = {}) => {
-    const response = await axios.get(`${API_URL}/tables`, { params });
-    return response.data;
+    return axiosClient.get(`/tables`, { params });
   },
 
   getById: async (id) => {
-    const response = await axios.get(`${API_URL}/tables/${id}`);
-    return response.data;
+    return axiosClient.get(`/tables/${id}`);
   },
 
   getByArea: async (areaId) => {
-    const response = await axios.get(`${API_URL}/tables/area/${areaId}`);
-    return response.data;
+    return axiosClient.get(`/tables/area/${areaId}`);
   },
 
   create: async (data) => {
-    const response = await axios.post(`${API_URL}/tables`, data);
-    return response.data;
+    return axiosClient.post(`/tables`, data);
   },
 
   createWithQr: async (data) => {
-    const response = await axios.post(`${API_URL}/tables/with-qr`, data);
-    return response.data;
+    return axiosClient.post(`/tables/with-qr`, data);
   },
 
   update: async (id, data) => {
-    const response = await axios.put(`${API_URL}/tables/${id}`, data);
-    return response.data;
+    return axiosClient.put(`/tables/${id}`, data);
   },
 
   getActiveOrder: async (id) => {
-    const response = await axios.get(`${API_URL}/tables/${id}/active-order`);
-    return response.data;
+    return axiosClient.get(`/tables/${id}/active-order`);
   },
 
   // reserve: async (id, data) => {
-  //   const response = await axios.post(`${API_URL}/tables/${id}/reserve`, data);
-  //   return response.data;
+  //   return axiosClient.post(`/tables/${id}/reserve`, data);
   // },
 
   delete: async (id) => {
-    const response = await axios.delete(`${API_URL}/tables/${id}`);
-    return response.data;
+    return axiosClient.delete(`/tables/${id}`);
   },
 
   transfer: async (fromTableId, toTableId) => {
-    const response = await axios.post(`${API_URL}/tables/transfer`, {
+    return axiosClient.post(`/tables/transfer`, {
       from_table_id: fromTableId,
       to_table_id: toTableId,
     });
-    return response.data;
   },
 
-  transferOrder: async (fromTableId, toTableId, orderId) => {
-    const response = await axios.post(`${API_URL}/tables/transfer-order`, {
+  transferOrder: async (fromTableId, toTableId, orderIds) => {
+    const payload = {
       from_table_id: fromTableId,
       to_table_id: toTableId,
-      order_id: orderId,
-    });
-    return response.data;
+    };
+
+    // Support both single ID (legacy) and array of IDs
+    if (Array.isArray(orderIds)) {
+      payload.order_ids = orderIds;
+    } else {
+      payload.order_id = orderIds;
+    }
+
+    return axiosClient.post(`/tables/transfer-order`, payload);
   },
 
   mergeTables: async (mainTableId, tableIds = []) => {
-    const response = await axios.post(`${API_URL}/tables/merge-group`, {
+    return axiosClient.post(`/tables/merge-group`, {
       main_table_id: mainTableId,
       table_ids: tableIds,
     });
-    return response.data;
   },
 
   getTableGroup: async (tableId) => {
-    const response = await axios.get(`${API_URL}/tables/${tableId}/merge-group`);
-    return response.data;
+    return axiosClient.get(`/tables/${tableId}/merge-group`);
   },
 
   mergeOrder: async (fromTableId, toTableId) => {
-    const response = await axios.post(`${API_URL}/tables/merge-order`, {
+    return axiosClient.post(`/tables/merge-order`, {
       from_table_id: fromTableId,
       to_table_id: toTableId,
     });
-    return response.data;
   },
 
   settleDebt: async (tableId, payload = {}) => {
-    const response = await axios.post(`${API_URL}/tables/${tableId}/settle-debt`, payload);
-    return response.data;
+    return axiosClient.post(`/tables/${tableId}/settle-debt`, payload);
   },
 
   splitBill: async (tableId, payload = {}) => {
-    const response = await axios.post(`${API_URL}/tables/${tableId}/split-bill`, payload);
-    return response.data;
+    return axiosClient.post(`/tables/${tableId}/split-bill`, payload);
   },
 
+
   getUnpaidOrders: async (tableId) => {
-    const response = await axios.get(`${API_URL}/tables/${tableId}/unpaid-orders`);
-    return response.data;
+    return axiosClient.get(`/tables/${tableId}/unpaid-orders`);
+  },
+
+  // ── Gộp bàn (Table Group) ──────────────────────────────────────
+  mergeTableGroup: async (mainTableId, subTableIds = []) => {
+    return axiosClient.post(`/tables/merge-group`, {
+      main_table_id: mainTableId,
+      sub_table_ids: subTableIds,
+    });
+  },
+
+  getTableGroup: async (tableId) => {
+    return axiosClient.get(`/tables/${tableId}/merge-group`);
+  },
+
+  unmergeTable: async (subTableId) => {
+    return axiosClient.delete(`/tables/${subTableId}/unmerge`);
+  },
+
+  unmergeAllTables: async (mainTableId) => {
+    return axiosClient.delete(`/tables/${mainTableId}/unmerge-all`);
   },
 
 };

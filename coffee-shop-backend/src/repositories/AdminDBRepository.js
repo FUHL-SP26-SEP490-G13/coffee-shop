@@ -200,7 +200,7 @@ class AdminDBRepository {
       `SELECT 
         o.id as orderId,
         COALESCE(odi.receiver_name, 'Khách vãng lai') as customerName,
-        CONCAT(IFNULL(u.first_name, ''), ' ', IFNULL(u.last_name, '')) as staffName,
+        CASE WHEN u.id IS NULL THEN 'Hệ thống' ELSE CONCAT(IFNULL(u.first_name, ''), ' ', IFNULL(u.last_name, '')) END as staffName,
         o.created_at as time,
         COALESCE(op.payment_method, 'N/A') as paymentMethod,
         (SELECT COALESCE(SUM(quantity), 0) FROM order_details WHERE order_id = o.id) as totalQuantity,
@@ -273,7 +273,7 @@ class AdminDBRepository {
           `SELECT
               o.id AS orderId,
               COALESCE(odi.receiver_name, 'Khách vãng lai') AS customerName,
-              CONCAT(IFNULL(u.first_name, ''), ' ', IFNULL(u.last_name, '')) AS staffName,
+              CASE WHEN u.id IS NULL THEN 'Hệ thống' ELSE CONCAT(IFNULL(u.first_name, ''), ' ', IFNULL(u.last_name, '')) END AS staffName,
               o.created_at AS time,
               COALESCE(op.payment_method, 'N/A') AS paymentMethod,
               (SELECT COALESCE(SUM(quantity), 0) FROM order_details WHERE order_id = o.id) AS totalQuantity,
@@ -424,7 +424,7 @@ class AdminDBRepository {
           `SELECT 
             o.id as orderId,
             o.created_at as time,
-            CONCAT(IFNULL(u.first_name, ''), ' ', IFNULL(u.last_name, '')) as staffName,
+            CASE WHEN u.id IS NULL THEN 'Hệ thống' ELSE CONCAT(IFNULL(u.first_name, ''), ' ', IFNULL(u.last_name, '')) END as staffName,
             COALESCE(odi.receiver_name, 'Khách vãng lai') as customerName,
             COALESCE(NULLIF(o.amount, 0), (SELECT SUM(quantity * price) FROM order_details WHERE order_id = o.id)) as totalItemsPrice,
             COALESCE(o.discount_amount, 0) as discount,
@@ -460,7 +460,7 @@ class AdminDBRepository {
         0 as returnValue,
         SUM(o.total_amount) as netRevenue
       FROM orders o
-      LEFT JOIN users u ON o.staff_id = u.id
+      INNER JOIN users u ON o.staff_id = u.id
       WHERE o.is_paid = 1
         AND o.status != 'cancelled'
         AND o.created_at >= ? AND o.created_at <= ?

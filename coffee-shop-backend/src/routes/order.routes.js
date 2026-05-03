@@ -26,6 +26,14 @@ router.post(
   AsyncMiddleware(OrderController.checkout)
 );
 
+router.post(
+  "/pos/checkout",
+  authenticate,
+  authorize([ROLES_STRING.STAFF, ROLES_STRING.MANAGER]),
+  validate(checkoutOrderSchema),
+  AsyncMiddleware(OrderController.posCheckout)
+);
+
 router.get(
   "/my-orders",
   authenticate,

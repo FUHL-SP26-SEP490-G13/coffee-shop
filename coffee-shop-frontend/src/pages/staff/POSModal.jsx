@@ -299,7 +299,7 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange, editingO
       note: note.trim() || undefined,
       discount_code: discountAmount > 0 ? discountCode : undefined,
     };
-    return orderService.checkout(payload);
+    return orderService.posCheckout(payload);
   };
 
   const _handleSaveForLaterPayment = async () => {
@@ -406,7 +406,7 @@ export function POSModal({ isOpen, onClose, table, onTableStatusChange, editingO
         note: note.trim() || undefined,
         discount_code: discountAmount > 0 ? discountCode : undefined,
       };
-      const res = await orderService.checkout(payload);
+      const res = await orderService.posCheckout(payload);
       if (resolvedPaymentMethod === 'payos' && !deferredPayment && !notifyBarista) {
         const orderId = res.data?.order_id || res.data?.id;
         if (orderId) {
