@@ -395,6 +395,58 @@ class TableController {
       next(error);
     }
   }
+
+  /**
+   * Gộp bàn: gán bàn trống vào nhóm bàn chính
+   */
+  async mergeTableGroup(req, res, next) {
+    try {
+      const { main_table_id, sub_table_ids } = req.body;
+      if (!main_table_id || !Array.isArray(sub_table_ids) || sub_table_ids.length === 0) {
+        return res.status(400).json({ success: false, message: 'Vui lòng cung cấp bàn chính và ít nhất một bàn phụ' });
+      }
+      const result = await TableService.mergeTableGroup(Number(main_table_id), sub_table_ids.map(Number));
+      res.json({ success: true, message: `Đã gộp bàn thành công`, data: result });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Lấy thông tin nhóm bàn gộp
+   */
+  async getTableGroup(req, res, next) {
+    try {
+      const result = await TableService.getTableGroup(req.params.id);
+      res.json({ success: true, data: result });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Bỏ gộp một bàn phụ
+   */
+  async unmergeTable(req, res, next) {
+    try {
+      const result = await TableService.unmergeTable(Number(req.params.id));
+      res.json({ success: true, message: `Đã tách bàn ${result.sub_table_code} thành công`, data: result });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Bỏ gộp toàn bộ nhóm bàn
+   */
+  async unmergeAllTables(req, res, next) {
+    try {
+      const result = await TableService.unmergeAllTables(Number(req.params.id));
+      res.json({ success: true, message: `Đã tách toàn bộ nhóm bàn (${result.unmerged_count} bàn)`, data: result });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 module.exports = new TableController();

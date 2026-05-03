@@ -156,16 +156,16 @@ export function SplitBillModal({ isOpen, onClose, table, activeOrder, sourceOrde
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="!max-w-[1400px] !w-[95vw] h-[85vh] flex flex-col p-4 bg-white dark:bg-gray-900">
+      <DialogContent className="sm:max-w-[95vw] lg:max-w-[1400px] w-[95vw] h-[85vh] flex flex-col p-4 bg-white dark:bg-gray-900 overflow-hidden">
         <DialogHeader className="flex-shrink-0">
           <DialogTitle className="text-xl">
             Tách đơn hàng - Bàn {table?.code}
           </DialogTitle>
         </DialogHeader>
 
-        <div className="flex-1 flex gap-4 min-h-0 mt-4 overflow-hidden">
+        <div className="flex-1 flex flex-col lg:flex-row gap-4 min-h-0 mt-4 overflow-hidden">
           {/* Original Bill */}
-          <div className="w-1/3 flex flex-col bg-card border rounded-xl shadow-sm dark:shadow-none overflow-hidden flex-shrink-0">
+          <div className="w-full lg:w-1/3 flex flex-col bg-card border rounded-xl shadow-sm dark:shadow-none overflow-hidden flex-shrink-0">
             <div className="bg-muted p-3 border-b border-border">
               <h3 className="font-bold text-base text-foreground">Đơn gốc</h3>
               <p className="text-xs text-muted-foreground">Nhấn vào món để chuyển sang đơn mới</p>
@@ -229,11 +229,11 @@ export function SplitBillModal({ isOpen, onClose, table, activeOrder, sourceOrde
           </div>
 
           {/* Target Bills */}
-          <div className="flex-1 flex gap-4 overflow-x-auto pt-4 pl-4 pb-4 items-start h-full scrollbar-thin scrollbar-thumb-muted-foreground/20">
+          <div className="flex-1 flex flex-wrap gap-4 overflow-y-auto overflow-x-hidden pt-4 pl-0 lg:pl-4 pb-4 items-start content-start h-full scrollbar-thin scrollbar-thumb-muted-foreground/20">
             {splitBills.map(bill => (
               <div
                 key={bill.id}
-                className={`w-64 max-h-full flex flex-col bg-card border rounded-xl overflow-hidden flex-shrink-0 transition-all ${activeBillId === bill.id ? 'ring-2 ring-amber-500 shadow-md transform scale-[1.02]' : 'opacity-80 hover:opacity-100 hover:shadow-sm cursor-pointer'}`}
+                className={`w-64 max-h-[350px] flex flex-col bg-card border rounded-xl overflow-hidden flex-shrink-0 transition-all ${activeBillId === bill.id ? 'ring-2 ring-amber-500 shadow-md transform scale-[1.02]' : 'opacity-80 hover:opacity-100 hover:shadow-sm cursor-pointer'}`}
                 onClick={() => setActiveBillId(bill.id)}
               >
                 <div className={`p-3 border-b border-border flex justify-between items-center ${activeBillId === bill.id ? 'bg-amber-100 dark:bg-amber-900/40' : 'bg-muted'}`}>

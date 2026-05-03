@@ -348,7 +348,9 @@ class OrderService {
       if (discountIdApplied) {
         await OrderRepository.incrementDiscountUsedCount(connection, discountIdApplied);
       }
-
+      if (payment_method === "cash" && order_type === "dine-in" && normalizedTableId && sessionId) {
+        await TableService.checkAndResetTableStatus(connection, normalizedTableId, sessionId);
+      }
 
       await connection.commit();
 

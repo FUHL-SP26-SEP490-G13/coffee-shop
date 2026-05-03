@@ -8,23 +8,44 @@ const CashSessionRepository = require('../repositories/CashSessionRepository');
 class TableService {
   /**
    * Kiểm tra và reset trạng thái bàn về 'available' nếu tất cả order trong session đã được thanh toán hoặc huỷ.
+   * Cải tiến: Nếu bàn thuộc nhóm (gộp bàn), sẽ reset cả nhóm nếu cả session đã xong.
    */
   async checkAndResetTableStatus(connection, tableId, sessionId) {
     if (!tableId || !sessionId) return;
 
+    // 1. Tìm root table (nếu là bàn phụ thì lấy bàn chính, nếu là bàn chính thì lấy chính nó)
+    const [tableRow] = await connection.query(
+      "SELECT id, main_table_id FROM tables WHERE id = ?",
+      [tableId]
+    );
+    if (!tableRow.length) return;
+    
+    const rootTableId = tableRow[0].main_table_id || tableRow[0].id;
+
+    // 2. Đếm số order chưa thanh toán của CẢ NHÓM (tất cả bàn có cùng main_table_id hoặc là root) trong session này
     const [remainingUnpaid] = await connection.query(
       `SELECT COUNT(*) AS cnt FROM orders o
        LEFT JOIN order_payments op ON op.order_id = o.id
-       WHERE o.table_id = ? AND o.session_id = ?
+       WHERE o.session_id = ?
          AND o.status NOT IN ('cancelled')
-         AND (o.is_paid = 0 OR COALESCE(op.payment_status,'pending') != 'paid')`,
-      [tableId, sessionId]
+         AND (o.is_paid = 0 OR COALESCE(op.payment_status,'pending') != 'paid')
+         AND o.table_id IN (
+           SELECT id FROM tables WHERE id = ? OR main_table_id = ?
+         )`,
+      [sessionId, rootTableId, rootTableId]
     );
 
     if (Number(remainingUnpaid[0]?.cnt || 0) === 0) {
+      // 3. Reset bàn chính
       await connection.query(
         "UPDATE tables SET status = 'available', current_session_id = NULL WHERE id = ?",
-        [tableId]
+        [rootTableId]
+      );
+
+      // 4. Bỏ gộp và reset toàn bộ bàn phụ của bàn chính này
+      await connection.query(
+        "UPDATE tables SET main_table_id = NULL, status = 'available', current_session_id = NULL WHERE main_table_id = ?",
+        [rootTableId]
       );
     }
   }
@@ -163,6 +184,8 @@ class TableService {
       return [];
     }
 
+    const rootTableId = table.main_table_id || table.id;
+
     const [rows] = await TableRepository.db.query(
       `
       SELECT
@@ -174,12 +197,14 @@ class TableService {
         COALESCE(op.payment_status, 'pending') AS payment_status
       FROM orders o
       LEFT JOIN order_payments op ON op.order_id = o.id
-      WHERE o.table_id = ?
-        AND o.session_id = ?
+      WHERE o.session_id = ?
         AND o.status NOT IN ('cancelled')
+        AND o.table_id IN (
+           SELECT id FROM tables WHERE id = ? OR main_table_id = ?
+        )
       ORDER BY o.created_at ASC
       `,
-      [tableId, table.current_session_id]
+      [table.current_session_id, rootTableId, rootTableId]
     );
 
     // Filter only unpaid orders
@@ -237,6 +262,8 @@ class TableService {
 
     if (data.status === 'available') {
       data.current_session_id = null;
+      // Nếu bàn này đang là bàn phụ, khi set available thì phải bỏ main_table_id
+      data.main_table_id = null;
 
       const [affectedOrders] = await TableRepository.db.query(
         `
@@ -257,6 +284,12 @@ class TableService {
       for (const order of affectedOrders) {
         await LoyaltyService.syncOrderLoyaltyByOrderId(order.id);
       }
+
+      // Nếu bàn này là bàn chính, bỏ gộp toàn bộ bàn phụ của nó
+      await TableRepository.db.query(
+        "UPDATE tables SET main_table_id = NULL, status = 'available', current_session_id = NULL WHERE main_table_id = ?",
+        [id]
+      );
     }
 
     return await TableRepository.update(id, data);
@@ -575,6 +608,8 @@ class TableService {
         throw new ErrorResponse(400, `Bàn ${table.code} chưa có phiên phục vụ`);
       }
 
+      const rootTableId = table.main_table_id || table.id;
+
       const [debtOrders] = await connection.query(
         `
         SELECT
@@ -584,13 +619,15 @@ class TableService {
           COALESCE(op.payment_status, 'pending') AS payment_status
         FROM orders o
         LEFT JOIN order_payments op ON op.order_id = o.id
-        WHERE o.table_id = ?
-          AND o.session_id = ?
+        WHERE o.session_id = ?
           AND o.status NOT IN ('cancelled')
           AND o.total_amount > 0
+          AND o.table_id IN (
+            SELECT id FROM tables WHERE id = ? OR main_table_id = ?
+          )
         ORDER BY o.created_at ASC
         `,
-        [tableId, table.current_session_id]
+        [table.current_session_id, rootTableId, rootTableId]
       );
 
       if (debtOrders.length === 0) {
@@ -1239,6 +1276,186 @@ class TableService {
         new_order_ids: createdOrderIds,
         split_orders: createdOrderIds.length,
         split_total: totalSplitAmount
+      };
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
+  }
+
+  /**
+   * Gộp bàn: gán một hoặc nhiều bàn trống vào bàn chính (main table)
+   * @param {number} mainTableId - ID bàn chính (đang có khách)
+   * @param {number[]} subTableIds - Danh sách ID bàn phụ (phải trống)
+   */
+  async mergeTableGroup(mainTableId, subTableIds = []) {
+    if (!subTableIds.length) {
+      throw new ErrorResponse(400, 'Vui lòng chọn ít nhất một bàn phụ để gộp');
+    }
+    if (subTableIds.includes(Number(mainTableId))) {
+      throw new ErrorResponse(400, 'Bàn chính không thể gộp vào chính nó');
+    }
+
+    const connection = await TableRepository.db.getConnection();
+    try {
+      await connection.beginTransaction();
+
+      // Validate main table
+      const [mainRows] = await connection.query(
+        'SELECT id, code, status, current_session_id FROM tables WHERE id = ? AND is_deleted = 0 FOR UPDATE',
+        [mainTableId]
+      );
+      if (!mainRows.length) throw new ErrorResponse(404, 'Bàn chính không tồn tại');
+      const mainTable = mainRows[0];
+      if (mainTable.status !== 'occupied') {
+        throw new ErrorResponse(400, `Bàn ${mainTable.code} chưa có khách, không thể làm bàn chính`);
+      }
+
+      // Validate sub-tables
+      const placeholders = subTableIds.map(() => '?').join(',');
+      const [subRows] = await connection.query(
+        `SELECT id, code, status, main_table_id FROM tables WHERE id IN (${placeholders}) AND is_deleted = 0 FOR UPDATE`,
+        subTableIds.map(Number)
+      );
+
+      if (subRows.length !== subTableIds.length) {
+        throw new ErrorResponse(404, 'Một hoặc nhiều bàn phụ không tồn tại');
+      }
+
+      for (const sub of subRows) {
+        if (sub.status !== 'available') {
+          throw new ErrorResponse(400, `Bàn ${sub.code} hiện không trống, không thể gộp`);
+        }
+        if (sub.main_table_id !== null && sub.main_table_id !== undefined) {
+          throw new ErrorResponse(400, `Bàn ${sub.code} đã được gộp với bàn khác`);
+        }
+      }
+
+      // Assign sub-tables to main table: mark as occupied with same session
+      const sessionId = mainTable.current_session_id || `sess_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+      await connection.query(
+        `UPDATE tables SET main_table_id = ?, status = 'occupied', current_session_id = ? WHERE id IN (${placeholders})`,
+        [mainTableId, sessionId, ...subTableIds.map(Number)]
+      );
+
+      await connection.commit();
+
+      return {
+        main_table_id: Number(mainTableId),
+        main_table_code: mainTable.code,
+        sub_table_ids: subTableIds.map(Number),
+        sub_table_codes: subRows.map(r => r.code),
+      };
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
+  }
+
+  /**
+   * Lấy thông tin nhóm bàn gộp cho một bàn
+   * Returns: main table info and list of sub-tables (if tableId is main),
+   *          or the main table and siblings (if tableId is a sub-table)
+   */
+  async getTableGroup(tableId) {
+    const [rows] = await TableRepository.db.query(
+      'SELECT id, code, status, main_table_id FROM tables WHERE id = ? AND is_deleted = 0',
+      [tableId]
+    );
+    if (!rows.length) throw new ErrorResponse(404, 'Bàn không tồn tại');
+    const table = rows[0];
+
+    // If this table IS a main table — fetch its sub-tables
+    const [subRows] = await TableRepository.db.query(
+      'SELECT id, code, status, area_id FROM tables WHERE main_table_id = ? AND is_deleted = 0',
+      [tableId]
+    );
+
+    // If this table is a sub-table — fetch its main table
+    let mainTable = null;
+    if (table.main_table_id) {
+      const [mainRows] = await TableRepository.db.query(
+        'SELECT id, code, status FROM tables WHERE id = ? AND is_deleted = 0',
+        [table.main_table_id]
+      );
+      mainTable = mainRows[0] || null;
+    }
+
+    return {
+      table_id: Number(tableId),
+      is_main: !table.main_table_id,
+      main_table: mainTable,
+      sub_tables: subRows,
+    };
+  }
+
+  /**
+   * Bỏ gộp một bàn phụ khỏi nhóm
+   * @param {number} subTableId - ID bàn phụ cần tách ra
+   */
+  async unmergeTable(subTableId) {
+    const connection = await TableRepository.db.getConnection();
+    try {
+      await connection.beginTransaction();
+
+      const [rows] = await connection.query(
+        'SELECT id, code, main_table_id FROM tables WHERE id = ? AND is_deleted = 0 FOR UPDATE',
+        [subTableId]
+      );
+      if (!rows.length) throw new ErrorResponse(404, 'Bàn không tồn tại');
+      const subTable = rows[0];
+      if (!subTable.main_table_id) {
+        throw new ErrorResponse(400, `Bàn ${subTable.code} không thuộc nhóm bàn gộp nào`);
+      }
+
+      await connection.query(
+        "UPDATE tables SET main_table_id = NULL, status = 'available', current_session_id = NULL WHERE id = ?",
+        [subTableId]
+      );
+
+      await connection.commit();
+      return { sub_table_id: Number(subTableId), sub_table_code: subTable.code };
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
+  }
+
+  /**
+   * Bỏ gộp toàn bộ nhóm bàn (kể từ bàn chính)
+   * @param {number} mainTableId - ID bàn chính
+   */
+  async unmergeAllTables(mainTableId) {
+    const connection = await TableRepository.db.getConnection();
+    try {
+      await connection.beginTransaction();
+
+      const [subRows] = await connection.query(
+        'SELECT id, code FROM tables WHERE main_table_id = ? AND is_deleted = 0 FOR UPDATE',
+        [mainTableId]
+      );
+
+      if (subRows.length === 0) {
+        await connection.commit();
+        return { unmerged_count: 0 };
+      }
+
+      await connection.query(
+        "UPDATE tables SET main_table_id = NULL, status = 'available', current_session_id = NULL WHERE main_table_id = ?",
+        [mainTableId]
+      );
+
+      await connection.commit();
+      return {
+        main_table_id: Number(mainTableId),
+        unmerged_count: subRows.length,
+        unmerged_codes: subRows.map(r => r.code),
       };
     } catch (error) {
       await connection.rollback();
