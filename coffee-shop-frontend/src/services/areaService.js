@@ -1,101 +1,54 @@
-import axios from "axios";
-import { API_ENDPOINTS, STORAGE_KEYS } from "../constants";
-
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+import axiosClient from "./axiosClient";
+import { API_ENDPOINTS } from "../constants";
 
 const areaService = {
   /**
    * Get all areas
    */
   getAll: async () => {
-    try {
-      const token = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
-      const response = await axios.get(`${API_URL}${API_ENDPOINTS.AREAS}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || error.message;
-    }
+    return axiosClient.get(API_ENDPOINTS.AREAS);
   },
 
   /**
    * Get area by ID
    */
   getById: async (id) => {
-    try {
-      const token = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
-      const response = await axios.get(`${API_URL}${API_ENDPOINTS.AREAS}/${id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || error.message;
-    }
+    return axiosClient.get(`${API_ENDPOINTS.AREAS}/${id}`);
   },
 
   /**
    * Create new area
    */
   create: async (data) => {
-    try {
-      const token = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
-      const isFormData = data instanceof FormData;
-      const headers = {
-        Authorization: `Bearer ${token}`,
-      };
-      if (isFormData) {
-        headers['Content-Type'] = 'multipart/form-data';
-      }
-      
-      const response = await axios.post(`${API_URL}${API_ENDPOINTS.AREAS}`, data, { headers });
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || error.message;
+    const isFormData = data instanceof FormData;
+    const headers = {};
+    if (isFormData) {
+      headers['Content-Type'] = 'multipart/form-data';
     }
+    
+    return axiosClient.post(API_ENDPOINTS.AREAS, data, { headers });
   },
 
   /**
    * Update area
    */
   update: async (id, data) => {
-    try {
-      const token = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
-      const isFormData = data instanceof FormData;
-      const headers = {
-        Authorization: `Bearer ${token}`,
-      };
-      if (isFormData) {
-        headers['Content-Type'] = 'multipart/form-data';
-      }
-      
-      const response = await axios.put(`${API_URL}${API_ENDPOINTS.AREAS}/${id}`, data, { headers });
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || error.message;
+    const isFormData = data instanceof FormData;
+    const headers = {};
+    if (isFormData) {
+      headers['Content-Type'] = 'multipart/form-data';
     }
+    
+    return axiosClient.put(`${API_ENDPOINTS.AREAS}/${id}`, data, { headers });
   },
 
   /**
    * Delete area
    */
   delete: async (id) => {
-    try {
-      const token = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
-      const response = await axios.delete(`${API_URL}${API_ENDPOINTS.AREAS}/${id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || error.message;
-    }
+    return axiosClient.delete(`${API_ENDPOINTS.AREAS}/${id}`);
   },
 };
 
 export default areaService;
+

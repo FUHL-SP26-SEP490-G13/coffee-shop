@@ -107,6 +107,7 @@ export const API_ENDPOINTS = {
   TOPPINGS: '/toppings',
   TOPPINGS_ADMIN: '/admin/toppings',
   AREAS: '/area',
+  TABLES: '/tables',
   REVIEWS: {
     BASE: '/reviews',
     BY_PRODUCT: (productId) => `/reviews/product/${productId}`,
