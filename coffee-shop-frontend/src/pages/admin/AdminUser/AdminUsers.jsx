@@ -14,7 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../components/ui
 import PaginationControl from '../../../components/common/PaginationControl';
 import { toast } from 'sonner';
 import FaceRegistrationDialog from '@/components/admin/FaceRegistrationDialog';
-import { Camera } from 'lucide-react';
+import { Camera, CheckCircle2 } from 'lucide-react';
 
 export default function AdminUsers() {
   const [users, setUsers] = useState([]);
@@ -468,10 +468,15 @@ export default function AdminUsers() {
                                     variant="ghost"
                                     size="icon"
                                     onClick={() => handleFaceRegistrationClick(user)}
-                                    title="Đăng ký khuôn mặt"
+                                    title={user.aws_face_id ? "Cập nhật khuôn mặt" : "Đăng ký khuôn mặt"}
                                     disabled={user.isActive === 0}
                                   >
-                                    <Camera className="h-4 w-4 text-green-600" />
+                                    <div className="relative inline-flex">
+                                      <Camera className="h-5 w-5 text-green-600" />
+                                      {user.aws_face_id && (
+                                        <CheckCircle2 className="absolute -bottom-1.5 -right-1.5 h-3.5 w-3.5 rounded-full bg-white text-emerald-600" />
+                                      )}
+                                    </div>
                                   </Button>
                                 </>
                               )}

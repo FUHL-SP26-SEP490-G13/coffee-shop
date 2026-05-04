@@ -141,6 +141,10 @@ class CashSessionService {
     // 4. Hệ thống tự tính tiền lý thuyết
     const summary = await CashSessionRepository.getOrderSummary(sessionId);
 
+    if (Number(summary.pending_orders) > 0) {
+      throw new ErrorResponse(400, `Không thể kết ca. Còn ${summary.pending_orders} đơn hàng đang xử lý chưa hoàn thành.`);
+    }
+
     if (Number(summary.unpaid_orders) > 0) {
       throw new ErrorResponse(400, `Không thể kết ca. Còn ${summary.unpaid_orders} đơn hàng chưa thanh toán.`);
     }
@@ -197,6 +201,10 @@ class CashSessionService {
     }
 
     const summary = await CashSessionRepository.getOrderSummary(sessionId);
+    if (Number(summary.pending_orders) > 0) {
+      throw new ErrorResponse(400, `Không thể đóng hộ ca. Còn ${summary.pending_orders} đơn hàng đang xử lý chưa hoàn thành.`);
+    }
+
     if (Number(summary.unpaid_orders) > 0) {
       throw new ErrorResponse(400, `Không thể đóng hộ ca. Còn ${summary.unpaid_orders} đơn hàng chưa thanh toán.`);
     }

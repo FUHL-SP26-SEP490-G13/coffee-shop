@@ -158,23 +158,23 @@ export function BaristaApp() {
   const isSidebarCompact = !isSidebarExpanded;
 
   const menuGroups = [
-    {
-      title: "Pha chế",
-      items: [
-        {
-          id: "dashboard",
-          icon: LayoutDashboard,
-          label: "Bảng điều khiển",
-          path: "/barista",
-        },
-        // {
-        //   id: "orders",
-        //   icon: PackageOpen,
-        //   label: "Đơn hàng",
-        //   path: "/barista/orders",
-        // },
-      ],
-    },
+    // {
+    //   title: "Pha chế",
+    //   items: [
+    //     {
+    //       id: "dashboard",
+    //       icon: LayoutDashboard,
+    //       label: "Bảng điều khiển",
+    //       path: "/barista",
+    //     },
+    //     // {
+    //     //   id: "orders",
+    //     //   icon: PackageOpen,
+    //     //   label: "Đơn hàng",
+    //     //   path: "/barista/orders",
+    //     // },
+    //   ],
+    // },
     {
       title: "Cá nhân",
       items: [

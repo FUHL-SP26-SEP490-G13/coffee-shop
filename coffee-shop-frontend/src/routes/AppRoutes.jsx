@@ -204,7 +204,7 @@ const AppRoutes = () => {
         <Route path="payment-result" element={<StaffPayOSReturn />} />
         <Route path="orders" element={<Navigate to="pending" replace />} />
         <Route path="orders/:status" element={<RequireOpenShift><OrderDelivery /></RequireOpenShift>} />
-        <Route path="barista-window" element={<RequireOpenShift><OrderDelivery /></RequireOpenShift>} />
+        <Route path="barista-window" element={<OrderDelivery />} />
         <Route path="attendance" element={<StaffAttendance />} />
 
         <Route path="tables" element={<RequireOpenShift><StaffTables /></RequireOpenShift>} />
