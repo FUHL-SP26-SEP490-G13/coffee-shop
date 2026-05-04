@@ -163,8 +163,6 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900 dark:border-gray-800">
-
-
       <FadeInView delay={0} duration={1200}>
         <div className="w-full bg-white dark:bg-gray-950 pb-4">
           <div className="w-full px-4 lg:px-6 xl:px-8 relative flex items-stretch">
@@ -206,14 +204,9 @@ export default function HomePage() {
         <div className="w-full h-px bg-gradient-to-r from-transparent via-amber-300 to-transparent" />
       </FadeInView>
 
-
       <FadeInView>
         <FeaturedNews />
       </FadeInView>
-
-
-
-
 
       {/* Scroll to Top Button */}
       <button

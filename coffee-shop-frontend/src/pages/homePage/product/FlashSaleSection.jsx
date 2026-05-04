@@ -15,7 +15,7 @@ export default function FlashSaleSection({ products, getThumbnail, getDefaultCar
   const { isOpen, nextOpenMessage } = useStoreHours();
   const { addItem } = useCartStore();
   const [activeSale, setActiveSale] = useState(null);
-  const [timeLeft, setTimeLeft] = useState({ hours: 0, minutes: 0, seconds: 0 });
+  const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
   const [addedCartItem, setAddedCartItem] = useState(null);
   const [quickViewProduct, setQuickViewProduct] = useState(null);
 
@@ -56,6 +56,7 @@ export default function FlashSaleSection({ products, getThumbnail, getDefaultCar
       const difference = new Date(activeSale.end_time) - new Date();
       if (difference > 0) {
         setTimeLeft({
+          days: Math.floor(difference / (1000 * 60 * 60 * 24)),
           hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
           minutes: Math.floor((difference / 1000 / 60) % 60),
           seconds: Math.floor((difference / 1000) % 60)
@@ -135,6 +136,14 @@ export default function FlashSaleSection({ products, getThumbnail, getDefaultCar
                 <Clock className="w-6 h-6 text-amber-200 animate-pulse" />
                 <span className="text-white font-semibold mr-2 drop-shadow-sm">Kết thúc sau:</span>
                 <div className="flex gap-2 text-xl font-black text-white">
+                  {timeLeft.days > 0 && (
+                    <>
+                      <div className="bg-white text-red-600 min-w-12 h-12 px-2 flex items-center justify-center rounded-xl shadow-md border-b-4 border-gray-200">
+                        {timeLeft.days}<span className="text-xs ml-1 font-bold">ngày</span>
+                      </div>
+                      <span className="text-2xl mt-1 drop-shadow-sm">:</span>
+                    </>
+                  )}
                   <div className="bg-white text-red-600 w-12 h-12 flex items-center justify-center rounded-xl shadow-md border-b-4 border-gray-200">
                     {String(timeLeft.hours).padStart(2, '0')}
                   </div>
