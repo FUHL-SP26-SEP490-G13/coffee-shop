@@ -63,7 +63,6 @@ export default function App() {
     <div className="min-h-screen bg-background">
       <ScrollToTop />
       <AppRoutes />
-
       <Toaster position="top-right" richColors closeButton duration={3000} visibleToasts={1} />
     </div>
   );
