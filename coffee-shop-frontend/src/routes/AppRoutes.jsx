@@ -24,10 +24,7 @@ import OrderPolicy from "@/pages/common/OrderPolicy";
 import PrivacyPolicy from "@/pages/common/PrivacyPolicy";
 import AdminApp from "../pages/admin/AdminApp";
 import AdminAttendance from "../pages/admin/AdminAttendance/AdminAttendance";
-
 import { StaffAttendance } from "@/pages/staff/StaffAttendance";
-
-
 import { StaffTables } from "@/pages/staff/StaffTables";
 import { StaffSchedule } from "@/pages/staff/StaffSchedule";
 import AdminBanner from "@/pages/admin/AdminBanner/AdminBanner";
@@ -40,7 +37,6 @@ import { BaristaAttendance } from "@/pages/barista/BaristaAttendance/BaristaAtte
 import { BaristaSchedule } from "@/pages/barista/BaristaSchedule/BaristaSchedule";
 import { StaffAppWrapped } from "../pages/staff/StaffApp";
 import { BaristaApp } from "@/pages/barista/BaristaApp";
-import ProductListPage from "../pages/homePage/product/ProductListPage";
 import ProductDetailPage from "../pages/homePage/product/ProductDetailPage";
 import CartPage from "@/pages/homePage/order/CartPage";
 import CheckoutPage from "@/pages/homePage/order/CheckoutPage";
@@ -56,7 +52,6 @@ import AdminFlashSales from "@/pages/admin/AdminFlashSale/AdminFlashSales";
 import AdminReputation from "@/pages/admin/AdminReputation/AdminReputation";
 import AdminLoyalty from "@/pages/admin/AdminLoyalty/AdminLoyalty";
 import AttendanceKiosk from "@/pages/attendance/AttendanceKiosk";
-
 import AdminEndOfDayReport from "@/pages/admin/AdminEndOfDayReport/AdminEndOfDayReport";
 import AdminShiftReport from "@/pages/admin/AdminShiftReport/AdminShiftReport";
 import TakeawayPOS from '../pages/staff/TakeawayPOS'

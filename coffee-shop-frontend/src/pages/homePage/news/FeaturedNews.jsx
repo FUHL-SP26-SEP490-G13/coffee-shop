@@ -31,7 +31,6 @@ export default function FeaturedNews() {
   }
 
   if (!featuredNews.length) return null;
-
   return (
     <div className="py-8 md:py-12 lg:py-16 bg-white dark:bg-gray-950 overflow-hidden">
       <div className="w-full px-4 lg:px-6 xl:px-8">

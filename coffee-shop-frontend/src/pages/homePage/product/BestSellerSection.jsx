@@ -145,7 +145,6 @@ export default function BestSellerSection({
       .catch(() => { });
   }, []);
 
-
   return (
     <section className="py-8 md:py-12 lg:py-16 bg-white dark:bg-gray-950">
       <div className="w-full px-4 lg:px-6 xl:px-8">
