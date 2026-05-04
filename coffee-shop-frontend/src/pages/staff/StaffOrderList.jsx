@@ -954,20 +954,18 @@ export function OrderDelivery() {
             <div className="flex w-full items-center gap-2 sm:w-auto">
               {String(order.status || "").toLowerCase() === "pending" ? (
                 <>
-                  {!isDineInOrTakeawayOrder && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-8 border-destructive/20 text-destructive hover:bg-destructive hover:text-white"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openCancelConfirm(order.id, "pending");
-                      }}
-                      disabled={cancelingId === order.id}
-                    >
-                      Hủy
-                    </Button>
-                  )}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 border-destructive/20 text-destructive hover:bg-destructive hover:text-white"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openCancelConfirm(order.id, "pending");
+                    }}
+                    disabled={cancelingId === order.id}
+                  >
+                    Hủy
+                  </Button>
                   <Button
                     size="sm"
                     className="h-8 font-bold"
