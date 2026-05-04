@@ -204,6 +204,7 @@ class TakeawayService {
         discount_id: discountId,
         cash_session_id: cashSessionId,
         staff_id: staffUser.id,
+        is_paid: isCash ? 1 : 0,
       });
 
       for (const item of normalizedItems) {
@@ -234,9 +235,9 @@ class TakeawayService {
       await TakeawayRepository.createOrderPayment(connection, {
         order_id: orderId,
         payment_method,
-        payment_status: 'pending',
+        payment_status: isCash ? 'paid' : 'pending',
         amount: finalAmount,
-        paid_amount: 0,
+        paid_amount: isCash ? finalAmount : 0,
         cash_received: cashReceivedAmt, 
         change_amount: changeAmt, 
       });

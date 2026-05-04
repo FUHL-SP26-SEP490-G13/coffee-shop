@@ -986,28 +986,32 @@ export function OrderDelivery() {
                     !isDineInOrTakeawayOrder &&
                     String(order.status || "").toLowerCase() !== "cancelled" && (
                     <>
-                      <Button
-                        size="sm"
-                        className="h-8 bg-emerald-600 hover:bg-emerald-700 text-[11px]"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openCashPaymentDialog(order);
-                        }}
-                      >
-                        Thanh toán
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-8 border-destructive/20 text-destructive hover:bg-destructive hover:text-white text-[11px]"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openCancelConfirm(order.id, order.status);
-                        }}
-                        disabled={cancelingId === order.id}
-                      >
-                        Hủy
-                      </Button>
+                      {String(order.order_type || "").toLowerCase() !== "takeaway" && (
+                        <>
+                          <Button
+                            size="sm"
+                            className="h-8 bg-emerald-600 hover:bg-emerald-700 text-[11px]"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openCashPaymentDialog(order);
+                            }}
+                          >
+                            Thanh toán
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-8 border-destructive/20 text-destructive hover:bg-destructive hover:text-white text-[11px]"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openCancelConfirm(order.id, order.status);
+                            }}
+                            disabled={cancelingId === order.id}
+                          >
+                            Hủy
+                          </Button>
+                        </>
+                      )}
                     </>
                   )}
                   <Button
@@ -1143,23 +1147,29 @@ export function OrderDelivery() {
       )}
 
       {activeStatus === "barista-window" ? (
-        <div className="flex-1 min-h-0 flex flex-col gap-6">
+        <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", gap: "16px" }}>
           <div className="flex-shrink-0 bg-white dark:bg-slate-900 border-2 border-primary/20 rounded-2xl py-6 px-10 shadow-sm flex items-center justify-center">
             <h2 className="text-3xl font-black tracking-[0.2em] text-primary dark:text-primary uppercase">
               DANH SÁCH ĐƠN PHA CHẾ
             </h2>
           </div>
 
-          <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-8 min-h-0">
+          <div
+            className="flex gap-8"
+            style={{ flex: 1, minHeight: 0 }}
+          >
             {/* COLUMN LEFT: Đơn mới */}
-            <div className="flex flex-col min-h-0 bg-primary/5 dark:bg-primary/10 rounded-[2.5rem] border-2 border-primary/20 p-6">
+            <div
+              style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", height: "100%" }}
+              className="bg-primary/5 dark:bg-primary/10 rounded-[2.5rem] border-2 border-primary/20 p-6 overflow-hidden"
+            >
               <div className="flex-shrink-0 mb-6 flex justify-center">
                 <div className="bg-primary border-2 border-primary/30 px-12 py-3 rounded-full shadow-md">
                   <span className="text-lg font-bold text-white tracking-wide uppercase">Đơn mới</span>
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-4">
+              <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }} className="pr-2 custom-scrollbar space-y-4">
                 {orders.filter(o => String(o.status || "").toLowerCase() === 'preparing').length > 0 ? (
                   orders.filter(o => String(o.status || "").toLowerCase() === 'preparing').map((order) => (
                     <Card
@@ -1194,14 +1204,17 @@ export function OrderDelivery() {
             </div>
 
             {/* COLUMN RIGHT: Đã xong */}
-            <div className="flex flex-col min-h-0 bg-primary/5 dark:bg-primary/10 rounded-[2.5rem] border-2 border-primary/20 p-6">
+            <div
+              style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", height: "100%" }}
+              className="bg-primary/5 dark:bg-primary/10 rounded-[2.5rem] border-2 border-primary/20 p-6 overflow-hidden"
+            >
               <div className="flex-shrink-0 mb-6 flex justify-center">
                 <div className="bg-primary/90 border-2 border-primary/30 px-12 py-3 rounded-full shadow-md">
                   <span className="text-lg font-bold text-white tracking-wide uppercase">Đã xong</span>
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-4">
+              <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }} className="pr-2 custom-scrollbar space-y-4">
                 {orders.filter(o => String(o.status || "").toLowerCase() === 'completed').length > 0 ? (
                   orders.filter(o => String(o.status || "").toLowerCase() === 'completed')
                     .sort((a, b) => b.id - a.id)
@@ -1403,49 +1416,49 @@ export function OrderDelivery() {
           </div>
         </div>
       ) : (
-        <div className="flex-1 min-h-0 overflow-x-auto">
-          <div
-            className={`grid gap-3 h-full ${activeStatus === "pending" ? "grid-cols-1 md:grid-cols-2" : "grid-cols-1 md:grid-cols-3"}`}
-          >
-            {visibleOrderTypeColumns.map((column) => {
-              const Icon = column.icon;
-              const columnOrders = groupedOrdersByType[column.key] || [];
+        <div
+          className="flex gap-4 pb-4"
+          style={{ height: "calc(100vh - 200px)", minHeight: "400px" }}
+        >
+          {visibleOrderTypeColumns.map((column) => {
+            const Icon = column.icon;
+            const columnOrders = groupedOrdersByType[column.key] || [];
 
-              return (
-                <div
-                  key={column.key}
-                  className="flex flex-col min-h-0 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-gray-900 shadow-sm dark:shadow-none"
-                >
-                  <div className="flex-shrink-0 flex items-center justify-between border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 px-3 py-2">
-                    <div className="flex items-center gap-2">
-                      <Icon className="h-4 w-4 text-slate-600 dark:text-slate-200" />
-                      <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">
-                        {column.label}
-                      </span>
-                    </div>
-                    <Badge variant="secondary">{columnOrders.length}</Badge>
+            return (
+              <div
+                key={column.key}
+                style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", height: "100%" }}
+                className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-gray-900 shadow-sm dark:shadow-none overflow-hidden"
+              >
+                <div className="flex-shrink-0 flex items-center justify-between border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 px-3 py-2">
+                  <div className="flex items-center gap-2">
+                    <Icon className="h-4 w-4 text-slate-600 dark:text-slate-200" />
+                    <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+                      {column.label}
+                    </span>
                   </div>
-
-                  <div className="flex-1 overflow-y-auto overflow-x-hidden p-3 space-y-2 custom-scrollbar">
-                    {loading ? (
-                      <p className="py-8 text-center text-sm text-muted-foreground">
-                        Đang tải dữ liệu...
-                      </p>
-                    ) : columnOrders.length > 0 ? (
-                      columnOrders.map((order) => renderCompactOrderCard(order))
-                    ) : (
-                      <div className="flex flex-col items-center justify-center gap-2 py-10 text-center">
-                        <ShoppingBag className="h-7 w-7 text-muted-foreground" />
-                        <p className="text-sm text-muted-foreground">
-                          Không có đơn trong cột này.
-                        </p>
-                      </div>
-                    )}
-                  </div>
+                  <Badge variant="secondary">{columnOrders.length}</Badge>
                 </div>
-              );
-            })}
-          </div>
+
+                <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }} className="p-3 space-y-2 custom-scrollbar">
+                  {loading ? (
+                    <p className="py-8 text-center text-sm text-muted-foreground">
+                      Đang tải dữ liệu...
+                    </p>
+                  ) : columnOrders.length > 0 ? (
+                    columnOrders.map((order) => renderCompactOrderCard(order))
+                  ) : (
+                    <div className="flex flex-col items-center justify-center gap-2 py-10 text-center">
+                      <ShoppingBag className="h-7 w-7 text-muted-foreground" />
+                      <p className="text-sm text-muted-foreground">
+                        Không có đơn trong cột này.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
 

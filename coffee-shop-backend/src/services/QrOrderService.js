@@ -124,8 +124,8 @@ class QrOrderService {
         quantity: Number(i.quantity),
         price: Number(i.price),
       })),
-      returnUrl: process.env.PAYOS_RETURN_URL || "http://localhost:5173/payment-success",
-      cancelUrl: process.env.PAYOS_CANCEL_URL || "http://localhost:5173/payment-cancel",
+      returnUrl: process.env.PAYOS_QR_RETURN_URL || "http://localhost:5173/order/payment-success",
+      cancelUrl: process.env.PAYOS_QR_CANCEL_URL || "http://localhost:5173/order/payment-cancel",
     };
 
     const paymentLinkResponse = await payOS.paymentRequests.create(body);
@@ -331,6 +331,207 @@ class QrOrderService {
       }
 
       return response;
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
+  }
+  /**
+   * Validate cart + calculate totals WITHOUT saving to DB.
+   * Used before creating PayOS payment link (like Order Table flow).
+   */
+  async validateCart(payload, user) {
+    const { tableId, discountCode, items, note } = payload;
+
+    if (!Array.isArray(items) || items.length === 0) {
+      throw new ErrorResponse(400, "Giỏ hàng trống");
+    }
+    if (!tableId) {
+      throw new ErrorResponse(400, "Thiếu thông tin bàn");
+    }
+
+    const connection = await QrOrderRepository.getConnection();
+    try {
+      await connection.beginTransaction();
+
+      const cartTotals = await this.calculateCartAmounts(connection, items);
+      let { totalAmount, regularAmount, normalizedItems } = cartTotals;
+
+      let discountAmount = 0;
+      let discountCodeApplied = null;
+      let discountIdApplied = null;
+
+      const normalizedDiscountCode = String(discountCode || "").trim();
+      if (normalizedDiscountCode) {
+        const discount = await QrOrderRepository.findDiscountByCodeForCheckout(connection, normalizedDiscountCode);
+        if (!discount) throw new ErrorResponse(400, "Mã giảm giá không tồn tại");
+
+        const now = new Date();
+        if (discount.valid_from && now < new Date(discount.valid_from)) {
+          throw this.createBadRequestError("Mã giảm giá chưa đến thời gian sử dụng");
+        }
+        if (discount.valid_until && now > new Date(discount.valid_until)) {
+          throw this.createBadRequestError("Mã giảm giá đã hết hạn");
+        }
+        const usageLimit = discount.usage_limit == null ? null : Number(discount.usage_limit);
+        const usedCount = Number(discount.used_count || 0);
+        if (usageLimit !== null && usedCount >= usageLimit) {
+          throw this.createBadRequestError("Mã giảm giá đã hết lượt sử dụng");
+        }
+        if (regularAmount === 0) {
+          throw this.createBadRequestError("Không thể áp dụng mã giảm giá vì giỏ hàng của bạn chỉ toàn sản phẩm Flash Sale!");
+        }
+        const minOrderAmount = Number(discount.min_order_amount || 0);
+        if (regularAmount < minOrderAmount) {
+          throw this.createBadRequestError(`Voucher chỉ áp dụng cho sản phẩm Thường. Mua thêm ${(minOrderAmount - regularAmount).toLocaleString("vi-VN")}đ sản phẩm nguyên giá để áp dụng!`);
+        }
+        const percentage = Number(discount.percentage || 0);
+        let calculatedDiscount = Math.round((regularAmount * percentage) / 100);
+        const maxDiscount = discount.max_discount_amount == null ? null : Number(discount.max_discount_amount);
+        if (maxDiscount !== null) calculatedDiscount = Math.min(calculatedDiscount, maxDiscount);
+        discountAmount = Math.min(regularAmount, Math.max(0, calculatedDiscount));
+        discountCodeApplied = discount.code;
+        discountIdApplied = discount.id;
+      }
+
+      const finalAmount = Math.max(0, totalAmount - discountAmount);
+      await connection.rollback(); // Không lưu gì cả
+
+      return {
+        tableId,
+        items: normalizedItems,
+        note: note || null,
+        totalAmount,
+        discountAmount,
+        discountCode: discountCodeApplied,
+        discountId: discountIdApplied,
+        finalAmount,
+        user_id: user ? user.id : null,
+        customer_type: user ? "registered" : "guest",
+      };
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
+  }
+
+  /**
+   * Save order to DB AFTER PayOS payment is confirmed.
+   * Called from QrOrderPaymentSuccess page.
+   * Receives the validated cart (from sessionStorage) + PayOS orderCode.
+   */
+  async confirmAfterPayment(cartPayload, user) {
+    const {
+      tableId,
+      items,
+      note,
+      totalAmount,
+      discountAmount,
+      discountCode,
+      discountId,
+      finalAmount,
+      user_id,
+      customer_type,
+    } = cartPayload;
+
+    if (!Array.isArray(items) || items.length === 0) {
+      throw new ErrorResponse(400, "Giỏ hàng trống");
+    }
+    if (!tableId) {
+      throw new ErrorResponse(400, "Thiếu thông tin bàn");
+    }
+
+    const connection = await QrOrderRepository.getConnection();
+    try {
+      await connection.beginTransaction();
+
+      // Cập nhật trạng thái bàn thành occupied
+      let tableSessionId = null;
+      const [tableRows] = await connection.query(
+        "SELECT id, status, current_session_id FROM tables WHERE id = ? AND is_deleted = 0 FOR UPDATE",
+        [tableId]
+      );
+      if (tableRows.length > 0) {
+        const table = tableRows[0];
+        if (table.status === "available" || !table.current_session_id) {
+          tableSessionId = `sess_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+          await connection.query(
+            "UPDATE tables SET status = 'occupied', current_session_id = ? WHERE id = ?",
+            [tableSessionId, tableId]
+          );
+        } else {
+          tableSessionId = table.current_session_id;
+        }
+      }
+
+      const resolvedUserId = user ? user.id : (user_id || null);
+      const resolvedCustomerType = user ? "registered" : (customer_type || "guest");
+
+      const activeSession = await CashSessionRepository.findOpenSession();
+
+      const orderId = await QrOrderRepository.createOrder(connection, {
+        user_id: resolvedUserId,
+        customer_type: resolvedCustomerType,
+        order_type: "dine-in",
+        table_id: tableId,
+        total_amount: Number(finalAmount),
+        amount: Number(totalAmount),
+        discount_amount: Number(discountAmount || 0),
+        discount_id: discountId || null,
+        cash_session_id: activeSession ? activeSession.id : null,
+        session_id: tableSessionId,
+      });
+
+      for (const item of items) {
+        let finalNote = item.note || "";
+        if (note) {
+          finalNote = finalNote ? `${finalNote} | Ghi chú chung: ${note}` : `Ghi chú chung: ${note}`;
+        }
+        const orderDetailId = await QrOrderRepository.createOrderDetail(connection, {
+          order_id: orderId,
+          product_size_id: item.product_size_id,
+          quantity: item.quantity,
+          price: item.price,
+          note: finalNote || null,
+        });
+        for (const topping of (item.toppings || [])) {
+          await QrOrderRepository.createOrderDetailTopping(connection, {
+            order_detail_id: orderDetailId,
+            topping_id: topping.topping_id,
+            quantity: topping.quantity,
+            price: topping.price,
+          });
+        }
+      }
+
+      await QrOrderRepository.createOrderPayment(connection, {
+        order_id: orderId,
+        payment_method: "payos",
+        payment_status: "paid",
+        amount: Number(finalAmount),
+        paid_amount: Number(finalAmount),
+      });
+
+      if (discountId) {
+        await QrOrderRepository.incrementDiscountUsedCount(connection, discountId);
+      }
+
+      // Đánh dấu đơn là đã thanh toán
+      await connection.query("UPDATE orders SET is_paid = 1, status = 'pending' WHERE id = ?", [orderId]);
+
+      await connection.commit();
+
+      return {
+        order_id: orderId,
+        table_id: tableId,
+        session_id: tableSessionId,
+        total_amount: Number(finalAmount),
+        user_id: resolvedUserId,
+      };
     } catch (error) {
       await connection.rollback();
       throw error;

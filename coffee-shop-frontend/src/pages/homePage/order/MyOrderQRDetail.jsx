@@ -108,19 +108,17 @@ export default function MyOrderQRDetail() {
           return;
         }
 
-        // Ensure we pass a valid string for table_id, even if it's numeric in url
         itemsPayload.push({
           product_size_id: Number(product_size_id),
           quantity: Number(item.qty || 1),
           note: item.note || null,
           toppings: Array.isArray(item.toppings) ? item.toppings.map(t => ({
             topping_id: Number(t.topping_id),
-            quantity: Number(t.quantity || 1) // default 1
+            quantity: Number(t.quantity || 1)
           })) : []
         });
       }
 
-      // table_id is custom field for dine_in
       const payload = {
         tableId: tableId,
         items: itemsPayload,
@@ -129,26 +127,57 @@ export default function MyOrderQRDetail() {
         paymentMethod: paymentMethod
       };
 
-      const orderRes = await orderOnlineService.checkoutQr(payload);
-      const orderData = orderRes?.data || {};
-
       if (paymentMethod === "payos") {
-        const checkoutUrl = orderData?.checkoutUrl;
-        if (checkoutUrl) {
-          window.location.href = checkoutUrl;
-          return;
-        } else {
-          setModalConfig({ show: true, type: "warning", title: "Lỗi thanh toán", message: "Không lấy được link thanh toán PayOS" });
-        }
-      } else {
-        setModalConfig({
-          show: true,
-          type: "success",
-          title: "Thành công",
-          message: "Đặt món thành công! Vui lòng chờ lát nhé.",
-          onConfirm: () => navigate(`/order?table=${tableId}`)
+        // Bước 1: Validate cart & get totals (không lưu DB)
+        const validateRes = await orderOnlineService.validateQrCart(payload);
+        const cartData = validateRes?.data;
+        if (!cartData) throw new Error("Không xác thực được đơn hàng");
+
+        // Bước 2: Lưu cart vào sessionStorage để success page dùng sau
+        sessionStorage.setItem("qr_pending_cart", JSON.stringify(cartData));
+
+        // Bước 3: Tạo PayOS link trực tiếp (giống Order Table)
+        const now = Date.now();
+        const orderCode = Number(String(now).slice(-6));
+        const returnUrl = `${window.location.origin}/order/payment-success`;
+        const cancelUrl = `${window.location.origin}/order/payment-cancel`;
+
+        const payosItems = (cartData.items || []).map(i => ({
+          name: i.name
+            ? `${i.name} (${i.size})`.replace(/[^a-zA-Z0-9 ()-]/g, "").slice(0, 50)
+            : `SP-${i.product_size_id}`,
+          quantity: Number(i.quantity),
+          price: Number(i.price),
+        })).filter(i => i.price > 0);
+
+        const createRes = await orderOnlineService.createPaymentLink({
+          orderCode,
+          amount: Math.round(cartData.finalAmount),
+          description: `Ban ${tableId} QR`.replace(/[^a-zA-Z0-9 ]/g, "").slice(0, 25),
+          items: payosItems,
+          returnUrl,
+          cancelUrl,
         });
+
+        const checkoutUrl = createRes?.data?.checkoutUrl;
+        if (!checkoutUrl) {
+          setModalConfig({ show: true, type: "warning", title: "Lỗi thanh toán", message: "Không lấy được link thanh toán PayOS" });
+          return;
+        }
+
+        window.location.href = checkoutUrl;
+        return;
       }
+
+      // Cash: lưu đơn ngay vào DB
+      await orderOnlineService.checkoutQr(payload);
+      setModalConfig({
+        show: true,
+        type: "success",
+        title: "Thành công",
+        message: "Đặt món thành công! Vui lòng chờ lát nhé.",
+        onConfirm: () => navigate(`/order?table=${tableId}`)
+      });
     } catch (err) {
       console.error("Order error", err);
       setModalConfig({ show: true, type: "warning", title: "Lỗi đặt món", message: err?.response?.data?.message || "Có lỗi xảy ra khi xác nhận đơn, vui lòng thử lại." });

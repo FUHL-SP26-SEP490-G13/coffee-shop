@@ -371,12 +371,20 @@ class OrderOnlineController {
 
       // Emit socket event to customer when payment is completed
       const io = req.app.get("io");
-      if (io && result.user_id && result.is_paid === 1) {
-        io.to(`user-${result.user_id}`).emit("order:payment-completed", {
+      if (io && result.is_paid === 1) {
+        io.emit("order:status-updated", {
           order_id: result.order_id,
-          payment_status: result.payment_status,
-          message: "Thanh toán thành công. Đơn của bạn sẽ được chuẩn bị ngay",
+          status: result.order_status,
+          is_paid: true
         });
+
+        if (result.user_id) {
+          io.to(`user-${result.user_id}`).emit("order:payment-completed", {
+            order_id: result.order_id,
+            payment_status: result.payment_status,
+            message: "Thanh toán thành công. Đơn của bạn sẽ được chuẩn bị ngay",
+          });
+        }
       }
 
       // Create notification for customer when payment is completed

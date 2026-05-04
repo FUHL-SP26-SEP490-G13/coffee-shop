@@ -10,7 +10,7 @@ class CashSessionController {
         req.body,
         req.user,
       );
-      
+
       const io = req.app.get("io");
       if (io) {
         io.emit("cash-session:updated");
@@ -83,6 +83,36 @@ class CashSessionController {
         Number(req.params.id),
       );
       return res.json({ success: true, data: result });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  // POST /cash-sessions/:id/force-close
+  // Manager đóng ca hộ — bắt buộc ghi chú
+  async forceCloseSession(req, res, next) {
+    try {
+      const { closing_note } = req.body;
+      if (!closing_note || !closing_note.trim()) {
+        return res.status(400).json({ success: false, message: 'Ghi chú bắt buộc khi đóng ca hộ' });
+      }
+
+      const result = await CashSessionService.forceCloseSession(
+        Number(req.params.id),
+        req.body,
+        req.user,
+      );
+
+      const io = req.app.get("io");
+      if (io) {
+        io.emit("cash-session:updated");
+      }
+
+      return res.json({
+        success: true,
+        data: result,
+        message: 'Manager đóng ca hộ thành công',
+      });
     } catch (err) {
       next(err);
     }

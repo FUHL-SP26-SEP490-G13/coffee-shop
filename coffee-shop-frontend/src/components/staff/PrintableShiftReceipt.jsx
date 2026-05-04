@@ -155,6 +155,10 @@ export default function PrintableShiftReceipt({ session, summaryData, actualCash
             <span>{session.code}</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
+            <span>Tên ca:</span>
+            <span>{session.shift_name || "---"}</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
             <span>Nhân viên mở:</span>
             <span>{session?.opened_by?.name || session.opener_first_name || "N/A"}</span>
           </div>

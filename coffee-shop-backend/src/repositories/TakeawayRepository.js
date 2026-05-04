@@ -45,13 +45,14 @@ class TakeawayRepository {
       discount_id,
       cash_session_id,
       staff_id,
+      is_paid = 0,
     },
   ) {
     const [result] = await connection.query(
       `INSERT INTO orders 
          (user_id, order_type, total_amount, amount, discount_amount, discount_id,
           cash_session_id, staff_id, status, is_paid, customer_type, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'preparing', 0, 'guest', NOW())`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'preparing', ?, 'guest', NOW())`,
       [
         user_id || null,
         order_type,
@@ -61,6 +62,7 @@ class TakeawayRepository {
         discount_id || null,
         cash_session_id || null,
         staff_id || null,
+        is_paid,
       ],
     );
     return result.insertId;

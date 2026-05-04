@@ -47,7 +47,7 @@ export function StaffDashboard() {
     {
       title: "Đơn Takeaway",
       description: "Chờ xử lý",
-      value: dashboardData ? dashboardData.takeawayPending : "...",
+      value: dashboardData ? dashboardData.takeawayPending : "",
       icon: ShoppingBag,
       color: "text-amber-600 dark:text-amber-400",
       bg: "bg-amber-100 dark:bg-amber-900/40/50",
@@ -56,7 +56,7 @@ export function StaffDashboard() {
     {
       title: "Đơn hàng",
       description: "Đang chờ giao",
-      value: dashboardData ? dashboardData.deliveryWaiting : "...",
+      value: dashboardData ? dashboardData.deliveryWaiting : "",
       icon: Package,
       color: "text-blue-600 dark:text-blue-400",
       bg: "bg-blue-100 dark:bg-blue-900/40/50",
@@ -65,7 +65,7 @@ export function StaffDashboard() {
     {
       title: "Doanh thu theo ca",
       description: dashboardData?.currentShiftName ?? "Không có ca",
-      value: dashboardData ? formatMoney(dashboardData.shiftRevenue) : "...",
+      value: dashboardData ? formatMoney(dashboardData.shiftRevenue) : "",
       icon: TrendingUp,
       color: "text-purple-600 dark:text-purple-400",
       bg: "bg-purple-100 dark:bg-purple-900/40/50",
@@ -74,7 +74,7 @@ export function StaffDashboard() {
     {
       title: "Ca của bạn",
       description: "Hôm nay",
-      value: dashboardData ? dashboardData.shiftStatus : "...",
+      value: dashboardData ? dashboardData.shiftStatus : "",
       icon: Clock,
       color: "text-green-600 dark:text-green-400",
       bg: "bg-green-100 dark:bg-green-900/40/50",
@@ -83,7 +83,7 @@ export function StaffDashboard() {
   ];
 
   const quickActions = [
-  
+
     {
       label: "Lịch làm việc",
       icon: Calendar,
@@ -155,7 +155,7 @@ export function StaffDashboard() {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            
+
             <div className="rounded-2xl border border-border/100 bg-card/100 px-4 py-3 backdrop-blur-sm">
               <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Trạng thái</p>
               <p className="mt-1 text-sm font-semibold text-foreground">Sẵn sàng phục vụ</p>

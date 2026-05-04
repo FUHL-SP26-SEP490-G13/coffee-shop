@@ -383,9 +383,28 @@ class OrderOnlineService {
       }
 
       if (order_type === "delivery") {
-        // Shipping fee feature is disabled.
-        shippingFee = 0;
-        deliveryDistanceKm = 0;
+        const ReceiptSettingService = require("./ReceiptSettingService");
+        const shopSetting = await ReceiptSettingService.getActiveSetting();
+
+        if (shopSetting?.latitude && shopSetting?.longitude && latitude && longitude) {
+          try {
+            deliveryDistanceKm = await this.getDrivingDistanceKm(
+              Number(shopSetting.latitude),
+              Number(shopSetting.longitude),
+              Number(latitude),
+              Number(longitude)
+            );
+            shippingFee = this.calculateShippingFeeByDistanceKm(deliveryDistanceKm);
+          } catch (error) {
+            if (error.statusCode) throw error;
+            console.error("Lỗi tính khoảng cách, fallback về 0:", error);
+            shippingFee = 0;
+            deliveryDistanceKm = 0;
+          }
+        } else {
+          shippingFee = 0;
+          deliveryDistanceKm = 0;
+        }
       }
 
       totalAmount += shippingFee;

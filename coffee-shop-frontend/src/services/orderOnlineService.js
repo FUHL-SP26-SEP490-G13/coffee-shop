@@ -27,6 +27,16 @@ const orderOnlineService = {
     return axiosClient.post("/qr-order/checkout", data);
   },
 
+  // PayOS QR: step 1 - validate cart and get totals (no DB save)
+  validateQrCart(data) {
+    return axiosClient.post("/qr-order/validate", data);
+  },
+
+  // PayOS QR: step 2 - confirm and save order after payment success
+  confirmQrAfterPayment(data) {
+    return axiosClient.post("/qr-order/confirm", data);
+  },
+
   getMyOrders() {
     return axiosClient.get(API_ENDPOINTS.ORDER_ONLINE.MY_ORDERS);
   },

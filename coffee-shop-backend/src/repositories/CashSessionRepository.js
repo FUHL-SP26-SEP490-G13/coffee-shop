@@ -25,10 +25,14 @@ class CashSessionRepository {
                 u_open.first_name AS opener_first_name,
                 u_open.last_name  AS opener_last_name,
                 u_close.first_name AS closer_first_name,
-                u_close.last_name  AS closer_last_name
+                u_close.last_name  AS closer_last_name,
+                st.name AS shift_name
              FROM cash_sessions cs
              JOIN  users u_open  ON cs.opened_by  = u_open.id
              LEFT JOIN users u_close ON cs.closed_by = u_close.id
+             LEFT JOIN shift_registrations sr ON cs.shift_registration_id = sr.id
+             LEFT JOIN shifts s ON sr.shift_id = s.id
+             LEFT JOIN shift_templates st ON s.template_id = st.id
              WHERE cs.id = ?`,
       [sessionId],
     );
@@ -41,9 +45,13 @@ class CashSessionRepository {
       `SELECT
                 cs.*,
                 u_open.first_name AS opener_first_name,
-                u_open.last_name  AS opener_last_name
+                u_open.last_name  AS opener_last_name,
+                st.name AS shift_name
              FROM cash_sessions cs
              JOIN users u_open ON cs.opened_by = u_open.id
+             LEFT JOIN shift_registrations sr ON cs.shift_registration_id = sr.id
+             LEFT JOIN shifts s ON sr.shift_id = s.id
+             LEFT JOIN shift_templates st ON s.template_id = st.id
              WHERE cs.status = 'open'
              LIMIT 1`,
     );
@@ -140,10 +148,14 @@ class CashSessionRepository {
                 u_open.last_name   AS opener_last_name,
                 u_close.first_name AS closer_first_name,
                 u_close.last_name  AS closer_last_name,
-                COALESCE(os.paid_orders_count, 0) AS paid_orders_count
+                COALESCE(os.paid_orders_count, 0) AS paid_orders_count,
+                st.name AS shift_name
              FROM cash_sessions cs
              JOIN  users u_open  ON cs.opened_by  = u_open.id
              LEFT JOIN users u_close ON cs.closed_by = u_close.id
+             LEFT JOIN shift_registrations sr ON cs.shift_registration_id = sr.id
+             LEFT JOIN shifts s ON sr.shift_id = s.id
+             LEFT JOIN shift_templates st ON s.template_id = st.id
              LEFT JOIN (
                SELECT o.cash_session_id,
                       COUNT(*) AS paid_orders_count
@@ -260,6 +272,7 @@ class CashSessionRepository {
                 SUM(o.status = 'completed')                          AS completed_orders,
                 SUM(o.status = 'cancelled')                          AS cancelled_orders,
                 SUM(o.status NOT IN ('completed', 'cancelled'))      AS pending_orders,
+                SUM(o.status != 'cancelled' AND COALESCE(op.payment_status, 'pending') != 'paid') AS unpaid_orders,
 
                 -- Doanh thu tiền mặt (chỉ đơn đã paid)
                 COALESCE(SUM(

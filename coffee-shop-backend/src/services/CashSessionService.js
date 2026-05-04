@@ -97,6 +97,7 @@ class CashSessionService {
         completed_orders: Number(summary.completed_orders || 0),
         cancelled_orders: Number(summary.cancelled_orders || 0),
         pending_orders: Number(summary.pending_orders || 0),
+        unpaid_orders: Number(summary.unpaid_orders || 0),
 
         // Doanh thu
         cash_revenue: Number(summary.cash_revenue || 0),
@@ -140,8 +141,8 @@ class CashSessionService {
     // 4. Hệ thống tự tính tiền lý thuyết
     const summary = await CashSessionRepository.getOrderSummary(sessionId);
 
-    if (Number(summary.pending_orders) > 0) {
-      throw new ErrorResponse(400, `Không thể kết ca. Còn ${summary.pending_orders} đơn hàng chưa hoàn tất/thanh toán.`);
+    if (Number(summary.unpaid_orders) > 0) {
+      throw new ErrorResponse(400, `Không thể kết ca. Còn ${summary.unpaid_orders} đơn hàng chưa thanh toán.`);
     }
 
     const cashRevenue = Number(summary.cash_revenue || 0);
@@ -172,7 +173,7 @@ class CashSessionService {
             ? `Két thiếu ${Math.abs(difference).toLocaleString('vi-VN')}đ`
             : 'Két khớp, không chênh lệch',
         // Cảnh báo đơn chưa thanh toán
-        unpaid_orders: Number(summary.pending_orders || 0),
+        unpaid_orders: Number(summary.unpaid_orders || 0),
       },
     };
   }
@@ -196,8 +197,8 @@ class CashSessionService {
     }
 
     const summary = await CashSessionRepository.getOrderSummary(sessionId);
-    if (Number(summary.pending_orders) > 0) {
-      throw new ErrorResponse(400, `Không thể đóng hộ ca. Còn ${summary.pending_orders} đơn hàng chưa hoàn tất/thanh toán.`);
+    if (Number(summary.unpaid_orders) > 0) {
+      throw new ErrorResponse(400, `Không thể đóng hộ ca. Còn ${summary.unpaid_orders} đơn hàng chưa thanh toán.`);
     }
 
     const cashRevenue = Number(summary.cash_revenue || 0);
@@ -250,6 +251,7 @@ class CashSessionService {
         : null,
       closed_at: session.closed_at,
       status: session.status,
+      shift_name: session.shift_name,
 
       // Doanh thu trong ca
       revenue: {
@@ -315,6 +317,7 @@ class CashSessionService {
       id: session.id,
       code: session.code,
       status: session.status,
+      shift_name: session.shift_name,
       opening_cash: session.opening_cash,
       opened_by: {
         id: session.opened_by,

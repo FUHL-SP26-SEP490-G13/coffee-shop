@@ -247,8 +247,6 @@ export default function VietmapAddressAutocomplete({
 
   return (
     <div className="w-full space-y-4" ref={wrapperRef}>
-      <label className="text-sm font-medium block">Địa chỉ giao hàng *</label>
-
       {/* Hành chính Selectors */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-2">
         <SearchableSelect
@@ -275,7 +273,7 @@ export default function VietmapAddressAutocomplete({
         <div className="relative">
           <Input
             value={searchTerm}
-            disabled={!selectedProvince || !selectedWard}
+            // disabled={!selectedProvince || !selectedWard}
             onChange={(e) => {
               setSearchTerm(e.target.value);
               // CHÚ Ý: Không gọi onAddressSelect ở đây nữa. Gửi null để Validate báo lỗi nếu họ không bấm Map/GPS
@@ -290,7 +288,7 @@ export default function VietmapAddressAutocomplete({
             }}
             placeholder={
               !selectedProvince || !selectedWard
-                ? "Vui lòng chọn Tỉnh và Phường trước..."
+                ? "Nhập địa chỉ (Chọn Tỉnh/Phường để tìm chính xác hơn)..."
                 : "Nhập tên đường, toà nhà, số nhà..."
             }
             className="pl-10 pr-20 h-10 disabled:opacity-60 disabled:bg-gray-100 dark:disabled:bg-gray-800 placeholder:text-sm text-sm"
