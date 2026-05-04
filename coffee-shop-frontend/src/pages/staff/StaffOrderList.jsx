@@ -278,7 +278,7 @@ const sortOrdersByStatus = (status, list) => {
       if (weightA !== weightB) {
         return weightA - weightB;
       }
-      return toTime(a) - toTime(b); // Cùng trạng thái thì đơn gọi trước (cũ hơn) xếp trên
+      return toTime(b) - toTime(a); // Cùng trạng thái thì đơn mới hơn xếp trên
     });
   } else if (status === "pending" || status === "completed" || status === "cancelled") {
     sorted.sort((a, b) => toTime(b) - toTime(a)); // Mới nhất xếp trên
