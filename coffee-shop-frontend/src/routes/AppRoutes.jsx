@@ -63,6 +63,8 @@ import TakeawayPOS from '../pages/staff/TakeawayPOS'
 import { OrderDelivery } from '@/pages/staff/StaffOrderList';
 import { StaffDashboard } from "@/pages/staff/StaffDashboard/StaffDashboard";
 import StaffPayOSReturn from "@/pages/staff/StaffPayOSReturn";
+import QrOrderPaymentSuccess from "@/pages/homePage/order/QrOrderPaymentSuccess";
+import QrOrderPaymentCancel from "@/pages/homePage/order/QrOrderPaymentCancel";
 import StoreInfoPage from "@/pages/common/StoreInfoPage";
 import GenericSlugResolver from "../pages/common/GenericSlugResolver";
 import AboutUsPage from "@/pages/common/AboutUsPage";
@@ -310,6 +312,8 @@ const AppRoutes = () => {
 
       <Route path="/order" element={<OrderQRMenu />} />
       <Route path="/order/confirm" element={<MyOrderQRDetail />} />
+      <Route path="/order/payment-success" element={<QrOrderPaymentSuccess />} />
+      <Route path="/order/payment-cancel" element={<QrOrderPaymentCancel />} />
 
       {/* 404 */}
       <Route
