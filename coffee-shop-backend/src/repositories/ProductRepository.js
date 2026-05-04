@@ -420,13 +420,20 @@ class ProductRepository extends BaseRepository {
       p.*,
       c.name AS category_name,
       SUM(od.quantity) AS total_sold,
-      (SELECT COALESCE(AVG(rating), 0) FROM reviews WHERE product_id = p.id) as rating
-    FROM order_details od
+      COALESCE(rv.avg_rating, 0) AS rating
+    FROM orders o
+    JOIN order_details od ON od.order_id = o.id
     JOIN product_sizes ps ON ps.id = od.product_size_id
     JOIN products p ON p.id = ps.product_id
     LEFT JOIN category c ON c.id = p.category_id
+    LEFT JOIN (
+      SELECT product_id, AVG(rating) AS avg_rating
+      FROM reviews
+      GROUP BY product_id
+    ) rv ON rv.product_id = p.id
     WHERE p.is_deleted = 0
       AND p.status = 'available'
+      AND o.status = 'completed'
     GROUP BY p.id
     ORDER BY total_sold DESC, p.id DESC
     LIMIT ?
