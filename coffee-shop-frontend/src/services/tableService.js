@@ -1,106 +1,85 @@
-import axios from "axios";
-
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+import axiosClient from "./axiosClient";
+import { API_ENDPOINTS } from "../constants";
 
 const tableService = {
   getAll: async (params = {}) => {
-    const response = await axios.get(`${API_URL}/tables`, { params });
-    return response.data;
+    return axiosClient.get(API_ENDPOINTS.TABLES, { params });
   },
 
   getById: async (id) => {
-    const response = await axios.get(`${API_URL}/tables/${id}`);
-    return response.data;
+    return axiosClient.get(`${API_ENDPOINTS.TABLES}/${id}`);
   },
 
   getByArea: async (areaId) => {
-    const response = await axios.get(`${API_URL}/tables/area/${areaId}`);
-    return response.data;
+    return axiosClient.get(`${API_ENDPOINTS.TABLES}/area/${areaId}`);
   },
 
   create: async (data) => {
-    const response = await axios.post(`${API_URL}/tables`, data);
-    return response.data;
+    return axiosClient.post(API_ENDPOINTS.TABLES, data);
   },
 
   createWithQr: async (data) => {
-    const response = await axios.post(`${API_URL}/tables/with-qr`, data);
-    return response.data;
+    return axiosClient.post(`${API_ENDPOINTS.TABLES}/with-qr`, data);
   },
 
   update: async (id, data) => {
-    const response = await axios.put(`${API_URL}/tables/${id}`, data);
-    return response.data;
+    return axiosClient.put(`${API_ENDPOINTS.TABLES}/${id}`, data);
   },
 
   getActiveOrder: async (id) => {
-    const response = await axios.get(`${API_URL}/tables/${id}/active-order`);
-    return response.data;
+    return axiosClient.get(`${API_ENDPOINTS.TABLES}/${id}/active-order`);
   },
 
-  // reserve: async (id, data) => {
-  //   const response = await axios.post(`${API_URL}/tables/${id}/reserve`, data);
-  //   return response.data;
-  // },
-
   delete: async (id) => {
-    const response = await axios.delete(`${API_URL}/tables/${id}`);
-    return response.data;
+    return axiosClient.delete(`${API_ENDPOINTS.TABLES}/${id}`);
   },
 
   transfer: async (fromTableId, toTableId) => {
-    const response = await axios.post(`${API_URL}/tables/transfer`, {
+    return axiosClient.post(`${API_ENDPOINTS.TABLES}/transfer`, {
       from_table_id: fromTableId,
       to_table_id: toTableId,
     });
-    return response.data;
   },
 
   transferOrder: async (fromTableId, toTableId, orderId) => {
-    const response = await axios.post(`${API_URL}/tables/transfer-order`, {
+    return axiosClient.post(`${API_ENDPOINTS.TABLES}/transfer-order`, {
       from_table_id: fromTableId,
       to_table_id: toTableId,
       order_id: orderId,
     });
-    return response.data;
   },
 
   mergeTables: async (mainTableId, tableIds = []) => {
-    const response = await axios.post(`${API_URL}/tables/merge-group`, {
+    return axiosClient.post(`${API_ENDPOINTS.TABLES}/merge-group`, {
       main_table_id: mainTableId,
       table_ids: tableIds,
     });
-    return response.data;
   },
 
   getTableGroup: async (tableId) => {
-    const response = await axios.get(`${API_URL}/tables/${tableId}/merge-group`);
-    return response.data;
+    return axiosClient.get(`${API_ENDPOINTS.TABLES}/${tableId}/merge-group`);
   },
 
   mergeOrder: async (fromTableId, toTableId) => {
-    const response = await axios.post(`${API_URL}/tables/merge-order`, {
+    return axiosClient.post(`${API_ENDPOINTS.TABLES}/merge-order`, {
       from_table_id: fromTableId,
       to_table_id: toTableId,
     });
-    return response.data;
   },
 
   settleDebt: async (tableId, payload = {}) => {
-    const response = await axios.post(`${API_URL}/tables/${tableId}/settle-debt`, payload);
-    return response.data;
+    return axiosClient.post(`${API_ENDPOINTS.TABLES}/${tableId}/settle-debt`, payload);
   },
 
   splitBill: async (tableId, payload = {}) => {
-    const response = await axios.post(`${API_URL}/tables/${tableId}/split-bill`, payload);
-    return response.data;
+    return axiosClient.post(`${API_ENDPOINTS.TABLES}/${tableId}/split-bill`, payload);
   },
 
   getUnpaidOrders: async (tableId) => {
-    const response = await axios.get(`${API_URL}/tables/${tableId}/unpaid-orders`);
-    return response.data;
+    return axiosClient.get(`${API_ENDPOINTS.TABLES}/${tableId}/unpaid-orders`);
   },
 
 };
 
 export default tableService;
+
