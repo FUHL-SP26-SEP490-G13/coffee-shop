@@ -807,13 +807,13 @@ export function OrderDelivery() {
 
     const statusStr = String(selectedOrder?.status || "").toLowerCase();
     const isPaid = isOrderPaid(selectedOrder);
-    const orderType = String(selectedOrder?.order_type || "").toLowerCase();
+    const isOnlineOrder = normalizeOrderType(selectedOrder?.order_type) === "delivery";
 
     // ĐƠN CHỜ XÁC NHẬN
     if (statusStr === "pending") {
       return (
         <div className="flex gap-2 w-full">
-          {orderType !== "takeaway" && (
+          {isOnlineOrder && (
             <Button
               variant="destructive"
               className="flex-1"
@@ -840,12 +840,12 @@ export function OrderDelivery() {
     if (["preparing", "served", "delivering", "completed"].includes(statusStr)) {
       return (
         <div className="flex gap-2 w-full">
-          {!isPaid && orderType !== "takeaway" && (
+          {isOnlineOrder && (
             <Button
               variant="outline"
               className="flex-1 border-destructive text-destructive hover:bg-destructive hover:text-white"
               onClick={() => openCancelConfirm(selectedOrder.id, statusStr)}
-              disabled={cancelingId === selectedOrder.id}
+              disabled={cancelingId === selectedOrder.id || isPaid}
             >
               Hủy đơn
             </Button>
@@ -860,10 +860,11 @@ export function OrderDelivery() {
             In lại nhãn
           </Button>
 
-          {!isPaid && orderType !== "takeaway" && (
+          {isOnlineOrder && (
             <Button
               className="flex-[2] bg-emerald-600 hover:bg-emerald-700"
               onClick={() => openCashPaymentDialog(selectedOrder)}
+              disabled={isPaid}
             >
               Xác nhận thanh toán
             </Button>
@@ -880,6 +881,9 @@ export function OrderDelivery() {
     const amount = getOrderAmount(order);
     const discountAmount = getOrderDiscountAmount(order);
     const deliveryFee = getOrderDeliveryFee(order);
+    const isDineInOrTakeawayOrder = ["dine-in", "takeaway"].includes(
+      normalizeOrderType(order?.order_type),
+    );
 
     return (
       <Card key={order.id} className="border-slate-200 dark:border-slate-700 bg-white dark:bg-gray-900 shadow-sm dark:shadow-none">
@@ -950,7 +954,7 @@ export function OrderDelivery() {
             <div className="flex w-full items-center gap-2 sm:w-auto">
               {String(order.status || "").toLowerCase() === "pending" ? (
                 <>
-                  {String(order.order_type || "").toLowerCase() !== "takeaway" && (
+                  {!isDineInOrTakeawayOrder && (
                     <Button
                       size="sm"
                       variant="outline"
@@ -978,7 +982,9 @@ export function OrderDelivery() {
                 </>
               ) : (
                 <>
-                  {!paid && String(order.status || "").toLowerCase() !== "cancelled" && (
+                  {!paid &&
+                    !isDineInOrTakeawayOrder &&
+                    String(order.status || "").toLowerCase() !== "cancelled" && (
                     <>
                       {String(order.order_type || "").toLowerCase() !== "takeaway" && (
                         <>
@@ -1254,6 +1260,9 @@ export function OrderDelivery() {
                 activeStatusOrders.map((order) => {
                   const items = order.items || order.orderItems || [];
                   const isCancelled = order.status === "cancelled" || order.status === "REFUNDED";
+                  const isDineInOrTakeawayOrder = ["dine-in", "takeaway"].includes(
+                    normalizeOrderType(order?.order_type),
+                  );
 
                   return (
                     <Card
@@ -1331,7 +1340,7 @@ export function OrderDelivery() {
                           <div className="flex gap-2 pt-2 h-12">
                             {String(order.status || "").toLowerCase() === "pending" ? (
                               <>
-                                {String(order.order_type || "").toLowerCase() !== "takeaway" && (
+                                {!isDineInOrTakeawayOrder && (
                                   <Button
                                     variant="outline"
                                     className="flex-1 rounded-2xl border-2 border-destructive/20 font-bold text-destructive hover:bg-destructive hover:text-white text-xs"
@@ -1362,31 +1371,29 @@ export function OrderDelivery() {
                               </>
                             ) : (
                               <>
-                                {String(order.order_type || "").toLowerCase() !== "takeaway" && (
-                                  <>
-                                    <Button
-                                      variant="outline"
-                                      className="flex-1 rounded-2xl border-2 border-destructive/20 font-bold text-destructive hover:bg-destructive hover:text-white text-xs"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        openCancelConfirm(order.id, order.status);
-                                      }}
-                                      disabled={cancelingId === order.id}
-                                    >
-                                      Hủy đơn
-                                    </Button>
-                                    {!paid && (
-                                      <Button
-                                        className="flex-[2] rounded-2xl font-black text-xs bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-200"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          openCashPaymentDialog(order);
-                                        }}
-                                      >
-                                        Xác nhận thanh toán
-                                      </Button>
-                                    )}
-                                  </>
+                                {!isDineInOrTakeawayOrder && (
+                                  <Button
+                                    variant="outline"
+                                    className="flex-1 rounded-2xl border-2 border-destructive/20 font-bold text-destructive hover:bg-destructive hover:text-white text-xs"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      openCancelConfirm(order.id, order.status);
+                                    }}
+                                    disabled={cancelingId === order.id}
+                                  >
+                                    Hủy đơn
+                                  </Button>
+                                )}
+                                {!paid && !isDineInOrTakeawayOrder && (
+                                  <Button
+                                    className="flex-[2] rounded-2xl font-black text-xs bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-200"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      openCashPaymentDialog(order);
+                                    }}
+                                  >
+                                    Xác nhận thanh toán
+                                  </Button>
                                 )}
                               </>
                             )}
