@@ -5,10 +5,6 @@ const CategoryRepository = require('../repositories/CategoryRepository');
 const cloudinary = require('../config/cloudinary');
 const ErrorResponse = require('../utils/ErrorResponse');
 const slugify = require('slugify');
-const { TtlCache } = require('../utils/ttlCache');
-
-const bestSellersCache = new TtlCache({ defaultTtlMs: 60_000 });
-const bestSellersInFlight = new Map();
 
 class ProductService {
   extractPublicId(url) {
@@ -348,31 +344,7 @@ class ProductService {
   }
 
   async getBestSellerProducts(limit = 8) {
-    const normalizedLimit = Math.max(1, parseInt(limit, 10) || 8);
-    const cacheKey = `best-sellers:${normalizedLimit}`;
-
-    const cached = bestSellersCache.get(cacheKey);
-    if (cached !== undefined) return cached;
-
-    const inFlight = bestSellersInFlight.get(cacheKey);
-    if (inFlight) return inFlight;
-
-    const promise = (async () => {
-      try {
-        const products = await ProductRepository.findBestSellers(normalizedLimit);
-        bestSellersCache.set(cacheKey, products);
-        return products;
-      } catch (error) {
-        const stale = bestSellersCache.getStale(cacheKey);
-        if (stale !== undefined) return stale;
-        throw error;
-      } finally {
-        bestSellersInFlight.delete(cacheKey);
-      }
-    })();
-
-    bestSellersInFlight.set(cacheKey, promise);
-    return promise;
+    return ProductRepository.findBestSellers(limit);
   }
 }
 

@@ -414,74 +414,34 @@ class ProductRepository extends BaseRepository {
   }
 
   async findBestSellers(limit = 8) {
-    const normalizedLimit = Math.max(1, parseInt(limit, 10) || 8);
-    const queryTimeoutMs = 15_000;
-
-    const [topRows] = await db.query({
-      sql: `
-        SELECT
-          ps.product_id,
-          SUM(od.quantity) AS total_sold
-        FROM orders o
-        JOIN order_details od ON od.order_id = o.id
-        JOIN product_sizes ps ON ps.id = od.product_size_id
-        WHERE o.status = 'completed'
-        GROUP BY ps.product_id
-        ORDER BY total_sold DESC, ps.product_id DESC
-        LIMIT ?
-      `,
-      values: [normalizedLimit],
-      timeout: queryTimeoutMs,
-    });
-
-    if (!topRows || topRows.length === 0) return [];
-
-    const productIds = topRows.map((r) => r.product_id);
-    const totalSoldByProductId = new Map(topRows.map((r) => [r.product_id, Number(r.total_sold) || 0]));
-
-    const [products] = await db.query({
-      sql: `
-        SELECT
-          p.*,
-          c.name AS category_name
-        FROM products p
-        LEFT JOIN category c ON c.id = p.category_id
-        WHERE p.id IN (?)
-          AND p.is_deleted = 0
-          AND p.status = 'available'
-      `,
-      values: [productIds],
-      timeout: queryTimeoutMs,
-    });
-
-    if (!products || products.length === 0) return [];
-
-    const [ratingRows] = await db.query({
-      sql: `
-        SELECT product_id, AVG(rating) AS avg_rating
-        FROM reviews
-        WHERE product_id IN (?)
-        GROUP BY product_id
-      `,
-      values: [productIds],
-      timeout: queryTimeoutMs,
-    });
-
-    const ratingByProductId = new Map(
-      (ratingRows || []).map((r) => [r.product_id, Number(r.avg_rating) || 0])
+    const [products] = await db.query(
+      `
+    SELECT
+      p.*,
+      c.name AS category_name,
+      SUM(od.quantity) AS total_sold,
+      COALESCE(rv.avg_rating, 0) AS rating
+    FROM orders o
+    JOIN order_details od ON od.order_id = o.id
+    JOIN product_sizes ps ON ps.id = od.product_size_id
+    JOIN products p ON p.id = ps.product_id
+    LEFT JOIN category c ON c.id = p.category_id
+    LEFT JOIN (
+      SELECT product_id, AVG(rating) AS avg_rating
+      FROM reviews
+      GROUP BY product_id
+    ) rv ON rv.product_id = p.id
+    WHERE p.is_deleted = 0
+      AND p.status = 'available'
+      AND o.status = 'completed'
+    GROUP BY p.id
+    ORDER BY total_sold DESC, p.id DESC
+    LIMIT ?
+    `,
+      [parseInt(limit)]
     );
 
-    const productById = new Map(products.map((p) => [p.id, p]));
-    const ordered = productIds
-      .map((id) => productById.get(id))
-      .filter(Boolean)
-      .map((p) => ({
-        ...p,
-        total_sold: totalSoldByProductId.get(p.id) || 0,
-        rating: ratingByProductId.get(p.id) || 0,
-      }));
-
-    return this.attachSizesAndImages(ordered);
+    return this.attachSizesAndImages(products);
   }
 }
 

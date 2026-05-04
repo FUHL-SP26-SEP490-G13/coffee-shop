@@ -38,26 +38,6 @@ app.use(morgan('dev'));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-const getRateLimitKey = (req) => {
-  let ip = req.ip;
-
-  if ((!ip || typeof ip !== 'string') && Array.isArray(req.ips) && req.ips.length > 0) {
-    ip = req.ips[0];
-  }
-
-  if (!ip || typeof ip !== 'string') {
-    ip = req.socket?.remoteAddress || '';
-  }
-
-  ip = String(ip);
-
-  // Normalize IPv4-mapped IPv6 and strip accidental port suffix (seen on some proxies)
-  if (ip.startsWith('::ffff:')) ip = ip.slice(7);
-  if (ip.includes('.') && /:\d+$/.test(ip)) ip = ip.replace(/:\d+$/, '');
-
-  return ip || 'unknown';
-};
-
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -65,7 +45,6 @@ const limiter = rateLimit({
   message: 'Too many requests from this IP, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: getRateLimitKey,
 });
 
 // Apply rate limiting to all routes
@@ -77,7 +56,6 @@ const authLimiter = rateLimit({
   max: 30000, // Limit each IP to 5 requests per windowMs
   message: 'Too many authentication attempts, please try again later.',
   skipSuccessfulRequests: true,
-  keyGenerator: getRateLimitKey,
 });
 
 app.use('/api/auth/login', authLimiter);
