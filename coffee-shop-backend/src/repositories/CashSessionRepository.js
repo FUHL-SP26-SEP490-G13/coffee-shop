@@ -185,8 +185,36 @@ class CashSessionRepository {
   // SHIFT VALIDATION
   // ================================================
 
+  // Helper: lấy ngày giờ hiện tại theo timezone VN (+07:00)
+  // Không dùng CURTIME()/CURDATE() của MySQL vì clock RDS có thể bị lệch
+  _getNowVN() {
+    const now = new Date();
+    // Chuyển sang VN timezone string
+    const vnStr = now.toLocaleString('sv-SE', { timeZone: 'Asia/Ho_Chi_Minh' });
+    // vnStr format: "2026-05-04 21:15:30"
+    const [datePart, timePart] = vnStr.split(' ');
+    return { currentDate: datePart, currentTime: timePart };
+  }
+
+  // Tính ngày hôm qua (VN timezone)
+  _getYesterdayVN() {
+    const now = new Date();
+    const vnNow = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
+    vnNow.setDate(vnNow.getDate() - 1);
+    const y = vnNow.getFullYear();
+    const m = String(vnNow.getMonth() + 1).padStart(2, '0');
+    const d = String(vnNow.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+
   // Tìm ca active của user trong khung giờ hiện tại [start_time, end_time)
+  // Xử lý đúng ca qua đêm (ví dụ 22:00-02:00):
+  //   - Phần trước 0h: shift_date = hôm nay, time >= start_time
+  //   - Phần sau 0h:   shift_date = hôm qua, time < end_time
   async getCurrentActiveUserShift(userId) {
+    const { currentDate, currentTime } = this._getNowVN();
+    const yesterdayDate = this._getYesterdayVN();
+
     const [[row]] = await pool.query(
       `SELECT sr.id AS shift_registration_id, st.end_time, st.start_time,
               s.shift_date, sr.shift_id, st.name AS shift_name
@@ -194,41 +222,64 @@ class CashSessionRepository {
        JOIN shifts s ON sr.shift_id = s.id
        JOIN shift_templates st ON s.template_id = st.id
        WHERE sr.user_id = ?
-         AND s.shift_date = CURDATE()
          AND sr.status = 'registered'
          AND (
-           (st.start_time < st.end_time AND CURTIME() >= st.start_time AND CURTIME() < st.end_time)
+           -- Ca bình thường (start < end, ví dụ 08:00-16:00): cùng ngày
+           (st.start_time < st.end_time
+            AND s.shift_date = ?
+            AND ? >= st.start_time AND ? < st.end_time)
            OR
-           (st.start_time > st.end_time AND (CURTIME() >= st.start_time OR CURTIME() < st.end_time))
+           -- Ca qua đêm (start > end, ví dụ 22:00-02:00), phần trước 0h
+           (st.start_time > st.end_time
+            AND s.shift_date = ?
+            AND ? >= st.start_time)
+           OR
+           -- Ca qua đêm (start > end, ví dụ 22:00-02:00), phần sau 0h (đã sang ngày mới)
+           (st.start_time > st.end_time
+            AND s.shift_date = ?
+            AND ? < st.end_time)
          )
        LIMIT 1`,
-      [userId],
+      [userId, currentDate, currentTime, currentTime, currentDate, currentTime, yesterdayDate, currentTime],
     );
     return row || null;
   }
 
   // Tìm ai đang có ca active hiện tại (thông báo cho user khác)
   async getCurrentActiveShift() {
+    const { currentDate, currentTime } = this._getNowVN();
+    const yesterdayDate = this._getYesterdayVN();
+
     const [[row]] = await pool.query(
       `SELECT u.first_name, u.last_name, st.start_time, st.end_time
        FROM shift_registrations sr
        JOIN shifts s ON sr.shift_id = s.id
        JOIN shift_templates st ON s.template_id = st.id
        JOIN users u ON sr.user_id = u.id
-       WHERE s.shift_date = CURDATE()
-         AND sr.status = 'registered'
+       WHERE sr.status = 'registered'
          AND (
-           (st.start_time < st.end_time AND CURTIME() >= st.start_time AND CURTIME() < st.end_time)
+           (st.start_time < st.end_time
+            AND s.shift_date = ?
+            AND ? >= st.start_time AND ? < st.end_time)
            OR
-           (st.start_time > st.end_time AND (CURTIME() >= st.start_time OR CURTIME() < st.end_time))
+           (st.start_time > st.end_time
+            AND s.shift_date = ?
+            AND ? >= st.start_time)
+           OR
+           (st.start_time > st.end_time
+            AND s.shift_date = ?
+            AND ? < st.end_time)
          )
        LIMIT 1`,
+      [currentDate, currentTime, currentTime, currentDate, currentTime, yesterdayDate, currentTime],
     );
     return row || null;
   }
 
   // Lấy ca tiếp theo của user (hiển thị khi user không thuộc ca hiện tại)
   async getNextUserShift(userId) {
+    const { currentDate, currentTime } = this._getNowVN();
+
     const [[row]] = await pool.query(
       `SELECT st.start_time, st.end_time, s.shift_date
        FROM shift_registrations sr
@@ -236,9 +287,9 @@ class CashSessionRepository {
        JOIN shift_templates st ON s.template_id = st.id
        WHERE sr.user_id = ?
          AND sr.status = 'registered'
-         AND (s.shift_date > CURDATE() OR (s.shift_date = CURDATE() AND st.start_time > CURTIME()))
+         AND (s.shift_date > ? OR (s.shift_date = ? AND st.start_time > ?))
        ORDER BY s.shift_date ASC, st.start_time ASC LIMIT 1`,
-      [userId],
+      [userId, currentDate, currentDate, currentTime],
     );
     return row || null;
   }
