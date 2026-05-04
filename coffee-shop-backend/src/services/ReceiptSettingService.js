@@ -1,5 +1,8 @@
 const ReceiptSettingRepository = require("../repositories/ReceiptSettingRepository");
 const ErrorResponse = require("../utils/ErrorResponse");
+const { TtlCache } = require("../utils/ttlCache");
+
+const activeSettingCache = new TtlCache({ defaultTtlMs: 60_000 });
 
 class ReceiptSettingService {
   normalizeNullableText(value) {
@@ -62,8 +65,13 @@ class ReceiptSettingService {
   }
 
   async getActiveSetting() {
+    const cached = activeSettingCache.get("active");
+    if (cached !== undefined) return cached;
+
     const setting = await ReceiptSettingRepository.findActive();
-    return this.mapOutput(setting);
+    const mapped = this.mapOutput(setting);
+    activeSettingCache.set("active", mapped);
+    return mapped;
   }
 
   async upsertActiveSetting(data) {
@@ -84,7 +92,9 @@ class ReceiptSettingService {
       is_active: true,
     });
     await ReceiptSettingRepository.deactivateAll(current.id);
-    return this.mapOutput(updated);
+    const mapped = this.mapOutput(updated);
+    activeSettingCache.set("active", mapped);
+    return mapped;
   }
 }
 

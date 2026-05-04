@@ -1,9 +1,40 @@
 import axiosClient from "@/services/axiosClient";
 import { API_ENDPOINTS } from "@/constants";
 
+const ACTIVE_SETTING_TTL_MS = 60_000;
+let activeSettingCache = {
+  value: undefined,
+  expiresAt: 0,
+  inFlight: null,
+};
+
+const getActiveDeduped = ({ force = false } = {}) => {
+  const now = Date.now();
+  if (!force && activeSettingCache.value !== undefined && activeSettingCache.expiresAt > now) {
+    return Promise.resolve(activeSettingCache.value);
+  }
+
+  if (!force && activeSettingCache.inFlight) {
+    return activeSettingCache.inFlight;
+  }
+
+  activeSettingCache.inFlight = axiosClient
+    .get(API_ENDPOINTS.RECEIPT_SETTINGS.BASE)
+    .then((res) => {
+      activeSettingCache.value = res;
+      activeSettingCache.expiresAt = Date.now() + ACTIVE_SETTING_TTL_MS;
+      return res;
+    })
+    .finally(() => {
+      activeSettingCache.inFlight = null;
+    });
+
+  return activeSettingCache.inFlight;
+};
+
 const receiptSettingService = {
   getActive() {
-    return axiosClient.get(API_ENDPOINTS.RECEIPT_SETTINGS.BASE);
+    return getActiveDeduped();
   },
 
   upsert(data) {
@@ -11,7 +42,7 @@ const receiptSettingService = {
   },
 
   getSettings() {
-    return axiosClient.get(API_ENDPOINTS.RECEIPT_SETTINGS.BASE);
+    return getActiveDeduped();
   },
   
   upsertSettings(data) {

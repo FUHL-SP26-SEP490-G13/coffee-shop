@@ -35,8 +35,6 @@ export default function App() {
           } else {
             localStorage.removeItem("cached_store_name");
           }
-          // Notify components that might be interested
-          window.dispatchEvent(new Event("receiptSettingsUpdated"));
         }
       } catch (e) {
         console.error("Lỗi cập nhật cấu hình ở App.jsx:", e);
