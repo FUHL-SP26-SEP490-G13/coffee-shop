@@ -361,12 +361,29 @@ export function OrderDelivery() {
 
       const activeOrders = list
         .sort((a, b) => {
-          const createdDiff =
-            new Date(a?.created_at || 0).getTime() -
-            new Date(b?.created_at || 0).getTime();
+          if (!isBaristaWindow) {
+            // STAFF ORDER LIST: Ưu tiên Pending lên đầu, sau đó sắp xếp MỚI NHẤT lên đầu
+            const aIsPending = String(a?.status || "").toLowerCase() === "pending";
+            const bIsPending = String(b?.status || "").toLowerCase() === "pending";
 
-          if (createdDiff !== 0) return createdDiff;
-          return Number(a?.id || 0) - Number(b?.id || 0);
+            if (aIsPending && !bIsPending) return -1;
+            if (!aIsPending && bIsPending) return 1;
+
+            const createdDiff =
+              new Date(b?.created_at || 0).getTime() -
+              new Date(a?.created_at || 0).getTime();
+
+            if (createdDiff !== 0) return createdDiff;
+            return Number(b?.id || 0) - Number(a?.id || 0);
+          } else {
+            // BARISTA WINDOW: Ngược lại - Cũ nhất lên đầu
+            const createdDiff =
+              new Date(a?.created_at || 0).getTime() -
+              new Date(b?.created_at || 0).getTime();
+
+            if (createdDiff !== 0) return createdDiff;
+            return Number(a?.id || 0) - Number(b?.id || 0);
+          }
         });
 
       setOrders(activeOrders);
@@ -391,7 +408,7 @@ export function OrderDelivery() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isBaristaWindow]);
 
   useEffect(() => {
     loadOrders();
@@ -420,6 +437,7 @@ export function OrderDelivery() {
 
     const handleNewDeliveryOrder = (data) => notifyAndReload("giao hàng", data);
     const handleNewTakeawayOrder = (data) => notifyAndReload("mang về", data);
+    const handleNewDineInOrder = (data) => notifyAndReload("tại bàn", data);
 
     const silentReload = () => {
       loadOrders();
@@ -431,10 +449,10 @@ export function OrderDelivery() {
 
     socket.on("new-delivery-order", handleNewDeliveryOrder);
     socket.on("new-takeaway-order", handleNewTakeawayOrder);
+    socket.on("new-dine-in-order", handleNewDineInOrder);
 
     // Barista-like background refreshing events
     socket.on("new-order", silentReload);
-    socket.on("new-dine-in-order", silentReload);
     socket.on("order-online:new", silentReload);
     socket.on("barista:notification", silentReload);
     socket.on("order:status-updated", silentReload);
@@ -442,8 +460,8 @@ export function OrderDelivery() {
     return () => {
       socket.off("new-delivery-order", handleNewDeliveryOrder);
       socket.off("new-takeaway-order", handleNewTakeawayOrder);
+      socket.off("new-dine-in-order", handleNewDineInOrder);
       socket.off("new-order", silentReload);
-      socket.off("new-dine-in-order", silentReload);
       socket.off("order-online:new", silentReload);
       socket.off("barista:notification", silentReload);
       socket.off("order:status-updated", silentReload);
