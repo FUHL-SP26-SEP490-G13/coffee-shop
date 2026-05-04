@@ -18,6 +18,10 @@ const orderService = {
   checkout(data) {
     return axiosClient.post(API_ENDPOINTS.ORDERSLIST.CHECKOUT, data);
   },
+  
+  posCheckout(data) {
+    return axiosClient.post("/orders/pos/checkout", data);
+  },
 
   getMyOrders() {
     return axiosClient.get(API_ENDPOINTS.ORDERSLIST.MY_ORDERS);

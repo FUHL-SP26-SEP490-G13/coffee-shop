@@ -458,10 +458,7 @@ const AdminEndOfDayReport = () => {
             <User className="mr-2 h-4 w-4" />
             Nhân viên
           </TabsTrigger>
-          <TabsTrigger value="shifts" className="px-6 h-full rounded-xl data-[state=active]:bg-background data-[state=active]:shadow-sm">
-            <Layers className="mr-2 h-4 w-4" />
-            Ca làm việc
-          </TabsTrigger>
+          
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">

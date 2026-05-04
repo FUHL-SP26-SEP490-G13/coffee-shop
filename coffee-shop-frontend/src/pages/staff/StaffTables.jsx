@@ -10,7 +10,8 @@ import {
   Clock3,
   HandCoins,
   Wallet,
-
+  Users,
+  Unlink,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -71,8 +72,13 @@ function TableCard({
   onMergeOrder,
   onSeparateBill,
   onRequestPayment,
+  onMergeGroup,
+  onUnmergeTable,
+  onUnmergeAll,
   activeOrderMeta,
   paymentRequested,
+  mainTableCode,
+  hasSubTables,
 }) {
   const debtAmount = Number(activeOrderMeta?.debt_amount || 0);
   const canEditOrder =
@@ -80,14 +86,31 @@ function TableCard({
     !activeOrderMeta?.is_paid &&
     String(activeOrderMeta?.payment_status || "").toLowerCase() !== "paid";
 
+  const isSubTable = Boolean(table.main_table_id);
+
   return (
     <Card
       onClick={() => onOpenPOS(table)}
-      className="relative group p-5 flex flex-col items-center justify-center gap-3 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl dark:shadow-none bg-card border-border/50 hover:border-primary/50 cursor-pointer overflow-hidden"
+      className={`relative group p-5 flex flex-col items-center justify-center gap-3 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl dark:shadow-none bg-card border-border/50 hover:border-primary/50 cursor-pointer overflow-hidden ${isSubTable ? 'ring-2 ring-indigo-400/60 dark:ring-indigo-500/50' : ''}`}
     >
+      {/* Sub-table grouping badge */}
+      {isSubTable && (
+        <div className="absolute top-0 left-0 right-0 flex items-center justify-center gap-1 bg-indigo-500/90 text-white text-[9px] font-bold py-0.5 px-2 z-10">
+          <Users className="w-2.5 h-2.5" />
+          <span>Bàn phụ – {mainTableCode}</span>
+          <button
+            onClick={(e) => { e.stopPropagation(); onUnmergeTable && onUnmergeTable(table); }}
+            className="ml-1 hover:text-red-200 transition-colors"
+            title="Bỏ gộp bàn này"
+          >
+            <Unlink className="w-2.5 h-2.5" />
+          </button>
+        </div>
+      )}
+
       {["occupied", "available", "reserved"].includes(table.status) && (
         <div className="absolute top-2 right-2 flex items-center gap-1 z-20">
-          {table.status === "occupied" && (
+          {table.status === "occupied" && !isSubTable && (
             <button
               onClick={(e) => onViewOrder(e, table)}
               className="p-1.5 rounded-full hover:bg-black/5 text-muted-foreground transition-colors"
@@ -96,7 +119,7 @@ function TableCard({
               <ReceiptText className="w-4 h-4 text-blue-600" />
             </button>
           )}
-          {table.status !== "available" && (
+          {table.status !== "available" && !isSubTable && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
@@ -113,6 +136,27 @@ function TableCard({
                     <DropdownMenuItem
                       onClick={(e) => {
                         e.stopPropagation();
+                        onMergeGroup && onMergeGroup(table);
+                      }}
+                    >
+                      <Users className="w-4 h-4" />
+                      Gộp bàn
+                    </DropdownMenuItem>
+                    {hasSubTables && (
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onUnmergeAll && onUnmergeAll(table);
+                        }}
+                        className="text-amber-600 dark:text-amber-500 focus:text-amber-700 dark:focus:text-amber-400"
+                      >
+                        <Unlink className="w-4 h-4" />
+                        Bỏ gộp tất cả
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.stopPropagation();
                         onMergeOrder(table);
                       }}
                     >
@@ -120,10 +164,10 @@ function TableCard({
                       Ghép đơn
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onTransfer(table);
-                      }}
+                      disabled={hasSubTables}
+                      className={hasSubTables ? "!pointer-events-auto cursor-not-allowed" : ""}
+                      onSelect={() => onTransfer(table)}
+                      onClick={(e) => e.stopPropagation()}
                     >
                       <ArrowLeftRight className="w-4 h-4" />
                       Chuyển bàn
@@ -137,16 +181,6 @@ function TableCard({
                       <ReceiptText className="w-4 h-4" />
                       Tách đơn
                     </DropdownMenuItem>
-                    {/* <DropdownMenuItem
-                      disabled={!canEditOrder}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (!canEditOrder) return;
-                        onEditOrder(table);
-                      }}
-                    >
-                      Chỉnh sửa đơn hàng
-                    </DropdownMenuItem> */}
                     <DropdownMenuItem
                       onClick={(e) => {
                         e.stopPropagation();
@@ -290,7 +324,7 @@ export function StaffTables() {
   const [isPaySplitBillModalOpen, setIsPaySplitBillModalOpen] = useState(false);
   const [splitSourceOrders, setSplitSourceOrders] = useState([]);
   const [transferSourceOrders, setTransferSourceOrders] = useState([]);
-  const [transferOrderId, setTransferOrderId] = useState(null);
+  const [transferOrderIds, setTransferOrderIds] = useState([]);
   const [_nowTick, setNowTick] = useState(Date.now());
 
   // Transfer Modal States
@@ -299,10 +333,14 @@ export function StaffTables() {
   const [transferTargetId, setTransferTargetId] = useState(null);
   const [transferring, setTransferring] = useState(false);
   const [transferAreaFilter, setTransferAreaFilter] = useState("all");
-  const [tableActionMode, setTableActionMode] = useState("transfer");
+  const [tableActionMode, setTableActionMode] = useState("transfer"); // "transfer" | "merge" | "group"
   const [activeOrderMetaByTable, setActiveOrderMetaByTable] = useState({});
   const [paymentRequestedByTable, setPaymentRequestedByTable] = useState({});
   const [debtReceiptOrder, setDebtReceiptOrder] = useState(null);
+
+  // Gộp bàn states
+  const [groupSelectedIds, setGroupSelectedIds] = useState([]);
+  const [grouping, setGrouping] = useState(false);
   const [debtPaymentDialog, setDebtPaymentDialog] = useState({
     open: false,
     table: null,
@@ -367,8 +405,12 @@ export function StaffTables() {
 
 
   const handleOpenPOS = (table) => {
+    // If this is a sub-table (grouped), open the main table's POS instead
+    const actualTable = table.main_table_id
+      ? tables.find(t => t.id === table.main_table_id) || table
+      : table;
     setEditingOrder(null); // normal mode
-    setSelectedTableForPOS(table);
+    setSelectedTableForPOS(actualTable);
     setIsPOSModalOpen(true);
   };
 
@@ -432,7 +474,7 @@ export function StaffTables() {
     setTransferTargetId(null);
     setTransferAreaFilter("all");
     setTransferSourceOrders([]);
-    setTransferOrderId(null);
+    setTransferOrderIds([]);
     setIsTransferModalOpen(true);
 
     if (mode !== "transfer") return;
@@ -449,8 +491,9 @@ export function StaffTables() {
       }
 
       setTransferSourceOrders(unpaidOrders);
+      // Auto-select the first order if only one is available
       if (unpaidOrders.length === 1) {
-        setTransferOrderId(unpaidOrders[0].id);
+        setTransferOrderIds([unpaidOrders[0].id]);
       }
     } catch {
       toast.error("Không thể tải đơn để chuyển");
@@ -461,8 +504,8 @@ export function StaffTables() {
 
   const handleConfirmTransfer = async () => {
     if (!tableToTransfer || !transferTargetId) return;
-    if (tableActionMode === "transfer" && !transferOrderId) {
-      toast.error("Vui lòng chọn đơn cần chuyển");
+    if (tableActionMode === "transfer" && transferOrderIds.length === 0) {
+      toast.error("Vui lòng chọn ít nhất một đơn cần chuyển");
       return;
     }
     setTransferring(true);
@@ -473,7 +516,7 @@ export function StaffTables() {
           : await tableService.transferOrder(
               tableToTransfer.id,
               transferTargetId,
-              transferOrderId
+              transferOrderIds
             );
       toast.success(
         res.message ||
@@ -485,7 +528,7 @@ export function StaffTables() {
       setTableToTransfer(null);
       setTransferTargetId(null);
       setTransferSourceOrders([]);
-      setTransferOrderId(null);
+      setTransferOrderIds([]);
       fetchData();
     } catch (err) {
       toast.error(
@@ -662,6 +705,55 @@ export function StaffTables() {
   const handleMergeOrder = (table) => {
     toast.info("Chọn bàn đích để ghép order");
     handleOpenTransfer(table, "merge");
+  };
+
+  const handleOpenMergeGroup = (table) => {
+    setTableActionMode("group");
+    setTableToTransfer(table);
+    setGroupSelectedIds([]);
+    setTransferAreaFilter("all");
+    setIsTransferModalOpen(true);
+  };
+
+  const handleUnmergeTable = async (subTable) => {
+    try {
+      await tableService.unmergeTable(subTable.id);
+      toast.success(`Đã tách bàn ${subTable.code} khỏi nhóm`);
+      fetchData();
+    } catch (err) {
+      toast.error(err?.response?.data?.message || "Không tách bàn được");
+    }
+  };
+
+  const handleUnmergeAllTables = async (mainTable) => {
+    if (!window.confirm(`Bạn có chắc chắn muốn bỏ gộp tất cả bàn phụ của bàn ${mainTable.code}?`)) return;
+    try {
+      await tableService.unmergeAllTables(mainTable.id);
+      toast.success(`Đã bỏ gộp tất cả bàn phụ của bàn ${mainTable.code}`);
+      fetchData();
+    } catch (err) {
+      toast.error(err?.response?.data?.message || "Không thể bỏ gộp tất cả");
+    }
+  };
+
+  const handleConfirmMergeGroup = async () => {
+    if (!tableToTransfer || groupSelectedIds.length === 0) {
+      toast.error("Vui lòng chọn ít nhất một bàn phụ");
+      return;
+    }
+    setGrouping(true);
+    try {
+      await tableService.mergeTableGroup(tableToTransfer.id, groupSelectedIds);
+      toast.success(`Đã gộp ${groupSelectedIds.length} bàn vào ${tableToTransfer.code}`);
+      setIsTransferModalOpen(false);
+      setTableToTransfer(null);
+      setGroupSelectedIds([]);
+      fetchData();
+    } catch (err) {
+      toast.error(err?.response?.data?.message || "Gộp bàn thất bại");
+    } finally {
+      setGrouping(false);
+    }
   };
 
   const handleRequestPayment = async (table) => {
@@ -1129,10 +1221,15 @@ export function StaffTables() {
                             onStatusChange={handleStatusChange}
                             onTransfer={handleOpenTransfer}
                             onMergeOrder={handleMergeOrder}
+                            onMergeGroup={handleOpenMergeGroup}
+                            onUnmergeTable={handleUnmergeTable}
+                            onUnmergeAll={handleUnmergeAllTables}
                             onSeparateBill={handleOpenSeparateBill}
                             onRequestPayment={handleRequestPayment}
                             activeOrderMeta={activeOrderMetaByTable[table.id]}
                             paymentRequested={Boolean(paymentRequestedByTable[table.id])}
+                            mainTableCode={table.main_table_id ? tables.find(t => t.id === table.main_table_id)?.code : null}
+                            hasSubTables={tables.some(t => t.main_table_id === table.id)}
                           />
                         ))}
                       </div>
@@ -1191,10 +1288,15 @@ export function StaffTables() {
                       onStatusChange={handleStatusChange}
                       onTransfer={handleOpenTransfer}
                       onMergeOrder={handleMergeOrder}
+                      onMergeGroup={handleOpenMergeGroup}
+                      onUnmergeTable={handleUnmergeTable}
+                      onUnmergeAll={handleUnmergeAllTables}
                       onSeparateBill={handleOpenSeparateBill}
                       onRequestPayment={handleRequestPayment}
                       activeOrderMeta={activeOrderMetaByTable[table.id]}
                       paymentRequested={Boolean(paymentRequestedByTable[table.id])}
+                      mainTableCode={table.main_table_id ? tables.find(t => t.id === table.main_table_id)?.code : null}
+                      hasSubTables={tables.some(t => t.main_table_id === table.id)}
                     />
                   ))
                 ) : (
@@ -1248,59 +1350,66 @@ export function StaffTables() {
       />
 
       {/* Transfer Table Modal */}
-      <Dialog open={isTransferModalOpen} onOpenChange={(open) => { if (!open) { setIsTransferModalOpen(false); setTableToTransfer(null); setTransferTargetId(null); setTableActionMode("transfer"); setTransferSourceOrders([]); setTransferOrderId(null); } }}>
+      <Dialog open={isTransferModalOpen} onOpenChange={(open) => { if (!open) { setIsTransferModalOpen(false); setTableToTransfer(null); setTransferTargetId(null); setTableActionMode("transfer"); setTransferSourceOrders([]); setTransferOrderIds([]); setGroupSelectedIds([]); } }}>
         <DialogContent className="sm:max-w-[560px]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <ArrowLeftRight className="w-5 h-5 text-indigo-600" />
-              {tableActionMode === "merge" ? "Ghép order" : "Chuyển bàn"} {tableToTransfer ? `— Bàn ${tableToTransfer.code}` : ""}
+              {tableActionMode === "group" ? <Users className="w-5 h-5 text-indigo-600" /> : tableActionMode === "merge" ? <GitMerge className="w-5 h-5 text-indigo-600" /> : <ArrowLeftRight className="w-5 h-5 text-indigo-600" />}
+              {tableActionMode === "group" ? "Gộp bàn" : tableActionMode === "merge" ? "Ghép order" : "Chuyển bàn"} {tableToTransfer ? `— Bàn ${tableToTransfer.code}` : ""}
             </DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4">
             {/* From table info */}
-            <div className="flex items-center gap-3 bg-muted/50 rounded-lg px-4 py-3">
-              <div className="bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400 font-bold text-sm rounded-lg px-3 py-2">
-                {tableToTransfer?.code}
+            {tableActionMode !== "group" && (
+              <div className="flex items-center gap-3 bg-muted/50 rounded-lg px-4 py-3">
+                <div className="bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400 font-bold text-sm rounded-lg px-3 py-2">
+                  {tableToTransfer?.code}
+                </div>
+                <div>
+                  <p className="text-sm font-medium">Bàn hiện tại</p>
+                  <p className="text-xs text-slate-600 dark:text-slate-300">
+                    {tableToTransfer?.area_name}
+                    {tableActionMode === "merge" ? " · Nguồn" : ""}
+                  </p>
+                </div>
+                <ArrowLeftRight className="w-4 h-4 text-slate-600 dark:text-slate-300 mx-auto" />
+                <div className="flex-1 text-right">
+                  {transferTargetId ? (() => {
+                    const t = tables.find(x => x.id === transferTargetId);
+                    return t ? (
+                      <div className="inline-flex flex-col items-end">
+                        <span className="text-sm font-bold text-indigo-700 dark:text-indigo-300">{t.code}</span>
+                        <span className="text-xs text-slate-600 dark:text-slate-300">{t.area_name}</span>
+                      </div>
+                    ) : null;
+                  })() : (
+                    <span className="text-xs text-slate-600 dark:text-slate-300 italic">Chưa chọn bàn đích</span>
+                  )}
+                </div>
               </div>
-              <div>
-                <p className="text-sm font-medium">Bàn hiện tại</p>
-                <p className="text-xs text-slate-600 dark:text-slate-300">
-                  {tableToTransfer?.area_name}
-                  {tableActionMode === "merge" ? " · Nguồn" : ""}
-                </p>
-              </div>
-              <ArrowLeftRight className="w-4 h-4 text-slate-600 dark:text-slate-300 mx-auto" />
-              <div className="flex-1 text-right">
-                {transferTargetId ? (() => {
-                  const t = tables.find(x => x.id === transferTargetId);
-                  return t ? (
-                    <div className="inline-flex flex-col items-end">
-                      <span className="text-sm font-bold text-indigo-700 dark:text-indigo-300">{t.code}</span>
-                      <span className="text-xs text-slate-600 dark:text-slate-300">{t.area_name}</span>
-                    </div>
-                  ) : null;
-                })() : (
-                  <span className="text-xs text-slate-600 dark:text-slate-300 italic">Chưa chọn bàn đích</span>
-                )}
-              </div>
-            </div>
+            )}
 
-            {tableActionMode === "transfer" && transferSourceOrders.length > 1 && (
+            {tableActionMode === "transfer" && transferSourceOrders.length > 0 && (
               <div className="space-y-2">
-                <p className="text-sm font-medium">Chọn đơn cần chuyển:</p>
+                <p className="text-sm font-medium">Chọn {transferSourceOrders.length > 1 ? 'một hoặc nhiều' : 'đơn'} cần chuyển:</p>
                 <div className="flex flex-wrap gap-2">
                   {transferSourceOrders.map((order) => (
                     <button
                       key={order.id}
                       type="button"
-                      onClick={() => setTransferOrderId(order.id)}
+                      onClick={() => setTransferOrderIds((prev) =>
+                        prev.includes(order.id)
+                          ? prev.filter((id) => id !== order.id)
+                          : [...prev, order.id]
+                      )}
                       className={`px-2.5 py-1.5 text-xs rounded border transition-colors ${
-                        Number(transferOrderId) === Number(order.id)
-                          ? "bg-amber-100 border-amber-400 text-amber-800"
+                        transferOrderIds.includes(order.id)
+                          ? "bg-amber-100 border-amber-400 text-amber-800 font-semibold"
                           : "bg-background border-border text-muted-foreground hover:border-amber-300"
                       }`}
                     >
+                      {transferOrderIds.includes(order.id) && <span className="mr-1">✓</span>}
                       Đơn #{order.id} · {formatVND(order.total_amount || 0)}
                     </button>
                   ))}
@@ -1308,93 +1417,157 @@ export function StaffTables() {
               </div>
             )}
 
-            {/* Filter by area */}
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium shrink-0">Khu vực:</span>
-              <div className="flex flex-wrap gap-1.5">
-                <button
-                  onClick={() => setTransferAreaFilter("all")}
-                  className={`text-xs px-3 py-1 rounded-full border transition-colors ${transferAreaFilter === "all"
-                    ? "bg-indigo-600 text-white border-indigo-600"
-                    : "border-border text-slate-700 dark:text-slate-200 hover:border-indigo-400"
-                    }`}
-                >
-                  Tất cả
-                </button>
-                {areas.map((a) => (
-                  <button
-                    key={a.id}
-                    onClick={() => setTransferAreaFilter(a.id.toString())}
-                    className={`text-xs px-3 py-1 rounded-full border transition-colors ${transferAreaFilter === a.id.toString()
-                      ? "bg-indigo-600 text-white border-indigo-600"
-                      : "border-border text-slate-700 dark:text-slate-200 hover:border-indigo-400"
-                      }`}
-                  >
-                    {a.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Destination tables grid */}
-            <div className="grid grid-cols-4 gap-2 max-h-64 overflow-y-auto pr-1">
-              {tables
-                .filter(
-                  (t) =>
-                    t.id !== tableToTransfer?.id &&
-                    (tableActionMode === "merge"
-                      ? t.status === "occupied" && Boolean(activeOrderMetaByTable[t.id])
-                      : t.status === "available") &&
-                    (transferAreaFilter === "all" || t.area_id.toString() === transferAreaFilter)
-                )
-                .map((t) => (
-                  <button
-                    key={t.id}
-                    onClick={() => setTransferTargetId(t.id)}
-                    className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all ${transferTargetId === t.id
-                      ? "border-indigo-500 bg-indigo-50"
-                      : "border-border hover:border-indigo-300 bg-card"
-                      }`}
-                  >
-                    <span className={`text-base font-black ${transferTargetId === t.id ? "text-indigo-700" : "text-foreground"
-                      }`}>
-                      {t.code?.replace("TB-", "")}
-                    </span>
-                    <span className="text-[10px] text-muted-foreground mt-0.5 text-center leading-tight">
-                      {t.area_name} {tableActionMode === "merge" ? "· Có đơn" : ""}
-                    </span>
-                  </button>
-                ))}
-              {tables.filter(
-                (t) =>
-                  t.id !== tableToTransfer?.id &&
-                  (tableActionMode === "merge"
-                    ? t.status === "occupied" && Boolean(activeOrderMetaByTable[t.id])
-                    : t.status === "available") &&
-                  (transferAreaFilter === "all" || t.area_id.toString() === transferAreaFilter)
-              ).length === 0 && (
-                  <div className="col-span-4 py-8 text-center text-slate-600 dark:text-slate-300 text-sm">
-                    {tableActionMode === "merge" ? "Không có bàn phù hợp" : "Không có bàn trống nào"}
+            {/* Destination tables selection (Transfer/Merge only) */}
+            {tableActionMode !== "group" && (
+              <>
+                {/* Filter by area */}
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium shrink-0">Khu vực:</span>
+                  <div className="flex flex-wrap gap-1.5">
+                    <button
+                      onClick={() => setTransferAreaFilter("all")}
+                      className={`text-xs px-3 py-1 rounded-full border transition-colors ${transferAreaFilter === "all"
+                        ? "bg-indigo-600 text-white border-indigo-600"
+                        : "border-border text-slate-700 dark:text-slate-200 hover:border-indigo-400"
+                        }`}
+                    >
+                      Tất cả
+                    </button>
+                    {areas.map((a) => (
+                      <button
+                        key={a.id}
+                        onClick={() => setTransferAreaFilter(a.id.toString())}
+                        className={`text-xs px-3 py-1 rounded-full border transition-colors ${transferAreaFilter === a.id.toString()
+                          ? "bg-indigo-600 text-white border-indigo-600"
+                          : "border-border text-slate-700 dark:text-slate-200 hover:border-indigo-400"
+                          }`}
+                      >
+                        {a.name}
+                      </button>
+                    ))}
                   </div>
-                )}
-            </div>
+                </div>
+
+                {/* Destination tables grid */}
+                <div className="grid grid-cols-4 gap-2 max-h-64 overflow-y-auto pr-1">
+                  {tables
+                    .filter(
+                      (t) =>
+                        t.id !== tableToTransfer?.id &&
+                        (tableActionMode === "merge"
+                          ? t.status === "occupied" && Boolean(activeOrderMetaByTable[t.id])
+                          : t.status === "available") &&
+                        (transferAreaFilter === "all" || t.area_id.toString() === transferAreaFilter)
+                    )
+                    .map((t) => (
+                      <button
+                        key={t.id}
+                        onClick={() => setTransferTargetId(t.id)}
+                        className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all ${transferTargetId === t.id
+                          ? "border-indigo-500 bg-indigo-50"
+                          : "border-border hover:border-indigo-300 bg-card"
+                          }`}
+                      >
+                        <span className={`text-base font-black ${transferTargetId === t.id ? "text-indigo-700" : "text-foreground"
+                          }`}>
+                          {t.code?.replace("TB-", "")}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground mt-0.5 text-center leading-tight">
+                          {t.area_name} {tableActionMode === "merge" ? "· Có đơn" : ""}
+                        </span>
+                      </button>
+                    ))}
+                  {tables.filter(
+                    (t) =>
+                      t.id !== tableToTransfer?.id &&
+                      (tableActionMode === "merge"
+                        ? t.status === "occupied" && Boolean(activeOrderMetaByTable[t.id])
+                        : t.status === "available") &&
+                      (transferAreaFilter === "all" || t.area_id.toString() === transferAreaFilter)
+                  ).length === 0 && (
+                      <div className="col-span-4 py-8 text-center text-slate-600 dark:text-slate-300 text-sm">
+                        {tableActionMode === "merge" ? "Không có bàn phù hợp" : "Không có bàn trống nào"}
+                      </div>
+                    )}
+                </div>
+              </>
+            )}
           </div>
 
+          {/* Gộp bàn UI */}
+          {tableActionMode === "group" && (
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">Chọn các bàn trống để gộp vào <span className="font-bold text-foreground">{tableToTransfer?.code}</span>. Các bàn được chọn sẽ hiển thị trạng thái "Có khách" và được liên kết với đơn của bàn chính.</p>
+              {/* Area filter */}
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium shrink-0">Khu vực:</span>
+                <div className="flex flex-wrap gap-1.5">
+                  <button onClick={() => setTransferAreaFilter("all")} className={`text-xs px-3 py-1 rounded-full border transition-colors ${transferAreaFilter === "all" ? "bg-indigo-600 text-white border-indigo-600" : "border-border text-slate-700 dark:text-slate-200 hover:border-indigo-400"}`}>Tất cả</button>
+                  {areas.map((a) => (
+                    <button key={a.id} onClick={() => setTransferAreaFilter(a.id.toString())} className={`text-xs px-3 py-1 rounded-full border transition-colors ${transferAreaFilter === a.id.toString() ? "bg-indigo-600 text-white border-indigo-600" : "border-border text-slate-700 dark:text-slate-200 hover:border-indigo-400"}`}>{a.name}</button>
+                  ))}
+                </div>
+              </div>
+              {/* Available tables */}
+              <div className="grid grid-cols-4 gap-2 max-h-52 overflow-y-auto pr-1">
+                {tables.filter(t =>
+                  t.id !== tableToTransfer?.id &&
+                  t.status === "available" &&
+                  !t.main_table_id &&
+                  (transferAreaFilter === "all" || t.area_id.toString() === transferAreaFilter)
+                ).map(t => (
+                  <button
+                    key={t.id}
+                    onClick={() => setGroupSelectedIds(prev => prev.includes(t.id) ? prev.filter(id => id !== t.id) : [...prev, t.id])}
+                    className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all ${groupSelectedIds.includes(t.id) ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30" : "border-border hover:border-indigo-300 bg-card"}`}
+                  >
+                    <span className={`text-base font-black ${groupSelectedIds.includes(t.id) ? "text-indigo-700 dark:text-indigo-300" : "text-foreground"}`}>{t.code?.replace("TB-", "")}</span>
+                    <span className="text-[10px] text-muted-foreground mt-0.5 text-center leading-tight">{t.area_name}</span>
+                    {groupSelectedIds.includes(t.id) && <span className="text-[9px] text-indigo-600 font-bold mt-0.5">✓ Đã chọn</span>}
+                  </button>
+                ))}
+                {tables.filter(t =>
+                  t.id !== tableToTransfer?.id &&
+                  t.status === "available" &&
+                  !t.main_table_id &&
+                  (transferAreaFilter === "all" || t.area_id.toString() === transferAreaFilter)
+                ).length === 0 && (
+                  <div className="col-span-4 py-8 text-center text-slate-600 dark:text-slate-300 text-sm">Không có bàn trống nào để gộp</div>
+                )}
+              </div>
+              {groupSelectedIds.length > 0 && (
+                <div className="text-xs text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-900/30 px-3 py-2 rounded-lg">
+                  Đã chọn {groupSelectedIds.length} bàn phụ: {groupSelectedIds.map(id => tables.find(t => t.id === id)?.code).join(', ')}
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="flex justify-end gap-2 pt-2">
-            <Button variant="outline" onClick={() => setIsTransferModalOpen(false)} disabled={transferring}>
+            <Button variant="outline" onClick={() => setIsTransferModalOpen(false)} disabled={transferring || grouping}>
               Hủy
             </Button>
-            <Button
-              disabled={!transferTargetId || transferring || (tableActionMode === "transfer" && !transferOrderId)}
-              onClick={handleConfirmTransfer}
-              className="bg-indigo-600 hover:bg-indigo-700"
-            >
-              {transferring ? (
-                <><Loader2 className="w-4 h-4 mr-2 animate-spin" />{tableActionMode === "merge" ? "Đang gộp..." : "Đang chuyển..."}</>
-              ) : (
-                <><ArrowLeftRight className="w-4 h-4 mr-2" />{tableActionMode === "merge" ? "Xác nhận ghép order" : "Xác nhận chuyển bàn"}</>
-              )}
-            </Button>
+            {tableActionMode === "group" ? (
+              <Button
+                disabled={groupSelectedIds.length === 0 || grouping}
+                onClick={handleConfirmMergeGroup}
+                className="bg-indigo-600 hover:bg-indigo-700"
+              >
+                {grouping ? (<><Loader2 className="w-4 h-4 mr-2 animate-spin" />Đang gộp...</>) : (<><Users className="w-4 h-4 mr-2" />Xác nhận gộp bàn</>)}
+              </Button>
+            ) : (
+              <Button
+                disabled={!transferTargetId || transferring || (tableActionMode === "transfer" && transferOrderIds.length === 0)}
+                onClick={handleConfirmTransfer}
+                className="bg-indigo-600 hover:bg-indigo-700"
+              >
+                {transferring ? (
+                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" />{tableActionMode === "merge" ? "Đang gộp..." : "Đang chuyển..."}</>
+                ) : (
+                  <><ArrowLeftRight className="w-4 h-4 mr-2" />{tableActionMode === "merge" ? "Xác nhận ghép order" : "Xác nhận chuyển bàn"}</>
+                )}
+              </Button>
+            )}
           </div>
         </DialogContent>
       </Dialog>
