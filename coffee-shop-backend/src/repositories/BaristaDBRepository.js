@@ -1,4 +1,5 @@
 const pool = require("../config/database");
+const CashSessionRepository = require("./CashSessionRepository");
 
 class BaristaDBRepository {
   async getOverview() {
@@ -59,7 +60,7 @@ class BaristaDBRepository {
       ? statuses
           .map((status) => String(status || "").trim().toLowerCase())
           .filter((status) =>
-            ["pending", "preparing", "served", "completed", "cancelled"].includes(
+            ["pending", "preparing", "completed", "cancelled"].includes(
               status
             )
           )
@@ -79,6 +80,17 @@ class BaristaDBRepository {
       queryParams.push(filters.startDate, filters.endDate);
     } else if (filters.today) {
       dateFilterSql = " AND DATE(o.created_at) = CURDATE()";
+    }
+
+    const currentSession = await CashSessionRepository.findOpenSession();
+    if (currentSession && currentSession.id) {
+       // Đơn pending: hiển thị đơn chưa được nhận (cash_session_id IS NULL) + đơn pending thuộc ca hiện tại
+       // Đơn khác (preparing, served, completed, cancelled): chỉ hiển thị đơn thuộc ca hiện tại
+       dateFilterSql += " AND ((o.status = 'pending' AND (o.cash_session_id IS NULL OR o.cash_session_id = ?)) OR (o.status != 'pending' AND o.cash_session_id = ?))";
+       queryParams.push(currentSession.id, currentSession.id);
+    } else {
+       // Không có ca mở: chỉ hiển thị đơn pending chưa nhận (để staff thấy khi mở ca)
+       dateFilterSql += " AND o.status = 'pending' AND o.cash_session_id IS NULL";
     }
 
     const [rows] = await pool.query(
@@ -125,7 +137,7 @@ class BaristaDBRepository {
         odi.note,
         t.code
       ORDER BY
-        FIELD(o.status, 'pending', 'preparing', 'served', 'completed', 'cancelled'),
+        FIELD(o.status, 'pending', 'preparing', 'completed', 'cancelled'),
         o.created_at ASC
     `,
       queryParams
