@@ -98,8 +98,8 @@ class CashSessionRepository {
     return row?.code || null;
   }
 
-  // Lấy lịch sử các ca — filter theo date, status, userId — có phân trang
-  async findAll({ date, startDate, endDate, status, userId, page = 1, limit = 10 }) {
+  // Lấy lịch sử các ca — filter theo date, status, userId, openerId, closerId — có phân trang
+  async findAll({ date, startDate, endDate, status, userId, openerId, closerId, page = 1, limit = 10 }) {
     const conditions = [];
     const params = [];
 
@@ -123,16 +123,55 @@ class CashSessionRepository {
       conditions.push('(cs.opened_by = ? OR cs.closed_by = ?)');
       params.push(userId, userId);
     }
+    if (openerId) {
+      conditions.push('cs.opened_by = ?');
+      params.push(openerId);
+    }
+    if (closerId) {
+      conditions.push('cs.closed_by = ?');
+      params.push(closerId);
+    }
 
     const where = conditions.length > 0
       ? `WHERE ${conditions.join(' AND ')}`
       : '';
 
-    // Count total
-    const [[{ total }]] = await pool.query(
-      `SELECT COUNT(*) AS total FROM cash_sessions cs ${where}`,
+    // Count total and calculate overall stats
+    const [[totalsRow]] = await pool.query(
+      `SELECT 
+          COUNT(cs.id) AS total,
+          COALESCE(SUM(os.paid_orders_count), 0) AS total_paid_orders,
+          COALESCE(SUM(
+            CASE 
+              WHEN cs.closed_at IS NOT NULL THEN (cs.closing_cash_system - cs.opening_cash)
+              ELSE 0 
+            END
+          ), 0) AS total_generated_cash,
+          COALESCE(SUM(
+            CASE 
+              WHEN cs.closed_at IS NOT NULL THEN cs.cash_difference
+              ELSE 0 
+            END
+          ), 0) AS total_cash_difference
+       FROM cash_sessions cs
+       LEFT JOIN (
+           SELECT o.cash_session_id,
+                  COUNT(*) AS paid_orders_count
+           FROM orders o
+           JOIN order_payments op ON o.id = op.order_id
+           WHERE op.payment_status = 'paid'
+           GROUP BY o.cash_session_id
+       ) os ON os.cash_session_id = cs.id
+       ${where}`,
       params,
     );
+
+    const total = totalsRow.total || 0;
+    const overallTotals = {
+      total_paid_orders: totalsRow.total_paid_orders,
+      total_generated_cash: totalsRow.total_generated_cash,
+      total_cash_difference: totalsRow.total_cash_difference,
+    };
 
     const totalPages = Math.max(1, Math.ceil(total / limit));
     const safePage = Math.min(Math.max(1, page), totalPages);
@@ -172,6 +211,7 @@ class CashSessionRepository {
 
     return {
       rows,
+      overallTotals,
       pagination: {
         currentPage: safePage,
         totalPages,

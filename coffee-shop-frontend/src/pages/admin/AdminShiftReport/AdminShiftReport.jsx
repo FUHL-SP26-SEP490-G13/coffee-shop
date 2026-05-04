@@ -78,12 +78,18 @@ const AdminShiftReport = () => {
 
   // States for filter & pagination
   const [staffs, setStaffs] = useState([]);
-  const [selectedStaff, setSelectedStaff] = useState("all");
+  const [selectedOpener, setSelectedOpener] = useState("all");
+  const [selectedCloser, setSelectedCloser] = useState("all");
   const [pagination, setPagination] = useState({
     currentPage: 1,
     totalPages: 1,
     total: 0,
     limit: 10,
+  });
+  const [overallTotals, setOverallTotals] = useState({
+    paidOrders: 0,
+    generatedCash: 0,
+    cashDifference: 0,
   });
 
   // Force close state
@@ -138,15 +144,26 @@ const AdminShiftReport = () => {
       const res = await cashSessionService.getHistory({
         startDate,
         endDate,
-        userId: selectedStaff === "all" ? undefined : selectedStaff,
+        openerId: selectedOpener === "all" ? undefined : selectedOpener,
+        closerId: selectedCloser === "all" ? undefined : selectedCloser,
         page: pagination.currentPage,
         limit: pagination.limit,
       });
 
-      // Response: { success, data: { items: [...], pagination: {...} } }
+      // Response: { success, data: { items: [...], overallTotals: {...}, pagination: {...} } }
       const responseData = res?.data || res;
       const items = Array.isArray(responseData?.items) ? responseData.items : parseReportRows(responseData);
       setData(items);
+
+      if (responseData?.overallTotals) {
+        setOverallTotals({
+          paidOrders: Number(responseData.overallTotals.total_paid_orders) || 0,
+          generatedCash: Number(responseData.overallTotals.total_generated_cash) || 0,
+          cashDifference: Number(responseData.overallTotals.total_cash_difference) || 0,
+        });
+      } else {
+        setOverallTotals({ paidOrders: 0, generatedCash: 0, cashDifference: 0 });
+      }
 
       if (responseData?.pagination) {
         setPagination((prev) => ({
@@ -160,10 +177,11 @@ const AdminShiftReport = () => {
     } catch (error) {
       console.error("Error fetching shift report data:", error);
       setData([]);
+      setOverallTotals({ paidOrders: 0, generatedCash: 0, cashDifference: 0 });
     } finally {
       setLoading(false);
     }
-  }, [dateRange, selectedStaff, pagination.currentPage, pagination.limit]);
+  }, [dateRange, selectedOpener, selectedCloser, pagination.currentPage, pagination.limit]);
 
   useEffect(() => {
     fetchReportData();
@@ -199,7 +217,13 @@ const AdminShiftReport = () => {
     }
   };
 
-  const handleStaffChange = (val) => {
+  const handleOpenerChange = (val) => {
+    setSelectedOpener(val);
+    setPagination((p) => ({ ...p, currentPage: 1 }));
+  };
+
+  const handleCloserChange = (val) => {
+    setSelectedCloser(val);
     setPagination((p) => ({ ...p, currentPage: 1 }));
   };
 
@@ -292,31 +316,31 @@ const AdminShiftReport = () => {
   const metrics = useMemo(
     () => [
       {
-        label: "Tổng Ca làm (trên trang)",
-        value: data.length,
+        label: "Tổng Ca làm",
+        value: pagination.total,
         tone: "from-sky-500/15 to-cyan-500/5",
       },
       {
         label: "Số đơn hàng",
-        value: totals.paidOrders,
+        value: overallTotals.paidOrders,
         tone: "from-purple-500/15 to-pink-500/5",
       },
       {
         label: "Tổng thu (Tiền mặt)",
-        value: formatMoney(totals.generatedCash),
+        value: formatMoney(overallTotals.generatedCash),
         tone: "from-emerald-500/15 to-teal-500/5",
       },
       {
         label: "Tổng Chênh lệch",
-        value: formatMoney(totals.cashDifference),
+        value: formatMoney(overallTotals.cashDifference),
         tone: "from-amber-500/15 to-orange-500/5",
       },
     ],
     [
-      data.length,
-      totals.paidOrders,
-      totals.generatedCash,
-      totals.cashDifference,
+      pagination.total,
+      overallTotals.paidOrders,
+      overallTotals.generatedCash,
+      overallTotals.cashDifference,
     ]
   );
 
@@ -362,15 +386,33 @@ const AdminShiftReport = () => {
           </Button>
 
           <Select
-            value={selectedStaff}
-            onValueChange={handleStaffChange}
+            value={selectedOpener}
+            onValueChange={handleOpenerChange}
             disabled={loading}
           >
             <SelectTrigger className="w-[180px] transition-shadow duration-200 focus:shadow-md">
-              <SelectValue placeholder="Tất cả nhân viên" />
+              <SelectValue placeholder="Người mở ca" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Tất cả nhân viên</SelectItem>
+              <SelectItem value="all">Tất cả người mở ca</SelectItem>
+              {staffs.map((staff) => (
+                <SelectItem key={staff.id} value={staff.id.toString()}>
+                  {staff.first_name} {staff.last_name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={selectedCloser}
+            onValueChange={handleCloserChange}
+            disabled={loading}
+          >
+            <SelectTrigger className="w-[180px] transition-shadow duration-200 focus:shadow-md">
+              <SelectValue placeholder="Người đóng ca" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tất cả người đóng ca</SelectItem>
               {staffs.map((staff) => (
                 <SelectItem key={staff.id} value={staff.id.toString()}>
                   {staff.first_name} {staff.last_name}

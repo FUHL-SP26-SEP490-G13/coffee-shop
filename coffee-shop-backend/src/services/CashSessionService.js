@@ -289,18 +289,20 @@ class CashSessionService {
   // ================================================
   // LỊCH SỬ CÁC CA (có phân trang)
   // ================================================
-  async getSessionHistory({ date, startDate, endDate, status, page = 1, limit = 10 }) {
-    const result = await CashSessionRepository.findAll({ date, startDate, endDate, status, page, limit });
+  async getSessionHistory({ date, startDate, endDate, status, openerId, closerId, page = 1, limit = 10 }) {
+    const result = await CashSessionRepository.findAll({ date, startDate, endDate, status, openerId, closerId, page, limit });
     return {
       items: result.rows,
+      overallTotals: result.overallTotals,
       pagination: result.pagination,
     };
   }
 
-  async getMySessionHistory({ date, startDate, endDate, status, page = 1, limit = 10 }, userId) {
-    const result = await CashSessionRepository.findAll({ date, startDate, endDate, status, userId, page, limit });
+  async getMySessionHistory({ date, startDate, endDate, status, openerId, closerId, page = 1, limit = 10 }, userId) {
+    const result = await CashSessionRepository.findAll({ date, startDate, endDate, status, openerId, closerId, userId, page, limit });
     return {
       items: result.rows,
+      overallTotals: result.overallTotals,
       pagination: result.pagination,
     };
   }
