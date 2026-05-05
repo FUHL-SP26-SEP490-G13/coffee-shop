@@ -147,12 +147,6 @@ export default function AdminOrders() {
           label: "Đang chuẩn bị",
           color: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900 dark:text-blue-200 dark:border-blue-800",
         };
-      case "preparing_done":
-        return {
-          key: "preparing_done",
-          label: "Đã chuẩn bị xong",
-          color: "bg-indigo-100 text-indigo-800 border-indigo-200 dark:bg-indigo-900 dark:text-indigo-200 dark:border-indigo-800",
-        };
       case "completed":
         return {
           key: "completed",
@@ -257,7 +251,6 @@ export default function AdminOrders() {
       all: 0,
       pending: 0,
       preparing: 0,
-      preparing_done: 0,
       completed: 0,
       cancelled: 0,
     };
@@ -280,7 +273,6 @@ export default function AdminOrders() {
     { value: "all", label: "Tất cả" },
     { value: "pending", label: "Chờ xác nhận" },
     { value: "preparing", label: "Đang chuẩn bị" },
-    { value: "preparing_done", label: "Đã chuẩn bị xong" },
     { value: "completed", label: "Hoàn thành" },
     { value: "cancelled", label: "Đã hủy" },
   ];
@@ -348,7 +340,6 @@ export default function AdminOrders() {
                   <SelectItem value="all">Tất cả đơn hàng</SelectItem>
                   <SelectItem value="pending">Chờ xác nhận</SelectItem>
                   <SelectItem value="preparing">Đang chuẩn bị</SelectItem>
-                  <SelectItem value="preparing_done">Đã chuẩn bị xong</SelectItem>
                   <SelectItem value="completed">Hoàn thành</SelectItem>
                   <SelectItem value="cancelled">Đã hủy</SelectItem>
                 </SelectContent>
