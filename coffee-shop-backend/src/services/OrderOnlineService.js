@@ -102,14 +102,8 @@ class OrderOnlineService {
       );
     }
 
-    const tierOneKm = Math.min(normalizedDistance, OrderOnlineService.FIRST_TIER_MAX_KM);
-    const tierTwoKm = Math.max(0, normalizedDistance - OrderOnlineService.FIRST_TIER_MAX_KM);
-
-    const fee =
-      tierOneKm * OrderOnlineService.FIRST_TIER_RATE +
-      tierTwoKm * OrderOnlineService.SECOND_TIER_RATE;
-
-    return Math.round(fee / OrderOnlineService.MONEY_ROUNDING_UNIT) * OrderOnlineService.MONEY_ROUNDING_UNIT;
+    // Phí vận chuyển đã được yêu cầu gỡ bỏ, nên luôn trả về 0 (nhưng vẫn giữ logic chặn khoảng cách ở trên)
+    return 0;
   }
 
   calculateItemsSubtotal(items = []) {
@@ -134,12 +128,15 @@ class OrderOnlineService {
       return 0;
     }
 
-    const feeFromOrder = Number(order?.delivery_fee ?? order?.shipping_fee);
-    if (Number.isFinite(feeFromOrder) && feeFromOrder > 0) {
-      return (
-        Math.round(feeFromOrder / OrderOnlineService.MONEY_ROUNDING_UNIT) *
-        OrderOnlineService.MONEY_ROUNDING_UNIT
-      );
+    const rawFee = order?.delivery_fee ?? order?.shipping_fee;
+    if (rawFee !== null && rawFee !== undefined) {
+      const feeFromOrder = Number(rawFee);
+      if (Number.isFinite(feeFromOrder)) {
+        return (
+          Math.round(feeFromOrder / OrderOnlineService.MONEY_ROUNDING_UNIT) *
+          OrderOnlineService.MONEY_ROUNDING_UNIT
+        );
+      }
     }
 
     const loyaltyDiscountAmount =
