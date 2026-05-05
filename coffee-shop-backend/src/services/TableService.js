@@ -1322,7 +1322,7 @@ class TableService {
 
       // Validate main table
       const [mainRows] = await connection.query(
-        'SELECT id, code, status, current_session_id FROM tables WHERE id = ? AND is_deleted = 0 FOR UPDATE',
+        'SELECT id, code, status, current_session_id, area_id FROM tables WHERE id = ? AND is_deleted = 0 FOR UPDATE',
         [mainTableId]
       );
       if (!mainRows.length) throw new ErrorResponse(404, 'Bàn chính không tồn tại');
@@ -1334,7 +1334,7 @@ class TableService {
       // Validate sub-tables
       const placeholders = subTableIds.map(() => '?').join(',');
       const [subRows] = await connection.query(
-        `SELECT id, code, status, main_table_id FROM tables WHERE id IN (${placeholders}) AND is_deleted = 0 FOR UPDATE`,
+        `SELECT id, code, status, main_table_id, area_id FROM tables WHERE id IN (${placeholders}) AND is_deleted = 0 FOR UPDATE`,
         subTableIds.map(Number)
       );
 
@@ -1348,6 +1348,10 @@ class TableService {
         }
         if (sub.main_table_id !== null && sub.main_table_id !== undefined) {
           throw new ErrorResponse(400, `Bàn ${sub.code} đã được gộp với bàn khác`);
+        }
+        // Check if sub-table is in the same area as main table
+        if (sub.area_id !== mainTable.area_id) {
+          throw new ErrorResponse(400, `Bàn ${sub.code} không cùng khu vực với bàn chính, không thể gộp`);
         }
       }
 
