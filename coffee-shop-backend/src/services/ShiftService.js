@@ -10,6 +10,23 @@ class ShiftService {
         return hour * 60 + minute;
     }
 
+    // Tính thời điểm kết thúc thực tế của ca (có xử lý ca qua đêm)
+    // dateStr: 'YYYY-MM-DD', startTime/endTime: 'HH:MM'
+    _buildShiftEndDatetime(dateStr, startTime, endTime) {
+        const [y, m, d] = dateStr.split('-').map(Number);
+        const [eh, em] = endTime.slice(0, 5).split(':').map(Number);
+        const [sh, sm] = startTime.slice(0, 5).split(':').map(Number);
+        const endMins = eh * 60 + em;
+        const startMins = sh * 60 + sm;
+
+        const endDate = new Date(y, m - 1, d, eh, em, 0, 0);
+        // Ca qua đêm: end <= start → ca kết thúc vào ngày hôm sau
+        if (endMins <= startMins) {
+            endDate.setDate(endDate.getDate() + 1);
+        }
+        return endDate;
+    }
+
     // Biến 1 ca thành 1 hoặc 2 đoạn thời gian trong ngày
     // Ví dụ:
     // 08:00-12:00 => [[480, 720]]
@@ -70,6 +87,17 @@ class ShiftService {
         const template = await ShiftRepository.findTemplateById(template_id);
         if (!template) {
             throw new ErrorResponse(404, 'Ca làm việc không tồn tại');
+        }
+
+        // Nếu gán cho hôm nay → kiểm tra ca có đã kết thúc chưa
+        if (assignDate.getTime() === today.getTime()) {
+            const shiftEndDatetime = this._buildShiftEndDatetime(date, template.start_time, template.end_time);
+            if (new Date() > shiftEndDatetime) {
+                throw new ErrorResponse(
+                    400,
+                    `${template.name} (${template.start_time.slice(0, 5)}–${template.end_time.slice(0, 5)}) đã kết thúc, không thể gán.`,
+                );
+            }
         }
 
         const user = await ShiftRepository.findUserById(user_id);
@@ -268,6 +296,9 @@ class ShiftService {
         };
 
         // 3. Validate toàn bộ trước
+        const now = new Date();
+        const todayStr = formatDateStr(today);
+
         for (let dayOffset = 0; dayOffset < totalDays; dayOffset++) {
             const currentDate = new Date(startDate);
             currentDate.setDate(startDate.getDate() + dayOffset);
@@ -283,8 +314,20 @@ class ShiftService {
                 const user = userMap[item.user_id];
                 const template = templateMap[item.template_id];
 
+                // 3.0 Nếu là hôm nay → kiểm tra ca có đã kết thúc chưa
+                if (dateStr === todayStr) {
+                    const shiftEndDatetime = this._buildShiftEndDatetime(dateStr, template.start_time, template.end_time);
+                    if (now > shiftEndDatetime) {
+                        throw new ErrorResponse(
+                            400,
+                            `${template.name} (${template.start_time.slice(0, 5)}–${template.end_time.slice(0, 5)}) ngày ${dateStr} đã kết thúc, không thể gán.`,
+                        );
+                    }
+                }
+
                 // 3.1 Check overlap
                 const existingShifts = await getUserShiftsInDay(item.user_id, dateStr);
+
 
                 for (const existingShift of existingShifts) {
                     // Cùng template thì để duplicate registration xử lý bên dưới
